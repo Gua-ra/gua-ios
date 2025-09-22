@@ -123,7 +123,7 @@ extension XCUIApplication {
         logoutButton.tap(.center)
         
         // Confirm logout
-        let alertLogoutButton = alerts.firstMatch.buttons["Sign out"]
+        let alertLogoutButton = alerts.firstMatch.buttons["Sign out"].firstMatch
         XCTAssertTrue(alertLogoutButton.waitForExistence(timeout: 10.0))
         alertLogoutButton.tap(.center)
         
