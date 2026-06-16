@@ -454,8 +454,11 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
             // created on (register), instead of hardcoding a single account provider. Falls back to the
             // configured default provider when the resolver is unavailable or not configured, so the app
             // keeps working before the resolver is deployed.
+            // Use the homeserver base URL the resolver returned directly (configure(for:) accepts a
+            // server name OR a homeserver URL). This avoids re-discovering via HTTPS well-known on the
+            // server name, which is redundant and fails for http/localhost homeservers.
             let resolution = await resolveHomeserver(forPhone: phoneNumber)
-            guard let accountProvider = resolution?.homeserver.serverName ?? appSettings.accountProviders.first else {
+            guard let accountProvider = resolution?.homeserver.baseURL ?? appSettings.accountProviders.first else {
                 coordinator.displayError(L10n.errorUnknown)
                 return
             }
