@@ -55,10 +55,11 @@ final class ContactDiscoveryService: ContactDiscoveryServiceProtocol {
     private let store = CNContactStore()
 
     /// Identity-service caps the batch; stay under it.
-    private let maxNumbersPerRequest = 1000
+    private let maxNumbersPerRequest: Int
 
-    init(identityServiceClient: IdentityServiceClientProtocol) {
+    init(identityServiceClient: IdentityServiceClientProtocol, maxNumbersPerRequest: Int = 1000) {
         self.identityServiceClient = identityServiceClient
+        self.maxNumbersPerRequest = max(1, maxNumbersPerRequest)
     }
 
     var authorizationStatus: CNAuthorizationStatus {
@@ -82,10 +83,9 @@ final class ContactDiscoveryService: ContactDiscoveryServiceProtocol {
         let nameByNumber = readAddressBook()
         guard !nameByNumber.isEmpty else { throw ContactDiscoveryError.noContactsWithNumbers }
 
-        let phones = Array(nameByNumber.keys.prefix(maxNumbersPerRequest))
         let matches: [ContactMatch]
         do {
-            matches = try await identityServiceClient.lookupContacts(accessToken: accessToken, phones: phones)
+            matches = try await lookupContactMatches(accessToken: accessToken, phones: nameByNumber.keys.sorted())
         } catch {
             throw ContactDiscoveryError.lookupFailed(error)
         }
@@ -98,6 +98,17 @@ final class ContactDiscoveryService: ContactDiscoveryServiceProtocol {
                                   username: match.username)
             }
             .sorted { $0.localName.localizedCaseInsensitiveCompare($1.localName) == .orderedAscending }
+    }
+
+    func lookupContactMatches(accessToken: String, phones: [String]) async throws -> [ContactMatch] {
+        var matches: [ContactMatch] = []
+        for startIndex in stride(from: phones.startIndex, to: phones.endIndex, by: maxNumbersPerRequest) {
+            let endIndex = min(startIndex + maxNumbersPerRequest, phones.endIndex)
+            let batch = Array(phones[startIndex..<endIndex])
+            let batchMatches = try await identityServiceClient.lookupContacts(accessToken: accessToken, phones: batch)
+            matches.append(contentsOf: batchMatches)
+        }
+        return matches
     }
 
     // MARK: - Address book
@@ -132,21 +143,42 @@ final class ContactDiscoveryService: ContactDiscoveryServiceProtocol {
     }
 
     /// Best-effort E.164 normalization for an address-book number. International numbers
-    /// (with `+` or `00`) are used as-is; national numbers get the device region's dial code
-    /// with a single trunk `0` dropped. The server validates and silently skips anything that
-    /// still isn't valid E.164, so over-normalizing is harmless.
+    /// (with `+`, `00`, or the device region's dial code already included) are used as-is;
+    /// national numbers get the device region's dial code with a single trunk `0` dropped.
+    /// The server validates and silently skips anything that still isn't valid E.164, so
+    /// over-normalizing is harmless.
     static func normalizeToE164(_ raw: String, defaultDialCode: String) -> String? {
-        var cleaned = raw.filter { $0.isNumber || $0 == "+" }
-        if cleaned.hasPrefix("+") {
-            // already international
-        } else if cleaned.hasPrefix("00") {
-            cleaned = "+" + cleaned.dropFirst(2)
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let digits = trimmed.filter(\.isNumber)
+        let defaultDialCodeDigits = defaultDialCode.filter(\.isNumber)
+        guard !digits.isEmpty, !defaultDialCodeDigits.isEmpty else { return nil }
+
+        let cleaned: String
+        if trimmed.hasPrefix("+") {
+            cleaned = "+\(digits)"
+        } else if digits.hasPrefix("00") {
+            cleaned = "+\(digits.dropFirst(2))"
+        } else if hasExistingDefaultDialCodePrefix(digits, defaultDialCode: defaultDialCodeDigits) {
+            cleaned = "+\(digits)"
         } else {
-            var national = cleaned
+            var national = digits
             if national.hasPrefix("0") { national = String(national.dropFirst()) }
-            cleaned = "+" + defaultDialCode + national
+            cleaned = "+\(defaultDialCodeDigits)\(national)"
         }
-        let isE164 = cleaned.range(of: "^\\+[1-9]\\d{6,14}$", options: .regularExpression) != nil
-        return isE164 ? cleaned : nil
+
+        return isE164(cleaned) ? cleaned : nil
+    }
+
+    private static func hasExistingDefaultDialCodePrefix(_ digits: String, defaultDialCode: String) -> Bool {
+        guard digits.hasPrefix(defaultDialCode), digits.count > defaultDialCode.count else { return false }
+        if defaultDialCode == "1" {
+            return digits.count == 11
+        }
+        return isE164("+\(digits)")
+    }
+
+    private static func isE164(_ number: String) -> Bool {
+        let isE164 = number.range(of: "^\\+[1-9]\\d{6,14}$", options: .regularExpression) != nil
+        return isE164
     }
 }

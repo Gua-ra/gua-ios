@@ -974,6 +974,7 @@
 		AB6F5AA5FFB6400BAC29A68B /* DeviceKit in Frameworks */ = {isa = PBXBuildFile; productRef = 32767CDE52FC908FD9DD8DE9 /* DeviceKit */; };
 		ABBA222D9E3FECC31905F13D /* PinSetupScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 083913FD7519195C80EFDBC7 /* PinSetupScreen.swift */; };
 		ABD6A02A43ADC58290C6A042 /* PhotoLibraryManagerMock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C61B344D323E7908155CC41 /* PhotoLibraryManagerMock.swift */; };
+		ABE7DA043D06F33E6E64F458 /* ContactDiscoveryServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B29DB9AE5E3E833A935C4916 /* ContactDiscoveryServiceTests.swift */; };
 		AC43A0FDCB33C16583CB57AD /* UserIdentityProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38C4B5AD2E260F7E1BA558C1 /* UserIdentityProxy.swift */; };
 		AC6AC4299AFE42923332C3B8 /* VoiceMessageMediaManagerProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9455D89C7BE5C4D2C13F4883 /* VoiceMessageMediaManagerProtocol.swift */; };
 		AC71F34D68937CE399F31699 /* SplashScreenCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 502C17891914A993E4E8F908 /* SplashScreenCoordinator.swift */; };
@@ -2473,6 +2474,7 @@
 		B26ECE1D3357E5BA39AABEDD /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		B270F5FA64D719CC693E0133 /* Consumable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Consumable.swift; sourceTree = "<group>"; };
 		B29048EE15FD5AD4E1A986E4 /* ElementTextFieldStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ElementTextFieldStyle.swift; sourceTree = "<group>"; };
+		B29DB9AE5E3E833A935C4916 /* ContactDiscoveryServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactDiscoveryServiceTests.swift; sourceTree = "<group>"; };
 		B2AD38F40FB8A23046BF614E /* SecureBackupRecoveryKeyScreenViewModelProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureBackupRecoveryKeyScreenViewModelProtocol.swift; sourceTree = "<group>"; };
 		B2E36F33CC2D9BCE80CCB0F9 /* RoomMemberDetailsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomMemberDetailsScreen.swift; sourceTree = "<group>"; };
 		B32F2540D9A4721AF1EFD8B7 /* Snapshotting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Snapshotting.swift; sourceTree = "<group>"; };
@@ -5160,6 +5162,7 @@
 				905C1059080C73ED7AEA92C6 /* ChatsFlowCoordinatorTests.swift */,
 				D14130352412B50BD51055AB /* CompletionSuggestionServiceTests.swift */,
 				60AE3DF93739068E5F42ACB4 /* ComposerToolbarViewModelTests.swift */,
+				B29DB9AE5E3E833A935C4916 /* ContactDiscoveryServiceTests.swift */,
 				2DCC9592435A628118D67580 /* CreateRoomViewModelTests.swift */,
 				E34076BB169E7B0CE56B246D /* DateTests.swift */,
 				4CCF31ACD122574512961936 /* DeactivateAccountScreenViewModelTests.swift */,
@@ -8571,6 +8574,7 @@
 				B37F68A45063CE3932F7B29D /* CollapsibleFlowLayoutTests.swift in Sources */,
 				A0DA328E8D1FDA51A8EB5F70 /* CompletionSuggestionServiceTests.swift in Sources */,
 				F5054656F729F30C431B7AB5 /* ComposerToolbarViewModelTests.swift in Sources */,
+				ABE7DA043D06F33E6E64F458 /* ContactDiscoveryServiceTests.swift in Sources */,
 				24D1BFA88A59A8DECFE75D79 /* CreateRoomViewModelTests.swift in Sources */,
 				26AF8CF84D424AEA78879532 /* DateTests.swift in Sources */,
 				0ED77B8F70AEBAE26448C134 /* DeactivateAccountScreenViewModelTests.swift in Sources */,
@@ -9181,7 +9185,7 @@
 				PRODUCT_NAME = UnitTests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ElementX.app/ElementX";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/$(APP_NAME).app/$(APP_NAME)";
 			};
 			name = Debug;
 		};
@@ -9349,6 +9353,7 @@
 				);
 				PILLS_UT_TYPE_IDENTIFIER = "$(BASE_BUNDLE_IDENTIFIER).pills";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(BASE_BUNDLE_IDENTIFIER)";
+				PRODUCT_MODULE_NAME = ElementX;
 				PRODUCT_NAME = "$(APP_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_OBJC_BRIDGING_HEADER = "ElementX/SupportingFiles/ElementX-Bridging-Header.h";
@@ -9497,6 +9502,7 @@
 				);
 				PILLS_UT_TYPE_IDENTIFIER = "$(BASE_BUNDLE_IDENTIFIER).pills";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(BASE_BUNDLE_IDENTIFIER)";
+				PRODUCT_MODULE_NAME = ElementX;
 				PRODUCT_NAME = "$(APP_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_OBJC_BRIDGING_HEADER = "ElementX/SupportingFiles/ElementX-Bridging-Header.h";
@@ -9546,7 +9552,7 @@
 				PRODUCT_NAME = UnitTests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ElementX.app/ElementX";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/$(APP_NAME).app/$(APP_NAME)";
 			};
 			name = Release;
 		};
