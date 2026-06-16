@@ -7,5 +7,6 @@ enum Secrets {
     static let mapLibreAPIKey: String? = "your_key"
 
     static let identityServiceBaseURL: String? = "http://localhost:8080"
+    static let resolverBaseURL: String? = "http://localhost:8095"
 
 }
