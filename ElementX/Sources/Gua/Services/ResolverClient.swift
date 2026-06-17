@@ -63,10 +63,10 @@ final class ResolverClient: ResolverClientProtocol {
         self.session = session
     }
 
-    /// Convenience initializer using `Secrets.resolverBaseURL`. Returns `nil` when the resolver is not
-    /// configured, so callers fall back to the default account provider.
+    /// Convenience initializer using the active `GuaDeployment`'s resolver URL. Returns `nil` when the
+    /// resolver is not configured, so callers fall back to the default account provider.
     convenience init?() {
-        guard let raw = Secrets.resolverBaseURL, let url = URL(string: raw) else { return nil }
+        guard let url = GuaDeployment.current.resolverBaseURL else { return nil }
         self.init(baseURL: url)
     }
 
