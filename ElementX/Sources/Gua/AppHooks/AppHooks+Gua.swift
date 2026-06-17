@@ -13,8 +13,13 @@ private struct GuaAppSettingsHook: AppSettingsHookProtocol {
     private enum Constants {
         static let defaultAccountProvider = "dev.gua.sarahlacerda.me"
         static let oidcRedirectURL = "me.sarahlacerda.gua://oidc"
-        static let localMasIssuerURL = "http://localhost:8090/"
         static let localMasClientID = "01JXGA7E570000000000000000"
+        static let localStaticRegistrationURLs = [
+            "http://localhost:8008",
+            "http://localhost:8008/",
+            "http://localhost:8090",
+            "http://localhost:8090/"
+        ]
         static let infoPlistAccountProviderKey = "GuaDefaultAccountProvider"
         static let infoPlistRedirectURLKey = "GuaOidcRedirectURL"
         static let infoPlistStaticRegistrationsKey = "GuaOidcStaticRegistrations"
@@ -62,8 +67,9 @@ private struct GuaAppSettingsHook: AppSettingsHookProtocol {
     private func makeStaticRegistrations() -> [URL: String]? {
         var result: [URL: String] = [:]
 
-        if let localMasIssuer = URL(string: Constants.localMasIssuerURL) {
-            result[localMasIssuer] = Constants.localMasClientID
+        for staticRegistrationURLString in Constants.localStaticRegistrationURLs {
+            guard let staticRegistrationURL = URL(string: staticRegistrationURLString) else { continue }
+            result[staticRegistrationURL] = Constants.localMasClientID
         }
 
         guard let rawValue = string(for: Constants.infoPlistStaticRegistrationsKey)?.trimmingCharacters(in: .whitespacesAndNewlines),
