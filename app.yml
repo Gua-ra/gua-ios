@@ -6,5 +6,5 @@ settings:
   ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: "colors/accent-color"
   DEVELOPMENT_TEAM: 3HD49L7PSA
   DEFAULT_ACCOUNT_PROVIDER: dev.gua.sarahlacerda.me
-  OIDC_REDIRECT_URL: me.sarahlacerda.gua://oidc
+  OIDC_REDIRECT_URL: global.gua:/oidc
   OIDC_STATIC_REGISTRATIONS: ""
