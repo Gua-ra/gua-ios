@@ -11,7 +11,6 @@ import MatrixRustSDK
 #if IS_MAIN_APP
 private struct GuaAppSettingsHook: AppSettingsHookProtocol {
     private enum Constants {
-        static let defaultAccountProvider = "dev.gua.sarahlacerda.me"
         // Custom-scheme OIDC redirect. MAS's client-registration policy requires a
         // native redirect with NO authority (`scheme:/path`, not `scheme://host`) whose
         // reverse-DNS scheme matches the client_uri host — `global.gua` ⇄ `gua.global`.
@@ -40,7 +39,13 @@ private struct GuaAppSettingsHook: AppSettingsHookProtocol {
     }
 
     func configure(_ appSettings: AppSettings) -> AppSettings {
-        let accountProvider = string(for: Constants.infoPlistAccountProviderKey) ?? Constants.defaultAccountProvider
+        // The account provider is injected, never hardcoded: an optional Info.plist override
+        // (empty by default) wins, otherwise GuaDeployment supplies it — the production gua.global
+        // host, or the dev host from the per-machine Secrets pipeline. Falls back to the existing
+        // providers if nothing is configured.
+        let injectedProvider = string(for: Constants.infoPlistAccountProviderKey)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedProvider = (injectedProvider?.isEmpty == false ? injectedProvider : nil) ?? GuaDeployment.current.defaultAccountProvider
+        let accountProviders = resolvedProvider.map { [$0] } ?? appSettings.accountProviders
         let redirectURLString = string(for: Constants.infoPlistRedirectURLKey) ?? Constants.oidcRedirectURL
 
         guard let redirectURL = URL(string: redirectURLString) else {
@@ -50,7 +55,7 @@ private struct GuaAppSettingsHook: AppSettingsHookProtocol {
 
         let staticRegistrations = makeStaticRegistrations()
 
-        appSettings.override(accountProviders: [accountProvider],
+        appSettings.override(accountProviders: accountProviders,
                              allowOtherAccountProviders: true,
                              hideBrandChrome: appSettings.hideBrandChrome,
                              pushGatewayBaseURL: appSettings.pushGatewayBaseURL,
