@@ -96,8 +96,6 @@ struct AuthenticationStartScreen: View {
     private var trustPills: some View {
         VStack(spacing: 8) {
             TrustPill(systemImage: "lock.fill", title: L10n.screenOnboardingTrustEncrypted)
-            TrustPill(systemImage: "heart.fill", title: L10n.screenOnboardingTrustFree)
-            TrustPill(systemImage: "hand.raised.fill", title: L10n.screenOnboardingTrustIndependent)
         }
     }
 

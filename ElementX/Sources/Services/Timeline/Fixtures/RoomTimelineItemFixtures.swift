@@ -260,6 +260,156 @@ enum RoomTimelineItemFixtures {
         SeparatorRoomTimelineItem(id: .virtual(uniqueID: .init(UUID().uuidString)),
                                   timestamp: .now)
     }
+
+    // MARK: - Gua marketing fixtures
+
+    /// A reaction with the given emoji applied by `count` distinct people.
+    private static func guaReaction(_ key: String, count: Int) -> AggregatedReaction {
+        let senders = (0..<count).map { ReactionSender(id: "gua_sender_\($0)", timestamp: .now) }
+        return AggregatedReaction(accountOwnerID: "gua_me", key: key, senders: senders)
+    }
+
+    /// Group chat showcase: text, inline image, a reply quoting a previous bubble,
+    /// emoji reactions and a PDF file attachment. Portuguese, no em dashes.
+    static var guaMarketingGroup: [RoomTimelineItemProtocol] {
+        [
+            TextRoomTimelineItem(id: .event(uniqueID: .init("gua.group.0"),
+                                            eventOrTransactionID: .eventID("gua.group.0")),
+                                 timestamp: .mock,
+                                 isOutgoing: false,
+                                 isEditable: false,
+                                 canBeRepliedTo: true,
+                                 sender: .init(id: "@bruno:gua", displayName: "Bruno"),
+                                 content: .init(body: "Fechou o churrasco sábado então! 🔥")),
+            ImageRoomTimelineItem(id: .event(uniqueID: .init("gua.group.1"),
+                                             eventOrTransactionID: .eventID("gua.group.1")),
+                                  timestamp: .mock,
+                                  isOutgoing: false,
+                                  isEditable: false,
+                                  canBeRepliedTo: true,
+                                  sender: .init(id: "@bruno:gua", displayName: "Bruno"),
+                                  content: .init(filename: "churrasco.jpg",
+                                                 caption: nil,
+                                                 imageInfo: .mockImage,
+                                                 thumbnailInfo: nil,
+                                                 blurhash: "KpE4oyayR5|GbHb];3j@of")),
+            TextRoomTimelineItem(id: .event(uniqueID: .init("gua.group.2"),
+                                            eventOrTransactionID: .eventID("gua.group.2")),
+                                 timestamp: .mock,
+                                 isOutgoing: true,
+                                 isEditable: true,
+                                 canBeRepliedTo: true,
+                                 sender: .init(id: "@voce:gua", displayName: "Você"),
+                                 content: .init(body: "Boraa! Levo a caixa de som 🔊"),
+                                 properties: RoomTimelineItemProperties(replyDetails: .loaded(sender: .init(id: "@bruno:gua", displayName: "Bruno"),
+                                                                                              eventID: "gua.group.0",
+                                                                                              eventContent: .message(.text(.init(body: "Fechou o churrasco sábado então! 🔥")))))),
+            TextRoomTimelineItem(id: .event(uniqueID: .init("gua.group.3"),
+                                            eventOrTransactionID: .eventID("gua.group.3")),
+                                 timestamp: .mock,
+                                 isOutgoing: false,
+                                 isEditable: false,
+                                 canBeRepliedTo: true,
+                                 sender: .init(id: "@rafa:gua", displayName: "Rafa"),
+                                 content: .init(body: "Eu levo as carnes"),
+                                 properties: RoomTimelineItemProperties(reactions: [guaReaction("👍", count: 8)])),
+            FileRoomTimelineItem(id: .event(uniqueID: .init("gua.group.4"),
+                                            eventOrTransactionID: .eventID("gua.group.4")),
+                                 timestamp: .mock,
+                                 isOutgoing: false,
+                                 isEditable: false,
+                                 canBeRepliedTo: true,
+                                 sender: .init(id: "@marina:gua", displayName: "Marina"),
+                                 content: .init(filename: "Lista_compras.pdf",
+                                                caption: nil,
+                                                source: try? .init(url: .mockMXCFile, mimeType: nil),
+                                                fileSize: 1_200_000,
+                                                thumbnailSource: nil,
+                                                contentType: .pdf))
+        ]
+    }
+
+    /// One to one reconnect showcase: incoming texts, an inline image and an outgoing reply.
+    /// Portuguese, no em dashes.
+    static var guaMarketing1to1: [RoomTimelineItemProtocol] {
+        [
+            TextRoomTimelineItem(id: .event(uniqueID: .init("gua.dm.0"),
+                                            eventOrTransactionID: .eventID("gua.dm.0")),
+                                 timestamp: .mock,
+                                 isOutgoing: false,
+                                 isEditable: false,
+                                 canBeRepliedTo: true,
+                                 sender: .init(id: "@camila:gua", displayName: "Camila Moraes"),
+                                 content: .init(body: "Sumida! Comprei extrato de baunilha hoje e lembrei de ti 🥹")),
+            TextRoomTimelineItem(id: .event(uniqueID: .init("gua.dm.1"),
+                                            eventOrTransactionID: .eventID("gua.dm.1")),
+                                 timestamp: .mock,
+                                 isOutgoing: false,
+                                 isEditable: false,
+                                 canBeRepliedTo: true,
+                                 sender: .init(id: "@camila:gua", displayName: "Camila Moraes"),
+                                 content: .init(body: "Me mudei pra Floripa ano passado, tô morando de frente pro mar agora 🌅")),
+            ImageRoomTimelineItem(id: .event(uniqueID: .init("gua.dm.2"),
+                                             eventOrTransactionID: .eventID("gua.dm.2")),
+                                  timestamp: .mock,
+                                  isOutgoing: false,
+                                  isEditable: false,
+                                  canBeRepliedTo: true,
+                                  sender: .init(id: "@camila:gua", displayName: "Camila Moraes"),
+                                  content: .init(filename: "vista_mar.jpg",
+                                                 caption: nil,
+                                                 imageInfo: .mockImage,
+                                                 thumbnailInfo: nil,
+                                                 blurhash: "KpE4oyayR5|GbHb];3j@of")),
+            TextRoomTimelineItem(id: .event(uniqueID: .init("gua.dm.3"),
+                                            eventOrTransactionID: .eventID("gua.dm.3")),
+                                 timestamp: .mock,
+                                 isOutgoing: true,
+                                 isEditable: true,
+                                 canBeRepliedTo: true,
+                                 sender: .init(id: "@voce:gua", displayName: "Você"),
+                                 content: .init(body: "Que paz nesse lugar 😍"))
+        ]
+    }
+
+    /// French Canadian one to one showcase: brunch plans in clean Québécois French.
+    /// No em dashes, no homeserver.
+    static var guaMarketingCanadaFR: [RoomTimelineItemProtocol] {
+        [
+            TextRoomTimelineItem(id: .event(uniqueID: .init("gua.fr.0"),
+                                            eventOrTransactionID: .eventID("gua.fr.0")),
+                                 timestamp: .mock,
+                                 isOutgoing: false,
+                                 isEditable: false,
+                                 canBeRepliedTo: true,
+                                 sender: .init(id: "@emilie:gua", displayName: "Émilie Tremblay"),
+                                 content: .init(body: "Salut! 😊 On confirme le brunch dimanche?")),
+            TextRoomTimelineItem(id: .event(uniqueID: .init("gua.fr.1"),
+                                            eventOrTransactionID: .eventID("gua.fr.1")),
+                                 timestamp: .mock,
+                                 isOutgoing: false,
+                                 isEditable: false,
+                                 canBeRepliedTo: true,
+                                 sender: .init(id: "@emilie:gua", displayName: "Émilie Tremblay"),
+                                 content: .init(body: "J'ai trouvé un petit café parfait dans le Mile End, les meilleurs bagels en ville 🥯")),
+            TextRoomTimelineItem(id: .event(uniqueID: .init("gua.fr.2"),
+                                            eventOrTransactionID: .eventID("gua.fr.2")),
+                                 timestamp: .mock,
+                                 isOutgoing: true,
+                                 isEditable: true,
+                                 canBeRepliedTo: true,
+                                 sender: .init(id: "@voce:gua", displayName: "Você"),
+                                 content: .init(body: "Oui! J'ai trop hâte ☕ On dit 11h?")),
+            TextRoomTimelineItem(id: .event(uniqueID: .init("gua.fr.3"),
+                                            eventOrTransactionID: .eventID("gua.fr.3")),
+                                 timestamp: .mock,
+                                 isOutgoing: false,
+                                 isEditable: false,
+                                 canBeRepliedTo: true,
+                                 sender: .init(id: "@emilie:gua", displayName: "Émilie Tremblay"),
+                                 content: .init(body: "Parfait, à dimanche! 🍁"))
+        ]
+    }
 }
 
 private extension TextRoomTimelineItem {

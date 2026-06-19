@@ -272,24 +272,37 @@ struct SettingsScreen: View {
 struct SettingsScreen_Previews: PreviewProvider, TestablePreview {
     static let viewModel = makeViewModel()
     static let bugReportDisabledViewModel = makeViewModel(isBugReportServiceEnabled: false)
-    
+    static let guaMarketingViewModel = makeViewModel(userID: "@anacosta:gua", displayName: "Ana Costa")
+
     static var previews: some View {
+        NavigationStack {
+            SettingsScreen(context: guaMarketingViewModel.context)
+        }
+        .environment(\.colorScheme, .dark)
+        .preferredColorScheme(.dark)
+        .previewDisplayName("GuaMarketingAjustes")
+
         NavigationStack {
             SettingsScreen(context: viewModel.context)
         }
         .snapshotPreferences(expect: viewModel.context.observe(\.viewState.accountSessionsListURL).map { $0 != nil }.eraseToStream())
         .previewDisplayName("Default")
-        
+
         NavigationStack {
             SettingsScreen(context: bugReportDisabledViewModel.context)
         }
         .snapshotPreferences(expect: bugReportDisabledViewModel.context.observe(\.viewState.accountSessionsListURL).map { $0 != nil }.eraseToStream())
         .previewDisplayName("Bug report disabled")
     }
-    
-    static func makeViewModel(isBugReportServiceEnabled: Bool = true) -> SettingsScreenViewModel {
-        let userSession = UserSessionMock(.init(clientProxy: ClientProxyMock(.init(userID: "@userid:example.com",
-                                                                                   deviceID: "AAAAAAAAAAA"))))
+
+    static func makeViewModel(isBugReportServiceEnabled: Bool = true,
+                              userID: String = "@userid:example.com",
+                              displayName: String? = nil) -> SettingsScreenViewModel {
+        let clientProxy = ClientProxyMock(.init(userID: userID, deviceID: "AAAAAAAAAAA"))
+        if let displayName {
+            clientProxy.userDisplayNamePublisher = .init(displayName)
+        }
+        let userSession = UserSessionMock(.init(clientProxy: clientProxy))
         return SettingsScreenViewModel(userSession: userSession,
                                        appSettings: ServiceLocator.shared.settings,
                                        isBugReportServiceEnabled: isBugReportServiceEnabled)

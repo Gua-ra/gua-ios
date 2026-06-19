@@ -200,5 +200,12 @@ struct PhoneEntryScreen_Previews: PreviewProvider, TestablePreview {
             PhoneEntryScreen(context: viewModelLegacy.context)
         }
         .previewDisplayName("Legacy enabled")
+
+        NavigationStack {
+            PhoneEntryScreen(context: viewModel.context)
+        }
+        .environment(\.colorScheme, .dark)
+        .preferredColorScheme(.dark)
+        .previewDisplayName("Dark")
     }
 }
