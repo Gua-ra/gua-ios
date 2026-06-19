@@ -113,7 +113,6 @@ targets:
         aps-environment: $(APNS_ENVIRONMENT)
         com.apple.developer.associated-domains:
         - webcredentials:gua.global
-        - webcredentials:identity.gua.global
         # The non-public dev host's webcredentials entry is intentionally NOT committed.
         # Add `- webcredentials:<dev-host>` locally (and mark this file assume-unchanged) if you
         # need passkeys against the dev server.
