@@ -883,8 +883,6 @@
 "screen_onboarding_sign_in_to" = "Se connecter à %1$@";
 "screen_onboarding_sign_in_with_qr_code" = "Se connecter avec un QR code";
 "screen_onboarding_sign_up" = "Créer un compte";
-"screen_onboarding_welcome_message" = "Boosté pour plus de rapidité et de simplicité.";
-"screen_onboarding_welcome_subtitle" = "Boosté, pour plus de rapidité et de simplicité.";
 "screen_onboarding_welcome_title" = "Bienvenue sur Gua";
 "screen_polls_history_empty_ongoing" = "Impossible de trouver des sondages en cours.";
 "screen_polls_history_empty_past" = "Impossible de trouver des sondages terminés.";
@@ -1419,8 +1417,6 @@
 "screen_account_reauth_send_code" = "Envoyer le code de vérification";
 "screen_account_reauth_verified" = "Vérifié";
 "screen_onboarding_trust_encrypted" = "Chiffré de bout en bout";
-"screen_onboarding_trust_free" = "Gratuit, pour toujours";
-"screen_onboarding_trust_independent" = "Sans les géants de la tech";
 "screen_phone_login_footer" = "Nous enverrons un code de vérification par SMS à ce numéro.";
 "screen_phone_login_legacy" = "Se connecter avec une autre méthode";
 "screen_phone_login_welcome" = "Bienvenue sur Gua";

@@ -883,8 +883,6 @@
 "screen_onboarding_sign_in_to" = "登录到 %1$@";
 "screen_onboarding_sign_in_with_qr_code" = "使用二维码登录";
 "screen_onboarding_sign_up" = "创建账户";
-"screen_onboarding_welcome_message" = "速度与简洁的极致。";
-"screen_onboarding_welcome_subtitle" = "速度与简洁的极致。";
 "screen_onboarding_welcome_title" = "欢迎使用 Gua";
 "screen_polls_history_empty_ongoing" = "无法找到正在进行的投票。";
 "screen_polls_history_empty_past" = "无法找到历史投票";

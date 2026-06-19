@@ -883,8 +883,6 @@
 "screen_onboarding_sign_in_to" = "Sign in to %1$@";
 "screen_onboarding_sign_in_with_qr_code" = "Sign in with QR code";
 "screen_onboarding_sign_up" = "Create account";
-"screen_onboarding_welcome_message" = "Supercharged for speed and simplicity.";
-"screen_onboarding_welcome_subtitle" = "Supercharged, for speed and simplicity.";
 "screen_onboarding_welcome_title" = "Welcome to Gua";
 "screen_polls_history_empty_ongoing" = "Can't find any ongoing polls.";
 "screen_polls_history_empty_past" = "Can't find any past polls.";

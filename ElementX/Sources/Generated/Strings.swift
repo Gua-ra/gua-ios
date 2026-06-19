@@ -1976,14 +1976,6 @@ internal enum L10n {
   internal static var screenOnboardingSignUp: String { return L10n.tr("Localizable", "screen_onboarding_sign_up") }
   /// End-to-end encrypted
   internal static var screenOnboardingTrustEncrypted: String { return L10n.tr("Localizable", "screen_onboarding_trust_encrypted") }
-  /// Free, forever
-  internal static var screenOnboardingTrustFree: String { return L10n.tr("Localizable", "screen_onboarding_trust_free") }
-  /// No big tech
-  internal static var screenOnboardingTrustIndependent: String { return L10n.tr("Localizable", "screen_onboarding_trust_independent") }
-  /// Private messaging, built around your number.
-  internal static var screenOnboardingWelcomeMessage: String { return L10n.tr("Localizable", "screen_onboarding_welcome_message") }
-  /// Supercharged, for speed and simplicity.
-  internal static var screenOnboardingWelcomeSubtitle: String { return L10n.tr("Localizable", "screen_onboarding_welcome_subtitle") }
   /// Welcome to Gua
   internal static var screenOnboardingWelcomeTitle: String { return L10n.tr("Localizable", "screen_onboarding_welcome_title") }
   /// 6-digit code

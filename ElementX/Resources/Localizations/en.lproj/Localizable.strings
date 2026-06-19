@@ -884,10 +884,6 @@
 "screen_onboarding_sign_in_with_qr_code" = "Sign in with QR code";
 "screen_onboarding_sign_up" = "Create account";
 "screen_onboarding_trust_encrypted" = "End-to-end encrypted";
-"screen_onboarding_trust_free" = "Free, forever";
-"screen_onboarding_trust_independent" = "No big tech";
-"screen_onboarding_welcome_message" = "Private messaging, built around your number.";
-"screen_onboarding_welcome_subtitle" = "Supercharged, for speed and simplicity.";
 "screen_onboarding_welcome_title" = "Welcome to Gua";
 "screen_polls_history_empty_ongoing" = "Can't find any ongoing polls.";
 "screen_polls_history_empty_past" = "Can't find any past polls.";

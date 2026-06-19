@@ -884,10 +884,6 @@
 "screen_onboarding_sign_in_with_qr_code" = "Entrar com código QR";
 "screen_onboarding_sign_up" = "Criar conta";
 "screen_onboarding_trust_encrypted" = "Criptografia de ponta a ponta";
-"screen_onboarding_trust_free" = "Grátis, para sempre";
-"screen_onboarding_trust_independent" = "Sem big tech";
-"screen_onboarding_welcome_message" = "Mensagens privadas, feitas para o seu número.";
-"screen_onboarding_welcome_subtitle" = "Turbinado, para velocidade e simplicidade.";
 "screen_onboarding_welcome_title" = "Bem-vindo ao Gua";
 "screen_polls_history_empty_ongoing" = "Não foi possível encontrar nenhuma enquete em andamento.";
 "screen_polls_history_empty_past" = "Não foi possível encontrar nenhuma enquete anterior.";

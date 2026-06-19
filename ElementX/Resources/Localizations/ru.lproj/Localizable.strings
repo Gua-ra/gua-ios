@@ -883,8 +883,6 @@
 "screen_onboarding_sign_in_to" = "Войти в %1$@";
 "screen_onboarding_sign_in_with_qr_code" = "Войти QR-кодом";
 "screen_onboarding_sign_up" = "Создать учетную запись";
-"screen_onboarding_welcome_message" = "Суперзаряжено для скорости и простоты.";
-"screen_onboarding_welcome_subtitle" = "Суперзаряжено для скорости и простоты.";
 "screen_onboarding_welcome_title" = "Добро пожаловать в Gua";
 "screen_polls_history_empty_ongoing" = "Не найдено текущих опросов.";
 "screen_polls_history_empty_past" = "Не найдено прошлых опросов.";
