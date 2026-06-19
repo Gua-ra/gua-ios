@@ -322,8 +322,15 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
             guard let self else { return }
             switch action {
             case .resetComplete:
-                // Moving to next state is handled by the global session verification listener
                 navigationStackCoordinator.setSheetCoordinator(nil)
+                // A completed reset is a terminal exit out of identity confirmation: treat the
+                // device as set up and advance, instead of waiting on the global verification
+                // listener (which only fires on `.verified`). A reset that completes but never
+                // reaches `.verified` must not re-present the reset screen, so we advance here.
+                if stateMachine.state == .identityConfirmation {
+                    appSettings.hasRunIdentityConfirmationOnboarding = true
+                    stateMachine.tryEvent(.nextSkippingIdentityConfirmed)
+                }
             case .cancel:
                 navigationStackCoordinator.setSheetCoordinator(nil)
             }
