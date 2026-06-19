@@ -15,11 +15,6 @@ enum IdentityServiceError: Error, LocalizedError {
     case pinLocked(retryAfterSeconds: Int?)
     case pinChangeCooldown(retryAfterSeconds: Int?)
     case pinChangeChallengeInvalid
-    case pinChallengeExpired
-    case invalidSignupToken
-    case invalidUsername(String?)
-    case usernameTaken
-    case phoneAlreadyLinked
     case invalidReauthToken
     case server(status: Int, message: String?)
     case transport(Error)
@@ -40,11 +35,6 @@ enum IdentityServiceError: Error, LocalizedError {
                 "For security, you can change your PIN again in \(max(1, Int((Double(retry) / 3600.0).rounded(.up)))) hour(s)."
             } else { "For security, you can only change your PIN once per day." }
         case .pinChangeChallengeInvalid: "Your PIN change session expired. Please start over."
-        case .pinChallengeExpired: "Your sign-in session expired. Please verify your phone again."
-        case .invalidSignupToken: "Your signup session has expired. Please verify your phone again."
-        case let .invalidUsername(message): message ?? "That username isn't allowed."
-        case .usernameTaken: "That username is already taken. Please pick another."
-        case .phoneAlreadyLinked: "This phone number is already linked to another account."
         case .invalidReauthToken: "Your verification expired. Please request a new code."
         case let .server(status, message): message ?? "Server error (\(status))."
         case let .transport(error): error.localizedDescription
