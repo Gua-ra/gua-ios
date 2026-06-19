@@ -32,7 +32,6 @@ enum HomeScreenCoordinatorAction {
     case presentEncryptionResetScreen
     case presentStartChatScreen
     case presentGlobalSearch
-    case presentTwoStepVerificationSetup
     case logout
 }
 
@@ -84,8 +83,6 @@ final class HomeScreenCoordinator: CoordinatorProtocol {
                     actionsSubject.send(.presentStartChatScreen)
                 case .presentGlobalSearch:
                     actionsSubject.send(.presentGlobalSearch)
-                case .presentTwoStepVerificationSetup:
-                    actionsSubject.send(.presentTwoStepVerificationSetup)
                 case .logout:
                     actionsSubject.send(.logout)
                 case .presentDeclineAndBlock(let userID, let roomID):

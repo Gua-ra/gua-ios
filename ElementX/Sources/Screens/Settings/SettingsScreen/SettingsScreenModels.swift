@@ -23,8 +23,6 @@ enum SettingsScreenViewModelAction: Equatable {
     case developerOptions
     case logout
     case deactivateAccount
-    // GUA FORK: Two-step verification (PIN) nav target
-    case twoStepVerification
     // GUA FORK: Find which of the user's phone contacts are on Gua
     case findFriends
 }
@@ -86,8 +84,6 @@ enum SettingsScreenViewAction {
     case advancedSettings
     case logout
     case deactivateAccount
-    // GUA FORK: Two-step verification (PIN) action
-    case twoStepVerification
     // GUA FORK: Find friends from phone contacts
     case findFriends
 }

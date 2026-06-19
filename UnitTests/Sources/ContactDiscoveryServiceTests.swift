@@ -54,26 +54,6 @@ private final class IdentityServiceClientStub: IdentityServiceClientProtocol {
     var lookupRequests: [[String]] = []
     var matchesByPhone: [String: ContactMatch] = [:]
 
-    func sendOTP(phone: String, language: String?) async throws {
-        fatalError("Not implemented")
-    }
-
-    func verifyOTP(phone: String, code: String, pin: String?, device: IdentityServiceDeviceInfo?) async throws -> IdentityServiceVerifyOutcome {
-        fatalError("Not implemented")
-    }
-
-    func completeSignup(signupToken: String, username: String, displayName: String, pin: String?, device: IdentityServiceDeviceInfo?) async throws -> IdentityServiceMatrixSession {
-        fatalError("Not implemented")
-    }
-
-    func verifyPinChallenge(pinChallengeToken: String, pin: String, device: IdentityServiceDeviceInfo?) async throws -> IdentityServiceMatrixSession {
-        fatalError("Not implemented")
-    }
-
-    func checkUsernameAvailability(_ username: String) async throws -> UsernameAvailability {
-        fatalError("Not implemented")
-    }
-
     func lookupContacts(accessToken: String, phones: [String]) async throws -> [ContactMatch] {
         lookupRequests.append(phones)
         return phones.compactMap { matchesByPhone[$0] }
@@ -92,22 +72,6 @@ private final class IdentityServiceClientStub: IdentityServiceClientProtocol {
     }
 
     func resetIdentityCredentials(accessToken: String, reauthToken: String) async throws -> IdentityResetCredentials {
-        fatalError("Not implemented")
-    }
-
-    func pinStatus(accessToken: String) async throws -> Bool {
-        fatalError("Not implemented")
-    }
-
-    func setInitialPin(accessToken: String, userId: String, newPin: String) async throws {
-        fatalError("Not implemented")
-    }
-
-    func startPinChange(accessToken: String, phone: String, currentPin: String) async throws -> String {
-        fatalError("Not implemented")
-    }
-
-    func completePinChange(accessToken: String, challengeId: String, otpCode: String, newPin: String) async throws {
         fatalError("Not implemented")
     }
 }

@@ -118,8 +118,6 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
             actionsSubject.send(.developerOptions)
         case .deactivateAccount:
             actionsSubject.send(.deactivateAccount)
-        case .twoStepVerification:
-            actionsSubject.send(.twoStepVerification)
         case .findFriends:
             actionsSubject.send(.findFriends)
         }

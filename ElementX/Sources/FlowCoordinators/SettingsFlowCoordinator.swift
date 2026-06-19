@@ -51,9 +51,6 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
         switch appRoute {
         case .settings:
             presentSettingsScreen(animated: animated)
-        case .settingsTwoStepVerification:
-            presentSettingsScreen(animated: animated)
-            presentTwoStepVerification()
         case .chatBackupSettings:
             startEncryptionSettingsFlow(animated: animated)
         default:
@@ -109,8 +106,6 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                     presentDeveloperOptions()
                 case .deactivateAccount:
                     presentDeactivateAccount()
-                case .twoStepVerification:
-                    presentTwoStepVerification()
                 case .findFriends:
                     presentFindFriends()
                 }
@@ -232,24 +227,6 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
             
             presentAccountManagementURL(url)
         }
-    }
-
-    // GUA FORK: Two-step verification entry-point.
-    private func presentTwoStepVerification() {
-        guard let identityServiceClient = IdentityServiceClient() else {
-            MXLog.warning("Identity service is not configured; cannot show two-step verification screen.")
-            return
-        }
-        let parameters = TwoStepVerificationScreenCoordinatorParameters(clientProxy: flowParameters.userSession.clientProxy,
-                                                                        identityServiceClient: identityServiceClient,
-                                                                        userIndicatorController: flowParameters.userIndicatorController)
-        let coordinator = TwoStepVerificationScreenCoordinator(parameters: parameters)
-
-        coordinator.actionsPublisher
-            .sink { _ in }
-            .store(in: &cancellables)
-
-        navigationStackCoordinator.push(coordinator)
     }
 
     // GUA FORK: Find-friends-from-contacts entry-point.

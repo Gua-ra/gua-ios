@@ -132,10 +132,8 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             .store(in: &cancellables)
         
         setupRoomListSubscriptions()
-        
-        updateRooms()
 
-        Task { await refreshPinSetupReminder() }
+        updateRooms()
     }
     
     // MARK: - Public
@@ -162,13 +160,6 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             actionsSubject.send(.presentEncryptionResetScreen)
         case .skipRecoveryKeyConfirmation:
             state.securityBannerMode = .dismissed
-        case .setUpPinReminder:
-            state.pinSetupReminderVisible = false
-            actionsSubject.send(.presentTwoStepVerificationSetup)
-        case .dismissPinReminder:
-            state.pinSetupReminderVisible = false
-            // Snooze for a week so we don't badger the user.
-            appSettings.pinSetupReminderSnoozedUntil = Date().addingTimeInterval(7 * 24 * 60 * 60)
         case .updateVisibleItemRange(let range):
             roomSummaryProvider?.updateVisibleRange(range)
         case .startChat:
@@ -495,21 +486,5 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
         state.bindings.alertInfo = .init(id: UUID(),
                                          title: title ?? L10n.commonError,
                                          message: message ?? L10n.errorUnknown)
-    }
-
-    private func refreshPinSetupReminder() async {
-        guard let identityServiceClient = IdentityServiceClient(),
-              let accessToken = userSession.clientProxy.accessToken else {
-            return
-        }
-        if let snoozedUntil = appSettings.pinSetupReminderSnoozedUntil, snoozedUntil > Date() {
-            return
-        }
-        do {
-            let hasPin = try await identityServiceClient.pinStatus(accessToken: accessToken)
-            state.pinSetupReminderVisible = !hasPin
-        } catch {
-            MXLog.warning("Could not fetch PIN status for home screen reminder: \(error)")
-        }
     }
 }

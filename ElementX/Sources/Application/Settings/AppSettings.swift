@@ -70,8 +70,6 @@ final class AppSettings {
         // Doug's tweaks 🔧
         case hideUnreadMessagesBadge
         case hideQuietNotificationAlerts
-
-        case pinSetupReminderSnoozedUntil
     }
     
     private static var suiteName: String = InfoPlistReader.main.appGroupIdentifier
@@ -328,9 +326,6 @@ final class AppSettings {
     @UserPreference(key: UserDefaultsKeys.hideUnreadMessagesBadge, defaultValue: false, storageType: .userDefaults(store))
     var hideUnreadMessagesBadge
 
-    @UserPreference(key: UserDefaultsKeys.pinSetupReminderSnoozedUntil, defaultValue: nil, storageType: .userDefaults(store))
-    var pinSetupReminderSnoozedUntil: Date?
-    
     // MARK: - Room Screen
     
     @UserPreference(key: UserDefaultsKeys.viewSourceEnabled, defaultValue: isDevelopmentBuild, storageType: .userDefaults(store))
