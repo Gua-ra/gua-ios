@@ -56,6 +56,8 @@ struct GuaAuroraGlow: View {
             // Soft round halo so colour bleeds well past the logo's edges as a glow.
             .clipShape(Circle())
             .blur(radius: dimension * 0.12)
+            // Keep the glow gentle — a soft tint, not a saturated ring.
+            .opacity(0.7)
         }
     }
 }
@@ -70,20 +72,22 @@ private struct AuraCanvas: View {
     let dimension: CGFloat
 
     var body: some View {
-        // Slow phase so a full colour cycle takes ~18s — premium, not frantic.
+        // Two decoupled clocks: a brisk ~6s orbit so the halo visibly churns frame-to-frame,
+        // and a calmer ~12s hue drift so the colour change stays gentle rather than strobing.
         let t = date.timeIntervalSinceReferenceDate
-        let phase = t * (2 * .pi / 18)
+        let orbitPhase = t * (2 * .pi / 6)
+        let huePhase = t * (2 * .pi / 12)
 
         if #available(iOS 18.0, *) {
             MeshGradient(width: 4,
                          height: 4,
-                         points: AuraPalette.meshPoints(phase: phase),
-                         colors: AuraPalette.meshColors(phase: phase),
+                         points: AuraPalette.meshPoints(phase: orbitPhase),
+                         colors: AuraPalette.meshColors(phase: huePhase),
                          smoothsColors: true)
         } else {
             // iOS 17 fallback: still TimelineView-driven (no repeatForever), so it animates
             // reliably too. Asymmetric radial blobs that drift and breathe out of phase.
-            AuraBlobsFallback(phase: phase, dimension: dimension)
+            AuraBlobsFallback(phase: orbitPhase, dimension: dimension)
         }
     }
 }
@@ -91,12 +95,13 @@ private struct AuraCanvas: View {
 // MARK: - Palette & mesh maths
 
 private enum AuraPalette {
-    // Lead with Gua green, then cyan / blue / purple / pink accents. Soft & premium.
-    static let green = Color(red: 0.20, green: 0.95, blue: 0.55)
-    static let cyan = Color(red: 0.10, green: 0.80, blue: 0.90)
-    static let blue = Color(red: 0.30, green: 0.55, blue: 1.00)
-    static let purple = Color(red: 0.62, green: 0.40, blue: 1.00)
-    static let pink = Color(red: 1.00, green: 0.48, blue: 0.74)
+    // Lead with Gua green, then cyan / blue / purple / pink accents — softened toward pastel
+    // (mixed ~38% toward white) so the halo reads as a gentle tint rather than saturated neon.
+    static let green = Color(red: 0.50, green: 0.97, blue: 0.72)
+    static let cyan = Color(red: 0.44, green: 0.88, blue: 0.94)
+    static let blue = Color(red: 0.57, green: 0.72, blue: 1.00)
+    static let purple = Color(red: 0.76, green: 0.63, blue: 1.00)
+    static let pink = Color(red: 1.00, green: 0.68, blue: 0.84)
 
     /// Ordered ring the corner/edge vertices travel through, so hue clearly *travels* around the
     /// halo rather than just rotating a symmetric wheel.
@@ -132,7 +137,7 @@ private enum AuraPalette {
             let dy = Float(cos(phase * 0.85 + seed * 1.7)) * amp
             return SIMD2<Float>(base.x + dx, base.y + dy)
         }
-        let a: Float = 0.16 // interior wobble amplitude
+        let a: Float = 0.19 // interior wobble amplitude (a touch larger for clearer motion)
 
         return [
             // row 0 (top edge, pinned)
