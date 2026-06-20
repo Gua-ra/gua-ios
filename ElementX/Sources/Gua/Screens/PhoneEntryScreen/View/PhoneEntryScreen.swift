@@ -52,7 +52,7 @@ struct PhoneEntryScreen: View {
                 // reads as a halo; drawn in a background so it never affects the header's layout.
                 .background {
                     GuaAuroraGlow(animated: !reduceMotion)
-                        .frame(width: 168, height: 168)
+                        .frame(width: 140, height: 140)
                         .allowsHitTesting(false)
                 }
                 .accessibilityHidden(true)

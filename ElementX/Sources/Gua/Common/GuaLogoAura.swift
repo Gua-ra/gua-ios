@@ -57,7 +57,7 @@ struct GuaAuroraGlow: View {
             .clipShape(Circle())
             .blur(radius: dimension * 0.12)
             // Keep the glow gentle — a soft tint, not a saturated ring.
-            .opacity(0.7)
+            .opacity(0.55)
         }
     }
 }
@@ -72,11 +72,11 @@ private struct AuraCanvas: View {
     let dimension: CGFloat
 
     var body: some View {
-        // Two decoupled clocks: a brisk ~6s orbit so the halo visibly churns frame-to-frame,
-        // and a calmer ~12s hue drift so the colour change stays gentle rather than strobing.
+        // Two decoupled clocks: a brisk ~4.5s orbit so the (now compact) halo clearly churns
+        // frame-to-frame, and a calmer ~10s hue drift so the colour change stays gentle.
         let t = date.timeIntervalSinceReferenceDate
-        let orbitPhase = t * (2 * .pi / 6)
-        let huePhase = t * (2 * .pi / 12)
+        let orbitPhase = t * (2 * .pi / 4.5)
+        let huePhase = t * (2 * .pi / 10)
 
         if #available(iOS 18.0, *) {
             MeshGradient(width: 4,
@@ -137,7 +137,7 @@ private enum AuraPalette {
             let dy = Float(cos(phase * 0.85 + seed * 1.7)) * amp
             return SIMD2<Float>(base.x + dx, base.y + dy)
         }
-        let a: Float = 0.19 // interior wobble amplitude (a touch larger for clearer motion)
+        let a: Float = 0.22 // interior wobble amplitude (larger so the compact halo clearly moves)
 
         return [
             // row 0 (top edge, pinned)
