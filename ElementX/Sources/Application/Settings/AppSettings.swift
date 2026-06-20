@@ -36,7 +36,8 @@ final class AppSettings {
         case analyticsConsentState
         case hasRunNotificationPermissionsOnboarding
         case hasRunIdentityConfirmationOnboarding
-        
+        case hasBootstrappedKeyStorage
+
         case frequentlyUsedSystemEmojis
         
         case enableNotifications
@@ -95,6 +96,7 @@ final class AppSettings {
     static func resetSessionSpecificSettings() {
         MXLog.warning("Resetting the user session specific AppSettings.")
         store.removeObject(forKey: UserDefaultsKeys.hasRunIdentityConfirmationOnboarding.rawValue)
+        store.removeObject(forKey: UserDefaultsKeys.hasBootstrappedKeyStorage.rawValue)
     }
     
     static func configureWithSuiteName(_ name: String) {
@@ -317,7 +319,10 @@ final class AppSettings {
     
     @UserPreference(key: UserDefaultsKeys.hasRunIdentityConfirmationOnboarding, defaultValue: false, storageType: .userDefaults(store))
     var hasRunIdentityConfirmationOnboarding
-    
+
+    @UserPreference(key: UserDefaultsKeys.hasBootstrappedKeyStorage, defaultValue: false, storageType: .userDefaults(store))
+    var hasBootstrappedKeyStorage
+
     @UserPreference(key: UserDefaultsKeys.frequentlyUsedSystemEmojis, defaultValue: [FrequentlyUsedEmoji](), storageType: .userDefaults(store))
     var frequentlyUsedSystemEmojis
     
