@@ -290,9 +290,10 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
     private func presentAccountManagementURL(_ url: URL) {
         // Note to anyone in the future if you come back here to make this open in Safari instead of a WAS.
         // As of iOS 16, there is an issue on the simulator with accessing the cookie but it works on a device. 🤷‍♂️
-        accountSettingsPresenter = OIDCAccountSettingsPresenter(accountURL: url,
-                                                                presentationAnchor: flowParameters.windowManager.mainWindow,
-                                                                appSettings: flowParameters.appSettings)
-        accountSettingsPresenter?.start()
+        let presenter = OIDCAccountSettingsPresenter(accountURL: url,
+                                                     presentationAnchor: flowParameters.windowManager.mainWindow,
+                                                     appSettings: flowParameters.appSettings)
+        accountSettingsPresenter = presenter
+        Task { await presenter.start() }
     }
 }
