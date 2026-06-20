@@ -123,8 +123,11 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
     // MARK: - Private
     
     private var requiresVerification: Bool {
-        // We want to make sure onboarding finishes but also every time the user becomes unverified (e.g. account reset)
-        !appSettings.hasRunIdentityConfirmationOnboarding || userSession.sessionSecurityStatePublisher.value.verificationState == .unverified
+        // Gua: encryption is set up on first sign-in and restored on re-login entirely in
+        // the background (UserSessionStore.bootstrapKeyStorageIfNeeded / restoreKeyStorageIfNeeded),
+        // so we never gate the user on the identity-confirmation or reset screens. They just
+        // land in the app — key backup and recovery happen silently with no friction.
+        false
     }
     
     private var requiresAppLockSetup: Bool {
