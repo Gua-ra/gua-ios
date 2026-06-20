@@ -262,7 +262,8 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
             MXLog.warning("No access token available; cannot run contact discovery.")
             return
         }
-        let contactDiscoveryService = ContactDiscoveryService(identityServiceClient: identityServiceClient)
+        let contactDiscoveryService = ContactDiscoveryService(identityServiceClient: identityServiceClient,
+                                                              currentUserID: flowParameters.userSession.clientProxy.userID)
         let parameters = FindFriendsScreenCoordinatorParameters(contactDiscoveryService: contactDiscoveryService,
                                                                 clientProxy: flowParameters.userSession.clientProxy,
                                                                 accessToken: accessToken)
@@ -297,8 +298,11 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
         coordinator.actionsPublisher.sink { [weak self] action in
             guard let self else { return }
             switch action {
-            case .openDirectChat:
-                // Opening a chat from a contact's profile lands the user on their chat list.
+            case .openDirectChat(let roomID):
+                // The direct room now exists; route to it the same way the in-row Find Friends
+                // handling does — close Settings so the user lands back on their chat list where
+                // the new conversation appears.
+                MXLog.info("Find Friends opened direct chat \(roomID); dismissing Settings.")
                 actionsSubject.send(.dismiss)
             case .startCall, .dismiss:
                 navigationStackCoordinator.pop()

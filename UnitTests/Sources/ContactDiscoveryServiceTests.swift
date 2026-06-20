@@ -16,7 +16,7 @@ final class ContactDiscoveryServiceTests: XCTestCase {
         identityServiceClient.matchesByPhone = Dictionary(uniqueKeysWithValues: phones.map { phone in
             (phone, ContactMatch(phoneNumber: phone, userId: "@\(phone):dev.local", username: nil, displayName: nil))
         })
-        let service = ContactDiscoveryService(identityServiceClient: identityServiceClient, maxNumbersPerRequest: 2)
+        let service = ContactDiscoveryService(identityServiceClient: identityServiceClient, currentUserID: "@me:dev.local", maxNumbersPerRequest: 2)
 
         let matches = try await service.lookupContactMatches(accessToken: "access-token", phones: phones)
 

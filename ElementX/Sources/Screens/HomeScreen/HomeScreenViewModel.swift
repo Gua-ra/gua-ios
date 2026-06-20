@@ -315,6 +315,10 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
         let seenInvites = appSettings.seenInvites
         
         for summary in roomSummaryProvider.roomListPublisher.value {
+            // GUA FORK: hide stray empty "orphan" DMs (no members, no name, no messages) so a
+            // half-created or never-joined room doesn't clutter the chat list.
+            guard !summary.isEmptyOrphanRoom else { continue }
+
             let room = HomeScreenRoom(summary: summary,
                                       hideUnreadMessagesBadge: appSettings.hideUnreadMessagesBadge,
                                       seenInvites: seenInvites)

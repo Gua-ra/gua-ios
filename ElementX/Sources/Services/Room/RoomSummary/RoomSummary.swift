@@ -61,6 +61,13 @@ struct RoomSummary {
     var hasUnreadMentions: Bool { unreadMentionsCount > 0 }
     var hasUnreadNotifications: Bool { unreadNotificationsCount > 0 }
     var isMuted: Bool { notificationMode == .mute }
+
+    /// GUA FORK: a stray "Empty Room" the SDK can surface when a DM is created but the other
+    /// member never joins (or a creation half-failed). Conservatively matches only member-less,
+    /// name-less, message-less DMs so a real, freshly-created conversation is never hidden.
+    var isEmptyOrphanRoom: Bool {
+        isDirect && heroes.isEmpty && activeMembersCount <= 1 && lastMessage == nil
+    }
 }
 
 extension RoomSummary: CustomStringConvertible {
