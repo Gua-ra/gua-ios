@@ -37,7 +37,7 @@ struct AuthenticationStartLogo: View {
                 GeometryReader { proxy in
                     SiriAura(animated: !reduceMotion)
                         .frame(width: proxy.size.width, height: proxy.size.height)
-                        .scaleEffect(1.7)
+                        .scaleEffect(2.0)
                         .allowsHitTesting(false)
                 }
             }
@@ -117,26 +117,20 @@ private struct SiriAura: View {
         GeometryReader { geometry in
             let dimension = min(geometry.size.width, geometry.size.height)
 
-            AngularGradient(gradient: Gradient(colors: auraColors),
-                            center: .center,
-                            angle: .degrees(angle))
-                // Soft halo ring (clear centre → bright around the icon edge → clear outside) so
-                // the colour reads as a glow hugging the logo rather than a hard disc.
-                .mask {
-                    RadialGradient(colors: [.clear, .white, .white, .clear],
-                                   center: .center,
-                                   startRadius: dimension * 0.16,
-                                   endRadius: dimension * 0.62)
-                }
-                .blur(radius: dimension * 0.05)
-                .opacity(breathing ? 1.0 : 0.6)
+            AngularGradient(gradient: Gradient(colors: auraColors), center: .center)
+                // Rotate the whole gradient (more reliably animatable than the `angle:` param) and
+                // blur it into a soft round halo so the colour clearly spills around the logo.
+                .rotationEffect(.degrees(angle))
+                .clipShape(Circle())
+                .blur(radius: dimension * 0.11)
+                .opacity(breathing ? 1.0 : 0.5)
         }
         .onAppear {
             guard animated else { return }
-            withAnimation(.linear(duration: 7).repeatForever(autoreverses: false)) {
+            withAnimation(.linear(duration: 6).repeatForever(autoreverses: false)) {
                 angle = 360
             }
-            withAnimation(.easeInOut(duration: 2.2).repeatForever(autoreverses: true)) {
+            withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true)) {
                 breathing = true
             }
         }
