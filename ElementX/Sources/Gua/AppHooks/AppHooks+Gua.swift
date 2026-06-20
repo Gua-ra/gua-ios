@@ -23,7 +23,7 @@ private struct GuaAppSettingsHook: AppSettingsHookProtocol {
         // every URI below lives on `gua.global`. MAS only validates the hosts here — it
         // never fetches these URLs — so registration succeeds even before the pages exist.
         static let websiteURL: URL = "https://gua.global"
-        static let logoURL: URL = "https://gua.global/icon.png"
+        static let logoURL: URL = "https://gua.global/gua-icon.png"
         static let copyrightURL: URL = "https://gua.global/copyright"
         static let acceptableUseURL: URL = "https://gua.global/terms"
         static let privacyURL: URL = "https://gua.global/privacy"
