@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import UIKit
 
 /// The app's logo with an "Apple-Intelligence/Siri"-style living aura: a flowing, multi-hue
 /// conic gradient continuously rotates behind the icon and spills out as a soft glow.
@@ -30,17 +29,15 @@ struct AuthenticationStartLogo: View {
 
     var body: some View {
         logo
-            // The living aura, behind the icon and oversized so colour spills past the edges
-            // as a glow. It is ALWAYS drawn (so it's visible even with Reduce Motion on); only
-            // the rotation/breathing is suppressed when the user prefers reduced motion.
-            // GeometryReader gives the UIView an explicit frame (a bare UIViewRepresentable in
-            // a background would otherwise be 0×0).
+            // The living aura, behind the icon and oversized so colour spills past the edges as a
+            // glow. Pure SwiftUI (an AngularGradient that rotates + breathes) so it renders AND
+            // animates reliably on device — a Core Animation layer in a SwiftUI background often
+            // never starts. Always drawn; the motion is suppressed under Reduce Motion.
             .background {
                 GeometryReader { proxy in
-                    SiriGlow(animated: !reduceMotion)
+                    SiriAura(animated: !reduceMotion)
                         .frame(width: proxy.size.width, height: proxy.size.height)
-                        .scaleEffect(1.65)
-                        .opacity(0.95)
+                        .scaleEffect(1.7)
                         .allowsHitTesting(false)
                 }
             }
@@ -97,108 +94,51 @@ struct AuthenticationStartLogo: View {
     }
 }
 
-/// A flowing, multi-hue "Apple-Intelligence/Siri"-style glow. A circular conic gradient
-/// rotates and breathes continuously via Core Animation to give an alive, flammy colour flow.
-/// The gradient is always drawn; `animated` only toggles the motion (for Reduce Motion).
-private struct SiriGlow: UIViewRepresentable {
+/// A flowing, multi-hue "Apple-Intelligence/Siri"-style glow: an angular (conic) gradient that
+/// rotates continuously and breathes, written in pure SwiftUI so it reliably renders AND animates
+/// on device. (A Core Animation layer in a SwiftUI `.background` frequently never starts its
+/// animation.) The glow is always drawn; `animated` only toggles the motion (for Reduce Motion).
+private struct SiriAura: View {
     let animated: Bool
-    func makeUIView(context: Context) -> SiriGlowView { SiriGlowView(animated: animated) }
-    func updateUIView(_ uiView: SiriGlowView, context: Context) { uiView.setAnimated(animated) }
-}
 
-final class SiriGlowView: UIView {
-    private let gradient = CAGradientLayer()
-    /// Radial alpha mask that fades the colour out toward the edges, giving a soft glow
-    /// without SwiftUI's `.blur` (which rasterises the view and would freeze the rotation).
-    private let radialMask = CAGradientLayer()
-    private var animated: Bool
+    @State private var angle: Double = 0
+    @State private var breathing = false
 
-    init(animated: Bool) {
-        self.animated = animated
-        super.init(frame: .zero)
-        setUp()
-    }
+    private let auraColors: [Color] = [
+        Color(red: 0.20, green: 0.95, blue: 0.55), // Gua green
+        Color(red: 0.10, green: 0.80, blue: 0.90), // cyan
+        Color(red: 0.30, green: 0.55, blue: 1.00), // blue
+        Color(red: 0.65, green: 0.40, blue: 1.00), // purple
+        Color(red: 1.00, green: 0.45, blue: 0.70), // pink
+        Color(red: 0.20, green: 0.95, blue: 0.55) // back to green
+    ]
 
-    @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+    var body: some View {
+        GeometryReader { geometry in
+            let dimension = min(geometry.size.width, geometry.size.height)
 
-    /// Toggle the motion without rebuilding the layer (e.g. when Reduce Motion changes).
-    func setAnimated(_ animated: Bool) {
-        guard animated != self.animated else { return }
-        self.animated = animated
-        applyAnimations()
-    }
-
-    private func setUp() {
-        isUserInteractionEnabled = false
-        backgroundColor = .clear
-
-        gradient.type = .conic
-        // Vivid, saturated hues so the aura is unmistakable rather than a faint wash.
-        gradient.colors = [
-            UIColor(red: 0.20, green: 0.95, blue: 0.55, alpha: 1).cgColor, // Gua green
-            UIColor(red: 0.10, green: 0.80, blue: 0.90, alpha: 1).cgColor, // cyan
-            UIColor(red: 0.30, green: 0.55, blue: 1.00, alpha: 1).cgColor, // blue
-            UIColor(red: 0.65, green: 0.40, blue: 1.00, alpha: 1).cgColor, // purple
-            UIColor(red: 1.00, green: 0.45, blue: 0.70, alpha: 1).cgColor, // pink
-            UIColor(red: 0.20, green: 0.95, blue: 0.55, alpha: 1).cgColor // back to green
-        ]
-        gradient.startPoint = CGPoint(x: 0.5, y: 0.5)
-        gradient.endPoint = CGPoint(x: 1.0, y: 0.5)
-        layer.addSublayer(gradient)
-
-        // A wide, bright band (soft clear centre → bright halo around the logo → soft clear
-        // outside) so the colour reads as a generous glowing halo hugging the logo.
-        radialMask.type = .radial
-        radialMask.colors = [UIColor.clear.cgColor,
-                             UIColor(white: 1, alpha: 0.25).cgColor,
-                             UIColor.white.cgColor,
-                             UIColor.white.cgColor,
-                             UIColor.clear.cgColor]
-        radialMask.locations = [0.0, 0.30, 0.52, 0.80, 1.0]
-        radialMask.startPoint = CGPoint(x: 0.5, y: 0.5)
-        radialMask.endPoint = CGPoint(x: 1.0, y: 1.0)
-        gradient.mask = radialMask
-
-        applyAnimations()
-    }
-
-    private func applyAnimations() {
-        gradient.removeAllAnimations()
-        guard animated else { return }
-
-        let spin = CABasicAnimation(keyPath: "transform.rotation.z")
-        spin.fromValue = 0
-        spin.toValue = 2 * Double.pi
-        spin.duration = 8
-        spin.repeatCount = .infinity
-        spin.isRemovedOnCompletion = false
-        gradient.add(spin, forKey: "spin")
-
-        // A gentle "breathing" of the glow's intensity, layered on the rotation so the aura
-        // feels alive. Opacity (not transform) so it never fights the rotation.
-        let breathe = CABasicAnimation(keyPath: "opacity")
-        breathe.fromValue = 0.65
-        breathe.toValue = 1.0
-        breathe.duration = 2.4
-        breathe.autoreverses = true
-        breathe.repeatCount = .infinity
-        breathe.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-        breathe.isRemovedOnCompletion = false
-        gradient.add(breathe, forKey: "breathe")
-    }
-
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        gradient.frame = bounds
-        // Circular so the rotation reads as a smooth colour flow rather than spinning corners.
-        gradient.cornerRadius = min(bounds.width, bounds.height) / 2
-        gradient.masksToBounds = true
-        gradient.anchorPoint = CGPoint(x: 0.5, y: 0.5)
-        gradient.position = CGPoint(x: bounds.midX, y: bounds.midY)
-        radialMask.frame = gradient.bounds
-        CATransaction.commit()
+            AngularGradient(gradient: Gradient(colors: auraColors),
+                            center: .center,
+                            angle: .degrees(angle))
+                // Soft halo ring (clear centre → bright around the icon edge → clear outside) so
+                // the colour reads as a glow hugging the logo rather than a hard disc.
+                .mask {
+                    RadialGradient(colors: [.clear, .white, .white, .clear],
+                                   center: .center,
+                                   startRadius: dimension * 0.16,
+                                   endRadius: dimension * 0.62)
+                }
+                .blur(radius: dimension * 0.05)
+                .opacity(breathing ? 1.0 : 0.6)
+        }
+        .onAppear {
+            guard animated else { return }
+            withAnimation(.linear(duration: 7).repeatForever(autoreverses: false)) {
+                angle = 360
+            }
+            withAnimation(.easeInOut(duration: 2.2).repeatForever(autoreverses: true)) {
+                breathing = true
+            }
+        }
     }
 }
