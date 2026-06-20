@@ -74,4 +74,24 @@ private final class IdentityServiceClientStub: IdentityServiceClientProtocol {
     func resetIdentityCredentials(accessToken: String, reauthToken: String) async throws -> IdentityResetCredentials {
         fatalError("Not implemented")
     }
+
+    func pinStatus(accessToken: String) async throws -> Bool {
+        fatalError("Not implemented")
+    }
+
+    func setInitialPin(accessToken: String, userId: String, newPin: String) async throws {
+        fatalError("Not implemented")
+    }
+
+    func startPinChange(accessToken: String, phone: String, currentPin: String) async throws -> String {
+        fatalError("Not implemented")
+    }
+
+    func completePinChange(accessToken: String, challengeId: String, otpCode: String, newPin: String) async throws {
+        fatalError("Not implemented")
+    }
+
+    func startPasskeyEnrollment(accessToken: String) async throws -> URL {
+        fatalError("Not implemented")
+    }
 }

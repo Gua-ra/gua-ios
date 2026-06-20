@@ -70,7 +70,6 @@
 		0775DFDFFF6C7A17C1C22422 /* GlobalSearchScreenViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE79931663ADE8B04F649B05 /* GlobalSearchScreenViewModel.swift */; };
 		07D843A48EBA02E6342501FE /* RemotePreferenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EDD7CB77F4AD7B19752CA17 /* RemotePreferenceTests.swift */; };
 		08384E8986A7CEE712039547 /* ElementTextFieldStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = B29048EE15FD5AD4E1A986E4 /* ElementTextFieldStyle.swift */; };
-		0858BD1CB6C8BA44FCA50F44 /* GuaLogoAura.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EE4FBE4BC1A8D768999F999 /* GuaLogoAura.swift */; };
 		0955A3FC546D8F733357E089 /* BindableState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7E9BFAB78DFF9CF28ECFE2D /* BindableState.swift */; };
 		098B6DFC45D4D27B4627D73B /* ClientBuilderHook.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFB8CD03DEE0A0E047DD9F49 /* ClientBuilderHook.swift */; };
 		09A62BAC39B521710714B41C /* ProcessInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FA8236627B195D530388CC0 /* ProcessInfo.swift */; };
@@ -174,6 +173,7 @@
 		1A9A45EE095BE23F5D846CF7 /* Consumable.swift in Sources */ = {isa = PBXBuildFile; fileRef = B270F5FA64D719CC693E0133 /* Consumable.swift */; };
 		1AB5B107DF9107D3386926F8 /* JoinRoomScreenViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E8783C2A2C2C286E14A9689 /* JoinRoomScreenViewModel.swift */; };
 		1B0A0B0FD5B661739C5A63E6 /* HomeScreenViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E57FD82C256FB937A9B81386 /* HomeScreenViewModelTests.swift */; };
+		1BD636072CBCD0A51675725B /* PasskeyEnrollmentPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D29AEA97EDCB19FCCCD8A926 /* PasskeyEnrollmentPresenter.swift */; };
 		1BF70FF0F924E1367C4FED4D /* target.yml in Resources */ = {isa = PBXBuildFile; fileRef = 594B5AFB7B8DA98EDAD6F459 /* target.yml */; };
 		1CBE462FAF628FA75BB37A9B /* RoomSummaryProviderProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3891126AE9ADDB1CA1D85B9 /* RoomSummaryProviderProtocol.swift */; };
 		1CDD0B94E6A822BEF67E0727 /* AppLockServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB25D554AEC555066C9CAD8C /* AppLockServiceTests.swift */; };
@@ -459,6 +459,7 @@
 		4C406AC0016802958921B045 /* SeparatorRoomTimelineItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF508A0E09F91C21DF41570D /* SeparatorRoomTimelineItem.swift */; };
 		4C528871C8A30FDABC11CBA6 /* ScreenTrackerViewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 286863655754A6A7DA32B0CA /* ScreenTrackerViewModifier.swift */; };
 		4C68AF2514D99484A8678245 /* ResolveVerifiedUserSendFailureScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86DD78320B036670DA850008 /* ResolveVerifiedUserSendFailureScreen.swift */; };
+		4C7BB1DB40B3F332435E1C4D /* GuaWelcomeLogo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 090DB54C3770F18D3F4F9CB3 /* GuaWelcomeLogo.swift */; };
 		4C91D87D26A2B18622325CFB /* RoomDirectorySearchScreenScreenViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6DB7340B36931AFC212A772 /* RoomDirectorySearchScreenScreenViewModelTests.swift */; };
 		4CBD82B14BD5C1F53A1F29C0 /* Observable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6368CA0794FB4B5325AC8038 /* Observable.swift */; };
 		4CD5E8C68E4AF29C887B1A42 /* CertificateValidatorHook.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FCFF51E07AD70C12580E876 /* CertificateValidatorHook.swift */; };
@@ -1560,6 +1561,7 @@
 		086A56B0C59D26A6A8C4E832 /* ResolverClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResolverClient.swift; sourceTree = "<group>"; };
 		0899295491A70DB9867DE272 /* SessionVerificationControllerProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionVerificationControllerProxy.swift; sourceTree = "<group>"; };
 		08DBD0F5C87C6D7ADF78A4B4 /* DeveloperOptionsScreenViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeveloperOptionsScreenViewModel.swift; sourceTree = "<group>"; };
+		090DB54C3770F18D3F4F9CB3 /* GuaWelcomeLogo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuaWelcomeLogo.swift; sourceTree = "<group>"; };
 		0985305B69117680601ACD17 /* ClientBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientBuilder.swift; sourceTree = "<group>"; };
 		09925443569A99D74E05730D /* TimelineReplyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineReplyView.swift; sourceTree = "<group>"; };
 		09B49F7FAB8D8F43E695255A /* PINTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINTextField.swift; sourceTree = "<group>"; };
@@ -1664,7 +1666,6 @@
 		1E59BF79D2C90E3A1318AC80 /* cy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = cy; path = cy.lproj/Localizable.strings; sourceTree = "<group>"; };
 		1E72977DB8DB65BC6B5F72D5 /* LAContextMock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LAContextMock.swift; sourceTree = "<group>"; };
 		1E7917533D19EFA17A34A469 /* TwoStepVerificationScreenViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TwoStepVerificationScreenViewModel.swift; sourceTree = "<group>"; };
-		1EE4FBE4BC1A8D768999F999 /* GuaLogoAura.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuaLogoAura.swift; sourceTree = "<group>"; };
 		1F5BD5A9FE7FEC43E1F3EB01 /* MatrixEntityRegexTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatrixEntityRegexTests.swift; sourceTree = "<group>"; };
 		1FA6EB877A670ABD96E1DEC6 /* VideoRoomTimelineItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoRoomTimelineItem.swift; sourceTree = "<group>"; };
 		1FBD2ED33CCDC660B49B227A /* SecureBackupLogoutConfirmationScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureBackupLogoutConfirmationScreen.swift; sourceTree = "<group>"; };
@@ -2616,6 +2617,7 @@
 		D22D4B7C80035A31808CE528 /* ButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonStyle.swift; sourceTree = "<group>"; };
 		D272318BCEE9C322F3119643 /* KnockedRoomProxyMock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnockedRoomProxyMock.swift; sourceTree = "<group>"; };
 		D295EB905CE1D416A1D16104 /* CreateRoomCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateRoomCoordinator.swift; sourceTree = "<group>"; };
+		D29AEA97EDCB19FCCCD8A926 /* PasskeyEnrollmentPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasskeyEnrollmentPresenter.swift; sourceTree = "<group>"; };
 		D305170883F1A737F50FFE52 /* MediaPickerScreenCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPickerScreenCoordinator.swift; sourceTree = "<group>"; };
 		D3B16339AB4E8DC67121C013 /* SessionVerificationScreenViewModelProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionVerificationScreenViewModelProtocol.swift; sourceTree = "<group>"; };
 		D471AC7F1855EB8954B5A708 /* MentionSuggestionItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MentionSuggestionItemView.swift; sourceTree = "<group>"; };
@@ -3066,8 +3068,9 @@
 		081808AF2CD0EBF6C47FF94A /* Common */ = {
 			isa = PBXGroup;
 			children = (
-				1EE4FBE4BC1A8D768999F999 /* GuaLogoAura.swift */,
 				A226FAA776D24DAF77198141 /* GuaUserLink.swift */,
+				090DB54C3770F18D3F4F9CB3 /* GuaWelcomeLogo.swift */,
+				D29AEA97EDCB19FCCCD8A926 /* PasskeyEnrollmentPresenter.swift */,
 				CA1F2CE7AABD621B1F8ADAEE /* PinBubbleField.swift */,
 			);
 			path = Common;
@@ -7695,8 +7698,8 @@
 				0775DFDFFF6C7A17C1C22422 /* GlobalSearchScreenViewModel.swift in Sources */,
 				214CCC5EAD7360DD69161748 /* GlobalSearchScreenViewModelProtocol.swift in Sources */,
 				EBC86B3460CBE83FFD9C2A01 /* GuaDeployment.swift in Sources */,
-				0858BD1CB6C8BA44FCA50F44 /* GuaLogoAura.swift in Sources */,
 				061DE6519952CA0E992189BD /* GuaUserLink.swift in Sources */,
+				4C7BB1DB40B3F332435E1C4D /* GuaWelcomeLogo.swift in Sources */,
 				4BC2F5C81530E3570917578A /* HTMLFixtures.swift in Sources */,
 				4A16EC04997ED0D89B196F9C /* HTMLParserStyle.swift in Sources */,
 				5580A76BE96A3AFAE520B196 /* HighlightedTimelineItemModifier.swift in Sources */,
@@ -7900,6 +7903,7 @@
 				69E656953C2BBECCA9BDF3CF /* PINTextField.swift in Sources */,
 				D302D2B9952EB3F4A9BD140B /* PaginationIndicatorRoomTimelineItem.swift in Sources */,
 				20EDD1A55F180B6E887BEBDD /* PaginationIndicatorRoomTimelineView.swift in Sources */,
+				1BD636072CBCD0A51675725B /* PasskeyEnrollmentPresenter.swift in Sources */,
 				DC3FCB0D453F3EADFBD0363C /* PhishingDetector.swift in Sources */,
 				A00DFA5B4FC89E32B825F6D7 /* PhoneEntryScreen.swift in Sources */,
 				A5439F113D9CED7D2B0ABECF /* PhoneEntryScreenCoordinator.swift in Sources */,

@@ -2972,6 +2972,10 @@ internal enum L10n {
   internal static var screenTwoStepVerificationOverviewFooterOn: String { return L10n.tr("Localizable", "screen_two_step_verification_overview_footer_on") }
   /// Status
   internal static var screenTwoStepVerificationOverviewHeader: String { return L10n.tr("Localizable", "screen_two_step_verification_overview_header") }
+  /// Set up a passkey
+  internal static var screenTwoStepVerificationPasskeyButton: String { return L10n.tr("Localizable", "screen_two_step_verification_passkey_button") }
+  /// Use Face ID, Touch ID, or a security key to sign in without a password.
+  internal static var screenTwoStepVerificationPasskeyFooter: String { return L10n.tr("Localizable", "screen_two_step_verification_passkey_footer") }
   /// We'll send a verification code by SMS to the phone linked to your account.
   internal static var screenTwoStepVerificationPhoneFooter: String { return L10n.tr("Localizable", "screen_two_step_verification_phone_footer") }
   /// Confirm your phone number

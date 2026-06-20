@@ -42,20 +42,9 @@ struct PhoneEntryScreen: View {
 
     private var header: some View {
         VStack(spacing: 20) {
-            Image(asset: Asset.Images.appLogo)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 84, height: 84)
-                .clipShape(RoundedRectangle(cornerRadius: 21, style: .continuous))
-                .shadow(color: .black.opacity(0.12), radius: 14, y: 6)
-                // Living "Siri/aurora" glow spilling out from behind the icon. Oversized so it
-                // reads as a halo; drawn in a background so it never affects the header's layout.
-                .background {
-                    GuaAuroraGlow(animated: !reduceMotion)
-                        .frame(width: 140, height: 140)
-                        .allowsHitTesting(false)
-                }
-                .accessibilityHidden(true)
+            // Premium "liquid glass" logo: a specular sheen sweep + subtle 3D rock + pulse,
+            // contained to the icon (see GuaWelcomeLogo). Replaces the old broad colour halo.
+            GuaWelcomeLogo(animated: !reduceMotion)
 
             VStack(spacing: 8) {
                 Text(L10n.screenPhoneLoginWelcome)

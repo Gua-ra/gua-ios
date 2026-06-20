@@ -665,6 +665,8 @@
 "screen_two_step_verification_status_off" = "No PIN set";
 "screen_two_step_verification_set_button" = "Set up PIN";
 "screen_two_step_verification_change_button" = "Change PIN";
+"screen_two_step_verification_passkey_button" = "Set up a passkey";
+"screen_two_step_verification_passkey_footer" = "Use Face ID, Touch ID, or a security key to sign in without a password.";
 "screen_two_step_verification_current_header" = "Enter your current PIN";
 "screen_two_step_verification_current_footer" = "Confirm your current PIN to authorize the change.";
 "screen_two_step_verification_new_header" = "Choose a new PIN";

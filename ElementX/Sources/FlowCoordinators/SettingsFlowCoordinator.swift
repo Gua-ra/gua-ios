@@ -243,7 +243,9 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
         }
         let parameters = TwoStepVerificationScreenCoordinatorParameters(clientProxy: flowParameters.userSession.clientProxy,
                                                                         identityServiceClient: identityServiceClient,
-                                                                        userIndicatorController: flowParameters.userIndicatorController)
+                                                                        userIndicatorController: flowParameters.userIndicatorController,
+                                                                        windowManager: flowParameters.windowManager,
+                                                                        appSettings: flowParameters.appSettings)
         let coordinator = TwoStepVerificationScreenCoordinator(parameters: parameters)
 
         coordinator.actionsPublisher

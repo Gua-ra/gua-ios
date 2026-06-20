@@ -58,6 +58,10 @@ protocol IdentityServiceClientProtocol {
     func setInitialPin(accessToken: String, userId: String, newPin: String) async throws
     func startPinChange(accessToken: String, phone: String, currentPin: String) async throws -> String
     func completePinChange(accessToken: String, challengeId: String, otpCode: String, newPin: String) async throws
+    /// Begins passkey enrollment and returns the IdP-hosted URL to load in an
+    /// authenticated web session. The flow finishes when that page redirects to
+    /// the app's OIDC redirect URL.
+    func startPasskeyEnrollment(accessToken: String) async throws -> URL
 }
 
 /// Ephemeral credentials minted by the identity-service for the Matrix
@@ -254,6 +258,29 @@ final class IdentityServiceClient: IdentityServiceClientProtocol {
                                     body: Body(challengeId: challengeId, otpCode: otpCode, newPin: newPin),
                                     language: nil,
                                     expectsBody: false)
+    }
+
+    // MARK: - Passkey enrollment
+
+    func startPasskeyEnrollment(accessToken: String) async throws -> URL {
+        struct EmptyBody: Encodable { }
+        struct Response: Decodable { let enrollUrl: String }
+        let (data, _) = try await sendAuthenticated(path: "/security/passkey/enroll/start",
+                                                    accessToken: accessToken,
+                                                    body: EmptyBody(),
+                                                    language: nil,
+                                                    expectsBody: true)
+        do {
+            let response = try decoder.decode(Response.self, from: data)
+            guard let url = URL(string: response.enrollUrl) else {
+                throw IdentityServiceError.invalidURL
+            }
+            return url
+        } catch let error as IdentityServiceError {
+            throw error
+        } catch {
+            throw IdentityServiceError.decoding(error)
+        }
     }
 
     @discardableResult
