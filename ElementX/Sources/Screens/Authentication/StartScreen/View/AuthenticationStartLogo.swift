@@ -10,7 +10,8 @@ import SwiftUI
 /// The app's logo styled to fit on various launch pages.
 struct AuthenticationStartLogo: View {
     @Environment(\.colorScheme) private var colorScheme
-    
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     /// Set to `true` when using on top of `Asset.Images.launchBackground`
     let isOnGradient: Bool
     
@@ -20,12 +21,15 @@ struct AuthenticationStartLogo: View {
     private let outerShape = RoundedRectangle(cornerRadius: 44)
     private let outerShapeShadowColor = Color(red: 0.11, green: 0.11, blue: 0.13)
     private var isLight: Bool { colorScheme == .light }
+    /// The idle shine + breathing animation, disabled when the user prefers reduced motion.
+    private var animated: Bool { !reduceMotion }
     
     var body: some View {
         Image(asset: Asset.Images.appLogo)
             .resizable()
             .scaledToFit()
             .scaleEffect(0.8)
+            .overlay { if animated { shine } }
             .clipShape(outerShape)
             .overlay(alignment: .center) {
                 outerShape
@@ -68,6 +72,47 @@ struct AuthenticationStartLogo: View {
                 }
             }
             .padding(-extra)
+            .breathing(animated)
             .accessibilityHidden(true)
+    }
+
+    /// A soft diagonal highlight that periodically sweeps across the logo, giving it a subtle "shiny" feel.
+    private var shine: some View {
+        GeometryReader { proxy in
+            let width = proxy.size.width
+            let bandWidth = width * 0.42
+            Rectangle()
+                .fill(LinearGradient(stops: [.init(color: .clear, location: 0),
+                                             .init(color: .white.opacity(0.6), location: 0.5),
+                                             .init(color: .clear, location: 1)],
+                                     startPoint: .leading,
+                                     endPoint: .trailing))
+                .frame(width: bandWidth)
+                .frame(maxHeight: .infinity)
+                .rotationEffect(.degrees(20))
+                .blendMode(.plusLighter)
+                .phaseAnimator([false, true]) { band, sweeping in
+                    band.offset(x: sweeping ? width + bandWidth : -bandWidth)
+                } animation: { sweeping in
+                    sweeping ? .easeInOut(duration: 1.1) : .linear(duration: 0).delay(3.4)
+                }
+        }
+        .allowsHitTesting(false)
+    }
+}
+
+private extension View {
+    /// A gentle breathing scale that subtly brings the logo to life while idle.
+    @ViewBuilder
+    func breathing(_ enabled: Bool) -> some View {
+        if enabled {
+            phaseAnimator([false, true]) { content, breathing in
+                content.scaleEffect(breathing ? 1.028 : 1.0)
+            } animation: { _ in
+                .easeInOut(duration: 2.8)
+            }
+        } else {
+            self
+        }
     }
 }
