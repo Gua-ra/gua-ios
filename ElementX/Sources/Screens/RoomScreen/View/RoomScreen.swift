@@ -222,9 +222,6 @@ struct RoomScreen_Previews: PreviewProvider, TestablePreview {
     static let viewModels = makeViewModels()
     static let readOnlyViewModels = makeViewModels(canSendMessage: false)
     static let tombstonedViewModels = makeViewModels(hasSuccessor: true)
-    static let guaMarketingGroupViewModels = makeViewModels(roomName: "Residencial Marais",
-                                                            hasOngoingCall: false,
-                                                            timelineItems: RoomTimelineItemFixtures.guaMarketingGroup)
     static let guaMarketing1to1ViewModels = makeViewModels(roomName: "Camila Moraes",
                                                            hasOngoingCall: false,
                                                            timelineItems: RoomTimelineItemFixtures.guaMarketing1to1)
@@ -255,15 +252,6 @@ struct RoomScreen_Previews: PreviewProvider, TestablePreview {
         }
         .previewDisplayName("Tombstoned")
         .snapshotPreferences(expect: tombstonedViewModels.room.context.$viewState.map(\.hasSuccessor))
-
-        NavigationStack {
-            RoomScreen(context: guaMarketingGroupViewModels.room.context,
-                       timelineContext: guaMarketingGroupViewModels.timeline.context,
-                       composerToolbar: ComposerToolbar.mock())
-        }
-        .environment(\.colorScheme, .dark)
-        .preferredColorScheme(.dark)
-        .previewDisplayName("GuaMarketingGroup")
 
         NavigationStack {
             RoomScreen(context: guaMarketing1to1ViewModels.room.context,
