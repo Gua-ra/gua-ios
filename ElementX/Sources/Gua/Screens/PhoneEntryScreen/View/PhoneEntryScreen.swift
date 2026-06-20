@@ -11,6 +11,7 @@ import SwiftUI
 struct PhoneEntryScreen: View {
     @Bindable var context: PhoneEntryScreenViewModel.Context
     @FocusState private var isPhoneFieldFocused: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ScrollView {
@@ -47,6 +48,13 @@ struct PhoneEntryScreen: View {
                 .frame(width: 84, height: 84)
                 .clipShape(RoundedRectangle(cornerRadius: 21, style: .continuous))
                 .shadow(color: .black.opacity(0.12), radius: 14, y: 6)
+                // Living "Siri/aurora" glow spilling out from behind the icon. Oversized so it
+                // reads as a halo; drawn in a background so it never affects the header's layout.
+                .background {
+                    GuaAuroraGlow(animated: !reduceMotion)
+                        .frame(width: 220, height: 220)
+                        .allowsHitTesting(false)
+                }
                 .accessibilityHidden(true)
 
             VStack(spacing: 8) {
