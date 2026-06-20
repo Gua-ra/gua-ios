@@ -711,6 +711,10 @@ extension AccessibilityTests {
         try await performAccessibilityAudit(named: "TombstonedAvatarImage_Previews")
     }
 
+    func testTwoStepVerificationScreen() async throws {
+        try await performAccessibilityAudit(named: "TwoStepVerificationScreen_Previews")
+    }
+
     func testTypingIndicatorView() async throws {
         try await performAccessibilityAudit(named: "TypingIndicatorView_Previews")
     }

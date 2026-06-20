@@ -134,8 +134,10 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
         setupRoomListSubscriptions()
 
         updateRooms()
+
+        Task { await refreshPinSetupReminder() }
     }
-    
+
     // MARK: - Public
     
     override func process(viewAction: HomeScreenViewAction) {
@@ -160,6 +162,13 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             actionsSubject.send(.presentEncryptionResetScreen)
         case .skipRecoveryKeyConfirmation:
             state.securityBannerMode = .dismissed
+        case .setUpPinReminder:
+            state.pinSetupReminderVisible = false
+            actionsSubject.send(.presentTwoStepVerificationSetup)
+        case .dismissPinReminder:
+            state.pinSetupReminderVisible = false
+            // Snooze for a week so we don't badger the user.
+            appSettings.pinSetupReminderSnoozedUntil = Date().addingTimeInterval(7 * 24 * 60 * 60)
         case .updateVisibleItemRange(let range):
             roomSummaryProvider?.updateVisibleRange(range)
         case .startChat:
@@ -486,5 +495,23 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
         state.bindings.alertInfo = .init(id: UUID(),
                                          title: title ?? L10n.commonError,
                                          message: message ?? L10n.errorUnknown)
+    }
+
+    // GUA FORK: One-shot check at session start. If the identity service reports no PIN
+    // configured and the reminder isn't snoozed, surface the home-screen banner.
+    private func refreshPinSetupReminder() async {
+        guard let identityServiceClient = IdentityServiceClient(),
+              let accessToken = userSession.clientProxy.accessToken else {
+            return
+        }
+        if let snoozedUntil = appSettings.pinSetupReminderSnoozedUntil, snoozedUntil > Date() {
+            return
+        }
+        do {
+            let hasPin = try await identityServiceClient.pinStatus(accessToken: accessToken)
+            state.pinSetupReminderVisible = !hasPin
+        } catch {
+            MXLog.warning("Could not fetch PIN status for home screen reminder: \(error)")
+        }
     }
 }

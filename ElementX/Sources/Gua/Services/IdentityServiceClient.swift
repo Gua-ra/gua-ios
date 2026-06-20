@@ -53,6 +53,11 @@ protocol IdentityServiceClientProtocol {
     func verifyAccountReauth(accessToken: String, code: String) async throws -> String
     func deactivateAccount(accessToken: String, reauthToken: String, eraseData: Bool) async throws
     func resetIdentityCredentials(accessToken: String, reauthToken: String) async throws -> IdentityResetCredentials
+    // GUA FORK: Two-step verification (account PIN) management.
+    func pinStatus(accessToken: String) async throws -> Bool
+    func setInitialPin(accessToken: String, userId: String, newPin: String) async throws
+    func startPinChange(accessToken: String, phone: String, currentPin: String) async throws -> String
+    func completePinChange(accessToken: String, challengeId: String, otpCode: String, newPin: String) async throws
 }
 
 /// Ephemeral credentials minted by the identity-service for the Matrix
@@ -171,6 +176,84 @@ final class IdentityServiceClient: IdentityServiceClientProtocol {
         } catch {
             throw IdentityServiceError.decoding(error)
         }
+    }
+
+    // MARK: - Two-step verification (PIN)
+
+    func pinStatus(accessToken: String) async throws -> Bool {
+        struct Response: Decodable { let hasPin: Bool }
+        guard let url = URL(string: "/security/pin/status", relativeTo: baseURL) else {
+            throw IdentityServiceError.invalidURL
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            throw IdentityServiceError.transport(error)
+        }
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw IdentityServiceError.server(status: -1, message: "Non-HTTP response.")
+        }
+        guard httpResponse.statusCode == 200 else {
+            let message = (try? decoder.decode(ErrorBody.self, from: data)).flatMap { $0.message ?? $0.error }
+            throw IdentityServiceError.server(status: httpResponse.statusCode, message: message)
+        }
+        do {
+            return try decoder.decode(Response.self, from: data).hasPin
+        } catch {
+            throw IdentityServiceError.decoding(error)
+        }
+    }
+
+    func setInitialPin(accessToken: String, userId: String, newPin: String) async throws {
+        struct Body: Encodable {
+            let userId: String
+            let newPin: String
+        }
+        try await sendAuthenticated(path: "/security/pin",
+                                    accessToken: accessToken,
+                                    body: Body(userId: userId, newPin: newPin),
+                                    language: nil,
+                                    expectsBody: false)
+    }
+
+    func startPinChange(accessToken: String, phone: String, currentPin: String) async throws -> String {
+        struct Body: Encodable {
+            let phone: String
+            let currentPin: String
+        }
+        struct Response: Decodable {
+            let challengeId: String
+            let expiresInSeconds: Int?
+        }
+        let (data, _) = try await sendAuthenticated(path: "/security/pin/change/start",
+                                                    accessToken: accessToken,
+                                                    body: Body(phone: phone, currentPin: currentPin),
+                                                    language: nil,
+                                                    expectsBody: true)
+        do {
+            return try decoder.decode(Response.self, from: data).challengeId
+        } catch {
+            throw IdentityServiceError.decoding(error)
+        }
+    }
+
+    func completePinChange(accessToken: String, challengeId: String, otpCode: String, newPin: String) async throws {
+        struct Body: Encodable {
+            let challengeId: String
+            let otpCode: String
+            let newPin: String
+        }
+        try await sendAuthenticated(path: "/security/pin/change/complete",
+                                    accessToken: accessToken,
+                                    body: Body(challengeId: challengeId, otpCode: otpCode, newPin: newPin),
+                                    language: nil,
+                                    expectsBody: false)
     }
 
     @discardableResult

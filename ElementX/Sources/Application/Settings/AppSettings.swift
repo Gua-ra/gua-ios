@@ -71,6 +71,8 @@ final class AppSettings {
         // Doug's tweaks 🔧
         case hideUnreadMessagesBadge
         case hideQuietNotificationAlerts
+
+        case pinSetupReminderSnoozedUntil
     }
     
     private static var suiteName: String = InfoPlistReader.main.appGroupIdentifier
@@ -330,6 +332,10 @@ final class AppSettings {
     
     @UserPreference(key: UserDefaultsKeys.hideUnreadMessagesBadge, defaultValue: false, storageType: .userDefaults(store))
     var hideUnreadMessagesBadge
+
+    // GUA FORK: Snooze timestamp for the home-screen two-step-verification PIN setup reminder.
+    @UserPreference(key: UserDefaultsKeys.pinSetupReminderSnoozedUntil, defaultValue: nil, storageType: .userDefaults(store))
+    var pinSetupReminderSnoozedUntil: Date?
 
     // MARK: - Room Screen
     
