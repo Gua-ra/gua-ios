@@ -71,19 +71,17 @@ struct AnalyticsPromptScreen: View {
         }
     }
     
-    /// The stack of enable/disable buttons.
+    /// The stack of enable/disable buttons. Both choices share the same (secondary) style so the
+    /// user isn't nudged towards sharing analytics.
     private var buttons: some View {
         VStack(spacing: 16) {
             Button(L10n.actionOk) { context.send(viewAction: .enable) }
-                .buttonStyle(.compound(.primary))
+                .buttonStyle(.compound(.secondary))
                 .accessibilityIdentifier(A11yIdentifiers.analyticsPromptScreen.enable)
-            
-            Button { context.send(viewAction: .disable) } label: {
-                Text(L10n.actionNotNow)
-                    .font(.compound.bodyLGSemibold)
-                    .padding(14)
-            }
-            .accessibilityIdentifier(A11yIdentifiers.analyticsPromptScreen.notNow)
+
+            Button(L10n.actionNotNow) { context.send(viewAction: .disable) }
+                .buttonStyle(.compound(.secondary))
+                .accessibilityIdentifier(A11yIdentifiers.analyticsPromptScreen.notNow)
         }
     }
 }
