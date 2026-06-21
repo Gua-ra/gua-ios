@@ -46,10 +46,23 @@ feedback bot.
 | `ASC_ISSUER_ID` | App Store Connect API **issuer id** (a UUID) | App Store Connect -> Users and Access -> Integrations -> App Store Connect API -> the "Issuer ID" shown at the top |
 | `ASC_KEY_ID` | The API **key id** (~10 chars) | Same page, the "Key ID" column for your key |
 | `ASC_PRIVATE_KEY` | The full contents of the `AuthKey_<KEY_ID>.p8` file | Downloaded once when the key was created. Paste the whole PEM block, `-----BEGIN PRIVATE KEY-----` through `-----END PRIVATE KEY-----`, including newlines. |
+| `ASC_APP_ID` | The app's **numeric Apple ID** | App Store Connect -> Apps -> (the Gua app) -> App Information -> "Apple ID". The upload pins this so the build can't be routed to the wrong app record on a multi-app account. |
 
 The API key needs the **App Manager** role (or at least access to certificates,
 identifiers & profiles + TestFlight) so it can manage signing assets and upload
 builds.
+
+> **First-run precondition (App IDs must already exist).** Cloud-managed signing
+> reliably *updates* existing App IDs, but is flaky at *creating* App-Group-bearing
+> ones on a cold portal. Before the first run, make sure the three App IDs
+> `global.gua`, `global.gua.nse`, and `global.gua.shareextension` are already
+> registered in the Developer portal **with the Push, Associated Domains, App Groups
+> (`group.global.gua`), and Keychain Sharing capabilities enabled**, and that the
+> App Group `group.global.gua` itself exists. The simplest way to seed all of this
+> is a one-time manual archive from Xcode (which creates the identifiers, the App
+> Group, and the App Store profiles); after that, CI's `-allowProvisioningUpdates`
+> keeps them current. If you skip this, the very first CI run can fail at the
+> archive's signing phase.
 
 No other secrets are required. There is **no** manual-signing fallback configured,
 because all targets already use automatic signing (see "Fallback" below if that
@@ -63,11 +76,14 @@ checkout (with LFS)
   -> cache SwiftPM + Homebrew
   -> brew install xcodegen (+ xcbeautify if missing)
   -> xcodegen generate            # regenerate Gua.xcodeproj from project.yml
-  -> write AuthKey_<id>.p8 from ASC_PRIVATE_KEY into ~/.appstoreconnect/private_keys
+  -> write AuthKey_<id>.p8 from ASC_PRIVATE_KEY into $RUNNER_TEMP/private_keys
   -> xcodebuild archive  -allowProvisioningUpdates  CURRENT_PROJECT_VERSION=<run #>
   -> xcodebuild -exportArchive  (fastlane/exportOptions.plist, method app-store-connect)
-  -> xcrun altool --upload-app -f <ipa> --apiKey ASC_KEY_ID --apiIssuer ASC_ISSUER_ID
+  -> xcrun altool --validate-app  (fail fast on signing/entitlement/plist rejects)
+  -> xcrun altool --upload-package <ipa> --apple-id ASC_APP_ID --bundle-id global.gua
+       (output grepped for "No errors uploading"; altool can exit 0 on failure)
   -> upload the .xcarchive as a run artifact (5-day retention)
+  -> always: shred the AuthKey_<id>.p8 from disk
 ```
 
 Key build facts the workflow relies on:
@@ -88,14 +104,24 @@ Key build facts the workflow relies on:
 - **macOS minutes:** iOS archiving requires a macOS runner (`macos-15`). GitHub
   bills macOS minutes at 10x the Linux rate, and private repos have a monthly free
   allowance — a full archive run can use a meaningful chunk of it. Budget
-  accordingly or use a self-hosted Mac runner.
+  accordingly or use a self-hosted Mac runner. **If you use a self-hosted runner,**
+  note that `$HOME`/`$RUNNER_TEMP` can persist across jobs, so the App Store Connect
+  `.p8` key must not be left on disk. The workflow writes the key under
+  `$RUNNER_TEMP/private_keys` and an always-run "Clean up API key" step shreds it at
+  the end of every run (including on failure) — keep that step intact.
 - **Xcode version:** the project requires Xcode 16+. The workflow selects
-  `Xcode_16.4` if present, else the newest `Xcode_16*`, else the newest Xcode on
-  the image. If the runner image drops 16.x or the project later requires a newer
-  Xcode, adjust the "Select Xcode" step.
-- **`altool` vs `notarytool`:** TestFlight/App Store uploads use
-  `xcrun altool --upload-app` (still the supported tool in 2026). `notarytool`
-  notarizes Mac apps for Gatekeeper and is **not** used for iOS App Store uploads.
+  `Xcode_16.4` if present, else the newest `Xcode_16*`. If no `Xcode_16*` is found
+  it **fails fast** (rather than silently picking an incompatible toolchain), and it
+  also asserts the active `xcodebuild` reports major version >= 16. If the runner
+  image drops 16.x or the project later requires a newer Xcode, adjust the
+  "Select Xcode" step.
+- **`altool` vs `notarytool`:** TestFlight/App Store uploads use `xcrun altool`
+  (`--upload-package`, with `--validate-app` first). `notarytool` notarizes Mac apps
+  for Gatekeeper and is **not** used for iOS App Store uploads. Note that `altool`
+  can exit `0` even when an upload fails, and `--upload-app` cannot pin the target
+  app, so the workflow uses `--upload-package` with an explicit `--apple-id`
+  (`ASC_APP_ID`) / `--bundle-id` and greps the output for `No errors uploading`
+  before treating the run as green.
 - **First run is slow:** SwiftPM has to resolve the Matrix Rust SDK and many other
   packages on a cold cache, and Apple has to provision new signing assets the first
   time. Expect the first green run to take longer than subsequent ones.
