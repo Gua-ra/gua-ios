@@ -1420,3 +1420,7 @@
 
 
 
+
+/* GUA FORK */
+"screen_find_friends_title" = "Encontrar amigos";
+"screen_two_step_verification_title" = "Verificação em duas etapas";

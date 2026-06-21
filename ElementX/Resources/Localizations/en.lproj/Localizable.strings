@@ -1450,3 +1450,6 @@
 "screen_phone_login_welcome" = "Welcome to Gua";
 "screen_phone_login_footer" = "We'll text a verification code to this number.";
 "screen_phone_login_legacy" = "Sign in with another method";
+
+/* GUA FORK */
+"screen_find_friends_title" = "Find friends";

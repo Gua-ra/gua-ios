@@ -1395,3 +1395,7 @@
 "screen_signout_preference_item" = "Terminar sessão";
 "screen_signout_save_recovery_key_title" = "Guardaste a tua chave de recuperação?";
 "troubleshoot_notifications_entry_point_title" = "Corrigir notificações";
+
+/* GUA FORK */
+"screen_find_friends_title" = "Encontrar amigos";
+"screen_two_step_verification_title" = "Verificação em duas etapas";

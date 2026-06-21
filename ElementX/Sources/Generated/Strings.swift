@@ -2996,6 +2996,8 @@ internal enum L10n {
   internal static var screenTwoStepVerificationStatusOff: String { return L10n.tr("Localizable", "screen_two_step_verification_status_off") }
   /// PIN is enabled
   internal static var screenTwoStepVerificationStatusOn: String { return L10n.tr("Localizable", "screen_two_step_verification_status_on") }
+  /// Find friends
+  internal static var screenFindFriendsTitle: String { return L10n.tr("Localizable", "screen_find_friends_title") }
   /// Two-step verification
   internal static var screenTwoStepVerificationTitle: String { return L10n.tr("Localizable", "screen_two_step_verification_title") }
   /// PIN updated

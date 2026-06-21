@@ -1420,3 +1420,7 @@
 "screen_phone_login_footer" = "Nous enverrons un code de vérification par SMS à ce numéro.";
 "screen_phone_login_legacy" = "Se connecter avec une autre méthode";
 "screen_phone_login_welcome" = "Bienvenue sur Gua";
+
+/* GUA FORK */
+"screen_find_friends_title" = "Trouver des amis";
+"screen_two_step_verification_title" = "Vérification en deux étapes";

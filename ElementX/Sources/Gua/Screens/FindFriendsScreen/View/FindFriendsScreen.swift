@@ -11,7 +11,7 @@ struct FindFriendsScreen: View {
 
     var body: some View {
         content
-            .navigationTitle("Find friends")
+            .navigationTitle(L10n.screenFindFriendsTitle)
             .navigationBarTitleDisplayMode(.inline)
             .alert(item: $context.alertInfo)
     }
