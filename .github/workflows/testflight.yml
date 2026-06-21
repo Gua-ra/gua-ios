@@ -1,0 +1,190 @@
+name: TestFlight
+
+# One-tap TestFlight release.
+#
+# Archives, signs, and uploads the Gua iOS app to TestFlight. Signing is fully
+# cloud-managed: an App Store Connect API key (.p8) is handed to xcodebuild with
+# -allowProvisioningUpdates, so Xcode fetches/creates the distribution certificate
+# and the App Store provisioning profiles for all three signed targets
+# (global.gua, global.gua.nse, global.gua.shareextension) automatically. No .p12,
+# no .mobileprovision, no Match repo to manage.
+#
+# Trigger: Actions tab -> "TestFlight" -> "Run workflow".
+#
+# Required repo secrets (Settings -> Secrets and variables -> Actions):
+#   ASC_ISSUER_ID   App Store Connect API issuer id (UUID)
+#   ASC_KEY_ID      App Store Connect API key id
+#   ASC_PRIVATE_KEY Contents of the AuthKey_<KEY_ID>.p8 file (full PEM, multi-line)
+# See docs/TESTFLIGHT.md for setup details.
+
+on:
+  workflow_dispatch:
+    inputs:
+      whats_new:
+        description: "Optional 'What to Test' note for this TestFlight build"
+        required: false
+        type: string
+
+# Never run two TestFlight uploads at once (build numbers must stay unique/ordered).
+concurrency:
+  group: testflight
+  cancel-in-progress: false
+
+jobs:
+  testflight:
+    name: Archive & upload
+    runs-on: macos-15
+    timeout-minutes: 90
+
+    env:
+      SCHEME: Gua
+      CONFIGURATION: Release
+      ARCHIVE_PATH: ${{ github.workspace }}/build/Gua.xcarchive
+      EXPORT_PATH: ${{ github.workspace }}/build/export
+      EXPORT_OPTIONS: ${{ github.workspace }}/fastlane/exportOptions.plist
+      # Each run gets a unique, monotonically increasing build number (the workflow
+      # run number) so every upload is accepted by TestFlight.
+      BUILD_NUMBER: ${{ github.run_number }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Select Xcode
+        # The project targets Xcode 16+ (CI elsewhere pins 16.4). Pick the latest
+        # 16.x available on the runner; fall back to whatever Xcode_16* exists.
+        run: |
+          set -euo pipefail
+          XCODE_APP="$(ls -d /Applications/Xcode_16.4.app 2>/dev/null || true)"
+          if [ -z "$XCODE_APP" ]; then
+            XCODE_APP="$(ls -d /Applications/Xcode_16*.app 2>/dev/null | sort -V | tail -n1 || true)"
+          fi
+          if [ -z "$XCODE_APP" ]; then
+            XCODE_APP="$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -n1)"
+          fi
+          echo "Selecting $XCODE_APP"
+          sudo xcode-select -s "$XCODE_APP"
+          xcodebuild -version
+
+      - name: Cache SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/org.swift.swiftpm
+            ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
+          key: ${{ runner.os }}-spm-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      - name: Cache Homebrew (xcodegen)
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/Homebrew
+          key: ${{ runner.os }}-brew-xcodegen
+
+      - name: Install build tools
+        # xcodegen generates the project; xcbeautify prettifies xcodebuild output.
+        # xcbeautify is usually preinstalled on macos-15 runners, so only fetch it
+        # when missing to keep runs fast.
+        run: |
+          export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1
+          brew install xcodegen
+          command -v xcbeautify >/dev/null 2>&1 || brew install xcbeautify
+
+      - name: Generate Xcode project
+        # The .xcodeproj is generated from project.yml. The committed placeholder
+        # Secrets/Secrets.swift compiles fine for an archive; we do NOT run the
+        # fastlane config_production lane because update_foss_secrets lives in the
+        # (absent) Enterprise pipeline.
+        run: xcodegen generate
+
+      - name: Write App Store Connect API key
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ASC_KEY_ID:-}" ] || [ -z "${ASC_PRIVATE_KEY:-}" ]; then
+            echo "::error::ASC_KEY_ID / ASC_PRIVATE_KEY secrets are not set. See docs/TESTFLIGHT.md"
+            exit 1
+          fi
+          # xcodebuild & altool look up the key by id in these well-known dirs.
+          KEY_DIR="$HOME/.appstoreconnect/private_keys"
+          mkdir -p "$KEY_DIR" "$HOME/private_keys"
+          printf '%s\n' "$ASC_PRIVATE_KEY" > "$KEY_DIR/AuthKey_${ASC_KEY_ID}.p8"
+          cp "$KEY_DIR/AuthKey_${ASC_KEY_ID}.p8" "$HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          echo "ASC_KEY_PATH=$KEY_DIR/AuthKey_${ASC_KEY_ID}.p8" >> "$GITHUB_ENV"
+
+      - name: Archive
+        # The unique build number is injected as a CURRENT_PROJECT_VERSION build-setting
+        # override (the project doesn't use apple-generic versioning, so agvtool is not
+        # reliable). MARKETING_VERSION stays as defined in project.yml.
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          xcodebuild archive \
+            -project Gua.xcodeproj \
+            -scheme "$SCHEME" \
+            -configuration "$CONFIGURATION" \
+            -destination "generic/platform=iOS" \
+            -archivePath "$ARCHIVE_PATH" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            CODE_SIGN_STYLE=Automatic \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            | xcbeautify || exit ${PIPESTATUS[0]}
+
+      - name: Export IPA
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportPath "$EXPORT_PATH" \
+            -exportOptionsPlist "$EXPORT_OPTIONS" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            | xcbeautify || exit ${PIPESTATUS[0]}
+          echo "IPA_PATH=$(ls "$EXPORT_PATH"/*.ipa | head -n1)" >> "$GITHUB_ENV"
+
+      - name: Upload to TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          echo "Uploading $IPA_PATH (build $BUILD_NUMBER) to TestFlight"
+          # altool reads the key from ~/.appstoreconnect/private_keys/AuthKey_<id>.p8
+          xcrun altool --upload-app \
+            -f "$IPA_PATH" \
+            -t ios \
+            --apiKey "$ASC_KEY_ID" \
+            --apiIssuer "$ASC_ISSUER_ID"
+
+      - name: Record 'What to Test' note
+        if: ${{ inputs.whats_new != '' }}
+        env:
+          WHATS_NEW: ${{ inputs.whats_new }}
+        run: |
+          echo "What to Test:"
+          printf '%s\n' "$WHATS_NEW"
+
+      - name: Upload archive artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gua-${{ env.BUILD_NUMBER }}-xcarchive
+          path: ${{ env.ARCHIVE_PATH }}
+          retention-days: 5
+          if-no-files-found: warn
