@@ -10,14 +10,16 @@ import SwiftUI
 
 /// The welcome-screen app logo rendered as a premium "liquid glass" object.
 ///
-/// Motion is split between two sources:
+/// There is **no breathing/pulsing** — the logo stays a fixed size. It feels alive through *light*
+/// and *depth* instead:
 ///  - **Time-based** (`SwiftUI.TimelineView(.animation)`, display-link backed; the `SwiftUI.`
 ///    qualifier avoids ElementX's own `TimelineView`): an occasional specular **sheen** that sweeps
-///    across the glass (a ~1s pass roughly every 11s, not a constant loop) and a lively coloured
-///    **aura** that spills past the icon edges as a soft moving halo.
-///  - **Device-motion-based** (`CoreMotion`): a subtle 3D **parallax tilt** (a few degrees) that only
-///    responds as the user physically tilts the phone — like the home-screen depth effect. When the
-///    phone is still there is no motion; on the simulator (no gyro) the logo simply stays put.
+///    across the glass (a ~1s pass roughly every 11s, not a constant loop) and a steady coloured
+///    **aura** that spills past the icon edges and gently drifts.
+///  - **Device-motion-based** (`CoreMotion`): a subtle 3D **parallax tilt** (a few degrees) plus a
+///    **glass highlight** — a specular hotspot that slides across the surface as the user tilts the
+///    phone, like light catching real glass. When the phone is still there is no motion; on the
+///    simulator (no gyro) the logo simply sits with a centred highlight.
 ///
 /// Static under Reduce Motion (`animated == false`) and in snapshot tests.
 struct GuaWelcomeLogo: View {
@@ -49,18 +51,30 @@ struct GuaWelcomeLogo: View {
     }
 
     private func treated(t: TimeInterval) -> some View {
-        let pulse = sin(t * (2 * .pi / 5.0))           // -1...1 over 5s, slow gentle breathing
-
-        return logo
+        // No breathing/pulsing — the logo comes alive only through light (the sheen sweep + the
+        // tilt-tracking glass highlight) and the device-motion parallax tilt.
+        logo
             .overlay { sheen(t: t) }
+            .overlay { glassHighlight() }
             .clipShape(shape)
             .overlay { shape.stroke(.white.opacity(0.16), lineWidth: 0.5) } // crisp glass edge
             .background { aura(t: t) }
             // Subtle device-motion parallax: ±5° max, no movement when the phone is still.
             .rotation3DEffect(.degrees(tilt.pitch * 5), axis: (x: 1, y: 0, z: 0), perspective: 0.6)
             .rotation3DEffect(.degrees(tilt.roll * 5), axis: (x: 0, y: 1, z: 0), perspective: 0.6)
-            .scaleEffect(1 + 0.018 * pulse)
             .shadow(color: .black.opacity(0.18), radius: 16, y: 8)
+    }
+
+    /// A specular hotspot that slides across the glass as the device tilts — light catching a real
+    /// glass surface. Driven purely by `CoreMotion`, so it's still when the phone is still (and
+    /// sits centred on the simulator). Clipped to the logo by the caller's `.clipShape`.
+    private func glassHighlight() -> some View {
+        RadialGradient(colors: [.white.opacity(0.5), .white.opacity(0.12), .clear],
+                       center: .center, startRadius: 0, endRadius: size * 0.55)
+            .frame(width: size, height: size)
+            .offset(x: tilt.roll * size * 0.3, y: -tilt.pitch * size * 0.3)
+            .blendMode(.screen)
+            .allowsHitTesting(false)
     }
 
     private var logo: some View {
@@ -91,17 +105,16 @@ struct GuaWelcomeLogo: View {
             .allowsHitTesting(false)
     }
 
-    /// A lively Gua-green aura that sits behind the icon and spills ~25% past its edges as a soft
-    /// moving halo. The hue drifts gently around Gua green and the glow shifts/breathes faster than
-    /// the icon itself — visible and alive, but still tasteful (not a huge saturated ring).
+    /// A lively Gua-green aura that sits behind the icon and spills ~28% past its edges as a soft
+    /// halo. The hue drifts gently around Gua green and the glow slowly shifts position — visible
+    /// and alive, but steady (no breathing/pulsing) and still tasteful.
     private func aura(t: TimeInterval) -> some View {
-        let breathe = sin(t * (2 * .pi / 4.0)) * 0.5 + 0.5 // 0...1 over 4s (slow; still a touch faster than the icon)
-        let hue = 0.40 + 0.05 * sin(t * (2 * .pi / 4.0))   // drift around Gua green
+        let hue = 0.40 + 0.05 * sin(t * (2 * .pi / 4.0))   // gentle drift around Gua green
         let drift = size * 0.06
 
         return shape
             .fill(Color(hue: hue, saturation: 0.8, brightness: 0.95))
-            .opacity(0.22 + 0.16 * breathe)
+            .opacity(0.30)                                   // steady glow — no breathing
             .frame(width: size * 1.28, height: size * 1.28) // spill ~28% beyond the icon
             .offset(x: cos(t * (2 * .pi / 5.0)) * drift,
                     y: sin(t * (2 * .pi / 6.0)) * drift)

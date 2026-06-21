@@ -63,10 +63,13 @@ struct RoomSummary {
     var isMuted: Bool { notificationMode == .mute }
 
     /// GUA FORK: a stray "Empty Room" the SDK can surface when a DM is created but the other
-    /// member never joins (or a creation half-failed). Conservatively matches only member-less,
-    /// name-less, message-less DMs so a real, freshly-created conversation is never hidden.
+    /// member never joins (or a creation half-failed). We match DMs that have no visible joined
+    /// member (`heroes`) and no messages. The earlier `activeMembersCount <= 1` guard let these
+    /// slip through, because an invited-but-not-yet-joined peer makes the count 2 while `heroes`
+    /// is still empty — exactly the orphan case. A genuine conversation has either a joined hero
+    /// or a `lastMessage`, so it is never hidden.
     var isEmptyOrphanRoom: Bool {
-        isDirect && heroes.isEmpty && activeMembersCount <= 1 && lastMessage == nil
+        isDirect && heroes.isEmpty && lastMessage == nil
     }
 }
 
