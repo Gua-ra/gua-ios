@@ -111,9 +111,13 @@ protocol ClientProxyProtocol: AnyObject {
     var homeserverReachabilityPublisher: CurrentValuePublisher<NetworkMonitorReachability, Never> { get }
     
     var userID: String { get }
-    
+
     var deviceID: String? { get }
-    
+
+    /// GUA FORK: The current session's access token, used to authenticate calls to the
+    /// Gua identity service (contact discovery, two-step verification PIN status).
+    var accessToken: String? { get }
+
     var homeserver: String { get }
     
     var canDeactivateAccount: Bool { get }

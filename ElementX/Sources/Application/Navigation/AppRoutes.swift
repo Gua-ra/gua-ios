@@ -46,6 +46,8 @@ enum AppRoute: Hashable {
     case call(roomID: String, isVoiceCall: Bool)
     /// The settings screen.
     case settings
+    /// GUA FORK: The settings screen with the Two-step verification PIN screen pushed on top.
+    case settingsTwoStepVerification
     /// The setting screen for key backup.
     case chatBackupSettings
     /// An external share request e.g. from the ShareExtension

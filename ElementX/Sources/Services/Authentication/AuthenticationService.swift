@@ -108,10 +108,14 @@ class AuthenticationService: AuthenticationServiceProtocol {
     func urlForOAuthLogin(loginHint: String?) async -> Result<OAuthAuthorizationDataProxy, AuthenticationServiceError> {
         guard let client else { return .failure(.oAuthError(.urlFailure)) }
         do {
-            // The create prompt is broken: https://github.com/element-hq/matrix-authentication-service/issues/3429
-            // let prompt: OAuthPrompt = flow == .register ? .create : .consent
+            // GUA FORK: Force re-authentication (`.login`) on every OAuth login. Consent is
+            // skipped server-side (Gua is a first-party client and the identity-service already
+            // confirms everything), so we must NOT pass `.consent`/`nil` here: with no prompt +
+            // server-side consent skip, MAS silently reuses its existing browser session and
+            // always returns the SAME already-logged-in user, never running the phone-OTP flow.
+            // `.login` forces a fresh upstream authentication each time.
             let oAuthData = try await client.urlForOauth(oauthConfiguration: appSettings.oAuthConfiguration.rustValue,
-                                                         prompt: .consent,
+                                                         prompt: .login,
                                                          loginHint: loginHint,
                                                          deviceId: nil,
                                                          additionalScopes: nil)
@@ -239,7 +243,34 @@ class AuthenticationService: AuthenticationServiceProtocol {
         flow = .login
         client = nil
     }
-    
+
+    // GUA FORK: restore an out-of-band Matrix session from raw tokens. The Gua identity
+    // service hands the app an already-minted Matrix access token (phone-OTP flow), so we
+    // skip the interactive OAuth flow entirely and restore the session directly.
+    func loginWithExistingMatrixSession(accessToken: String,
+                                        refreshToken: String?,
+                                        userId: String,
+                                        deviceId: String,
+                                        homeserverUrl: String) async -> Result<UserSessionProtocol, AuthenticationServiceError> {
+        do {
+            let client = try await makeClient(homeserverAddress: homeserverUrl)
+            let session = Session(accessToken: accessToken,
+                                  refreshToken: refreshToken,
+                                  userId: userId,
+                                  deviceId: deviceId,
+                                  homeserverUrl: homeserverUrl,
+                                  oauthData: nil,
+                                  slidingSyncVersion: .native)
+            try await client.restoreSession(session: session)
+            self.client = client
+            flow = .login
+            return await userSession(for: client)
+        } catch {
+            MXLog.error("Failed restoring out-of-band Matrix session: \(error)")
+            return .failure(.failedLoggingIn)
+        }
+    }
+
     // MARK: - Private
     
     private func makeClient(homeserverAddress: String) async throws -> ClientProtocol {

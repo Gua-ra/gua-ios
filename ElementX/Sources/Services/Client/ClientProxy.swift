@@ -307,7 +307,17 @@ class ClientProxy: ClientProxyProtocol {
             return nil
         }
     }
-    
+
+    // GUA FORK: expose the session access token for the Gua identity service.
+    var accessToken: String? {
+        do {
+            return try client.session().accessToken
+        } catch {
+            MXLog.error("Failed retrieving access token with error: \(error)")
+            return nil
+        }
+    }
+
     var homeserver: String {
         client.homeserver()
     }

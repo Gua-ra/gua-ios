@@ -23,18 +23,19 @@ struct UserProfileListRow: View {
     
     private var subtitle: String? {
         guard !isUnknownProfile else { return L10n.commonInviteUnknownProfile }
-        
+
+        // GUA FORK: when surfacing the user ID, show the abstracted handle (homeserver hidden).
         if let membershipText = membership?.localizedDescription {
             return membershipText
         } else if user.displayName != nil {
-            return user.userID
+            return user.userID.guaDisplayHandle
         } else {
             return nil
         }
     }
-    
+
     var body: some View {
-        ListRow(label: .avatar(title: user.displayName ?? user.userID,
+        ListRow(label: .avatar(title: user.displayName ?? user.userID.guaDisplayHandle,
                                description: subtitle,
                                icon: avatar,
                                role: isUnknownProfile ? .error : nil),

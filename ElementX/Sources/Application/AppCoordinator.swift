@@ -678,7 +678,10 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
                                                         appSettings: appSettings,
                                                         appHooks: appHooks,
                                                         analytics: analyticsService,
-                                                        userIndicatorController: userIndicatorController)
+                                                        userIndicatorController: userIndicatorController,
+                                                        identityServiceClient: nil,
+                                                        resolverClient: ResolverClient(), // GUA FORK: required for phone -> homeserver routing.
+                                                        usesPhoneLoginHint: true) // Flip to false to restore the stock start/server-confirmation OIDC entry.
         coordinator.delegate = self
         
         authenticationFlowCoordinator = coordinator

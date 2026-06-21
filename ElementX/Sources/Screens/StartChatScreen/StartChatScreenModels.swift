@@ -18,6 +18,8 @@ enum StartChatScreenViewModelAction: Equatable {
     case createRoom
     case showRoom(roomID: String)
     case openRoomDirectorySearch
+    // GUA FORK: Find which of the user's phone contacts are on Gua.
+    case findFriends
 }
 
 struct StartChatScreenViewState: BindableState {
@@ -54,6 +56,8 @@ enum StartChatScreenViewAction {
     case selectUser(UserProfileProxy)
     case joinRoomByAddress
     case openRoomDirectorySearch
+    // GUA FORK: Find friends from phone contacts.
+    case findFriends
 }
 
 enum JoinByAddressState: Equatable {

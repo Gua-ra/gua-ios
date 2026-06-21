@@ -200,11 +200,65 @@ class StartChatFlowCoordinator: FlowCoordinatorProtocol {
                 actionsSubject.send(.finished(.room(id: roomID)))
             case .openRoomDirectorySearch:
                 actionsSubject.send(.showRoomDirectory)
+            case .findFriends:
+                presentFindFriends()
             }
         }
         .store(in: &cancellables)
-        
+
         navigationStackCoordinator.setRootCoordinator(coordinator)
+    }
+
+    // GUA FORK: Find-friends-from-contacts entry-point.
+    private func presentFindFriends() {
+        guard let identityServiceClient = IdentityServiceClient() else {
+            MXLog.warning("Identity service is not configured; cannot show Find Friends.")
+            return
+        }
+        guard let accessToken = flowParameters.userSession.clientProxy.accessToken else {
+            MXLog.warning("No access token available; cannot run contact discovery.")
+            return
+        }
+        let contactDiscoveryService = ContactDiscoveryService(identityServiceClient: identityServiceClient)
+        let parameters = FindFriendsScreenCoordinatorParameters(contactDiscoveryService: contactDiscoveryService,
+                                                                clientProxy: flowParameters.userSession.clientProxy,
+                                                                accessToken: accessToken)
+        let coordinator = FindFriendsScreenCoordinator(parameters: parameters)
+        coordinator.actionsPublisher.sink { [weak self] action in
+            guard let self else { return }
+            switch action {
+            case .startedChat(let roomID):
+                actionsSubject.send(.finished(.room(id: roomID)))
+            case .showProfile(let userID):
+                presentFindFriendsUserProfile(userID: userID)
+            case .close:
+                navigationStackCoordinator.pop()
+            }
+        }
+        .store(in: &cancellables)
+        navigationStackCoordinator.push(coordinator)
+    }
+
+    // GUA FORK
+    private func presentFindFriendsUserProfile(userID: String) {
+        let parameters = UserProfileScreenCoordinatorParameters(userID: userID,
+                                                                isPresentedModally: false,
+                                                                userSession: flowParameters.userSession,
+                                                                userIndicatorController: flowParameters.userIndicatorController,
+                                                                analytics: flowParameters.analytics,
+                                                                appSettings: flowParameters.appSettings)
+        let coordinator = UserProfileScreenCoordinator(parameters: parameters)
+        coordinator.actionsPublisher.sink { [weak self] action in
+            guard let self else { return }
+            switch action {
+            case .openDirectChat(let roomID):
+                actionsSubject.send(.finished(.room(id: roomID)))
+            case .startCall, .dismiss:
+                navigationStackCoordinator.pop()
+            }
+        }
+        .store(in: &cancellables)
+        navigationStackCoordinator.push(coordinator)
     }
     
     private func presentCreateRoomScreen(isSpace: Bool,

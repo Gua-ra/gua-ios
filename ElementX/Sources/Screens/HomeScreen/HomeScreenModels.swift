@@ -25,6 +25,7 @@ enum HomeScreenViewModelAction {
     case presentSettingsScreen
     case presentFeedbackScreen
     case presentStartChatScreen
+    case presentTwoStepVerificationSetup
     case logout
 }
 
@@ -41,6 +42,9 @@ enum HomeScreenViewAction {
     case confirmRecoveryKey
     case resetEncryption
     case skipRecoveryKeyConfirmation
+    // GUA FORK: two-step verification (PIN) setup reminder banner actions.
+    case setUpPinReminder
+    case dismissPinReminder
     case dismissNewSoundBanner
     case updateVisibleItemRange(Range<Int>)
     case spaceFilters
@@ -98,7 +102,11 @@ struct HomeScreenViewState: BindableState {
     var shouldShowNewSoundBanner = false
     
     var requiresExtraAccountSetup = false
-    
+
+    /// GUA FORK: Set to true when the identity service reports the user has not yet
+    /// configured their two-step verification PIN AND the reminder is not snoozed.
+    var pinSetupReminderVisible = false
+
     var rooms: [HomeScreenRoom] = []
     var roomListMode: HomeScreenRoomListMode = .skeletons
     

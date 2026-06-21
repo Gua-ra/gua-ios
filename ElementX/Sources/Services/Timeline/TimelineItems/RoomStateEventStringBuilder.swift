@@ -11,7 +11,14 @@ import UIKit
 
 nonisolated struct RoomStateEventStringBuilder {
     let userID: String
-    
+
+    /// GUA FORK: when true, membership/creation events that read like group noise are
+    /// suppressed (a 1:1 chat is a person, not a room).
+    var isDirectOneToOneRoom = false
+
+    /// GUA FORK: when false, plain `displayName` is used instead of the always-disambiguated form.
+    var shouldDisambiguateDisplayNames = true
+
     func buildString(for change: MembershipChange?,
                      reason: String?,
                      memberUserID: String,
@@ -23,11 +30,21 @@ nonisolated struct RoomStateEventStringBuilder {
             return nil
         }
         
+        // GUA FORK: in a 1:1 chat, suppress group-y membership events.
+        if isDirectOneToOneRoom {
+            switch change {
+            case .joined, .invited, .invitationAccepted:
+                return nil
+            default:
+                break
+            }
+        }
+
         let senderIsYou = isOutgoing
         let memberIsYou = memberUserID == userID
         let member = memberDisplayName ?? memberUserID
-        let senderDisplayName = sender.disambiguatedDisplayName ?? sender.id
-        
+        let senderDisplayName = shouldDisambiguateDisplayNames ? (sender.disambiguatedDisplayName ?? sender.id) : (sender.displayName ?? sender.id)
+
         switch change {
         case .joined:
             return memberIsYou ? L10n.stateEventRoomJoinByYou : L10n.stateEventRoomJoin(senderDisplayName)

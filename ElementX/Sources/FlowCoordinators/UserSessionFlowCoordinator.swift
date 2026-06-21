@@ -146,7 +146,7 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
         switch appRoute {
         case .accountProvisioningLink, .oAuthCallback:
             break // We always ignore these flows when logged in.
-        case .settings, .chatBackupSettings:
+        case .settings, .settingsTwoStepVerification, .chatBackupSettings:
             if ProcessInfo.processInfo.isiOSAppOnMac, flowParameters.windowManager.secondaryWindowsEnabled {
                 startSettingsFlow(detached: true)
             } else {
@@ -241,6 +241,8 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
                     navigationTabCoordinator.selectedTab = .chats
                 case .showSettings:
                     handleAppRoute(.settings, animated: true)
+                case .showTwoStepVerification:
+                    handleAppRoute(.settingsTwoStepVerification, animated: true)
                 case .showChatBackupSettings:
                     handleAppRoute(.chatBackupSettings, animated: true)
                 case .sessionVerification(let flow):

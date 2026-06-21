@@ -22,6 +22,8 @@ enum StartChatScreenCoordinatorAction {
     case createRoom
     case openRoom(roomID: String)
     case openRoomDirectorySearch
+    // GUA FORK: Find which of the user's phone contacts are on Gua.
+    case findFriends
 }
 
 final class StartChatScreenCoordinator: CoordinatorProtocol {
@@ -56,6 +58,8 @@ final class StartChatScreenCoordinator: CoordinatorProtocol {
                 actionsSubject.send(.openRoom(roomID: roomID))
             case .openRoomDirectorySearch:
                 actionsSubject.send(.openRoomDirectorySearch)
+            case .findFriends:
+                actionsSubject.send(.findFriends)
             }
         }
         .store(in: &cancellables)

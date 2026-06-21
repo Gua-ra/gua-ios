@@ -14,9 +14,8 @@ struct SettingsScreen: View {
     let context: SettingsScreenViewModel.Context
     
     private var shouldHideManageAccountSection: Bool {
-        context.viewState.accountProfileURL == nil &&
-            !context.viewState.showBlockedUsers &&
-            !context.viewState.showLinkNewDeviceButton
+        // GUA FORK: Always shown — the Two-step verification row lives in this section.
+        false
     }
     
     var body: some View {
@@ -62,7 +61,8 @@ struct SettingsScreen: View {
                             Text(context.viewState.userDisplayName ?? "")
                                 .font(.compound.headingMD)
                                 .foregroundColor(.compound.textPrimary)
-                            Text(context.viewState.userID)
+                            // GUA FORK: show the bare handle, never the ":homeserver" suffix.
+                            Text(context.viewState.userLocalpart)
                                 .font(.compound.bodySM)
                                 .foregroundColor(.compound.textSecondary)
                         }
@@ -80,29 +80,40 @@ struct SettingsScreen: View {
     
     private var manageMyAppSection: some View {
         Section {
+            // GUA FORK: Find which of the user's phone contacts are already on Gua.
+            ListRow(label: .default(title: L10n.commonFindFriends,
+                                    icon: \.userAdd),
+                    kind: .navigationLink {
+                        context.send(viewAction: .findFriends)
+                    })
+
             ListRow(label: .default(title: L10n.screenNotificationSettingsTitle,
                                     icon: \.notifications),
                     kind: .navigationLink {
                         context.send(viewAction: .notifications)
                     })
                     .accessibilityIdentifier(A11yIdentifiers.settingsScreen.notifications)
-            
+
             ListRow(label: .default(title: L10n.commonScreenLock,
                                     icon: \.lock),
                     kind: .navigationLink {
                         context.send(viewAction: .appLock)
                     })
                     .accessibilityIdentifier(A11yIdentifiers.settingsScreen.screenLock)
-            
-            switch context.viewState.securitySectionMode {
-            case .secureBackup:
-                ListRow(label: .default(title: L10n.commonEncryption,
-                                        icon: \.key),
-                        details: context.viewState.showSecuritySectionBadge ? .icon(securitySectionBadge) : nil,
-                        kind: .navigationLink { context.send(viewAction: .secureBackup) })
-                    .accessibilityIdentifier(A11yIdentifiers.settingsScreen.secureBackup)
-            default:
-                EmptyView()
+
+            // GUA FORK: hide the advanced Encryption entry point. E2EE stays fully enabled with
+            // safe defaults; only the advanced controls are hidden for the frictionless UX.
+            if !context.viewState.hidesAdvancedEncryption {
+                switch context.viewState.securitySectionMode {
+                case .secureBackup:
+                    ListRow(label: .default(title: L10n.commonEncryption,
+                                            icon: \.key),
+                            details: context.viewState.showSecuritySectionBadge ? .icon(securitySectionBadge) : nil,
+                            kind: .navigationLink { context.send(viewAction: .secureBackup) })
+                        .accessibilityIdentifier(A11yIdentifiers.settingsScreen.secureBackup)
+                default:
+                    EmptyView()
+                }
             }
         }
     }
@@ -126,6 +137,13 @@ struct SettingsScreen: View {
                         })
             }
             
+            // GUA FORK: Two-step verification (PIN) entry point.
+            ListRow(label: .default(title: L10n.screenTwoStepVerificationTitle,
+                                    icon: \.lockSolid),
+                    kind: .navigationLink {
+                        context.send(viewAction: .twoStepVerification)
+                    })
+
             if context.viewState.showBlockedUsers {
                 ListRow(label: .default(title: L10n.commonBlockedUsers,
                                         icon: \.block),

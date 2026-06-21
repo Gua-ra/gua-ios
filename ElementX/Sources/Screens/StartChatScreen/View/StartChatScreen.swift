@@ -50,13 +50,24 @@ struct StartChatScreen: View {
     /// The content shown in the form when the search query is empty.
     @ViewBuilder
     private var mainContent: some View {
+        findFriendsSection
         createRoomSection
         roomDirectorySearch
         inviteFriendsSection
         joinRoomByAddressSection
         usersSection
     }
-    
+
+    // GUA FORK: Discover which phone contacts are already on Gua.
+    private var findFriendsSection: some View {
+        Section {
+            ListRow(label: .default(title: L10n.commonFindFriends,
+                                    description: L10n.commonFindFriendsDescription,
+                                    icon: \.userAdd),
+                    kind: .navigationLink { context.send(viewAction: .findFriends) })
+        }
+    }
+
     private var joinRoomByAddressSection: some View {
         Section {
             ListRow(label: .default(title: L10n.screenStartChatJoinRoomByAddressAction,

@@ -13,16 +13,28 @@ nonisolated struct RoomEventStringBuilder {
     let stateEventStringBuilder: RoomStateEventStringBuilder
     let messageEventStringBuilder: RoomMessageEventStringBuilder
     let shouldPrefixSenderName: Bool
-    
-    func buildAttributedString(for eventItemProxy: EventTimelineItemProxy) -> AttributedString? {
+    /// GUA FORK: when false, plain `displayName` is used instead of the always-disambiguated form.
+    var shouldDisambiguateDisplayNames = true
+
+    func buildAttributedString(for eventItemProxy: EventTimelineItemProxy, isDirectOneToOneRoom: Bool = false) -> AttributedString? {
         buildAttributedString(for: eventItemProxy.content,
                               sender: eventItemProxy.sender,
-                              isOutgoing: eventItemProxy.isOwn)
+                              isOutgoing: eventItemProxy.isOwn,
+                              isDirectOneToOneRoom: isDirectOneToOneRoom)
     }
-    
-    func buildAttributedString(for content: TimelineItemContent, sender: TimelineItemSender, isOutgoing: Bool) -> AttributedString? {
-        let displayName = sender.disambiguatedDisplayName ?? sender.id
-        
+
+    func buildAttributedString(for content: TimelineItemContent, sender: TimelineItemSender, isOutgoing: Bool, isDirectOneToOneRoom: Bool = false) -> AttributedString? {
+        // GUA FORK: in a 1:1 chat the membership/creation events read like group noise,
+        // so the room-list preview suppresses them just like the in-room timeline does.
+        var stateEventStringBuilder = stateEventStringBuilder
+        stateEventStringBuilder.isDirectOneToOneRoom = isDirectOneToOneRoom
+
+        let displayName = if shouldDisambiguateDisplayNames {
+            sender.disambiguatedDisplayName ?? sender.id
+        } else {
+            sender.displayName ?? sender.id
+        }
+
         switch content {
         case .msgLike(let messageLikeContent):
             switch messageLikeContent.kind {

@@ -59,6 +59,9 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
         switch appRoute {
         case .settings:
             presentSettingsScreen(animated: animated)
+        case .settingsTwoStepVerification:
+            presentSettingsScreen(animated: animated)
+            presentTwoStepVerification()
         case .chatBackupSettings:
             startEncryptionSettingsFlow(animated: animated)
         default:
@@ -119,10 +122,14 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                     presentDeveloperOptions()
                 case .deactivateAccount:
                     presentDeactivateAccount()
+                case .twoStepVerification:
+                    presentTwoStepVerification()
+                case .findFriends:
+                    presentFindFriends()
                 }
             }
             .store(in: &cancellables)
-        
+
         navigationStackCoordinator.setRootCoordinator(settingsScreenCoordinator, animated: animated)
     }
     
@@ -296,7 +303,78 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
         
         navigationStackCoordinator.push(coordinator)
     }
-    
+
+    // MARK: - Gua
+
+    // GUA FORK: Two-step verification entry-point.
+    private func presentTwoStepVerification() {
+        guard let identityServiceClient = IdentityServiceClient() else {
+            MXLog.warning("Identity service is not configured; cannot show two-step verification screen.")
+            return
+        }
+        let parameters = TwoStepVerificationScreenCoordinatorParameters(clientProxy: flowParameters.userSession.clientProxy,
+                                                                        identityServiceClient: identityServiceClient,
+                                                                        userIndicatorController: flowParameters.userIndicatorController)
+        let coordinator = TwoStepVerificationScreenCoordinator(parameters: parameters)
+        coordinator.actionsPublisher
+            .sink { _ in }
+            .store(in: &cancellables)
+        navigationStackCoordinator.push(coordinator)
+    }
+
+    // GUA FORK: Find-friends-from-contacts entry-point.
+    private func presentFindFriends() {
+        guard let identityServiceClient = IdentityServiceClient() else {
+            MXLog.warning("Identity service is not configured; cannot show Find Friends.")
+            return
+        }
+        guard let accessToken = flowParameters.userSession.clientProxy.accessToken else {
+            MXLog.warning("No access token available; cannot run contact discovery.")
+            return
+        }
+        let contactDiscoveryService = ContactDiscoveryService(identityServiceClient: identityServiceClient)
+        let parameters = FindFriendsScreenCoordinatorParameters(contactDiscoveryService: contactDiscoveryService,
+                                                                clientProxy: flowParameters.userSession.clientProxy,
+                                                                accessToken: accessToken)
+        let coordinator = FindFriendsScreenCoordinator(parameters: parameters)
+        coordinator.actionsPublisher
+            .sink { [weak self] action in
+                guard let self else { return }
+                switch action {
+                case .startedChat:
+                    actionsSubject.send(.dismiss)
+                case .showProfile(let userID):
+                    presentFindFriendsUserProfile(userID: userID)
+                case .close:
+                    break
+                }
+            }
+            .store(in: &cancellables)
+        navigationStackCoordinator.push(coordinator)
+    }
+
+    // GUA FORK
+    private func presentFindFriendsUserProfile(userID: String) {
+        let parameters = UserProfileScreenCoordinatorParameters(userID: userID,
+                                                                isPresentedModally: false,
+                                                                userSession: flowParameters.userSession,
+                                                                userIndicatorController: flowParameters.userIndicatorController,
+                                                                analytics: flowParameters.analytics,
+                                                                appSettings: flowParameters.appSettings)
+        let coordinator = UserProfileScreenCoordinator(parameters: parameters)
+        coordinator.actionsPublisher.sink { [weak self] action in
+            guard let self else { return }
+            switch action {
+            case .openDirectChat:
+                actionsSubject.send(.dismiss)
+            case .startCall, .dismiss:
+                navigationStackCoordinator.pop()
+            }
+        }
+        .store(in: &cancellables)
+        navigationStackCoordinator.push(coordinator)
+    }
+
     // MARK: OAuth Account Management
     
     private var accountSettingsPresenter: OAuthAccountSettingsPresenter?

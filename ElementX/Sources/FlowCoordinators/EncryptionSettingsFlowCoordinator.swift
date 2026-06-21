@@ -88,7 +88,7 @@ class EncryptionSettingsFlowCoordinator: FlowCoordinatorProtocol {
         case .roomList, .room, .roomAlias, .childRoom, .childRoomAlias,
              .roomDetails, .roomMemberDetails, .userProfile, .thread,
              .event, .eventOnRoomAlias, .childEvent, .childEventOnRoomAlias,
-             .call, .settings, .share, .transferOwnership,
+             .call, .settings, .settingsTwoStepVerification, .share, .transferOwnership,
              .search:
             // These routes aren't in this flow so clear the entire stack.
             clearRoute(animated: animated)
