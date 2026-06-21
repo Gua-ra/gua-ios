@@ -15,10 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "7A17BE29BAC81ADBAC6349D9"
-               BuildableName = "PreviewTests.xctest"
-               BlueprintName = "PreviewTests"
-               ReferencedContainer = "container:ElementX.xcodeproj">
+               BlueprintIdentifier = "33A96E673B477BBCBEDA109B"
+               BuildableName = "UITests.xctest"
+               BlueprintName = "UITests"
+               ReferencedContainer = "container:Gua.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -28,36 +28,26 @@
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES"
-      codeCoverageEnabled = "YES"
-      onlyGenerateCoverageForSpecifiedTargets = "YES">
+      onlyGenerateCoverageForSpecifiedTargets = "NO">
       <TestPlans>
          <TestPlanReference
             default = "YES"
-            reference = "container:PreviewTests/SupportingFiles/PreviewTests.xctestplan">
+            reference = "container:UITests/SupportingFiles/UITests.xctestplan">
          </TestPlanReference>
       </TestPlans>
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "7A17BE29BAC81ADBAC6349D9"
-            BuildableName = "PreviewTests.xctest"
-            BlueprintName = "PreviewTests"
-            ReferencedContainer = "container:ElementX.xcodeproj">
+            BlueprintIdentifier = "33A96E673B477BBCBEDA109B"
+            BuildableName = "UITests.xctest"
+            BlueprintName = "UITests"
+            ReferencedContainer = "container:Gua.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
       </Testables>
       <CommandLineArguments>
       </CommandLineArguments>
-      <CodeCoverageTargets>
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "C0FAEB81CFD9776CD78CE489"
-            BuildableName = "ElementX.app"
-            BlueprintName = "ElementX"
-            ReferencedContainer = "container:ElementX.xcodeproj">
-         </BuildableReference>
-      </CodeCoverageTargets>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
@@ -72,10 +62,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "7A17BE29BAC81ADBAC6349D9"
-            BuildableName = "PreviewTests.xctest"
-            BlueprintName = "PreviewTests"
-            ReferencedContainer = "container:ElementX.xcodeproj">
+            BlueprintIdentifier = "33A96E673B477BBCBEDA109B"
+            BuildableName = "UITests.xctest"
+            BlueprintName = "UITests"
+            ReferencedContainer = "container:Gua.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <CommandLineArguments>
@@ -92,10 +82,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "7A17BE29BAC81ADBAC6349D9"
-            BuildableName = "PreviewTests.xctest"
-            BlueprintName = "PreviewTests"
-            ReferencedContainer = "container:ElementX.xcodeproj">
+            BlueprintIdentifier = "33A96E673B477BBCBEDA109B"
+            BuildableName = "UITests.xctest"
+            BlueprintName = "UITests"
+            ReferencedContainer = "container:Gua.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
    </ProfileAction>

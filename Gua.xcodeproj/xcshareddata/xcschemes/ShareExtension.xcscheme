@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
    LastUpgradeVersion = "1620"
+   wasCreatedForAppExtension = "YES"
    version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -15,10 +16,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "C0C687DE1D270F9895FEE186"
-               BuildableName = "AccessibilityTests.xctest"
-               BlueprintName = "AccessibilityTests"
-               ReferencedContainer = "container:ElementX.xcodeproj">
+               BlueprintIdentifier = "8AED4F2700EABEE6F106305A"
+               BuildableName = "ShareExtension.appex"
+               BlueprintName = "ShareExtension"
+               ReferencedContainer = "container:Gua.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -29,19 +30,13 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES"
       onlyGenerateCoverageForSpecifiedTargets = "NO">
-      <TestPlans>
-         <TestPlanReference
-            default = "YES"
-            reference = "container:AccessibilityTests/SupportingFiles/AccessibilityTests.xctestplan">
-         </TestPlanReference>
-      </TestPlans>
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "C0C687DE1D270F9895FEE186"
-            BuildableName = "AccessibilityTests.xctest"
-            BlueprintName = "AccessibilityTests"
-            ReferencedContainer = "container:ElementX.xcodeproj">
+            BlueprintIdentifier = "8AED4F2700EABEE6F106305A"
+            BuildableName = "ShareExtension.appex"
+            BlueprintName = "ShareExtension"
+            ReferencedContainer = "container:Gua.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -51,23 +46,26 @@
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
-      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
-      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      selectedDebuggerIdentifier = ""
+      selectedLauncherIdentifier = "Xcode.IDEFoundation.Launcher.PosixSpawn"
       launchStyle = "0"
+      askForAppToLaunch = "YES"
       useCustomWorkingDirectory = "NO"
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
-      allowLocationSimulation = "YES">
-      <MacroExpansion>
+      allowLocationSimulation = "YES"
+      launchAutomaticallySubstyle = "2">
+      <BuildableProductRunnable
+         runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "C0C687DE1D270F9895FEE186"
-            BuildableName = "AccessibilityTests.xctest"
-            BlueprintName = "AccessibilityTests"
-            ReferencedContainer = "container:ElementX.xcodeproj">
+            BlueprintIdentifier = "8AED4F2700EABEE6F106305A"
+            BuildableName = "ShareExtension.appex"
+            BlueprintName = "ShareExtension"
+            ReferencedContainer = "container:Gua.xcodeproj">
          </BuildableReference>
-      </MacroExpansion>
+      </BuildableProductRunnable>
       <CommandLineArguments>
       </CommandLineArguments>
    </LaunchAction>
@@ -77,17 +75,18 @@
       savedToolIdentifier = ""
       useCustomWorkingDirectory = "NO"
       debugDocumentVersioning = "YES">
-      <CommandLineArguments>
-      </CommandLineArguments>
-      <MacroExpansion>
+      <BuildableProductRunnable
+         runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "C0C687DE1D270F9895FEE186"
-            BuildableName = "AccessibilityTests.xctest"
-            BlueprintName = "AccessibilityTests"
-            ReferencedContainer = "container:ElementX.xcodeproj">
+            BlueprintIdentifier = "8AED4F2700EABEE6F106305A"
+            BuildableName = "ShareExtension.appex"
+            BlueprintName = "ShareExtension"
+            ReferencedContainer = "container:Gua.xcodeproj">
          </BuildableReference>
-      </MacroExpansion>
+      </BuildableProductRunnable>
+      <CommandLineArguments>
+      </CommandLineArguments>
    </ProfileAction>
    <AnalyzeAction
       buildConfiguration = "Debug">

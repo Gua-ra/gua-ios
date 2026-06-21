@@ -16,10 +16,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "19F0C845D67E9BEA4BE7133E"
-               BuildableName = "ShareExtension.appex"
-               BlueprintName = "ShareExtension"
-               ReferencedContainer = "container:ElementX.xcodeproj">
+               BlueprintIdentifier = "1AC5AE26C2CE34A72408A8B3"
+               BuildableName = "NSE.appex"
+               BlueprintName = "NSE"
+               ReferencedContainer = "container:Gua.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -33,10 +33,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "19F0C845D67E9BEA4BE7133E"
-            BuildableName = "ShareExtension.appex"
-            BlueprintName = "ShareExtension"
-            ReferencedContainer = "container:ElementX.xcodeproj">
+            BlueprintIdentifier = "1AC5AE26C2CE34A72408A8B3"
+            BuildableName = "NSE.appex"
+            BlueprintName = "NSE"
+            ReferencedContainer = "container:Gua.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -60,10 +60,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "19F0C845D67E9BEA4BE7133E"
-            BuildableName = "ShareExtension.appex"
-            BlueprintName = "ShareExtension"
-            ReferencedContainer = "container:ElementX.xcodeproj">
+            BlueprintIdentifier = "1AC5AE26C2CE34A72408A8B3"
+            BuildableName = "NSE.appex"
+            BlueprintName = "NSE"
+            ReferencedContainer = "container:Gua.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>
@@ -79,10 +79,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "19F0C845D67E9BEA4BE7133E"
-            BuildableName = "ShareExtension.appex"
-            BlueprintName = "ShareExtension"
-            ReferencedContainer = "container:ElementX.xcodeproj">
+            BlueprintIdentifier = "1AC5AE26C2CE34A72408A8B3"
+            BuildableName = "NSE.appex"
+            BlueprintName = "NSE"
+            ReferencedContainer = "container:Gua.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>

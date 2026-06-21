@@ -11,8 +11,8 @@ import MatrixRustSDK
 #if IS_MAIN_APP
 private struct GuaAppSettingsHook: AppSettingsHookProtocol {
     private enum Constants {
-        static let defaultAccountProvider = "dev.gua.sarahlacerda.me"
-        static let oidcRedirectURL = "me.sarahlacerda.gua://oidc"
+        static let defaultAccountProvider = "dev.gua.global"
+        static let oidcRedirectURL = "global.gua://oidc"
         static let localMasClientID = "01JXGA7E570000000000000000"
         static let localStaticRegistrationURLs = [
             "http://localhost:8008",
@@ -40,7 +40,7 @@ private struct GuaAppSettingsHook: AppSettingsHookProtocol {
                              allowOtherAccountProviders: true,
                              hideBrandChrome: appSettings.hideBrandChrome,
                              pushGatewayBaseURL: appSettings.pushGatewayBaseURL,
-                             oidcRedirectURL: redirectURL,
+                             oAuthRedirectURL: redirectURL,
                              websiteURL: appSettings.websiteURL,
                              logoURL: appSettings.logoURL,
                              copyrightURL: appSettings.copyrightURL,
@@ -50,12 +50,13 @@ private struct GuaAppSettingsHook: AppSettingsHookProtocol {
                              deviceVerificationURL: appSettings.deviceVerificationURL,
                              chatBackupDetailsURL: appSettings.chatBackupDetailsURL,
                              identityPinningViolationDetailsURL: appSettings.identityPinningViolationDetailsURL,
+                             historySharingDetailsURL: appSettings.historySharingDetailsURL,
                              elementWebHosts: appSettings.elementWebHosts,
                              accountProvisioningHost: appSettings.accountProvisioningHost,
                              bugReportApplicationID: appSettings.bugReportApplicationID,
                              analyticsTermsURL: appSettings.analyticsTermsURL,
-                             mapTilerConfiguration: appSettings.mapTilerConfiguration,
-                             oidcStaticRegistrations: staticRegistrations)
+                             mapTilerConfiguration: AppSettings.bundledMapTilerConfiguration,
+                             oAuthStaticRegistrations: staticRegistrations)
 
         return appSettings
     }

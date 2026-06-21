@@ -15,10 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "0E28CD62691FDBC63147D5E3"
-               BuildableName = "UITests.xctest"
-               BlueprintName = "UITests"
-               ReferencedContainer = "container:ElementX.xcodeproj">
+               BlueprintIdentifier = "8863612E3FD57A5CF487B420"
+               BuildableName = "AccessibilityTests.xctest"
+               BlueprintName = "AccessibilityTests"
+               ReferencedContainer = "container:Gua.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -32,16 +32,16 @@
       <TestPlans>
          <TestPlanReference
             default = "YES"
-            reference = "container:UITests/SupportingFiles/UITests.xctestplan">
+            reference = "container:AccessibilityTests/SupportingFiles/AccessibilityTests.xctestplan">
          </TestPlanReference>
       </TestPlans>
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "0E28CD62691FDBC63147D5E3"
-            BuildableName = "UITests.xctest"
-            BlueprintName = "UITests"
-            ReferencedContainer = "container:ElementX.xcodeproj">
+            BlueprintIdentifier = "8863612E3FD57A5CF487B420"
+            BuildableName = "AccessibilityTests.xctest"
+            BlueprintName = "AccessibilityTests"
+            ReferencedContainer = "container:Gua.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -62,10 +62,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "0E28CD62691FDBC63147D5E3"
-            BuildableName = "UITests.xctest"
-            BlueprintName = "UITests"
-            ReferencedContainer = "container:ElementX.xcodeproj">
+            BlueprintIdentifier = "8863612E3FD57A5CF487B420"
+            BuildableName = "AccessibilityTests.xctest"
+            BlueprintName = "AccessibilityTests"
+            ReferencedContainer = "container:Gua.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <CommandLineArguments>
@@ -82,10 +82,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "0E28CD62691FDBC63147D5E3"
-            BuildableName = "UITests.xctest"
-            BlueprintName = "UITests"
-            ReferencedContainer = "container:ElementX.xcodeproj">
+            BlueprintIdentifier = "8863612E3FD57A5CF487B420"
+            BuildableName = "AccessibilityTests.xctest"
+            BlueprintName = "AccessibilityTests"
+            ReferencedContainer = "container:Gua.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
    </ProfileAction>

@@ -15,10 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "D3DB351B7FBE0F49649171FC"
+               BlueprintIdentifier = "206D2E4EBBD08B70378F4DB6"
                BuildableName = "IntegrationTests.xctest"
                BlueprintName = "IntegrationTests"
-               ReferencedContainer = "container:ElementX.xcodeproj">
+               ReferencedContainer = "container:Gua.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -39,10 +39,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "D3DB351B7FBE0F49649171FC"
+            BlueprintIdentifier = "206D2E4EBBD08B70378F4DB6"
             BuildableName = "IntegrationTests.xctest"
             BlueprintName = "IntegrationTests"
-            ReferencedContainer = "container:ElementX.xcodeproj">
+            ReferencedContainer = "container:Gua.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -52,10 +52,10 @@
       <CodeCoverageTargets>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "C0FAEB81CFD9776CD78CE489"
+            BlueprintIdentifier = "4B70733CD7C13746395196E0"
             BuildableName = "ElementX.app"
             BlueprintName = "ElementX"
-            ReferencedContainer = "container:ElementX.xcodeproj">
+            ReferencedContainer = "container:Gua.xcodeproj">
          </BuildableReference>
       </CodeCoverageTargets>
    </TestAction>
@@ -72,10 +72,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "D3DB351B7FBE0F49649171FC"
+            BlueprintIdentifier = "206D2E4EBBD08B70378F4DB6"
             BuildableName = "IntegrationTests.xctest"
             BlueprintName = "IntegrationTests"
-            ReferencedContainer = "container:ElementX.xcodeproj">
+            ReferencedContainer = "container:Gua.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <CommandLineArguments>
@@ -92,10 +92,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "D3DB351B7FBE0F49649171FC"
+            BlueprintIdentifier = "206D2E4EBBD08B70378F4DB6"
             BuildableName = "IntegrationTests.xctest"
             BlueprintName = "IntegrationTests"
-            ReferencedContainer = "container:ElementX.xcodeproj">
+            ReferencedContainer = "container:Gua.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
    </ProfileAction>

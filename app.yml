@@ -1,13 +1,10 @@
 settings:
-  APP_DISPLAY_NAME: Element X
-  PRODUCTION_APP_NAME: Element
-  APP_GROUP_IDENTIFIER: group.io.element
-  BASE_BUNDLE_IDENTIFIER: io.element.elementx
+  APP_DISPLAY_NAME: Gua
+  PRODUCTION_APP_NAME: Gua
+  APP_GROUP_IDENTIFIER: group.global.gua
+  BASE_BUNDLE_IDENTIFIER: global.gua
   ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: "colors/accent-color"
-  DEVELOPMENT_TEAM: 7J4U792NQT
-
-  # Optional configuration to load accounts from Element Classic.
-  CLASSIC_APP_GROUP_IDENTIFIER: group.im.vector
-  CLASSIC_APP_KEYCHAIN_SERVICE_IDENTIFIER: im.vector.app.encryption-manager-service
-  CLASSIC_APP_KEYCHAIN_ACCESS_GROUP_IDENTIFIER: "$(DEVELOPMENT_TEAM).im.vector.app.keychain.shared"
-  CLASSIC_APP_DEEP_LINK_URL: "element://open"
+  DEVELOPMENT_TEAM: 3HD49L7PSA
+  DEFAULT_ACCOUNT_PROVIDER: dev.gua.global
+  OIDC_REDIRECT_URL: global.gua://oidc
+  OIDC_STATIC_REGISTRATIONS: ""

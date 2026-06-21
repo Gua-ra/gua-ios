@@ -92,8 +92,13 @@ final nonisolated class AppSettings: @unchecked Sendable {
         // Doug's tweaks 🔧
         case roomListActivityVisibility
         case hideQuietNotificationAlerts
-        
+
         case developerOptionsEnabled
+
+        // GUA FORK
+        case legacyAuthEnabled
+        case guaHidesAdvancedEncryption
+        case pinSetupReminderSnoozedUntil
     }
     
     static let suiteName: String = InfoPlistReader.main.appGroupIdentifier
@@ -146,7 +151,8 @@ final nonisolated class AppSettings: @unchecked Sendable {
                   accountProvisioningHost: String,
                   bugReportApplicationID: String,
                   analyticsTermsURL: URL?,
-                  mapTilerConfiguration: MapTilerSettings.Configuration) {
+                  mapTilerConfiguration: MapTilerSettings.Configuration,
+                  oAuthStaticRegistrations: [URL: String]? = nil) {
         self.accountProviders = accountProviders
         self.allowOtherAccountProviders = allowOtherAccountProviders
         self.hideBrandChrome = hideBrandChrome
@@ -167,6 +173,10 @@ final nonisolated class AppSettings: @unchecked Sendable {
         self.bugReportApplicationID = bugReportApplicationID
         self.analyticsTermsURL = analyticsTermsURL
         mapTilerSettings = RemotePreference(.configuration(mapTilerConfiguration))
+        // GUA FORK: let AppHooks+Gua inject the static client registrations for the Gua OAuth issuer.
+        if let oAuthStaticRegistrations {
+            self.oAuthStaticRegistrations = oAuthStaticRegistrations
+        }
     }
     
     // MARK: - Application
@@ -200,9 +210,10 @@ final nonisolated class AppSettings: @unchecked Sendable {
     let backgroundAppRefreshTaskIdentifier = "io.element.elementx.background.refresh"
     
     /// A URL where users can go read more about the app.
-    private(set) var websiteURL: URL = "https://element.io"
-    /// A URL that contains the app's logo that may be used when showing content in a web view.
-    private(set) var logoURL: URL = "https://element.io/mobile-icon.png"
+    private(set) var websiteURL: URL = "https://github.com/Gua-ra"
+    /// GUA FORK: Points at the Gua icon so the session/device list (e.g. MAS "Where
+    /// you're signed in") shows Gua branding instead of the generic Element icon.
+    private(set) var logoURL: URL = "https://raw.githubusercontent.com/Gua-ra/gua-branding/main/icons/500x500.png"
     /// A URL that contains that app's copyright notice.
     private(set) var copyrightURL: URL = "https://element.io/copyright"
     /// A URL that contains the app's Terms of use.
@@ -246,7 +257,7 @@ final nonisolated class AppSettings: @unchecked Sendable {
     // MARK: - Authentication
     
     /// Any pre-defined static client registrations for OAuth issuers.
-    let oAuthStaticRegistrations: [URL: String] = ["https://id.thirdroom.io/realms/thirdroom": "elementx"]
+    private(set) var oAuthStaticRegistrations: [URL: String] = ["https://id.thirdroom.io/realms/thirdroom": "elementx"]
     /// The redirect URL used for OAuth. For the normal case we don't actually need the bundle ID as the web authentication session handles the redirect internally.
     /// However in the case where MAS sends the user to an external app, we need to make sure that the system will open the correct variant of the app (e.g. Nightly).
     private(set) nonisolated(unsafe) var oAuthRedirectURL: URL! = URL(string: "https://element.io/oauth/ios/\(InfoPlistReader.main.bundleIdentifier)")
@@ -265,6 +276,21 @@ final nonisolated class AppSettings: @unchecked Sendable {
     ///
     /// **Note:** Setting this to false doesn't prevent someone from creating an account when the selected homeserver's MAS allows registration.
     let showCreateAccountButton = true
+
+    /// GUA FORK: Gates the legacy Element X auth screens (QR / manual server / OIDC create-account).
+    /// Off by default so onboarding uses Gua's phone-OTP flow; gov/special users can re-enable via developer options.
+    @UserPreference
+    nonisolated(unsafe) var legacyAuthEnabled: Bool
+
+    /// GUA FORK: When `true`, the advanced Encryption entry point in Settings (secure backup / key
+    /// storage / recovery / cryptographic identity) is hidden. E2EE itself stays enabled with safe
+    /// defaults; gov/advanced users can reveal it via developer options.
+    @UserPreference
+    nonisolated(unsafe) var guaHidesAdvancedEncryption: Bool
+
+    /// GUA FORK: When set, the home-screen two-step-verification (PIN) setup reminder is snoozed until this date.
+    @UserPreference
+    nonisolated(unsafe) var pinSetupReminderSnoozedUntil: Date?
     
     // MARK: - Notifications
     
@@ -485,6 +511,10 @@ final nonisolated class AppSettings: @unchecked Sendable {
         _analyticsConsentState = UserPreference(key: .analyticsConsentState, defaultValue: AnalyticsConsentState.unknown, storage: store)
         _hasRunNotificationPermissionsOnboarding = UserPreference(key: .hasRunNotificationPermissionsOnboarding, defaultValue: false, storage: store)
         _hasRunIdentityConfirmationOnboarding = UserPreference(key: .hasRunIdentityConfirmationOnboarding, defaultValue: false, storage: store)
+        // GUA FORK
+        _legacyAuthEnabled = UserPreference(key: .legacyAuthEnabled, defaultValue: false, storage: store)
+        _guaHidesAdvancedEncryption = UserPreference(key: .guaHidesAdvancedEncryption, defaultValue: true, storage: store)
+        _pinSetupReminderSnoozedUntil = UserPreference(key: .pinSetupReminderSnoozedUntil, storage: store)
         _hasRequestedLocationAlwaysLocationAuthorization = UserPreference(key: .hasRequestedLocationAlwaysLocationAuthorization, defaultValue: false, storage: store)
         _frequentlyUsedSystemEmojis = UserPreference(key: .frequentlyUsedSystemEmojis, defaultValue: [FrequentlyUsedEmoji](), storage: store)
         _liveLocationSharingSessionsByRoomID = UserPreference(key: .liveLocationSharingTimeoutDatesByRoomID, defaultValue: [String: LiveLocationSession](), storage: store)
