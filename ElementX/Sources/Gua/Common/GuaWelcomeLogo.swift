@@ -70,10 +70,14 @@ struct GuaWelcomeLogo: View {
     /// glass surface. Driven purely by `CoreMotion`, so it's still when the phone is still (and
     /// sits centred on the simulator). Clipped to the logo by the caller's `.clipShape`.
     private func glassHighlight() -> some View {
-        RadialGradient(colors: [.white.opacity(0.5), .white.opacity(0.12), .clear],
+        // Only catches the light while the phone is actually tilting; when still it fades to nothing
+        // so it never pools as a bright spot in the centre of the icon.
+        let mag = min(1, (tilt.roll * tilt.roll + tilt.pitch * tilt.pitch).squareRoot() * 1.7)
+        return RadialGradient(colors: [.white.opacity(0.4), .white.opacity(0.08), .clear],
                        center: .center, startRadius: 0, endRadius: size * 0.55)
             .frame(width: size, height: size)
-            .offset(x: tilt.roll * size * 0.3, y: -tilt.pitch * size * 0.3)
+            .offset(x: tilt.roll * size * 0.32, y: -tilt.pitch * size * 0.32)
+            .opacity(mag)
             .blendMode(.screen)
             .allowsHitTesting(false)
     }
@@ -90,13 +94,17 @@ struct GuaWelcomeLogo: View {
     /// as a raised, 3D-detached element floating above the gradient (the "liquid glass" depth). When
     /// the phone is still (or Reduce Motion) tilt is zero, so it sits flush like a normal icon.
     private func foreground() -> some View {
-        Image("app-logo-foreground")
+        // Fades in only as the phone tilts, so when still it's just the clean base icon (no
+        // doubled-up, over-bright wolf); as you move, the wolf + bubble lines lift and parallax.
+        let mag = min(1, (tilt.roll * tilt.roll + tilt.pitch * tilt.pitch).squareRoot() * 1.9)
+        return Image("app-logo-foreground")
             .resizable()
             .scaledToFit()
             .frame(width: size, height: size)
             .shadow(color: .black.opacity(0.3), radius: size * 0.03,
                     x: -tilt.roll * size * 0.035, y: -tilt.pitch * size * 0.035)
             .offset(x: tilt.roll * size * 0.05, y: tilt.pitch * size * 0.05)
+            .opacity(mag)
             .allowsHitTesting(false)
     }
 
