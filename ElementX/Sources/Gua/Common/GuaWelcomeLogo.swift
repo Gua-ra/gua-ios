@@ -54,6 +54,7 @@ struct GuaWelcomeLogo: View {
         // No breathing/pulsing — the logo comes alive only through light (the sheen sweep + the
         // tilt-tracking glass highlight) and the device-motion parallax tilt.
         logo
+            .overlay { foreground() }
             .overlay { sheen(t: t) }
             .overlay { glassHighlight() }
             .clipShape(shape)
@@ -82,6 +83,21 @@ struct GuaWelcomeLogo: View {
             .resizable()
             .scaledToFit()
             .frame(width: size, height: size)
+    }
+
+    /// The wolf + chat-bubble lines, extracted to their own layer (`app-logo-foreground`) and shifted
+    /// a little MORE than the base tile as the phone tilts, with a soft offset shadow — so they read
+    /// as a raised, 3D-detached element floating above the gradient (the "liquid glass" depth). When
+    /// the phone is still (or Reduce Motion) tilt is zero, so it sits flush like a normal icon.
+    private func foreground() -> some View {
+        Image("app-logo-foreground")
+            .resizable()
+            .scaledToFit()
+            .frame(width: size, height: size)
+            .shadow(color: .black.opacity(0.3), radius: size * 0.03,
+                    x: -tilt.roll * size * 0.035, y: -tilt.pitch * size * 0.035)
+            .offset(x: tilt.roll * size * 0.05, y: tilt.pitch * size * 0.05)
+            .allowsHitTesting(false)
     }
 
     /// A soft white highlight band that sweeps diagonally across the glass (clipped to the logo by
