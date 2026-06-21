@@ -113,6 +113,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         case needsProfileSetup
         case cancelledProfileSetup
         case offerPinSetup
+        case cancelledPinSetup
         case usernameTakenDuringSignup
     }
 
@@ -177,7 +178,9 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         self.appHooks = appHooks
         self.analytics = analytics
         self.userIndicatorController = userIndicatorController
-        self.identityServiceClient = identityServiceClient
+        // GUA FORK: fall back to the default Gua identity service when one isn't injected
+        // (AppCoordinator passes nil; tests inject a mock).
+        self.identityServiceClient = identityServiceClient ?? IdentityServiceClient()
         self.resolverClient = resolverClient
         self.usesPhoneLoginHint = usesPhoneLoginHint
 
@@ -406,7 +409,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
             self?.showPinSetupScreen(context: pendingContext)
         }
 
-        stateMachine.addRoutes(event: .cancelledProfileSetup, transitions: [.pinSetupScreen => .phoneEntryScreen]) { [weak self] _ in
+        stateMachine.addRoutes(event: .cancelledPinSetup, transitions: [.pinSetupScreen => .phoneEntryScreen]) { [weak self] _ in
             self?.showPhoneEntryScreen(fromState: .pinSetupScreen)
         }
 
@@ -568,7 +571,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     }
 
     // GUA FORK: restores the Matrix session minted by the identity service and completes sign-in.
-    private func signIn(with session: IdentityServiceMatrixSession, fromCoordinatorError displayError: @escaping (String) -> Void) async {
+    private func signIn(with session: IdentityServiceMatrixSession, fromCoordinatorError displayError: @MainActor @escaping (String) -> Void) async {
         switch await authenticationService.loginWithExistingMatrixSession(accessToken: session.accessToken,
                                                                           refreshToken: nil,
                                                                           userId: session.userId,
