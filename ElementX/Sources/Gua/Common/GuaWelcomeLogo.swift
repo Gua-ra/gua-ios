@@ -13,7 +13,7 @@ import SwiftUI
 /// Motion is split between two sources:
 ///  - **Time-based** (`SwiftUI.TimelineView(.animation)`, display-link backed; the `SwiftUI.`
 ///    qualifier avoids ElementX's own `TimelineView`): an occasional specular **sheen** that sweeps
-///    across the glass (a ~1s pass roughly every 5-6s, not a constant loop) and a lively coloured
+///    across the glass (a ~1s pass roughly every 11s, not a constant loop) and a lively coloured
 ///    **aura** that spills past the icon edges as a soft moving halo.
 ///  - **Device-motion-based** (`CoreMotion`): a subtle 3D **parallax tilt** (a few degrees) that only
 ///    responds as the user physically tilts the phone — like the home-screen depth effect. When the
@@ -49,7 +49,7 @@ struct GuaWelcomeLogo: View {
     }
 
     private func treated(t: TimeInterval) -> some View {
-        let pulse = sin(t * (2 * .pi / 3.0))           // -1...1 over 3s, gentle breathing
+        let pulse = sin(t * (2 * .pi / 5.0))           // -1...1 over 5s, slow gentle breathing
 
         return logo
             .overlay { sheen(t: t) }
@@ -71,11 +71,11 @@ struct GuaWelcomeLogo: View {
     }
 
     /// A soft white highlight band that sweeps diagonally across the glass (clipped to the logo by
-    /// the caller's `.clipShape`). One ~1s pass per ~6s cycle, with a clear idle pause between, so the
+    /// the caller's `.clipShape`). One ~1s pass per ~11s cycle, with a clear idle pause between, so the
     /// sheen reads as an occasional catch of light rather than a constant loop. `.screen` blend makes
     /// it read as light catching the surface.
     private func sheen(t: TimeInterval) -> some View {
-        let cycle = 6.0                                  // total period
+        let cycle = 11.0                                 // total period (glare sweeps less often)
         let sweepDuration = 1.0                          // visible travel, then idle for the remainder
         let phase = t.truncatingRemainder(dividingBy: cycle)
         let progress = min(phase / sweepDuration, 1)     // 0...1 during the sweep, parked at 1 while idle
@@ -95,7 +95,7 @@ struct GuaWelcomeLogo: View {
     /// moving halo. The hue drifts gently around Gua green and the glow shifts/breathes faster than
     /// the icon itself — visible and alive, but still tasteful (not a huge saturated ring).
     private func aura(t: TimeInterval) -> some View {
-        let breathe = sin(t * (2 * .pi / 2.0)) * 0.5 + 0.5 // 0...1 over 2s (faster than the icon pulse)
+        let breathe = sin(t * (2 * .pi / 4.0)) * 0.5 + 0.5 // 0...1 over 4s (slow; still a touch faster than the icon)
         let hue = 0.40 + 0.05 * sin(t * (2 * .pi / 4.0))   // drift around Gua green
         let drift = size * 0.06
 
