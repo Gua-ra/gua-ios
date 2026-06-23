@@ -63,9 +63,7 @@ struct Country: Identifiable, Equatable, Hashable {
 extension Country {
     /// Resolves the user's country from device locale, falling back to US.
     static var deviceDefault: Country {
-        let region = Locale.current.region?.identifier
-            ?? Locale.current.regionCode
-            ?? "US"
+        let region = Locale.current.region?.identifier ?? "US"
         return all.first { $0.isoCode == region.uppercased() } ?? fallback
     }
 
