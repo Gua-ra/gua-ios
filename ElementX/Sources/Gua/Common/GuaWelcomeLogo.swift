@@ -8,22 +8,25 @@
 import CoreMotion
 import SwiftUI
 
-/// The welcome-screen app logo rendered as a premium "liquid glass" object.
+/// The welcome-screen app logo: the Gua app-icon artwork presented as a raised "liquid glass" object.
 ///
-/// There is **no breathing/pulsing** — the logo stays a fixed size. It feels alive through *light*
-/// and *depth* instead:
-///  - **Time-based** (`SwiftUI.TimelineView(.animation)`, display-link backed; the `SwiftUI.`
-///    qualifier avoids ElementX's own `TimelineView`): an occasional specular **sheen** that sweeps
-///    across the glass (a ~1s pass roughly every 11s, not a constant loop) and a steady coloured
-///    **aura** that spills past the icon edges and gently drifts.
-///  - **Device-motion-based** (`CoreMotion`): a subtle 3D **parallax tilt** plus **layered depth** —
-///    the chat bubble and the wolf are separate layers that lift and slide at staggered depths, with
-///    a **glass highlight** sweeping across, all driven by tilt. When the phone is still there is no
-///    motion and it shows the clean base icon (also under Reduce Motion and on the simulator).
+/// It comes alive in three independent ways:
+///  - **Entrance** (one-shot, on appear): the logo flies in rapidly from the side and spins into
+///    place — a 3D rotation that settles with a gentle spring. This is pure SwiftUI state, so it
+///    plays on every device **and on the simulator**. Skipped under Reduce Motion (the logo just
+///    appears).
+///  - **Device-motion parallax** (`CoreMotion`): once settled, the wolf and chat bubble — split into
+///    their own raised layers (`appLogoWolf`, `appLogoBubble`) above the gradient tile — lift and
+///    slide at staggered depths as you tilt the phone, with a glass highlight tracking the tilt.
+///    There is **no idle motion**: a still phone shows the clean, raised base icon. The simulator has
+///    no gyroscope, so the parallax stays at rest there (expected — the *entrance* still plays).
+///  - **Light** (`SwiftUI.TimelineView(.animation)`, display-link backed; the `SwiftUI.` qualifier
+///    avoids ElementX's own `TimelineView`): an occasional specular sheen that sweeps across the glass
+///    (~1s every ~11s) and a steady Gua-green aura that spills past the icon edges.
 ///
 /// Static under Reduce Motion (`animated == false`) and in snapshot tests.
 struct GuaWelcomeLogo: View {
-    /// When `false` (Reduce Motion) the logo is drawn as a still glass tile.
+    /// When `false` (Reduce Motion) the logo is drawn as a still glass tile with no entrance.
     let animated: Bool
     var size: CGFloat = 84
 
@@ -31,8 +34,13 @@ struct GuaWelcomeLogo: View {
     private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: corner, style: .continuous) }
 
     @State private var tilt = DeviceTiltMotion()
+    /// Drives the one-shot fly-in/spin entrance: starts off-screen + rotated, springs to rest.
+    @State private var entered = false
 
     private var isLive: Bool { animated && !ProcessInfo.isRunningTests }
+
+    /// Off-screen starting offset for the entrance fly-in (the logo arrives from the trailing side).
+    private var entranceTravel: CGFloat { size * 2.6 }
 
     var body: some View {
         Group {
@@ -45,8 +53,25 @@ struct GuaWelcomeLogo: View {
             }
         }
         .frame(width: size, height: size)
+        // One-shot entrance, applied on the OUTER container (independent of the per-frame
+        // TimelineView) so it plays exactly once. Unlike the device-motion parallax it needs no
+        // gyroscope, so it is fully visible on the simulator too.
+        .scaleEffect(entered ? 1 : 0.82)
+        .rotation3DEffect(.degrees(entered ? 0 : 68), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
+        .offset(x: entered ? 0 : entranceTravel)
+        .opacity(entered ? 1 : 0)
         .accessibilityHidden(true)
-        .onAppear { if isLive { tilt.start() } }
+        .onAppear {
+            if isLive { tilt.start() }
+            guard !entered else { return }
+            if animated {
+                withAnimation(.spring(response: 0.52, dampingFraction: 0.66).delay(0.1)) {
+                    entered = true
+                }
+            } else {
+                entered = true // Reduce Motion / tests: appear in place, no fly-in.
+            }
+        }
         .onDisappear { tilt.stop() }
     }
 
@@ -102,7 +127,7 @@ struct GuaWelcomeLogo: View {
 
     /// Mid layer: the chat-bubble outline, lifted a little off the tile.
     private func bubbleLayer() -> some View {
-        Image("app-logo-bubble")
+        Image(asset: Asset.Images.appLogoBubble)
             .resizable()
             .scaledToFit()
             .frame(width: size, height: size)
@@ -115,7 +140,7 @@ struct GuaWelcomeLogo: View {
 
     /// Top layer: the wolf, raised highest — biggest parallax shift + deepest shadow.
     private func wolfLayer() -> some View {
-        Image("app-logo-wolf")
+        Image(asset: Asset.Images.appLogoWolf)
             .resizable()
             .scaledToFit()
             .frame(width: size, height: size)

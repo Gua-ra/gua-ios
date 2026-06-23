@@ -42,8 +42,8 @@ struct PhoneEntryScreen: View {
 
     private var header: some View {
         VStack(spacing: 20) {
-            // Premium "liquid glass" logo: a specular sheen sweep + subtle 3D rock + pulse,
-            // contained to the icon (see GuaWelcomeLogo). Replaces the old broad colour halo.
+            // App-icon logo: a one-shot fly-in/spin entrance, raised wolf+bubble relief, device-motion
+            // parallax, and a contained Gua-green aura (see GuaWelcomeLogo).
             GuaWelcomeLogo(animated: !reduceMotion)
 
             VStack(spacing: 8) {
