@@ -109,7 +109,7 @@ struct GuaWelcomeLogo: View {
             .shadow(color: .black.opacity(0.22), radius: size * 0.025,
                     x: -tilt.roll * size * 0.02, y: -tilt.pitch * size * 0.02)
             .offset(x: tilt.roll * size * 0.03, y: tilt.pitch * size * 0.03)
-            .opacity(min(1, motionMag * 1.6))
+            .opacity(0.95) // always-on raised relief — stays visible when the phone is still
             .allowsHitTesting(false)
     }
 
@@ -122,7 +122,7 @@ struct GuaWelcomeLogo: View {
             .shadow(color: .black.opacity(0.3), radius: size * 0.04,
                     x: -tilt.roll * size * 0.04, y: -tilt.pitch * size * 0.04)
             .offset(x: tilt.roll * size * 0.06, y: tilt.pitch * size * 0.06)
-            .opacity(min(1, motionMag * 1.9))
+            .opacity(1) // always-on raised relief — stays visible when the phone is still
             .allowsHitTesting(false)
     }
 
