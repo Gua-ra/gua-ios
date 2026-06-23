@@ -33,12 +33,17 @@ class PasskeyEnrollmentPresenter: NSObject {
     /// closed the sheet.
     func start() async {
         // Pass the device locale so the IDP renders in the user's language (e.g. French).
+        // Append via percentEncodedQuery rather than `queryItems`: assigning queryItems
+        // decodes and re-encodes the whole server-minted query, which turns an existing
+        // %2B into a literal "+" — and OAuth/OIDC parsers read "+" as a space, corrupting
+        // opaque state/hint values. The language code is bare ASCII, so no encoding needed.
         var urlToOpen = enrollURL
         if let languageCode = Locale.current.language.languageCode?.identifier,
            var components = URLComponents(url: enrollURL, resolvingAgainstBaseURL: true) {
-            var queryItems = components.queryItems ?? []
-            queryItems.append(URLQueryItem(name: "ui_locales", value: languageCode))
-            components.queryItems = queryItems
+            let localeParam = "ui_locales=\(languageCode)"
+            components.percentEncodedQuery = [components.percentEncodedQuery, localeParam]
+                .compactMap { $0 }
+                .joined(separator: "&")
             urlToOpen = components.url ?? enrollURL
         }
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
