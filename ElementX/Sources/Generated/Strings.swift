@@ -904,6 +904,12 @@ internal enum L10n {
   internal static var eventShieldReasonUnsignedDevice: String { return L10n.tr("Localizable", "event_shield_reason_unsigned_device") }
   /// Encrypted by an unverified user.
   internal static var eventShieldReasonUnverifiedIdentity: String { return L10n.tr("Localizable", "event_shield_reason_unverified_identity") }
+  /// Check again
+  internal static var findFriendsEmptyAction: String { return L10n.tr("Localizable", "find_friends_empty_action") }
+  /// None of your contacts are on Gua yet. Invite them and they'll show up here.
+  internal static var findFriendsEmptyMessage: String { return L10n.tr("Localizable", "find_friends_empty_message") }
+  /// No contacts on Gua yet
+  internal static var findFriendsEmptyTitle: String { return L10n.tr("Localizable", "find_friends_empty_title") }
   /// To ensure you never miss an important call, please change your settings to allow full-screen notifications when your phone is locked.
   internal static var fullScreenIntentBannerMessage: String { return L10n.tr("Localizable", "full_screen_intent_banner_message") }
   /// Enhance your call experience
@@ -1630,6 +1636,8 @@ internal enum L10n {
   internal static var screenEncryptionResetFooter: String { return L10n.tr("Localizable", "screen_encryption_reset_footer") }
   /// Set up secure messaging on this device
   internal static var screenEncryptionResetTitle: String { return L10n.tr("Localizable", "screen_encryption_reset_title") }
+  /// Find friends
+  internal static var screenFindFriendsTitle: String { return L10n.tr("Localizable", "screen_find_friends_title") }
   /// Chats
   internal static var screenHomeTabChats: String { return L10n.tr("Localizable", "screen_home_tab_chats") }
   /// Spaces
@@ -2996,8 +3004,6 @@ internal enum L10n {
   internal static var screenTwoStepVerificationStatusOff: String { return L10n.tr("Localizable", "screen_two_step_verification_status_off") }
   /// PIN is enabled
   internal static var screenTwoStepVerificationStatusOn: String { return L10n.tr("Localizable", "screen_two_step_verification_status_on") }
-  /// Find friends
-  internal static var screenFindFriendsTitle: String { return L10n.tr("Localizable", "screen_find_friends_title") }
   /// Two-step verification
   internal static var screenTwoStepVerificationTitle: String { return L10n.tr("Localizable", "screen_two_step_verification_title") }
   /// PIN updated
