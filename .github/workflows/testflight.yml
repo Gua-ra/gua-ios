@@ -107,11 +107,51 @@ jobs:
           brew install xcodegen
           command -v xcbeautify >/dev/null 2>&1 || brew install xcbeautify
 
+      - name: Inject dev backend endpoints
+        # The committed Secrets/Secrets.swift holds localhost placeholders, which only
+        # resolve on the simulator (localhost == the Mac). A TestFlight build runs on
+        # real devices, where localhost is the phone itself, so it MUST point at the
+        # network-reachable HTTPS dev backend instead. The dev hostnames are non-public
+        # infra, so they live in repo secrets (never committed) and are written into
+        # Secrets.swift here, before the project is generated. See docs/TESTFLIGHT.md.
+        env:
+          GUA_DEV_RESOLVER_BASE_URL: ${{ secrets.GUA_DEV_RESOLVER_BASE_URL }}
+          GUA_DEV_IDENTITY_SERVICE_BASE_URL: ${{ secrets.GUA_DEV_IDENTITY_SERVICE_BASE_URL }}
+          GUA_DEV_ACCOUNT_PROVIDER: ${{ secrets.GUA_DEV_ACCOUNT_PROVIDER }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GUA_DEV_RESOLVER_BASE_URL:-}" ] || [ -z "${GUA_DEV_IDENTITY_SERVICE_BASE_URL:-}" ] || [ -z "${GUA_DEV_ACCOUNT_PROVIDER:-}" ]; then
+            echo "::error::Dev backend secrets are not set (GUA_DEV_RESOLVER_BASE_URL / GUA_DEV_IDENTITY_SERVICE_BASE_URL / GUA_DEV_ACCOUNT_PROVIDER). Without them the build ships localhost URLs and is dead on a real device. See docs/TESTFLIGHT.md."
+            exit 1
+          fi
+          # Resolver + identity-service must be https:// — App Transport Security blocks
+          # cleartext http on device, so an http URL would fail every request.
+          for u in "$GUA_DEV_RESOLVER_BASE_URL" "$GUA_DEV_IDENTITY_SERVICE_BASE_URL"; do
+            case "$u" in
+              https://*) ;;
+              *) echo "::error::'$u' must be an https:// URL (ATS blocks cleartext http on device)."; exit 1 ;;
+            esac
+          done
+          cat > Secrets/Secrets.swift <<EOF
+          enum Secrets {
+              static let sentryDSN: String? = nil
+              static let sentryRustDSN: String? = nil
+              static let postHogHost: String? = nil
+              static let postHogAPIKey: String? = nil
+              static let rageshakeURL: String? = nil
+              static let mapLibreAPIKey: String? = nil
+
+              // Injected by the TestFlight workflow from repo secrets (dev backend).
+              static let identityServiceBaseURL: String? = "${GUA_DEV_IDENTITY_SERVICE_BASE_URL}"
+              static let resolverBaseURL: String? = "${GUA_DEV_RESOLVER_BASE_URL}"
+              static let defaultAccountProvider: String? = "${GUA_DEV_ACCOUNT_PROVIDER}"
+          }
+          EOF
+          echo "Wrote Secrets.swift with dev backend endpoints (values masked by Actions)."
+
       - name: Generate Xcode project
-        # The .xcodeproj is generated from project.yml. The committed placeholder
-        # Secrets/Secrets.swift compiles fine for an archive; we do NOT run the
-        # fastlane config_production lane because update_foss_secrets lives in the
-        # (absent) Enterprise pipeline.
+        # The .xcodeproj is generated from project.yml. Secrets/Secrets.swift was just
+        # populated with the dev backend endpoints by the previous step.
         run: xcodegen generate
 
       - name: Read marketing version

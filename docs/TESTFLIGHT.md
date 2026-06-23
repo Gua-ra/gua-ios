@@ -47,6 +47,18 @@ feedback bot.
 | `ASC_KEY_ID` | The API **key id** (~10 chars) | Same page, the "Key ID" column for your key |
 | `ASC_PRIVATE_KEY` | The full contents of the `AuthKey_<KEY_ID>.p8` file | Downloaded once when the key was created. Paste the whole PEM block, `-----BEGIN PRIVATE KEY-----` through `-----END PRIVATE KEY-----`, including newlines. |
 | `ASC_APP_ID` | The app's **numeric Apple ID** | App Store Connect -> Apps -> (the Gua app) -> App Information -> "Apple ID". The upload pins this so the build can't be routed to the wrong app record on a multi-app account. |
+| `GUA_DEV_RESOLVER_BASE_URL` | **HTTPS** base URL of the dev **resolver** (phone → homeserver routing) | The dev cluster's resolver ingress, e.g. `https://resolver.dev.gua.<dev-zone>` |
+| `GUA_DEV_IDENTITY_SERVICE_BASE_URL` | **HTTPS** base URL of the dev **identity-service** (phone/OTP IdP) | The dev cluster's identity ingress, e.g. `https://identity.dev.gua.<dev-zone>` |
+| `GUA_DEV_ACCOUNT_PROVIDER` | The dev **homeserver server-name** offered at login (host, no scheme) | The `serverName` the resolver returns, e.g. `dev.gua.<dev-zone>` |
+
+The `GUA_DEV_*` secrets point the **TestFlight build** at the network-reachable
+**dev backend** instead of the committed `localhost` placeholders in
+`Secrets/Secrets.swift`. `localhost` only resolves on the simulator — on a real
+device it's the phone itself, so a build without these is dead at phone entry. The
+resolver and identity-service URLs **must be `https://`** (App Transport Security
+blocks cleartext on device). The "Inject dev backend endpoints" step writes them
+into `Secrets.swift` before the archive and **fails fast** if any is missing, so a
+build can never silently ship localhost again.
 
 The API key needs the **App Manager** role (or at least access to certificates,
 identifiers & profiles + TestFlight) so it can manage signing assets and upload
@@ -64,7 +76,7 @@ builds.
 > keeps them current. If you skip this, the very first CI run can fail at the
 > archive's signing phase.
 
-No other secrets are required. There is **no** manual-signing fallback configured,
+No secrets beyond the table above are required. There is **no** manual-signing fallback configured,
 because all targets already use automatic signing (see "Fallback" below if that
 ever changes).
 
