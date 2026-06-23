@@ -1453,3 +1453,8 @@
 
 /* GUA FORK */
 "screen_find_friends_title" = "Find friends";
+
+/* GUA FORK - Find Friends empty state */
+"find_friends_empty_title" = "No contacts on Gua yet";
+"find_friends_empty_message" = "None of your contacts are on Gua yet. Invite them and they'll show up here.";
+"find_friends_empty_action" = "Check again";

@@ -1424,3 +1424,39 @@
 /* GUA FORK */
 "screen_find_friends_title" = "Trouver des amis";
 "screen_two_step_verification_title" = "Vérification en deux étapes";
+
+/* GUA FORK - Find Friends empty state */
+"find_friends_empty_title" = "Aucun contact sur Gua pour l'instant";
+"find_friends_empty_message" = "Aucun de vos contacts n'est encore sur Gua. Invitez-les et ils apparaîtront ici.";
+"find_friends_empty_action" = "Réessayer";
+
+/* GUA FORK - Two-step verification (missing translations) */
+"screen_two_step_verification_overview_header" = "État";
+"screen_two_step_verification_overview_footer_on" = "Votre code PIN est requis lors de la connexion sur un nouvel appareil. Gardez-le secret — toute personne disposant de votre code PIN et de votre code SMS peut accéder à votre compte.";
+"screen_two_step_verification_overview_footer_off" = "Ajoutez un code PIN à 6 chiffres pour protéger votre compte contre les attaques par échange de carte SIM. Il vous sera demandé lors de la connexion sur un nouvel appareil.";
+"screen_two_step_verification_status_on" = "Code PIN activé";
+"screen_two_step_verification_status_off" = "Aucun code PIN défini";
+"screen_two_step_verification_set_button" = "Configurer un code PIN";
+"screen_two_step_verification_change_button" = "Modifier le code PIN";
+"screen_two_step_verification_passkey_button" = "Configurer une clé d'accès";
+"screen_two_step_verification_passkey_footer" = "Utilisez Face ID, Touch ID ou une clé de sécurité pour vous connecter sans mot de passe.";
+"screen_two_step_verification_current_header" = "Saisissez votre code PIN actuel";
+"screen_two_step_verification_current_footer" = "Confirmez votre code PIN actuel pour autoriser la modification.";
+"screen_two_step_verification_new_header" = "Choisissez un nouveau code PIN";
+"screen_two_step_verification_new_footer" = "Choisissez un code PIN à 6 chiffres difficile à deviner.";
+"screen_two_step_verification_confirm_header" = "Confirmez votre nouveau code PIN";
+"screen_two_step_verification_confirm_footer" = "Saisissez à nouveau votre nouveau code PIN pour confirmer.";
+"screen_two_step_verification_current_incorrect" = "Le code PIN actuel est incorrect.";
+"screen_two_step_verification_same_as_current" = "Le nouveau code PIN doit être différent de l'actuel.";
+"screen_two_step_verification_locked" = "Trop de tentatives incorrectes. Veuillez réessayer plus tard.";
+"screen_two_step_verification_updated" = "Code PIN mis à jour";
+"screen_two_step_verification_reminder_title" = "Protégez votre compte";
+"screen_two_step_verification_reminder_message" = "Configurez un code PIN à 6 chiffres pour que votre compte reste protégé même si quelqu'un prend le contrôle de votre numéro de téléphone.";
+"screen_two_step_verification_reminder_action" = "Configurer un code PIN";
+"screen_two_step_verification_reminder_dismiss" = "Plus tard";
+"screen_two_step_verification_phone_header" = "Confirmez votre numéro de téléphone";
+"screen_two_step_verification_phone_footer" = "Nous enverrons un code de vérification par SMS au téléphone associé à votre compte.";
+"screen_two_step_verification_otp_header" = "Saisissez le code SMS";
+"screen_two_step_verification_otp_footer" = "Saisissez le code à 6 chiffres que nous venons d'envoyer sur votre téléphone.";
+"screen_two_step_verification_otp_invalid" = "Ce code est invalide ou a expiré. Veuillez réessayer.";
+"screen_two_step_verification_cooldown" = "Pour des raisons de sécurité, vous ne pouvez modifier votre code PIN qu'une fois par jour. Veuillez réessayer plus tard.";
