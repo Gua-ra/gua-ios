@@ -10,20 +10,17 @@ import SwiftUI
 
 /// The welcome-screen app logo rendered as a premium "liquid glass" object.
 ///
-/// There is **no breathing/pulsing** — the logo stays a fixed size. It feels alive through *light*
-/// and *depth* instead:
-///  - **Time-based** (`SwiftUI.TimelineView(.animation)`, display-link backed; the `SwiftUI.`
-///    qualifier avoids ElementX's own `TimelineView`): an occasional specular **sheen** that sweeps
-///    across the glass (a ~1s pass roughly every 11s, not a constant loop) and a steady coloured
-///    **aura** that spills past the icon edges and gently drifts.
-///  - **Device-motion-based** (`CoreMotion`): a subtle 3D **parallax tilt** plus **layered depth** —
-///    the chat bubble and the wolf are separate layers that lift and slide at staggered depths, with
-///    a **glass highlight** sweeping across, all driven by tilt. When the phone is still there is no
-///    motion and it shows the clean base icon (also under Reduce Motion and on the simulator).
+/// Motion model — deliberately minimal; the logo is otherwise completely still:
+///  - **Entrance**: on first appearance it rapidly slides in from the side and settles with a
+///    gentle spring (fade + slight scale). A one-shot, elegant intro.
+///  - **Device motion only** (`CoreMotion`): after that the logo moves *only* when the device
+///    moves — a home-screen-icon-style parallax shift plus a subtle 3D glass tilt, with the raised
+///    wolf/bubble layers and a glass highlight tracking the tilt. When the phone is still it is
+///    perfectly still (also under Reduce Motion, in snapshot tests, and on the simulator).
 ///
-/// Static under Reduce Motion (`animated == false`) and in snapshot tests.
+/// There is no autonomous/looping animation — no breathing, no sheen sweep, no drifting aura.
 struct GuaWelcomeLogo: View {
-    /// When `false` (Reduce Motion) the logo is drawn as a still glass tile.
+    /// When `false` (Reduce Motion) the logo is drawn as a still glass tile with no entrance.
     let animated: Bool
     var size: CGFloat = 84
 
@@ -31,48 +28,57 @@ struct GuaWelcomeLogo: View {
     private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: corner, style: .continuous) }
 
     @State private var tilt = DeviceTiltMotion()
+    @State private var appeared = false
 
     private var isLive: Bool { animated && !ProcessInfo.isRunningTests }
 
+    /// How far off to the side the logo starts before sliding in.
+    private var entranceDistance: CGFloat { size * 2.2 }
+
+    // Entrance transform — neutral (no offset, fully shown) unless we're live and haven't appeared yet,
+    // so Reduce Motion / snapshot tests render the final still logo with no intro.
+    private var entering: Bool { isLive && !appeared }
+    private var entranceX: CGFloat { entering ? -entranceDistance : 0 }
+    private var entranceScale: CGFloat { entering ? 0.92 : 1 }
+    private var entranceOpacity: Double { entering ? 0 : 1 }
+
     var body: some View {
-        Group {
-            if isLive {
-                SwiftUI.TimelineView(.animation) { context in
-                    treated(t: context.date.timeIntervalSinceReferenceDate)
+        treated
+            .frame(width: size, height: size)
+            // Device-motion parallax (home-screen-icon feel): the whole logo shifts a little with the
+            // device tilt. Exactly zero when the phone is still / on the simulator.
+            .offset(x: tilt.roll * size * 0.06, y: tilt.pitch * size * 0.06)
+            // One-shot entrance: slide in from the leading side + fade + settle.
+            .offset(x: entranceX)
+            .scaleEffect(entranceScale)
+            .opacity(entranceOpacity)
+            .accessibilityHidden(true)
+            .onAppear {
+                if isLive { tilt.start() }
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.72)) {
+                    appeared = true
                 }
-            } else {
-                treated(t: 0)
             }
-        }
-        .frame(width: size, height: size)
-        .accessibilityHidden(true)
-        .onAppear { if isLive { tilt.start() } }
-        .onDisappear { tilt.stop() }
+            .onDisappear { tilt.stop() }
     }
 
-    private func treated(t: TimeInterval) -> some View {
-        // No breathing/pulsing — the logo comes alive only through light (the sheen sweep + the
-        // tilt-tracking glass highlight) and the device-motion parallax tilt.
+    private var treated: some View {
         logo
             .overlay { bubbleLayer() }
             .overlay { wolfLayer() }
-            .overlay { sheen(t: t) }
             .overlay { glassHighlight() }
             .clipShape(shape)
             .overlay { shape.stroke(.white.opacity(0.16), lineWidth: 0.5) } // crisp glass edge
-            .background { aura(t: t) }
-            // Subtle device-motion parallax: ±5° max, no movement when the phone is still.
-            .rotation3DEffect(.degrees(tilt.pitch * 5), axis: (x: 1, y: 0, z: 0), perspective: 0.6)
-            .rotation3DEffect(.degrees(tilt.roll * 5), axis: (x: 0, y: 1, z: 0), perspective: 0.6)
+            .background { aura }
+            // Subtle 3D glass tilt, device-driven — no movement when the phone is still.
+            .rotation3DEffect(.degrees(tilt.pitch * 6), axis: (x: 1, y: 0, z: 0), perspective: 0.6)
+            .rotation3DEffect(.degrees(tilt.roll * 6), axis: (x: 0, y: 1, z: 0), perspective: 0.6)
             .shadow(color: .black.opacity(0.18), radius: 16, y: 8)
     }
 
-    /// A specular hotspot that slides across the glass as the device tilts — light catching a real
-    /// glass surface. Driven purely by `CoreMotion`, so it's still when the phone is still (and
-    /// sits centred on the simulator). Clipped to the logo by the caller's `.clipShape`.
+    /// A specular hotspot that slides across the glass as the device tilts. Driven purely by
+    /// `CoreMotion`, so it fades to nothing when the phone is still (never a bright centre spot).
     private func glassHighlight() -> some View {
-        // Only catches the light while the phone is actually tilting; when still it fades to nothing
-        // so it never pools as a bright spot in the centre of the icon.
         let mag = min(1, (tilt.roll * tilt.roll + tilt.pitch * tilt.pitch).squareRoot() * 1.7)
         return RadialGradient(colors: [.white.opacity(0.4), .white.opacity(0.08), .clear],
                               center: .center, startRadius: 0, endRadius: size * 0.55)
@@ -90,15 +96,9 @@ struct GuaWelcomeLogo: View {
             .frame(width: size, height: size)
     }
 
-    /// Smoothed tilt magnitude (0 when the phone is flat). The raised layers fade in with it so a
-    /// still phone shows the clean base icon and the depth only appears as you move the phone.
-    private var motionMag: Double { (tilt.roll * tilt.roll + tilt.pitch * tilt.pitch).squareRoot() }
-
     /// The chat bubble and the wolf are split into their OWN layers (`app-logo-bubble`,
-    /// `app-logo-wolf`) and stacked above the gradient tile at STAGGERED depths: the wolf shifts and
-    /// casts a deeper shadow than the bubble, which shifts more than the fixed tile. As the phone
-    /// tilts they read as physically raised glass (the "elevated liquid glass" idea, using the real
-    /// logo content). Both fade in only with motion, so a still phone shows the clean base icon.
+    /// `app-logo-wolf`) stacked above the tile. They stay visible even when still (raised-glass
+    /// relief); only the parallax offset + drop shadow scale with the device tilt.
 
     /// Mid layer: the chat-bubble outline, lifted a little off the tile.
     private func bubbleLayer() -> some View {
@@ -126,40 +126,13 @@ struct GuaWelcomeLogo: View {
             .allowsHitTesting(false)
     }
 
-    /// A soft white highlight band that sweeps diagonally across the glass (clipped to the logo by
-    /// the caller's `.clipShape`). One ~1s pass per ~11s cycle, with a clear idle pause between, so the
-    /// sheen reads as an occasional catch of light rather than a constant loop. `.screen` blend makes
-    /// it read as light catching the surface.
-    private func sheen(t: TimeInterval) -> some View {
-        let cycle = 11.0 // total period (glare sweeps less often)
-        let sweepDuration = 1.0 // visible travel, then idle for the remainder
-        let phase = t.truncatingRemainder(dividingBy: cycle)
-        let progress = min(phase / sweepDuration, 1) // 0...1 during the sweep, parked at 1 while idle
-        let visible = phase < sweepDuration
-
-        return LinearGradient(colors: [.clear, .white.opacity(0.55), .clear],
-                              startPoint: .top, endPoint: .bottom)
-            .frame(width: size * 0.42, height: size * 2)
-            .rotationEffect(.degrees(35))
-            .offset(x: -size * 0.95 + size * 1.9 * progress)
-            .opacity(visible ? 1 : 0)
-            .blendMode(.screen)
-            .allowsHitTesting(false)
-    }
-
-    /// A lively Gua-green aura that sits behind the icon and spills ~28% past its edges as a soft
-    /// halo. The hue drifts gently around Gua green and the glow slowly shifts position — visible
-    /// and alive, but steady (no breathing/pulsing) and still tasteful.
-    private func aura(t: TimeInterval) -> some View {
-        let hue = 0.40 + 0.05 * sin(t * (2 * .pi / 4.0)) // gentle drift around Gua green
-        let drift = size * 0.06
-
-        return shape
-            .fill(Color(hue: hue, saturation: 0.8, brightness: 0.95))
-            .opacity(0.30) // steady glow — no breathing
+    /// A steady Gua teal-green aura behind the icon, spilling ~28% past its edges as a soft halo.
+    /// Completely static — it glows but never moves or pulses.
+    private var aura: some View {
+        shape
+            .fill(Color(hue: 0.44, saturation: 0.85, brightness: 0.85)) // steady Gua teal-green
+            .opacity(0.30)
             .frame(width: size * 1.28, height: size * 1.28) // spill ~28% beyond the icon
-            .offset(x: cos(t * (2 * .pi / 5.0)) * drift,
-                    y: sin(t * (2 * .pi / 6.0)) * drift)
             .blur(radius: size * 0.28)
             .allowsHitTesting(false)
     }
