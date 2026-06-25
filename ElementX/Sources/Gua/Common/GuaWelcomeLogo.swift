@@ -8,21 +8,18 @@
 import CoreMotion
 import SwiftUI
 
-/// The welcome-screen app logo: the Gua app-icon artwork presented as a raised "liquid glass" object.
+/// The welcome-screen app logo: the Gua app-icon artwork presented as a raised glass tile.
 ///
-/// It comes alive in three independent ways:
-///  - **Entrance** (one-shot, on appear): the logo flies in rapidly from the side and spins into
-///    place — a 3D rotation that settles with a gentle spring. This is pure SwiftUI state, so it
-///    plays on every device **and on the simulator**. Skipped under Reduce Motion (the logo just
-///    appears).
-///  - **Device-motion parallax** (`CoreMotion`): once settled, the wolf and chat bubble — split into
-///    their own raised layers (`appLogoWolf`, `appLogoBubble`) above the gradient tile — lift and
-///    slide at staggered depths as you tilt the phone, with a glass highlight tracking the tilt.
-///    There is **no idle motion**: a still phone shows the clean, raised base icon. The simulator has
-///    no gyroscope, so the parallax stays at rest there (expected — the *entrance* still plays).
-///  - **Light** (`SwiftUI.TimelineView(.animation)`, display-link backed; the `SwiftUI.` qualifier
-///    avoids ElementX's own `TimelineView`): an occasional specular sheen that sweeps across the glass
-///    (~1s every ~11s) and a steady Gua-green aura that spills past the icon edges.
+/// Comes alive in three ways:
+///  - **Entrance** (one-shot, on appear): the logo flies in from the side and spins into place with a
+///    spring settle. Pure SwiftUI `@State` — plays on the simulator too. Skipped under Reduce Motion.
+///  - **Device-motion angle-of-view** (`CoreMotion`): the logo tilts ±5° in 3D as the phone moves,
+///    and a specular highlight sweeps around the two concentric glass-edge lines tracking the tilt
+///    direction. Still phone → clean icon, no motion. No gyroscope on simulator (tilt stays at rest
+///    there; the entrance still plays).
+///  - **Light** (`SwiftUI.TimelineView(.animation)`, display-link backed; `SwiftUI.` qualifier avoids
+///    ElementX's own `TimelineView`): an occasional diagonal sheen sweep across the glass (~1s every
+///    ~11s) and a steady Gua-green aura behind the tile.
 ///
 /// Static under Reduce Motion (`animated == false`) and in snapshot tests.
 struct GuaWelcomeLogo: View {
@@ -82,17 +79,14 @@ struct GuaWelcomeLogo: View {
     }
 
     private func treated(t: TimeInterval) -> some View {
-        // No breathing/pulsing — the logo comes alive only through light (the sheen sweep + the
-        // tilt-tracking glass highlight) and the device-motion parallax tilt.
         logo
-            .overlay { bubbleLayer() }
-            .overlay { wolfLayer() }
             .overlay { sheen(t: t) }
             .overlay { glassHighlight() }
+            .overlay { innerRimLine() } // inner edge line, clipped to icon boundary
             .clipShape(shape)
-            .overlay { shape.stroke(.white.opacity(0.16), lineWidth: 0.5) } // crisp glass edge
+            .overlay { outerRimLine() } // outer edge line, unclipped — creates the double-line look
             .background { aura(t: t) }
-            // Subtle device-motion parallax: ±5° max, no movement when the phone is still.
+            // Whole logo tilts ±5° in 3D — shifting the angle-of-view of the raised glass edges.
             .rotation3DEffect(.degrees(tilt.pitch * 5), axis: (x: 1, y: 0, z: 0), perspective: 0.6)
             .rotation3DEffect(.degrees(tilt.roll * 5), axis: (x: 0, y: 1, z: 0), perspective: 0.6)
             .shadow(color: .black.opacity(0.18), radius: 16, y: 8)
@@ -121,41 +115,45 @@ struct GuaWelcomeLogo: View {
             .frame(width: size, height: size)
     }
 
-    /// Smoothed tilt magnitude (0 when the phone is flat). The raised layers fade in with it so a
-    /// still phone shows the clean base icon and the depth only appears as you move the phone.
-    private var motionMag: Double {
-        (tilt.roll * tilt.roll + tilt.pitch * tilt.pitch).squareRoot()
+    /// The tilt-driven light-source angle for the rim specular.
+    /// At rest (roll=0, pitch=0) the highlight sits at 12 o'clock — natural overhead light.
+    private var rimLightAngle: Angle {
+        Angle(radians: atan2(tilt.roll, -tilt.pitch) - .pi / 2)
     }
 
-    // The chat bubble and the wolf are split into their OWN layers (`app-logo-bubble`,
-    // `app-logo-wolf`) and stacked above the gradient tile at STAGGERED depths: the wolf shifts and
-    // casts a deeper shadow than the bubble, which shifts more than the fixed tile. As the phone
-    // tilts they read as physically raised glass (the "elevated liquid glass" idea, using the real
-    // logo content). Both fade in only with motion, so a still phone shows the clean base icon.
-
-    /// Mid layer: the chat-bubble outline, lifted a little off the tile.
-    private func bubbleLayer() -> some View {
-        Image(asset: Asset.Images.appLogoBubble)
-            .resizable()
-            .scaledToFit()
-            .frame(width: size, height: size)
-            .shadow(color: .black.opacity(0.22), radius: size * 0.025,
-                    x: -tilt.roll * size * 0.02, y: -tilt.pitch * size * 0.02)
-            .offset(x: tilt.roll * size * 0.03, y: tilt.pitch * size * 0.03)
-            .opacity(0.95) // always-on raised relief — stays visible when the phone is still
+    /// Inner glass-edge line — sits ~2.5 pt inside the clip boundary, with a specular highlight
+    /// that tracks the tilt direction. Placed before `.clipShape` so it's bounded by the icon.
+    private func innerRimLine() -> some View {
+        RoundedRectangle(cornerRadius: corner - 2.5, style: .continuous)
+            .stroke(AngularGradient(stops: [
+                        .init(color: .white.opacity(0.85), location: 0.00),
+                        .init(color: .white.opacity(0.18), location: 0.28),
+                        .init(color: .clear, location: 0.50),
+                        .init(color: .white.opacity(0.18), location: 0.72),
+                        .init(color: .white.opacity(0.85), location: 1.00)
+                    ],
+                    center: .center,
+                    startAngle: rimLightAngle,
+                    endAngle: rimLightAngle + .degrees(360)),
+                    lineWidth: 1.0)
             .allowsHitTesting(false)
     }
 
-    /// Top layer: the wolf, raised highest — biggest parallax shift + deepest shadow.
-    private func wolfLayer() -> some View {
-        Image(asset: Asset.Images.appLogoWolf)
-            .resizable()
-            .scaledToFit()
-            .frame(width: size, height: size)
-            .shadow(color: .black.opacity(0.3), radius: size * 0.04,
-                    x: -tilt.roll * size * 0.04, y: -tilt.pitch * size * 0.04)
-            .offset(x: tilt.roll * size * 0.06, y: tilt.pitch * size * 0.06)
-            .opacity(1) // always-on raised relief — stays visible when the phone is still
+    /// Outer glass-edge line — sits at the clip boundary (placed after `.clipShape`, so it's not
+    /// clipped). Together with `innerRimLine` this creates the double-line raised-glass-edge look.
+    private func outerRimLine() -> some View {
+        shape
+            .stroke(AngularGradient(stops: [
+                        .init(color: .white.opacity(0.55), location: 0.00),
+                        .init(color: .white.opacity(0.07), location: 0.28),
+                        .init(color: .clear, location: 0.50),
+                        .init(color: .white.opacity(0.07), location: 0.72),
+                        .init(color: .white.opacity(0.55), location: 1.00)
+                    ],
+                    center: .center,
+                    startAngle: rimLightAngle,
+                    endAngle: rimLightAngle + .degrees(360)),
+                    lineWidth: 1.0)
             .allowsHitTesting(false)
     }
 
