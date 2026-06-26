@@ -659,7 +659,7 @@
 "screen_pin_setup_mismatch_error" = "PINs don't match. Try again.";
 "screen_change_phone_title" = "Change phone number";
 "screen_change_phone_intro_header" = "Change your number";
-"screen_change_phone_intro_message" = "We'll send a code to your current number, then to your new one. Your account, chats, and messages stay the same.";
+"screen_change_phone_intro_message" = "We'll text a verification code to your new number and ask for your PIN to confirm. Your account, chats, and messages stay the same.";
 "screen_change_phone_already_linked" = "That phone number is already linked to another account.";
 "screen_change_phone_new_header" = "New phone number";
 "screen_change_phone_new_footer" = "Enter the number you'd like to use from now on.";
