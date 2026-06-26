@@ -1392,6 +1392,36 @@ internal enum L10n {
   internal static var screenChangeAccountProviderSubtitle: String { return L10n.tr("Localizable", "screen_change_account_provider_subtitle") }
   /// Change account provider
   internal static var screenChangeAccountProviderTitle: String { return L10n.tr("Localizable", "screen_change_account_provider_title") }
+  /// That phone number is already linked to another account.
+  internal static var screenChangePhoneAlreadyLinked: String { return L10n.tr("Localizable", "screen_change_phone_already_linked") }
+  /// All set
+  internal static var screenChangePhoneDoneHeader: String { return L10n.tr("Localizable", "screen_change_phone_done_header") }
+  /// Your phone number has been updated. You'll use your new number to sign in from now on.
+  internal static var screenChangePhoneDoneMessage: String { return L10n.tr("Localizable", "screen_change_phone_done_message") }
+  /// Change your number
+  internal static var screenChangePhoneIntroHeader: String { return L10n.tr("Localizable", "screen_change_phone_intro_header") }
+  /// We'll send a code to your current number, then to your new one. Your account, chats, and messages stay the same.
+  internal static var screenChangePhoneIntroMessage: String { return L10n.tr("Localizable", "screen_change_phone_intro_message") }
+  /// Enter the number you'd like to use from now on.
+  internal static var screenChangePhoneNewFooter: String { return L10n.tr("Localizable", "screen_change_phone_new_footer") }
+  /// New phone number
+  internal static var screenChangePhoneNewHeader: String { return L10n.tr("Localizable", "screen_change_phone_new_header") }
+  /// Enter the 6-digit code we sent to your new number.
+  internal static var screenChangePhoneOtpFooter: String { return L10n.tr("Localizable", "screen_change_phone_otp_footer") }
+  /// Verify your new number
+  internal static var screenChangePhoneOtpHeader: String { return L10n.tr("Localizable", "screen_change_phone_otp_header") }
+  /// That code is invalid or has expired. Please try again.
+  internal static var screenChangePhoneOtpInvalid: String { return L10n.tr("Localizable", "screen_change_phone_otp_invalid") }
+  /// Confirm your 6-digit PIN to authorize this change.
+  internal static var screenChangePhonePinFooter: String { return L10n.tr("Localizable", "screen_change_phone_pin_footer") }
+  /// Enter your PIN
+  internal static var screenChangePhonePinHeader: String { return L10n.tr("Localizable", "screen_change_phone_pin_header") }
+  /// That PIN is incorrect. Please try again.
+  internal static var screenChangePhonePinIncorrect: String { return L10n.tr("Localizable", "screen_change_phone_pin_incorrect") }
+  /// Your phone number has been updated.
+  internal static var screenChangePhoneSuccess: String { return L10n.tr("Localizable", "screen_change_phone_success") }
+  /// Change phone number
+  internal static var screenChangePhoneTitle: String { return L10n.tr("Localizable", "screen_change_phone_title") }
   /// App Store
   internal static var screenChangeServerErrorElementProRequiredActionIos: String { return L10n.tr("Localizable", "screen_change_server_error_element_pro_required_action_ios") }
   /// The Element Pro app is required on %1$@. Please download it from the store.
