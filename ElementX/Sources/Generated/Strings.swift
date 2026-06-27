@@ -430,6 +430,24 @@ internal enum L10n {
   internal static var commonDownloadFailed: String { return L10n.tr("Localizable", "common_download_failed") }
   /// Downloading
   internal static var commonDownloading: String { return L10n.tr("Localizable", "common_downloading") }
+  /// %1$d days
+  internal static func commonDurationDays(_ p1: Int) -> String {
+    return L10n.tr("Localizable", "common_duration_days", p1)
+  }
+  /// %1$d hours
+  internal static func commonDurationHours(_ p1: Int) -> String {
+    return L10n.tr("Localizable", "common_duration_hours", p1)
+  }
+  /// %1$d minutes
+  internal static func commonDurationMinutes(_ p1: Int) -> String {
+    return L10n.tr("Localizable", "common_duration_minutes", p1)
+  }
+  /// 1 day
+  internal static var commonDurationOneDay: String { return L10n.tr("Localizable", "common_duration_one_day") }
+  /// 1 hour
+  internal static var commonDurationOneHour: String { return L10n.tr("Localizable", "common_duration_one_hour") }
+  /// 1 minute
+  internal static var commonDurationOneMinute: String { return L10n.tr("Localizable", "common_duration_one_minute") }
   /// (edited)
   internal static var commonEditedSuffix: String { return L10n.tr("Localizable", "common_edited_suffix") }
   /// Editing
@@ -1394,6 +1412,14 @@ internal enum L10n {
   internal static var screenChangeAccountProviderTitle: String { return L10n.tr("Localizable", "screen_change_account_provider_title") }
   /// That phone number is already linked to another account.
   internal static var screenChangePhoneAlreadyLinked: String { return L10n.tr("Localizable", "screen_change_phone_already_linked") }
+  /// Not just yet
+  internal static var screenChangePhoneCooldownHeader: String { return L10n.tr("Localizable", "screen_change_phone_cooldown_header") }
+  /// For your security, you can change your number in %1$@.
+  internal static func screenChangePhoneCooldownMessage(_ p1: Any) -> String {
+    return L10n.tr("Localizable", "screen_change_phone_cooldown_message", String(describing: p1))
+  }
+  /// For your security, you can't change your number just yet. Please try again later.
+  internal static var screenChangePhoneCooldownMessageGeneric: String { return L10n.tr("Localizable", "screen_change_phone_cooldown_message_generic") }
   /// All set
   internal static var screenChangePhoneDoneHeader: String { return L10n.tr("Localizable", "screen_change_phone_done_header") }
   /// Your phone number has been updated. You'll use your new number to sign in from now on.
@@ -1418,6 +1444,12 @@ internal enum L10n {
   internal static var screenChangePhonePinHeader: String { return L10n.tr("Localizable", "screen_change_phone_pin_header") }
   /// That PIN is incorrect. Please try again.
   internal static var screenChangePhonePinIncorrect: String { return L10n.tr("Localizable", "screen_change_phone_pin_incorrect") }
+  /// Set up PIN
+  internal static var screenChangePhonePinSetupRequiredAction: String { return L10n.tr("Localizable", "screen_change_phone_pin_setup_required_action") }
+  /// Set up a PIN first
+  internal static var screenChangePhonePinSetupRequiredHeader: String { return L10n.tr("Localizable", "screen_change_phone_pin_setup_required_header") }
+  /// You'll need a PIN to change your number. Set one up, then come back to change your number.
+  internal static var screenChangePhonePinSetupRequiredMessage: String { return L10n.tr("Localizable", "screen_change_phone_pin_setup_required_message") }
   /// Your phone number has been updated.
   internal static var screenChangePhoneSuccess: String { return L10n.tr("Localizable", "screen_change_phone_success") }
   /// Change phone number

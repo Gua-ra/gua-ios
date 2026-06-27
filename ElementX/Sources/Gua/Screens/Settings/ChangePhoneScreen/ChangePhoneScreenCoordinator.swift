@@ -16,6 +16,8 @@ struct ChangePhoneScreenCoordinatorParameters {
 
 enum ChangePhoneScreenCoordinatorAction {
     case close
+    /// The user has no PIN; the Settings flow should route to the 2SV PIN-setup flow.
+    case setUpPin
 }
 
 final class ChangePhoneScreenCoordinator: CoordinatorProtocol {
@@ -43,6 +45,8 @@ final class ChangePhoneScreenCoordinator: CoordinatorProtocol {
             switch action {
             case .close:
                 actionsSubject.send(.close)
+            case .setUpPin:
+                actionsSubject.send(.setUpPin)
             }
         }
         .store(in: &cancellables)

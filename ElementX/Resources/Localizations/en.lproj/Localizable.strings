@@ -334,6 +334,13 @@
 "common.select_account" = "Select an account";
 "common_unable_to_decrypt_insecure_device" = "Sent from an insecure device";
 "common_unable_to_decrypt_verification_violation" = "Sender's verified identity was reset";
+/* GUA FORK: coarse human-readable durations (e.g. cooldown copy). */
+"common_duration_one_day" = "1 day";
+"common_duration_days" = "%1$d days";
+"common_duration_one_hour" = "1 hour";
+"common_duration_hours" = "%1$d hours";
+"common_duration_one_minute" = "1 minute";
+"common_duration_minutes" = "%1$d minutes";
 "confirm_recovery_key_banner_message" = "Confirm your recovery key to maintain access to your key storage and message history.";
 "confirm_recovery_key_banner_primary_button_title" = "Enter your recovery key";
 "confirm_recovery_key_banner_secondary_button_title" = "Forgot your recovery key?";
@@ -663,6 +670,12 @@
 "screen_change_phone_already_linked" = "That phone number is already linked to another account.";
 "screen_change_phone_new_header" = "New phone number";
 "screen_change_phone_new_footer" = "Enter the number you'd like to use from now on.";
+"screen_change_phone_pin_setup_required_header" = "Set up a PIN first";
+"screen_change_phone_pin_setup_required_message" = "You'll need a PIN to change your number. Set one up, then come back to change your number.";
+"screen_change_phone_pin_setup_required_action" = "Set up PIN";
+"screen_change_phone_cooldown_header" = "Not just yet";
+"screen_change_phone_cooldown_message" = "For your security, you can change your number in %1$@.";
+"screen_change_phone_cooldown_message_generic" = "For your security, you can't change your number just yet. Please try again later.";
 "screen_change_phone_pin_header" = "Enter your PIN";
 "screen_change_phone_pin_footer" = "Confirm your 6-digit PIN to authorize this change.";
 "screen_change_phone_pin_incorrect" = "That PIN is incorrect. Please try again.";

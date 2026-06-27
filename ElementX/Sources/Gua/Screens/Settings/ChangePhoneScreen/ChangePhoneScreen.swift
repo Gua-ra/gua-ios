@@ -17,6 +17,10 @@ struct ChangePhoneScreen: View {
             switch context.viewState.phase {
             case .intro:
                 introSection
+            case .needsPinSetup:
+                needsPinSetupSection
+            case .cooldown:
+                cooldownSection
             case .newPhone:
                 phoneEntrySection
             case .pin, .otp, .submitting:
@@ -68,6 +72,38 @@ struct ChangePhoneScreen: View {
         Section {
             ListRow(label: .centeredAction(title: L10n.actionContinue, icon: \.arrowRight),
                     kind: .button { context.send(viewAction: .start) })
+        }
+    }
+
+    // MARK: - Needs PIN setup interstitial
+
+    @ViewBuilder
+    private var needsPinSetupSection: some View {
+        Section {
+            ListRow(label: .default(title: L10n.screenChangePhonePinSetupRequiredHeader,
+                                    description: L10n.screenChangePhonePinSetupRequiredMessage,
+                                    icon: \.lock),
+                    kind: .label)
+        } header: {
+            Text(L10n.screenChangePhoneTitle)
+        }
+
+        Section {
+            ListRow(label: .centeredAction(title: L10n.screenChangePhonePinSetupRequiredAction, icon: \.arrowRight),
+                    kind: .button { context.send(viewAction: .setUpPin) })
+        }
+    }
+
+    // MARK: - Cooldown interstitial
+
+    private var cooldownSection: some View {
+        Section {
+            ListRow(label: .default(title: L10n.screenChangePhoneCooldownHeader,
+                                    description: context.viewState.cooldownMessage,
+                                    icon: \.lock),
+                    kind: .label)
+        } header: {
+            Text(L10n.screenChangePhoneTitle)
         }
     }
 

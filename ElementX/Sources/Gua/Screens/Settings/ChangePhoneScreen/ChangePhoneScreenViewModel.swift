@@ -40,7 +40,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             state.reauthToken = ""
             state.bindings.code = ""
             state.errorMessage = nil
-            state.phase = .pin
+            Task { await beginFlow() }
         case .phoneChanged:
             normalizeInput()
             autoDetectCountry()
@@ -71,6 +71,8 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             actionsSubject.send(.close)
         case .done:
             actionsSubject.send(.close)
+        case .setUpPin:
+            actionsSubject.send(.setUpPin)
         }
     }
 
@@ -133,6 +135,45 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
 
     // MARK: - Backend interactions
 
+    /// Gate the flow on PIN status (`GET /security/pin/status`) when the user taps intro Continue.
+    /// No PIN → ``ChangePhoneScreenPhase/needsPinSetup``; PIN present but inside the fresh-2FA
+    /// cooldown → ``ChangePhoneScreenPhase/cooldown``; otherwise proceed to the ``pin`` step.
+    private func beginFlow() async {
+        guard let accessToken = clientProxy.accessToken else {
+            state.errorMessage = L10n.errorUnknown
+            state.phase = .intro
+            return
+        }
+        state.phase = .submitting
+        userIndicatorController.submitIndicator(UserIndicator(id: indicatorID,
+                                                              type: .modal,
+                                                              title: L10n.commonLoading,
+                                                              persistent: true))
+        defer { userIndicatorController.retractIndicatorWithId(indicatorID) }
+        do {
+            let status = try await identityServiceClient.pinStatus(accessToken: accessToken)
+            guard status.hasPin else {
+                state.phase = .needsPinSetup
+                return
+            }
+            if status.cooldownRemaining > 0 {
+                state.cooldownRemainingSeconds = status.cooldownRemaining
+                state.phase = .cooldown
+                return
+            }
+            state.phase = .pin
+        } catch IdentityServiceError.pinSetupRequired {
+            state.phase = .needsPinSetup
+        } catch let IdentityServiceError.twoFactorCooldown(retry) {
+            state.cooldownRemainingSeconds = retry ?? 0
+            state.phase = .cooldown
+        } catch {
+            MXLog.error("Failed to fetch PIN status for change-phone: \(error)")
+            state.errorMessage = (error as? LocalizedError)?.errorDescription ?? L10n.errorUnknown
+            state.phase = .intro
+        }
+    }
+
     /// PIN step-up — validate the account PIN and hold the minted reauth token. No SMS fires here.
     /// On success, advance to the new-number step; on a wrong PIN, stay on `.pin`.
     private func verifyPin(code: String) async {
@@ -154,6 +195,16 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             state.bindings.code = ""
             state.errorMessage = nil
             state.phase = .newPhone
+        } catch IdentityServiceError.pinSetupRequired {
+            // PIN was removed out from under us — bounce to the setup interstitial.
+            state.bindings.code = ""
+            state.errorMessage = nil
+            state.phase = .needsPinSetup
+        } catch let IdentityServiceError.twoFactorCooldown(retry) {
+            state.bindings.code = ""
+            state.errorMessage = nil
+            state.cooldownRemainingSeconds = retry ?? 0
+            state.phase = .cooldown
         } catch IdentityServiceError.invalidPin {
             state.errorMessage = L10n.screenChangePhonePinIncorrect
             state.bindings.code = ""
@@ -196,6 +247,13 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             state.bindings.code = ""
             state.errorMessage = nil
             state.phase = .otp
+        } catch let IdentityServiceError.twoFactorCooldown(retry) {
+            // Backend defense-in-depth: cooldown became active mid-flow.
+            state.errorMessage = nil
+            state.reauthToken = ""
+            state.bindings.code = ""
+            state.cooldownRemainingSeconds = retry ?? 0
+            state.phase = .cooldown
         } catch IdentityServiceError.invalidReauthToken {
             // Step-up expired — restart from the PIN step.
             state.errorMessage = IdentityServiceError.invalidReauthToken.errorDescription

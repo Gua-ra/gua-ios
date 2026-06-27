@@ -10,7 +10,13 @@ import Foundation
 // GUA FORK: Change-phone-number flow. Mirrors the multi-step structure of the
 // TwoStepVerificationScreen (PIN/OTP bubble fields, country-aware phone entry).
 //
-// Backend contract is PIN-step-up-first. Flow:
+// Backend contract is PIN-step-up-first, gated on PIN status. On intro Continue we first
+// `GET /security/pin/status`:
+//   • no PIN → ``needsPinSetup`` interstitial (route to the 2SV PIN-setup flow; do not proceed).
+//   • PIN present but `changePhoneCooldownRemainingSeconds > 0` → ``cooldown`` interstitial
+//     (fresh-2FA cooldown; do not proceed).
+//   • otherwise → ``pin`` as below.
+// Flow:
 //   ``intro`` → ``pin`` (6-digit account PIN; `POST /security/pin/reauth` → reauthToken, no SMS)
 //   → ``newPhone`` (country-aware entry of the new number; `POST /otp/change-number/request` sends
 //      the OTP to that number — the SMS only fires once a valid reauth token exists)
@@ -19,10 +25,16 @@ import Foundation
 
 enum ChangePhoneScreenViewModelAction {
     case close
+    /// The user has no PIN; route to the existing 2SV PIN-setup flow.
+    case setUpPin
 }
 
 enum ChangePhoneScreenPhase: Equatable {
     case intro
+    /// User has no PIN — interstitial telling them to set one up before they can change their number.
+    case needsPinSetup
+    /// PIN exists but was set/changed too recently (fresh-2FA cooldown) — change-phone is blocked for now.
+    case cooldown
     case pin
     case newPhone
     case otp
@@ -41,12 +53,22 @@ struct ChangePhoneScreenViewState: BindableState {
     /// Short-lived PIN step-up token minted on the `.pin` step. Authorizes the OTP request and the
     /// final re-bind; the PIN itself is never replayed.
     var reauthToken = ""
+    /// Remaining fresh-2FA cooldown in seconds; populated when entering the `.cooldown` phase.
+    var cooldownRemainingSeconds = 0
     var errorMessage: String?
     var bindings = ChangePhoneScreenViewStateBindings()
 
+    /// Human-readable cooldown message shown on the `.cooldown` interstitial.
+    var cooldownMessage: String {
+        guard cooldownRemainingSeconds > 0 else {
+            return L10n.screenChangePhoneCooldownMessageGeneric
+        }
+        return L10n.screenChangePhoneCooldownMessage(IdentityServiceError.humanReadableDuration(seconds: cooldownRemainingSeconds))
+    }
+
     var titleKey: String {
         switch phase {
-        case .intro, .submitting, .done:
+        case .intro, .submitting, .done, .needsPinSetup, .cooldown:
             return L10n.screenChangePhoneTitle
         case .newPhone:
             return L10n.screenChangePhoneNewHeader
@@ -129,4 +151,6 @@ enum ChangePhoneScreenViewAction {
     case continueTapped
     case cancel
     case done
+    /// Tapped the "Set up PIN" button on the `.needsPinSetup` interstitial.
+    case setUpPin
 }

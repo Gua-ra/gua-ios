@@ -15,6 +15,10 @@ enum IdentityServiceError: Error, LocalizedError {
     case pinLocked(retryAfterSeconds: Int?)
     case pinChangeCooldown(retryAfterSeconds: Int?)
     case pinChangeChallengeInvalid
+    /// The user has no PIN set, but the requested operation (e.g. change-phone step-up) requires one.
+    case pinSetupRequired
+    /// Change-phone is temporarily blocked because the PIN was set/changed too recently (fresh-2FA cooldown).
+    case twoFactorCooldown(retryAfterSeconds: Int?)
     case invalidReauthToken
     case phoneAlreadyLinked
     case server(status: Int, message: String?)
@@ -36,6 +40,11 @@ enum IdentityServiceError: Error, LocalizedError {
                 "For security, you can change your PIN again in \(max(1, Int((Double(retry) / 3600.0).rounded(.up)))) hour(s)."
             } else { "For security, you can only change your PIN once per day." }
         case .pinChangeChallengeInvalid: "Your PIN change session expired. Please start over."
+        case .pinSetupRequired: "You'll need to set up a PIN before you can change your number."
+        case let .twoFactorCooldown(retry):
+            if let retry, retry > 0 {
+                "For your security, you can change your number in \(IdentityServiceError.humanReadableDuration(seconds: retry))."
+            } else { "For your security, you can't change your number just yet. Please try again later." }
         case .invalidReauthToken: "Your verification expired. Please request a new code."
         case .phoneAlreadyLinked: "That phone number is already linked to another account."
         case let .server(status, message): message ?? "Server error (\(status))."
@@ -43,6 +52,30 @@ enum IdentityServiceError: Error, LocalizedError {
         case let .decoding(error): "Could not parse the server response: \(error.localizedDescription)"
         }
     }
+
+    /// Coarse, human-friendly rendering of a remaining-duration in seconds, e.g. "7 days",
+    /// "3 hours", "5 minutes". Rounds up so we never under-promise availability.
+    static func humanReadableDuration(seconds: Int) -> String {
+        let seconds = max(0, seconds)
+        let day = 86400, hour = 3600, minute = 60
+        if seconds >= day {
+            let days = Int((Double(seconds) / Double(day)).rounded(.up))
+            return days == 1 ? L10n.commonDurationOneDay : L10n.commonDurationDays(days)
+        }
+        if seconds >= hour {
+            let hours = Int((Double(seconds) / Double(hour)).rounded(.up))
+            return hours == 1 ? L10n.commonDurationOneHour : L10n.commonDurationHours(hours)
+        }
+        let minutes = max(1, Int((Double(seconds) / Double(minute)).rounded(.up)))
+        return minutes == 1 ? L10n.commonDurationOneMinute : L10n.commonDurationMinutes(minutes)
+    }
+}
+
+/// GUA FORK: PIN status from `GET /security/pin/status`. `cooldownRemaining` is the change-phone
+/// fresh-2FA cooldown in seconds (0 = no active cooldown).
+struct PinStatus {
+    let hasPin: Bool
+    let cooldownRemaining: Int
 }
 
 @MainActor
@@ -56,7 +89,7 @@ protocol IdentityServiceClientProtocol {
     func deactivateAccount(accessToken: String, reauthToken: String, eraseData: Bool) async throws
     func resetIdentityCredentials(accessToken: String, reauthToken: String) async throws -> IdentityResetCredentials
     // GUA FORK: Two-step verification (account PIN) management.
-    func pinStatus(accessToken: String) async throws -> Bool
+    func pinStatus(accessToken: String) async throws -> PinStatus
     func setInitialPin(accessToken: String, userId: String, newPin: String) async throws
     func startPinChange(accessToken: String, phone: String, currentPin: String) async throws -> String
     func completePinChange(accessToken: String, challengeId: String, otpCode: String, newPin: String) async throws
@@ -194,8 +227,11 @@ final class IdentityServiceClient: IdentityServiceClientProtocol {
 
     // MARK: - Two-step verification (PIN)
 
-    func pinStatus(accessToken: String) async throws -> Bool {
-        struct Response: Decodable { let hasPin: Bool }
+    func pinStatus(accessToken: String) async throws -> PinStatus {
+        struct Response: Decodable {
+            let hasPin: Bool
+            let changePhoneCooldownRemainingSeconds: Int?
+        }
         guard let url = URL(string: "/security/pin/status", relativeTo: baseURL) else {
             throw IdentityServiceError.invalidURL
         }
@@ -218,7 +254,9 @@ final class IdentityServiceClient: IdentityServiceClientProtocol {
             throw IdentityServiceError.server(status: httpResponse.statusCode, message: message)
         }
         do {
-            return try decoder.decode(Response.self, from: data).hasPin
+            let response = try decoder.decode(Response.self, from: data)
+            return PinStatus(hasPin: response.hasPin,
+                             cooldownRemaining: max(0, response.changePhoneCooldownRemainingSeconds ?? 0))
         } catch {
             throw IdentityServiceError.decoding(error)
         }
@@ -389,6 +427,12 @@ final class IdentityServiceClient: IdentityServiceClientProtocol {
             let errorBody = try? decoder.decode(ErrorBody.self, from: data)
             if errorBody?.code == "invalid_otp" { throw IdentityServiceError.invalidOTP }
             if errorBody?.code == "invalid_pin" { throw IdentityServiceError.invalidPin }
+            if errorBody?.code == "pin_setup_required" { throw IdentityServiceError.pinSetupRequired }
+            if errorBody?.code == "twofa_cooldown_active" {
+                let retry = errorBody?.retryAfterSeconds
+                    ?? httpResponse.value(forHTTPHeaderField: "Retry-After").flatMap(Int.init)
+                throw IdentityServiceError.twoFactorCooldown(retryAfterSeconds: retry)
+            }
             throw IdentityServiceError.server(status: 400, message: errorBody?.message ?? errorBody?.error)
         case 401:
             let errorBody = try? decoder.decode(ErrorBody.self, from: data)
@@ -434,12 +478,14 @@ final class IdentityServiceClient: IdentityServiceClientProtocol {
         let message: String?
         let error: String?
         let errorDescription: String?
+        let retryAfterSeconds: Int?
 
         enum CodingKeys: String, CodingKey {
             case code
             case message
             case error
             case errorDescription = "error_description"
+            case retryAfterSeconds
         }
     }
 }

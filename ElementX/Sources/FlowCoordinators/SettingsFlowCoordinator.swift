@@ -274,6 +274,11 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                 switch action {
                 case .close:
                     navigationStackCoordinator.pop()
+                case .setUpPin:
+                    // No PIN set — drop the change-phone screen and route to the 2SV PIN-setup flow.
+                    // The fresh-2FA cooldown will hold after setup, so no auto-return is needed.
+                    navigationStackCoordinator.pop()
+                    presentTwoStepVerification()
                 }
             }
             .store(in: &cancellables)
