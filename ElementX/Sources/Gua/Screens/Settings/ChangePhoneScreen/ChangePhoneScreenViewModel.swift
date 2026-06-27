@@ -37,8 +37,10 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         switch viewAction {
         case .start:
             state.selectedCountry = .deviceDefault
+            state.reauthToken = ""
+            state.bindings.code = ""
             state.errorMessage = nil
-            state.phase = .newPhone
+            state.phase = .pin
         case .phoneChanged:
             normalizeInput()
             autoDetectCountry()
@@ -87,17 +89,15 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             return
         }
         state.newPhoneE164 = trimmed
-        state.bindings.code = ""
         state.errorMessage = nil
-        state.phase = .pin
+        Task { await requestOtpForNewNumber() }
     }
 
     private func handleSubmittedCode(_ code: String) {
         switch state.phase {
         case .pin:
-            // Capture the PIN and request an OTP to the new number before collecting it.
-            state.enteredPin = code
-            Task { await requestOtpForNewNumber() }
+            // Step up with the PIN first; minting a reauth token gates the later SMS.
+            Task { await verifyPin(code: code) }
         case .otp:
             Task { await submitChange(code: code) }
         default:
@@ -133,7 +133,49 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
 
     // MARK: - Backend interactions
 
-    /// After the PIN is captured, send a verification OTP to the new number, then collect it.
+    /// PIN step-up — validate the account PIN and hold the minted reauth token. No SMS fires here.
+    /// On success, advance to the new-number step; on a wrong PIN, stay on `.pin`.
+    private func verifyPin(code: String) async {
+        guard let accessToken = clientProxy.accessToken else {
+            state.errorMessage = L10n.errorUnknown
+            return
+        }
+        state.phase = .submitting
+        userIndicatorController.submitIndicator(UserIndicator(id: indicatorID,
+                                                              type: .modal,
+                                                              title: L10n.commonLoading,
+                                                              persistent: true))
+        defer { userIndicatorController.retractIndicatorWithId(indicatorID) }
+        do {
+            let reauthToken = try await identityServiceClient.verifyPinReauth(accessToken: accessToken,
+                                                                              userId: clientProxy.userID,
+                                                                              pin: code)
+            state.reauthToken = reauthToken
+            state.bindings.code = ""
+            state.errorMessage = nil
+            state.phase = .newPhone
+        } catch IdentityServiceError.invalidPin {
+            state.errorMessage = L10n.screenChangePhonePinIncorrect
+            state.bindings.code = ""
+            state.phase = .pin
+        } catch let IdentityServiceError.pinLocked(retry) {
+            state.errorMessage = IdentityServiceError.pinLocked(retryAfterSeconds: retry).errorDescription
+            state.bindings.code = ""
+            state.phase = .pin
+        } catch IdentityServiceError.rateLimited {
+            state.errorMessage = IdentityServiceError.rateLimited.errorDescription
+            state.bindings.code = ""
+            state.phase = .pin
+        } catch {
+            MXLog.error("Failed to verify PIN step-up: \(error)")
+            state.errorMessage = (error as? LocalizedError)?.errorDescription ?? L10n.errorUnknown
+            state.bindings.code = ""
+            state.phase = .pin
+        }
+    }
+
+    /// With a valid reauth token in hand, send the verification OTP to the new number. This is where
+    /// the SMS fires. On success, collect the code; on a bad number, stay on `.newPhone`.
     private func requestOtpForNewNumber() async {
         guard let accessToken = clientProxy.accessToken else {
             state.errorMessage = L10n.errorUnknown
@@ -147,15 +189,26 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         defer { userIndicatorController.retractIndicatorWithId(indicatorID) }
         do {
             try await identityServiceClient.requestPhoneChangeOTP(accessToken: accessToken,
+                                                                  userId: clientProxy.userID,
                                                                   newPhone: state.newPhoneE164,
+                                                                  reauthToken: state.reauthToken,
                                                                   language: Locale.current.identifier)
             state.bindings.code = ""
             state.errorMessage = nil
             state.phase = .otp
-        } catch IdentityServiceError.rateLimited {
-            state.errorMessage = IdentityServiceError.rateLimited.errorDescription
+        } catch IdentityServiceError.invalidReauthToken {
+            // Step-up expired — restart from the PIN step.
+            state.errorMessage = IdentityServiceError.invalidReauthToken.errorDescription
+            state.reauthToken = ""
             state.bindings.code = ""
             state.phase = .pin
+        } catch IdentityServiceError.phoneAlreadyLinked {
+            state.errorMessage = L10n.screenChangePhoneAlreadyLinked
+            state.bindings.localPhoneNumber = ""
+            state.phase = .newPhone
+        } catch IdentityServiceError.rateLimited {
+            state.errorMessage = IdentityServiceError.rateLimited.errorDescription
+            state.phase = .newPhone
         } catch let IdentityServiceError.server(status, message) where status == 400 {
             // Invalid / unsupported number for the configured SMS region.
             state.errorMessage = message ?? L10n.screenPhoneLoginInvalidNumber
@@ -164,12 +217,11 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         } catch {
             MXLog.error("Failed to request OTP for the new number: \(error)")
             state.errorMessage = (error as? LocalizedError)?.errorDescription ?? L10n.errorUnknown
-            state.bindings.code = ""
-            state.phase = .pin
+            state.phase = .newPhone
         }
     }
 
-    /// Final step — verify the new-number OTP + the account PIN; backend re-binds the number.
+    /// Final step — verify the new-number OTP and consume the reauth token; backend re-binds the number.
     private func submitChange(code: String) async {
         guard let accessToken = clientProxy.accessToken else {
             state.errorMessage = L10n.errorUnknown
@@ -186,7 +238,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
                                                               userId: clientProxy.userID,
                                                               newPhone: state.newPhoneE164,
                                                               code: code,
-                                                              pin: state.enteredPin)
+                                                              reauthToken: state.reauthToken)
             state.errorMessage = nil
             state.phase = .done
             userIndicatorController.submitIndicator(UserIndicator(id: successIndicatorID,
@@ -197,11 +249,11 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             state.errorMessage = L10n.screenChangePhoneOtpInvalid
             state.bindings.code = ""
             state.phase = .otp
-        } catch IdentityServiceError.invalidPin {
-            // The PIN was wrong — return to the PIN step; re-submitting it requests a fresh OTP.
-            state.errorMessage = L10n.screenChangePhonePinIncorrect
+        } catch IdentityServiceError.invalidReauthToken {
+            // Step-up expired / consumed — restart from the PIN step.
+            state.errorMessage = IdentityServiceError.invalidReauthToken.errorDescription
+            state.reauthToken = ""
             state.bindings.code = ""
-            state.enteredPin = ""
             state.phase = .pin
         } catch IdentityServiceError.phoneAlreadyLinked {
             state.errorMessage = L10n.screenChangePhoneAlreadyLinked

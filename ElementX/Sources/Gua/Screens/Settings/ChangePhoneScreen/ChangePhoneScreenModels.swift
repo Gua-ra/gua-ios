@@ -10,12 +10,12 @@ import Foundation
 // GUA FORK: Change-phone-number flow. Mirrors the multi-step structure of the
 // TwoStepVerificationScreen (PIN/OTP bubble fields, country-aware phone entry).
 //
-// Backend contract is single-step (`POST /otp/change-number { userId, newPhone, code, pin }`),
-// with the verification OTP delivered to the *new* number via `POST /otp/send` and the account PIN
-// acting as the second factor. Flow:
-//   ``intro`` → ``newPhone`` (country-aware entry of the new number)
-//   → ``pin`` (6-digit account PIN; on submit an OTP is sent to the new number)
-//   → ``otp`` (6-digit code from the new number → atomic re-bind) → ``done``.
+// Backend contract is PIN-step-up-first. Flow:
+//   ``intro`` → ``pin`` (6-digit account PIN; `POST /security/pin/reauth` → reauthToken, no SMS)
+//   → ``newPhone`` (country-aware entry of the new number; `POST /otp/change-number/request` sends
+//      the OTP to that number — the SMS only fires once a valid reauth token exists)
+//   → ``otp`` (6-digit code from the new number; `POST /otp/change-number` consumes the reauth token
+//      and atomically re-binds) → ``done``.
 
 enum ChangePhoneScreenViewModelAction {
     case close
@@ -23,8 +23,8 @@ enum ChangePhoneScreenViewModelAction {
 
 enum ChangePhoneScreenPhase: Equatable {
     case intro
-    case newPhone
     case pin
+    case newPhone
     case otp
     case submitting
     case done
@@ -38,8 +38,9 @@ struct ChangePhoneScreenViewState: BindableState {
     var selectedCountry: Country = .deviceDefault
     /// The confirmed new number in E.164 form (e.g. "+15551234567").
     var newPhoneE164 = ""
-    /// The account PIN captured on the `.pin` step, replayed with the OTP on the final submit.
-    var enteredPin = ""
+    /// Short-lived PIN step-up token minted on the `.pin` step. Authorizes the OTP request and the
+    /// final re-bind; the PIN itself is never replayed.
+    var reauthToken = ""
     var errorMessage: String?
     var bindings = ChangePhoneScreenViewStateBindings()
 

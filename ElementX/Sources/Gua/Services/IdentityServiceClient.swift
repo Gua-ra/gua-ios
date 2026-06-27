@@ -60,10 +60,12 @@ protocol IdentityServiceClientProtocol {
     func setInitialPin(accessToken: String, userId: String, newPin: String) async throws
     func startPinChange(accessToken: String, phone: String, currentPin: String) async throws -> String
     func completePinChange(accessToken: String, challengeId: String, otpCode: String, newPin: String) async throws
-    // GUA FORK: Change phone number — send an OTP to the NEW number (`/otp/send`), then atomically
-    // re-bind the account to it with that OTP + the account PIN as a second factor (`/otp/change-number`).
-    func requestPhoneChangeOTP(accessToken: String, newPhone: String, language: String?) async throws
-    func changePhoneNumber(accessToken: String, userId: String, newPhone: String, code: String, pin: String) async throws
+    // GUA FORK: Change phone number — PIN step-up FIRST (`/security/pin/reauth` → reauthToken), then
+    // request an OTP to the NEW number (`/otp/change-number/request`, SMS fires here), then atomically
+    // re-bind the account to it with that OTP + the reauthToken (`/otp/change-number`).
+    func verifyPinReauth(accessToken: String, userId: String, pin: String) async throws -> String
+    func requestPhoneChangeOTP(accessToken: String, userId: String, newPhone: String, reauthToken: String, language: String?) async throws
+    func changePhoneNumber(accessToken: String, userId: String, newPhone: String, code: String, reauthToken: String) async throws
     /// Begins passkey enrollment and returns the IdP-hosted URL to load in an
     /// authenticated web session. The flow finishes when that page redirects to
     /// the app's OIDC redirect URL.
@@ -270,32 +272,58 @@ final class IdentityServiceClient: IdentityServiceClientProtocol {
 
     // MARK: - Change phone number
 
-    /// Sends a verification OTP to the *new* phone number (`POST /otp/send`). The endpoint is
-    /// unauthenticated, but we send the token anyway — it's harmless and keeps one code path.
-    func requestPhoneChangeOTP(accessToken: String, newPhone: String, language: String?) async throws {
+    /// PIN step-up (`POST /security/pin/reauth`). Validates the account PIN and mints a short-lived
+    /// reauth token (300s) that authorizes the subsequent change-number request/commit. No SMS fires
+    /// here. 400 `invalid_pin` → ``IdentityServiceError/invalidPin``, 429 `pin_locked` → locked.
+    func verifyPinReauth(accessToken: String, userId: String, pin: String) async throws -> String {
         struct Body: Encodable {
-            let phone: String
+            let userId: String
+            let pin: String
+        }
+        struct Response: Decodable {
+            let reauthToken: String
+            let expiresInSeconds: Int?
+        }
+        let (data, _) = try await sendAuthenticated(path: "/security/pin/reauth",
+                                                    accessToken: accessToken,
+                                                    body: Body(userId: userId, pin: pin),
+                                                    language: nil,
+                                                    expectsBody: true)
+        do {
+            return try decoder.decode(Response.self, from: data).reauthToken
+        } catch {
+            throw IdentityServiceError.decoding(error)
+        }
+    }
+
+    /// Sends a verification OTP to the *new* phone number (`POST /otp/change-number/request`). The
+    /// reauth token is peeked (not consumed) server-side; the SMS fires here. 202 on success.
+    func requestPhoneChangeOTP(accessToken: String, userId: String, newPhone: String, reauthToken: String, language: String?) async throws {
+        struct Body: Encodable {
+            let userId: String
+            let newPhone: String
+            let reauthToken: String
             let language: String?
         }
-        try await sendAuthenticated(path: "/otp/send",
+        try await sendAuthenticated(path: "/otp/change-number/request",
                                     accessToken: accessToken,
-                                    body: Body(phone: newPhone, language: language),
+                                    body: Body(userId: userId, newPhone: newPhone, reauthToken: reauthToken, language: language),
                                     language: language,
                                     expectsBody: false)
     }
 
     /// Atomically re-binds the account to the new number (`POST /otp/change-number`), verifying the
-    /// new-number OTP and the account PIN server-side. 204 on success.
-    func changePhoneNumber(accessToken: String, userId: String, newPhone: String, code: String, pin: String) async throws {
+    /// new-number OTP and consuming the reauth token server-side. 204 on success.
+    func changePhoneNumber(accessToken: String, userId: String, newPhone: String, code: String, reauthToken: String) async throws {
         struct Body: Encodable {
             let userId: String
             let newPhone: String
             let code: String
-            let pin: String
+            let reauthToken: String
         }
         try await sendAuthenticated(path: "/otp/change-number",
                                     accessToken: accessToken,
-                                    body: Body(userId: userId, newPhone: newPhone, code: code, pin: pin),
+                                    body: Body(userId: userId, newPhone: newPhone, code: code, reauthToken: reauthToken),
                                     language: nil,
                                     expectsBody: false)
     }

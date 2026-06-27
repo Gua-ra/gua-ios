@@ -1400,7 +1400,7 @@ internal enum L10n {
   internal static var screenChangePhoneDoneMessage: String { return L10n.tr("Localizable", "screen_change_phone_done_message") }
   /// Change your number
   internal static var screenChangePhoneIntroHeader: String { return L10n.tr("Localizable", "screen_change_phone_intro_header") }
-  /// We'll text a verification code to your new number and ask for your PIN to confirm. Your account, chats, and messages stay the same.
+  /// We'll confirm your PIN, then text a code to your new number. Your account, chats, and messages stay the same.
   internal static var screenChangePhoneIntroMessage: String { return L10n.tr("Localizable", "screen_change_phone_intro_message") }
   /// Enter the number you'd like to use from now on.
   internal static var screenChangePhoneNewFooter: String { return L10n.tr("Localizable", "screen_change_phone_new_footer") }
