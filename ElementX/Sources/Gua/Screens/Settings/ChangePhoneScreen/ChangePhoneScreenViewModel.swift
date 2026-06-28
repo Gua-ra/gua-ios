@@ -315,10 +315,14 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             state.bindings.code = ""
             state.phase = .pin
         } catch IdentityServiceError.phoneAlreadyLinked {
+            // Keep the typed number so the user can see which one was rejected and tweak it,
+            // and surface the reason as a toast — otherwise the bounce back to .newPhone reads
+            // as an unexplained loop.
             state.errorMessage = L10n.screenChangePhoneAlreadyLinked
             state.bindings.code = ""
-            state.bindings.localPhoneNumber = ""
             state.phase = .newPhone
+            userIndicatorController.submitIndicator(UserIndicator(title: L10n.screenChangePhoneAlreadyLinked,
+                                                                  iconName: "xmark"))
         } catch IdentityServiceError.rateLimited {
             state.errorMessage = IdentityServiceError.rateLimited.errorDescription
             state.bindings.code = ""
