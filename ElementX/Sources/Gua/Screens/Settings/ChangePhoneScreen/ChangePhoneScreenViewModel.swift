@@ -169,7 +169,8 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             state.phase = .cooldown
         } catch {
             MXLog.error("Failed to fetch PIN status for change-phone: \(error)")
-            state.errorMessage = (error as? LocalizedError)?.errorDescription ?? L10n.errorUnknown
+            userIndicatorController.submitIndicator(UserIndicator(title: (error as? LocalizedError)?.errorDescription ?? L10n.errorUnknown,
+                                                                  iconName: "xmark"))
             state.phase = .intro
         }
     }
