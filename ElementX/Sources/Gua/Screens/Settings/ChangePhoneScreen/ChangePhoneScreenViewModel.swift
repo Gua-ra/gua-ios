@@ -262,9 +262,15 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             state.bindings.code = ""
             state.phase = .pin
         } catch IdentityServiceError.phoneAlreadyLinked {
+            // Backend now rejects a taken number at the REQUEST step (409) instead of sending an
+            // SMS, so the user must never reach `.otp`. Keep the typed number so they can see which
+            // one was rejected and tweak it, and surface the reason as a toast — same treatment as
+            // the submitChange phoneAlreadyLinked case.
             state.errorMessage = L10n.screenChangePhoneAlreadyLinked
-            state.bindings.localPhoneNumber = ""
+            state.bindings.code = ""
             state.phase = .newPhone
+            userIndicatorController.submitIndicator(UserIndicator(title: L10n.screenChangePhoneAlreadyLinked,
+                                                                  iconName: "xmark"))
         } catch IdentityServiceError.rateLimited {
             state.errorMessage = IdentityServiceError.rateLimited.errorDescription
             state.phase = .newPhone
