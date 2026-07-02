@@ -14,7 +14,8 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Setup environment
-        run: 
+        run: |
+          brew trust danger/tap
           brew install danger/tap/danger-swift swiftlint
 
       - name: Danger
