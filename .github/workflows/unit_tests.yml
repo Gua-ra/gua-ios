@@ -85,8 +85,9 @@ jobs:
       - name: Upload coverage to Codecov
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }} # Skip in forks
         uses: codecov/codecov-action@ab904c41d6ece82784817410c45d8b8c02684457 # v3.1.6
+        continue-on-error: true # No CODECOV_TOKEN is configured for this repo yet; don't block CI on upload issues.
         with:
-          fail_ci_if_error: true
+          fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: unittests
 
