@@ -33,7 +33,6 @@
         "value" : "1"
       },
       {
-        "enabled" : false,
         "key" : "RECORD_FAILURES",
         "value" : "true"
       }
