@@ -31,7 +31,30 @@ jobs:
       - name: Setup environment
         run:
           source ci_scripts/ci_common.sh && setup_github_actions_environment
-      
+
+      - name: Install iOS 18.6 simulator runtime
+        run: |
+          # The macos-26 image only ships iOS 26.x simulators, but the unit and
+          # preview tests are pinned to iOS 18.6 (the committed snapshots were
+          # recorded on that runtime, enforced by PreviewTests.checkEnvironments).
+          if ! xcrun simctl list runtimes | grep -q "iOS 18.6"; then
+            xcodebuild -downloadPlatform iOS -buildVersion 18.6
+          fi
+          RUNTIME_ID=$(xcrun simctl list -j runtimes | jq -r '.runtimes[] | select(.identifier | startswith("com.apple.CoreSimulator.SimRuntime.iOS-18-6")) | .identifier' | head -n 1)
+          if [ -z "$RUNTIME_ID" ]; then
+            echo "The iOS 18.6 simulator runtime is not available." >&2
+            xcrun simctl list runtimes >&2
+            exit 1
+          fi
+          ensure_device() {
+            if ! xcrun simctl list -j devices | jq -e --arg rt "$RUNTIME_ID" --arg name "$1" '.devices[$rt] // [] | map(select(.name == $name)) | length > 0' > /dev/null; then
+              xcrun simctl create "$1" "$2" "$RUNTIME_ID"
+            fi
+          }
+          ensure_device "iPhone 16" "com.apple.CoreSimulator.SimDeviceType.iPhone-16"
+          ensure_device "iPhone SE (3rd generation)" "com.apple.CoreSimulator.SimDeviceType.iPhone-SE-3rd-generation"
+          xcrun simctl list devices "iOS 18.6"
+
       - name: SwiftFormat
         run:
           swiftformat --lint .
