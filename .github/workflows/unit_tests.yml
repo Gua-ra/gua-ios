@@ -94,8 +94,15 @@ jobs:
       - name: Collect test results
         if: ${{ !cancelled() }}
         run: |
-          xcresultparser -q -o junit -p $(pwd) fastlane/test_output/UnitTests.xcresult > fastlane/test_output/unit-junit.xml
-          xcresultparser -q -o junit -p $(pwd) fastlane/test_output/PreviewTests.xcresult > fastlane/test_output/preview-junit.xml
+          # A result bundle can be missing when the test step aborts early (e.g. failing unit
+          # tests stop the lane before the preview tests run). Only parse what exists so this
+          # step doesn't mask the real failure with an xcresultparser error.
+          if [ -d fastlane/test_output/UnitTests.xcresult ]; then
+            xcresultparser -q -o junit -p $(pwd) fastlane/test_output/UnitTests.xcresult > fastlane/test_output/unit-junit.xml
+          fi
+          if [ -d fastlane/test_output/PreviewTests.xcresult ]; then
+            xcresultparser -q -o junit -p $(pwd) fastlane/test_output/PreviewTests.xcresult > fastlane/test_output/preview-junit.xml
+          fi
 
       - name: Upload test results to Codecov
         if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
