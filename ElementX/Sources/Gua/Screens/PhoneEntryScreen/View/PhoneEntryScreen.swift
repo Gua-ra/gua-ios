@@ -42,8 +42,8 @@ struct PhoneEntryScreen: View {
 
     private var header: some View {
         VStack(spacing: 20) {
-            // App-icon logo: a one-shot fly-in/spin entrance, raised wolf+bubble relief, device-motion
-            // parallax, and a contained Gua-green aura (see GuaWelcomeLogo).
+            // App-icon logo: a one-shot fly-in/spin entrance, a liquid-glass wolf+bubble bevel,
+            // device-motion specular/parallax, and a soft aurora halo (see GuaWelcomeLogo).
             GuaWelcomeLogo(animated: !reduceMotion)
 
             VStack(spacing: 8) {
