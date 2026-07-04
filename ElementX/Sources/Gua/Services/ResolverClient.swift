@@ -25,6 +25,64 @@ struct HomeserverResolution: Equatable {
     let homeserver: ResolvedHomeserver
 }
 
+struct ResolverResolveOptions: Encodable, Equatable {
+    var country: String?
+    var mccmnc: String?
+    var carrier: String?
+    var regionHint: String?
+    var affiliations: [String]?
+    var attributes: [String: String]?
+    var routingClaims: ResolverRoutingClaimsEnvelope?
+    var trace: Bool?
+
+    init(country: String? = nil,
+         mccmnc: String? = nil,
+         carrier: String? = nil,
+         regionHint: String? = nil,
+         affiliations: [String]? = nil,
+         attributes: [String: String]? = nil,
+         routingClaims: ResolverRoutingClaimsEnvelope? = nil,
+         trace: Bool? = nil) {
+        self.country = country
+        self.mccmnc = mccmnc
+        self.carrier = carrier
+        self.regionHint = regionHint
+        self.affiliations = affiliations
+        self.attributes = attributes
+        self.routingClaims = routingClaims
+        self.trace = trace
+    }
+}
+
+struct ResolverRoutingClaimsEnvelope: Encodable, Equatable {
+    let schemaVersion: String
+    let issuer: String
+    let audience: String
+    let issuedAt: String
+    let expiresAt: String
+    let nonce: String
+    let affiliations: [String]?
+    let attributes: [String: String]?
+    let signatures: [ResolverClaimSignature]
+}
+
+struct ResolverClaimSignature: Encodable, Equatable {
+    let keyId: String
+    let signatureB64: String
+}
+
+struct ResolverDecisionTrace: Decodable, Equatable {
+    let source: String
+    let rule: String
+    let ruleId: String?
+    let reason: String?
+    let policyId: String?
+    let policyVersion: Int64?
+    let delegatedZoneId: String?
+    let assignmentPolicy: String?
+    let homeserverId: String?
+}
+
 enum ResolverError: Error, LocalizedError {
     case notConfigured
     case invalidURL
@@ -62,6 +120,12 @@ protocol ResolverClientProtocol: Sendable {
     func resolve(phoneNumber: String) async throws -> HomeserverResolution
 }
 
+extension ResolverClientProtocol {
+    func resolve(phoneNumber: String, options: ResolverResolveOptions) async throws -> HomeserverResolution {
+        try await resolve(phoneNumber: phoneNumber)
+    }
+}
+
 /// Talks to the Gua resolver (`POST /resolve`) — the federation front door that maps a phone number to a
 /// homeserver, so the client never hardcodes one. See `gua-resolver`.
 final class ResolverClient: ResolverClientProtocol {
@@ -83,7 +147,21 @@ final class ResolverClient: ResolverClientProtocol {
     }
 
     func resolve(phoneNumber: String) async throws -> HomeserverResolution {
-        struct RequestBody: Encodable { let phone: String }
+        try await resolve(phoneNumber: phoneNumber, options: ResolverResolveOptions())
+    }
+
+    func resolve(phoneNumber: String, options: ResolverResolveOptions) async throws -> HomeserverResolution {
+        struct RequestBody: Encodable {
+            let phone: String
+            let country: String?
+            let mccmnc: String?
+            let carrier: String?
+            let regionHint: String?
+            let affiliations: [String]?
+            let attributes: [String: String]?
+            let routingClaims: ResolverRoutingClaimsEnvelope?
+            let trace: Bool?
+        }
         struct HomeserverRef: Decodable {
             let serverName: String
             let baseUrl: String
@@ -94,6 +172,7 @@ final class ResolverClient: ResolverClientProtocol {
             let exists: Bool
             let homeserver: HomeserverRef?
             let registerAt: HomeserverRef?
+            let trace: ResolverDecisionTrace?
         }
 
         guard let url = URL(string: "/resolve", relativeTo: baseURL) else { throw ResolverError.invalidURL }
@@ -102,7 +181,15 @@ final class ResolverClient: ResolverClientProtocol {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         do {
-            request.httpBody = try encoder.encode(RequestBody(phone: phoneNumber))
+            request.httpBody = try encoder.encode(RequestBody(phone: phoneNumber,
+                                                              country: options.country,
+                                                              mccmnc: options.mccmnc,
+                                                              carrier: options.carrier,
+                                                              regionHint: options.regionHint,
+                                                              affiliations: options.affiliations,
+                                                              attributes: options.attributes,
+                                                              routingClaims: options.routingClaims,
+                                                              trace: options.trace))
         } catch {
             throw ResolverError.decoding(error)
         }

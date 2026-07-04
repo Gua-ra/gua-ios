@@ -179,3 +179,136 @@ class PhoneEntryScreenViewModelTests: XCTestCase {
         XCTAssertEqual(Country.find(isoCode: "BR")?.nationalDigitLength, 11)
     }
 }
+
+class ResolverClientContractTests: XCTestCase {
+    override func tearDown() {
+        ResolverURLProtocolState.reset()
+    }
+
+    func testLegacyResolveSendsPhoneOnlyPayload() async throws {
+        ResolverURLProtocolState.responseBody = """
+        {
+          "exists": true,
+          "homeserver": { "serverName": "gua.global", "baseUrl": "https://matrix.gua.global", "masIssuer": "https://mas.gua.global", "region": "br" },
+          "registerAt": { "serverName": "register.gua.global", "baseUrl": "https://register.gua.global" }
+        }
+        """
+        let client = try ResolverClient(baseURL: XCTUnwrap(URL(string: "https://resolver.gua.test")),
+                                        session: .resolverContractMock)
+
+        let resolution = try await client.resolve(phoneNumber: "+5511999999999")
+
+        XCTAssertTrue(resolution.exists)
+        XCTAssertEqual(resolution.homeserver.serverName, "gua.global")
+        XCTAssertEqual(ResolverURLProtocolState.lastRequest?.url?.absoluteString, "https://resolver.gua.test/resolve")
+        XCTAssertEqual(ResolverURLProtocolState.lastRequestBody, #"{"phone":"+5511999999999"}"#)
+    }
+
+    func testResolveCanSendOptionalV1RoutingFields() async throws {
+        ResolverURLProtocolState.responseBody = """
+        {
+          "exists": false,
+          "registerAt": { "serverName": "institution.gua.global", "baseUrl": "https://institution.gua.global" },
+          "trace": { "source": "placement", "rule": "institution_domain", "homeserverId": "institution-br" }
+        }
+        """
+        let client = try ResolverClient(baseURL: XCTUnwrap(URL(string: "https://resolver.gua.test")),
+                                        session: .resolverContractMock)
+
+        _ = try await client.resolve(phoneNumber: "+5511999999999",
+                                     options: ResolverResolveOptions(regionHint: "br-sp",
+                                                                     affiliations: ["example.edu"],
+                                                                     attributes: ["oidc_issuer": "https://sso.example.edu"],
+                                                                     routingClaims: ResolverRoutingClaimsEnvelope(schemaVersion: "gua-routing-claims.v1",
+                                                                                                                  issuer: "https://sso.example.edu",
+                                                                                                                  audience: "gua-resolver",
+                                                                                                                  issuedAt: "2026-07-04T12:00:00Z",
+                                                                                                                  expiresAt: "2026-07-04T12:05:00Z",
+                                                                                                                  nonce: "nonce-123",
+                                                                                                                  affiliations: ["example.edu"],
+                                                                                                                  attributes: ["institution_domain": "example.edu"],
+                                                                                                                  signatures: [ResolverClaimSignature(keyId: "sso-key-1",
+                                                                                                                                                      signatureB64: "abc123")]),
+                                                                     trace: true))
+
+        let body = try XCTUnwrap(ResolverURLProtocolState.lastRequestBody?.data(using: .utf8))
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(json["phone"] as? String, "+5511999999999")
+        XCTAssertEqual(json["regionHint"] as? String, "br-sp")
+        XCTAssertEqual(json["trace"] as? Bool, true)
+        XCTAssertEqual(json["affiliations"] as? [String], ["example.edu"])
+        let claims = try XCTUnwrap(json["routingClaims"] as? [String: Any])
+        XCTAssertEqual(claims["schemaVersion"] as? String, "gua-routing-claims.v1")
+        XCTAssertEqual(claims["nonce"] as? String, "nonce-123")
+        let signatures = try XCTUnwrap(claims["signatures"] as? [[String: Any]])
+        XCTAssertEqual(signatures.first?["signatureB64"] as? String, "abc123")
+    }
+}
+
+private enum ResolverURLProtocolState {
+    nonisolated(unsafe) static var responseBody = #"{"exists":false,"registerAt":{"serverName":"register.gua.global","baseUrl":"https://register.gua.global"}}"#
+    nonisolated(unsafe) static var lastRequest: URLRequest?
+    nonisolated(unsafe) static var lastRequestBody: String?
+
+    static func reset() {
+        responseBody = #"{"exists":false,"registerAt":{"serverName":"register.gua.global","baseUrl":"https://register.gua.global"}}"#
+        lastRequest = nil
+        lastRequestBody = nil
+    }
+}
+
+private final class ResolverContractURLProtocol: URLProtocol {
+    override func startLoading() {
+        ResolverURLProtocolState.lastRequest = request
+        ResolverURLProtocolState.lastRequestBody = requestBodyString(from: request)
+
+        guard let url = request.url,
+              let data = ResolverURLProtocolState.responseBody.data(using: .utf8),
+              let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil) else { return }
+
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: data)
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() { }
+
+    override static func canonicalRequest(for request: URLRequest) -> URLRequest {
+        request
+    }
+
+    override static func canInit(with request: URLRequest) -> Bool {
+        true
+    }
+
+    private func requestBodyString(from request: URLRequest) -> String? {
+        if let body = request.httpBody {
+            return String(data: body, encoding: .utf8)
+        }
+
+        guard let stream = request.httpBodyStream else { return nil }
+        stream.open()
+        defer { stream.close() }
+
+        var data = Data()
+        let bufferSize = 1024
+        let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
+        defer { buffer.deallocate() }
+
+        while stream.hasBytesAvailable {
+            let read = stream.read(buffer, maxLength: bufferSize)
+            if read <= 0 { break }
+            data.append(buffer, count: read)
+        }
+
+        return String(data: data, encoding: .utf8)
+    }
+}
+
+private extension URLSession {
+    static var resolverContractMock: URLSession {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [ResolverContractURLProtocol.self]
+        return URLSession(configuration: configuration)
+    }
+}
