@@ -40,6 +40,12 @@ struct GuaWelcomeLogo: View {
     @State private var tilt = DeviceTiltMotion()
     /// Drives the one-shot fly-in/spin entrance: starts off-screen + rotated, springs to rest.
     @State private var entered = false
+    /// Set once the entrance spring has been scheduled, so per-frame ticks don't re-arm it.
+    @State private var entranceScheduled = false
+    /// Time the logo has actually spent on screen (sum of rendered-frame deltas, stall-capped).
+    @State private var renderedLeadIn: TimeInterval = 0
+    /// Timestamp of the previous rendered frame, for the lead-in accumulation.
+    @State private var lastTick: TimeInterval?
 
     private var isLive: Bool {
         animated && !ProcessInfo.isRunningTests
@@ -55,6 +61,7 @@ struct GuaWelcomeLogo: View {
             if isLive {
                 SwiftUI.TimelineView(.animation) { context in
                     treated(t: context.date.timeIntervalSinceReferenceDate)
+                        .onChange(of: context.date) { startEntranceIfNeeded(now: context.date) }
                 }
             } else {
                 treated(t: 0)
@@ -70,17 +77,34 @@ struct GuaWelcomeLogo: View {
         .opacity(entered ? 1 : 0)
         .accessibilityHidden(true)
         .onAppear {
-            if isLive { tilt.start() }
-            guard !entered else { return }
-            if animated {
-                withAnimation(.spring(response: 0.52, dampingFraction: 0.66).delay(0.1)) {
-                    entered = true
-                }
+            if isLive {
+                tilt.start()
             } else {
                 entered = true // Reduce Motion / tests: appear in place, no fly-in.
             }
         }
         .onDisappear { tilt.stop() }
+    }
+
+    /// Starts the one-shot entrance after ~0.35s of *rendered* frames rather than from `onAppear`.
+    ///
+    /// At app launch `onAppear` fires while the launch screen still covers the app and the main
+    /// thread is busy starting up, so a wall-clock spring started there burns out before anything
+    /// is visible — the logo just pops into place (the "entrance doesn't play" regression). The
+    /// `TimelineView` only ticks for frames that are really drawn, so the lead-in is accumulated
+    /// from per-frame deltas (capped, so a startup stall can't consume it) and the spring fires
+    /// only once the screen has demonstrably been rendering in front of the user for a beat.
+    private func startEntranceIfNeeded(now: Date) {
+        guard !entranceScheduled else { return }
+        let t = now.timeIntervalSinceReferenceDate
+        defer { lastTick = t }
+        guard let lastTick else { return }
+        renderedLeadIn += min(t - lastTick, 1 / 20)
+        guard renderedLeadIn >= 0.35 else { return }
+        entranceScheduled = true
+        withAnimation(.spring(response: 0.52, dampingFraction: 0.66)) {
+            entered = true
+        }
     }
 
     private func treated(t: TimeInterval) -> some View {
