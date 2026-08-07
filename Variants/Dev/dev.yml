@@ -25,6 +25,10 @@ targets:
         # It also becomes the OIDC client_name MAS sees, which usefully
         # distinguishes the two apps in the consent/session UI.
         APP_DISPLAY_NAME: Gua Dev
+        # APP_NAME feeds PRODUCT_NAME and therefore CFBundleName, which is what
+        # Xcode prefills as the App Store Connect record name when it creates
+        # the app, so it must also say Gua Dev.
+        APP_NAME: Gua Dev
       configs:
         Release:
           # Point Release archives of this variant back at the dev backend. The
