@@ -17,6 +17,8 @@ settings:
 
 targets:
   ElementX:
+    sources:
+      - path: Resources
     settings:
       base:
         # APP_DISPLAY_NAME has to be overridden per target, not in the settings
@@ -29,6 +31,10 @@ targets:
         # Xcode prefills as the App Store Connect record name when it creates
         # the app, so it must also say Gua Dev.
         APP_NAME: Gua Dev
+        # Own icon (the shared Gua icon stamped with a DEV banner via
+        # Tools app-icon-banner) so the two apps are distinguishable at a
+        # glance on the home screen and in TestFlight.
+        ASSETCATALOG_COMPILER_APPICON_NAME: DevAppIcon
       configs:
         Release:
           # Point Release archives of this variant back at the dev backend. The
