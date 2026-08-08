@@ -40,3 +40,15 @@ targets:
           # Point Release archives of this variant back at the dev backend. The
           # dev hosts are not committed; CI injects them into Secrets/Secrets.swift.
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) GUA_DEVELOPMENT"
+
+  # The hosted test targets derive TEST_HOST from $(APP_NAME); without these
+  # overrides they would look for Gua.app inside a build that produces
+  # Gua Dev.app and fail to load. (Codex review catch on this PR.)
+  UnitTests:
+    settings:
+      base:
+        APP_NAME: Gua Dev
+  PreviewTests:
+    settings:
+      base:
+        APP_NAME: Gua Dev
