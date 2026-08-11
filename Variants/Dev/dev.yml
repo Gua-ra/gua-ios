@@ -1,5 +1,5 @@
-# Dev-environment app variant: a SECOND installable app that talks to the dev
-# backend, so the shipping app (global.gua) can be a real production build.
+# QA app variant: a SECOND installable app that talks to the dev backend, so
+# the shipping app (global.gua) can be a real production build.
 #
 # Applied by `fastlane config_dev` (appends this file to project.yml's include
 # list, then regenerates), mirroring the upstream Nightly variant.
@@ -29,7 +29,7 @@ targets:
         APP_DISPLAY_NAME: Gua QA
         # APP_NAME feeds PRODUCT_NAME and therefore CFBundleName, which is what
         # Xcode prefills as the App Store Connect record name when it creates
-        # the app, so it must also say Gua Dev.
+        # the app, so it must also say Gua QA.
         APP_NAME: Gua QA
         # Own icon: the Gua icon with a peeled-back corner revealing an Apple
         # style blueprint, so the QA app is distinguishable at a glance in every
@@ -45,7 +45,7 @@ targets:
 
   # The hosted test targets derive TEST_HOST from $(APP_NAME); without these
   # overrides they would look for Gua.app inside a build that produces
-  # Gua Dev.app and fail to load. (Codex review catch on this PR.)
+  # Gua QA.app and fail to load. (Codex review catch on this PR.)
   UnitTests:
     settings:
       base:
