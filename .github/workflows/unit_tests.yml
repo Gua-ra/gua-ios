@@ -20,6 +20,8 @@ jobs:
 
     steps:
       - uses: nschloe/action-cached-lfs-checkout@f46300cd8952454b9f0a21a3d133d4bd5684cfc2 #v1.2.3
+        with:
+          fetch-depth: 2
 
       - uses: actions/cache@v4
         with:
@@ -68,18 +70,17 @@ jobs:
       - name: Determine test scope
         id: test-scope
         env:
-          BASE_REF: ${{ github.base_ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           run_previews=true
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            git fetch --no-tags --depth=1 origin "$BASE_REF"
             run_previews=false
             while IFS= read -r path; do
               case "$path" in
                 .github/*|.gitignore|BuildTools/*|ci_scripts/*) ;;
                 *) run_previews=true; break ;;
               esac
-            done < <(git diff --name-only FETCH_HEAD HEAD)
+            done < <(git diff --name-only "$BASE_SHA" HEAD)
           fi
           echo "run-previews=$run_previews" >> "$GITHUB_OUTPUT"
       
