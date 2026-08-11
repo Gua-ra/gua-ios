@@ -64,9 +64,34 @@ jobs:
 
       - name: SwiftFormat
         run: swift run --package-path BuildTools -c release swiftformat --lint .
+
+      - name: Determine test scope
+        id: test-scope
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          run_previews=true
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            git fetch --no-tags --depth=1 origin "$BASE_REF"
+            run_previews=false
+            while IFS= read -r path; do
+              case "$path" in
+                .github/*|.gitignore|BuildTools/*|ci_scripts/*) ;;
+                *) run_previews=true; break ;;
+              esac
+            done < <(git diff --name-only FETCH_HEAD HEAD)
+          fi
+          echo "run-previews=$run_previews" >> "$GITHUB_OUTPUT"
       
       - name: Run tests
-        run: bundle exec fastlane unit_tests
+        env:
+          RUN_PREVIEW_TESTS: ${{ steps.test-scope.outputs.run-previews }}
+        run: |
+          if [ "$RUN_PREVIEW_TESTS" = "true" ]; then
+            bundle exec fastlane unit_tests
+          else
+            bundle exec fastlane unit_tests skip_previews:true
+          fi
 
       - name: Collect recorded snapshots # TEMPORARY: remove together with the RECORD_FAILURES test plan change
         if: ${{ !cancelled() }}
@@ -119,8 +144,12 @@ jobs:
       
       - name: Collect coverage
         run: |
-          xcresultparser -q -o cobertura -t ElementX -p $(pwd) fastlane/test_output/UnitTests.xcresult > fastlane/test_output/unit-cobertura.xml
-          xcresultparser -q -o cobertura -t ElementX -p $(pwd) fastlane/test_output/PreviewTests.xcresult > fastlane/test_output/preview-cobertura.xml
+          if [ -d fastlane/test_output/UnitTests.xcresult ]; then
+            xcresultparser -q -o cobertura -t Gua.app -p "$PWD" fastlane/test_output/UnitTests.xcresult > fastlane/test_output/unit-cobertura.xml
+          fi
+          if [ -d fastlane/test_output/PreviewTests.xcresult ]; then
+            xcresultparser -q -o cobertura -t Gua.app -p "$PWD" fastlane/test_output/PreviewTests.xcresult > fastlane/test_output/preview-cobertura.xml
+          fi
       
       - name: Upload coverage to Codecov
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }} # Skip in forks
