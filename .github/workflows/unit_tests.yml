@@ -28,6 +28,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gems-
 
+      - uses: actions/cache@v4
+        with:
+          path: BuildTools/.build
+          key: ${{ runner.os }}-swiftformat-${{ hashFiles('BuildTools/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-swiftformat-
+
       - name: Setup environment
         run:
           source ci_scripts/ci_common.sh && setup_github_actions_environment
@@ -56,8 +63,7 @@ jobs:
           xcrun simctl list devices "iOS 18.6"
 
       - name: SwiftFormat
-        run:
-          swiftformat --lint .
+        run: swift run --package-path BuildTools -c release swiftformat --lint .
       
       - name: Run tests
         run: bundle exec fastlane unit_tests
@@ -86,8 +92,20 @@ jobs:
 
       - name: Zip results # for faster upload
         if: failure()
-        working-directory: fastlane/test_output
-        run: zip -r UnitTests.zip UnitTests.xcresult PreviewTests.xcresult
+        run: |
+          bundles=()
+          for bundle in UnitTests.xcresult PreviewTests.xcresult; do
+            if [ -d "fastlane/test_output/$bundle" ]; then
+              bundles+=("$bundle")
+            fi
+          done
+
+          if [ ${#bundles[@]} -gt 0 ]; then
+            cd fastlane/test_output
+            zip -r UnitTests.zip "${bundles[@]}"
+          else
+            echo "No test result bundles were produced."
+          fi
       
       - name: Archive artifacts
         uses: actions/upload-artifact@v4
