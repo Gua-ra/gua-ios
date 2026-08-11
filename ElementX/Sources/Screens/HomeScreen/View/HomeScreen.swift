@@ -122,9 +122,10 @@ struct HomeScreen_Previews: PreviewProvider, TestablePreview {
         }
         .environment(\.colorScheme, .dark)
         .preferredColorScheme(.dark)
+        // The marketing fixture uses wall-clock timestamps for realistic room-list labels.
         .snapshotPreferences(expect: guaMarketingViewModel.context.$viewState.map { state in
             state.roomListMode == .rooms
-        })
+        }, precision: 0.997)
         .previewDisplayName("GuaMarketingConversas")
     }
 
