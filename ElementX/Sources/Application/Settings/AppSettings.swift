@@ -31,6 +31,7 @@ final class AppSettings {
         case seenInvites
         case appLockNumberOfPINAttempts
         case appLockNumberOfBiometricAttempts
+        case appLockBiometricUnlockOptOut
         case timelineStyle
         
         case analyticsConsentState
@@ -233,6 +234,11 @@ final class AppSettings {
     /// The number of attempts the user has made to unlock the app with a PIN code (resets when unlocked).
     @UserPreference(key: UserDefaultsKeys.appLockNumberOfPINAttempts, defaultValue: 0, storageType: .userDefaults(store))
     var appLockNumberOfPINAttempts: Int
+    /// GUA FORK: whether the user has explicitly turned off Touch ID/Face ID unlock. Biometric
+    /// unlock is enabled by default whenever a PIN code is set, so this records the opt-out and
+    /// stops us from switching it back on behind the user's back.
+    @UserPreference(key: UserDefaultsKeys.appLockBiometricUnlockOptOut, defaultValue: false, storageType: .userDefaults(store))
+    var appLockBiometricUnlockOptOut: Bool
     
     // MARK: - Authentication
     

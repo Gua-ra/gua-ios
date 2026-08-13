@@ -1483,3 +1483,6 @@
 "screen_change_phone_success" = "Seu número de telefone foi atualizado.";
 "screen_change_phone_done_header" = "Tudo certo";
 "screen_change_phone_done_message" = "Seu número de telefone foi atualizado. A partir de agora, você vai usar seu novo número para entrar.";
+
+/* GUA FORK - App lock */
+"screen_app_lock_unlock_with_biometrics_ios" = "Desbloquear com %1$@";

@@ -81,7 +81,7 @@
 	<key>NSContactsUsageDescription</key>
 	<string>$(APP_DISPLAY_NAME) checks your contacts privately to find which of them are already here. Your contacts are never stored.</string>
 	<key>NSFaceIDUsageDescription</key>
-	<string>Face ID is used to access your app.</string>
+	<string>$(APP_DISPLAY_NAME) uses Face ID to unlock the app, so you don't have to type your PIN every time.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Grant location access so that $(APP_DISPLAY_NAME) can share your location.</string>
 	<key>NSMicrophoneUsageDescription</key>

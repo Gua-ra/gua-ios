@@ -1302,6 +1302,10 @@ internal enum L10n {
   internal static func screenAppLockSubtitleWrongPin(_ p1: Int) -> String {
     return L10n.tr("Localizable", "screen_app_lock_subtitle_wrong_pin", p1)
   }
+  /// Unlock with %1$@
+  internal static func screenAppLockUnlockWithBiometricsIos(_ p1: Any) -> String {
+    return L10n.tr("Localizable", "screen_app_lock_unlock_with_biometrics_ios", String(describing: p1))
+  }
   /// You have no blocked users
   internal static var screenBlockedUsersEmpty: String { return L10n.tr("Localizable", "screen_blocked_users_empty") }
   /// Unblock

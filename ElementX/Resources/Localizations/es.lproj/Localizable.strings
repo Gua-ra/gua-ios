@@ -1458,3 +1458,6 @@
 "screen_change_phone_success" = "Tu número de teléfono se ha actualizado.";
 "screen_change_phone_done_header" = "Todo listo";
 "screen_change_phone_done_message" = "Tu número de teléfono se ha actualizado. A partir de ahora, usarás tu nuevo número para iniciar sesión.";
+
+/* GUA FORK - App lock */
+"screen_app_lock_unlock_with_biometrics_ios" = "Desbloquear con %1$@";

@@ -1430,3 +1430,6 @@
 "screen_two_step_verification_otp_footer" = "Digite o código de 6 dígitos que acabamos de enviar para o seu telefone.";
 "screen_two_step_verification_otp_invalid" = "Esse código é inválido ou expirou. Tente novamente.";
 "screen_two_step_verification_cooldown" = "Por segurança, você só pode alterar seu PIN uma vez por dia. Tente novamente mais tarde.";
+
+/* GUA FORK - App lock */
+"screen_app_lock_unlock_with_biometrics_ios" = "Desbloquear com %1$@";
