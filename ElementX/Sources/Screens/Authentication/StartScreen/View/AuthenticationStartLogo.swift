@@ -49,7 +49,6 @@ struct AuthenticationStartLogo: View {
         Image(asset: Asset.Images.appLogo)
             .resizable()
             .scaledToFit()
-            .scaleEffect(0.8)
             .clipShape(outerShape)
             .overlay(alignment: .center) {
                 outerShape
@@ -57,6 +56,7 @@ struct AuthenticationStartLogo: View {
                     .stroke(.white.opacity(isLight ? 1 : isOnGradient ? 0.9 : 0.25), lineWidth: 0.5)
                     .blendMode(isLight ? .normal : .overlay)
             }
+            .scaleEffect(0.8)
             .padding(extra)
             .background {
                 ZStack {
