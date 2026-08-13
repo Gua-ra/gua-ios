@@ -109,6 +109,9 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         userSessionStore = UserSessionStore(keychainController: keychainController, appSettings: appSettings, appHooks: appHooks, networkMonitor: networkMonitor)
         
         let appLockService = AppLockService(keychainController: keychainController, appSettings: appSettings)
+        // GUA FORK: unlocking with Face ID/Touch ID is the default, so switch it on for anyone who
+        // set their PIN code up before this shipped (or before their device had biometrics).
+        appLockService.applyBiometricUnlockDefault()
         let appLockNavigationCoordinator = NavigationRootCoordinator()
         appLockFlowCoordinator = AppLockFlowCoordinator(appLockService: appLockService,
                                                         navigationCoordinator: appLockNavigationCoordinator)

@@ -186,6 +186,10 @@ class MockScreen: Identifiable {
                       appLockService.unlock(with: pinCode) else {
                     fatalError("Failed to preset the PIN code.")
                 }
+                // GUA FORK: setting a PIN code now turns biometric unlock on by default, and this
+                // mock context would sail straight through it. These scenarios exercise the PIN
+                // fallback, so opt out of biometrics here.
+                appLockService.disableBiometricUnlock()
             }
             
             let notificationCenter = UITestsNotificationCenter()

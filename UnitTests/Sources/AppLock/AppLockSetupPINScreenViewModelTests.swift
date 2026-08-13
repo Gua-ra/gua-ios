@@ -21,6 +21,9 @@ class AppLockSetupPINScreenViewModelTests: XCTestCase {
     override func setUp() {
         AppSettings.resetAllSettings()
         keychainController = KeychainControllerMock()
+        // Setting a PIN code now also decides whether to turn biometric unlock on by default.
+        keychainController.containsPINCodeReturnValue = false
+        keychainController.containsPINCodeBiometricStateReturnValue = false
         appLockService = AppLockService(keychainController: keychainController, appSettings: AppSettings())
     }
     

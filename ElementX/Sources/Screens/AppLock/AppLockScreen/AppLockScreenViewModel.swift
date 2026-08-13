@@ -6,6 +6,7 @@
 //
 
 import Combine
+import LocalAuthentication
 import SwiftUI
 
 typealias AppLockScreenViewModelType = StateStoreViewModel<AppLockScreenViewState, AppLockScreenViewAction>
@@ -20,9 +21,16 @@ class AppLockScreenViewModel: AppLockScreenViewModelType, AppLockScreenViewModel
 
     init(appLockService: AppLockServiceProtocol) {
         self.appLockService = appLockService
-        
-        super.init(initialViewState: AppLockScreenViewState(bindings: .init()))
-        
+
+        // GUA FORK: only offer the retry when biometrics would actually succeed - it is off when
+        // the user opted out, and untrusted until they enter their PIN once after enrolling a new
+        // face or fingerprint.
+        let retryableBiometryType: LABiometryType = appLockService.biometricUnlockEnabled && appLockService.biometricUnlockTrusted
+            ? appLockService.biometryType
+            : .none
+
+        super.init(initialViewState: AppLockScreenViewState(retryableBiometryType: retryableBiometryType, bindings: .init()))
+
         appLockService.numberOfPINAttempts
             .weakAssign(to: \.state.numberOfPINAttempts, on: self)
             .store(in: &cancellables)
@@ -50,11 +58,25 @@ class AppLockScreenViewModel: AppLockScreenViewModelType, AppLockScreenViewModel
             state.bindings.pinCode = ""
         case .forgotPIN:
             handleForgotPIN()
+        case .unlockWithBiometrics:
+            Task { await unlockWithBiometrics() }
         }
     }
-    
+
     // MARK: - Private
-    
+
+    /// GUA FORK: a second run at Face ID/Touch ID from the keypad, for when the first prompt was
+    /// dismissed. A failure just leaves the user on the PIN screen - LocalAuthentication does its
+    /// own attempt counting, so it doesn't burn one of the PIN attempts.
+    private func unlockWithBiometrics() async {
+        switch await appLockService.unlockWithBiometrics() {
+        case .unlocked:
+            actionsSubject.send(.appUnlocked)
+        case .failed, .interrupted:
+            MXLog.info("Biometric unlock retry didn't complete. Staying on the PIN screen.")
+        }
+    }
+
     private func submit(_ pinCode: String) {
         guard appLockService.unlock(with: pinCode) else {
             handleInvalidPIN()

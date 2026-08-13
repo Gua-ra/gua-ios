@@ -1486,3 +1486,6 @@
 "find_friends_empty_title" = "No contacts on Gua yet";
 "find_friends_empty_message" = "None of your contacts are on Gua yet. Invite them and they'll show up here.";
 "find_friends_empty_action" = "Check again";
+
+/* GUA FORK - App lock */
+"screen_app_lock_unlock_with_biometrics_ios" = "Unlock with %1$@";

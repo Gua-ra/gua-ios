@@ -23,6 +23,8 @@ class AppLockScreenViewModelTests: XCTestCase {
         AppSettings.resetAllSettings()
         appSettings = AppSettings()
         keychainController = KeychainControllerMock()
+        // The screen asks whether biometric unlock can be retried as it is built.
+        keychainController.containsPINCodeBiometricStateReturnValue = false
         appLockService = AppLockService(keychainController: keychainController, appSettings: appSettings)
         viewModel = AppLockScreenViewModel(appLockService: appLockService)
     }
