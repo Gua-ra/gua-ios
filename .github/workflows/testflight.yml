@@ -9,22 +9,57 @@ name: TestFlight
 # (global.gua, global.gua.nse, global.gua.shareextension) automatically. No .p12,
 # no .mobileprovision, no Match repo to manage.
 #
-# Trigger: Actions tab -> "TestFlight" -> "Run workflow".
+# Release paths, in order of how often they are used:
+#   - label a PR `deploy:qa` -> archives that PR's branch and uploads it to the Gua QA
+#                               app, so a change can be handed to testers before it is
+#                               merged. Pushing more commits rebuilds it automatically.
+#   - merge to develop       -> stages the PROD upload, which waits for an approver on
+#                               the `production` environment. Merging never publishes
+#                               on its own.
+#   - workflow_dispatch      -> the same two paths by hand, for either app.
+#
+# An unlabelled PR does nothing here on purpose: an archive costs ~25 minutes of a
+# metered macOS runner, which is far too expensive to spend on every push.
+#
+# develop, not main, is this fork's integration branch: every PR merges into develop,
+# and `main` is the dormant branch inherited from upstream element-x-ios.
+#
+# !! REPO SETTING REQUIRED BEFORE THE PROD PATH CAN EVER RUN !!
+# The `production` environment currently carries a deployment branch policy of `main` only.
+# Because prod is triggered by a push to `develop`, GitHub will REJECT the job outright
+# ("Branch develop is not allowed to deploy to production due to environment protection
+# rules") rather than hold it for an approver. Add `develop` to that environment's
+# deployment branch policy (Settings -> Environments -> production), or the first merge to
+# develop fails instead of staging a release. Do NOT "fix" this by dropping the
+# environment: the environment IS the approval gate.
 #
 # Required repo secrets (Settings -> Secrets and variables -> Actions):
 #   ASC_ISSUER_ID   App Store Connect API issuer id (UUID)
 #   ASC_KEY_ID      App Store Connect API key id
 #   ASC_PRIVATE_KEY Contents of the AuthKey_<KEY_ID>.p8 file (full PEM, multi-line)
-#   ASC_APP_ID_DEV  The dev app record's numeric Apple ID (only for environment=dev).
+#   ASC_APP_ID_DEV  The QA app record's numeric Apple ID (only for environment=dev).
 #   ASC_APP_ID      The app's numeric Apple ID (so the upload targets the right
 #                   app record on multi-app accounts)
+#   GUA_DEV_RESOLVER_BASE_URL, GUA_DEV_IDENTITY_SERVICE_BASE_URL,
+#   GUA_DEV_ACCOUNT_PROVIDER
+#                   The dev backend endpoints baked into a QA build. Required for
+#                   every `deploy:qa` run; the build fails loudly without them.
 # See docs/TESTFLIGHT.md for setup details.
 
 on:
+  push:
+    # Production ships from `main` only. The `production` environment also carries a
+    # main-only branch policy, so a release cannot be staged from anywhere else even
+    # if this list is widened by mistake.
+    branches: [main]
+  # `labeled` is what makes the QA path work: the PR that opened without the label
+  # gets its build the moment someone adds it, without needing an empty push.
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:
     inputs:
       environment:
-        description: "Which app to build: prod (global.gua, gua.global backend) or dev (global.gua.dev, dev backend)"
+        description: "Which app to build: prod (global.gua, gua.global backend) or dev (Gua QA, global.gua.dev, dev backend)"
         required: true
         type: choice
         options: [prod, dev]
@@ -34,16 +69,115 @@ on:
         required: false
         type: string
 
-# Never run two TestFlight uploads at once (build numbers must stay unique/ordered).
+# Default for every job. `pull-requests: write` is granted only to the job that actually
+# comments (see the testflight job), so the gate job cannot write anything at all.
+permissions:
+  contents: read
+
+env:
+  # Put this label on a PR to ship that PR's branch to the Gua QA app. Only people with
+  # write access can label, which is what keeps this from being an open door on a public
+  # repo. The internal plumbing still calls this variant "dev" (environment=dev, lane
+  # config_dev, bundle global.gua.dev); "QA" is only what testers see.
+  DEPLOY_LABEL: deploy:qa
+
+# Scoped per PR (and per branch otherwise) rather than one global lane: pushing a fixup
+# to a labelled PR should supersede that PR's in-flight archive instead of queueing a
+# second 25-minute macOS run. Runs off develop and manual dispatches queue instead of
+# cancelling, because killing a prod run mid-upload leaves a half-delivered build.
 concurrency:
-  group: testflight
-  cancel-in-progress: false
+  group: testflight-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Runs on a cheap Linux runner so the decision itself costs nothing. Everything
+  # below keys off its outputs, and the expensive macOS job is skipped outright when
+  # `build` is false.
+  gate:
+    name: Decide what to ship
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.gate.outputs.build }}
+      target: ${{ steps.gate.outputs.target }}
+      environment: ${{ steps.gate.outputs.environment }}
+      ref: ${{ steps.gate.outputs.ref }}
+    steps:
+      - id: gate
+        env:
+          # Bound as env instead of being interpolated into the script body: these come
+          # from whoever opened the PR, and must never be able to become shell syntax.
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HAS_DEPLOY_LABEL: ${{ contains(github.event.pull_request.labels.*.name, env.DEPLOY_LABEL) }}
+          DISPATCH_ENV: ${{ inputs.environment }}
+        run: |
+          set -euo pipefail
+          build=false
+          target=""
+          ref=""
+          environment=""
+
+          case "${{ github.event_name }}" in
+            workflow_dispatch)
+              build=true
+              target="$DISPATCH_ENV"
+              ;;
+            push)
+              # Only develop reaches here (see the trigger), and a merge always means prod.
+              build=true
+              target=prod
+              ;;
+            pull_request)
+              # All three conditions are required. The same-repo check is the security
+              # control: a PR from a fork must never reach the App Store Connect key,
+              # and label-gating alone would not stop that, because a fork PR's job
+              # would otherwise run with the repo's secrets in scope.
+              if [ "$HEAD_REPO" = "${{ github.repository }}" ] && [ "$HAS_DEPLOY_LABEL" = "true" ]; then
+                build=true
+                target=dev
+                # Archive the PR branch itself, not the ephemeral merge commit, so what
+                # testers install is exactly what the author pushed.
+                ref="$HEAD_SHA"
+              fi
+              ;;
+          esac
+
+          if [ "$build" = "true" ]; then
+            case "$target" in
+              # Prod uploads run under the `production` environment, whose required
+              # reviewers (the deploy-approvers team) hold the job before step one.
+              prod) environment=production ;;
+              dev) environment=dev ;;
+              *) echo "::error::Unknown target '$target'"; exit 1 ;;
+            esac
+            echo "Building **$target** (environment: \`$environment\`)." >> "$GITHUB_STEP_SUMMARY"
+          elif [ -n "$HEAD_REPO" ] && [ "$HEAD_REPO" != "${{ github.repository }}" ]; then
+            echo "No TestFlight build: PRs from forks cannot be signed, because the App Store Connect key is not exposed to them. Push the branch to this repo to ship it to QA." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No TestFlight build: add the \`$DEPLOY_LABEL\` label to this PR to ship it to the Gua QA app." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          {
+            echo "build=$build"
+            echo "target=$target"
+            echo "environment=$environment"
+            echo "ref=$ref"
+          } >> "$GITHUB_OUTPUT"
+
   testflight:
-    name: Archive & upload
+    name: Archive & upload (${{ needs.gate.outputs.target }})
+    needs: gate
+    if: needs.gate.outputs.build == 'true'
     runs-on: macos-15
     timeout-minutes: 90
+    permissions:
+      contents: read
+      # So a labelled PR can be told which build number its testers should install.
+      pull-requests: write
+    # Derived from `target` itself rather than a separate gate output, so the two can never
+    # disagree: anything that is not an explicit QA build routes to `production` and waits for
+    # an approver. A gate bug therefore fails towards the gate, never around it.
+    environment: ${{ needs.gate.outputs.target == 'dev' && 'dev' || 'production' }}
 
     env:
       SCHEME: Gua
@@ -55,15 +189,23 @@ jobs:
       # run number) so every upload is accepted by TestFlight.
       BUILD_NUMBER: ${{ github.run_number }}
       # Which app record this run targets. prod is the shipping app on the committed
-      # gua.global endpoints; dev is the side-by-side variant on the dev backend.
-      TARGET_ENV: ${{ inputs.environment }}
-      BUNDLE_ID: ${{ inputs.environment == 'dev' && 'global.gua.dev' || 'global.gua' }}
+      # gua.global endpoints; dev is the side-by-side Gua QA variant on the dev backend.
+      TARGET_ENV: ${{ needs.gate.outputs.target }}
+      BUNDLE_ID: ${{ needs.gate.outputs.target == 'dev' && 'global.gua.dev' || 'global.gua' }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           lfs: true
+          # Empty for push/dispatch, which means "the ref that triggered this run".
+          # For a labelled PR the gate pins it to the PR's head commit.
+          ref: ${{ needs.gate.outputs.ref }}
+          # Every step after this one runs code from the checked-out branch (Fastfile,
+          # project.yml, SwiftPM manifests). Don't leave the job's GITHUB_TOKEN sitting in
+          # .git/config where that code can pick it up; nothing here needs git auth after
+          # checkout, and the LFS fetch happens inside this action.
+          persist-credentials: false
 
       - name: Select Xcode
         # The project requires Xcode 16+ (CI elsewhere pins 16.4). Pick the latest
@@ -122,7 +264,7 @@ jobs:
         # Dev builds only: prod endpoints (resolver/identity/account provider on
         # gua.global) are committed in GuaDeployment.swift, so a prod archive needs
         # no injected secrets at all.
-        if: inputs.environment == 'dev'
+        if: needs.gate.outputs.target == 'dev'
         # The committed Secrets/Secrets.swift holds localhost placeholders, which only
         # resolve on the simulator (localhost == the Mac). A TestFlight build runs on
         # real devices, where localhost is the phone itself, so it MUST point at the
@@ -167,14 +309,14 @@ jobs:
       - name: Apply the Dev app variant
         # Switches bundle id / app group / OIDC redirect scheme to the dev app and
         # re-adds GUA_DEVELOPMENT on Release, so both apps install side by side.
-        if: inputs.environment == 'dev'
+        if: needs.gate.outputs.target == 'dev'
         run: bundle exec fastlane config_dev
 
       - name: Generate Xcode project
         # The .xcodeproj is generated from project.yml. For a dev build the previous
         # steps populated Secrets/Secrets.swift and applied the Dev variant; a prod
         # build generates straight from the committed spec.
-        if: inputs.environment != 'dev'
+        if: needs.gate.outputs.target != 'dev'
         run: xcodegen generate
 
       - name: Read marketing version
@@ -282,12 +424,35 @@ jobs:
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-          # Per-app record: prod uploads to ASC_APP_ID, dev to ASC_APP_ID_DEV.
-          ASC_APP_ID: ${{ inputs.environment == 'dev' && secrets.ASC_APP_ID_DEV || secrets.ASC_APP_ID }}
+          # Per-app record: prod uploads to ASC_APP_ID, Gua QA to ASC_APP_ID_DEV. Both are
+          # bound here and the target picks one below, in shell.
+          #
+          # Deliberately NOT the obvious one-liner
+          #   target == 'dev' AND secrets.ASC_APP_ID_DEV OR secrets.ASC_APP_ID
+          # GitHub's `a && b || c` returns `c` whenever `b` is falsy, so an unset or emptied
+          # ASC_APP_ID_DEV would silently aim a QA build at the PRODUCTION app record instead
+          # of failing. Selecting in shell fails closed on a missing id.
+          ASC_APP_ID_PROD: ${{ secrets.ASC_APP_ID }}
+          ASC_APP_ID_DEV: ${{ secrets.ASC_APP_ID_DEV }}
         run: |
           set -euo pipefail
-          if [ -z "${ASC_APP_ID:-}" ]; then
-            echo "::error::No App Store Connect app id for environment '$TARGET_ENV' (set ASC_APP_ID for prod, ASC_APP_ID_DEV for dev). See docs/TESTFLIGHT.md"
+          if [ "$TARGET_ENV" = "dev" ]; then
+            ASC_APP_ID="${ASC_APP_ID_DEV:-}"
+          else
+            ASC_APP_ID="${ASC_APP_ID_PROD:-}"
+          fi
+          if [ -z "$ASC_APP_ID" ]; then
+            echo "::error::No App Store Connect app id for target '$TARGET_ENV' (set ASC_APP_ID for prod, ASC_APP_ID_DEV for dev). See docs/TESTFLIGHT.md"
+            exit 1
+          fi
+          # Last line of defence against shipping the wrong build to the wrong record: the
+          # target, the bundle id baked into the archive and the app record must all agree.
+          case "$TARGET_ENV:$BUNDLE_ID" in
+            dev:global.gua.dev|prod:global.gua) ;;
+            *) echo "::error::target/bundle mismatch: target '$TARGET_ENV' with bundle '$BUNDLE_ID'. Refusing to upload."; exit 1 ;;
+          esac
+          if [ "$TARGET_ENV" = "dev" ] && [ "$ASC_APP_ID" = "${ASC_APP_ID_PROD:-}" ]; then
+            echo "::error::ASC_APP_ID_DEV resolves to the production app record. Refusing to upload a QA build to the production app."
             exit 1
           fi
           echo "Uploading $IPA_PATH (build $BUILD_NUMBER) to TestFlight"
@@ -313,15 +478,40 @@ jobs:
           fi
 
       - name: Record 'What to Test' note
-        if: ${{ inputs.whats_new != '' }}
+        # Only a manual run carries this input; the other triggers have no such field.
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.whats_new != '' }}
         env:
           WHATS_NEW: ${{ inputs.whats_new }}
         run: |
           echo "What to Test:"
           printf '%s\n' "$WHATS_NEW"
 
+      - name: Tell the PR where it went
+        # Testers need the build number to know which of several QA builds is this PR's;
+        # TestFlight's own list only shows version + build, with no link back to the branch.
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          # Values are read from process.env / context rather than interpolated as ${{ }}
+          # into the script body. MARKETING_VERSION is sed'd out of the PR branch's own
+          # project.yml, so interpolating it would let branch content become JavaScript in a
+          # step holding a pull-requests:write token.
+          script: |
+            const { MARKETING_VERSION, BUILD_NUMBER, DEPLOY_LABEL } = process.env;
+            const sha = context.payload.pull_request.head.sha;
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `Uploaded to **Gua QA** TestFlight: \`${MARKETING_VERSION} (${BUILD_NUMBER})\`, built from ${sha}.\n\nIt takes a few minutes to finish processing before it appears to testers. Pushing more commits while the \`${DEPLOY_LABEL}\` label is on rebuilds and supersedes this build.`
+            });
+
       - name: Upload archive artifact
-        if: always()
+        # Prod archives only. A QA archive embeds the injected dev backend URLs as plain
+        # string literals in the binary, and on a PUBLIC repo anyone can download a run's
+        # artifacts — which would republish the exact hostnames GUA_DEV_* exists to keep out
+        # of the repo. For a QA build the run log is the debugging surface instead.
+        if: always() && needs.gate.outputs.target != 'dev'
         uses: actions/upload-artifact@v4
         with:
           name: Gua-${{ env.BUILD_NUMBER }}-xcarchive
