@@ -168,7 +168,11 @@ jobs:
     name: Archive & upload (${{ needs.gate.outputs.target }})
     needs: gate
     if: needs.gate.outputs.build == 'true'
-    runs-on: macos-15
+    # macos-26, not macos-15: the app calls APIs that only exist in the iOS 26 SDK
+    # (ProcessInfo.isiOSAppOnVision, guarded by #available at runtime but still
+    # required to exist at compile time), and macos-15 tops out at Xcode 16.4.
+    # unit_tests.yml already runs here for the same reason.
+    runs-on: macos-26
     timeout-minutes: 90
     permissions:
       contents: read
@@ -208,30 +212,31 @@ jobs:
           persist-credentials: false
 
       - name: Select Xcode
-        # The project requires Xcode 16+ (CI elsewhere pins 16.4). Pick the latest
-        # 16.x available on the runner; fall back to whatever Xcode_16* exists.
-        # There is deliberately NO unconstrained "newest Xcode" fallback: if the
-        # runner image has dropped 16.x we want to fail fast here with a clear
-        # message rather than silently selecting an incompatible toolchain and
-        # crashing deep inside the archive.
+        # The project needs the iOS 26 SDK, not merely "Xcode 16+". It calls
+        # ProcessInfo.isiOSAppOnVision, which is guarded by #available at runtime
+        # but must still exist in the SDK at compile time, so an older toolchain
+        # fails deep in the archive with "has no member 'isiOSAppOnVision'".
+        # ci_scripts/ci_common.sh pins the same version for every other workflow.
+        #
+        # There is deliberately NO "newest Xcode" fallback: if the image drops 26.x
+        # we want a clear failure here rather than a confusing one 20 minutes later.
         run: |
           set -euo pipefail
-          XCODE_APP="$(ls -d /Applications/Xcode_16.4.app 2>/dev/null || true)"
+          XCODE_APP="$(ls -d /Applications/Xcode_26.5.0.app 2>/dev/null || true)"
           if [ -z "$XCODE_APP" ]; then
-            XCODE_APP="$(ls -d /Applications/Xcode_16*.app 2>/dev/null | sort -V | tail -n1 || true)"
+            XCODE_APP="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -n1 || true)"
           fi
           if [ -z "$XCODE_APP" ]; then
-            echo "::error::No Xcode 16.x found on this runner; project requires Xcode 16+. Available: $(ls -d /Applications/Xcode_*.app 2>/dev/null | tr '\n' ' ')"
+            echo "::error::No Xcode 26.x on this runner; the project needs the iOS 26 SDK. Available: $(ls -d /Applications/Xcode_*.app 2>/dev/null | tr '\n' ' ')"
             exit 1
           fi
           echo "Selecting $XCODE_APP"
           sudo xcode-select -s "$XCODE_APP"
           xcodebuild -version
-          # Assert the active Xcode is actually >= 16, in case the selected app
-          # bundle's name does not match its real version.
+          # Assert the real version, in case the app bundle name and its contents disagree.
           XCODE_MAJOR="$(xcodebuild -version | sed -n 's/^Xcode \([0-9]*\).*/\1/p')"
-          if [ -z "$XCODE_MAJOR" ] || [ "$XCODE_MAJOR" -lt 16 ]; then
-            echo "::error::Xcode 16+ required, found '$(xcodebuild -version | head -n1)'"
+          if [ -z "$XCODE_MAJOR" ] || [ "$XCODE_MAJOR" -lt 26 ]; then
+            echo "::error::Xcode 26+ required for the iOS 26 SDK, found '$(xcodebuild -version | head -n1)'"
             exit 1
           fi
 
@@ -259,6 +264,27 @@ jobs:
           export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1
           brew install xcodegen
           command -v xcbeautify >/dev/null 2>&1 || brew install xcbeautify
+
+      - name: Install gems
+        # `config_dev` below runs through `bundle exec`, and Gemfile.lock pins exact
+        # versions (fastlane 2.228.0 and ~50 others), so whatever fastlane happens to
+        # be preinstalled on the runner does not satisfy it. Without this the archive
+        # dies at the first bundle exec with Bundler::GemNotFound.
+        #
+        # This job selects its own Xcode and installs its own brew tools, so it
+        # cannot use ci_common.sh's setup_github_actions_environment; these are the
+        # two lines from it that matter here, kept identical to the rest of the repo.
+        #
+        # Deliberately NOT cached, unlike the test workflows. This job checks out
+        # `needs.gate.outputs.ref`, which on the QA path is a pull request's own
+        # branch, and it can also run in a privileged context from main or a
+        # dispatch. Writing a gem cache after checking out branch code gives a
+        # later privileged run something poisonable to restore, which is a poor
+        # trade for a job that signs the app and uploads it to TestFlight. A cold
+        # bundle install costs a couple of minutes against a ~25 minute archive.
+        run: |
+          bundle config path vendor/bundle
+          bundle install --jobs 4 --retry 3
 
       - name: Inject dev backend endpoints
         # Dev builds only: prod endpoints (resolver/identity/account provider on
