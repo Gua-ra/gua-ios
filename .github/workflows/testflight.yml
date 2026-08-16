@@ -260,14 +260,6 @@ jobs:
           brew install xcodegen
           command -v xcbeautify >/dev/null 2>&1 || brew install xcbeautify
 
-      - name: Cache gems
-        uses: actions/cache@v4
-        with:
-          path: vendor/bundle
-          key: ${{ runner.os }}-gems-${{ hashFiles('**/Gemfile.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-gems-
-
       - name: Install gems
         # `config_dev` below runs through `bundle exec`, and Gemfile.lock pins exact
         # versions (fastlane 2.228.0 and ~50 others), so whatever fastlane happens to
@@ -277,6 +269,14 @@ jobs:
         # This job selects its own Xcode and installs its own brew tools, so it
         # cannot use ci_common.sh's setup_github_actions_environment; these are the
         # two lines from it that matter here, kept identical to the rest of the repo.
+        #
+        # Deliberately NOT cached, unlike the test workflows. This job checks out
+        # `needs.gate.outputs.ref`, which on the QA path is a pull request's own
+        # branch, and it can also run in a privileged context from main or a
+        # dispatch. Writing a gem cache after checking out branch code gives a
+        # later privileged run something poisonable to restore, which is a poor
+        # trade for a job that signs the app and uploads it to TestFlight. A cold
+        # bundle install costs a couple of minutes against a ~25 minute archive.
         run: |
           bundle config path vendor/bundle
           bundle install --jobs 4 --retry 3
