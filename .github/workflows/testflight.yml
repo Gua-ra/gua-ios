@@ -460,20 +460,89 @@ jobs:
             COMPILER_INDEX_STORE_ENABLE=NO \
             | xcbeautify || exit ${PIPESTATUS[0]}
 
-      - name: Export IPA
+      - name: Fetch provisioning profiles
+        # -allowProvisioningUpdates cannot work with this App Store Connect key. Xcode's
+        # cloud signing is a distinct authorisation path that the key is refused on, which
+        # is why export reported "Cloud signing permission error" and then found no
+        # profiles, even once a real distribution certificate was present.
+        #
+        # The ordinary provisioning API is NOT refused: the three Gua QA profiles in this
+        # account were created through it. So fetch (creating when absent) with sigh, which
+        # installs into ~/Library/MobileDevice/Provisioning Profiles, and sign manually
+        # against what it installed.
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
         run: |
           set -euo pipefail
+          # sigh wants the key as JSON rather than a bare .p8. Written under RUNNER_TEMP
+          # and removed by the cleanup step alongside the .p8 itself.
+          KEY_JSON="$RUNNER_TEMP/asc_key.json"
+          python3 - "$KEY_JSON" <<'PYKEY'
+          import json, os, sys
+          json.dump({
+              "key_id": os.environ["ASC_KEY_ID"],
+              "issuer_id": os.environ["ASC_ISSUER_ID"],
+              "key": os.environ["ASC_PRIVATE_KEY"],
+              "in_house": False,
+          }, open(sys.argv[1], "w"))
+          PYKEY
+          chmod 600 "$KEY_JSON"
+          echo "ASC_KEY_JSON=$KEY_JSON" >> "$GITHUB_ENV"
+
+          # The app and both extensions each need their own profile.
+          for suffix in "" ".nse" ".shareextension"; do
+            id="${BUNDLE_ID}${suffix}"
+            echo "::group::Provisioning profile for $id"
+            bundle exec fastlane run sigh \
+              api_key_path:"$KEY_JSON" \
+              app_identifier:"$id" \
+              platform:ios \
+              readonly:false \
+              skip_install:false \
+              output_path:"$RUNNER_TEMP" \
+              filename:"${id}.mobileprovision"
+            echo "::endgroup::"
+          done
+
+          # Map each bundle id to the profile NAME Apple returned, which is what the export
+          # plist keys off. Reading it back from the installed profile avoids guessing at a
+          # naming convention that Apple, not us, decides.
+          {
+            echo '<?xml version="1.0" encoding="UTF-8"?>'
+            echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
+            echo '<plist version="1.0"><dict>'
+            echo '<key>method</key><string>app-store-connect</string>'
+            echo '<key>destination</key><string>export</string>'
+            echo '<key>signingStyle</key><string>manual</string>'
+            echo '<key>signingCertificate</key><string>Apple Distribution</string>'
+            echo '<key>manageAppVersionAndBuildNumber</key><false/>'
+            echo '<key>uploadSymbols</key><true/>'
+            echo '<key>stripSwiftSymbols</key><true/>'
+            echo '<key>generateAppStoreInformation</key><false/>'
+            echo '<key>provisioningProfiles</key><dict>'
+            for suffix in "" ".nse" ".shareextension"; do
+              id="${BUNDLE_ID}${suffix}"
+              name="$(security cms -D -i "$RUNNER_TEMP/${id}.mobileprovision" | plutil -extract Name raw -)"
+              echo "<key>${id}</key><string>${name}</string>"
+            done
+            echo '</dict></dict></plist>'
+          } > "$RUNNER_TEMP/exportOptions.plist"
+          plutil -lint "$RUNNER_TEMP/exportOptions.plist"
+          echo "EXPORT_OPTIONS=$RUNNER_TEMP/exportOptions.plist" >> "$GITHUB_ENV"
+          echo "Export options:"; plutil -p "$RUNNER_TEMP/exportOptions.plist"
+
+      - name: Export IPA
+        run: |
+          set -euo pipefail
+          # No -allowProvisioningUpdates and no API key: signing is fully manual against
+          # the certificate and profiles installed above. Handing xcodebuild the key here
+          # only sends it back to the cloud path that refuses us.
           xcodebuild -exportArchive \
             -archivePath "$ARCHIVE_PATH" \
             -exportPath "$EXPORT_PATH" \
             -exportOptionsPlist "$EXPORT_OPTIONS" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$ASC_KEY_PATH" \
-            -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
             | xcbeautify || exit ${PIPESTATUS[0]}
           echo "IPA_PATH=$(ls "$EXPORT_PATH"/*.ipa | head -n1)" >> "$GITHUB_ENV"
 
@@ -612,7 +681,8 @@ jobs:
           rm -f \
             "$RUNNER_TEMP/private_keys/AuthKey_${ASC_KEY_ID}.p8" \
             "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8" \
-            "$HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8" || true
+            "$HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8" \
+            "${ASC_KEY_JSON:-/nonexistent}" || true
           # Same reasoning for the signing identity: drop the throwaway keychain and
           # put the login keychain back as default, so a self-hosted runner is left
           # exactly as it was found.
