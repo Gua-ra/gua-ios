@@ -447,30 +447,6 @@ jobs:
             exit 1
           fi
 
-      - name: Archive
-        # The unique build number is injected as a CURRENT_PROJECT_VERSION build-setting
-        # override (the project doesn't use apple-generic versioning, so agvtool is not
-        # reliable). MARKETING_VERSION stays as defined in project.yml.
-        env:
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-        run: |
-          set -euo pipefail
-          xcodebuild archive \
-            -project Gua.xcodeproj \
-            -scheme "$SCHEME" \
-            -configuration "$CONFIGURATION" \
-            -destination "generic/platform=iOS" \
-            -archivePath "$ARCHIVE_PATH" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$ASC_KEY_PATH" \
-            -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
-            CODE_SIGN_STYLE=Automatic \
-            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
-            COMPILER_INDEX_STORE_ENABLE=NO \
-            | xcbeautify || exit ${PIPESTATUS[0]}
-
       - name: Fetch provisioning profiles
         # -allowProvisioningUpdates cannot work with this App Store Connect key. Xcode's
         # cloud signing is a distinct authorisation path that the key is refused on, which
@@ -517,6 +493,10 @@ jobs:
             echo "::endgroup::"
           done
 
+          TEAM_ID="$(security cms -D -i "$RUNNER_TEMP/${BUNDLE_ID}.mobileprovision" \
+            | plutil -extract TeamIdentifier.0 raw -)"
+          echo "Team: $TEAM_ID"
+
           # Map each bundle id to the profile NAME Apple returned, which is what the export
           # plist keys off. Reading it back from the installed profile avoids guessing at a
           # naming convention that Apple, not us, decides.
@@ -524,6 +504,10 @@ jobs:
             echo '<?xml version="1.0" encoding="UTF-8"?>'
             echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
             echo '<plist version="1.0"><dict>'
+            # The archive is unsigned, so it records no team and export cannot infer
+            # one: it fails with "No Team Found in Archive". Take it from a profile,
+            # rather than hardcoding an id that would silently rot.
+            echo "<key>teamID</key><string>${TEAM_ID}</string>"
             echo '<key>method</key><string>app-store-connect</string>'
             echo '<key>destination</key><string>export</string>'
             echo '<key>signingStyle</key><string>manual</string>'
@@ -543,6 +527,33 @@ jobs:
           plutil -lint "$RUNNER_TEMP/exportOptions.plist"
           echo "EXPORT_OPTIONS=$RUNNER_TEMP/exportOptions.plist" >> "$GITHUB_ENV"
           echo "Export options:"; plutil -p "$RUNNER_TEMP/exportOptions.plist"
+
+      - name: Archive
+        # Deliberately UNSIGNED. Signing here meant CODE_SIGN_STYLE=Automatic with
+        # -allowProvisioningUpdates, which is cloud signing, and this App Store Connect
+        # key is refused on that path. It is not merely slow or occasionally refused:
+        # the identical step passed once and then failed on a byte-identical workflow,
+        # so relying on it was a coin toss rather than a build.
+        #
+        # exportArchive re-signs the app and both extensions anyway, manually, against
+        # the profiles fetched above. Letting it do all of the signing removes the
+        # gamble instead of retrying it.
+        # The unique build number is injected as a CURRENT_PROJECT_VERSION build-setting
+        # override (the project doesn't use apple-generic versioning, so agvtool is not
+        # reliable). MARKETING_VERSION stays as defined in project.yml.
+        run: |
+          set -euo pipefail
+          xcodebuild archive \
+            -project Gua.xcodeproj \
+            -scheme "$SCHEME" \
+            -configuration "$CONFIGURATION" \
+            -destination "generic/platform=iOS" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            -archivePath "$ARCHIVE_PATH" \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            | xcbeautify || exit ${PIPESTATUS[0]}
 
       - name: Export IPA
         run: |
