@@ -493,6 +493,10 @@ jobs:
             echo "::endgroup::"
           done
 
+          TEAM_ID="$(security cms -D -i "$RUNNER_TEMP/${BUNDLE_ID}.mobileprovision" \
+            | plutil -extract TeamIdentifier.0 raw -)"
+          echo "Team: $TEAM_ID"
+
           # Map each bundle id to the profile NAME Apple returned, which is what the export
           # plist keys off. Reading it back from the installed profile avoids guessing at a
           # naming convention that Apple, not us, decides.
@@ -500,6 +504,10 @@ jobs:
             echo '<?xml version="1.0" encoding="UTF-8"?>'
             echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
             echo '<plist version="1.0"><dict>'
+            # The archive is unsigned, so it records no team and export cannot infer
+            # one: it fails with "No Team Found in Archive". Take it from a profile,
+            # rather than hardcoding an id that would silently rot.
+            echo "<key>teamID</key><string>${TEAM_ID}</string>"
             echo '<key>method</key><string>app-store-connect</string>'
             echo '<key>destination</key><string>export</string>'
             echo '<key>signingStyle</key><string>manual</string>'
