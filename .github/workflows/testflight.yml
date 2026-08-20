@@ -372,17 +372,28 @@ jobs:
             echo "::error::ASC_KEY_ID / ASC_PRIVATE_KEY secrets are not set. See docs/TESTFLIGHT.md"
             exit 1
           fi
-          # Write the key under $RUNNER_TEMP (auto-wiped on hosted runners, and
-          # shredded by the always-run cleanup step below for self-hosted runners).
-          # We pass the path explicitly to both xcodebuild (-authenticationKeyPath)
-          # and altool (--apiKeyPath), so there is no need to seed the well-known
-          # ~/.appstoreconnect/private_keys dir or keep a second copy in $HOME.
+          # Two copies, because the two tools disagree about how to be told.
+          #
+          # xcodebuild takes an explicit -authenticationKeyPath, so it reads the copy
+          # under $RUNNER_TEMP.
+          #
+          # altool does NOT. It accepts --apiKeyPath without complaint and then ignores
+          # it, searching only a fixed list of directories and failing with "Failed to
+          # load AuthKey file (-43)" listing them. $RUNNER_TEMP is not on that list, so
+          # the key is also written to ~/.appstoreconnect/private_keys, which is.
+          #
+          # Both copies are removed by the always-run cleanup step at the end of the job.
           KEY_DIR="$RUNNER_TEMP/private_keys"
           mkdir -p "$KEY_DIR"
           KEY_PATH="$KEY_DIR/AuthKey_${ASC_KEY_ID}.p8"
           printf '%s\n' "$ASC_PRIVATE_KEY" > "$KEY_PATH"
           chmod 600 "$KEY_PATH"
           echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+
+          ALTOOL_KEY_DIR="$HOME/.appstoreconnect/private_keys"
+          mkdir -p "$ALTOOL_KEY_DIR"
+          cp "$KEY_PATH" "$ALTOOL_KEY_DIR/AuthKey_${ASC_KEY_ID}.p8"
+          chmod 600 "$ALTOOL_KEY_DIR/AuthKey_${ASC_KEY_ID}.p8"
 
       - name: Install the distribution certificate
         # Export fails without this, with "Cloud signing permission error" followed by
@@ -550,7 +561,8 @@ jobs:
         # Fail fast on signing/entitlement/Info.plist problems App Store Connect
         # would reject, *before* spending minutes on the upload. altool can return
         # a zero exit even on failure, so we also grep the output for the success
-        # marker. --apiKeyPath points at the $RUNNER_TEMP key written above.
+        # marker. altool finds the key by searching ~/.appstoreconnect/private_keys,
+        # which the key-writing step seeds; it has no usable path flag.
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -562,7 +574,6 @@ jobs:
             -t ios \
             --apiKey "$ASC_KEY_ID" \
             --apiIssuer "$ASC_ISSUER_ID" \
-            --apiKeyPath "$ASC_KEY_PATH" \
             2>&1 | tee altool-validate.log
           if grep -qi 'No errors validating' altool-validate.log; then
             echo "Validation succeeded."
@@ -609,13 +620,12 @@ jobs:
           echo "Uploading $IPA_PATH (build $BUILD_NUMBER) to TestFlight"
           # Pin the destination app explicitly with --apple-id/--bundle-id so the
           # upload can't be routed to the wrong app record on a multi-app account.
-          # --apiKeyPath points at the $RUNNER_TEMP key. altool may exit 0 even on
+          # altool reads the key from ~/.appstoreconnect/private_keys. It may exit 0 even on
           # failure, so verify the success marker in the captured output too.
           xcrun altool --upload-package "$IPA_PATH" \
             --type ios \
             --apiKey "$ASC_KEY_ID" \
             --apiIssuer "$ASC_ISSUER_ID" \
-            --apiKeyPath "$ASC_KEY_PATH" \
             --apple-id "$ASC_APP_ID" \
             --bundle-id "$BUNDLE_ID" \
             --bundle-version "$BUILD_NUMBER" \
