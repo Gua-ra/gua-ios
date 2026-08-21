@@ -68,6 +68,10 @@ on:
         type: choice
         options: [prod, dev]
         default: prod
+      build_number:
+        description: "Override the build number (default: UTC YYYYMMDDHH). Must exceed the last uploaded build."
+        required: false
+        type: string
       whats_new:
         description: "Optional 'What to Test' note for this TestFlight build"
         required: false
@@ -195,7 +199,17 @@ jobs:
       EXPORT_OPTIONS: ${{ github.workspace }}/fastlane/exportOptions.plist
       # Each run gets a unique, monotonically increasing build number (the workflow
       # run number) so every upload is accepted by TestFlight.
-      BUILD_NUMBER: ${{ github.run_number }}
+      # NOT github.run_number. This app already has builds numbered by date on the
+      # same marketing version (2026080201, 2026081301), and run_number restarted at
+      # single digits, so a fresh upload looked OLDER than what testers had installed
+      # and TestFlight offered no update at all. It would take about two million runs
+      # to climb back past them.
+      #
+      # YYYYMMDDHH keeps the existing convention, always increases, and stays under
+      # the 4294967295 ceiling Apple puts on a build number component until 2099.
+      # Two uploads inside the same hour collide, and Apple rejects the duplicate with
+      # a clear message; dispatch with build_number to override when that happens.
+      BUILD_NUMBER_OVERRIDE: ${{ inputs.build_number || '' }}
       # Which app record this run targets. prod is the shipping app on the committed
       # gua.global endpoints; dev is the side-by-side Gua QA variant on the dev backend.
       TARGET_ENV: ${{ needs.gate.outputs.target }}
@@ -359,6 +373,16 @@ jobs:
             echo "::error::Could not read MARKETING_VERSION from project.yml"
             exit 1
           fi
+          # Deliberately NOT a job-level env var of the same name: a job-level value is
+          # re-applied to every step and would shadow what is written here.
+          BUILD_NUMBER="${BUILD_NUMBER_OVERRIDE:-}"
+          if [ -z "$BUILD_NUMBER" ]; then
+            BUILD_NUMBER="$(date -u +%Y%m%d%H)"
+          fi
+          case "$BUILD_NUMBER" in
+            ''|*[!0-9]*) echo "::error::Build number '$BUILD_NUMBER' must be digits only."; exit 1 ;;
+          esac
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
           echo "Marketing version: $MARKETING_VERSION (build $BUILD_NUMBER)"
           echo "MARKETING_VERSION=$MARKETING_VERSION" >> "$GITHUB_ENV"
 
