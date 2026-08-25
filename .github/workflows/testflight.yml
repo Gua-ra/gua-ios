@@ -4,20 +4,23 @@ name: TestFlight
 #
 # Archives, signs, and uploads the Gua iOS app to TestFlight.
 #
-# Signing is half cloud-managed. The distribution CERTIFICATE is supplied as a .p12
-# secret and imported into a throwaway keychain, because creating a certificate
-# through an App Store Connect API key needs Admin on the account and this key does
-# not have it; without the certificate, export dies with "Cloud signing permission
-# error" before it even looks at profiles. The provisioning PROFILES for all three
-# signed targets (global.gua, global.gua.nse, global.gua.shareextension) are still
-# created automatically by xcodebuild via -allowProvisioningUpdates, which the key
-# is allowed to do. So: one .p12 to manage, no .mobileprovision files, no Match repo.
+# Signing is entirely manual, because cloud signing is refused for this App Store
+# Connect key. -allowProvisioningUpdates fails with "Cloud signing permission error"
+# for BOTH certificate and profile creation, so the archive is built unsigned and
+# exportArchive does all the signing:
+#   - the distribution CERTIFICATE comes from a .p12 secret, imported into a keychain
+#     created for the run, since minting one needs Admin on the account
+#   - the PROFILES for all three signed targets are fetched (and created if absent) with
+#     sigh, through the ordinary provisioning API, which this key IS allowed to use
+#   - the archive sets CODE_SIGNING_ALLOWED=NO; signing there would mean cloud signing,
+#     which passed once and then failed on a byte-identical workflow
+# One .p12 to manage, no .mobileprovision files in the repo, no Match repo.
 #
 # Release paths, in order of how often they are used:
 #   - label a PR `deploy:qa` -> archives that PR's branch and uploads it to the Gua QA
 #                               app, so a change can be handed to testers before it is
 #                               merged. Pushing more commits rebuilds it automatically.
-#   - merge to develop       -> stages the PROD upload, which waits for an approver on
+#   - merge develop to main  -> stages the PROD upload, which waits for an approver on
 #                               the `production` environment. Merging never publishes
 #                               on its own.
 #   - workflow_dispatch      -> the same two paths by hand, for either app.
@@ -25,17 +28,21 @@ name: TestFlight
 # An unlabelled PR does nothing here on purpose: an archive costs ~25 minutes of a
 # metered macOS runner, which is far too expensive to spend on every push.
 #
-# develop, not main, is this fork's integration branch: every PR merges into develop,
-# and `main` is the dormant branch inherited from upstream element-x-ios.
+# BRANCH MODEL, inherited from upstream element-x-ios and unchanged here: `develop` is
+# the integration branch that every pull request merges into, and `main` is the release
+# branch. Upstream still works this way; their default branch is develop and the tip of
+# their main reads "Prepare next release".
 #
-# !! REPO SETTING REQUIRED BEFORE THE PROD PATH CAN EVER RUN !!
-# The `production` environment currently carries a deployment branch policy of `main` only.
-# Because prod is triggered by a push to `develop`, GitHub will REJECT the job outright
-# ("Branch develop is not allowed to deploy to production due to environment protection
-# rules") rather than hold it for an approver. Add `develop` to that environment's
-# deployment branch policy (Settings -> Environments -> production), or the first merge to
-# develop fails instead of staging a release. Do NOT "fix" this by dropping the
-# environment: the environment IS the approval gate.
+# Both of the things that select prod agree on main, and they are independent, so a
+# release cannot be staged from anywhere else even if one of them is widened by mistake:
+#   - the push trigger below is `branches: [main]`
+#   - the `production` environment carries a deployment branch policy of `main` only
+#
+# An earlier version of this comment said prod shipped from a merge to develop, and
+# warned that the environment would reject it. That was never what the file did. If you
+# do want prod to ship from develop, both of the above have to change together, and
+# `main` then has no purpose. Do NOT "fix" a rejection by dropping the environment: the
+# environment IS the approval gate.
 #
 # Required repo secrets (Settings -> Secrets and variables -> Actions):
 #   ASC_ISSUER_ID   App Store Connect API issuer id (UUID)
@@ -131,7 +138,7 @@ jobs:
               target="$DISPATCH_ENV"
               ;;
             push)
-              # Only develop reaches here (see the trigger), and a merge always means prod.
+              # Only main reaches here (see the trigger), and a merge to main means a release.
               build=true
               target=prod
               ;;
