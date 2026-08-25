@@ -22,6 +22,7 @@ struct SpaceScreen: View {
         .background(Color.compound.bgCanvasDefault.ignoresSafeArea())
         .navigationTitle(context.viewState.spaceName)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarRole(RoomHeaderView.toolbarRole) // Leading aligns the header on iOS 26.
         .toolbar { toolbar }
     }
     

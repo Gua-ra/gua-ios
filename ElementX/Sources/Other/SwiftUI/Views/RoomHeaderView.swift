@@ -18,7 +18,14 @@ struct RoomHeaderView: View {
     let mediaProvider: MediaProviderProtocol?
     
     var body: some View {
-        if ProcessInfo.isRunningAccessibilityTests {
+        if #available(iOS 26.0, *) {
+            // Never propose an unbounded width to the hosted principal toolbar item on iOS 26: the size
+            // reaches UIKit's bar item adaptor view, which feeds it into NSLayoutConstraint.setConstant
+            // and aborts the app with 'NSLayoutConstraint constant is not finite!'.
+            // https://github.com/element-hq/element-x-ios/issues/4180
+            // Leading alignment comes from .toolbarRole(RoomHeaderView.toolbarRole) on the screen instead.
+            content
+        } else if ProcessInfo.isRunningAccessibilityTests {
             // Accessibility tests scale up the dynamic size in real time which may break the view
             content
         } else {
@@ -59,6 +66,21 @@ struct RoomHeaderView: View {
                         avatarSize: .room(on: .timeline),
                         mediaProvider: mediaProvider)
             .accessibilityIdentifier(A11yIdentifiers.roomScreen.avatar)
+    }
+}
+
+extension RoomHeaderView {
+    /// The toolbar role to apply on any screen that shows this view in a `.principal` toolbar item.
+    ///
+    /// On iOS 26 the editor role is what leading aligns the item, as the unbounded frame used on older
+    /// versions crashes Auto Layout. On iOS 18 and lower the editor role causes an animation glitch with
+    /// the back button when pushing a screen while the large title is visible, so it isn't used there.
+    static var toolbarRole: ToolbarRole {
+        if #available(iOS 26.0, *) {
+            .editor
+        } else {
+            .automatic
+        }
     }
 }
 
