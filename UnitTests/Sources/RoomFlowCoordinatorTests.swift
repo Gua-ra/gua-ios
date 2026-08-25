@@ -5,10 +5,9 @@
 // Please see LICENSE files in the repository root for full details.
 //
 
-import XCTest
-
 import Combine
 @testable import ElementX
+import XCTest
 
 @MainActor
 class RoomFlowCoordinatorTests: XCTestCase {
@@ -363,6 +362,7 @@ class RoomFlowCoordinatorTests: XCTestCase {
                                                   elementCallService: ElementCallServiceMock(.init()),
                                                   timelineControllerFactory: timelineControllerFactory,
                                                   emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                                  linkMetadataProvider: LinkMetadataProvider(),
                                                   appMediator: AppMediatorMock.default,
                                                   appSettings: ServiceLocator.shared.settings,
                                                   appHooks: AppHooks(),

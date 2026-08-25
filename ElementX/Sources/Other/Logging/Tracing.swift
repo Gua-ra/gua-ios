@@ -25,7 +25,9 @@ enum Tracing {
     /// This basically only affects ``logFiles``, and doesn't inform the SDK to write
     /// the logs to a different directory, which should be done before setting this.
     static var logsDirectoryOverride: URL?
-    static var legacyLogsDirectory: URL { .appGroupContainerDirectory }
+    static var legacyLogsDirectory: URL {
+        .appGroupContainerDirectory
+    }
     
     static let fileExtension = "log"
     
@@ -38,15 +40,17 @@ enum Tracing {
         } else {
             Tracing.filePrefix
         }
-        
-        // Keep a minimum of 1 week of log files. In reality it will be longer
-        // as the app is unlikely to be running continuously.
-        let maxFiles: UInt64 = 24 * 7
-        
+
         // Log everything on integration tests to check whether
         // the logs contain any sensitive data. See `integration-tests.yml`
         let level: LogLevel = ProcessInfo.isRunningIntegrationTests ? .trace : logLevel
-        
+
+        let sentryConfig = sentryURL.map { url in
+            SentryConfig(dsn: url.absoluteString,
+                         appVersion: InfoPlistReader.app.bundleShortVersionString,
+                         appPlatform: ProcessInfo.processInfo.platform)
+        }
+
         return .init(logLevel: level.rustLogLevel,
                      traceLogPacks: traceLogPacks.map(\.rustLogPack),
                      extraTargets: [currentTarget],
@@ -54,12 +58,15 @@ enum Tracing {
                      writeToFiles: .init(path: logsDirectory.path(percentEncoded: false),
                                          filePrefix: fileName,
                                          fileSuffix: fileExtension,
-                                         maxFiles: maxFiles),
-                     sentryDsn: sentryURL?.absoluteString)
+                                         maxTotalSizeBytes: 100 * 1024 * 1024,
+                                         maxAgeSeconds: 7 * 24 * 60 * 60),
+                     sentryConfig: sentryConfig)
     }
     
     /// A list of all log file URLs, sorted chronologically.
-    static var logFiles: [URL] { logFiles(in: logsDirectory) }
+    static var logFiles: [URL] {
+        logFiles(in: logsDirectory)
+    }
     
     /// Collect all of the logs in the given directory, sorting them chronologically.
     private static func logFiles(in directory: URL) -> [URL] {

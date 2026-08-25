@@ -24,7 +24,7 @@ struct CallNotificationRoomTimelineView: View {
                 .accessibilityHidden(true)
             
             VStack(alignment: .leading, spacing: 0) {
-                Text(timelineItem.sender.disambiguatedDisplayName ?? timelineItem.sender.id)
+                Text(timelineItem.sender.disambiguatedDisplayName ?? timelineItem.sender.id.guaDisplayHandle)
                     .font(.compound.bodyLGSemibold)
                     .foregroundColor(.compound.textPrimary)
                     .lineLimit(1)
@@ -44,10 +44,8 @@ struct CallNotificationRoomTimelineView: View {
                 .foregroundColor(.compound.textSecondary)
         }
         .padding(12)
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(.compound.borderInteractiveSecondary, lineWidth: 1)
-        )
+        .overlay(RoundedRectangle(cornerRadius: 8)
+            .stroke(.compound.borderInteractiveSecondary, lineWidth: 1))
         .padding(16)
     }
 }

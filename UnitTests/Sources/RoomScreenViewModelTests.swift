@@ -5,10 +5,9 @@
 // Please see LICENSE files in the repository root for full details.
 //
 
+import Combine
 @testable import ElementX
 import MatrixRustSDK
-
-import Combine
 import XCTest
 
 @MainActor
@@ -25,16 +24,18 @@ class RoomScreenViewModelTests: XCTestCase {
     
     func testPinnedEventsBanner() async throws {
         var configuration = JoinedRoomProxyMockConfiguration()
-        let timelineSubject = PassthroughSubject<TimelineProxyProtocol, Never>()
+        let timelineSubject = CurrentValueSubject<TimelineProxyProtocol?, Never>(nil)
         let infoSubject = CurrentValueSubject<RoomInfoProxyProtocol, Never>(RoomInfoProxyMock(configuration))
         let roomProxyMock = JoinedRoomProxyMock(configuration)
         // setup a way to inject the mock of the pinned events timeline
         roomProxyMock.pinnedEventsTimelineClosure = {
-            guard let timeline = await timelineSubject.values.first() else {
-                fatalError()
+            for await timeline in timelineSubject.values {
+                if let timeline {
+                    return .success(timeline)
+                }
             }
             
-            return .success(timeline)
+            fatalError()
         }
         // setup the room proxy actions publisher
         roomProxyMock.underlyingInfoPublisher = infoSubject.asCurrentValuePublisher()

@@ -25,6 +25,7 @@ struct CommonFlowParameters {
     let elementCallService: ElementCallServiceProtocol
     let timelineControllerFactory: TimelineControllerFactoryProtocol
     let emojiProvider: EmojiProviderProtocol
+    let linkMetadataProvider: LinkMetadataProviderProtocol
     let appMediator: AppMediatorProtocol
     let appSettings: AppSettings
     let appHooks: AppHooks
@@ -33,6 +34,11 @@ struct CommonFlowParameters {
     let notificationManager: NotificationManagerProtocol
     let stateMachineFactory: StateMachineFactoryProtocol
     
-    var windowManager: WindowManagerProtocol { appMediator.windowManager }
-    var ongoingCallRoomIDPublisher: CurrentValuePublisher<String?, Never> { elementCallService.ongoingCallRoomIDPublisher }
+    var windowManager: WindowManagerProtocol {
+        appMediator.windowManager
+    }
+
+    var ongoingCallRoomIDPublisher: CurrentValuePublisher<String?, Never> {
+        elementCallService.ongoingCallRoomIDPublisher
+    }
 }

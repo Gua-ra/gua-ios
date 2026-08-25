@@ -72,10 +72,9 @@ struct TimelineViewRepresentable: UIViewControllerRepresentable {
     @EnvironmentObject private var viewModelContext: TimelineViewModel.Context
 
     func makeUIViewController(context: Context) -> TimelineTableViewController {
-        let tableViewController = TimelineTableViewController(coordinator: context.coordinator,
-                                                              isScrolledToBottom: $viewModelContext.isScrolledToBottom,
-                                                              scrollToBottomPublisher: viewModelContext.viewState.timelineState.scrollToBottomPublisher)
-        return tableViewController
+        TimelineTableViewController(coordinator: context.coordinator,
+                                    isScrolledToBottom: $viewModelContext.isScrolledToBottom,
+                                    scrollToBottomPublisher: viewModelContext.viewState.timelineState.scrollToBottomPublisher)
     }
     
     func updateUIViewController(_ uiViewController: TimelineTableViewController, context: Context) {
@@ -144,6 +143,7 @@ struct TimelineView_Previews: PreviewProvider, TestablePreview {
                                                      appSettings: ServiceLocator.shared.settings,
                                                      analyticsService: ServiceLocator.shared.analytics,
                                                      emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                                     linkMetadataProvider: LinkMetadataProvider(),
                                                      timelineControllerFactory: TimelineControllerFactoryMock(.init()))
 
     static var previews: some View {

@@ -5,9 +5,8 @@
 // Please see LICENSE files in the repository root for full details.
 //
 
-import XCTest
-
 @testable import ElementX
+import XCTest
 
 @MainActor
 class AppLockServiceTests: XCTestCase {
@@ -184,9 +183,12 @@ class AppLockServiceTests: XCTestCase {
         }
         XCTAssertTrue(service.isEnabled, "The service should be enabled.")
         XCTAssertEqual(service.biometryType, .touchID, "The biometry type should be in sync with the mock.")
+
+        // When the user has opted out of biometric unlock.
+        service.disableBiometricUnlock()
         XCTAssertFalse(service.biometricUnlockEnabled, "Biometric unlock should not be enabled.")
         XCTAssertFalse(service.biometricUnlockTrusted, "Biometric unlock should not be trusted.")
-        
+
         // When enabling biometric unlock.
         guard case .success = service.enableBiometricUnlock() else {
             XCTFail("The biometric lock should enable.")
@@ -204,6 +206,102 @@ class AppLockServiceTests: XCTestCase {
         }
     }
     
+    // MARK: - GUA FORK: Biometric unlock by default
+
+    func testBiometricUnlockIsEnabledWithThePINCode() {
+        // Given a device with biometrics available and no PIN code set.
+        let context = LAContextMock()
+        context.biometryTypeValue = .faceID
+        context.evaluatedPolicyDomainStateValue = Data("😀".utf8)
+        service = AppLockService(keychainController: keychainController, appSettings: appSettings, context: context)
+        XCTAssertFalse(service.biometricUnlockEnabled, "Biometric unlock shouldn't be enabled without a PIN code.")
+
+        // When setting a PIN code.
+        guard case .success = service.setupPINCode("2023") else {
+            XCTFail("The PIN should be valid.")
+            return
+        }
+
+        // Then biometric unlock should be on without the user having to ask for it.
+        XCTAssertTrue(service.biometricUnlockEnabled, "Biometric unlock should be enabled by default.")
+        XCTAssertTrue(service.biometricUnlockTrusted, "Biometric unlock should be trusted.")
+    }
+
+    func testBiometricUnlockIsEnabledForAnExistingPINCode() {
+        // Given a PIN code that was set on a device without biometrics.
+        let pinOnlyContext = LAContextMock()
+        pinOnlyContext.biometryTypeValue = .none
+        pinOnlyContext.evaluatedPolicyDomainStateValue = nil
+        service = AppLockService(keychainController: keychainController, appSettings: appSettings, context: pinOnlyContext)
+        guard case .success = service.setupPINCode("2023") else {
+            XCTFail("The PIN should be valid.")
+            return
+        }
+        XCTAssertFalse(service.biometricUnlockEnabled, "Biometric unlock shouldn't be enabled without biometrics.")
+
+        // When the app is next launched on a device that does have biometrics.
+        let context = LAContextMock()
+        context.biometryTypeValue = .faceID
+        context.evaluatedPolicyDomainStateValue = Data("😀".utf8)
+        service = AppLockService(keychainController: keychainController, appSettings: appSettings, context: context)
+        service.applyBiometricUnlockDefault()
+
+        // Then the existing PIN code should be upgraded to biometric unlock.
+        XCTAssertTrue(service.biometricUnlockEnabled, "Biometric unlock should be enabled on launch.")
+        XCTAssertTrue(service.biometricUnlockTrusted, "Biometric unlock should be trusted.")
+    }
+
+    func testBiometricUnlockOptOutIsRemembered() {
+        // Given a service where the user has turned biometric unlock off.
+        let context = LAContextMock()
+        context.biometryTypeValue = .faceID
+        context.evaluatedPolicyDomainStateValue = Data("😀".utf8)
+        service = AppLockService(keychainController: keychainController, appSettings: appSettings, context: context)
+        guard case .success = service.setupPINCode("2023") else {
+            XCTFail("The PIN should be valid.")
+            return
+        }
+        service.disableBiometricUnlock()
+        XCTAssertFalse(service.biometricUnlockEnabled, "Biometric unlock should be disabled.")
+
+        // When the app is next launched.
+        service = AppLockService(keychainController: keychainController, appSettings: appSettings, context: context)
+
+        // Then the default shouldn't undo the user's choice.
+        XCTAssertFalse(service.biometricUnlockEnabled, "Biometric unlock should stay disabled.")
+
+        // And turning it back on should stick.
+        guard case .success = service.enableBiometricUnlock() else {
+            XCTFail("The biometric lock should enable.")
+            return
+        }
+        service = AppLockService(keychainController: keychainController, appSettings: appSettings, context: context)
+        XCTAssertTrue(service.biometricUnlockEnabled, "Biometric unlock should stay enabled.")
+    }
+
+    func testRemovingThePINCodeForgetsTheOptOut() {
+        // Given a service where the user turned biometric unlock off and then removed their PIN.
+        let context = LAContextMock()
+        context.biometryTypeValue = .faceID
+        context.evaluatedPolicyDomainStateValue = Data("😀".utf8)
+        service = AppLockService(keychainController: keychainController, appSettings: appSettings, context: context)
+        guard case .success = service.setupPINCode("2023") else {
+            XCTFail("The PIN should be valid.")
+            return
+        }
+        service.disableBiometricUnlock()
+        service.disable()
+
+        // When setting the app lock up again from scratch.
+        guard case .success = service.setupPINCode("2023") else {
+            XCTFail("The PIN should be valid.")
+            return
+        }
+
+        // Then it should start from the biometrics-on default again.
+        XCTAssertTrue(service.biometricUnlockEnabled, "Biometric unlock should be enabled by default.")
+    }
+
     func testBiometricUnlockTrust() {
         // Given a service with the PIN code already set.
         let context = LAContextMock()

@@ -11,15 +11,19 @@ import SwiftUI
 
 struct RoomHeaderView: View {
     let roomName: String
+    var roomSubtitle: String?
     let roomAvatar: RoomAvatar
     var dmRecipientVerificationState: UserIdentityVerificationState?
     
     let mediaProvider: MediaProviderProtocol?
     
     var body: some View {
-        if #available(iOS 19, *) {
+        if #available(iOS 26.0, *) {
+            // Never propose an unbounded width to the hosted principal toolbar item on iOS 26: the size
+            // reaches UIKit's bar item adaptor view, which feeds it into NSLayoutConstraint.setConstant
+            // and aborts the app with 'NSLayoutConstraint constant is not finite!'.
             // https://github.com/element-hq/element-x-ios/issues/4180
-            // Terminating app due to uncaught exception 'NSInternalInconsistencyException', reason: 'NSLayoutConstraint constant is not finite!
+            // Leading alignment comes from .toolbarRole(RoomHeaderView.toolbarRole) on the screen instead.
             content
         } else if ProcessInfo.isRunningAccessibilityTests {
             // Accessibility tests scale up the dynamic size in real time which may break the view
@@ -37,10 +41,18 @@ struct RoomHeaderView: View {
                 .accessibilityHidden(true)
             
             HStack(spacing: 4) {
-                Text(roomName)
-                    .lineLimit(1)
-                    .font(.compound.bodyLGSemibold)
-                    .accessibilityIdentifier(A11yIdentifiers.roomScreen.name)
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(roomName)
+                        .lineLimit(1)
+                        .font(.compound.bodyLGSemibold)
+                        .accessibilityIdentifier(A11yIdentifiers.roomScreen.name)
+                    if let roomSubtitle {
+                        Text(roomSubtitle)
+                            .lineLimit(1)
+                            .font(.compound.bodyXS)
+                            .foregroundStyle(.compound.textSecondary)
+                    }
+                }
                 
                 if let dmRecipientVerificationState {
                     VerificationBadge(verificationState: dmRecipientVerificationState)
@@ -57,6 +69,21 @@ struct RoomHeaderView: View {
     }
 }
 
+extension RoomHeaderView {
+    /// The toolbar role to apply on any screen that shows this view in a `.principal` toolbar item.
+    ///
+    /// On iOS 26 the editor role is what leading aligns the item, as the unbounded frame used on older
+    /// versions crashes Auto Layout. On iOS 18 and lower the editor role causes an animation glitch with
+    /// the back button when pushing a screen while the large title is visible, so it isn't used there.
+    static var toolbarRole: ToolbarRole {
+        if #available(iOS 26.0, *) {
+            .editor
+        } else {
+            .automatic
+        }
+    }
+}
+
 struct RoomHeaderView_Previews: PreviewProvider, TestablePreview {
     static var previews: some View {
         VStack(spacing: 8) {
@@ -64,13 +91,18 @@ struct RoomHeaderView_Previews: PreviewProvider, TestablePreview {
             makeHeader(avatarURL: .mockMXCAvatar, verificationState: .notVerified)
             makeHeader(avatarURL: .mockMXCAvatar, verificationState: .verified)
             makeHeader(avatarURL: .mockMXCAvatar, verificationState: .verificationViolation)
+            makeHeader(avatarURL: .mockMXCAvatar,
+                       roomSubtitle: "Subtitle",
+                       verificationState: .verified)
         }
         .previewLayout(.sizeThatFits)
     }
     
     static func makeHeader(avatarURL: URL?,
+                           roomSubtitle: String? = nil,
                            verificationState: UserIdentityVerificationState) -> some View {
         RoomHeaderView(roomName: "Some Room name",
+                       roomSubtitle: roomSubtitle,
                        roomAvatar: .room(id: "1",
                                          name: "Some Room Name",
                                          avatarURL: avatarURL),

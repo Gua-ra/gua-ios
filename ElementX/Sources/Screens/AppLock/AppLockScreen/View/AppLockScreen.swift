@@ -40,10 +40,28 @@ struct AppLockScreen: View {
                 AppLockScreenPINKeypad(pinCode: $context.pinCode)
             }
         } bottomContent: {
-            Button(L10n.screenAppLockForgotPin) {
-                context.send(viewAction: .forgotPIN)
+            VStack(spacing: 24) {
+                // GUA FORK: Face ID/Touch ID is tried before this screen appears, so this is the
+                // way back to it after dismissing that prompt - without it the only route out of
+                // the keypad is to remember the PIN.
+                if context.viewState.canRetryBiometricUnlock {
+                    Button {
+                        context.send(viewAction: .unlockWithBiometrics)
+                    } label: {
+                        Label { Text(context.viewState.biometricUnlockTitle) } icon: {
+                            Image(systemSymbol: context.viewState.biometricUnlockIcon)
+                        }
+                        .labelStyle(.custom(spacing: 8))
+                    }
+                    .buttonStyle(.compound(.secondary))
+                    .accessibilityIdentifier(A11yIdentifiers.appLockScreen.unlockWithBiometrics)
+                }
+
+                Button(L10n.screenAppLockForgotPin) {
+                    context.send(viewAction: .forgotPIN)
+                }
+                .font(.compound.bodyMDSemibold)
             }
-            .font(.compound.bodyMDSemibold)
         }
         .background()
         .backgroundStyle(.compound.bgCanvasDefault)
@@ -77,7 +95,7 @@ struct AppLockScreen: View {
     /// The row of dots showing how many digits have been entered.
     var pinInputField: some View {
         HStack(spacing: 24) {
-            /// The size of each dot within the PIN input field.
+            // The size of each dot within the PIN input field.
             let pinDotSize: CGFloat = 14
             Circle()
                 .fill(context.viewState.numberOfDigitsEntered > 0 ? .compound.iconPrimary : .compound.bgSubtlePrimary)
@@ -113,10 +131,16 @@ struct AppLockScreen: View {
 
 struct AppLockScreen_Previews: PreviewProvider, TestablePreview {
     static let viewModel = AppLockScreenViewModel(appLockService: AppLockServiceMock.mock())
-    
+    static let pinOnlyViewModel = AppLockScreenViewModel(appLockService: AppLockServiceMock.mock(biometryType: .none))
+
     static var previews: some View {
         NavigationStack {
             AppLockScreen(context: viewModel.context)
         }
+
+        NavigationStack {
+            AppLockScreen(context: pinOnlyViewModel.context)
+        }
+        .previewDisplayName("PIN only")
     }
 }

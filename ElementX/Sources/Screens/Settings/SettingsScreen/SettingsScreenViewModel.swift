@@ -26,6 +26,7 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
                                            userID: userSession.clientProxy.userID,
                                            showAccountDeactivation: userSession.clientProxy.canDeactivateAccount,
                                            showDeveloperOptions: appSettings.developerOptionsEnabled,
+                                           hidesAdvancedEncryption: appSettings.guaHidesAdvancedEncryption,
                                            showAnalyticsSettings: appSettings.canPromptForAnalytics,
                                            isBugReportServiceEnabled: isBugReportServiceEnabled),
                    mediaProvider: userSession.mediaProvider)
@@ -82,7 +83,6 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
             await userSession.clientProxy.loadUserAvatarURL()
             await userSession.clientProxy.loadUserDisplayName()
             await state.accountProfileURL = userSession.clientProxy.accountURL(action: .profile)
-            await state.accountSessionsListURL = userSession.clientProxy.accountURL(action: .sessionsList)
         }
     }
     
@@ -118,6 +118,12 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
             actionsSubject.send(.developerOptions)
         case .deactivateAccount:
             actionsSubject.send(.deactivateAccount)
+        case .twoStepVerification:
+            actionsSubject.send(.twoStepVerification)
+        case .changePhoneNumber:
+            actionsSubject.send(.changePhoneNumber)
+        case .findFriends:
+            actionsSubject.send(.findFriends)
         }
     }
 }

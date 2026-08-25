@@ -6,11 +6,10 @@
 //
 
 import Foundation
-import MatrixRustSDK
-import UserNotifications
-
 import Intents
+import MatrixRustSDK
 import SwiftUI
+import UserNotifications
 import Version
 
 struct NotificationContentBuilder {
@@ -50,7 +49,7 @@ struct NotificationContentBuilder {
                                  notificationItem: notificationItem,
                                  mediaProvider: mediaProvider)
         case .timeline(let event):
-            guard let eventType = try? event.eventType(),
+            guard let eventType = try? event.content(),
                   case let .messageLike(content) = eventType else {
                 processEmpty(&notificationContent)
                 return
@@ -70,7 +69,7 @@ struct NotificationContentBuilder {
                 notificationContent.body = L10n.commonPollSummary(question)
             case .callInvite:
                 notificationContent.body = L10n.commonUnsupportedCall
-            case .callNotify:
+            case .rtcNotification:
                 notificationContent.body = L10n.notificationIncomingCall
             default:
                 processEmpty(&notificationContent)
@@ -313,7 +312,7 @@ private struct NotificationIcon {
     }
     
     let mediaSource: MediaSourceProxy?
-    // Required as the key to set images for groups
+    /// Required as the key to set images for groups
     let groupInfo: GroupInfo?
     
     var shouldDisplayAsGroup: Bool {

@@ -132,10 +132,12 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             .store(in: &cancellables)
         
         setupRoomListSubscriptions()
-        
+
         updateRooms()
+
+        Task { await refreshPinSetupReminder() }
     }
-    
+
     // MARK: - Public
     
     override func process(viewAction: HomeScreenViewAction) {
@@ -160,6 +162,13 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             actionsSubject.send(.presentEncryptionResetScreen)
         case .skipRecoveryKeyConfirmation:
             state.securityBannerMode = .dismissed
+        case .setUpPinReminder:
+            state.pinSetupReminderVisible = false
+            actionsSubject.send(.presentTwoStepVerificationSetup)
+        case .dismissPinReminder:
+            state.pinSetupReminderVisible = false
+            // Snooze for a week so we don't badger the user.
+            appSettings.pinSetupReminderSnoozedUntil = Date().addingTimeInterval(7 * 24 * 60 * 60)
         case .updateVisibleItemRange(let range):
             roomSummaryProvider?.updateVisibleRange(range)
         case .startChat:
@@ -306,6 +315,10 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
         let seenInvites = appSettings.seenInvites
         
         for summary in roomSummaryProvider.roomListPublisher.value {
+            // GUA FORK: hide stray empty "orphan" DMs (no members, no name, no messages) so a
+            // half-created or never-joined room doesn't clutter the chat list.
+            guard !summary.isEmptyOrphanRoom else { continue }
+
             let room = HomeScreenRoom(summary: summary,
                                       hideUnreadMessagesBadge: appSettings.hideUnreadMessagesBadge,
                                       seenInvites: seenInvites)
@@ -486,5 +499,23 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
         state.bindings.alertInfo = .init(id: UUID(),
                                          title: title ?? L10n.commonError,
                                          message: message ?? L10n.errorUnknown)
+    }
+
+    /// GUA FORK: One-shot check at session start. If the identity service reports no PIN
+    /// configured and the reminder isn't snoozed, surface the home-screen banner.
+    private func refreshPinSetupReminder() async {
+        guard let identityServiceClient = IdentityServiceClient(),
+              let accessToken = userSession.clientProxy.accessToken else {
+            return
+        }
+        if let snoozedUntil = appSettings.pinSetupReminderSnoozedUntil, snoozedUntil > Date() {
+            return
+        }
+        do {
+            let pinStatus = try await identityServiceClient.pinStatus(accessToken: accessToken)
+            state.pinSetupReminderVisible = !pinStatus.hasPin
+        } catch {
+            MXLog.warning("Could not fetch PIN status for home screen reminder: \(error)")
+        }
     }
 }

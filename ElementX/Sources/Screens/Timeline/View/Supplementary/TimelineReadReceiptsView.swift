@@ -65,7 +65,7 @@ struct TimelineReadReceiptsView: View {
     
     private func displayName(at index: Int) -> String {
         let userID = timelineItem.properties.orderedReadReceipts[index].userID
-        return context.viewState.members[userID]?.displayName ?? userID
+        return context.viewState.members[userID]?.displayName ?? userID.guaDisplayHandle
     }
 }
 
@@ -87,6 +87,7 @@ struct TimelineReadReceiptsView_Previews: PreviewProvider, TestablePreview {
                                              appSettings: ServiceLocator.shared.settings,
                                              analyticsService: ServiceLocator.shared.analytics,
                                              emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                             linkMetadataProvider: LinkMetadataProvider(),
                                              timelineControllerFactory: TimelineControllerFactoryMock(.init()))
     
     static let singleReceipt = [ReadReceipt(userID: RoomMemberProxyMock.mockAlice.userID, formattedTimestamp: "Now")]

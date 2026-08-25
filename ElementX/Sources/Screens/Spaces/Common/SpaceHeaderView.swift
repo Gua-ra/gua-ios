@@ -14,7 +14,9 @@ struct SpaceHeaderView: View {
     
     @State private var isPresentingTopic = false
     
-    var title: String { spaceRoomProxy.name ?? "" }
+    var title: String {
+        spaceRoomProxy.name ?? ""
+    }
     
     var body: some View {
         VStack(spacing: 16) {
@@ -79,7 +81,7 @@ struct SpaceHeaderView: View {
         switch spaceRoomProxy.joinRule {
         case .public:
             L10n.commonPublicSpace
-        case .restricted(let rules), .knockRestricted(let rules):
+        case .restricted, .knockRestricted:
             // FIXME: Get this from the rule (falling back to a passed in parent??)
             "<Parent name> space"
         case .invite, .knock, .private, .custom, .none:

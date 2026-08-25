@@ -97,6 +97,7 @@
 "action_leave" = "Esci";
 "action_leave_conversation" = "Abbandona la conversazione";
 "action_leave_room" = "Esci dalla stanza";
+"action_leave_space" = "Leave space";
 "action_load_more" = "Carica altro";
 "action_manage_account" = "Gestisci account";
 "action_manage_devices" = "Gestisci dispositivi";
@@ -180,6 +181,7 @@
 "common_creating_room" = "Creazione stanza…";
 "common_current_user_canceled_knock" = "Richiesta annullata";
 "common_current_user_left_room" = "Hai lasciato la stanza";
+"common_current_user_left_space" = "Left space";
 "common_current_user_rejected_invite" = "Invito rifiutato";
 "common_dark" = "Scuro";
 "common_date_date_at_time" = "%1$@ alle %2$@";
@@ -278,8 +280,10 @@
 "common_sent" = "Inviato";
 "common_sentence_delimiter" = ".";
 "common_server_not_supported" = "Server non supportato";
+"common_server_unreachable" = "Server unreachable";
 "common_server_url" = "URL del server";
 "common_settings" = "Impostazioni";
+"common_share_space" = "Share space";
 "common_shared_location" = "Posizione condivisa";
 "common_signing_out" = "Disconnessione";
 "common_something_went_wrong" = "Qualcosa è andato storto";
@@ -326,6 +330,7 @@
 "common_you" = "Tu";
 "common.add_account" = "Add an account";
 "common.add_another_account" = "Add another account";
+"common.no_space_name" = "No space name";
 "common.select_account" = "Select an account";
 "common_unable_to_decrypt_insecure_device" = "Inviato da un dispositivo non sicuro";
 "common_unable_to_decrypt_verification_violation" = "L'identità verificata del mittente è stata reimpostata";
@@ -371,6 +376,7 @@
 "emoji_picker_category_objects" = "Oggetti";
 "emoji_picker_category_people" = "Faccine & Persone";
 "emoji_picker_category_places" = "Viaggi & Luoghi";
+"emoji_picker_category_recent" = "Recent emojis";
 "emoji_picker_category_symbols" = "Simboli";
 "emoji_picker_search_placeholder" = "Search emojis";
 "error_invalid_invite" = "La stanza non esiste più o l'invito non è più valido.";
@@ -481,6 +487,9 @@
 "screen_bottom_sheet_create_dm_confirmation_button_title" = "Invia invito";
 "screen_bottom_sheet_create_dm_message" = "Vuoi iniziare una conversazione con%1$@?";
 "screen_bottom_sheet_create_dm_title" = "Inviare invito?";
+"screen_bottom_sheet_leave_space_subtitle" = "This will also remove you from all rooms in this space.";
+"screen_bottom_sheet_leave_space_subtitle_admin" = "This will also remove you from all rooms in this space, including those you’re the only administrator for:";
+"screen_bottom_sheet_leave_space_title" = "Leave %1$@?";
 "screen_bottom_sheet_manage_room_member_ban" = "Rimuovi ed escludi";
 "screen_bottom_sheet_manage_room_member_ban_member_confirmation_action" = "Escludi";
 "screen_bottom_sheet_manage_room_member_ban_member_confirmation_description" = "Non potrà entrare nuovamente in questa stanza se invitato.";
@@ -569,6 +578,7 @@
 "screen_media_upload_preview_error_failed_sending" = "Caricamento del file multimediale fallito, riprova.";
 "screen_media_upload_preview_error_too_large_message" = "La dimensione massima consentita del file è %1$@ .";
 "screen_media_upload_preview_error_too_large_title" = "Il file è troppo grande per essere caricato";
+"screen_media_upload_preview_item_count" = "Item %1$d of %2$d";
 "screen_media_upload_preview_optimize_image_quality_title" = "Ottimizza la qualità delle immagini";
 "screen_media_upload_preview_processing" = "Elaborazione…";
 "screen_pinned_timeline_empty_state_description" = "Premi su un messaggio e scegli “%1$@” per includerlo qui.";
@@ -873,9 +883,7 @@
 "screen_onboarding_sign_in_to" = "Accedi a %1$@";
 "screen_onboarding_sign_in_with_qr_code" = "Accedi con codice QR";
 "screen_onboarding_sign_up" = "Crea account";
-"screen_onboarding_welcome_message" = "Benvenuti nell'%1$@ più veloce di sempre. Potenziato per velocità e semplicità.";
-"screen_onboarding_welcome_subtitle" = "Benvenuto su %1$@. Potenziato in velocità e semplicità.";
-"screen_onboarding_welcome_title" = "Sii nel tuo elemento";
+"screen_onboarding_welcome_title" = "Benvenuto su Gua";
 "screen_polls_history_empty_ongoing" = "Impossibile trovare sondaggi in corso.";
 "screen_polls_history_empty_past" = "Impossibile trovare sondaggi passati.";
 "screen_polls_history_filter_ongoing" = "In corso";
@@ -999,6 +1007,8 @@
 "screen_room_details_error_loading_notification_settings" = "Si è verificato un errore durante il caricamento delle impostazioni di notifica.";
 "screen_room_details_error_muting" = "Impostazione del silenzioso fallita per questa stanza, riprova.";
 "screen_room_details_error_unmuting" = "Disattivazione del silenzioso di questa stanza fallita, riprova.";
+"screen_room_details_invite_people_dont_close" = "Don't close the app until finished.";
+"screen_room_details_invite_people_preparing" = "Preparing invitations...";
 "screen_room_details_notification_mode_custom" = "Personalizzato";
 "screen_room_details_notification_mode_default" = "Predefinito";
 "screen_room_details_share_room_title" = "Condividi stanza";

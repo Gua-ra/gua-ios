@@ -14,16 +14,23 @@ struct RoomEventStringBuilder {
     let shouldDisambiguateDisplayNames: Bool
     let shouldPrefixSenderName: Bool
     
-    func buildAttributedString(for eventItemProxy: EventTimelineItemProxy) -> AttributedString? {
-        let sender = eventItemProxy.sender
-        let isOutgoing = eventItemProxy.isOwn
+    func buildAttributedString(for eventItemProxy: EventTimelineItemProxy, isDirectOneToOneRoom: Bool = false) -> AttributedString? {
+        buildAttributedString(for: eventItemProxy.content, sender: eventItemProxy.sender, isOutgoing: eventItemProxy.isOwn, isDirectOneToOneRoom: isDirectOneToOneRoom)
+    }
+
+    func buildAttributedString(for content: TimelineItemContent, sender: TimelineItemSender, isOutgoing: Bool, isDirectOneToOneRoom: Bool = false) -> AttributedString? {
+        // GUA FORK: in a 1:1 chat the membership/creation events read like group noise,
+        // so the room-list preview suppresses them just like the in-room timeline does.
+        var stateEventStringBuilder = stateEventStringBuilder
+        stateEventStringBuilder.isDirectOneToOneRoom = isDirectOneToOneRoom
+
         let displayName = if shouldDisambiguateDisplayNames {
-            sender.disambiguatedDisplayName ?? sender.id
+            sender.disambiguatedDisplayName ?? sender.id.guaDisplayHandle
         } else {
-            sender.displayName ?? sender.id
+            sender.displayName ?? sender.id.guaDisplayHandle
         }
-        
-        switch eventItemProxy.content {
+
+        switch content {
         case .msgLike(let messageLikeContent):
             switch messageLikeContent.kind {
             case .message(let messageContent):
@@ -55,6 +62,10 @@ struct RoomEventStringBuilder {
                 default: L10n.commonWaitingForDecryptionKey
                 }
                 return prefix(errorMessage, with: displayName, isOutgoing: isOutgoing)
+            case .liveLocation:
+                return nil
+            case .other:
+                return nil
             }
         case .failedToParseMessageLike, .failedToParseState:
             return prefix(L10n.commonUnsupportedEvent, with: displayName, isOutgoing: isOutgoing)
@@ -77,7 +88,7 @@ struct RoomEventStringBuilder {
                 .map(AttributedString.init)
         case .callInvite:
             return prefix(L10n.commonUnsupportedCall, with: displayName, isOutgoing: isOutgoing)
-        case .callNotify:
+        case .rtcNotification:
             return prefix(L10n.commonCallStarted, with: displayName, isOutgoing: isOutgoing)
         }
     }

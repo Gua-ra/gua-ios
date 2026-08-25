@@ -68,7 +68,11 @@ class SpaceScreenViewModel: SpaceScreenViewModelType, SpaceScreenViewModelProtoc
         switch viewAction {
         case .spaceAction(.select(let spaceRoomProxy)):
             if spaceRoomProxy.isSpace {
-                Task { await selectSpace(spaceRoomProxy) }
+                if spaceRoomProxy.state != .joined {
+                    actionsSubject.send(.selectUnjoinedSpace(spaceRoomProxy))
+                } else {
+                    Task { await selectSpace(spaceRoomProxy) }
+                }
             } else {
                 // No need to check the join state, the room flow will show an appropriately configured join screen if needed.
                 actionsSubject.send(.selectRoom(roomID: spaceRoomProxy.id))
@@ -84,16 +88,6 @@ class SpaceScreenViewModel: SpaceScreenViewModelType, SpaceScreenViewModelProtoc
     }
     
     // MARK: - Private
-    
-    private func selectSpace(_ spaceRoomProxy: SpaceRoomProxyProtocol) async {
-        switch await spaceServiceProxy.spaceRoomList(for: spaceRoomProxy) {
-        case .success(let spaceRoomListProxy):
-            actionsSubject.send(.selectSpace(spaceRoomListProxy))
-        case .failure(let error):
-            MXLog.error("Unable to select space: \(error)")
-            showFailureIndicator()
-        }
-    }
     
     private func join(_ spaceRoomProxy: SpaceRoomProxyProtocol) async {
         state.joiningRoomIDs.insert(spaceRoomProxy.id)
@@ -114,9 +108,21 @@ class SpaceScreenViewModel: SpaceScreenViewModelType, SpaceScreenViewModelProtoc
         }
     }
     
+    private func selectSpace(_ spaceRoomProxy: SpaceRoomProxyProtocol) async {
+        switch await spaceServiceProxy.spaceRoomList(spaceID: spaceRoomProxy.id) {
+        case .success(let spaceRoomListProxy):
+            actionsSubject.send(.selectSpace(spaceRoomListProxy))
+        case .failure(let error):
+            MXLog.error("Unable to select space: \(error)")
+            showFailureIndicator()
+        }
+    }
+    
     // MARK: - Indicators
     
-    private static var failureIndicatorID: String { "\(Self.self)-Failure" }
+    private static var failureIndicatorID: String {
+        "\(Self.self)-Failure"
+    }
     
     private func showFailureIndicator() {
         userIndicatorController.submitIndicator(UserIndicator(id: Self.failureIndicatorID,

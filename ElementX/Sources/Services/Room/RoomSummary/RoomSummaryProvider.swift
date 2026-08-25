@@ -89,10 +89,11 @@ class RoomSummaryProvider: RoomSummaryProviderProtocol {
         self.roomList = roomList
         
         do {
-            listUpdatesSubscriptionResult = roomList.entriesWithDynamicAdapters(pageSize: UInt32(roomListPageSize), listener: SDKListener { [weak self] updates in
-                guard let self else { return }
-                diffsPublisher.send(updates)
-            })
+            listUpdatesSubscriptionResult = roomList.entriesWithDynamicAdapters(pageSize: UInt32(roomListPageSize),
+                                                                                listener: SDKListener { [weak self] updates in
+                                                                                    guard let self else { return }
+                                                                                    diffsPublisher.send(updates)
+                                                                                })
             
             // Forces the listener above to be called with the current state
             setFilter(.all(filters: []))
@@ -219,10 +220,10 @@ class RoomSummaryProvider: RoomSummaryProviderProtocol {
         return updatedItems
     }
 
-    private func fetchRoomDetails(from room: Room) -> (roomInfo: RoomInfo?, latestEvent: EventTimelineItem?) {
+    private func fetchRoomDetails(from room: Room) -> (roomInfo: RoomInfo?, latestEvent: LatestEventValue?) {
         class FetchResult {
             var roomInfo: RoomInfo?
-            var latestEvent: EventTimelineItem?
+            var latestEvent: LatestEventValue?
         }
         
         let semaphore = DispatchSemaphore(value: 0)
@@ -250,11 +251,30 @@ class RoomSummaryProvider: RoomSummaryProviderProtocol {
         
         var attributedLastMessage: AttributedString?
         var lastMessageDate: Date?
-        
+
+        // GUA FORK: a 1:1 chat shouldn't preview group-y membership/creation events.
+        let isDirectOneToOneRoom = roomInfo.isDirect && roomInfo.activeMembersCount <= 2
+
         if let latestRoomMessage = roomDetails.latestEvent {
-            let lastMessage = EventTimelineItemProxy(item: latestRoomMessage, uniqueID: .init("0"))
-            lastMessageDate = lastMessage.timestamp
-            attributedLastMessage = eventStringBuilder.buildAttributedString(for: lastMessage)
+            switch latestRoomMessage {
+            case .local(let timestamp, let senderID, let profile, let content, _):
+                let sender = TimelineItemSender(senderID: senderID, senderProfile: profile)
+                attributedLastMessage = eventStringBuilder.buildAttributedString(for: content, sender: sender, isOutgoing: true, isDirectOneToOneRoom: isDirectOneToOneRoom)
+                lastMessageDate = Date(timeIntervalSince1970: TimeInterval(timestamp / 1000))
+            case .remote(let timestamp, let senderID, let isOwn, let profile, let content):
+                let sender = TimelineItemSender(senderID: senderID, senderProfile: profile)
+                attributedLastMessage = eventStringBuilder.buildAttributedString(for: content, sender: sender, isOutgoing: isOwn, isDirectOneToOneRoom: isDirectOneToOneRoom)
+                lastMessageDate = Date(timeIntervalSince1970: TimeInterval(timestamp / 1000))
+            case .remoteInvite(let timestamp, let senderID, let profile):
+                lastMessageDate = Date(timeIntervalSince1970: TimeInterval(timestamp / 1000))
+                if let senderID {
+                    let sender = TimelineItemSender(senderID: senderID, senderProfile: profile)
+                    let senderDisplayName = sender.displayName ?? sender.id.guaDisplayHandle
+                    attributedLastMessage = AttributedString(L10n.screenInvitesInvitedYou(senderDisplayName, sender.id.guaDisplayHandle))
+                }
+            case .none:
+                break
+            }
         }
         
         var inviterProxy: RoomMemberProxyProtocol?

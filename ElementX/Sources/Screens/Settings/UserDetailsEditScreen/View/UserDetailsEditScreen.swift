@@ -17,7 +17,7 @@ struct UserDetailsEditScreen: View {
             Section {
                 avatar
             } footer: {
-                Text(context.viewState.userID)
+                Text(context.viewState.userLocalpart)
                     .frame(maxWidth: .infinity)
                     .font(.compound.bodyLG)
                     .foregroundColor(.compound.textPrimary)
@@ -123,5 +123,6 @@ struct UserDetailsEditScreen_Previews: PreviewProvider, TestablePreview {
         NavigationStack {
             UserDetailsEditScreen(context: viewModel.context)
         }
+        .snapshotPreferences(expect: viewModel.context.observe(\.viewState.currentDisplayName).map { $0 != nil }.eraseToStream())
     }
 }

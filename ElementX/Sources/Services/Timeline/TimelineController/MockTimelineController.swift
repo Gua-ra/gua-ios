@@ -20,7 +20,10 @@ class MockTimelineController: TimelineControllerProtocol {
     var roomProxy: JoinedRoomProxyProtocol?
     var timelineProxy: TimelineProxyProtocol?
     
-    var roomID: String { roomProxy?.id ?? "MockRoomIdentifier" }
+    var roomID: String {
+        roomProxy?.id ?? "MockRoomIdentifier"
+    }
+
     var timelineKind: TimelineKind
     
     let callbacks = PassthroughSubject<TimelineControllerCallback, Never>()
@@ -140,7 +143,7 @@ class MockTimelineController: TimelineControllerProtocol {
     func unpin(eventID: String) async { }
     
     func messageEventContent(for itemID: TimelineItemIdentifier) -> RoomMessageEventContentWithoutRelation? {
-        .init(noPointer: .init())
+        .init(noHandle: .init())
     }
     
     func debugInfo(for itemID: TimelineItemIdentifier) -> TimelineItemDebugInfo {

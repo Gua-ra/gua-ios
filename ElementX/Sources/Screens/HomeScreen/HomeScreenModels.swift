@@ -23,6 +23,7 @@ enum HomeScreenViewModelAction: Equatable {
     case presentFeedbackScreen
     case presentStartChatScreen
     case presentGlobalSearch
+    case presentTwoStepVerificationSetup
     case logout
 }
 
@@ -38,6 +39,8 @@ enum HomeScreenViewAction {
     case confirmRecoveryKey
     case resetEncryption
     case skipRecoveryKeyConfirmation
+    case setUpPinReminder
+    case dismissPinReminder
     case updateVisibleItemRange(Range<Int>)
     case globalSearch
     case markRoomAsUnread(roomIdentifier: String)
@@ -93,7 +96,11 @@ struct HomeScreenViewState: BindableState {
     var securityBannerMode = HomeScreenSecurityBannerMode.none
     
     var requiresExtraAccountSetup = false
-        
+
+    /// Set to true when the identity service reports the user has not yet
+    /// configured their two-step verification PIN AND the reminder is not snoozed.
+    var pinSetupReminderVisible = false
+
     var rooms: [HomeScreenRoom] = []
     var roomListMode: HomeScreenRoomListMode = .skeletons
     
@@ -121,7 +128,7 @@ struct HomeScreenViewState: BindableState {
         }
     }
     
-    // Used to hide all the rooms when the search field is focused and the query is empty
+    /// Used to hide all the rooms when the search field is focused and the query is empty
     var shouldHideRoomList: Bool {
         bindings.isSearchFieldFocused && bindings.searchQuery.isEmpty
     }

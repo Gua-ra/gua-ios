@@ -40,22 +40,32 @@ struct RoomTimelineItemFactory: RoomTimelineItemFactoryProtocol {
                 return buildRedactedTimelineItem(eventItemProxy, messageLikeContent, isOutgoing)
             case .unableToDecrypt(let encryptedMessage):
                 return buildEncryptedTimelineItem(eventItemProxy, messageLikeContent, encryptedMessage, isOutgoing)
+            case .liveLocation, .other:
+                return nil
             }
         case .failedToParseMessageLike(let eventType, let error):
             return buildUnsupportedTimelineItem(eventItemProxy, eventType, error, isOutgoing)
         case .failedToParseState(let eventType, _, let error):
             return buildUnsupportedTimelineItem(eventItemProxy, eventType, error, isOutgoing)
         case .state(_, let content):
-            if isDM, content == .roomCreate {
+            // GUA FORK: 1:1 conversations are chats, not "rooms". Suppress all state
+            // events (encryption-enabled, name/avatar/topic, room create, etc.) so DMs
+            // never show "N room changes" plumbing.
+            if isDM {
                 return nil
             }
             return buildStateTimelineItem(for: eventItemProxy, state: content, isOutgoing: isOutgoing)
         case .roomMembership(userId: let userID, let displayName, change: let change, let reason):
-            if isDM, change == .joined, userID == self.userID {
+            // GUA FORK: hide all membership churn (joined/left/invited/etc.) in 1:1s.
+            if isDM {
                 return nil
             }
             return buildStateMembershipChangeTimelineItem(for: eventItemProxy, memberUserID: userID, memberDisplayName: displayName, membershipChange: change, reason: reason, isOutgoing: isOutgoing)
         case .profileChange(let displayName, let prevDisplayName, let avatarUrl, let prevAvatarUrl):
+            // GUA FORK: hide display-name/avatar "changed" lines in 1:1s.
+            if isDM {
+                return nil
+            }
             return buildStateProfileChangeTimelineItem(for: eventItemProxy,
                                                        displayName: displayName,
                                                        previousDisplayName: prevDisplayName,
@@ -64,7 +74,7 @@ struct RoomTimelineItemFactory: RoomTimelineItemFactoryProtocol {
                                                        isOutgoing: isOutgoing)
         case .callInvite:
             return buildCallInviteTimelineItem(for: eventItemProxy)
-        case .callNotify:
+        case .rtcNotification:
             return buildCallNotificationTimelineItem(for: eventItemProxy)
         }
     }
@@ -595,7 +605,7 @@ struct RoomTimelineItemFactory: RoomTimelineItemFactoryProtocol {
     }
     
     private func buildEmoteTimelineItemContent(senderDisplayName: String?, senderID: String, messageContent: EmoteMessageContent) -> EmoteRoomTimelineItemContent {
-        let name = senderDisplayName ?? senderID
+        let name = senderDisplayName ?? senderID.guaDisplayHandle
         
         let htmlBody = messageContent.formatted?.format == .html ? messageContent.formatted?.body : nil
 
@@ -609,7 +619,7 @@ struct RoomTimelineItemFactory: RoomTimelineItemFactoryProtocol {
         return .init(body: messageContent.body, formattedBody: formattedBody, formattedBodyHTMLString: htmlBody)
     }
     
-    // This fixes the issue of the name not belonging to the first <p> defined paragraph
+    /// This fixes the issue of the name not belonging to the first <p> defined paragraph
     private func buildEmoteFormattedBodyFromHTML(html: String, name: String) -> AttributedString? {
         let htmlBodyPlaceholder = "{htmlBodyPlaceholder}"
         var finalString = AttributedString(L10n.commonEmote(name, htmlBodyPlaceholder))

@@ -179,7 +179,8 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
                                                       avatar: avatar,
                                                       memberCount: info?.joinedMembersCount,
                                                       inviter: inviter,
-                                                      isDirect: info?.isDirect)
+                                                      isDirect: info?.isDirect,
+                                                      isSpace: info?.isSpace)
         
         await updateMode()
     }
@@ -204,7 +205,7 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
             case .knocked:
                 state.mode = .knocked
             case .banned:
-                state.mode = .banned(sender: membershipDetails?.senderRoomMember?.displayName ?? membershipDetails?.senderRoomMember?.userID,
+                state.mode = .banned(sender: membershipDetails?.senderRoomMember?.displayName ?? membershipDetails?.senderRoomMember?.userID.guaDisplayHandle,
                                      reason: membershipDetails?.ownRoomMember.membershipChangeReason)
             default:
                 switch roomPreview.info.joinRule {
@@ -243,8 +244,7 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
         if let alias = state.roomDetails?.canonicalAlias {
             switch await clientProxy.joinRoomAlias(alias) {
             case .success:
-                appSettings.seenInvites.remove(roomID)
-                actionsSubject.send(.joined)
+                await finishJoinAction()
             case .failure(let error):
                 switch error {
                 case .forbiddenAccess:
@@ -261,8 +261,7 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
         } else {
             switch await clientProxy.joinRoom(roomID, via: via) {
             case .success:
-                appSettings.seenInvites.remove(roomID)
-                actionsSubject.send(.joined)
+                await finishJoinAction()
             case .failure(let error):
                 switch error {
                 case .forbiddenAccess:
@@ -276,6 +275,23 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
                     userIndicatorController.submitIndicator(.init(title: L10n.errorUnknown))
                 }
             }
+        }
+    }
+    
+    private func finishJoinAction() async {
+        appSettings.seenInvites.remove(roomID)
+        
+        guard state.roomDetails?.isSpace == true else {
+            actionsSubject.send(.joined(.roomID(roomID)))
+            return
+        }
+        
+        switch await clientProxy.spaceService.spaceRoomList(spaceID: roomID) {
+        case .success(let spaceRoomListProxy):
+            actionsSubject.send(.joined(.space(spaceRoomListProxy)))
+        case .failure(let error):
+            MXLog.error("Failed to get the space room list after joining: \(error)")
+            userIndicatorController.submitIndicator(.init(title: L10n.errorUnknown))
         }
     }
     

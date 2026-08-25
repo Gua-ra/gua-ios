@@ -1,4 +1,4 @@
-// Generated using Sourcery 2.2.7 — https://github.com/krzysztofzablocki/Sourcery
+// Generated using Sourcery 2.3.0 — https://github.com/krzysztofzablocki/Sourcery
 // DO NOT EDIT
 
 // swiftlint:disable all
@@ -127,6 +127,12 @@ extension PreviewTests {
 
     func testComposerToolbar() async throws {
         for (index, preview) in ComposerToolbar_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    func testCountryPickerScreen() async throws {
+        for (index, preview) in CountryPickerScreen_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)
         }
     }
@@ -499,6 +505,12 @@ extension PreviewTests {
 
     func testPaginationIndicatorRoomTimelineView() async throws {
         for (index, preview) in PaginationIndicatorRoomTimelineView_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    func testPhoneEntryScreen() async throws {
+        for (index, preview) in PhoneEntryScreen_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)
         }
     }
@@ -1051,6 +1063,12 @@ extension PreviewTests {
 
     func testTombstonedAvatarImage() async throws {
         for (index, preview) in TombstonedAvatarImage_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    func testTwoStepVerificationScreen() async throws {
+        for (index, preview) in TwoStepVerificationScreen_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)
         }
     }

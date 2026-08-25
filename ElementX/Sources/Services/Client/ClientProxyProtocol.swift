@@ -65,7 +65,7 @@ enum SessionVerificationState {
     case unverified
 }
 
-// The `Decodable` conformance is just for the purpose of migration
+/// The `Decodable` conformance is just for the purpose of migration
 enum TimelineMediaVisibility: Decodable {
     case always
     case privateOnly
@@ -85,6 +85,10 @@ protocol ClientProxyProtocol: AnyObject {
     var userID: String { get }
 
     var deviceID: String? { get }
+
+    /// Current Matrix access token for the active session, if available. Used to authenticate
+    /// requests to the Gua identity-service for privileged account operations (deactivate, etc.).
+    var accessToken: String? { get }
 
     var homeserver: String { get }
     

@@ -232,6 +232,8 @@ internal enum L10n {
   internal static var actionLeaveConversation: String { return L10n.tr("Localizable", "action_leave_conversation") }
   /// Leave room
   internal static var actionLeaveRoom: String { return L10n.tr("Localizable", "action_leave_room") }
+  /// Leave space
+  internal static var actionLeaveSpace: String { return L10n.tr("Localizable", "action_leave_space") }
   /// Load more
   internal static var actionLoadMore: String { return L10n.tr("Localizable", "action_load_more") }
   /// Manage account
@@ -400,6 +402,8 @@ internal enum L10n {
   internal static var commonCurrentUserCanceledKnock: String { return L10n.tr("Localizable", "common_current_user_canceled_knock") }
   /// Left room
   internal static var commonCurrentUserLeftRoom: String { return L10n.tr("Localizable", "common_current_user_left_room") }
+  /// Left space
+  internal static var commonCurrentUserLeftSpace: String { return L10n.tr("Localizable", "common_current_user_left_space") }
   /// Invite declined
   internal static var commonCurrentUserRejectedInvite: String { return L10n.tr("Localizable", "common_current_user_rejected_invite") }
   /// Dark
@@ -426,6 +430,24 @@ internal enum L10n {
   internal static var commonDownloadFailed: String { return L10n.tr("Localizable", "common_download_failed") }
   /// Downloading
   internal static var commonDownloading: String { return L10n.tr("Localizable", "common_downloading") }
+  /// %1$d days
+  internal static func commonDurationDays(_ p1: Int) -> String {
+    return L10n.tr("Localizable", "common_duration_days", p1)
+  }
+  /// %1$d hours
+  internal static func commonDurationHours(_ p1: Int) -> String {
+    return L10n.tr("Localizable", "common_duration_hours", p1)
+  }
+  /// %1$d minutes
+  internal static func commonDurationMinutes(_ p1: Int) -> String {
+    return L10n.tr("Localizable", "common_duration_minutes", p1)
+  }
+  /// 1 day
+  internal static var commonDurationOneDay: String { return L10n.tr("Localizable", "common_duration_one_day") }
+  /// 1 hour
+  internal static var commonDurationOneHour: String { return L10n.tr("Localizable", "common_duration_one_hour") }
+  /// 1 minute
+  internal static var commonDurationOneMinute: String { return L10n.tr("Localizable", "common_duration_one_minute") }
   /// (edited)
   internal static var commonEditedSuffix: String { return L10n.tr("Localizable", "common_edited_suffix") }
   /// Editing
@@ -636,6 +658,8 @@ internal enum L10n {
   internal static var commonServerUrl: String { return L10n.tr("Localizable", "common_server_url") }
   /// Settings
   internal static var commonSettings: String { return L10n.tr("Localizable", "common_settings") }
+  /// Share space
+  internal static var commonShareSpace: String { return L10n.tr("Localizable", "common_share_space") }
   /// Shared location
   internal static var commonSharedLocation: String { return L10n.tr("Localizable", "common_shared_location") }
   /// Signing out
@@ -846,6 +870,8 @@ internal enum L10n {
   internal static var emojiPickerCategoryPeople: String { return L10n.tr("Localizable", "emoji_picker_category_people") }
   /// Travel & Places
   internal static var emojiPickerCategoryPlaces: String { return L10n.tr("Localizable", "emoji_picker_category_places") }
+  /// Recent emojis
+  internal static var emojiPickerCategoryRecent: String { return L10n.tr("Localizable", "emoji_picker_category_recent") }
   /// Symbols
   internal static var emojiPickerCategorySymbols: String { return L10n.tr("Localizable", "emoji_picker_category_symbols") }
   /// Search emojis
@@ -896,6 +922,12 @@ internal enum L10n {
   internal static var eventShieldReasonUnsignedDevice: String { return L10n.tr("Localizable", "event_shield_reason_unsigned_device") }
   /// Encrypted by an unverified user.
   internal static var eventShieldReasonUnverifiedIdentity: String { return L10n.tr("Localizable", "event_shield_reason_unverified_identity") }
+  /// Check again
+  internal static var findFriendsEmptyAction: String { return L10n.tr("Localizable", "find_friends_empty_action") }
+  /// None of your contacts are on Gua yet. Invite them and they'll show up here.
+  internal static var findFriendsEmptyMessage: String { return L10n.tr("Localizable", "find_friends_empty_message") }
+  /// No contacts on Gua yet
+  internal static var findFriendsEmptyTitle: String { return L10n.tr("Localizable", "find_friends_empty_title") }
   /// To ensure you never miss an important call, please change your settings to allow full-screen notifications when your phone is locked.
   internal static var fullScreenIntentBannerMessage: String { return L10n.tr("Localizable", "full_screen_intent_banner_message") }
   /// Enhance your call experience
@@ -1110,6 +1142,16 @@ internal enum L10n {
   internal static func screenAccountProviderSignupTitle(_ p1: Any) -> String {
     return L10n.tr("Localizable", "screen_account_provider_signup_title", String(describing: p1))
   }
+  /// Verification code
+  internal static var screenAccountReauthCodeLabel: String { return L10n.tr("Localizable", "screen_account_reauth_code_label") }
+  /// We'll send a verification code by SMS to the phone linked to your account.
+  internal static var screenAccountReauthSectionFooter: String { return L10n.tr("Localizable", "screen_account_reauth_section_footer") }
+  /// Verify it's you
+  internal static var screenAccountReauthSectionTitle: String { return L10n.tr("Localizable", "screen_account_reauth_section_title") }
+  /// Send verification code
+  internal static var screenAccountReauthSendCode: String { return L10n.tr("Localizable", "screen_account_reauth_send_code") }
+  /// Verified
+  internal static var screenAccountReauthVerified: String { return L10n.tr("Localizable", "screen_account_reauth_verified") }
   /// Developer mode
   internal static var screenAdvancedSettingsDeveloperMode: String { return L10n.tr("Localizable", "screen_advanced_settings_developer_mode") }
   /// Enable to have access to features and functionality for developers.
@@ -1202,9 +1244,9 @@ internal enum L10n {
   internal static var screenAppLockBiometricUnlock: String { return L10n.tr("Localizable", "screen_app_lock_biometric_unlock") }
   /// Authentication is needed to access your app
   internal static var screenAppLockBiometricUnlockReasonIos: String { return L10n.tr("Localizable", "screen_app_lock_biometric_unlock_reason_ios") }
-  /// Forgot PIN?
+  /// Forgot passcode?
   internal static var screenAppLockForgotPin: String { return L10n.tr("Localizable", "screen_app_lock_forgot_pin") }
-  /// Change PIN code
+  /// Change app passcode
   internal static var screenAppLockSettingsChangePin: String { return L10n.tr("Localizable", "screen_app_lock_settings_change_pin") }
   /// Allow biometric unlock
   internal static var screenAppLockSettingsEnableBiometricUnlock: String { return L10n.tr("Localizable", "screen_app_lock_settings_enable_biometric_unlock") }
@@ -1214,41 +1256,41 @@ internal enum L10n {
   internal static var screenAppLockSettingsEnableOpticIdIos: String { return L10n.tr("Localizable", "screen_app_lock_settings_enable_optic_id_ios") }
   /// Allow Touch ID
   internal static var screenAppLockSettingsEnableTouchIdIos: String { return L10n.tr("Localizable", "screen_app_lock_settings_enable_touch_id_ios") }
-  /// Remove PIN
+  /// Remove passcode
   internal static var screenAppLockSettingsRemovePin: String { return L10n.tr("Localizable", "screen_app_lock_settings_remove_pin") }
-  /// Are you sure you want to remove PIN?
+  /// Are you sure you want to remove your app passcode?
   internal static var screenAppLockSettingsRemovePinAlertMessage: String { return L10n.tr("Localizable", "screen_app_lock_settings_remove_pin_alert_message") }
-  /// Remove PIN?
+  /// Remove passcode?
   internal static var screenAppLockSettingsRemovePinAlertTitle: String { return L10n.tr("Localizable", "screen_app_lock_settings_remove_pin_alert_title") }
   /// Allow %1$@
   internal static func screenAppLockSetupBiometricUnlockAllowTitle(_ p1: Any) -> String {
     return L10n.tr("Localizable", "screen_app_lock_setup_biometric_unlock_allow_title", String(describing: p1))
   }
-  /// I’d rather use PIN
+  /// I’d rather use a passcode
   internal static var screenAppLockSetupBiometricUnlockSkip: String { return L10n.tr("Localizable", "screen_app_lock_setup_biometric_unlock_skip") }
   /// Save yourself some time and use %1$@ to unlock the app each time
   internal static func screenAppLockSetupBiometricUnlockSubtitle(_ p1: Any) -> String {
     return L10n.tr("Localizable", "screen_app_lock_setup_biometric_unlock_subtitle", String(describing: p1))
   }
-  /// Choose PIN
+  /// Choose app passcode
   internal static var screenAppLockSetupChoosePin: String { return L10n.tr("Localizable", "screen_app_lock_setup_choose_pin") }
-  /// Confirm PIN
+  /// Confirm app passcode
   internal static var screenAppLockSetupConfirmPin: String { return L10n.tr("Localizable", "screen_app_lock_setup_confirm_pin") }
   /// Lock %1$@ to add extra security to your chats.
   /// 
-  /// Choose something memorable. If you forget this PIN, you will be logged out of the app.
+  /// This app passcode is separate from your account PIN. Choose something memorable — if you forget it, you’ll be logged out of the app.
   internal static func screenAppLockSetupPinContext(_ p1: Any) -> String {
     return L10n.tr("Localizable", "screen_app_lock_setup_pin_context", String(describing: p1))
   }
-  /// You cannot choose this as your PIN code for security reasons
+  /// You cannot choose this as your passcode for security reasons
   internal static var screenAppLockSetupPinForbiddenDialogContent: String { return L10n.tr("Localizable", "screen_app_lock_setup_pin_forbidden_dialog_content") }
-  /// Choose a different PIN
+  /// Choose a different passcode
   internal static var screenAppLockSetupPinForbiddenDialogTitle: String { return L10n.tr("Localizable", "screen_app_lock_setup_pin_forbidden_dialog_title") }
-  /// Please enter the same PIN twice
+  /// Please enter the same passcode twice
   internal static var screenAppLockSetupPinMismatchDialogContent: String { return L10n.tr("Localizable", "screen_app_lock_setup_pin_mismatch_dialog_content") }
-  /// PINs don't match
+  /// Passcodes don't match
   internal static var screenAppLockSetupPinMismatchDialogTitle: String { return L10n.tr("Localizable", "screen_app_lock_setup_pin_mismatch_dialog_title") }
-  /// You’ll need to re-login and create a new PIN to proceed
+  /// You’ll need to re-login and create a new passcode to proceed
   internal static var screenAppLockSignoutAlertMessage: String { return L10n.tr("Localizable", "screen_app_lock_signout_alert_message") }
   /// You are being signed out
   internal static var screenAppLockSignoutAlertTitle: String { return L10n.tr("Localizable", "screen_app_lock_signout_alert_title") }
@@ -1259,6 +1301,10 @@ internal enum L10n {
   /// Plural format key: "%#@COUNT@"
   internal static func screenAppLockSubtitleWrongPin(_ p1: Int) -> String {
     return L10n.tr("Localizable", "screen_app_lock_subtitle_wrong_pin", p1)
+  }
+  /// Unlock with %1$@
+  internal static func screenAppLockUnlockWithBiometricsIos(_ p1: Any) -> String {
+    return L10n.tr("Localizable", "screen_app_lock_unlock_with_biometrics_ios", String(describing: p1))
   }
   /// You have no blocked users
   internal static var screenBlockedUsersEmpty: String { return L10n.tr("Localizable", "screen_blocked_users_empty") }
@@ -1278,6 +1324,14 @@ internal enum L10n {
   }
   /// Send invite?
   internal static var screenBottomSheetCreateDmTitle: String { return L10n.tr("Localizable", "screen_bottom_sheet_create_dm_title") }
+  /// This will also remove you from all rooms in this space.
+  internal static var screenBottomSheetLeaveSpaceSubtitle: String { return L10n.tr("Localizable", "screen_bottom_sheet_leave_space_subtitle") }
+  /// This will also remove you from all rooms in this space, including those you’re the only administrator for:
+  internal static var screenBottomSheetLeaveSpaceSubtitleAdmin: String { return L10n.tr("Localizable", "screen_bottom_sheet_leave_space_subtitle_admin") }
+  /// Leave %1$@?
+  internal static func screenBottomSheetLeaveSpaceTitle(_ p1: Any) -> String {
+    return L10n.tr("Localizable", "screen_bottom_sheet_leave_space_title", String(describing: p1))
+  }
   /// Ban from room
   internal static var screenBottomSheetManageRoomMemberBan: String { return L10n.tr("Localizable", "screen_bottom_sheet_manage_room_member_ban") }
   /// Ban
@@ -1360,6 +1414,50 @@ internal enum L10n {
   internal static var screenChangeAccountProviderSubtitle: String { return L10n.tr("Localizable", "screen_change_account_provider_subtitle") }
   /// Change account provider
   internal static var screenChangeAccountProviderTitle: String { return L10n.tr("Localizable", "screen_change_account_provider_title") }
+  /// That phone number is already linked to another account.
+  internal static var screenChangePhoneAlreadyLinked: String { return L10n.tr("Localizable", "screen_change_phone_already_linked") }
+  /// Not just yet
+  internal static var screenChangePhoneCooldownHeader: String { return L10n.tr("Localizable", "screen_change_phone_cooldown_header") }
+  /// For your security, you can change your number in %1$@.
+  internal static func screenChangePhoneCooldownMessage(_ p1: Any) -> String {
+    return L10n.tr("Localizable", "screen_change_phone_cooldown_message", String(describing: p1))
+  }
+  /// For your security, you can't change your number just yet. Please try again later.
+  internal static var screenChangePhoneCooldownMessageGeneric: String { return L10n.tr("Localizable", "screen_change_phone_cooldown_message_generic") }
+  /// All set
+  internal static var screenChangePhoneDoneHeader: String { return L10n.tr("Localizable", "screen_change_phone_done_header") }
+  /// Your phone number has been updated. You'll use your new number to sign in from now on.
+  internal static var screenChangePhoneDoneMessage: String { return L10n.tr("Localizable", "screen_change_phone_done_message") }
+  /// Change your number
+  internal static var screenChangePhoneIntroHeader: String { return L10n.tr("Localizable", "screen_change_phone_intro_header") }
+  /// We'll confirm your PIN, then text a code to your new number. Your account, chats, and messages stay the same.
+  internal static var screenChangePhoneIntroMessage: String { return L10n.tr("Localizable", "screen_change_phone_intro_message") }
+  /// Enter the number you'd like to use from now on.
+  internal static var screenChangePhoneNewFooter: String { return L10n.tr("Localizable", "screen_change_phone_new_footer") }
+  /// New phone number
+  internal static var screenChangePhoneNewHeader: String { return L10n.tr("Localizable", "screen_change_phone_new_header") }
+  /// Enter the 6-digit code we sent to your new number.
+  internal static var screenChangePhoneOtpFooter: String { return L10n.tr("Localizable", "screen_change_phone_otp_footer") }
+  /// Verify your new number
+  internal static var screenChangePhoneOtpHeader: String { return L10n.tr("Localizable", "screen_change_phone_otp_header") }
+  /// That code is invalid or has expired. Please try again.
+  internal static var screenChangePhoneOtpInvalid: String { return L10n.tr("Localizable", "screen_change_phone_otp_invalid") }
+  /// Confirm your 6-digit PIN to authorize this change.
+  internal static var screenChangePhonePinFooter: String { return L10n.tr("Localizable", "screen_change_phone_pin_footer") }
+  /// Enter your PIN
+  internal static var screenChangePhonePinHeader: String { return L10n.tr("Localizable", "screen_change_phone_pin_header") }
+  /// That PIN is incorrect. Please try again.
+  internal static var screenChangePhonePinIncorrect: String { return L10n.tr("Localizable", "screen_change_phone_pin_incorrect") }
+  /// Set up PIN
+  internal static var screenChangePhonePinSetupRequiredAction: String { return L10n.tr("Localizable", "screen_change_phone_pin_setup_required_action") }
+  /// Set up a PIN first
+  internal static var screenChangePhonePinSetupRequiredHeader: String { return L10n.tr("Localizable", "screen_change_phone_pin_setup_required_header") }
+  /// You'll need a PIN to change your number. Set one up, then come back to change your number.
+  internal static var screenChangePhonePinSetupRequiredMessage: String { return L10n.tr("Localizable", "screen_change_phone_pin_setup_required_message") }
+  /// Your phone number has been updated.
+  internal static var screenChangePhoneSuccess: String { return L10n.tr("Localizable", "screen_change_phone_success") }
+  /// Change phone number
+  internal static var screenChangePhoneTitle: String { return L10n.tr("Localizable", "screen_change_phone_title") }
   /// App Store
   internal static var screenChangeServerErrorElementProRequiredActionIos: String { return L10n.tr("Localizable", "screen_change_server_error_element_pro_required_action_ios") }
   /// The Element Pro app is required on %1$@. Please download it from the store.
@@ -1592,29 +1690,31 @@ internal enum L10n {
   internal static var screenEditRoomAddressRoomAddressSectionFooter: String { return L10n.tr("Localizable", "screen_edit_room_address_room_address_section_footer") }
   /// Room address
   internal static var screenEditRoomAddressTitle: String { return L10n.tr("Localizable", "screen_edit_room_address_title") }
-  /// Continue reset
+  /// Continue
   internal static var screenEncryptionResetActionContinueReset: String { return L10n.tr("Localizable", "screen_encryption_reset_action_continue_reset") }
-  /// Your account details, contacts, preferences, and chat list will be kept
+  /// Your account, contacts, preferences, and chats list are kept
   internal static var screenEncryptionResetBullet1: String { return L10n.tr("Localizable", "screen_encryption_reset_bullet_1") }
-  /// You will lose any message history that’s stored only on the server
+  /// Older messages that aren’t saved on this device may no longer appear
   internal static var screenEncryptionResetBullet2: String { return L10n.tr("Localizable", "screen_encryption_reset_bullet_2") }
-  /// You will need to verify all your existing devices and contacts again
+  /// Your other devices will need to be confirmed again
   internal static var screenEncryptionResetBullet3: String { return L10n.tr("Localizable", "screen_encryption_reset_bullet_3") }
-  /// Only reset your identity if you don’t have access to another signed-in device and you’ve lost your recovery key.
+  /// Only do this if you can’t sign in on another device where you’re already set up.
   internal static var screenEncryptionResetFooter: String { return L10n.tr("Localizable", "screen_encryption_reset_footer") }
-  /// Can't confirm? You’ll need to reset your identity.
+  /// Set up secure messaging on this device
   internal static var screenEncryptionResetTitle: String { return L10n.tr("Localizable", "screen_encryption_reset_title") }
+  /// Find friends
+  internal static var screenFindFriendsTitle: String { return L10n.tr("Localizable", "screen_find_friends_title") }
   /// Chats
   internal static var screenHomeTabChats: String { return L10n.tr("Localizable", "screen_home_tab_chats") }
   /// Spaces
   internal static var screenHomeTabSpaces: String { return L10n.tr("Localizable", "screen_home_tab_spaces") }
-  /// Can't confirm?
+  /// Need help?
   internal static var screenIdentityConfirmationCannotConfirm: String { return L10n.tr("Localizable", "screen_identity_confirmation_cannot_confirm") }
   /// Create a new recovery key
   internal static var screenIdentityConfirmationCreateNewRecoveryKey: String { return L10n.tr("Localizable", "screen_identity_confirmation_create_new_recovery_key") }
-  /// Verify this device to set up secure messaging.
+  /// Confirm this device to turn on secure messaging.
   internal static var screenIdentityConfirmationSubtitle: String { return L10n.tr("Localizable", "screen_identity_confirmation_subtitle") }
-  /// Confirm your identity
+  /// Confirm it’s you
   internal static var screenIdentityConfirmationTitle: String { return L10n.tr("Localizable", "screen_identity_confirmation_title") }
   /// Use another device
   internal static var screenIdentityConfirmationUseAnotherDevice: String { return L10n.tr("Localizable", "screen_identity_confirmation_use_another_device") }
@@ -1864,6 +1964,10 @@ internal enum L10n {
   }
   /// The file is too large to upload
   internal static var screenMediaUploadPreviewErrorTooLargeTitle: String { return L10n.tr("Localizable", "screen_media_upload_preview_error_too_large_title") }
+  /// Item %1$d of %2$d
+  internal static func screenMediaUploadPreviewItemCount(_ p1: Int, _ p2: Int) -> String {
+    return L10n.tr("Localizable", "screen_media_upload_preview_item_count", p1, p2)
+  }
   /// Optimise image quality
   internal static var screenMediaUploadPreviewOptimizeImageQualityTitle: String { return L10n.tr("Localizable", "screen_media_upload_preview_optimize_image_quality_title") }
   /// Processing...
@@ -1944,16 +2048,40 @@ internal enum L10n {
   internal static var screenOnboardingSignInWithQrCode: String { return L10n.tr("Localizable", "screen_onboarding_sign_in_with_qr_code") }
   /// Create account
   internal static var screenOnboardingSignUp: String { return L10n.tr("Localizable", "screen_onboarding_sign_up") }
-  /// Welcome to the fastest %1$@ ever. Supercharged for speed and simplicity.
-  internal static func screenOnboardingWelcomeMessage(_ p1: Any) -> String {
-    return L10n.tr("Localizable", "screen_onboarding_welcome_message", String(describing: p1))
-  }
-  /// Welcome to %1$@. Supercharged, for speed and simplicity.
-  internal static func screenOnboardingWelcomeSubtitle(_ p1: Any) -> String {
-    return L10n.tr("Localizable", "screen_onboarding_welcome_subtitle", String(describing: p1))
-  }
-  /// Be in your element
+  /// End-to-end encrypted
+  internal static var screenOnboardingTrustEncrypted: String { return L10n.tr("Localizable", "screen_onboarding_trust_encrypted") }
+  /// Welcome to Gua
   internal static var screenOnboardingWelcomeTitle: String { return L10n.tr("Localizable", "screen_onboarding_welcome_title") }
+  /// 6-digit code
+  internal static var screenOtpCodePlaceholder: String { return L10n.tr("Localizable", "screen_otp_code_placeholder") }
+  /// The code is incorrect or expired.
+  internal static var screenOtpInvalidCode: String { return L10n.tr("Localizable", "screen_otp_invalid_code") }
+  /// Continue with phone number
+  internal static var screenPhoneLoginButtonTitle: String { return L10n.tr("Localizable", "screen_phone_login_button_title") }
+  /// Send code
+  internal static var screenPhoneLoginContinue: String { return L10n.tr("Localizable", "screen_phone_login_continue") }
+  /// We'll text a verification code to this number.
+  internal static var screenPhoneLoginFooter: String { return L10n.tr("Localizable", "screen_phone_login_footer") }
+  /// Enter a valid phone number including the country code.
+  internal static var screenPhoneLoginInvalidNumber: String { return L10n.tr("Localizable", "screen_phone_login_invalid_number") }
+  /// Sign in with another method
+  internal static var screenPhoneLoginLegacy: String { return L10n.tr("Localizable", "screen_phone_login_legacy") }
+  /// Phone number (include country code)
+  internal static var screenPhoneLoginPhonePlaceholder: String { return L10n.tr("Localizable", "screen_phone_login_phone_placeholder") }
+  /// You've requested too many codes. Please wait a moment and try again.
+  internal static var screenPhoneLoginRateLimited: String { return L10n.tr("Localizable", "screen_phone_login_rate_limited") }
+  /// We couldn't send a code. Please try again.
+  internal static var screenPhoneLoginSendFailed: String { return L10n.tr("Localizable", "screen_phone_login_send_failed") }
+  /// We'll send a 6-digit verification code to your mobile number.
+  internal static var screenPhoneLoginSubtitle: String { return L10n.tr("Localizable", "screen_phone_login_subtitle") }
+  /// Enter your phone number
+  internal static var screenPhoneLoginTitle: String { return L10n.tr("Localizable", "screen_phone_login_title") }
+  /// Welcome to Gua
+  internal static var screenPhoneLoginWelcome: String { return L10n.tr("Localizable", "screen_phone_login_welcome") }
+  /// PINs don't match. Try again.
+  internal static var screenPinSetupMismatchError: String { return L10n.tr("Localizable", "screen_pin_setup_mismatch_error") }
+  /// Choose a less predictable PIN (avoid 000000, 123456, etc.).
+  internal static var screenPinSetupWeakError: String { return L10n.tr("Localizable", "screen_pin_setup_weak_error") }
   /// Press on a message and choose “%1$@” to include here.
   internal static func screenPinnedTimelineEmptyStateDescription(_ p1: Any) -> String {
     return L10n.tr("Localizable", "screen_pinned_timeline_empty_state_description", String(describing: p1))
@@ -2152,7 +2280,7 @@ internal enum L10n {
   internal static var screenResetEncryptionConfirmationAlertAction: String { return L10n.tr("Localizable", "screen_reset_encryption_confirmation_alert_action") }
   /// This process is irreversible.
   internal static var screenResetEncryptionConfirmationAlertSubtitle: String { return L10n.tr("Localizable", "screen_reset_encryption_confirmation_alert_subtitle") }
-  /// Are you sure you want to reset your identity?
+  /// Set up secure messaging from scratch?
   internal static var screenResetEncryptionConfirmationAlertTitle: String { return L10n.tr("Localizable", "screen_reset_encryption_confirmation_alert_title") }
   /// An unknown error happened. Please check your account password is correct and try again.
   internal static var screenResetEncryptionPasswordError: String { return L10n.tr("Localizable", "screen_reset_encryption_password_error") }
@@ -2302,6 +2430,10 @@ internal enum L10n {
   internal static var screenRoomDetailsErrorMuting: String { return L10n.tr("Localizable", "screen_room_details_error_muting") }
   /// Failed unmuting this room, please try again.
   internal static var screenRoomDetailsErrorUnmuting: String { return L10n.tr("Localizable", "screen_room_details_error_unmuting") }
+  /// Don't close the app until finished.
+  internal static var screenRoomDetailsInvitePeopleDontClose: String { return L10n.tr("Localizable", "screen_room_details_invite_people_dont_close") }
+  /// Preparing invitations...
+  internal static var screenRoomDetailsInvitePeoplePreparing: String { return L10n.tr("Localizable", "screen_room_details_invite_people_preparing") }
   /// Invite people
   internal static var screenRoomDetailsInvitePeopleTitle: String { return L10n.tr("Localizable", "screen_room_details_invite_people_title") }
   /// Leave conversation
@@ -2882,6 +3014,66 @@ internal enum L10n {
   }
   /// Message not sent because you have not verified one or more of your devices.
   internal static var screenTimelineItemMenuSendFailureYouUnsignedDevice: String { return L10n.tr("Localizable", "screen_timeline_item_menu_send_failure_you_unsigned_device") }
+  /// Change PIN
+  internal static var screenTwoStepVerificationChangeButton: String { return L10n.tr("Localizable", "screen_two_step_verification_change_button") }
+  /// Re-enter your new PIN to confirm.
+  internal static var screenTwoStepVerificationConfirmFooter: String { return L10n.tr("Localizable", "screen_two_step_verification_confirm_footer") }
+  /// Confirm your new PIN
+  internal static var screenTwoStepVerificationConfirmHeader: String { return L10n.tr("Localizable", "screen_two_step_verification_confirm_header") }
+  /// For security, you can only change your PIN once per day. Please try again later.
+  internal static var screenTwoStepVerificationCooldown: String { return L10n.tr("Localizable", "screen_two_step_verification_cooldown") }
+  /// Confirm your current PIN to authorize the change.
+  internal static var screenTwoStepVerificationCurrentFooter: String { return L10n.tr("Localizable", "screen_two_step_verification_current_footer") }
+  /// Enter your current PIN
+  internal static var screenTwoStepVerificationCurrentHeader: String { return L10n.tr("Localizable", "screen_two_step_verification_current_header") }
+  /// Current PIN is incorrect.
+  internal static var screenTwoStepVerificationCurrentIncorrect: String { return L10n.tr("Localizable", "screen_two_step_verification_current_incorrect") }
+  /// Too many incorrect attempts. Please try again later.
+  internal static var screenTwoStepVerificationLocked: String { return L10n.tr("Localizable", "screen_two_step_verification_locked") }
+  /// Pick a 6-digit PIN that's hard to guess.
+  internal static var screenTwoStepVerificationNewFooter: String { return L10n.tr("Localizable", "screen_two_step_verification_new_footer") }
+  /// Choose a new PIN
+  internal static var screenTwoStepVerificationNewHeader: String { return L10n.tr("Localizable", "screen_two_step_verification_new_header") }
+  /// Enter the 6-digit code we just sent to your phone.
+  internal static var screenTwoStepVerificationOtpFooter: String { return L10n.tr("Localizable", "screen_two_step_verification_otp_footer") }
+  /// Enter the SMS code
+  internal static var screenTwoStepVerificationOtpHeader: String { return L10n.tr("Localizable", "screen_two_step_verification_otp_header") }
+  /// That code is invalid or has expired. Please try again.
+  internal static var screenTwoStepVerificationOtpInvalid: String { return L10n.tr("Localizable", "screen_two_step_verification_otp_invalid") }
+  /// Add a 6-digit PIN to protect your account against SIM swap attacks. You'll be asked for it when signing in on a new device.
+  internal static var screenTwoStepVerificationOverviewFooterOff: String { return L10n.tr("Localizable", "screen_two_step_verification_overview_footer_off") }
+  /// Your PIN is required when signing in on a new device. Keep it secret — anyone with your PIN and SMS code can access your account.
+  internal static var screenTwoStepVerificationOverviewFooterOn: String { return L10n.tr("Localizable", "screen_two_step_verification_overview_footer_on") }
+  /// Status
+  internal static var screenTwoStepVerificationOverviewHeader: String { return L10n.tr("Localizable", "screen_two_step_verification_overview_header") }
+  /// Set up a passkey
+  internal static var screenTwoStepVerificationPasskeyButton: String { return L10n.tr("Localizable", "screen_two_step_verification_passkey_button") }
+  /// Use Face ID, Touch ID, or a security key to sign in without a password.
+  internal static var screenTwoStepVerificationPasskeyFooter: String { return L10n.tr("Localizable", "screen_two_step_verification_passkey_footer") }
+  /// We'll send a verification code by SMS to the phone linked to your account.
+  internal static var screenTwoStepVerificationPhoneFooter: String { return L10n.tr("Localizable", "screen_two_step_verification_phone_footer") }
+  /// Confirm your phone number
+  internal static var screenTwoStepVerificationPhoneHeader: String { return L10n.tr("Localizable", "screen_two_step_verification_phone_header") }
+  /// Set up PIN
+  internal static var screenTwoStepVerificationReminderAction: String { return L10n.tr("Localizable", "screen_two_step_verification_reminder_action") }
+  /// Not now
+  internal static var screenTwoStepVerificationReminderDismiss: String { return L10n.tr("Localizable", "screen_two_step_verification_reminder_dismiss") }
+  /// Set up a 6-digit PIN so your account stays safe even if someone takes over your phone number.
+  internal static var screenTwoStepVerificationReminderMessage: String { return L10n.tr("Localizable", "screen_two_step_verification_reminder_message") }
+  /// Protect your account
+  internal static var screenTwoStepVerificationReminderTitle: String { return L10n.tr("Localizable", "screen_two_step_verification_reminder_title") }
+  /// New PIN must differ from the current one.
+  internal static var screenTwoStepVerificationSameAsCurrent: String { return L10n.tr("Localizable", "screen_two_step_verification_same_as_current") }
+  /// Set up PIN
+  internal static var screenTwoStepVerificationSetButton: String { return L10n.tr("Localizable", "screen_two_step_verification_set_button") }
+  /// No PIN set
+  internal static var screenTwoStepVerificationStatusOff: String { return L10n.tr("Localizable", "screen_two_step_verification_status_off") }
+  /// PIN is enabled
+  internal static var screenTwoStepVerificationStatusOn: String { return L10n.tr("Localizable", "screen_two_step_verification_status_on") }
+  /// Two-step verification
+  internal static var screenTwoStepVerificationTitle: String { return L10n.tr("Localizable", "screen_two_step_verification_title") }
+  /// PIN updated
+  internal static var screenTwoStepVerificationUpdated: String { return L10n.tr("Localizable", "screen_two_step_verification_updated") }
   /// Location
   internal static var screenViewLocationTitle: String { return L10n.tr("Localizable", "screen_view_location_title") }
   /// Looks like you’re using a new device. Verify with another device to access your encrypted messages.
@@ -3290,6 +3482,8 @@ internal enum L10n {
     internal static var addAccount: String { return L10n.tr("Localizable", "common.add_account") }
     /// Add another account
     internal static var addAnotherAccount: String { return L10n.tr("Localizable", "common.add_another_account") }
+    /// No space name
+    internal static var noSpaceName: String { return L10n.tr("Localizable", "common.no_space_name") }
     /// Select an account
     internal static var selectAccount: String { return L10n.tr("Localizable", "common.select_account") }
   }

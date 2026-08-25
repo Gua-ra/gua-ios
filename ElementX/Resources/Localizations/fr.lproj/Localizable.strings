@@ -97,6 +97,7 @@
 "action_leave" = "Quitter";
 "action_leave_conversation" = "Quitter la discussion";
 "action_leave_room" = "Quitter le salon";
+"action_leave_space" = "Leave space";
 "action_load_more" = "Voir plus";
 "action_manage_account" = "Gérer le compte";
 "action_manage_devices" = "Gérez les sessions";
@@ -180,6 +181,7 @@
 "common_creating_room" = "Création du salon…";
 "common_current_user_canceled_knock" = "Demande annulée";
 "common_current_user_left_room" = "Quitter le salon";
+"common_current_user_left_space" = "Left space";
 "common_current_user_rejected_invite" = "Invitation refusée";
 "common_dark" = "Sombre";
 "common_date_date_at_time" = "%1$@ à %2$@";
@@ -278,8 +280,10 @@
 "common_sent" = "Envoyé";
 "common_sentence_delimiter" = ". ";
 "common_server_not_supported" = "Serveur non pris en charge";
+"common_server_unreachable" = "Serveur inaccessible";
 "common_server_url" = "URL du serveur";
 "common_settings" = "Paramètres";
+"common_share_space" = "Share space";
 "common_shared_location" = "Position partagée";
 "common_signing_out" = "Déconnexion";
 "common_something_went_wrong" = "Une erreur s'est produite";
@@ -326,6 +330,7 @@
 "common_you" = "Vous";
 "common.add_account" = "Ajouter un compte";
 "common.add_another_account" = "Ajouter un autre compte";
+"common.no_space_name" = "No space name";
 "common.select_account" = "Choisir un compte";
 "common_unable_to_decrypt_insecure_device" = "Envoyé depuis un appareil non sécurisé";
 "common_unable_to_decrypt_verification_violation" = "L'identité vérifiée de l'expéditeur a été réinitialisée";
@@ -371,6 +376,7 @@
 "emoji_picker_category_objects" = "Objets";
 "emoji_picker_category_people" = "Émoticônes et personnes";
 "emoji_picker_category_places" = "Voyages & lieux";
+"emoji_picker_category_recent" = "Recent emojis";
 "emoji_picker_category_symbols" = "Symboles";
 "emoji_picker_search_placeholder" = "Chercher des emojis";
 "error_invalid_invite" = "Ce salon n'existe plus ou l'invitation n'est plus valable.";
@@ -481,6 +487,9 @@
 "screen_bottom_sheet_create_dm_confirmation_button_title" = "Envoyer l'invitation";
 "screen_bottom_sheet_create_dm_message" = "Voulez-vous entamer une discussion avec %1$@ ?";
 "screen_bottom_sheet_create_dm_title" = "Envoyer l'invitation ?";
+"screen_bottom_sheet_leave_space_subtitle" = "This will also remove you from all rooms in this space.";
+"screen_bottom_sheet_leave_space_subtitle_admin" = "This will also remove you from all rooms in this space, including those you’re the only administrator for:";
+"screen_bottom_sheet_leave_space_title" = "Leave %1$@?";
 "screen_bottom_sheet_manage_room_member_ban" = "Bannir du salon";
 "screen_bottom_sheet_manage_room_member_ban_member_confirmation_action" = "Bannir";
 "screen_bottom_sheet_manage_room_member_ban_member_confirmation_description" = "Il ne pourra pas rejoindre le salon à nouveau, même si il est invité.";
@@ -569,6 +578,7 @@
 "screen_media_upload_preview_error_failed_sending" = "Échec du téléchargement du média, veuillez réessayer.";
 "screen_media_upload_preview_error_too_large_message" = "La taille maximale autorisée pour les fichiers est de %1$@.";
 "screen_media_upload_preview_error_too_large_title" = "Le fichier est trop volumineux pour être envoyé.";
+"screen_media_upload_preview_item_count" = "Item %1$d of %2$d";
 "screen_media_upload_preview_optimize_image_quality_title" = "Optimiser la qualité de l'image";
 "screen_media_upload_preview_processing" = "Traitement en cours…";
 "screen_pinned_timeline_empty_state_description" = "Cliquez (clic long) sur un message et choisissez « %1$@ » pour qu‘il apparaisse ici.";
@@ -873,9 +883,7 @@
 "screen_onboarding_sign_in_to" = "Se connecter à %1$@";
 "screen_onboarding_sign_in_with_qr_code" = "Se connecter avec un QR code";
 "screen_onboarding_sign_up" = "Créer un compte";
-"screen_onboarding_welcome_message" = "Bienvenue dans l’application %1$@ la plus rapide de tous les temps. Boosté pour plus de rapidité et de simplicité.";
-"screen_onboarding_welcome_subtitle" = "Bienvenue sur %1$@. Boosté, pour plus de rapidité et de simplicité.";
-"screen_onboarding_welcome_title" = "Soyez dans votre Element";
+"screen_onboarding_welcome_title" = "Bienvenue sur Gua";
 "screen_polls_history_empty_ongoing" = "Impossible de trouver des sondages en cours.";
 "screen_polls_history_empty_past" = "Impossible de trouver des sondages terminés.";
 "screen_polls_history_filter_ongoing" = "En cours";
@@ -999,6 +1007,8 @@
 "screen_room_details_error_loading_notification_settings" = "Une erreur s’est produite lors du chargement des paramètres de notification.";
 "screen_room_details_error_muting" = "Échec de la mise en sourdine de ce salon, veuillez réessayer.";
 "screen_room_details_error_unmuting" = "Échec de la désactivation de la mise en sourdine de ce salon, veuillez réessayer.";
+"screen_room_details_invite_people_dont_close" = "Don't close the app until finished.";
+"screen_room_details_invite_people_preparing" = "Préparation des invitations...";
 "screen_room_details_notification_mode_custom" = "Personnalisé";
 "screen_room_details_notification_mode_default" = "Défaut";
 "screen_room_details_share_room_title" = "Partager le salon";
@@ -1385,3 +1395,94 @@
 "screen_signout_preference_item" = "Se déconnecter";
 "screen_signout_save_recovery_key_title" = "Avez-vous sauvegardé votre clé de récupération ?";
 "troubleshoot_notifications_entry_point_title" = "Dépanner les notifications";
+
+"screen_phone_login_title" = "Saisissez votre numéro de téléphone";
+"screen_phone_login_subtitle" = "Nous vous enverrons un code de vérification à 6 chiffres sur votre mobile.";
+"screen_phone_login_continue" = "Envoyer le code";
+"screen_phone_login_phone_placeholder" = "Numéro de téléphone (inclure l'indicatif)";
+"screen_phone_login_invalid_number" = "Saisissez un numéro de téléphone valide avec l'indicatif.";
+"screen_phone_login_rate_limited" = "Vous avez demandé trop de codes. Veuillez patienter avant de réessayer.";
+"screen_phone_login_send_failed" = "Impossible d'envoyer un code. Veuillez réessayer.";
+"screen_phone_login_button_title" = "Continuer avec le numéro de téléphone";
+
+"screen_otp_code_placeholder" = "Code à 6 chiffres";
+"screen_otp_invalid_code" = "Le code est incorrect ou a expiré.";
+
+// GUA FORK: Gua-custom keys missing from fr.lproj — ported from en/pt-BR so the
+// onboarding, two-step verification, PIN, profile-setup and re-auth flows render
+// in French instead of falling back to English.
+"screen_account_reauth_code_label" = "Code de vérification";
+"screen_account_reauth_section_footer" = "Nous enverrons un code de vérification par SMS au téléphone associé à votre compte.";
+"screen_account_reauth_section_title" = "Vérifiez votre identité";
+"screen_account_reauth_send_code" = "Envoyer le code de vérification";
+"screen_account_reauth_verified" = "Vérifié";
+"screen_onboarding_trust_encrypted" = "Chiffré de bout en bout";
+"screen_phone_login_footer" = "Nous enverrons un code de vérification par SMS à ce numéro.";
+"screen_phone_login_legacy" = "Se connecter avec une autre méthode";
+"screen_phone_login_welcome" = "Bienvenue sur Gua";
+
+/* GUA FORK */
+"screen_find_friends_title" = "Trouver des amis";
+"screen_two_step_verification_title" = "Vérification en deux étapes";
+
+/* GUA FORK - Find Friends empty state */
+"find_friends_empty_title" = "Aucun contact sur Gua pour l'instant";
+"find_friends_empty_message" = "Aucun de vos contacts n'est encore sur Gua. Invitez-les et ils apparaîtront ici.";
+"find_friends_empty_action" = "Réessayer";
+
+/* GUA FORK - Two-step verification (missing translations) */
+"screen_two_step_verification_overview_header" = "État";
+"screen_two_step_verification_overview_footer_on" = "Votre code PIN est requis lors de la connexion sur un nouvel appareil. Gardez-le secret — toute personne disposant de votre code PIN et de votre code SMS peut accéder à votre compte.";
+"screen_two_step_verification_overview_footer_off" = "Ajoutez un code PIN à 6 chiffres pour protéger votre compte contre les attaques par échange de carte SIM. Il vous sera demandé lors de la connexion sur un nouvel appareil.";
+"screen_two_step_verification_status_on" = "Code PIN activé";
+"screen_two_step_verification_status_off" = "Aucun code PIN défini";
+"screen_two_step_verification_set_button" = "Configurer un code PIN";
+"screen_two_step_verification_change_button" = "Modifier le code PIN";
+"screen_two_step_verification_passkey_button" = "Configurer une clé d'accès";
+"screen_two_step_verification_passkey_footer" = "Utilisez Face ID, Touch ID ou une clé de sécurité pour vous connecter sans mot de passe.";
+"screen_two_step_verification_current_header" = "Saisissez votre code PIN actuel";
+"screen_two_step_verification_current_footer" = "Confirmez votre code PIN actuel pour autoriser la modification.";
+"screen_two_step_verification_new_header" = "Choisissez un nouveau code PIN";
+"screen_two_step_verification_new_footer" = "Choisissez un code PIN à 6 chiffres difficile à deviner.";
+"screen_two_step_verification_confirm_header" = "Confirmez votre nouveau code PIN";
+"screen_two_step_verification_confirm_footer" = "Saisissez à nouveau votre nouveau code PIN pour confirmer.";
+"screen_two_step_verification_current_incorrect" = "Le code PIN actuel est incorrect.";
+"screen_two_step_verification_same_as_current" = "Le nouveau code PIN doit être différent de l'actuel.";
+"screen_two_step_verification_locked" = "Trop de tentatives incorrectes. Veuillez réessayer plus tard.";
+"screen_two_step_verification_updated" = "Code PIN mis à jour";
+"screen_two_step_verification_reminder_title" = "Protégez votre compte";
+"screen_two_step_verification_reminder_message" = "Configurez un code PIN à 6 chiffres pour que votre compte reste protégé même si quelqu'un prend le contrôle de votre numéro de téléphone.";
+"screen_two_step_verification_reminder_action" = "Configurer un code PIN";
+"screen_two_step_verification_reminder_dismiss" = "Plus tard";
+"screen_two_step_verification_phone_header" = "Confirmez votre numéro de téléphone";
+"screen_two_step_verification_phone_footer" = "Nous enverrons un code de vérification par SMS au téléphone associé à votre compte.";
+"screen_two_step_verification_otp_header" = "Saisissez le code SMS";
+"screen_two_step_verification_otp_footer" = "Saisissez le code à 6 chiffres que nous venons d'envoyer sur votre téléphone.";
+"screen_two_step_verification_otp_invalid" = "Ce code est invalide ou a expiré. Veuillez réessayer.";
+"screen_two_step_verification_cooldown" = "Pour des raisons de sécurité, vous ne pouvez modifier votre code PIN qu'une fois par jour. Veuillez réessayer plus tard.";
+
+/* GUA FORK - Change phone number */
+"screen_change_phone_title" = "Modifier le numéro de téléphone";
+"screen_change_phone_intro_header" = "Modifiez votre numéro";
+"screen_change_phone_intro_message" = "Nous confirmerons votre code PIN, puis enverrons un code par SMS à votre nouveau numéro. Votre compte, vos conversations et vos messages restent identiques.";
+"screen_change_phone_already_linked" = "Ce numéro de téléphone est déjà associé à un autre compte.";
+"screen_change_phone_new_header" = "Nouveau numéro de téléphone";
+"screen_change_phone_new_footer" = "Saisissez le numéro que vous souhaitez utiliser à partir de maintenant.";
+"screen_change_phone_pin_setup_required_header" = "Configurez d'abord un code PIN";
+"screen_change_phone_pin_setup_required_message" = "Vous avez besoin d'un code PIN pour modifier votre numéro. Configurez-en un, puis revenez pour modifier votre numéro.";
+"screen_change_phone_pin_setup_required_action" = "Configurer un code PIN";
+"screen_change_phone_cooldown_header" = "Pas tout de suite";
+"screen_change_phone_cooldown_message" = "Pour des raisons de sécurité, vous pourrez modifier votre numéro dans %1$@.";
+"screen_change_phone_cooldown_message_generic" = "Pour des raisons de sécurité, vous ne pouvez pas encore modifier votre numéro. Veuillez réessayer plus tard.";
+"screen_change_phone_pin_header" = "Saisissez votre code PIN";
+"screen_change_phone_pin_footer" = "Confirmez votre code PIN à 6 chiffres pour autoriser cette modification.";
+"screen_change_phone_pin_incorrect" = "Ce code PIN est incorrect. Veuillez réessayer.";
+"screen_change_phone_otp_header" = "Vérifiez votre nouveau numéro";
+"screen_change_phone_otp_footer" = "Saisissez le code à 6 chiffres que nous avons envoyé à votre nouveau numéro.";
+"screen_change_phone_otp_invalid" = "Ce code est invalide ou a expiré. Veuillez réessayer.";
+"screen_change_phone_success" = "Votre numéro de téléphone a été mis à jour.";
+"screen_change_phone_done_header" = "C'est fait";
+"screen_change_phone_done_message" = "Votre numéro de téléphone a été mis à jour. Vous utiliserez votre nouveau numéro pour vous connecter à partir de maintenant.";
+
+/* GUA FORK - App lock */
+"screen_app_lock_unlock_with_biometrics_ios" = "Déverrouiller avec %1$@";

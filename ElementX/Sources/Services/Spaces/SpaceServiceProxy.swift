@@ -25,16 +25,16 @@ class SpaceServiceProxy: SpaceServiceProxyProtocol {
     }
     
     private func setupSubscriptions() async {
-        joinedSpacesHandle = await spaceService.subscribeToJoinedSpaces(listener: SDKListener { [weak self] updates in
+        joinedSpacesHandle = await spaceService.subscribeToTopLevelJoinedSpaces(listener: SDKListener { [weak self] updates in
             self?.handleUpdates(updates)
         })
     }
     
-    func spaceRoomList(for spaceRoomProxy: SpaceRoomProxyProtocol) async -> Result<SpaceRoomListProxyProtocol, SpaceServiceProxyError> {
+    func spaceRoomList(spaceID: String) async -> Result<SpaceRoomListProxyProtocol, SpaceServiceProxyError> {
         do {
-            return try await .success(SpaceRoomListProxy(spaceService.spaceRoomList(spaceId: spaceRoomProxy.id), spaceRoomProxy: spaceRoomProxy))
+            return try await .success(SpaceRoomListProxy(spaceService.spaceRoomList(spaceId: spaceID)))
         } catch {
-            MXLog.error("Failed creating space room list for \(spaceRoomProxy.id): \(error)")
+            MXLog.error("Failed creating space room list for \(spaceID): \(error)")
             return .failure(.sdkError(error))
         }
     }

@@ -27,7 +27,9 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
     private let appLockService: AppLockServiceProtocol
     private let flowParameters: CommonFlowParameters
     
-    private var userSession: UserSessionProtocol { flowParameters.userSession }
+    private var userSession: UserSessionProtocol {
+        flowParameters.userSession
+    }
     
     private let onboardingFlowCoordinator: OnboardingFlowCoordinator
     private let onboardingStackCoordinator: NavigationStackCoordinator
@@ -123,7 +125,7 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
         switch appRoute {
         case .accountProvisioningLink:
             break // We always ignore this flow when logged in.
-        case .settings, .chatBackupSettings:
+        case .settings, .settingsTwoStepVerification, .chatBackupSettings:
             if stateMachine.state != .settingsScreen {
                 stateMachine.tryEvent(.showSettingsScreen)
             }
@@ -149,12 +151,12 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
         chatsFlowCoordinator.clearRoute(animated: animated)
     }
     
-    // Clearing routes is more complicated than it first seems. When passing routes
-    // to the chats flow we can't clear all routes as e.g. childRoom/childEvent etc
-    // expect to push into the existing stack. But we do need to hide any sheets that
-    // might cover up the presented route. BUT! We probably shouldn't dismiss onboarding
-    // or verification flows until they're complete… This needs more thought before we
-    // codify it all into the state machine.
+    /// Clearing routes is more complicated than it first seems. When passing routes
+    /// to the chats flow we can't clear all routes as e.g. childRoom/childEvent etc
+    /// expect to push into the existing stack. But we do need to hide any sheets that
+    /// might cover up the presented route. BUT! We probably shouldn't dismiss onboarding
+    /// or verification flows until they're complete… This needs more thought before we
+    /// codify it all into the state machine.
     private func clearPresentedSheets(animated: Bool) {
         switch stateMachine.state {
         case .initial, .tabBar:
@@ -199,6 +201,8 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
                 switch action {
                 case .showSettings:
                     handleAppRoute(.settings, animated: true)
+                case .showTwoStepVerification:
+                    handleAppRoute(.settingsTwoStepVerification, animated: true)
                 case .showChatBackupSettings:
                     handleAppRoute(.chatBackupSettings, animated: true)
                 case .sessionVerification(let flow):

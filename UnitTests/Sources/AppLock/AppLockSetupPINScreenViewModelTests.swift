@@ -5,9 +5,8 @@
 // Please see LICENSE files in the repository root for full details.
 //
 
-import XCTest
-
 @testable import ElementX
+import XCTest
 
 @MainActor
 class AppLockSetupPINScreenViewModelTests: XCTestCase {
@@ -15,11 +14,16 @@ class AppLockSetupPINScreenViewModelTests: XCTestCase {
     var keychainController: KeychainControllerMock!
     var viewModel: AppLockSetupPINScreenViewModelProtocol!
     
-    var context: AppLockSetupPINScreenViewModelType.Context { viewModel.context }
+    var context: AppLockSetupPINScreenViewModelType.Context {
+        viewModel.context
+    }
     
     override func setUp() {
         AppSettings.resetAllSettings()
         keychainController = KeychainControllerMock()
+        // Setting a PIN code now also decides whether to turn biometric unlock on by default.
+        keychainController.containsPINCodeReturnValue = false
+        keychainController.containsPINCodeBiometricStateReturnValue = false
         appLockService = AppLockService(keychainController: keychainController, appSettings: AppSettings())
     }
     

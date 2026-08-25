@@ -5,9 +5,8 @@
 // Please see LICENSE files in the repository root for full details.
 //
 
-import XCTest
-
 @testable import ElementX
+import XCTest
 
 class AuthenticationServiceTests: XCTestCase {
     var client: ClientSDKMock!
@@ -66,6 +65,26 @@ class AuthenticationServiceTests: XCTestCase {
         
         XCTAssertEqual(service.flow, .register)
         XCTAssertEqual(service.homeserver.value, .mockMatrixDotOrg)
+    }
+    
+    func testOIDCLoginPassesLoginHint() async {
+        setupMocks()
+        let loginHint = "+15551234567"
+        
+        switch await service.configure(for: "matrix.org", flow: .login) {
+        case .success:
+            break
+        case .failure(let error):
+            XCTFail("Unexpected failure: \(error)")
+        }
+        
+        switch await service.urlForOIDCLogin(loginHint: loginHint) {
+        case .success:
+            XCTAssertEqual(client.urlForOauthOauthConfigurationPromptLoginHintDeviceIdAdditionalScopesCallsCount, 1)
+            XCTAssertEqual(client.urlForOauthOauthConfigurationPromptLoginHintDeviceIdAdditionalScopesReceivedArguments?.loginHint, loginHint)
+        case .failure(let error):
+            XCTFail("Unexpected failure: \(error)")
+        }
     }
     
     func testConfigureRegisterNoSupport() async {

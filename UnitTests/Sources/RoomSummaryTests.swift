@@ -5,9 +5,8 @@
 // Please see LICENSE files in the repository root for full details.
 //
 
-import XCTest
-
 @testable import ElementX
+import XCTest
 
 class RoomSummaryTests: XCTestCase {
     // swiftlint:disable:next large_tuple
@@ -72,7 +71,7 @@ class RoomSummaryTests: XCTestCase {
     // MARK: - Helpers
     
     func makeSummary(isDirect: Bool, hasRoomAvatar: Bool, isTombstoned: Bool) -> RoomSummary {
-        RoomSummary(room: .init(noPointer: .init()),
+        RoomSummary(room: .init(noHandle: .init()),
                     id: roomDetails.id,
                     joinRequestType: nil,
                     name: roomDetails.name,

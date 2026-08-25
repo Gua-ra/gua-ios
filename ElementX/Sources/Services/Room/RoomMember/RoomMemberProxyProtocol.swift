@@ -33,7 +33,8 @@ extension RoomMemberProxyProtocol {
     }
     
     var permalink: URL? {
-        try? URL(string: matrixToUserPermalink(userId: userID))
+        // GUA FORK: share the brand link, never matrix.to (which surfaces the homeserver).
+        GuaUserLink.url(for: userID)
     }
     
     /// The name used for sorting the member alphabetically. This will be the displayname if,
@@ -58,5 +59,7 @@ extension [RoomMemberProxyProtocol] {
 }
 
 extension RoomMemberProxyProtocol {
-    var role: RoomRole { .init(powerLevel: powerLevel) }
+    var role: RoomRole {
+        .init(powerLevel: powerLevel)
+    }
 }

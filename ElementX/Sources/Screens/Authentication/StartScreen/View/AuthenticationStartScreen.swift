@@ -62,23 +62,24 @@ struct AuthenticationStartScreen: View {
             if verticalSizeClass == .regular {
                 Spacer()
                 
-                AuthenticationStartLogo(isOnGradient: true)
+                AuthenticationStartLogo(isOnGradient: !context.viewState.hideBrandChrome)
             }
             
             Spacer()
             
-            VStack(spacing: 8) {
-                Text(L10n.screenOnboardingWelcomeTitle)
-                    .font(.compound.headingLGBold)
-                    .foregroundColor(.compound.textPrimary)
-                    .multilineTextAlignment(.center)
-                Text(L10n.screenOnboardingWelcomeMessage(InfoPlistReader.main.productionAppName))
-                    .font(.compound.bodyLG)
-                    .foregroundColor(.compound.textSecondary)
-                    .multilineTextAlignment(.center)
+            if !context.viewState.hideBrandChrome {
+                VStack(spacing: 24) {
+                    VStack(spacing: 8) {
+                        Text(L10n.screenOnboardingWelcomeTitle)
+                            .font(.compound.headingLGBold)
+                            .foregroundColor(.compound.textPrimary)
+                            .multilineTextAlignment(.center)
+                    }
+                    trustPills
+                }
+                .padding()
+                .fixedSize(horizontal: false, vertical: true)
             }
-            .padding()
-            .fixedSize(horizontal: false, vertical: true)
             
             Spacer()
         }
@@ -86,7 +87,14 @@ struct AuthenticationStartScreen: View {
         .padding(.horizontal, 16)
         .readableFrame()
     }
-    
+
+    /// On-brand trust signals shown under the welcome message.
+    private var trustPills: some View {
+        VStack(spacing: 8) {
+            TrustPill(systemImage: "lock.fill", title: L10n.screenOnboardingTrustEncrypted)
+        }
+    }
+
     /// The main action buttons.
     var buttons: some View {
         VStack(spacing: 16) {
@@ -119,6 +127,27 @@ struct AuthenticationStartScreen: View {
         // Let's not deal with snapshotting a changing version string.
         let shortVersionString = ProcessInfo.isRunningTests ? "0.0.0" : InfoPlistReader.main.bundleShortVersionString
         return Text(L10n.screenOnboardingAppVersion(shortVersionString))
+    }
+}
+
+/// A single capsule "trust" chip — icon + short claim, frosted so it reads on the launch gradient.
+private struct TrustPill: View {
+    let systemImage: String
+    let title: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: systemImage)
+                .font(.compound.bodyMD)
+                .foregroundColor(.compound.iconSuccessPrimary)
+            Text(title)
+                .font(.compound.bodyMDSemibold)
+                .foregroundColor(.compound.textPrimary)
+        }
+        .padding(.vertical, 9)
+        .padding(.horizontal, 16)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay(Capsule().strokeBorder(.white.opacity(0.15), lineWidth: 0.5))
     }
 }
 

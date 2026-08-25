@@ -6,9 +6,8 @@
 //
 
 import Combine
-import XCTest
-
 @testable import ElementX
+import XCTest
 
 @MainActor
 class PillContextTests: XCTestCase {
@@ -26,6 +25,7 @@ class PillContextTests: XCTestCase {
                                      appSettings: ServiceLocator.shared.settings,
                                      analyticsService: ServiceLocator.shared.analytics,
                                      emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                     linkMetadataProvider: LinkMetadataProvider(),
                                      timelineControllerFactory: TimelineControllerFactoryMock(.init()))
         let context = PillContext(timelineContext: mock.context, data: PillTextAttachmentData(type: .user(userID: id), font: .preferredFont(forTextStyle: .body)))
         
@@ -55,6 +55,7 @@ class PillContextTests: XCTestCase {
                                      appSettings: ServiceLocator.shared.settings,
                                      analyticsService: ServiceLocator.shared.analytics,
                                      emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                     linkMetadataProvider: LinkMetadataProvider(),
                                      timelineControllerFactory: TimelineControllerFactoryMock(.init()))
         let context = PillContext(timelineContext: mock.context, data: PillTextAttachmentData(type: .user(userID: id), font: .preferredFont(forTextStyle: .body)))
         
@@ -77,6 +78,7 @@ class PillContextTests: XCTestCase {
                                      appSettings: ServiceLocator.shared.settings,
                                      analyticsService: ServiceLocator.shared.analytics,
                                      emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                     linkMetadataProvider: LinkMetadataProvider(),
                                      timelineControllerFactory: TimelineControllerFactoryMock(.init()))
         let context = PillContext(timelineContext: mock.context, data: PillTextAttachmentData(type: .allUsers, font: .preferredFont(forTextStyle: .body)))
         
@@ -99,6 +101,7 @@ class PillContextTests: XCTestCase {
                                      appSettings: ServiceLocator.shared.settings,
                                      analyticsService: ServiceLocator.shared.analytics,
                                      emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                     linkMetadataProvider: LinkMetadataProvider(),
                                      timelineControllerFactory: TimelineControllerFactoryMock(.init()))
         let context = PillContext(timelineContext: mock.context, data: PillTextAttachmentData(type: .roomID("1"), font: .preferredFont(forTextStyle: .body)))
         
@@ -120,6 +123,7 @@ class PillContextTests: XCTestCase {
                                      appSettings: ServiceLocator.shared.settings,
                                      analyticsService: ServiceLocator.shared.analytics,
                                      emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                     linkMetadataProvider: LinkMetadataProvider(),
                                      timelineControllerFactory: TimelineControllerFactoryMock(.init()))
         let context = PillContext(timelineContext: mock.context, data: PillTextAttachmentData(type: .roomID("1"), font: .preferredFont(forTextStyle: .body)))
         
@@ -145,6 +149,7 @@ class PillContextTests: XCTestCase {
                                      appSettings: ServiceLocator.shared.settings,
                                      analyticsService: ServiceLocator.shared.analytics,
                                      emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                     linkMetadataProvider: LinkMetadataProvider(),
                                      timelineControllerFactory: TimelineControllerFactoryMock(.init()))
         let context = PillContext(timelineContext: mock.context, data: PillTextAttachmentData(type: .roomAlias("#foundation-and-empire:matrix.org"), font: .preferredFont(forTextStyle: .body)))
         
@@ -166,6 +171,7 @@ class PillContextTests: XCTestCase {
                                      appSettings: ServiceLocator.shared.settings,
                                      analyticsService: ServiceLocator.shared.analytics,
                                      emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                     linkMetadataProvider: LinkMetadataProvider(),
                                      timelineControllerFactory: TimelineControllerFactoryMock(.init()))
         let context = PillContext(timelineContext: mock.context, data: PillTextAttachmentData(type: .roomAlias("#foundation-and-empire:matrix.org"), font: .preferredFont(forTextStyle: .body)))
         
@@ -189,6 +195,7 @@ class PillContextTests: XCTestCase {
                                      appSettings: ServiceLocator.shared.settings,
                                      analyticsService: ServiceLocator.shared.analytics,
                                      emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                     linkMetadataProvider: LinkMetadataProvider(),
                                      timelineControllerFactory: TimelineControllerFactoryMock(.init()))
         let context = PillContext(timelineContext: mock.context, data: PillTextAttachmentData(type: .event(room: .roomID("1")), font: .preferredFont(forTextStyle: .body)))
         
@@ -210,6 +217,7 @@ class PillContextTests: XCTestCase {
                                      appSettings: ServiceLocator.shared.settings,
                                      analyticsService: ServiceLocator.shared.analytics,
                                      emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                     linkMetadataProvider: LinkMetadataProvider(),
                                      timelineControllerFactory: TimelineControllerFactoryMock(.init()))
         let context = PillContext(timelineContext: mock.context, data: PillTextAttachmentData(type: .event(room: .roomID("1")), font: .preferredFont(forTextStyle: .body)))
         
@@ -218,7 +226,7 @@ class PillContextTests: XCTestCase {
         XCTAssertEqual(context.viewState.displayText, "💬 > 1")
     }
     
-    func testEventOnRoomAliasMention() async throws {
+    func testEventOnRoomAliasMention() {
         let proxyMock = JoinedRoomProxyMock(.init())
         let mockController = MockTimelineController()
         mockController.roomProxy = proxyMock
@@ -235,6 +243,7 @@ class PillContextTests: XCTestCase {
                                      appSettings: ServiceLocator.shared.settings,
                                      analyticsService: ServiceLocator.shared.analytics,
                                      emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                     linkMetadataProvider: LinkMetadataProvider(),
                                      timelineControllerFactory: TimelineControllerFactoryMock(.init()))
         let context = PillContext(timelineContext: mock.context, data: PillTextAttachmentData(type: .event(room: .roomAlias("#foundation-and-empire:matrix.org")), font: .preferredFont(forTextStyle: .body)))
         
@@ -243,7 +252,7 @@ class PillContextTests: XCTestCase {
         XCTAssertEqual(context.viewState.displayText, "💬 > #Foundation and Empire")
     }
     
-    func testEventOnRoomAliasMentionMissingRoom() async throws {
+    func testEventOnRoomAliasMentionMissingRoom() {
         let proxyMock = JoinedRoomProxyMock(.init())
         let mockController = MockTimelineController()
         mockController.roomProxy = proxyMock
@@ -256,6 +265,7 @@ class PillContextTests: XCTestCase {
                                      appSettings: ServiceLocator.shared.settings,
                                      analyticsService: ServiceLocator.shared.analytics,
                                      emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                     linkMetadataProvider: LinkMetadataProvider(),
                                      timelineControllerFactory: TimelineControllerFactoryMock(.init()))
         let context = PillContext(timelineContext: mock.context, data: PillTextAttachmentData(type: .event(room: .roomAlias("#foundation-and-empire:matrix.org")), font: .preferredFont(forTextStyle: .body)))
         

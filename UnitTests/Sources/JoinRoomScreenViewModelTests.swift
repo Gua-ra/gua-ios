@@ -5,9 +5,8 @@
 // Please see LICENSE files in the repository root for full details.
 //
 
-import XCTest
-
 @testable import ElementX
+import XCTest
 
 @MainActor
 class JoinRoomScreenViewModelTests: XCTestCase {
@@ -47,7 +46,7 @@ class JoinRoomScreenViewModelTests: XCTestCase {
         
         XCTAssertTrue(appSettings.seenInvites.isEmpty, "Only an invited room should register the room ID as a seen invite.")
         
-        let deferred = deferFulfillment(viewModel.actionsPublisher) { $0 == .joined }
+        let deferred = deferFulfillment(viewModel.actionsPublisher) { $0 == .joined(.roomID("1")) }
         context.send(viewAction: .join)
         try await deferred.fulfill()
     }
@@ -60,7 +59,7 @@ class JoinRoomScreenViewModelTests: XCTestCase {
         
         XCTAssertEqual(appSettings.seenInvites, ["1"], "The invited room's ID should be registered as a seen invite.")
         
-        let deferred = deferFulfillment(viewModel.actionsPublisher) { $0 == .joined }
+        let deferred = deferFulfillment(viewModel.actionsPublisher) { $0 == .joined(.roomID("1")) }
         context.send(viewAction: .acceptInvite)
         try await deferred.fulfill()
         
@@ -156,6 +155,8 @@ class JoinRoomScreenViewModelTests: XCTestCase {
         try await deferred.fulfill()
     }
     
+    // MARK: - Helpers
+    
     private func setupViewModel(throwing: Bool = false, mode: TestMode = .joined) {
         ServiceLocator.shared.settings.knockingEnabled = true
         
@@ -197,5 +198,23 @@ class JoinRoomScreenViewModelTests: XCTestCase {
                                             appSettings: appSettings,
                                             userSession: UserSessionMock(.init(clientProxy: clientProxy)),
                                             userIndicatorController: ServiceLocator.shared.userIndicatorController)
+    }
+}
+
+extension JoinRoomScreenViewModelAction: @retroactive Equatable {
+    /// A close enough approximation for tests.
+    public static func == (lhs: JoinRoomScreenViewModelAction, rhs: JoinRoomScreenViewModelAction) -> Bool {
+        switch (lhs, rhs) {
+        case (.joined(.roomID(let lhsRoomID)), .joined(.roomID(let rhsRoomID))):
+            lhsRoomID == rhsRoomID
+        case (.joined(.space(let lhsSpace)), .joined(.space(let rhsSpace))):
+            lhsSpace.spaceRoomProxy.id == rhsSpace.spaceRoomProxy.id
+        case (.dismiss, .dismiss):
+            true
+        case (.presentDeclineAndBlock(let lhsUserID), .presentDeclineAndBlock(let rhsUserID)):
+            lhsUserID == rhsUserID
+        default:
+            false
+        }
     }
 }

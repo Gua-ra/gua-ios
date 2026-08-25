@@ -80,9 +80,9 @@ private extension RoomMember {
                   membership: proxy.membership,
                   isNameAmbiguous: proxy.disambiguatedDisplayName != proxy.displayName,
                   powerLevel: proxy.powerLevel.rustPowerLevel,
-                  normalizedPowerLevel: proxy.powerLevel.rustPowerLevel,
                   isIgnored: proxy.isIgnored,
                   suggestedRoleForPowerLevel: proxy.role.rustRole,
-                  membershipChangeReason: proxy.membershipChangeReason)
+                  membershipChangeReason: proxy.membershipChangeReason,
+                  isServiceMember: false)
     }
 }

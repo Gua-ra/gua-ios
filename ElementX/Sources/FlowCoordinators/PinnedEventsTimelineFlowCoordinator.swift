@@ -20,7 +20,9 @@ class PinnedEventsTimelineFlowCoordinator: FlowCoordinatorProtocol {
     private let navigationStackCoordinator: NavigationStackCoordinator
     private let flowParameters: CommonFlowParameters
     
-    private var userSession: UserSessionProtocol { flowParameters.userSession }
+    private var userSession: UserSessionProtocol {
+        flowParameters.userSession
+    }
     
     private let actionsSubject: PassthroughSubject<PinnedEventsTimelineFlowCoordinatorAction, Never> = .init()
     var actionsPublisher: AnyPublisher<PinnedEventsTimelineFlowCoordinatorAction, Never> {
@@ -69,6 +71,7 @@ class PinnedEventsTimelineFlowCoordinator: FlowCoordinatorProtocol {
                                                                                   appSettings: flowParameters.appSettings,
                                                                                   analytics: flowParameters.analytics,
                                                                                   emojiProvider: flowParameters.emojiProvider,
+                                                                                  linkMetadataProvider: flowParameters.linkMetadataProvider,
                                                                                   timelineControllerFactory: flowParameters.timelineControllerFactory,
                                                                                   userIndicatorController: flowParameters.userIndicatorController))
         

@@ -12,7 +12,7 @@ import EmbeddedElementCall
 import Foundation
 import SwiftUI
 
-// Common settings between app and NSE
+/// Common settings between app and NSE
 protocol CommonSettingsProtocol {
     var logLevel: LogLevel { get }
     var traceLogPacks: Set<TraceLogPack> { get }
@@ -31,12 +31,14 @@ final class AppSettings {
         case seenInvites
         case appLockNumberOfPINAttempts
         case appLockNumberOfBiometricAttempts
+        case appLockBiometricUnlockOptOut
         case timelineStyle
         
         case analyticsConsentState
         case hasRunNotificationPermissionsOnboarding
         case hasRunIdentityConfirmationOnboarding
-        
+        case hasBootstrappedKeyStorage
+
         case frequentlyUsedSystemEmojis
         
         case enableNotifications
@@ -62,10 +64,16 @@ final class AppSettings {
         case spacesEnabled
         case developerOptionsEnabled
         case nextGenHTMLParserEnabled
+        case linkPreviewsEnabled
+        case latestEventSorterEnabled
+        case legacyAuthEnabled
+        case guaHidesAdvancedEncryption
         
         // Doug's tweaks 🔧
         case hideUnreadMessagesBadge
         case hideQuietNotificationAlerts
+
+        case pinSetupReminderSnoozedUntil
     }
     
     private static var suiteName: String = InfoPlistReader.main.appGroupIdentifier
@@ -91,6 +99,7 @@ final class AppSettings {
     static func resetSessionSpecificSettings() {
         MXLog.warning("Resetting the user session specific AppSettings.")
         store.removeObject(forKey: UserDefaultsKeys.hasRunIdentityConfirmationOnboarding.rawValue)
+        store.removeObject(forKey: UserDefaultsKeys.hasBootstrappedKeyStorage.rawValue)
     }
     
     static func configureWithSuiteName(_ name: String) {
@@ -108,6 +117,7 @@ final class AppSettings {
     // swiftlint:disable:next function_parameter_count
     func override(accountProviders: [String],
                   allowOtherAccountProviders: Bool,
+                  hideBrandChrome: Bool,
                   pushGatewayBaseURL: URL,
                   oidcRedirectURL: URL,
                   websiteURL: URL,
@@ -123,9 +133,11 @@ final class AppSettings {
                   accountProvisioningHost: String,
                   bugReportApplicationID: String,
                   analyticsTermsURL: URL?,
-                  mapTilerConfiguration: MapTilerConfiguration) {
+                  mapTilerConfiguration: MapTilerConfiguration,
+                  oidcStaticRegistrations: [URL: String]? = nil) {
         self.accountProviders = accountProviders
         self.allowOtherAccountProviders = allowOtherAccountProviders
+        self.hideBrandChrome = hideBrandChrome
         self.pushGatewayBaseURL = pushGatewayBaseURL
         self.oidcRedirectURL = oidcRedirectURL
         self.websiteURL = websiteURL
@@ -142,6 +154,16 @@ final class AppSettings {
         self.bugReportApplicationID = bugReportApplicationID
         self.analyticsTermsURL = analyticsTermsURL
         self.mapTilerConfiguration = mapTilerConfiguration
+        if let oidcStaticRegistrations {
+            self.oidcStaticRegistrations = oidcStaticRegistrations
+        }
+        oidcConfiguration = OIDCConfiguration(clientName: InfoPlistReader.main.bundleDisplayName,
+                                              redirectURI: self.oidcRedirectURL,
+                                              clientURI: self.websiteURL,
+                                              logoURI: self.logoURL,
+                                              tosURI: self.acceptableUseURL,
+                                              policyURI: self.privacyURL,
+                                              staticRegistrations: self.oidcStaticRegistrations.mapKeys { $0.absoluteString })
     }
     
     // MARK: - Application
@@ -164,14 +186,18 @@ final class AppSettings {
     private(set) var accountProviders = ["matrix.org"]
     /// Whether or not the user is allowed to manually enter their own account provider or must select from one of `defaultAccountProviders`.
     private(set) var allowOtherAccountProviders = true
+    /// Whether the components surrounding the app brand/logo should be hidden or not
+    private(set) var hideBrandChrome = false
     
     /// The task identifier used for background app refresh. Also used in main target's the Info.plist
-    let backgroundAppRefreshTaskIdentifier = "io.element.elementx.background.refresh"
+    let backgroundAppRefreshTaskIdentifier = "\(InfoPlistReader.main.baseBundleIdentifier).background.refresh"
 
     /// A URL where users can go read more about the app.
-    private(set) var websiteURL: URL = "https://element.io"
+    private(set) var websiteURL: URL = "https://github.com/Gua-ra"
     /// A URL that contains the app's logo that may be used when showing content in a web view.
-    private(set) var logoURL: URL = "https://element.io/mobile-icon.png"
+    /// GUA FORK: Points at the Gua icon so the session/device list (e.g. MAS "Where
+    /// you're signed in") shows Gua branding instead of the generic Element icon.
+    private(set) var logoURL: URL = "https://raw.githubusercontent.com/Gua-ra/gua-branding/main/icons/500x500.png"
     /// A URL that contains that app's copyright notice.
     private(set) var copyrightURL: URL = "https://element.io/copyright"
     /// A URL that contains the app's Terms of use.
@@ -208,11 +234,16 @@ final class AppSettings {
     /// The number of attempts the user has made to unlock the app with a PIN code (resets when unlocked).
     @UserPreference(key: UserDefaultsKeys.appLockNumberOfPINAttempts, defaultValue: 0, storageType: .userDefaults(store))
     var appLockNumberOfPINAttempts: Int
+    /// GUA FORK: whether the user has explicitly turned off Touch ID/Face ID unlock. Biometric
+    /// unlock is enabled by default whenever a PIN code is set, so this records the opt-out and
+    /// stops us from switching it back on behind the user's back.
+    @UserPreference(key: UserDefaultsKeys.appLockBiometricUnlockOptOut, defaultValue: false, storageType: .userDefaults(store))
+    var appLockBiometricUnlockOptOut: Bool
     
     // MARK: - Authentication
     
     /// Any pre-defined static client registrations for OIDC issuers.
-    let oidcStaticRegistrations: [URL: String] = ["https://id.thirdroom.io/realms/thirdroom": "elementx"]
+    private(set) var oidcStaticRegistrations: [URL: String] = ["https://id.thirdroom.io/realms/thirdroom": "elementx"]
     /// The redirect URL used for OIDC. This no longer uses universal links so we don't need the bundle ID to avoid conflicts between Element X, Nightly and PR builds.
     private(set) var oidcRedirectURL: URL = "https://element.io/oidc/login"
     
@@ -240,7 +271,9 @@ final class AppSettings {
     }
     
     private(set) var pushGatewayBaseURL: URL = "https://matrix.org"
-    var pushGatewayNotifyEndpoint: URL { pushGatewayBaseURL.appending(path: "_matrix/push/v1/notify") }
+    var pushGatewayNotifyEndpoint: URL {
+        pushGatewayBaseURL.appending(path: "_matrix/push/v1/notify")
+    }
     
     @UserPreference(key: UserDefaultsKeys.enableNotifications, defaultValue: true, storageType: .userDefaults(store))
     var enableNotifications
@@ -278,9 +311,11 @@ final class AppSettings {
     /// The configuration to use for analytics. Set to `nil` to disable analytics.
     let analyticsConfiguration: AnalyticsConfiguration? = AppSettings.makeAnalyticsConfiguration()
     /// The URL to open with more information about analytics terms. When this is `nil` the "Learn more" link will be hidden.
-    private(set) var analyticsTermsURL: URL? = "https://element.io/cookie-policy"
+    private(set) var analyticsTermsURL: URL? = "https://gua.global/privacy"
     /// Whether or not there the app is able ask for user consent to enable analytics or sentry reporting.
-    var canPromptForAnalytics: Bool { analyticsConfiguration != nil || bugReportSentryURL != nil }
+    var canPromptForAnalytics: Bool {
+        analyticsConfiguration != nil || bugReportSentryURL != nil
+    }
     
     private static func makeAnalyticsConfiguration() -> AnalyticsConfiguration? {
         guard let host = Secrets.postHogHost, let apiKey = Secrets.postHogAPIKey else { return nil }
@@ -296,7 +331,10 @@ final class AppSettings {
     
     @UserPreference(key: UserDefaultsKeys.hasRunIdentityConfirmationOnboarding, defaultValue: false, storageType: .userDefaults(store))
     var hasRunIdentityConfirmationOnboarding
-    
+
+    @UserPreference(key: UserDefaultsKeys.hasBootstrappedKeyStorage, defaultValue: false, storageType: .userDefaults(store))
+    var hasBootstrappedKeyStorage
+
     @UserPreference(key: UserDefaultsKeys.frequentlyUsedSystemEmojis, defaultValue: [FrequentlyUsedEmoji](), storageType: .userDefaults(store))
     var frequentlyUsedSystemEmojis
     
@@ -304,7 +342,11 @@ final class AppSettings {
     
     @UserPreference(key: UserDefaultsKeys.hideUnreadMessagesBadge, defaultValue: false, storageType: .userDefaults(store))
     var hideUnreadMessagesBadge
-    
+
+    /// GUA FORK: Snooze timestamp for the home-screen two-step-verification PIN setup reminder.
+    @UserPreference(key: UserDefaultsKeys.pinSetupReminderSnoozedUntil, defaultValue: nil, storageType: .userDefaults(store))
+    var pinSetupReminderSnoozedUntil: Date?
+
     // MARK: - Room Screen
     
     @UserPreference(key: UserDefaultsKeys.viewSourceEnabled, defaultValue: isDevelopmentBuild, storageType: .userDefaults(store))
@@ -339,7 +381,7 @@ final class AppSettings {
     
     // MARK: - Maps
     
-    // maptiler base url
+    /// maptiler base url
     private(set) var mapTilerConfiguration = MapTilerConfiguration(baseURL: "https://api.maptiler.com/maps",
                                                                    apiKey: Secrets.mapLibreAPIKey,
                                                                    lightStyleID: "9bc819c8-e627-474a-a348-ec144fe3d810",
@@ -380,6 +422,26 @@ final class AppSettings {
     
     @UserPreference(key: UserDefaultsKeys.nextGenHTMLParserEnabled, defaultValue: isDevelopmentBuild, storageType: .userDefaults(store))
     var nextGenHTMLParserEnabled
+    
+    @UserPreference(key: UserDefaultsKeys.linkPreviewsEnabled, defaultValue: false, storageType: .userDefaults(store))
+    var linkPreviewsEnabled
+    
+    @UserPreference(key: UserDefaultsKeys.latestEventSorterEnabled, defaultValue: false, storageType: .userDefaults(store))
+    var latestEventSorterEnabled
+    
+    /// When `true`, the legacy ElementX authentication screens (QR / manual server / OIDC create-account)
+    /// are exposed. Defaults to `false` for the Gua phone-OTP onboarding; gov / special users can enable
+    /// this from developer options to fall back to the original flow.
+    @UserPreference(key: UserDefaultsKeys.legacyAuthEnabled, defaultValue: false, storageType: .userDefaults(store))
+    var legacyAuthEnabled
+
+    /// GUA FORK: When `true` (the default), the advanced Encryption entry point in
+    /// Settings (secure backup / key storage / recovery / cryptographic identity)
+    /// is hidden. End-to-end encryption itself stays fully enabled with safe
+    /// defaults; this only abstracts the advanced controls away from non-technical
+    /// users. Gov / advanced users can reveal it from developer options.
+    @UserPreference(key: UserDefaultsKeys.guaHidesAdvancedEncryption, defaultValue: true, storageType: .userDefaults(store))
+    var guaHidesAdvancedEncryption
     
     @UserPreference(key: UserDefaultsKeys.developerOptionsEnabled, defaultValue: isDevelopmentBuild, storageType: .userDefaults(store))
     var developerOptionsEnabled

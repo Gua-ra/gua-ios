@@ -4,7 +4,7 @@
 <dict>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
-		<string>io.element.elementx.background.refresh</string>
+		<string>$(BACKGROUND_APP_REFRESH_TASK_IDENTIFIER)</string>
 	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
@@ -61,14 +61,27 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>GuaDefaultAccountProvider</key>
+	<string>$(DEFAULT_ACCOUNT_PROVIDER)</string>
+	<key>GuaOidcRedirectURL</key>
+	<string>$(OIDC_REDIRECT_URL)</string>
+	<key>GuaOidcStaticRegistrations</key>
+	<string>$(OIDC_STATIC_REGISTRATIONS)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<false/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>To take pictures or videos and send them as a message $(APP_DISPLAY_NAME) needs access to the camera.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>$(APP_DISPLAY_NAME) checks your contacts privately to find which of them are already here. Your contacts are never stored.</string>
 	<key>NSFaceIDUsageDescription</key>
-	<string>Face ID is used to access your app.</string>
+	<string>$(APP_DISPLAY_NAME) uses Face ID to unlock the app, so you don't have to type your PIN every time.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Grant location access so that $(APP_DISPLAY_NAME) can share your location.</string>
 	<key>NSMicrophoneUsageDescription</key>

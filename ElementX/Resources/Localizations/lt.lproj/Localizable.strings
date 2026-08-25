@@ -97,6 +97,7 @@
 "action_leave" = "Palikti";
 "action_leave_conversation" = "Palikti pokalbį";
 "action_leave_room" = "Palikti kambarį";
+"action_leave_space" = "Leave space";
 "action_load_more" = "Įkelti daugiau";
 "action_manage_account" = "Manage account";
 "action_manage_devices" = "Manage devices";
@@ -180,6 +181,7 @@
 "common_creating_room" = "Kuriamas kambarys…";
 "common_current_user_canceled_knock" = "Request canceled";
 "common_current_user_left_room" = "Išėjo iš kambario";
+"common_current_user_left_space" = "Left space";
 "common_current_user_rejected_invite" = "Invite declined";
 "common_dark" = "Dark";
 "common_date_date_at_time" = "%1$@ at %2$@";
@@ -278,8 +280,10 @@
 "common_sent" = "Sent";
 "common_sentence_delimiter" = ". ";
 "common_server_not_supported" = "Serveris nepalaikomas";
+"common_server_unreachable" = "Server unreachable";
 "common_server_url" = "Serverio URL";
 "common_settings" = "Nustatymai";
+"common_share_space" = "Share space";
 "common_shared_location" = "Shared location";
 "common_signing_out" = "Atsijungiama";
 "common_something_went_wrong" = "Something went wrong";
@@ -326,6 +330,7 @@
 "common_you" = "You";
 "common.add_account" = "Add an account";
 "common.add_another_account" = "Add another account";
+"common.no_space_name" = "No space name";
 "common.select_account" = "Select an account";
 "common_unable_to_decrypt_insecure_device" = "Sent from an insecure device";
 "common_unable_to_decrypt_verification_violation" = "Sender's verified identity was reset";
@@ -371,6 +376,7 @@
 "emoji_picker_category_objects" = "Objektai";
 "emoji_picker_category_people" = "Šypsenėlės ir Žmonės";
 "emoji_picker_category_places" = "Kelionės ir Vietovės";
+"emoji_picker_category_recent" = "Recent emojis";
 "emoji_picker_category_symbols" = "Simboliai";
 "emoji_picker_search_placeholder" = "Search emojis";
 "error_invalid_invite" = "The room no longer exists or the invite is no longer valid.";
@@ -481,6 +487,9 @@
 "screen_bottom_sheet_create_dm_confirmation_button_title" = "Send invite";
 "screen_bottom_sheet_create_dm_message" = "Would you like to start a chat with %1$@?";
 "screen_bottom_sheet_create_dm_title" = "Send invite?";
+"screen_bottom_sheet_leave_space_subtitle" = "This will also remove you from all rooms in this space.";
+"screen_bottom_sheet_leave_space_subtitle_admin" = "This will also remove you from all rooms in this space, including those you’re the only administrator for:";
+"screen_bottom_sheet_leave_space_title" = "Leave %1$@?";
 "screen_bottom_sheet_manage_room_member_ban" = "Ban from room";
 "screen_bottom_sheet_manage_room_member_ban_member_confirmation_action" = "Ban";
 "screen_bottom_sheet_manage_room_member_ban_member_confirmation_description" = "They won’t be able to join this room again if invited.";
@@ -569,6 +578,7 @@
 "screen_media_upload_preview_error_failed_sending" = "Nepavyko įkelti laikmenos, pabandykite dar kartą.";
 "screen_media_upload_preview_error_too_large_message" = "The maximum file size allowed is %1$@.";
 "screen_media_upload_preview_error_too_large_title" = "The file is too large to upload";
+"screen_media_upload_preview_item_count" = "Item %1$d of %2$d";
 "screen_media_upload_preview_optimize_image_quality_title" = "Optimise image quality";
 "screen_media_upload_preview_processing" = "Processing...";
 "screen_pinned_timeline_empty_state_description" = "Press on a message and choose “%1$@” to include here.";
@@ -873,9 +883,7 @@
 "screen_onboarding_sign_in_to" = "Prisijungti prie %1$@";
 "screen_onboarding_sign_in_with_qr_code" = "Prisijungti su QR kodu";
 "screen_onboarding_sign_up" = "Kurti paskyrą";
-"screen_onboarding_welcome_message" = "Sveiki atvykę į sparčiausią „%1$@“ kada nors. Pagerintas spartai ir paprastumui.";
-"screen_onboarding_welcome_subtitle" = "Sveiki atvykę į „%1$@“. Pagerintas spartai ir paprastumui.";
-"screen_onboarding_welcome_title" = "Būkite savo elemente";
+"screen_onboarding_welcome_title" = "Sveiki atvykę į Gua";
 "screen_polls_history_empty_ongoing" = "Can't find any ongoing polls.";
 "screen_polls_history_empty_past" = "Can't find any past polls.";
 "screen_polls_history_filter_ongoing" = "Ongoing";
@@ -999,6 +1007,8 @@
 "screen_room_details_error_loading_notification_settings" = "An error occurred when loading notification settings.";
 "screen_room_details_error_muting" = "Failed muting this room, please try again.";
 "screen_room_details_error_unmuting" = "Failed unmuting this room, please try again.";
+"screen_room_details_invite_people_dont_close" = "Don't close the app until finished.";
+"screen_room_details_invite_people_preparing" = "Preparing invitations...";
 "screen_room_details_notification_mode_custom" = "Custom";
 "screen_room_details_notification_mode_default" = "Default";
 "screen_room_details_share_room_title" = "Bendrinti kambarį";

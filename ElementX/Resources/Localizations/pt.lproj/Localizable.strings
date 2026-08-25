@@ -1,11 +1,11 @@
 "Notification" = "Notificação";
 "a11y_add_reaction" = "Adicionar reação: %1$@";
 "a11y_avatar" = "Avatar";
-"a11y_collapse_message_text_field" = "Minimise message text field";
+"a11y_collapse_message_text_field" = "Minimizar campo de texto da mensagem";
 "a11y_delete" = "Eliminar";
 "a11y_edit_avatar" = "Editar avatar";
 "a11y_edit_room_address_hint" = "O endereço completo será %1$@";
-"a11y_expand_message_text_field" = "Expand message text field";
+"a11y_expand_message_text_field" = "Expandir campo de texto da mensagem";
 "a11y_hide_password" = "Ocultar palavra-passe";
 "a11y_join_call" = "Juntar-se à chamada";
 "a11y_jump_to_bottom" = "Saltar para o fundo";
@@ -30,7 +30,7 @@
 "a11y_remove_reaction" = "Remover reação com %1$@";
 "a11y_remove_reaction_with" = "Remover reação com %1$@";
 "a11y_send_files" = "Enviar ficheiros";
-"a11y_session_verification_time_limited_action_required" = "Necessária ação em tempo limitado";
+"a11y_session_verification_time_limited_action_required" = "Necessária ação em tempo limitado, tens um minuto para verificares";
 "a11y_show_password" = "Mostrar palavra-passe";
 "a11y_start_call" = "Iniciar chamada";
 "a11y_tombstoned_room" = "Sala antiga";
@@ -82,7 +82,7 @@
 "action_enable" = "Ativar";
 "action_end_poll" = "Fim da sondagem";
 "action_enter_pin" = "Inserir PIN";
-"action_finish" = "Finish";
+"action_finish" = "Concluir";
 "action_forgot_password" = "Esqueceu-se da palavra-passe?";
 "action_forward" = "Reencaminhar";
 "action_go_back" = "Voltar";
@@ -97,6 +97,7 @@
 "action_leave" = "Sair";
 "action_leave_conversation" = "Sair da conversa";
 "action_leave_room" = "Sair da sala";
+"action_leave_space" = "Leave space";
 "action_load_more" = "Carregar mais";
 "action_manage_account" = "Gerir conta";
 "action_manage_devices" = "Gerir dispositivos";
@@ -156,7 +157,7 @@
 "banner_migrate_to_native_sliding_sync_action" = "Sair & Atualizar";
 "banner_migrate_to_native_sliding_sync_app_force_logout_title" = "%1$@ já não suporta o protocolo antigo. Termina a sessão e volta a iniciar sessão para continuares a utilizar a aplicação.";
 "banner_migrate_to_native_sliding_sync_description" = "O teu servidor suporta agora um protocolo novo e mais rápido. Termina a sessão e volta a iniciar sessão para atualizar agora. Se o fizeres agora, evitarás um fim de sessão forçado quando o protocolo antigo for removido mais tarde.";
-"banner_migrate_to_native_sliding_sync_force_logout_title" = "Seu homeserver não suporta mais o protocolo antigo. Termine sessão e volte a iniciar sessão para continuar a utilizar a aplicação.";
+"banner_migrate_to_native_sliding_sync_force_logout_title" = "O teu servidor já não permite o protocolo antigo. Termine sessão e volte a iniciá-la para continuar a utilizar a aplicação.";
 "banner_migrate_to_native_sliding_sync_title" = "Atualização disponível";
 "banner_set_up_recovery_content" = "Recupera a tua identidade criptográfica e o histórico de mensagens com uma chave de recuperação se tiveres perdido todos os teus dispositivos existentes.";
 "banner_set_up_recovery_title" = "Configurar a recuperação";
@@ -167,8 +168,8 @@
 "common_advanced_settings" = "Configurações avançadas";
 "common_an_image" = "uma imagem";
 "common_analytics" = "Recolha e análise de dados";
-"common_android_shortcuts_remove_reason_left_room" = "You left the room";
-"common_android_shortcuts_remove_reason_session_logged_out" = "You were logged out of the session";
+"common_android_shortcuts_remove_reason_left_room" = "Saíste da sala";
+"common_android_shortcuts_remove_reason_session_logged_out" = "A tua sessão foi terminada";
 "common_appearance" = "Aparência";
 "common_audio" = "Áudio";
 "common_blocked_users" = "Utilizadores bloqueados";
@@ -180,12 +181,13 @@
 "common_creating_room" = "A criar sala…";
 "common_current_user_canceled_knock" = "Pedido cancelado";
 "common_current_user_left_room" = "Saíste da sala";
+"common_current_user_left_space" = "Left space";
 "common_current_user_rejected_invite" = "Convite rejeitado";
 "common_dark" = "Escuro";
 "common_date_date_at_time" = "%1$@ às %2$@";
 "common_date_this_month" = "Este mês";
 "common_decryption_error" = "Erro de decifragem";
-"common_description" = "Description";
+"common_description" = "Descrição";
 "common_developer_options" = "Opções de programador";
 "common_device_id" = "ID do dispositivo";
 "common_direct_chat" = "Conversa direta";
@@ -241,7 +243,7 @@
 "common_permission" = "Permissão";
 "common_pinned" = "Afixado";
 "common_please_check_internet_connection" = "Por favor, verifica a tua ligação à internet";
-"common_please_wait" = "Por favor, aguarde…";
+"common_please_wait" = "Por favor, aguarda…";
 "common_poll_end_confirmation" = "Tens a certeza que queres concluir esta sondagem?";
 "common_poll_summary" = "Sondagem: %1$@";
 "common_poll_total_votes" = "Total de votos: %1$@";
@@ -278,13 +280,15 @@
 "common_sent" = "Enviada";
 "common_sentence_delimiter" = ". ";
 "common_server_not_supported" = "Servidor não suportado";
+"common_server_unreachable" = "Servidor indisponível";
 "common_server_url" = "URL do servidor";
 "common_settings" = "Configurações";
+"common_share_space" = "Share space";
 "common_shared_location" = "Localização partilhada";
 "common_signing_out" = "A terminar sessão";
 "common_something_went_wrong" = "Algo correu mal";
 "common_something_went_wrong_message" = "Encontramos um erro. Por favor, tenta novamente.";
-"common_space" = "Space";
+"common_space" = "Espaço";
 "common_starting_chat" = "A iniciar conversa…";
 "common_sticker" = "Autocolante";
 "common_success" = "Sucesso";
@@ -324,9 +328,10 @@
 "common_waiting" = "A aguardar…";
 "common_waiting_for_decryption_key" = "À espera desta mensagem";
 "common_you" = "Tu";
-"common.add_account" = "Add an account";
-"common.add_another_account" = "Add another account";
-"common.select_account" = "Select an account";
+"common.add_account" = "Adicionar conta";
+"common.add_another_account" = "Adicionar outra conta";
+"common.no_space_name" = "No space name";
+"common.select_account" = "Selecionar conta";
 "common_unable_to_decrypt_insecure_device" = "Enviado de um dispositivo inseguro";
 "common_unable_to_decrypt_verification_violation" = "A identidade verificada do remetente foi reposta";
 "confirm_recovery_key_banner_message" = "Confirma a tua chave de recuperação para manteres o acesso ao teu armazenamento de chaves e ao histórico de mensagens.";
@@ -371,13 +376,14 @@
 "emoji_picker_category_objects" = "Objetos";
 "emoji_picker_category_people" = "Caras e Pessoas";
 "emoji_picker_category_places" = "Viagens e Lugares";
+"emoji_picker_category_recent" = "Recent emojis";
 "emoji_picker_category_symbols" = "Símbolos";
-"emoji_picker_search_placeholder" = "Search emojis";
+"emoji_picker_search_placeholder" = "Pesquisar emojis";
 "error_invalid_invite" = "A sala já não existe ou o convite já não é válido.";
 "error_network_or_server_issue" = "Isto pode dever-se a problemas na rede ou no servidor.";
 "error_room_address_already_exists" = "Este endereço de sala já existe, tente editar o campo de endereço da sala ou altere o nome da sala";
 "error_room_address_invalid_symbols" = "Alguns caracteres não são permitidos. Apenas letras, dígitos e os seguintes símbolos são suportados! $ & ‘ ( ) * + / ; = ? @ [ ] - . _";
-"error.account_already_logged_in" = "You're already logged in on this device as %1$@.";
+"error.account_already_logged_in" = "Já tens sessão iniciada como %1$@ neste dispositivo.";
 "error_account_creation_not_possible" = "Seu homeserver precisa ser atualizado para suportar o Matrix Authentication Service e a criação de conta.";
 "error_failed_creating_the_permalink" = "Falha ao criar ligação permanente";
 "error_failed_loading_map" = "%1$@ não foi possível carregar o mapa. Por favor, tente novamente mais tarde.";
@@ -387,7 +393,7 @@
 "error_message_not_found" = "Mensagem não encontrada";
 "error_no_compatible_app_found" = "Nenhuma aplicação encontrada capaz de continuar esta ação.";
 "error_some_messages_have_not_been_sent" = "Algumas mensagens não foram enviadas";
-"error_unknown" = "Desculpe, ocorreu um erro";
+"error_unknown" = "Pedimos desculpa, ocorreu um erro desconhecido";
 "event_shield_mismatched_sender" = "O remetente deste evento não é o dono do dispositivo que o enviou.";
 "event_shield_reason_authenticity_not_guaranteed" = "A autenticidade desta mensagem cifrada não pode ser garantida neste dispositivo.";
 "event_shield_reason_previously_verified" = "Criptografado por um usuário verificado anteriormente.";
@@ -416,12 +422,12 @@
 "notification_incoming_call" = "📹 A receber chamada";
 "notification_inline_reply_failed" = "** Falha no envio - por favor abre a sala";
 "notification_invite_body" = "Convidou-te para conversar";
-"notification_invite_body_with_sender" = "%1$@ convidou-o para conversar";
+"notification_invite_body_with_sender" = "%1$@ convidou-te para conversar";
 "notification_mentioned_you_body" = "Mencionou-te: %1$@";
 "notification_new_messages" = "Mensagens novas";
 "notification_reaction_body" = "Reagiu com %1$@";
 "notification_room_invite_body" = "Convidou-te a entrar na sala";
-"notification_room_invite_body_with_sender" = "%1$@ convidou-o a juntar-se à sala";
+"notification_room_invite_body_with_sender" = "%1$@ convidou-te a entrares na sala";
 "notification_sender_me" = "Eu";
 "notification_sender_mention_reply" = "%1$@ mencionou ou respondeu";
 "notification_test_push_notification_content" = "Estás a ver a notificação! Clica em mim!";
@@ -481,6 +487,9 @@
 "screen_bottom_sheet_create_dm_confirmation_button_title" = "Enviar convite";
 "screen_bottom_sheet_create_dm_message" = "Gostarias de iniciar uma conversa com %1$@?";
 "screen_bottom_sheet_create_dm_title" = "Enviar convite?";
+"screen_bottom_sheet_leave_space_subtitle" = "This will also remove you from all rooms in this space.";
+"screen_bottom_sheet_leave_space_subtitle_admin" = "This will also remove you from all rooms in this space, including those you’re the only administrator for:";
+"screen_bottom_sheet_leave_space_title" = "Leave %1$@?";
 "screen_bottom_sheet_manage_room_member_ban" = "Remover e banir participante";
 "screen_bottom_sheet_manage_room_member_ban_member_confirmation_action" = "Banir";
 "screen_bottom_sheet_manage_room_member_ban_member_confirmation_description" = "Não poderão voltar a entrar nesta sala, mesmo se forem convidados.";
@@ -528,7 +537,7 @@
 "screen_join_room_decline_and_block_button_title" = "Recusar e bloquear";
 "screen_join_room_knock_message_characters_count" = "%1$d de %2$d caracteres permitidos";
 "screen_join_room_knock_message_description" = "Mensagem (opcional)";
-"screen_join_room_knock_sent_description" = "Irá receber um convite para participar na sala se seu pedido for aceite.";
+"screen_join_room_knock_sent_description" = "Irás receber um convite para participar na sala se o pedido for aceite.";
 "screen_join_room_knock_sent_title" = "Pedido de adesão enviado";
 "screen_join_room_loading_alert_message" = "Não conseguimos exibir a pré-visualização da sala. Isso pode ser devido a problemas de rede ou servidor.";
 "screen_join_room_loading_alert_title" = "Não foi possível exibir a pré-visualização desta sala";
@@ -569,6 +578,7 @@
 "screen_media_upload_preview_error_failed_sending" = "Falhar ao carregar multimédia, por favor tente novamente.";
 "screen_media_upload_preview_error_too_large_message" = "O tamanho máximo permitido é %1$@.";
 "screen_media_upload_preview_error_too_large_title" = "O ficheiro é demasiado grande para enviar";
+"screen_media_upload_preview_item_count" = "Item %1$d of %2$d";
 "screen_media_upload_preview_optimize_image_quality_title" = "Optimiza a qualidade da imagem";
 "screen_media_upload_preview_processing" = "A processar...";
 "screen_pinned_timeline_empty_state_description" = "Pressione uma mensagem e escolha \"%1$@\" para incluir aqui.";
@@ -758,7 +768,7 @@
 "screen_create_room_private_option_description" = "Apenas as pessoas convidadas podem aceder a esta sala. Todas as mensagens são cifradas ponta-a-ponta.";
 "screen_create_room_public_option_description" = "Qualquer um pode encontrar esta sala. \nPode alterar esta opção nas definições da sala.";
 "screen_create_room_topic_label" = "Descrição (opcional)";
-"screen_deactivate_account_confirmation_dialog_content" = "Confirme que pretende desativar a sua conta. Esta ação não pode ser desfeita.";
+"screen_deactivate_account_confirmation_dialog_content" = "Confirma que pretendes desativar a tua conta. Esta ação não pode ser desfeita.";
 "screen_deactivate_account_delete_all_messages" = "Eliminar todas as minhas mensagens";
 "screen_deactivate_account_delete_all_messages_notice" = "Aviso: futuros usuários podem ver conversas incompletas.";
 "screen_deactivate_account_description" = "A desativação da sua conta é %1$@, irá:";
@@ -792,7 +802,7 @@
 "screen_identity_waiting_on_other_device" = "A aguardar por outros dispositivos…";
 "screen_invites_decline_chat_message" = "Tens a certeza que queres rejeitar o convite para entra em %1$@?";
 "screen_invites_decline_chat_title" = "Rejeitar convite";
-"screen_invites_decline_direct_chat_message" = "Tem a certeza que queres rejeitar esta conversa privada com %1$@?";
+"screen_invites_decline_direct_chat_message" = "Tens a certeza que queres rejeitar esta conversa privada com %1$@?";
 "screen_invites_decline_direct_chat_title" = "Rejeitar conversa";
 "screen_invites_empty_list" = "Sem convites";
 "screen_invites_invited_you" = "%1$@ (%2$@) convidou-te";
@@ -873,9 +883,7 @@
 "screen_onboarding_sign_in_to" = "Faz login em %1$@";
 "screen_onboarding_sign_in_with_qr_code" = "Iniciar sessão com código QR";
 "screen_onboarding_sign_up" = "Criar conta";
-"screen_onboarding_welcome_message" = "Bem-vindo(a) à %1$@ mais rápida de sempre. Super rápida e simples.";
-"screen_onboarding_welcome_subtitle" = "Bem-vindo(a) à %1$@. Revitalizado, rápido e simples.";
-"screen_onboarding_welcome_title" = "A liberdade do teu elemento";
+"screen_onboarding_welcome_title" = "Bem-vindo ao Gua";
 "screen_polls_history_empty_ongoing" = "Não foi possível encontrar nenhuma sondagem em curso.";
 "screen_polls_history_empty_past" = "Não foi possível encontrar nenhuma sondagem anterior.";
 "screen_polls_history_filter_ongoing" = "Em curso";
@@ -908,7 +916,7 @@
 "screen_qr_code_login_initial_state_item_3" = "Seleciona %1$@";
 "screen_qr_code_login_initial_state_item_3_action" = "“Ligar novo dispositivo”";
 "screen_qr_code_login_initial_state_item_4" = "Lê o código QR com este dispositivo";
-"screen_qr_code_login_initial_state_subtitle" = "Disponível apenas se o seu fornecedor de conta o suportar.";
+"screen_qr_code_login_initial_state_subtitle" = "Disponível apenas se o teu operador de conta o permitir.";
 "screen_qr_code_login_initial_state_title" = "Abre a %1$@ noutro dispositivo para obteres o código QR";
 "screen_qr_code_login_invalid_scan_state_description" = "Lê o código QR apresentado no outro dispositivo.";
 "screen_qr_code_login_invalid_scan_state_subtitle" = "Código QR inválido";
@@ -999,6 +1007,8 @@
 "screen_room_details_error_loading_notification_settings" = "Erro ao carregar as configurações de notificação.";
 "screen_room_details_error_muting" = "Não foi possível silenciar esta sala, por favor tenta novamente.";
 "screen_room_details_error_unmuting" = "Não foi possível dessilenciar esta sala, por favor tenta novamente.";
+"screen_room_details_invite_people_dont_close" = "Don't close the app until finished.";
+"screen_room_details_invite_people_preparing" = "Preparing invitations...";
 "screen_room_details_notification_mode_custom" = "Personalizado";
 "screen_room_details_notification_mode_default" = "Predefinição";
 "screen_room_details_share_room_title" = "Partilhar sala";
@@ -1019,7 +1029,7 @@
 "screen_room_member_details_unblock_alert_description" = "Poderás voltar a ver todas as suas mensagens.";
 "screen_room_member_details_unblock_user" = "Desbloquear utilizador";
 "screen_room_member_details_verify_button_subtitle" = "Utiliza a aplicação Web para verificar este utilizador.";
-"screen_room_member_details_verify_button_title" = "Verifique %1$@";
+"screen_room_member_details_verify_button_title" = "Verifica %1$@";
 "screen_room_member_list_banned_empty" = "Não há nenhum utilizador banido desta sala.";
 "screen_room_member_list_manage_member_remove_confirmation_kick" = "Remover apenas";
 "screen_room_member_list_manage_member_unban_action" = "Anular banimento";
@@ -1087,7 +1097,7 @@
 "screen_roomlist_filter_favourites_empty_state_title" = "Ainda não tens nenhuma conversa favorita";
 "screen_roomlist_filter_invites_empty_state_title" = "Não tens nenhum convite pendente.";
 "screen_roomlist_filter_low_priority" = "Prioridade baixa";
-"screen_roomlist_filter_low_priority_empty_state_title" = "You don’t have any low priority chats yet";
+"screen_roomlist_filter_low_priority_empty_state_title" = "Ainda não tens conversas de prioridade baixa";
 "screen_roomlist_filter_mixed_empty_state_subtitle" = "Podes anular a seleção dos filtros para veres as tuas outras conversas";
 "screen_roomlist_filter_mixed_empty_state_title" = "Não tens nenhuma conversa selecionada";
 "screen_roomlist_filter_people_empty_state_title" = "Ainda não tens nenhuma MD (mensagem direta)";
@@ -1122,7 +1132,7 @@
 "screen_session_verification_ready_subtitle" = "Compara um conjunto único de emojis.";
 "screen_session_verification_request_accepted_subtitle" = "Compara os emojis únicos, certificando-te de que aparecem pela mesma ordem.";
 "screen_session_verification_request_details_timestamp" = "Sessão iniciada";
-"screen_session_verification_request_footer" = "Continue apenas se tiver iniciado esta verificação.";
+"screen_session_verification_request_footer" = "Continua apenas se tiveres iniciado esta verificação.";
 "screen_session_verification_request_subtitle" = "Verifique o outro dispositivo para manter o histórico de mensagens seguro.";
 "screen_session_verification_request_success_subtitle" = "Agora podes ler ou enviar mensagens de forma segura no teu outro dispositivo.";
 "screen_session_verification_request_title" = "Verificação solicitada";
@@ -1385,3 +1395,41 @@
 "screen_signout_preference_item" = "Terminar sessão";
 "screen_signout_save_recovery_key_title" = "Guardaste a tua chave de recuperação?";
 "troubleshoot_notifications_entry_point_title" = "Corrigir notificações";
+
+/* GUA FORK */
+"screen_find_friends_title" = "Encontrar amigos";
+"screen_two_step_verification_title" = "Verificação em duas etapas";
+
+/* GUA FORK - Two-step verification (missing translations; pt reuses pt-BR) */
+"screen_two_step_verification_overview_header" = "Status";
+"screen_two_step_verification_overview_footer_on" = "Seu PIN é solicitado ao entrar em um novo dispositivo. Mantenha-o em segredo — qualquer pessoa com seu PIN e seu código SMS pode acessar sua conta.";
+"screen_two_step_verification_overview_footer_off" = "Adicione um PIN de 6 dígitos para proteger sua conta contra ataques de troca de chip (SIM swap). Ele será solicitado ao entrar em um novo dispositivo.";
+"screen_two_step_verification_status_on" = "PIN ativado";
+"screen_two_step_verification_status_off" = "Nenhum PIN definido";
+"screen_two_step_verification_set_button" = "Configurar PIN";
+"screen_two_step_verification_change_button" = "Alterar PIN";
+"screen_two_step_verification_passkey_button" = "Configurar uma chave de acesso";
+"screen_two_step_verification_passkey_footer" = "Use o Face ID, o Touch ID ou uma chave de segurança para entrar sem senha.";
+"screen_two_step_verification_current_header" = "Digite seu PIN atual";
+"screen_two_step_verification_current_footer" = "Confirme seu PIN atual para autorizar a alteração.";
+"screen_two_step_verification_new_header" = "Escolha um novo PIN";
+"screen_two_step_verification_new_footer" = "Escolha um PIN de 6 dígitos difícil de adivinhar.";
+"screen_two_step_verification_confirm_header" = "Confirme seu novo PIN";
+"screen_two_step_verification_confirm_footer" = "Digite seu novo PIN novamente para confirmar.";
+"screen_two_step_verification_current_incorrect" = "O PIN atual está incorreto.";
+"screen_two_step_verification_same_as_current" = "O novo PIN deve ser diferente do atual.";
+"screen_two_step_verification_locked" = "Muitas tentativas incorretas. Tente novamente mais tarde.";
+"screen_two_step_verification_updated" = "PIN atualizado";
+"screen_two_step_verification_reminder_title" = "Proteja sua conta";
+"screen_two_step_verification_reminder_message" = "Configure um PIN de 6 dígitos para manter sua conta segura mesmo se alguém assumir o controle do seu número de telefone.";
+"screen_two_step_verification_reminder_action" = "Configurar PIN";
+"screen_two_step_verification_reminder_dismiss" = "Agora não";
+"screen_two_step_verification_phone_header" = "Confirme seu número de telefone";
+"screen_two_step_verification_phone_footer" = "Enviaremos um código de verificação por SMS para o telefone vinculado à sua conta.";
+"screen_two_step_verification_otp_header" = "Digite o código do SMS";
+"screen_two_step_verification_otp_footer" = "Digite o código de 6 dígitos que acabamos de enviar para o seu telefone.";
+"screen_two_step_verification_otp_invalid" = "Esse código é inválido ou expirou. Tente novamente.";
+"screen_two_step_verification_cooldown" = "Por segurança, você só pode alterar seu PIN uma vez por dia. Tente novamente mais tarde.";
+
+/* GUA FORK - App lock */
+"screen_app_lock_unlock_with_biometrics_ios" = "Desbloquear com %1$@";

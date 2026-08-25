@@ -5,9 +5,8 @@
 // Please see LICENSE files in the repository root for full details.
 //
 
-import XCTest
-
 @testable import ElementX
+import XCTest
 
 final class RoomSummaryProviderTests: XCTestCase {
     var appSettings: AppSettings!
@@ -110,7 +109,7 @@ final class RoomSummaryProviderTests: XCTestCase {
         dynamicAdaptersResult.controllerReturnValue = dynamicEntriesController
         roomList = RoomListSDKMock()
         roomList.entriesWithDynamicAdaptersPageSizeListenerReturnValue = dynamicAdaptersResult
-        roomList.loadingStateListenerReturnValue = .some(.init(state: .notLoaded, stateStream: .init(noPointer: .init())))
+        roomList.loadingStateListenerReturnValue = .some(.init(state: .notLoaded, stateStream: .init(noHandle: .init())))
         roomSummaryProvider.setRoomList(roomList)
     }
 }

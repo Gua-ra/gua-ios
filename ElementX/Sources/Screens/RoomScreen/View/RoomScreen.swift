@@ -67,6 +67,7 @@ struct RoomScreen: View {
             }
             .navigationTitle(L10n.screenRoomTitle) // Hidden but used for back button text.
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarRole(RoomHeaderView.toolbarRole) // Leading aligns the header on iOS 26.
             .toolbar { toolbar }
             .toolbarBackground(.visible, for: .navigationBar) // Fix the toolbar's background.
             .overlay { loadingIndicator }
@@ -75,7 +76,6 @@ struct RoomScreen: View {
             .sentryTrace("\(Self.self)")
     }
     
-    @ViewBuilder
     private var pinnedItemsBanner: some View {
         Group {
             if context.viewState.shouldShowPinnedEventsBanner {
@@ -88,7 +88,6 @@ struct RoomScreen: View {
         .animation(.elementDefault, value: context.viewState.shouldShowPinnedEventsBanner)
     }
     
-    @ViewBuilder
     private var knockRequestsBanner: some View {
         Group {
             if context.viewState.shouldSeeKnockRequests {
@@ -222,6 +221,12 @@ struct RoomScreen_Previews: PreviewProvider, TestablePreview {
     static let viewModels = makeViewModels()
     static let readOnlyViewModels = makeViewModels(canSendMessage: false)
     static let tombstonedViewModels = makeViewModels(hasSuccessor: true)
+    static let guaMarketing1to1ViewModels = makeViewModels(roomName: "Camila Moraes",
+                                                           hasOngoingCall: false,
+                                                           timelineItems: RoomTimelineItemFixtures.guaMarketing1to1)
+    static let guaMarketingCanadaFRViewModels = makeViewModels(roomName: "Émilie Tremblay",
+                                                               hasOngoingCall: false,
+                                                               timelineItems: RoomTimelineItemFixtures.guaMarketingCanadaFR)
 
     static var previews: some View {
         NavigationStack {
@@ -246,17 +251,39 @@ struct RoomScreen_Previews: PreviewProvider, TestablePreview {
         }
         .previewDisplayName("Tombstoned")
         .snapshotPreferences(expect: tombstonedViewModels.room.context.$viewState.map(\.hasSuccessor))
+
+        NavigationStack {
+            RoomScreen(context: guaMarketing1to1ViewModels.room.context,
+                       timelineContext: guaMarketing1to1ViewModels.timeline.context,
+                       composerToolbar: ComposerToolbar.mock())
+        }
+        .environment(\.colorScheme, .dark)
+        .preferredColorScheme(.dark)
+        .previewDisplayName("GuaMarketing1to1")
+
+        NavigationStack {
+            RoomScreen(context: guaMarketingCanadaFRViewModels.room.context,
+                       timelineContext: guaMarketingCanadaFRViewModels.timeline.context,
+                       composerToolbar: ComposerToolbar.mock())
+        }
+        .environment(\.colorScheme, .dark)
+        .preferredColorScheme(.dark)
+        .previewDisplayName("GuaMarketingCanadaFR")
     }
-    
-    static func makeViewModels(canSendMessage: Bool = true, hasSuccessor: Bool = false) -> ViewModels {
+
+    static func makeViewModels(canSendMessage: Bool = true,
+                               hasSuccessor: Bool = false,
+                               roomName: String = "Preview room",
+                               hasOngoingCall: Bool = true,
+                               timelineItems: [RoomTimelineItemProtocol] = RoomTimelineItemFixtures.default) -> ViewModels {
         let roomProxyMock = JoinedRoomProxyMock(.init(id: "stable_id",
-                                                      name: "Preview room",
-                                                      hasOngoingCall: true,
+                                                      name: roomName,
+                                                      hasOngoingCall: hasOngoingCall,
                                                       successor: hasSuccessor ? .init(roomId: UUID().uuidString, reason: nil) : nil,
                                                       powerLevelsConfiguration: .init(canUserSendMessage: canSendMessage)))
         let roomViewModel = RoomScreenViewModel.mock(roomProxyMock: roomProxyMock)
         let timelineViewModel = TimelineViewModel(roomProxy: roomProxyMock,
-                                                  timelineController: MockTimelineController(),
+                                                  timelineController: MockTimelineController(timelineItems: timelineItems),
                                                   userSession: UserSessionMock(.init()),
                                                   mediaPlayerProvider: MediaPlayerProviderMock(),
                                                   userIndicatorController: ServiceLocator.shared.userIndicatorController,
@@ -264,6 +291,7 @@ struct RoomScreen_Previews: PreviewProvider, TestablePreview {
                                                   appSettings: ServiceLocator.shared.settings,
                                                   analyticsService: ServiceLocator.shared.analytics,
                                                   emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                                  linkMetadataProvider: LinkMetadataProvider(),
                                                   timelineControllerFactory: TimelineControllerFactoryMock(.init()))
         
         return .init(room: roomViewModel, timeline: timelineViewModel)

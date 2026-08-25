@@ -20,8 +20,13 @@ struct MediaUploadPreviewScreen: View {
     @State private var currentIndex = 0
     @FocusState private var isComposerFocussed
     
-    private var title: String { ProcessInfo.processInfo.isiOSAppOnMac ? context.viewState.title ?? "" : "" }
-    private var colorSchemeOverride: ColorScheme { ProcessInfo.processInfo.isiOSAppOnMac ? colorScheme : .dark }
+    private var title: String {
+        ProcessInfo.processInfo.isiOSAppOnMac ? context.viewState.title ?? "" : ""
+    }
+
+    private var colorSchemeOverride: ColorScheme {
+        ProcessInfo.processInfo.isiOSAppOnMac ? colorScheme : .dark
+    }
     
     var body: some View {
         mainContent
@@ -29,9 +34,13 @@ struct MediaUploadPreviewScreen: View {
             .ignoresSafeArea(edges: [.horizontal])
             .safeAreaInset(edge: .top) {
                 if context.viewState.mediaURLs.count > 1 {
-                    Text("\(currentIndex + 1) / \(context.viewState.mediaURLs.count)")
-                        .font(.compound.bodySM)
-                        .foregroundColor(.compound.textSecondary)
+                    Text(L10n.screenMediaUploadPreviewItemCount(currentIndex + 1, context.viewState.mediaURLs.count))
+                        .font(.compound.bodyMD)
+                        .foregroundColor(.compound.textPrimary)
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, 8)
+                        .background(.compound.bgBadgeDefault)
+                        .clipShape(.capsule)
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {

@@ -9,7 +9,7 @@ import Foundation
 import MatrixRustSDK
 
 enum TraceLogPack: Codable, CaseIterable {
-    case eventCache, sendQueue, timeline, notificationClient
+    case eventCache, sendQueue, timeline, notificationClient, syncProfiling, latestEvents
     
     var title: String {
         switch self {
@@ -17,6 +17,8 @@ enum TraceLogPack: Codable, CaseIterable {
         case .sendQueue: "Send queue"
         case .timeline: "Timeline"
         case .notificationClient: "Notification client"
+        case .syncProfiling: "Sync profiling"
+        case .latestEvents: "Latest events"
         }
     }
 }
@@ -29,6 +31,8 @@ extension TraceLogPack {
         case .sendQueue: self = .sendQueue
         case .timeline: self = .timeline
         case .notificationClient: self = .notificationClient
+        case .syncProfiling: self = .syncProfiling
+        case .latestEvents: self = .latestEvents
         }
     }
     
@@ -38,6 +42,8 @@ extension TraceLogPack {
         case .sendQueue: .sendQueue
         case .timeline: .timeline
         case .notificationClient: .notificationClient
+        case .syncProfiling: .syncProfiling
+        case .latestEvents: .latestEvents
         }
     }
 }

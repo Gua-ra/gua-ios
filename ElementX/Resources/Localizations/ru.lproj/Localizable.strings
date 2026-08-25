@@ -97,6 +97,7 @@
 "action_leave" = "Покинуть";
 "action_leave_conversation" = "Покинуть беседу";
 "action_leave_room" = "Покинуть комнату";
+"action_leave_space" = "Leave space";
 "action_load_more" = "Загрузить еще";
 "action_manage_account" = "Настройки учетной записи";
 "action_manage_devices" = "Управление устройствами";
@@ -180,6 +181,7 @@
 "common_creating_room" = "Создание комнаты…";
 "common_current_user_canceled_knock" = "Запрос отменен";
 "common_current_user_left_room" = "Покинул комнату";
+"common_current_user_left_space" = "Left space";
 "common_current_user_rejected_invite" = "Приглашение отклонено";
 "common_dark" = "Тёмное";
 "common_date_date_at_time" = "%1$@ в %2$@";
@@ -278,8 +280,10 @@
 "common_sent" = "Отправлено";
 "common_sentence_delimiter" = ". ";
 "common_server_not_supported" = "Сервер не поддерживается";
+"common_server_unreachable" = "Server unreachable";
 "common_server_url" = "Адрес сервера";
 "common_settings" = "Настройки";
+"common_share_space" = "Share space";
 "common_shared_location" = "Поделился местоположением";
 "common_signing_out" = "Выход…";
 "common_something_went_wrong" = "Что-то пошло не так";
@@ -326,6 +330,7 @@
 "common_you" = "Вы";
 "common.add_account" = "Add an account";
 "common.add_another_account" = "Add another account";
+"common.no_space_name" = "No space name";
 "common.select_account" = "Select an account";
 "common_unable_to_decrypt_insecure_device" = "Отправлено с незащищенного устройства";
 "common_unable_to_decrypt_verification_violation" = "Подтвержденная личность отправителя была сброшена";
@@ -371,6 +376,7 @@
 "emoji_picker_category_objects" = "Объекты";
 "emoji_picker_category_people" = "Улыбки и люди";
 "emoji_picker_category_places" = "Путешествия и места";
+"emoji_picker_category_recent" = "Recent emojis";
 "emoji_picker_category_symbols" = "Символы";
 "emoji_picker_search_placeholder" = "Search emojis";
 "error_invalid_invite" = "Комната больше не существует или приглашение не действительно.";
@@ -481,6 +487,9 @@
 "screen_bottom_sheet_create_dm_confirmation_button_title" = "Отправить приглашение";
 "screen_bottom_sheet_create_dm_message" = "Хотите начать чат с %1$@?";
 "screen_bottom_sheet_create_dm_title" = "Отправить приглашение?";
+"screen_bottom_sheet_leave_space_subtitle" = "This will also remove you from all rooms in this space.";
+"screen_bottom_sheet_leave_space_subtitle_admin" = "This will also remove you from all rooms in this space, including those you’re the only administrator for:";
+"screen_bottom_sheet_leave_space_title" = "Leave %1$@?";
 "screen_bottom_sheet_manage_room_member_ban" = "Удалить и заблокировать участника";
 "screen_bottom_sheet_manage_room_member_ban_member_confirmation_action" = "Заблокировать";
 "screen_bottom_sheet_manage_room_member_ban_member_confirmation_description" = "Они не смогут снова присоединиться к этой комнате, если их пригласят.";
@@ -569,6 +578,7 @@
 "screen_media_upload_preview_error_failed_sending" = "Не удалось загрузить медиафайлы, попробуйте еще раз.";
 "screen_media_upload_preview_error_too_large_message" = "The maximum file size allowed is %1$@.";
 "screen_media_upload_preview_error_too_large_title" = "The file is too large to upload";
+"screen_media_upload_preview_item_count" = "Item %1$d of %2$d";
 "screen_media_upload_preview_optimize_image_quality_title" = "Optimise image quality";
 "screen_media_upload_preview_processing" = "Processing...";
 "screen_pinned_timeline_empty_state_description" = "Нажмите на сообщение и выберите “%1$@”, чтобы добавить его сюда.";
@@ -873,9 +883,7 @@
 "screen_onboarding_sign_in_to" = "Войти в %1$@";
 "screen_onboarding_sign_in_with_qr_code" = "Войти QR-кодом";
 "screen_onboarding_sign_up" = "Создать учетную запись";
-"screen_onboarding_welcome_message" = "Добро пожаловать в самый быстрый клиент %1$@. Ориентирован на скорость и простоту.";
-"screen_onboarding_welcome_subtitle" = "Добро пожаловать в %1$@. Ориентирован на скорость и простоту.";
-"screen_onboarding_welcome_title" = "Чувствуйте себя как дома с Element";
+"screen_onboarding_welcome_title" = "Добро пожаловать в Gua";
 "screen_polls_history_empty_ongoing" = "Не найдено текущих опросов.";
 "screen_polls_history_empty_past" = "Не найдено прошлых опросов.";
 "screen_polls_history_filter_ongoing" = "Текущие";
@@ -999,6 +1007,8 @@
 "screen_room_details_error_loading_notification_settings" = "Произошла ошибка при загрузке настроек уведомлений.";
 "screen_room_details_error_muting" = "Не удалось отключить звук в этой комнате, попробуйте еще раз.";
 "screen_room_details_error_unmuting" = "Не удалось включить звук в эту комнату, попробуйте еще раз.";
+"screen_room_details_invite_people_dont_close" = "Don't close the app until finished.";
+"screen_room_details_invite_people_preparing" = "Preparing invitations...";
 "screen_room_details_notification_mode_custom" = "Пользовательский";
 "screen_room_details_notification_mode_default" = "По умолчанию";
 "screen_room_details_share_room_title" = "Поделиться комнатой";
@@ -1385,3 +1395,15 @@
 "screen_signout_preference_item" = "Выйти";
 "screen_signout_save_recovery_key_title" = "Вы сохранили ключ восстановления?";
 "troubleshoot_notifications_entry_point_title" = "Уведомления об устранении неполадок";
+
+"screen_phone_login_title" = "Введите номер телефона";
+"screen_phone_login_subtitle" = "Мы отправим шестизначный код подтверждения на ваш мобильный.";
+"screen_phone_login_continue" = "Отправить код";
+"screen_phone_login_phone_placeholder" = "Номер телефона (с кодом страны)";
+"screen_phone_login_invalid_number" = "Введите корректный номер телефона с кодом страны.";
+"screen_phone_login_rate_limited" = "Слишком много запросов кода. Подождите немного и попробуйте снова.";
+"screen_phone_login_send_failed" = "Не удалось отправить код. Повторите попытку.";
+"screen_phone_login_button_title" = "Продолжить по номеру телефона";
+
+"screen_otp_code_placeholder" = "6-значный код";
+"screen_otp_invalid_code" = "Код неверный или истёк.";

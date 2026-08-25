@@ -90,7 +90,6 @@ struct HomeScreenInviteCell: View {
         }
     }
     
-    @ViewBuilder
     private var textualContent: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(title)
@@ -138,7 +137,7 @@ struct HomeScreenInviteCell: View {
     }
     
     private var subtitle: String? {
-        room.isDirect ? room.inviter?.id : nil
+        room.isDirect ? room.inviter?.id.guaDisplayHandle : nil
     }
     
     @ViewBuilder

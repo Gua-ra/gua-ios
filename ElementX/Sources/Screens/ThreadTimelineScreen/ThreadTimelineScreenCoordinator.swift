@@ -16,6 +16,7 @@ struct ThreadTimelineScreenCoordinatorParameters {
     let timelineController: TimelineControllerProtocol
     let mediaPlayerProvider: MediaPlayerProviderProtocol
     let emojiProvider: EmojiProviderProtocol
+    let linkMetadataProvider: LinkMetadataProviderProtocol
     let completionSuggestionService: CompletionSuggestionServiceProtocol
     let appMediator: AppMediatorProtocol
     let appSettings: AppSettings
@@ -54,7 +55,7 @@ final class ThreadTimelineScreenCoordinator: CoordinatorProtocol {
     init(parameters: ThreadTimelineScreenCoordinatorParameters) {
         self.parameters = parameters
         
-        viewModel = ThreadTimelineScreenViewModel(roomProxy: parameters.roomProxy)
+        viewModel = ThreadTimelineScreenViewModel(roomProxy: parameters.roomProxy, userSession: parameters.userSession)
         
         timelineViewModel = TimelineViewModel(roomProxy: parameters.roomProxy,
                                               timelineController: parameters.timelineController,
@@ -65,6 +66,7 @@ final class ThreadTimelineScreenCoordinator: CoordinatorProtocol {
                                               appSettings: parameters.appSettings,
                                               analyticsService: parameters.analytics,
                                               emojiProvider: parameters.emojiProvider,
+                                              linkMetadataProvider: parameters.linkMetadataProvider,
                                               timelineControllerFactory: parameters.timelineControllerFactory)
         
         let wysiwygViewModel = WysiwygComposerViewModel(minHeight: ComposerConstant.minHeight,

@@ -97,6 +97,7 @@
 "action_leave" = "떠나기";
 "action_leave_conversation" = "대화에서 나가기";
 "action_leave_room" = "방 떠나기";
+"action_leave_space" = "Leave space";
 "action_load_more" = "더 불러오기";
 "action_manage_account" = "계정 관리";
 "action_manage_devices" = "기기 관리";
@@ -180,6 +181,7 @@
 "common_creating_room" = "방 만드는 중…";
 "common_current_user_canceled_knock" = "요청이 취소되었습니다";
 "common_current_user_left_room" = "방 떠남";
+"common_current_user_left_space" = "Left space";
 "common_current_user_rejected_invite" = "초대 거부됨";
 "common_dark" = "다크";
 "common_date_date_at_time" = "%2$@ 에 %1$@";
@@ -278,8 +280,10 @@
 "common_sent" = "보냄";
 "common_sentence_delimiter" = ". ";
 "common_server_not_supported" = "지원되지 않는 서버";
+"common_server_unreachable" = "Server unreachable";
 "common_server_url" = "서버 URL";
 "common_settings" = "설정";
+"common_share_space" = "Share space";
 "common_shared_location" = "공유된 위치";
 "common_signing_out" = "로그아웃";
 "common_something_went_wrong" = "뭔가 잘못됐어요";
@@ -326,6 +330,7 @@
 "common_you" = "당신";
 "common.add_account" = "Add an account";
 "common.add_another_account" = "Add another account";
+"common.no_space_name" = "No space name";
 "common.select_account" = "Select an account";
 "common_unable_to_decrypt_insecure_device" = "보안되지 않은 장치에서 전송됨";
 "common_unable_to_decrypt_verification_violation" = "발신자의 검증된 신원이 재설정되었습니다.";
@@ -371,6 +376,7 @@
 "emoji_picker_category_objects" = "사물";
 "emoji_picker_category_people" = "표정 & 사람";
 "emoji_picker_category_places" = "여행 & 장소";
+"emoji_picker_category_recent" = "Recent emojis";
 "emoji_picker_category_symbols" = "상징";
 "emoji_picker_search_placeholder" = "Search emojis";
 "error_invalid_invite" = "해당 방이 더 이상 존재하지 않거나 초대장이 더 이상 유효하지 않습니다.";
@@ -481,6 +487,9 @@
 "screen_bottom_sheet_create_dm_confirmation_button_title" = "초대장 보내기";
 "screen_bottom_sheet_create_dm_message" = "%1$@ 와 채팅을 시작하시겠습니까?";
 "screen_bottom_sheet_create_dm_title" = "초대장을 보내시겠습니까?";
+"screen_bottom_sheet_leave_space_subtitle" = "This will also remove you from all rooms in this space.";
+"screen_bottom_sheet_leave_space_subtitle_admin" = "This will also remove you from all rooms in this space, including those you’re the only administrator for:";
+"screen_bottom_sheet_leave_space_title" = "Leave %1$@?";
 "screen_bottom_sheet_manage_room_member_ban" = "방에서 차단";
 "screen_bottom_sheet_manage_room_member_ban_member_confirmation_action" = "차단";
 "screen_bottom_sheet_manage_room_member_ban_member_confirmation_description" = "초대하더라도 그들은 이 방에 다시 참여할 수 없습니다.";
@@ -569,6 +578,7 @@
 "screen_media_upload_preview_error_failed_sending" = "미디어 파일 업로드에 실패했습니다. 다시 시도해 주세요.";
 "screen_media_upload_preview_error_too_large_message" = "허용되는 최대 파일 크기는 %1$@ 입니다.";
 "screen_media_upload_preview_error_too_large_title" = "파일 크기가 너무 커서 업로드할 수 없습니다.";
+"screen_media_upload_preview_item_count" = "Item %1$d of %2$d";
 "screen_media_upload_preview_optimize_image_quality_title" = "이미지 품질 최적화";
 "screen_media_upload_preview_processing" = "처리 중...";
 "screen_pinned_timeline_empty_state_description" = "메시지를 누르고 \"%1$@\" 를 선택하여 여기에 포함합니다.";
@@ -873,9 +883,7 @@
 "screen_onboarding_sign_in_to" = "%1$@ 에 로그인하세요.";
 "screen_onboarding_sign_in_with_qr_code" = "QR 코드로 로그인";
 "screen_onboarding_sign_up" = "계정 만들기";
-"screen_onboarding_welcome_message" = "%1$@ 에 오신 것을 환영합니다. 속도와 단순성을 극대화한 가장 빠른 버전입니다.";
-"screen_onboarding_welcome_subtitle" = "%1$@ 에 오신 것을 환영합니다. 속도와 단순성을 위해 최적화된 앱입니다.";
-"screen_onboarding_welcome_title" = "당신의 엘리먼트에 있어";
+"screen_onboarding_welcome_title" = "Gua에 오신 것을 환영합니다";
 "screen_polls_history_empty_ongoing" = "진행 중인 투표를 찾을 수 없습니다.";
 "screen_polls_history_empty_past" = "과거의 투표를 찾을 수 없습니다.";
 "screen_polls_history_filter_ongoing" = "진행 중";
@@ -999,6 +1007,8 @@
 "screen_room_details_error_loading_notification_settings" = "알림 설정 로딩 중 오류가 발생했습니다.";
 "screen_room_details_error_muting" = "이 방의 음소거에 실패했습니다. 다시 시도하세요.";
 "screen_room_details_error_unmuting" = "이 방의 음소거를 해제하지 못했습니다. 다시 시도하세요.";
+"screen_room_details_invite_people_dont_close" = "Don't close the app until finished.";
+"screen_room_details_invite_people_preparing" = "Preparing invitations...";
 "screen_room_details_notification_mode_custom" = "맞춤형";
 "screen_room_details_notification_mode_default" = "기본값";
 "screen_room_details_share_room_title" = "방 공유하기";

@@ -97,6 +97,7 @@
 "action_leave" = "Lahku";
 "action_leave_conversation" = "Lahku vestlusest";
 "action_leave_room" = "Lahku jututoast";
+"action_leave_space" = "Lahku kogukonnast";
 "action_load_more" = "Näita veel";
 "action_manage_account" = "Halda kasutajakontot";
 "action_manage_devices" = "Halda seadmeid";
@@ -180,12 +181,13 @@
 "common_creating_room" = "Loome jututoa…";
 "common_current_user_canceled_knock" = "Päring on tühistatud";
 "common_current_user_left_room" = "Lahkus jututoast";
+"common_current_user_left_space" = "Left space";
 "common_current_user_rejected_invite" = "Keeldusid kutsest";
 "common_dark" = "Tume";
 "common_date_date_at_time" = "%1$@, %2$@";
 "common_date_this_month" = "Sel kuul";
 "common_decryption_error" = "Dekrüptimisviga";
-"common_description" = "Description";
+"common_description" = "Kirjeldus";
 "common_developer_options" = "Arendaja valikud";
 "common_device_id" = "Seadme tunnus";
 "common_direct_chat" = "Otsevestlus";
@@ -278,8 +280,10 @@
 "common_sent" = "Saadetud";
 "common_sentence_delimiter" = ". ";
 "common_server_not_supported" = "Server pole toetatud";
+"common_server_unreachable" = "Server pole leitav";
 "common_server_url" = "Serveri URL";
 "common_settings" = "Seadistused";
+"common_share_space" = "Share space";
 "common_shared_location" = "Jagatud asukoht";
 "common_signing_out" = "Logime välja";
 "common_something_went_wrong" = "Midagi läks valesti";
@@ -326,6 +330,7 @@
 "common_you" = "Sina";
 "common.add_account" = "Lisa kasutajakonto";
 "common.add_another_account" = "Lisa veel üks kasutajakonto";
+"common.no_space_name" = "No space name";
 "common.select_account" = "Vali kasutajakonto";
 "common_unable_to_decrypt_insecure_device" = "Saadetud ebaturvalisest seadmest";
 "common_unable_to_decrypt_verification_violation" = "Saatja verifitseeritud identiteet on lähtestatud";
@@ -371,6 +376,7 @@
 "emoji_picker_category_objects" = "Esemed";
 "emoji_picker_category_people" = "Emotikonid ja inimesed";
 "emoji_picker_category_places" = "Reisimine ja kohad";
+"emoji_picker_category_recent" = "Recent emojis";
 "emoji_picker_category_symbols" = "Sümbolid";
 "emoji_picker_search_placeholder" = "Otsi emojisid";
 "error_invalid_invite" = "Seda jututuba pole enam olemas või pole see kutse enam kehtiv.";
@@ -481,6 +487,9 @@
 "screen_bottom_sheet_create_dm_confirmation_button_title" = "Saada kutse";
 "screen_bottom_sheet_create_dm_message" = "Kas sa soovid alustada vestlust kasutajaga %1$@?";
 "screen_bottom_sheet_create_dm_title" = "Kas saadame kutse?";
+"screen_bottom_sheet_leave_space_subtitle" = "Sellega eemaldad end ka kõikidest antud kogukonna jututubadest.";
+"screen_bottom_sheet_leave_space_subtitle_admin" = "Sellega eemaldad end ka kõikidest antud kogukonna jututubadest, sealhulgast järgnevaist, kus oled ainus peakasutaja:";
+"screen_bottom_sheet_leave_space_title" = "Kas lahkud %1$@ kogukonnast?";
 "screen_bottom_sheet_manage_room_member_ban" = "Eemalda ja sea suhtluskeeld";
 "screen_bottom_sheet_manage_room_member_ban_member_confirmation_action" = "Sea suhtluskeeld";
 "screen_bottom_sheet_manage_room_member_ban_member_confirmation_description" = "Ta ei saa selle jututoaga liituda isegi kutse olemasolul.";
@@ -569,6 +578,7 @@
 "screen_media_upload_preview_error_failed_sending" = "Meediafaili üleslaadimine ei õnnestunud. Palun proovi uuesti.";
 "screen_media_upload_preview_error_too_large_message" = "Maksimaalne lubatud failisuurus on %1$@.";
 "screen_media_upload_preview_error_too_large_title" = "Fail on üleslaadimiseks liiga suur";
+"screen_media_upload_preview_item_count" = "Item %1$d of %2$d";
 "screen_media_upload_preview_optimize_image_quality_title" = "Optimeeri pildikvaliteeti";
 "screen_media_upload_preview_processing" = "Töötlen...";
 "screen_pinned_timeline_empty_state_description" = "Siia lisamiseks vajuta sõnumil ja vali „%1$@“.";
@@ -873,9 +883,7 @@
 "screen_onboarding_sign_in_to" = "Logi sisse teenusesse %1$@";
 "screen_onboarding_sign_in_with_qr_code" = "Logi sisse QR-koodi alusel";
 "screen_onboarding_sign_up" = "Loo kasutajakonto";
-"screen_onboarding_welcome_message" = "Läbi aegade kiireim ja mugavaim %1$@.";
-"screen_onboarding_welcome_subtitle" = "Tere tulemast kasutama kiiret ja lihtsat suhtlusrakendust %1$@.";
-"screen_onboarding_welcome_title" = "Ole oma elemendis";
+"screen_onboarding_welcome_title" = "Tere tulemast Gua rakendusse";
 "screen_polls_history_empty_ongoing" = "Ei leia ühtegi käimasolevat küsitlust.";
 "screen_polls_history_empty_past" = "Ei leia ühtegi varasemat küsitlust.";
 "screen_polls_history_filter_ongoing" = "Käimasolev küsitlus";
@@ -999,6 +1007,8 @@
 "screen_room_details_error_loading_notification_settings" = "Teavituste seadistuste laadimisel tekkis viga.";
 "screen_room_details_error_muting" = "Selle jututoa summutamine ei õnnestunud. Palun proovi uuesti.";
 "screen_room_details_error_unmuting" = "Selle jututoa summutamise eemaldamine ei õnnestunud. Palun proovi uuesti.";
+"screen_room_details_invite_people_dont_close" = "Ära sulge rakendust enne, kui tegevus on lõppenud.";
+"screen_room_details_invite_people_preparing" = "Valmistan kutseid ette...";
 "screen_room_details_notification_mode_custom" = "Kohandatud";
 "screen_room_details_notification_mode_default" = "Vaikimisi";
 "screen_room_details_share_room_title" = "Jaga jututuba";

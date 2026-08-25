@@ -17,8 +17,14 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
     let adjustedDeliveryStatus: TimelineItemDeliveryStatus?
     @ViewBuilder let content: () -> Content
 
-    private var isDirectOneToOneRoom: Bool { context.viewState.isDirectOneToOneRoom }
-    private var isFocussed: Bool { focussedEventID != nil && timelineItem.id.eventID == focussedEventID }
+    private var isDirectOneToOneRoom: Bool {
+        context.viewState.isDirectOneToOneRoom
+    }
+
+    private var isFocussed: Bool {
+        focussedEventID != nil && timelineItem.id.eventID == focussedEventID
+    }
+
     private var isPinned: Bool {
         guard context.viewState.timelineKind != .pinned,
               let eventID = timelineItem.id.eventID else {
@@ -79,12 +85,12 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
             HStack(alignment: .top, spacing: 4) {
                 TimelineSenderAvatarView(timelineItem: timelineItem)
                 HStack(alignment: .center, spacing: 4) {
-                    Text(timelineItem.sender.displayName ?? timelineItem.sender.id)
+                    Text(timelineItem.sender.displayName ?? timelineItem.sender.id.guaDisplayHandle)
                         .font(.compound.bodySMSemibold)
                         .foregroundColor(.compound.decorativeColor(for: timelineItem.sender.id).text)
-                    
+
                     if timelineItem.sender.displayName != nil, timelineItem.sender.isDisplayNameAmbiguous {
-                        Text(timelineItem.sender.id)
+                        Text(timelineItem.sender.id.guaDisplayHandle)
                             .font(.compound.bodyXS)
                             .foregroundColor(.compound.textSecondary)
                     }
@@ -178,7 +184,6 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
                               color: timelineItem.bubbleBackgroundColor)
     }
     
-    @ViewBuilder
     var contentWithReply: some View {
         TimelineBubbleLayout(spacing: 8) {
             if !context.viewState.timelineKind.isThread, timelineItem.properties.isThreaded {
@@ -341,6 +346,7 @@ struct TimelineItemBubbledStylerView_Previews: PreviewProvider, TestablePreview 
                                  appSettings: ServiceLocator.shared.settings,
                                  analyticsService: ServiceLocator.shared.analytics,
                                  emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                 linkMetadataProvider: LinkMetadataProvider(),
                                  timelineControllerFactory: TimelineControllerFactoryMock(.init()))
     }()
 

@@ -5,9 +5,8 @@
 // Please see LICENSE files in the repository root for full details.
 //
 
-@testable import ElementX
-
 import Combine
+@testable import ElementX
 import MatrixRustSDK
 import XCTest
 
@@ -229,7 +228,7 @@ class TimelineViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.context.viewState.timelineState.focussedEvent)
     }
     
-    func testInitialFocusViewState() async throws {
+    func testInitialFocusViewState() {
         let timelineController = MockTimelineController()
         
         let viewModel = makeViewModel(focussedEventID: "t10", timelineController: timelineController)
@@ -247,7 +246,7 @@ class TimelineViewModelTests: XCTestCase {
         let (viewModel, _, timelineProxy, _) = readReceiptsConfiguration(with: items)
         
         // When sending a read receipt for the last item.
-        viewModel.context.send(viewAction: .sendReadReceiptIfNeeded(items.last!.id))
+        try viewModel.context.send(viewAction: .sendReadReceiptIfNeeded(XCTUnwrap(items.last?.id)))
         try await Task.sleep(for: .milliseconds(100))
         
         // Then the receipt should be sent.
@@ -265,7 +264,7 @@ class TimelineViewModelTests: XCTestCase {
         let (viewModel, _, timelineProxy, _) = readReceiptsConfiguration(with: items)
         
         // When sending a read receipt for the last item.
-        viewModel.context.send(viewAction: .sendReadReceiptIfNeeded(items.last!.id))
+        try viewModel.context.send(viewAction: .sendReadReceiptIfNeeded(XCTUnwrap(items.last?.id)))
         try await Task.sleep(for: .milliseconds(100))
         
         // Then nothing should be sent.
@@ -280,7 +279,7 @@ class TimelineViewModelTests: XCTestCase {
         let (viewModel, _, _, _) = readReceiptsConfiguration(with: items)
         
         // When sending a read receipt for the last item.
-        viewModel.context.send(viewAction: .sendReadReceiptIfNeeded(items.last!.id))
+        try viewModel.context.send(viewAction: .sendReadReceiptIfNeeded(XCTUnwrap(items.last?.id)))
         try await Task.sleep(for: .milliseconds(100))
     }
     
@@ -311,6 +310,7 @@ class TimelineViewModelTests: XCTestCase {
                                           appSettings: ServiceLocator.shared.settings,
                                           analyticsService: ServiceLocator.shared.analytics,
                                           emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                          linkMetadataProvider: LinkMetadataProvider(),
                                           timelineControllerFactory: TimelineControllerFactoryMock(.init()))
         return (viewModel, roomProxy, timelineProxy, timelineController)
     }
@@ -336,6 +336,7 @@ class TimelineViewModelTests: XCTestCase {
                                           appSettings: ServiceLocator.shared.settings,
                                           analyticsService: ServiceLocator.shared.analytics,
                                           emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                          linkMetadataProvider: LinkMetadataProvider(),
                                           timelineControllerFactory: TimelineControllerFactoryMock(.init()))
         
         let deferred = deferFulfillment(viewModel.context.$viewState) { value in
@@ -359,6 +360,7 @@ class TimelineViewModelTests: XCTestCase {
                                           appSettings: ServiceLocator.shared.settings,
                                           analyticsService: ServiceLocator.shared.analytics,
                                           emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                          linkMetadataProvider: LinkMetadataProvider(),
                                           timelineControllerFactory: TimelineControllerFactoryMock(.init()))
         
         var deferred = deferFulfillment(viewModel.context.$viewState) { value in
@@ -394,6 +396,7 @@ class TimelineViewModelTests: XCTestCase {
                                           appSettings: ServiceLocator.shared.settings,
                                           analyticsService: ServiceLocator.shared.analytics,
                                           emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                          linkMetadataProvider: LinkMetadataProvider(),
                                           timelineControllerFactory: TimelineControllerFactoryMock(.init()))
         
         var deferredState = deferFulfillment(viewModel.context.$viewState) { value in
@@ -429,6 +432,7 @@ class TimelineViewModelTests: XCTestCase {
                                           appSettings: ServiceLocator.shared.settings,
                                           analyticsService: ServiceLocator.shared.analytics,
                                           emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                          linkMetadataProvider: LinkMetadataProvider(),
                                           timelineControllerFactory: TimelineControllerFactoryMock(.init()))
         
         var deferredState = deferFulfillment(viewModel.context.$viewState) { value in
@@ -470,6 +474,7 @@ class TimelineViewModelTests: XCTestCase {
                                           appSettings: ServiceLocator.shared.settings,
                                           analyticsService: ServiceLocator.shared.analytics,
                                           emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                          linkMetadataProvider: LinkMetadataProvider(),
                                           timelineControllerFactory: TimelineControllerFactoryMock(.init()))
         XCTAssertEqual(configuration.pinnedEventIDs, viewModel.context.viewState.pinnedEventIDs)
         
@@ -497,6 +502,7 @@ class TimelineViewModelTests: XCTestCase {
                                           appSettings: ServiceLocator.shared.settings,
                                           analyticsService: ServiceLocator.shared.analytics,
                                           emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                          linkMetadataProvider: LinkMetadataProvider(),
                                           timelineControllerFactory: TimelineControllerFactoryMock(.init()))
         
         var deferred = deferFulfillment(viewModel.context.$viewState) { value in
@@ -534,6 +540,7 @@ class TimelineViewModelTests: XCTestCase {
                           appSettings: ServiceLocator.shared.settings,
                           analyticsService: ServiceLocator.shared.analytics,
                           emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                          linkMetadataProvider: LinkMetadataProvider(),
                           timelineControllerFactory: TimelineControllerFactoryMock(.init()))
     }
 }

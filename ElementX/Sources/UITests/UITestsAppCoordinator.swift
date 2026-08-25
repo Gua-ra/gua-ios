@@ -127,6 +127,7 @@ class MockScreen: Identifiable {
                 let accountProviders = id == .singleProviderAuthenticationFlow ? ["example.com"] : ["guest.example.com", "example.com"]
                 appSettings.override(accountProviders: accountProviders,
                                      allowOtherAccountProviders: false,
+                                     hideBrandChrome: false,
                                      pushGatewayBaseURL: appSettings.pushGatewayBaseURL,
                                      oidcRedirectURL: appSettings.oidcRedirectURL,
                                      websiteURL: appSettings.websiteURL,
@@ -185,6 +186,10 @@ class MockScreen: Identifiable {
                       appLockService.unlock(with: pinCode) else {
                     fatalError("Failed to preset the PIN code.")
                 }
+                // GUA FORK: setting a PIN code now turns biometric unlock on by default, and this
+                // mock context would sail straight through it. These scenarios exercise the PIN
+                // fallback, so opt out of biometrics here.
+                appLockService.disableBiometricUnlock()
             }
             
             let notificationCenter = UITestsNotificationCenter()
@@ -264,6 +269,7 @@ class MockScreen: Identifiable {
                                                              timelineController: MockTimelineController(),
                                                              mediaPlayerProvider: MediaPlayerProviderMock(),
                                                              emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                                             linkMetadataProvider: LinkMetadataProvider(),
                                                              completionSuggestionService: CompletionSuggestionServiceMock(configuration: .init()),
                                                              ongoingCallRoomIDPublisher: .init(.init(nil)),
                                                              appMediator: AppMediatorMock.default,
@@ -285,6 +291,7 @@ class MockScreen: Identifiable {
                                                              timelineController: timelineController,
                                                              mediaPlayerProvider: MediaPlayerProviderMock(),
                                                              emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                                             linkMetadataProvider: LinkMetadataProvider(),
                                                              completionSuggestionService: CompletionSuggestionServiceMock(configuration: .init()),
                                                              ongoingCallRoomIDPublisher: .init(.init(nil)),
                                                              appMediator: AppMediatorMock.default,
@@ -306,6 +313,7 @@ class MockScreen: Identifiable {
                                                              timelineController: timelineController,
                                                              mediaPlayerProvider: MediaPlayerProviderMock(),
                                                              emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                                             linkMetadataProvider: LinkMetadataProvider(),
                                                              completionSuggestionService: CompletionSuggestionServiceMock(configuration: .init()),
                                                              ongoingCallRoomIDPublisher: .init(.init(nil)),
                                                              appMediator: AppMediatorMock.default,
@@ -326,6 +334,7 @@ class MockScreen: Identifiable {
                                                              timelineController: timelineController,
                                                              mediaPlayerProvider: MediaPlayerProviderMock(),
                                                              emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                                             linkMetadataProvider: LinkMetadataProvider(),
                                                              completionSuggestionService: CompletionSuggestionServiceMock(configuration: .init()),
                                                              ongoingCallRoomIDPublisher: .init(.init(nil)),
                                                              appMediator: AppMediatorMock.default,
@@ -349,6 +358,7 @@ class MockScreen: Identifiable {
                                                              timelineController: timelineController,
                                                              mediaPlayerProvider: MediaPlayerProviderMock(),
                                                              emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                                             linkMetadataProvider: LinkMetadataProvider(),
                                                              completionSuggestionService: CompletionSuggestionServiceMock(configuration: .init()),
                                                              ongoingCallRoomIDPublisher: .init(.init(nil)),
                                                              appMediator: AppMediatorMock.default,
@@ -372,6 +382,7 @@ class MockScreen: Identifiable {
                                                              timelineController: timelineController,
                                                              mediaPlayerProvider: MediaPlayerProviderMock(),
                                                              emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                                             linkMetadataProvider: LinkMetadataProvider(),
                                                              completionSuggestionService: CompletionSuggestionServiceMock(configuration: .init()),
                                                              ongoingCallRoomIDPublisher: .init(.init(nil)),
                                                              appMediator: AppMediatorMock.default,
@@ -394,6 +405,7 @@ class MockScreen: Identifiable {
                                                              timelineController: timelineController,
                                                              mediaPlayerProvider: MediaPlayerProviderMock(),
                                                              emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                                             linkMetadataProvider: LinkMetadataProvider(),
                                                              completionSuggestionService: CompletionSuggestionServiceMock(configuration: .init()),
                                                              ongoingCallRoomIDPublisher: .init(.init(nil)),
                                                              appMediator: AppMediatorMock.default,
@@ -418,6 +430,7 @@ class MockScreen: Identifiable {
                                                              timelineController: timelineController,
                                                              mediaPlayerProvider: MediaPlayerProviderMock(),
                                                              emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                                             linkMetadataProvider: LinkMetadataProvider(),
                                                              completionSuggestionService: CompletionSuggestionServiceMock(configuration: .init()),
                                                              ongoingCallRoomIDPublisher: .init(.init(nil)),
                                                              appMediator: AppMediatorMock.default,
@@ -441,6 +454,7 @@ class MockScreen: Identifiable {
                                                              timelineController: timelineController,
                                                              mediaPlayerProvider: MediaPlayerProviderMock(),
                                                              emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                                             linkMetadataProvider: LinkMetadataProvider(),
                                                              completionSuggestionService: CompletionSuggestionServiceMock(configuration: .init()),
                                                              ongoingCallRoomIDPublisher: .init(.init(nil)),
                                                              appMediator: AppMediatorMock.default,
@@ -463,6 +477,7 @@ class MockScreen: Identifiable {
                                                              timelineController: timelineController,
                                                              mediaPlayerProvider: MediaPlayerProviderMock(),
                                                              emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                                             linkMetadataProvider: LinkMetadataProvider(),
                                                              completionSuggestionService: CompletionSuggestionServiceMock(configuration: .init()),
                                                              ongoingCallRoomIDPublisher: .init(.init(nil)),
                                                              appMediator: AppMediatorMock.default,
@@ -499,6 +514,7 @@ class MockScreen: Identifiable {
                                                              timelineController: timelineController,
                                                              mediaPlayerProvider: MediaPlayerProviderMock(),
                                                              emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                                             linkMetadataProvider: LinkMetadataProvider(),
                                                              completionSuggestionService: CompletionSuggestionServiceMock(configuration: .init()),
                                                              ongoingCallRoomIDPublisher: .init(.init(nil)),
                                                              appMediator: AppMediatorMock.default,
@@ -522,6 +538,7 @@ class MockScreen: Identifiable {
                                                              timelineController: timelineController,
                                                              mediaPlayerProvider: MediaPlayerProviderMock(),
                                                              emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                                             linkMetadataProvider: LinkMetadataProvider(),
                                                              completionSuggestionService: CompletionSuggestionServiceMock(configuration: .init()),
                                                              ongoingCallRoomIDPublisher: .init(.init(nil)),
                                                              appMediator: AppMediatorMock.default,
@@ -545,6 +562,7 @@ class MockScreen: Identifiable {
                                                              timelineController: timelineController,
                                                              mediaPlayerProvider: MediaPlayerProviderMock(),
                                                              emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                                             linkMetadataProvider: LinkMetadataProvider(),
                                                              completionSuggestionService: CompletionSuggestionServiceMock(configuration: .init()),
                                                              ongoingCallRoomIDPublisher: .init(.init(nil)),
                                                              appMediator: AppMediatorMock.default,
@@ -593,6 +611,7 @@ class MockScreen: Identifiable {
                                                                                                   elementCallService: ElementCallServiceMock(.init()),
                                                                                                   timelineControllerFactory: TimelineControllerFactoryMock(.init()),
                                                                                                   emojiProvider: EmojiProvider(appSettings: appSettings),
+                                                                                                  linkMetadataProvider: LinkMetadataProvider(),
                                                                                                   appMediator: appMediator,
                                                                                                   appSettings: appSettings,
                                                                                                   appHooks: AppHooks(),
@@ -761,6 +780,7 @@ class MockScreen: Identifiable {
                                                                                             elementCallService: ElementCallServiceMock(.init()),
                                                                                             timelineControllerFactory: TimelineControllerFactoryMock(.init(timelineController: timelineController)),
                                                                                             emojiProvider: EmojiProvider(appSettings: appSettings),
+                                                                                            linkMetadataProvider: LinkMetadataProvider(),
                                                                                             appMediator: AppMediatorMock.default,
                                                                                             appSettings: appSettings,
                                                                                             appHooks: AppHooks(),

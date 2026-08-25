@@ -23,10 +23,15 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     private let appSettings: AppSettings
     private let analytics: AnalyticsService
     private let userIndicatorController: UserIndicatorControllerProtocol
+    private let resolverClient: ResolverClientProtocol? // GUA FORK: phone -> homeserver routing
+    private let usesPhoneLoginHint: Bool // GUA FORK
     
     enum State: StateType {
         /// The state machine hasn't started.
         case initial
+        
+        /// GUA FORK: Gua phone-number entry screen (default entry point for normal users).
+        case phoneEntryScreen
         
         /// The initial screen shown when you first launch the app.
         case startScreen
@@ -51,11 +56,16 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     }
     
     enum Event: EventType {
-        /// The flow is being started.
+        /// The legacy flow is being started.
         case start
-        
         /// Modify the flow using the provisioning parameters in the `userInfo`.
         case applyProvisioningParameters
+        /// GUA FORK BEGIN: Gua phone-OIDC events
+        /// The Gua phone-entry flow is being started.
+        case startPhoneAuth
+        /// The user dropped into the legacy auth flow from the phone screen.
+        case useLegacyAuth
+        // GUA FORK END
         
         /// The user would like to login with a QR code.
         case loginWithQR
@@ -97,6 +107,9 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     
     // periphery:ignore - retaining purpose
     private var bugReportFlowCoordinator: BugReportFlowCoordinator?
+    // periphery:ignore - retaining purpose
+    private var phoneEntryScreenCoordinator: PhoneEntryScreenCoordinator?
+    private var isHandlingPhoneSubmission = false
     
     weak var delegate: AuthenticationFlowCoordinatorDelegate?
     
@@ -106,7 +119,9 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
          appMediator: AppMediatorProtocol,
          appSettings: AppSettings,
          analytics: AnalyticsService,
-         userIndicatorController: UserIndicatorControllerProtocol) {
+         userIndicatorController: UserIndicatorControllerProtocol,
+         resolverClient: ResolverClientProtocol? = nil,
+         usesPhoneLoginHint: Bool = false) {
         self.authenticationService = authenticationService
         self.bugReportService = bugReportService
         self.navigationRootCoordinator = navigationRootCoordinator
@@ -114,6 +129,8 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         self.appSettings = appSettings
         self.analytics = analytics
         self.userIndicatorController = userIndicatorController
+        self.resolverClient = resolverClient
+        self.usesPhoneLoginHint = usesPhoneLoginHint
         
         navigationStackCoordinator = NavigationStackCoordinator()
         
@@ -122,7 +139,11 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     }
     
     func start() {
-        stateMachine.tryEvent(.start)
+        if usesPhoneLoginHint, !appSettings.legacyAuthEnabled {
+            stateMachine.tryEvent(.startPhoneAuth)
+        } else {
+            stateMachine.tryEvent(.start)
+        }
     }
     
     func handleAppRoute(_ appRoute: AppRoute, animated: Bool) {
@@ -145,7 +166,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     
     func clearRoute(animated: Bool) {
         switch stateMachine.state {
-        case .initial, .startScreen:
+        case .initial, .startScreen, .phoneEntryScreen:
             break
         case .qrCodeLoginScreen:
             navigationStackCoordinator.setSheetCoordinator(nil)
@@ -172,6 +193,15 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     private func configureStateMachine() {
         stateMachine.addRoutes(event: .start, transitions: [.initial => .startScreen]) { [weak self] _ in
             self?.showStartScreen(fromState: .initial)
+        }
+        
+        // Gua phone-OIDC flow
+
+        stateMachine.addRoutes(event: .startPhoneAuth, transitions: [.initial => .phoneEntryScreen]) { [weak self] _ in
+            self?.showPhoneEntryScreen(fromState: .initial)
+        }
+        stateMachine.addRoutes(event: .useLegacyAuth, transitions: [.phoneEntryScreen => .startScreen]) { [weak self] _ in
+            self?.showStartScreen(fromState: .phoneEntryScreen)
         }
         
         stateMachine.addRoutes(event: .applyProvisioningParameters, transitions: [.initial => .startScreen,
@@ -205,13 +235,15 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         }
         stateMachine.addRoutes(event: .dismissedServerSelection, transitions: [.serverSelectionScreen => .serverConfirmationScreen])
         
-        stateMachine.addRoutes(event: .continueWithOIDC, transitions: [.serverConfirmationScreen => .oidcAuthentication,
+        stateMachine.addRoutes(event: .continueWithOIDC, transitions: [.phoneEntryScreen => .oidcAuthentication,
+                                                                       .serverConfirmationScreen => .oidcAuthentication,
                                                                        .startScreen => .oidcAuthentication]) { [weak self] context in
             guard let (oidcData, window) = context.userInfo as? (OIDCAuthorizationDataProxy, UIWindow) else {
                 fatalError("Missing the OIDC data and presentation anchor.")
             }
             self?.showOIDCAuthentication(oidcData: oidcData, presentationAnchor: window, fromState: context.fromState)
         }
+        stateMachine.addRoutes(event: .cancelledOIDCAuthentication(previousState: .phoneEntryScreen), transitions: [.oidcAuthentication => .phoneEntryScreen])
         stateMachine.addRoutes(event: .cancelledOIDCAuthentication(previousState: .serverConfirmationScreen), transitions: [.oidcAuthentication => .serverConfirmationScreen])
         stateMachine.addRoutes(event: .cancelledOIDCAuthentication(previousState: .startScreen), transitions: [.oidcAuthentication => .startScreen])
         
@@ -294,6 +326,98 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         }
     }
     
+    // MARK: - Gua Phone-OIDC
+
+    private func showPhoneEntryScreen(fromState: State) {
+        let coordinator = PhoneEntryScreenCoordinator(parameters: .init(isLegacyAuthEnabled: appSettings.legacyAuthEnabled))
+        
+        coordinator.actionsPublisher
+            .sink { [weak self] action in
+                guard let self else { return }
+                switch action {
+                case .continue(let phoneNumber):
+                    handlePhoneSubmission(phoneNumber: phoneNumber, coordinator: coordinator)
+                case .useLegacyAuth:
+                    stateMachine.tryEvent(.useLegacyAuth)
+                }
+            }
+            .store(in: &cancellables)
+        
+        coordinator.start()
+        phoneEntryScreenCoordinator = coordinator
+
+        navigationStackCoordinator.setRootCoordinator(coordinator)
+        
+        if fromState == .initial {
+            navigationRootCoordinator.setRootCoordinator(navigationStackCoordinator)
+        }
+    }
+    
+    private func handlePhoneSubmission(phoneNumber: String, coordinator: PhoneEntryScreenCoordinator) {
+        guard !isHandlingPhoneSubmission else { return }
+        isHandlingPhoneSubmission = true
+        coordinator.setSubmitting(true)
+        Task { [weak self] in
+            guard let self else { return }
+            defer {
+                coordinator.setSubmitting(false)
+                self.isHandlingPhoneSubmission = false
+            }
+            
+            // GUA FORK: ask the resolver which homeserver this phone belongs to (login) or should be
+            // created on (register), instead of hardcoding a single account provider.
+            // Use the homeserver base URL the resolver returned directly (configure(for:) accepts a
+            // server name OR a homeserver URL). This avoids re-discovering via HTTPS well-known on the
+            // server name, which is redundant and fails for http/localhost homeservers.
+            let resolution: HomeserverResolution
+            do {
+                resolution = try await resolveHomeserver(forPhone: phoneNumber)
+            } catch {
+                MXLog.error("Resolver lookup failed: \(error)")
+                let message = (error as? ResolverError)?.userFacingMessage ?? L10n.errorUnknown
+                coordinator.displayError(message)
+                return
+            }
+
+            let accountProvider = resolution.homeserver.baseURL
+            let flow: AuthenticationFlow = resolution.exists ? .login : .register
+
+            switch await authenticationService.configure(for: accountProvider, flow: flow) {
+            case .success:
+                break
+            case .failure(let error):
+                MXLog.error("Failed configuring OIDC login from phone hint: \(error)")
+                coordinator.displayError(error.localizedDescription)
+                return
+            }
+            
+            guard authenticationService.homeserver.value.loginMode.supportsOIDCFlow else {
+                coordinator.displayError(L10n.screenLoginErrorUnsupportedAuthentication)
+                return
+            }
+            
+            guard let window = appMediator.windowManager.mainWindow else {
+                coordinator.displayError(L10n.errorUnknown)
+                return
+            }
+            
+            switch await authenticationService.urlForOIDCLogin(loginHint: phoneNumber) {
+            case .success(let oidcData):
+                stateMachine.tryEvent(.continueWithOIDC, userInfo: (oidcData, window))
+            case .failure(let error):
+                MXLog.error("Failed creating OIDC login URL from phone hint: \(error)")
+                coordinator.displayError(error.localizedDescription)
+            }
+        }
+    }
+    
+    /// GUA FORK: resolve a phone to its homeserver via the Gua resolver. The resolver is required for
+    /// phone auth so the app doesn't silently route to the wrong MAS/homeserver.
+    private func resolveHomeserver(forPhone phoneNumber: String) async throws -> HomeserverResolution {
+        guard let resolverClient else { throw ResolverError.notConfigured }
+        return try await resolverClient.resolve(phoneNumber: phoneNumber)
+    }
+
     // MARK: - QR Code
     
     private func showQRCodeLoginScreen() {

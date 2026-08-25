@@ -6,9 +6,8 @@
 //
 
 import Combine
-import XCTest
-
 @testable import ElementX
+import XCTest
 
 @MainActor
 class SpaceListScreenViewModelTests: XCTestCase {
@@ -72,7 +71,10 @@ class SpaceListScreenViewModelTests: XCTestCase {
         ])
         spaceServiceProxy = SpaceServiceProxyMock(.init())
         spaceServiceProxy.joinedSpacesPublisher = joinedSpacesSubject.asCurrentValuePublisher()
-        spaceServiceProxy.spaceRoomListForClosure = { .success(SpaceRoomListProxyMock(.init(spaceRoomProxy: $0))) }
+        spaceServiceProxy.spaceRoomListSpaceIDClosure = { [joinedSpacesSubject] spaceID in
+            guard let spaceRoomProxy = joinedSpacesSubject?.value.first(where: { $0.id == spaceID }) else { return .failure(.missingSpace) }
+            return .success(SpaceRoomListProxyMock(.init(spaceRoomProxy: spaceRoomProxy)))
+        }
         clientProxy.spaceService = spaceServiceProxy
         
         viewModel = SpaceListScreenViewModel(userSession: userSession,

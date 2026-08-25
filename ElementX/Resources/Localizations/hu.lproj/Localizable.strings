@@ -97,6 +97,7 @@
 "action_leave" = "Elhagyás";
 "action_leave_conversation" = "Beszélgetés elhagyása";
 "action_leave_room" = "Szoba elhagyása";
+"action_leave_space" = "Leave space";
 "action_load_more" = "Továbbiak betöltése";
 "action_manage_account" = "Fiók kezelése";
 "action_manage_devices" = "Eszközök kezelése";
@@ -180,6 +181,7 @@
 "common_creating_room" = "Szoba létrehozása…";
 "common_current_user_canceled_knock" = "Kérés megszakítva";
 "common_current_user_left_room" = "Elhagyta a szobát";
+"common_current_user_left_space" = "Left space";
 "common_current_user_rejected_invite" = "Meghívás elutasítva";
 "common_dark" = "Sötét";
 "common_date_date_at_time" = "%1$@ itt: %2$@";
@@ -278,8 +280,10 @@
 "common_sent" = "Elküldve";
 "common_sentence_delimiter" = ". ";
 "common_server_not_supported" = "A kiszolgáló nem támogatott";
+"common_server_unreachable" = "Server unreachable";
 "common_server_url" = "Kiszolgáló webcíme";
 "common_settings" = "Beállítások";
+"common_share_space" = "Share space";
 "common_shared_location" = "Megosztott tartózkodási hely";
 "common_signing_out" = "Kijelentkezés";
 "common_something_went_wrong" = "Valamilyen hiba történt";
@@ -326,6 +330,7 @@
 "common_you" = "Ön";
 "common.add_account" = "Add an account";
 "common.add_another_account" = "Add another account";
+"common.no_space_name" = "No space name";
 "common.select_account" = "Select an account";
 "common_unable_to_decrypt_insecure_device" = "Nem biztonságos eszközről küldve";
 "common_unable_to_decrypt_verification_violation" = "A feladó ellenőrzött személyazonossága megváltozott";
@@ -371,6 +376,7 @@
 "emoji_picker_category_objects" = "Tárgyak";
 "emoji_picker_category_people" = "Mosolyok és emberek";
 "emoji_picker_category_places" = "Utazás és helyek";
+"emoji_picker_category_recent" = "Recent emojis";
 "emoji_picker_category_symbols" = "Szimbólumok";
 "emoji_picker_search_placeholder" = "Search emojis";
 "error_invalid_invite" = "A szoba már nem létezik, vagy a meghívó már nem érvényes.";
@@ -481,6 +487,9 @@
 "screen_bottom_sheet_create_dm_confirmation_button_title" = "Meghívó küldése";
 "screen_bottom_sheet_create_dm_message" = "Csevegést kezd vele: %1$@?";
 "screen_bottom_sheet_create_dm_title" = "Meghívó küldése?";
+"screen_bottom_sheet_leave_space_subtitle" = "This will also remove you from all rooms in this space.";
+"screen_bottom_sheet_leave_space_subtitle_admin" = "This will also remove you from all rooms in this space, including those you’re the only administrator for:";
+"screen_bottom_sheet_leave_space_title" = "Leave %1$@?";
 "screen_bottom_sheet_manage_room_member_ban" = "Eltávolítás és a tag kitiltása";
 "screen_bottom_sheet_manage_room_member_ban_member_confirmation_action" = "Kitiltás";
 "screen_bottom_sheet_manage_room_member_ban_member_confirmation_description" = "Többé nem csatlakozhat ehhez a szobához, akkor sem, ha meghívják.";
@@ -569,6 +578,7 @@
 "screen_media_upload_preview_error_failed_sending" = "Nem sikerült a média feltöltése, próbálja újra.";
 "screen_media_upload_preview_error_too_large_message" = "A maximálisan megengedett fájlméret: %1$@ .";
 "screen_media_upload_preview_error_too_large_title" = "A fájl túl nagy a feltöltéshez";
+"screen_media_upload_preview_item_count" = "Item %1$d of %2$d";
 "screen_media_upload_preview_optimize_image_quality_title" = "Képminőség optimalizációja";
 "screen_media_upload_preview_processing" = "Feldolgozás…";
 "screen_pinned_timeline_empty_state_description" = "Nyomjon hosszan az üzenetre, és válassza a „%1$@” lehetőséget, hogy itt szerepeljen.";
@@ -873,9 +883,7 @@
 "screen_onboarding_sign_in_to" = "Bejelentkezés ide: %1$@";
 "screen_onboarding_sign_in_with_qr_code" = "Bejelentkezés QR-kóddal";
 "screen_onboarding_sign_up" = "Fiók létrehozása";
-"screen_onboarding_welcome_message" = "Üdvözöljük a valaha volt leggyorsabb %1$@ben. Felturbózva, a sebesség és az egyszerűség érdekében.";
-"screen_onboarding_welcome_subtitle" = "Üdvözli az %1$@. Felturbózva, a sebesség és az egyszerűség jegyében.";
-"screen_onboarding_welcome_title" = "Legyen elemében";
+"screen_onboarding_welcome_title" = "Üdvözöljük a Guában";
 "screen_polls_history_empty_ongoing" = "Nem találhatók folyamatban lévő szavazások.";
 "screen_polls_history_empty_past" = "Nem található korábbi szavazás.";
 "screen_polls_history_filter_ongoing" = "Folyamatban";
@@ -999,6 +1007,8 @@
 "screen_room_details_error_loading_notification_settings" = "Hiba történt az értesítési beállítások betöltésekor.";
 "screen_room_details_error_muting" = "Nem sikerült elnémítani ezt a szobát, próbálja újra.";
 "screen_room_details_error_unmuting" = "Nem sikerült feloldani a szoba némítását, próbálja újra.";
+"screen_room_details_invite_people_dont_close" = "Don't close the app until finished.";
+"screen_room_details_invite_people_preparing" = "Preparing invitations...";
 "screen_room_details_notification_mode_custom" = "Egyéni";
 "screen_room_details_notification_mode_default" = "Alapértelmezett";
 "screen_room_details_share_room_title" = "Szoba megosztása";

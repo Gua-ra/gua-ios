@@ -13,9 +13,8 @@ struct SettingsScreen: View {
     let context: SettingsScreenViewModel.Context
     
     private var shouldHideManageAccountSection: Bool {
-        context.viewState.accountProfileURL == nil &&
-            context.viewState.accountSessionsListURL == nil &&
-            !context.viewState.showBlockedUsers
+        // Always shown: the Two-step verification row lives in this section.
+        false
     }
     
     var body: some View {
@@ -60,7 +59,7 @@ struct SettingsScreen: View {
                             Text(context.viewState.userDisplayName ?? "")
                                 .font(.compound.headingMD)
                                 .foregroundColor(.compound.textPrimary)
-                            Text(context.viewState.userID)
+                            Text(context.viewState.userLocalpart)
                                 .font(.compound.bodySM)
                                 .foregroundColor(.compound.textSecondary)
                         }
@@ -78,6 +77,13 @@ struct SettingsScreen: View {
     
     private var manageMyAppSection: some View {
         Section {
+            // GUA FORK: Find which of the user's phone contacts are already on Gua.
+            ListRow(label: .default(title: L10n.screenFindFriendsTitle,
+                                    icon: \.userAdd),
+                    kind: .navigationLink {
+                        context.send(viewAction: .findFriends)
+                    })
+
             ListRow(label: .default(title: L10n.screenNotificationSettingsTitle,
                                     icon: \.notifications),
                     kind: .navigationLink {
@@ -92,15 +98,24 @@ struct SettingsScreen: View {
                     })
                     .accessibilityIdentifier(A11yIdentifiers.settingsScreen.screenLock)
             
-            switch context.viewState.securitySectionMode {
-            case .secureBackup:
-                ListRow(label: .default(title: L10n.commonEncryption,
-                                        icon: \.key),
-                        details: context.viewState.showSecuritySectionBadge ? .icon(securitySectionBadge) : nil,
-                        kind: .navigationLink { context.send(viewAction: .secureBackup) })
-                    .accessibilityIdentifier(A11yIdentifiers.settingsScreen.secureBackup)
-            default:
-                EmptyView()
+            // GUA FORK: The Encryption (secure backup / key storage / recovery)
+            // entry point is intentionally hidden when `hidesAdvancedEncryption`
+            // is set. End-to-end encryption stays fully on with safe defaults —
+            // key storage and recovery are managed automatically — but the advanced
+            // cryptographic controls are not surfaced to non-technical users.
+            // (Engine logic in the view model is left untouched so encryption
+            // keeps working in the background.)
+            if !context.viewState.hidesAdvancedEncryption {
+                switch context.viewState.securitySectionMode {
+                case .secureBackup:
+                    ListRow(label: .default(title: L10n.commonEncryption,
+                                            icon: \.key),
+                            details: context.viewState.showSecuritySectionBadge ? .icon(securitySectionBadge) : nil,
+                            kind: .navigationLink { context.send(viewAction: .secureBackup) })
+                        .accessibilityIdentifier(A11yIdentifiers.settingsScreen.secureBackup)
+                default:
+                    EmptyView()
+                }
             }
         }
     }
@@ -124,6 +139,20 @@ struct SettingsScreen: View {
                         })
             }
             
+            // GUA FORK: Two-step verification entry point
+            ListRow(label: .default(title: L10n.screenTwoStepVerificationTitle,
+                                    icon: \.lockSolid),
+                    kind: .navigationLink {
+                        context.send(viewAction: .twoStepVerification)
+                    })
+
+            // GUA FORK: Change phone number entry point
+            ListRow(label: .default(title: L10n.screenChangePhoneTitle,
+                                    icon: \.edit),
+                    kind: .navigationLink {
+                        context.send(viewAction: .changePhoneNumber)
+                    })
+
             if context.viewState.showBlockedUsers {
                 ListRow(label: .default(title: L10n.commonBlockedUsers,
                                         icon: \.block),
@@ -250,24 +279,38 @@ struct SettingsScreen: View {
 struct SettingsScreen_Previews: PreviewProvider, TestablePreview {
     static let viewModel = makeViewModel()
     static let bugReportDisabledViewModel = makeViewModel(isBugReportServiceEnabled: false)
-    
+    static let guaMarketingViewModel = makeViewModel(userID: "@anacosta:gua", displayName: "Ana Costa")
+
     static var previews: some View {
+        NavigationStack {
+            SettingsScreen(context: guaMarketingViewModel.context)
+        }
+        .environment(\.colorScheme, .dark)
+        .preferredColorScheme(.dark)
+        .snapshotPreferences(expect: guaMarketingViewModel.context.observe(\.viewState.accountProfileURL).map { $0 != nil }.eraseToStream())
+        .previewDisplayName("GuaMarketingAjustes")
+
         NavigationStack {
             SettingsScreen(context: viewModel.context)
         }
-        .snapshotPreferences(expect: viewModel.context.observe(\.viewState.accountSessionsListURL).map { $0 != nil }.eraseToStream())
+        .snapshotPreferences(expect: viewModel.context.observe(\.viewState.accountProfileURL).map { $0 != nil }.eraseToStream())
         .previewDisplayName("Default")
-        
+
         NavigationStack {
             SettingsScreen(context: bugReportDisabledViewModel.context)
         }
-        .snapshotPreferences(expect: bugReportDisabledViewModel.context.observe(\.viewState.accountSessionsListURL).map { $0 != nil }.eraseToStream())
+        .snapshotPreferences(expect: bugReportDisabledViewModel.context.observe(\.viewState.accountProfileURL).map { $0 != nil }.eraseToStream())
         .previewDisplayName("Bug report disabled")
     }
-    
-    static func makeViewModel(isBugReportServiceEnabled: Bool = true) -> SettingsScreenViewModel {
-        let userSession = UserSessionMock(.init(clientProxy: ClientProxyMock(.init(userID: "@userid:example.com",
-                                                                                   deviceID: "AAAAAAAAAAA"))))
+
+    static func makeViewModel(isBugReportServiceEnabled: Bool = true,
+                              userID: String = "@userid:example.com",
+                              displayName: String? = nil) -> SettingsScreenViewModel {
+        let clientProxy = ClientProxyMock(.init(userID: userID, deviceID: "AAAAAAAAAAA"))
+        if let displayName {
+            clientProxy.userDisplayNamePublisher = .init(displayName)
+        }
+        let userSession = UserSessionMock(.init(clientProxy: clientProxy))
         return SettingsScreenViewModel(userSession: userSession,
                                        appSettings: ServiceLocator.shared.settings,
                                        isBugReportServiceEnabled: isBugReportServiceEnabled)

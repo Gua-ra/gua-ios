@@ -20,7 +20,10 @@ class AuthenticationService: AuthenticationServiceProtocol {
     private let appHooks: AppHooks
     
     private let homeserverSubject: CurrentValueSubject<LoginHomeserver, Never>
-    var homeserver: CurrentValuePublisher<LoginHomeserver, Never> { homeserverSubject.asCurrentValuePublisher() }
+    var homeserver: CurrentValuePublisher<LoginHomeserver, Never> {
+        homeserverSubject.asCurrentValuePublisher()
+    }
+
     private(set) var flow: AuthenticationFlow
     
     private let qrLoginProgressSubject = PassthroughSubject<QrLoginProgress, Never>()
@@ -54,8 +57,8 @@ class AuthenticationService: AuthenticationServiceProtocol {
             let client = try await makeClient(homeserverAddress: homeserverAddress)
             let loginDetails = await client.homeserverLoginDetails()
             
-            homeserver.loginMode = if loginDetails.supportsOidcLogin() {
-                .oidc(supportsCreatePrompt: loginDetails.supportedOidcPrompts().contains(.create))
+            homeserver.loginMode = if loginDetails.supportsOauthLogin() {
+                .oidc(supportsCreatePrompt: loginDetails.supportedOauthPrompts().contains(.create))
             } else if loginDetails.supportsPasswordLogin() {
                 .password
             } else {
@@ -92,11 +95,18 @@ class AuthenticationService: AuthenticationServiceProtocol {
         do {
             // The create prompt is broken: https://github.com/element-hq/matrix-authentication-service/issues/3429
             // let prompt: OidcPrompt = flow == .register ? .create : .consent
-            let oidcData = try await client.urlForOidc(oidcConfiguration: appSettings.oidcConfiguration.rustValue,
-                                                       prompt: .consent,
-                                                       loginHint: loginHint,
-                                                       deviceId: nil,
-                                                       additionalScopes: nil)
+            // GUA FORK: Force re-authentication (`.login`) on every OIDC login.
+            // Consent is skipped server-side (Gua is a first-party client and the
+            // identity-service already confirms everything), so we must NOT pass
+            // `nil` here: with no prompt + server-side consent skip, MAS silently
+            // reuses its existing browser session and always returns the SAME
+            // already-logged-in user, never running the phone-OTP flow. `.login`
+            // forces a fresh upstream authentication each time.
+            let oidcData = try await client.urlForOauth(oauthConfiguration: appSettings.oidcConfiguration.rustValue,
+                                                        prompt: .login,
+                                                        loginHint: loginHint,
+                                                        deviceId: nil,
+                                                        additionalScopes: nil)
             return .success(OIDCAuthorizationDataProxy(underlyingData: oidcData))
         } catch {
             MXLog.error("Failed to get URL for OIDC login: \(error)")
@@ -107,15 +117,15 @@ class AuthenticationService: AuthenticationServiceProtocol {
     func abortOIDCLogin(data: OIDCAuthorizationDataProxy) async {
         guard let client else { return }
         MXLog.info("Aborting OIDC login.")
-        await client.abortOidcAuth(authorizationData: data.underlyingData)
+        await client.abortOauthAuth(authorizationData: data.underlyingData)
     }
     
     func loginWithOIDCCallback(_ callbackURL: URL) async -> Result<UserSessionProtocol, AuthenticationServiceError> {
         guard let client else { return .failure(.failedLoggingIn) }
         do {
-            try await client.loginWithOidcCallback(callbackUrl: callbackURL.absoluteString)
+            try await client.loginWithOauthCallback(callbackUrl: callbackURL.absoluteString)
             return await userSession(for: client)
-        } catch OidcError.Cancelled {
+        } catch MatrixRustSDK.OAuthError.Cancelled {
             return .failure(.oidcError(.userCancellation))
         } catch {
             MXLog.error("Login with OIDC failed: \(error)")
@@ -177,9 +187,8 @@ class AuthenticationService: AuthenticationServiceProtocol {
         
         do {
             let client = try await makeClient(homeserverAddress: scannedServerName)
-            try await client.loginWithQrCode(qrCodeData: qrData,
-                                             oidcConfiguration: appSettings.oidcConfiguration.rustValue,
-                                             progressListener: listener)
+            let qrCodeHandler = client.newLoginWithQrCodeHandler(oauthConfiguration: appSettings.oidcConfiguration.rustValue)
+            try await qrCodeHandler.scan(qrCodeData: qrData, progressListener: listener)
             return await userSession(for: client)
         } catch let error as HumanQrLoginError {
             MXLog.error("QRCode login error: \(error)")
@@ -196,6 +205,30 @@ class AuthenticationService: AuthenticationServiceProtocol {
         homeserverSubject.send(LoginHomeserver(address: appSettings.accountProviders[0], loginMode: .unknown))
         flow = .login
         client = nil
+    }
+
+    func loginWithExistingMatrixSession(accessToken: String,
+                                        refreshToken: String?,
+                                        userId: String,
+                                        deviceId: String,
+                                        homeserverUrl: String) async -> Result<UserSessionProtocol, AuthenticationServiceError> {
+        do {
+            let client = try await makeClient(homeserverAddress: homeserverUrl)
+            let session = Session(accessToken: accessToken,
+                                  refreshToken: refreshToken,
+                                  userId: userId,
+                                  deviceId: deviceId,
+                                  homeserverUrl: homeserverUrl,
+                                  oauthData: nil,
+                                  slidingSyncVersion: .native)
+            try await client.restoreSession(session: session)
+            self.client = client
+            flow = .login
+            return await userSession(for: client)
+        } catch {
+            MXLog.error("Failed restoring out-of-band Matrix session: \(error)")
+            return .failure(.failedLoggingIn)
+        }
     }
     
     // MARK: - Private
@@ -248,7 +281,7 @@ private extension HumanQrLoginError {
             .qrCodeError(.deviceNotSupported)
         case .OtherDeviceNotSignedIn:
             .qrCodeError(.deviceNotSignedIn)
-        case .Unknown, .OidcMetadataInvalid:
+        case .Unknown, .OAuthMetadataInvalid, .CheckCodeAlreadySent, .CheckCodeCannotBeSent, .NotFound, .UnsupportedQrCodeType:
             .qrCodeError(.unknown)
         }
     }

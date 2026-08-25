@@ -11,7 +11,6 @@ private struct TimelineItemAccessibilityModifier: ViewModifier {
     let timelineItem: RoomTimelineItemProtocol
     let action: () -> Void
     
-    @ViewBuilder
     func body(content: Content) -> some View {
         switch timelineItem {
         case is PollRoomTimelineItem:
@@ -25,7 +24,7 @@ private struct TimelineItemAccessibilityModifier: ViewModifier {
             content
                 .accessibilityRepresentation {
                     VStack(spacing: 8) {
-                        Text(timelineItem.sender.displayName ?? timelineItem.sender.id)
+                        Text(timelineItem.sender.displayName ?? timelineItem.sender.id.guaDisplayHandle)
                         content
                     }
                 }

@@ -109,6 +109,9 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         userSessionStore = UserSessionStore(keychainController: keychainController, appSettings: appSettings, appHooks: appHooks, networkMonitor: networkMonitor)
         
         let appLockService = AppLockService(keychainController: keychainController, appSettings: appSettings)
+        // GUA FORK: unlocking with Face ID/Touch ID is the default, so switch it on for anyone who
+        // set their PIN code up before this shipped (or before their device had biometrics).
+        appLockService.applyBiometricUnlockDefault()
         let appLockNavigationCoordinator = NavigationRootCoordinator()
         appLockFlowCoordinator = AppLockFlowCoordinator(appLockService: appLockService,
                                                         navigationCoordinator: appLockNavigationCoordinator)
@@ -138,9 +141,6 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         
         if let previousVersion = appSettings.lastVersionLaunched.flatMap(Version.init) {
             performMigrationsIfNecessary(from: previousVersion, to: currentVersion)
-            
-            // Manual clean to handle the potential case where the app crashes before moving a shared file.
-            cleanAppGroupTemporaryDirectory()
         } else {
             // The app has been deleted since the previous run. Reset everything.
             wipeUserData(includingSettings: true)
@@ -205,18 +205,16 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
     }
     
     func toPresentable() -> AnyView {
-        AnyView(
-            navigationRootCoordinator.toPresentable()
-                .environment(\.analyticsService, ServiceLocator.shared.analytics)
-                .onReceive(appSettings.$appAppearance) { [weak self] appAppearance in
-                    guard let self else { return }
+        AnyView(navigationRootCoordinator.toPresentable()
+            .environment(\.analyticsService, ServiceLocator.shared.analytics)
+            .onReceive(appSettings.$appAppearance) { [weak self] appAppearance in
+                guard let self else { return }
                     
-                    windowManager.windows.forEach { window in
-                        // Unfortunately .preferredColorScheme doesn't propagate properly throughout the app when changed
-                        window.overrideUserInterfaceStyle = appAppearance.interfaceStyle
-                    }
+                windowManager.windows.forEach { window in
+                    // Unfortunately .preferredColorScheme doesn't propagate properly throughout the app when changed
+                    window.overrideUserInterfaceStyle = appAppearance.interfaceStyle
                 }
-        )
+            })
     }
     
     func handlePotentialPhishingAttempt(url: URL, openURLAction: @escaping (URL) -> Void) -> Bool {
@@ -397,6 +395,9 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
     private func performMigrationsIfNecessary(from oldVersion: Version, to newVersion: Version) {
         guard oldVersion != newVersion else { return }
         
+        // Be tidy and clean up after ourselves every now and then (because Apple is lazy)
+        clearTemporaryDirectories()
+        
         MXLog.info("The app was upgraded from \(oldVersion) to \(newVersion)")
         
         if oldVersion < Version(1, 6, 0) {
@@ -439,7 +440,7 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         userSessionMigrationsOldVersion = nil
     }
     
-    // This could be removed once the adoption of 25.06.x is widespread.
+    /// This could be removed once the adoption of 25.06.x is widespread.
     private func performSettingsToAccountDataMigration(userSession: UserSessionProtocol) {
         guard let userDefaults = UserDefaults(suiteName: InfoPlistReader.main.appGroupIdentifier) else {
             return
@@ -498,25 +499,39 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
     /// Manually cleans up any files in the app group's `tmp` directory.
     ///
     /// **Note:** If there is a single file we consider it to be an active share payload and ignore it.
-    private func cleanAppGroupTemporaryDirectory() {
-        let fileURLs: [URL]
+    private func clearTemporaryDirectories() {
+        // First get rid of everything in the App's temporary directory
         do {
-            fileURLs = try FileManager.default.contentsOfDirectory(at: URL.appGroupTemporaryDirectory, includingPropertiesForKeys: nil, options: [])
+            let fileURLs = try FileManager.default.contentsOfDirectory(at: URL.temporaryDirectory, includingPropertiesForKeys: nil, options: [])
+            
+            fileURLs.forEach { url in
+                do {
+                    try FileManager.default.removeItem(at: url)
+                } catch {
+                    MXLog.warning("Failed to remove file from temporary directory: \(error)")
+                }
+            }
+        } catch {
+            MXLog.warning("Failed to enumerate temporary directory: \(error)")
+        }
+        
+        // Manual clean to handle the potential case where the app crashes before moving a shared file.
+        do {
+            let fileURLs = try FileManager.default.contentsOfDirectory(at: URL.appGroupTemporaryDirectory, includingPropertiesForKeys: nil, options: [])
+            
+            guard fileURLs.count > 1 else {
+                return // If there is only a single item in here, there's likely a pending share payload that is yet to be processed.
+            }
+            
+            for url in fileURLs {
+                do {
+                    try FileManager.default.removeItem(at: url)
+                } catch {
+                    MXLog.warning("Failed to remove file from app group temporary directory: \(error)")
+                }
+            }
         } catch {
             MXLog.warning("Failed to enumerate app group temporary directory: \(error)")
-            return
-        }
-        
-        guard fileURLs.count > 1 else {
-            return // If there is only a single item in here, there's likely a pending share payload that is yet to be processed.
-        }
-        
-        for url in fileURLs {
-            do {
-                try FileManager.default.removeItem(at: url)
-            } catch {
-                MXLog.warning("Failed to remove file from app group temporary directory: \(error)")
-            }
         }
     }
     
@@ -590,7 +605,9 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
                                                         appMediator: appMediator,
                                                         appSettings: appSettings,
                                                         analytics: ServiceLocator.shared.analytics,
-                                                        userIndicatorController: ServiceLocator.shared.userIndicatorController)
+                                                        userIndicatorController: ServiceLocator.shared.userIndicatorController,
+                                                        resolverClient: ResolverClient(), // GUA FORK: required for phone -> homeserver routing.
+                                                        usesPhoneLoginHint: true) // Flip to false to restore the stock start/server-confirmation OIDC entry.
         coordinator.delegate = self
         
         authenticationFlowCoordinator = coordinator
@@ -675,6 +692,7 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
                                                   elementCallService: elementCallService,
                                                   timelineControllerFactory: TimelineControllerFactory(),
                                                   emojiProvider: EmojiProvider(appSettings: appSettings),
+                                                  linkMetadataProvider: LinkMetadataProvider(),
                                                   appMediator: appMediator,
                                                   appSettings: appSettings,
                                                   appHooks: appHooks,
@@ -1173,12 +1191,12 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         // This is important for the app to keep refreshing in the background
         scheduleBackgroundAppRefresh()
         
-        /// We have a lot of crashes stemming here which we previously believed are caused by stopSync not being async
-        /// on the client proxy side (see the comment on that method). We have now realised that will likely not fix anything but
-        /// we also noticed this does not crash on the main thread, even though the whole AppCoordinator is on the Main actor.
-        /// As such, we introduced a MainActor conformance on the expirationHandler but we are also assuming main actor
-        /// isolated in the `stopSync` method above.
-        /// https://sentry.tools.element.io/organizations/element/issues/4477794/
+        // We have a lot of crashes stemming here which we previously believed are caused by stopSync not being async
+        // on the client proxy side (see the comment on that method). We have now realised that will likely not fix anything but
+        // we also noticed this does not crash on the main thread, even though the whole AppCoordinator is on the Main actor.
+        // As such, we introduced a MainActor conformance on the expirationHandler but we are also assuming main actor
+        // isolated in the `stopSync` method above.
+        // https://sentry.tools.element.io/organizations/element/issues/4477794/
         task.expirationHandler = { @Sendable [weak self] in
             MXLog.info("Background app refresh task is about to expire.")
             

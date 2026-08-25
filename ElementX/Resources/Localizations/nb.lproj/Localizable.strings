@@ -97,6 +97,7 @@
 "action_leave" = "Forlat";
 "action_leave_conversation" = "Forlat samtalen";
 "action_leave_room" = "Forlat rommet";
+"action_leave_space" = "Leave space";
 "action_load_more" = "Last inn mer";
 "action_manage_account" = "Administrer konto";
 "action_manage_devices" = "Administrer enheter";
@@ -180,6 +181,7 @@
 "common_creating_room" = "Oppretter rom …";
 "common_current_user_canceled_knock" = "Forespørsel kansellert";
 "common_current_user_left_room" = "Forlot rommet";
+"common_current_user_left_space" = "Left space";
 "common_current_user_rejected_invite" = "Invitasjon avslått";
 "common_dark" = "Mørk";
 "common_date_date_at_time" = "%1$@ kl. %2$@";
@@ -249,9 +251,9 @@
 "common_preparing" = "Forbereder…";
 "common_privacy_policy" = "Retningslinjer for personvern";
 "common_private_room" = "Privat rom";
-"common_private_space" = "Private space";
+"common_private_space" = "Privat område";
 "common_public_room" = "Offentlig rom";
-"common_public_space" = "Public space";
+"common_public_space" = "Offentlig område";
 "common_reaction" = "Reaksjon";
 "common_reactions" = "Reaksjoner";
 "common_reason" = "Årsak";
@@ -278,8 +280,10 @@
 "common_sent" = "Sendt";
 "common_sentence_delimiter" = "";
 "common_server_not_supported" = "Server støttes ikke";
+"common_server_unreachable" = "Server unreachable";
 "common_server_url" = "URL-adresse til server";
 "common_settings" = "Innstillinger";
+"common_share_space" = "Share space";
 "common_shared_location" = "Delt posisjon";
 "common_signing_out" = "Logger av";
 "common_something_went_wrong" = "Noe gikk galt";
@@ -326,6 +330,7 @@
 "common_you" = "Du";
 "common.add_account" = "Add an account";
 "common.add_another_account" = "Add another account";
+"common.no_space_name" = "No space name";
 "common.select_account" = "Select an account";
 "common_unable_to_decrypt_insecure_device" = "Sendt fra en usikker enhet";
 "common_unable_to_decrypt_verification_violation" = "Avsenderens verifiserte identitet ble tilbakestilt";
@@ -371,6 +376,7 @@
 "emoji_picker_category_objects" = "Gjenstander";
 "emoji_picker_category_people" = "Smilefjes og mennesker";
 "emoji_picker_category_places" = "Reising og steder";
+"emoji_picker_category_recent" = "Recent emojis";
 "emoji_picker_category_symbols" = "Symboler";
 "emoji_picker_search_placeholder" = "Search emojis";
 "error_invalid_invite" = "Rommet eksisterer ikke lenger, eller invitasjonen er ikke lenger gyldig.";
@@ -481,6 +487,9 @@
 "screen_bottom_sheet_create_dm_confirmation_button_title" = "Send invitasjon";
 "screen_bottom_sheet_create_dm_message" = "Vil du starte en chat med %1$@?";
 "screen_bottom_sheet_create_dm_title" = "Vil du sende invitasjon?";
+"screen_bottom_sheet_leave_space_subtitle" = "This will also remove you from all rooms in this space.";
+"screen_bottom_sheet_leave_space_subtitle_admin" = "This will also remove you from all rooms in this space, including those you’re the only administrator for:";
+"screen_bottom_sheet_leave_space_title" = "Leave %1$@?";
 "screen_bottom_sheet_manage_room_member_ban" = "Fjern og utesteng medlem";
 "screen_bottom_sheet_manage_room_member_ban_member_confirmation_action" = "Utesteng";
 "screen_bottom_sheet_manage_room_member_ban_member_confirmation_description" = "De vil ikke kunne bli med i dette rommet igjen hvis de blir invitert.";
@@ -569,6 +578,7 @@
 "screen_media_upload_preview_error_failed_sending" = "Opplasting av medier mislyktes, vennligst prøv igjen.";
 "screen_media_upload_preview_error_too_large_message" = "Maksimal tillatt filstørrelse er %1$@.";
 "screen_media_upload_preview_error_too_large_title" = "Filen er for stor til å lastes opp";
+"screen_media_upload_preview_item_count" = "Item %1$d of %2$d";
 "screen_media_upload_preview_optimize_image_quality_title" = "Optimise image quality";
 "screen_media_upload_preview_processing" = "Processing...";
 "screen_pinned_timeline_empty_state_description" = "Trykk på en melding og velg “%1$@” for å inkludere her.";
@@ -633,9 +643,9 @@
 "screen_security_and_privacy_room_publishing_section_header" = "Publisering av rom";
 "screen_security_and_privacy_room_visibility_section_footer" = "Romadresser er en måte å finne og få tilgang til rommene på. Dette sikrer også at du enkelt kan dele rommet ditt med andre.\nAdressen er også nødvendig for å gjøre rommet synlig i den offentlige romkatalogen på %1$@.";
 "screen_security_and_privacy_title" = "Sikkerhet og personvern";
-"screen_space_list_description" = "Spaces you have created or joined.";
+"screen_space_list_description" = "Områder du har opprettet eller blitt med i.";
 "screen_space_list_details" = "%1$@ • %2$@";
-"screen_space_list_title" = "Spaces";
+"screen_space_list_title" = "Områder";
 "screen_start_chat_join_room_by_address_action" = "Bli med i rommet med adresse";
 "screen_start_chat_join_room_by_address_invalid_address" = "Ikke en gyldig adresse";
 "screen_start_chat_join_room_by_address_placeholder" = "Gå inn...";
@@ -873,9 +883,7 @@
 "screen_onboarding_sign_in_to" = "Logg inn på %1$@";
 "screen_onboarding_sign_in_with_qr_code" = "Logg inn med QR-kode";
 "screen_onboarding_sign_up" = "Opprett konto";
-"screen_onboarding_welcome_message" = "Velkommen til den raskeste %1$@ noensinne. Superladet for hastighet og enkelhet.";
-"screen_onboarding_welcome_subtitle" = "Velkommen til %1$@. Supercharged, for hastighet og enkelhet.";
-"screen_onboarding_welcome_title" = "Vær i ditt rette element";
+"screen_onboarding_welcome_title" = "Velkommen til Gua";
 "screen_polls_history_empty_ongoing" = "Finner ingen pågående avstemninger.";
 "screen_polls_history_empty_past" = "Kan ikke finne noen tidligere avstemninger.";
 "screen_polls_history_filter_ongoing" = "Pågående";
@@ -999,6 +1007,8 @@
 "screen_room_details_error_loading_notification_settings" = "Det oppstod en feil ved lasting av varslingsinnstillinger.";
 "screen_room_details_error_muting" = "Mislyktes i å dempe dette rommet, prøv igjen.";
 "screen_room_details_error_unmuting" = "Mislyktes i å oppheve dempingen av dette rommet, prøv igjen.";
+"screen_room_details_invite_people_dont_close" = "Don't close the app until finished.";
+"screen_room_details_invite_people_preparing" = "Preparing invitations...";
 "screen_room_details_notification_mode_custom" = "Tilpasset";
 "screen_room_details_notification_mode_default" = "Standard";
 "screen_room_details_share_room_title" = "Del rom";
@@ -1300,7 +1310,7 @@
 "screen_create_room_room_address_section_title" = "Romadresse";
 "screen_decline_and_block_block_user_option_title" = "Blokker bruker";
 "screen_home_tab_chats" = "Chatter";
-"screen_home_tab_spaces" = "Spaces";
+"screen_home_tab_spaces" = "Områder";
 "screen_knock_requests_list_title" = "Forespørsler om å bli med";
 "screen_pinned_timeline_screen_title_empty" = "Festede meldinger";
 "screen_room_mentions_at_room_title" = "Alle";

@@ -97,6 +97,7 @@
 "action_leave" = "Verlassen";
 "action_leave_conversation" = "Unterhaltung verlassen";
 "action_leave_room" = "Verlassen";
+"action_leave_space" = "Space verlassen";
 "action_load_more" = "Mehr laden...";
 "action_manage_account" = "Konto verwalten";
 "action_manage_devices" = "Geräte verwalten";
@@ -180,12 +181,13 @@
 "common_creating_room" = "Chat wird erstellt...";
 "common_current_user_canceled_knock" = "Anfrage abgebrochen";
 "common_current_user_left_room" = "Hat den Chat verlassen";
+"common_current_user_left_space" = "Space verlassen";
 "common_current_user_rejected_invite" = "Einladung abgelehnt";
 "common_dark" = "Dunkel";
 "common_date_date_at_time" = "%1$@ um %2$@";
 "common_date_this_month" = "Diesen Monat";
 "common_decryption_error" = "Dekodierungsfehler";
-"common_description" = "Description";
+"common_description" = "Beschreibung";
 "common_developer_options" = "Entwickleroptionen";
 "common_device_id" = "Geräte-ID";
 "common_direct_chat" = "Direktnachricht";
@@ -278,8 +280,10 @@
 "common_sent" = "Gesendet";
 "common_sentence_delimiter" = ". ";
 "common_server_not_supported" = "Server wird nicht unterstützt";
+"common_server_unreachable" = "Server nicht erreichbar";
 "common_server_url" = "Server-URL";
 "common_settings" = "Einstellungen";
+"common_share_space" = "Share space";
 "common_shared_location" = "Geteilter Standort";
 "common_signing_out" = "Abmelden";
 "common_something_went_wrong" = "Es ist ein Fehler aufgetreten.";
@@ -326,6 +330,7 @@
 "common_you" = "Sie";
 "common.add_account" = "Konto hinzufügen";
 "common.add_another_account" = "Weiteres Konto hinzufügen";
+"common.no_space_name" = "No space name";
 "common.select_account" = "Konto auswählen";
 "common_unable_to_decrypt_insecure_device" = "Von einem ungesicherten Gerät gesendet";
 "common_unable_to_decrypt_verification_violation" = "Die verifizierte Identität des Senders hat sich geändert";
@@ -371,6 +376,7 @@
 "emoji_picker_category_objects" = "Objekte";
 "emoji_picker_category_people" = "Smileys & Menschen";
 "emoji_picker_category_places" = "Reisen & Orte";
+"emoji_picker_category_recent" = "Recent emojis";
 "emoji_picker_category_symbols" = "Symbole";
 "emoji_picker_search_placeholder" = "Emojis suchen";
 "error_invalid_invite" = "Der Chat existiert nicht mehr oder die Einladung ist nicht mehr gültig.";
@@ -481,6 +487,9 @@
 "screen_bottom_sheet_create_dm_confirmation_button_title" = "Einladung senden";
 "screen_bottom_sheet_create_dm_message" = "Möchtest du einen Chat mit %1$@ starten?";
 "screen_bottom_sheet_create_dm_title" = "Einladung senden?";
+"screen_bottom_sheet_leave_space_subtitle" = "Dadurch wirst du auch aus allen Chats in diesem Space entfernt.";
+"screen_bottom_sheet_leave_space_subtitle_admin" = "Dadurch wirst du auch aus allen Chats in diesem Space entfernt, auch aus denen, für die du der einzige Admin bist:";
+"screen_bottom_sheet_leave_space_title" = "%1$@ verlassen?";
 "screen_bottom_sheet_manage_room_member_ban" = "Mitglied entfernen und sperren";
 "screen_bottom_sheet_manage_room_member_ban_member_confirmation_action" = "Sperren";
 "screen_bottom_sheet_manage_room_member_ban_member_confirmation_description" = "Sie können diesem Chat auch auf Einladung nicht erneut beitreten.";
@@ -569,6 +578,7 @@
 "screen_media_upload_preview_error_failed_sending" = "Das Hochladen der Medien ist fehlgeschlagen. Bitte versuche es erneut.";
 "screen_media_upload_preview_error_too_large_message" = "Die maximal zulässige Dateigröße beträgt %1$@.";
 "screen_media_upload_preview_error_too_large_title" = "Die Datei ist zu groß zum Hochladen.";
+"screen_media_upload_preview_item_count" = "Item %1$d of %2$d";
 "screen_media_upload_preview_optimize_image_quality_title" = "Optimiere die Bildqualität";
 "screen_media_upload_preview_processing" = "Verarbeitung läuft …";
 "screen_pinned_timeline_empty_state_description" = "Halte eine Nachricht gedrückt und wähle “%1$@”, um sie hier einzufügen.";
@@ -873,9 +883,7 @@
 "screen_onboarding_sign_in_to" = "Bei %1$@ anmelden";
 "screen_onboarding_sign_in_with_qr_code" = "Mit QR-Code anmelden";
 "screen_onboarding_sign_up" = "Konto erstellen";
-"screen_onboarding_welcome_message" = "Willkommen beim schnellsten %1$@ aller Zeiten. Optimiert für Geschwindigkeit und Einfachheit.";
-"screen_onboarding_welcome_subtitle" = "Willkommen zu %1$@. Aufgeladen, für Geschwindigkeit und Einfachheit.";
-"screen_onboarding_welcome_title" = "Sei in Deinem Element";
+"screen_onboarding_welcome_title" = "Willkommen bei Gua";
 "screen_polls_history_empty_ongoing" = "Keine laufenden Umfragen vorhanden.";
 "screen_polls_history_empty_past" = "Keine beendeten Umfragen vorhanden.";
 "screen_polls_history_filter_ongoing" = "Laufend";
@@ -999,6 +1007,8 @@
 "screen_room_details_error_loading_notification_settings" = "Beim Laden der Benachrichtigungseinstellungen ist ein Fehler aufgetreten.";
 "screen_room_details_error_muting" = "Die Stummschaltung ist fehlgeschlagen, bitte versuche es erneut.";
 "screen_room_details_error_unmuting" = "Die Deaktivierung der Stummschaltung ist fehlgeschlagen, bitte versuche es erneut.";
+"screen_room_details_invite_people_dont_close" = "Schließ die App erst, wenn du fertig bist.";
+"screen_room_details_invite_people_preparing" = "Einladungen werden vorbereitet...";
 "screen_room_details_notification_mode_custom" = "Benutzerdefiniert";
 "screen_room_details_notification_mode_default" = "Standard";
 "screen_room_details_share_room_title" = "Teilen";

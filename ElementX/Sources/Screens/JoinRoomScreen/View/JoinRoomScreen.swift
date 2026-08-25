@@ -40,6 +40,7 @@ struct JoinRoomScreen: View {
         .background()
         .backgroundStyle(.compound.bgCanvasDefault)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarRole(RoomHeaderView.toolbarRole) // Leading aligns the header on iOS 26.
         .toolbar { toolbar }
         .shouldScrollOnKeyboardDidShow(focus == .knockMessage, to: Focus.knockMessage)
     }
@@ -54,7 +55,6 @@ struct JoinRoomScreen: View {
         }
     }
     
-    @ViewBuilder
     private var defaultView: some View {
         VStack(spacing: 16) {
             if let inviter = context.viewState.roomDetails?.inviter {
@@ -115,7 +115,6 @@ struct JoinRoomScreen: View {
         }
     }
     
-    @ViewBuilder
     private var knockedView: some View {
         VStack(spacing: 16) {
             BigIcon(icon: \.checkCircleSolid, style: .successSolid)
@@ -132,7 +131,6 @@ struct JoinRoomScreen: View {
         }
     }
         
-    @ViewBuilder
     private var knockMessage: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 0) {

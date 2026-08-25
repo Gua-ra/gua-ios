@@ -97,6 +97,7 @@
 "action_leave" = "چھوڑ دیں";
 "action_leave_conversation" = "گفتگو چھوڑیں";
 "action_leave_room" = "کمرہ چھوڑ دیں";
+"action_leave_space" = "Leave space";
 "action_load_more" = "مزید لادیں";
 "action_manage_account" = "کھاتہ کا انتظام کریں";
 "action_manage_devices" = "آلات کا نظم کریں";
@@ -180,6 +181,7 @@
 "common_creating_room" = "کمرہ تخلیق کررہاہے…";
 "common_current_user_canceled_knock" = "Request canceled";
 "common_current_user_left_room" = "کمرہ چھوڑ لیا";
+"common_current_user_left_space" = "Left space";
 "common_current_user_rejected_invite" = "Invite declined";
 "common_dark" = "اندھیرا";
 "common_date_date_at_time" = "%1$@ at %2$@";
@@ -278,8 +280,10 @@
 "common_sent" = "ارسال کردہ";
 "common_sentence_delimiter" = ". ";
 "common_server_not_supported" = "خادم تعاون یافتہ نہیں";
+"common_server_unreachable" = "Server unreachable";
 "common_server_url" = "خادم عنوان";
 "common_settings" = "ترتیبات";
+"common_share_space" = "Share space";
 "common_shared_location" = "مشترکہ مقام";
 "common_signing_out" = "خارج ہو رہا ہے";
 "common_something_went_wrong" = "کچھ غلط ہو گیا";
@@ -326,6 +330,7 @@
 "common_you" = "آپ";
 "common.add_account" = "Add an account";
 "common.add_another_account" = "Add another account";
+"common.no_space_name" = "No space name";
 "common.select_account" = "Select an account";
 "common_unable_to_decrypt_insecure_device" = "Sent from an insecure device";
 "common_unable_to_decrypt_verification_violation" = "Sender's verified identity was reset";
@@ -371,6 +376,7 @@
 "emoji_picker_category_objects" = "اشیاء";
 "emoji_picker_category_people" = "مسکراہٹیں و لوگ";
 "emoji_picker_category_places" = "سفر و مقامات";
+"emoji_picker_category_recent" = "Recent emojis";
 "emoji_picker_category_symbols" = "علامتیں";
 "emoji_picker_search_placeholder" = "Search emojis";
 "error_invalid_invite" = "The room no longer exists or the invite is no longer valid.";
@@ -481,6 +487,9 @@
 "screen_bottom_sheet_create_dm_confirmation_button_title" = "Send invite";
 "screen_bottom_sheet_create_dm_message" = "Would you like to start a chat with %1$@?";
 "screen_bottom_sheet_create_dm_title" = "Send invite?";
+"screen_bottom_sheet_leave_space_subtitle" = "This will also remove you from all rooms in this space.";
+"screen_bottom_sheet_leave_space_subtitle_admin" = "This will also remove you from all rooms in this space, including those you’re the only administrator for:";
+"screen_bottom_sheet_leave_space_title" = "Leave %1$@?";
 "screen_bottom_sheet_manage_room_member_ban" = "کمرے سے محظور کریں";
 "screen_bottom_sheet_manage_room_member_ban_member_confirmation_action" = "محظور کریں";
 "screen_bottom_sheet_manage_room_member_ban_member_confirmation_description" = "اگر وہ مدعو کیا گیا تو وہ دوبارہ اس کمرے میں شامل نہیں ہوسکیں گے۔";
@@ -569,6 +578,7 @@
 "screen_media_upload_preview_error_failed_sending" = "وسائط رفع کرنے میں ناکام، برائے مہربانی دوبارہ کوشش کریں۔";
 "screen_media_upload_preview_error_too_large_message" = "The maximum file size allowed is %1$@.";
 "screen_media_upload_preview_error_too_large_title" = "The file is too large to upload";
+"screen_media_upload_preview_item_count" = "Item %1$d of %2$d";
 "screen_media_upload_preview_optimize_image_quality_title" = "Optimise image quality";
 "screen_media_upload_preview_processing" = "Processing...";
 "screen_pinned_timeline_empty_state_description" = "ایک پیغام پر دبائیں اور یہاں شامل کرنے کے لیے %1$@ منتخب کریں۔";
@@ -873,9 +883,7 @@
 "screen_onboarding_sign_in_to" = "Sign in to %1$@";
 "screen_onboarding_sign_in_with_qr_code" = "کیو آر (QR) رمز کیساتھ داخل ہوں";
 "screen_onboarding_sign_up" = "کھاتہ تخلیق کریں";
-"screen_onboarding_welcome_message" = "اب تک کی تیز ترین %1$@ میں خوش آمدید۔ رفتار اور سادگی کے لئے مشحون";
-"screen_onboarding_welcome_subtitle" = "%1$@ پر خوش آمدید۔ شحن فائق شدہ، رفتار اور سادگی کیلئے۔";
-"screen_onboarding_welcome_title" = "اپنے عنصر میں رہیں";
+"screen_onboarding_welcome_title" = "Gua میں خوش آمدید۔";
 "screen_polls_history_empty_ongoing" = "کوئی جاری رائے شماری ہا نہیں مل سکے۔";
 "screen_polls_history_empty_past" = "ماضی کے کوئی رائے شماری ہا نہیں مل سکے۔";
 "screen_polls_history_filter_ongoing" = "جاری";
@@ -999,6 +1007,8 @@
 "screen_room_details_error_loading_notification_settings" = "اطلاع کی ترتیبات لادتے ہوئے ایک نقص واقع ہوا۔";
 "screen_room_details_error_muting" = "اس کمرے کو خاموش کرنے میں ناکام، برائے مہربانی دوبارہ کوشش کریں۔";
 "screen_room_details_error_unmuting" = "اس کمرے کو غیر خاموش کرنے میں ناکام، برائے مہربانی دوبارہ کوشش کریں۔";
+"screen_room_details_invite_people_dont_close" = "Don't close the app until finished.";
+"screen_room_details_invite_people_preparing" = "Preparing invitations...";
 "screen_room_details_notification_mode_custom" = "حسب ضرورت";
 "screen_room_details_notification_mode_default" = "طے شدہ";
 "screen_room_details_share_room_title" = "کمرے کا اشتراک کریں";

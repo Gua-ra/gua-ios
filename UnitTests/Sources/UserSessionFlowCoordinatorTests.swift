@@ -5,10 +5,9 @@
 // Please see LICENSE files in the repository root for full details.
 //
 
-import XCTest
-
 import Combine
 @testable import ElementX
+import XCTest
 
 @MainActor
 class UserSessionFlowCoordinatorTests: XCTestCase {
@@ -21,10 +20,21 @@ class UserSessionFlowCoordinatorTests: XCTestCase {
     let homeserverReachabilitySubject: CurrentValueSubject<NetworkMonitorReachability, Never> = .init(.reachable)
     var cancellables = Set<AnyCancellable>()
     
-    var tabCoordinator: NavigationTabCoordinator<UserSessionFlowCoordinator.HomeTab>? { rootCoordinator?.rootCoordinator as? NavigationTabCoordinator }
-    var chatsSplitCoordinator: NavigationSplitCoordinator? { tabCoordinator?.tabCoordinators.first as? NavigationSplitCoordinator }
-    var detailCoordinator: CoordinatorProtocol? { chatsSplitCoordinator?.detailCoordinator }
-    var detailNavigationStack: NavigationStackCoordinator? { detailCoordinator as? NavigationStackCoordinator }
+    var tabCoordinator: NavigationTabCoordinator<UserSessionFlowCoordinator.HomeTab>? {
+        rootCoordinator?.rootCoordinator as? NavigationTabCoordinator
+    }
+
+    var chatsSplitCoordinator: NavigationSplitCoordinator? {
+        tabCoordinator?.tabCoordinators.first as? NavigationSplitCoordinator
+    }
+
+    var detailCoordinator: CoordinatorProtocol? {
+        chatsSplitCoordinator?.detailCoordinator
+    }
+
+    var detailNavigationStack: NavigationStackCoordinator? {
+        detailCoordinator as? NavigationStackCoordinator
+    }
     
     override func setUp() async throws {
         cancellables.removeAll()
@@ -46,6 +56,7 @@ class UserSessionFlowCoordinatorTests: XCTestCase {
                                                   elementCallService: ElementCallServiceMock(.init()),
                                                   timelineControllerFactory: TimelineControllerFactoryMock(.init()),
                                                   emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                                  linkMetadataProvider: LinkMetadataProvider(),
                                                   appMediator: appMediator,
                                                   appSettings: ServiceLocator.shared.settings,
                                                   appHooks: AppHooks(),
@@ -64,7 +75,7 @@ class UserSessionFlowCoordinatorTests: XCTestCase {
     
     // MARK: Navigation
     
-    func testInitialState() async throws {
+    func testInitialState() {
         XCTAssertNotNil(chatsSplitCoordinator)
         XCTAssertNil(detailCoordinator)
     }

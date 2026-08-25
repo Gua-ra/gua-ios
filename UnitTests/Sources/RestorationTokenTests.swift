@@ -5,10 +5,9 @@
 // Please see LICENSE files in the repository root for full details.
 //
 
-import XCTest
-
 @testable import ElementX
 import MatrixRustSDK
+import XCTest
 
 class RestorationTokenTests: XCTestCase {
     func testDecodeTokenWithSlidingSyncProxy() throws {
@@ -103,7 +102,7 @@ class RestorationTokenTests: XCTestCase {
                                                               userId: "@user:example.com",
                                                               deviceId: "D3V1C3",
                                                               homeserverUrl: "https://matrix.example.com",
-                                                              oidcData: "data-from-mas",
+                                                              oauthData: "data-from-mas",
                                                               slidingSyncVersion: .native),
                                              sessionDirectories: .init(),
                                              passphrase: "passphrase",
@@ -123,7 +122,7 @@ class RestorationTokenTests: XCTestCase {
         XCTAssertEqual(session.userId, originalSession.userId, "The user ID should not be changed.")
         XCTAssertEqual(session.deviceId, originalSession.deviceId, "The device ID should not be changed.")
         XCTAssertEqual(session.homeserverUrl, originalSession.homeserverUrl, "The homeserver URL should not be changed.")
-        XCTAssertEqual(session.oidcData, originalSession.oidcData, "The OIDC data should not be changed.")
+        XCTAssertEqual(session.oauthData, originalSession.oidcData, "The OAuth data should not be changed.")
     }
 }
 

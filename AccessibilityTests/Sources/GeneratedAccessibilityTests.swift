@@ -1,4 +1,4 @@
-// Generated using Sourcery 2.2.7 — https://github.com/krzysztofzablocki/Sourcery
+// Generated using Sourcery 2.3.0 — https://github.com/krzysztofzablocki/Sourcery
 // DO NOT EDIT
 
 // swiftlint:disable all
@@ -85,6 +85,10 @@ extension AccessibilityTests {
 
     func testComposerToolbar() async throws {
         try await performAccessibilityAudit(named: "ComposerToolbar_Previews")
+    }
+
+    func testCountryPickerScreen() async throws {
+        try await performAccessibilityAudit(named: "CountryPickerScreen_Previews")
     }
 
     func testCreateRoom() async throws {
@@ -333,6 +337,10 @@ extension AccessibilityTests {
 
     func testPaginationIndicatorRoomTimelineView() async throws {
         try await performAccessibilityAudit(named: "PaginationIndicatorRoomTimelineView_Previews")
+    }
+
+    func testPhoneEntryScreen() async throws {
+        try await performAccessibilityAudit(named: "PhoneEntryScreen_Previews")
     }
 
     func testPillViewOnBubble() async throws {
@@ -701,6 +709,10 @@ extension AccessibilityTests {
 
     func testTombstonedAvatarImage() async throws {
         try await performAccessibilityAudit(named: "TombstonedAvatarImage_Previews")
+    }
+
+    func testTwoStepVerificationScreen() async throws {
+        try await performAccessibilityAudit(named: "TwoStepVerificationScreen_Previews")
     }
 
     func testTypingIndicatorView() async throws {

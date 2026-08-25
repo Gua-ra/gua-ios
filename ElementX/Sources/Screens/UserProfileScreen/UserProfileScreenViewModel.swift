@@ -77,8 +77,9 @@ class UserProfileScreenViewModel: UserProfileScreenViewModelType, UserProfileScr
         switch await profileResult {
         case .success(let userProfile):
             state.userProfile = userProfile
-            state.permalink = (try? matrixToUserPermalink(userId: state.userID)).flatMap(URL.init(string:))
-            
+            // GUA FORK: share the brand link, never matrix.to (which surfaces the homeserver).
+            state.permalink = GuaUserLink.url(for: state.userID)
+
             switch userSession.clientProxy.directRoomForUserID(userProfile.userID) {
             case .success(let roomID):
                 state.dmRoomID = roomID
@@ -86,8 +87,17 @@ class UserProfileScreenViewModel: UserProfileScreenViewModelType, UserProfileScr
                 break
             }
         case .failure(let error):
-            state.bindings.alertInfo = .init(id: .unknown)
-            MXLog.error("Failed to find user profile: \(error)")
+            // GUA FORK: a contact surfaced by Find Friends is known to be on Gua even when the
+            // homeserver can't return a full profile right now. Degrade gracefully to a minimal
+            // profile (handle + initials) instead of a dead-end "error occurred" alert — this keeps
+            // the screen usable (and "Send message" working) rather than surfacing a raw failure.
+            MXLog.warning("Falling back to minimal profile for \(state.userID): \(error)")
+            state.userProfile = UserProfileProxy(userID: state.userID)
+            // GUA FORK: share the brand link, never matrix.to (which surfaces the homeserver).
+            state.permalink = GuaUserLink.url(for: state.userID)
+            if case let .success(roomID) = userSession.clientProxy.directRoomForUserID(state.userID) {
+                state.dmRoomID = roomID
+            }
         }
         
         if case let .success(.some(identity)) = await identityResult {
@@ -153,8 +163,13 @@ class UserProfileScreenViewModel: UserProfileScreenViewModelType, UserProfileScr
     
     // MARK: User Indicators
     
-    private var loadingIndicatorIdentifier: String { "\(Self.self)-Loading" }
-    private var statusIndicatorIdentifier: String { "\(Self.self)-Status" }
+    private var loadingIndicatorIdentifier: String {
+        "\(Self.self)-Loading"
+    }
+
+    private var statusIndicatorIdentifier: String {
+        "\(Self.self)-Status"
+    }
     
     private func showLoadingIndicator(allowsInteraction: Bool) {
         userIndicatorController.submitIndicator(UserIndicator(id: loadingIndicatorIdentifier,

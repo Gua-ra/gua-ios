@@ -29,17 +29,19 @@ class JoinedRoomProxy: JoinedRoomProxyProtocol {
     
     private var subscribedForUpdates = false
     
-    // A room identifier is constant and lazy stops it from being fetched
-    // multiple times over FFI
+    /// A room identifier is constant and lazy stops it from being fetched
+    /// multiple times over FFI
     lazy var id: String = room.id()
     
-    var ownUserID: String { room.ownUserId() }
+    var ownUserID: String {
+        room.ownUserId()
+    }
     
-    // The predecessor is set on room creation and never changes, so we lazily store it.
+    /// The predecessor is set on room creation and never changes, so we lazily store it.
     lazy var predecessorRoom = room.predecessorRoom()
     
-    // The successor may change over time, so we access it dynamically.
-    // It's suggested to observe it through the `infoPublisher`
+    /// The successor may change over time, so we access it dynamically.
+    /// It's suggested to observe it through the `infoPublisher`
     var successorRoom: SuccessorRoom? {
         room.successorRoom()
     }
@@ -81,10 +83,10 @@ class JoinedRoomProxy: JoinedRoomProxyProtocol {
         infoSubject = try await .init(RoomInfoProxy(roomInfo: room.roomInfo()))
         
         timeline = try await TimelineProxy(timeline: room.timelineWithConfiguration(configuration: .init(focus: .live(hideThreadedEvents: appSettings.threadsEnabled),
-                                                                                                         filter: .eventTypeFilter(filter: excludedEventsFilter),
+                                                                                                         filter: .eventFilter(filter: excludedEventsFilter),
                                                                                                          internalIdPrefix: nil,
                                                                                                          dateDividerMode: .daily,
-                                                                                                         trackReadReceipts: true,
+                                                                                                         trackReadReceipts: .messageLikeEvents,
                                                                                                          reportUtds: true)),
                                            kind: .live)
         
@@ -145,11 +147,11 @@ class JoinedRoomProxy: JoinedRoomProxyProtocol {
         do {
             let sdkTimeline = try await room.timelineWithConfiguration(configuration: .init(focus: .event(eventId: eventID,
                                                                                                           numContextEvents: numberOfEvents,
-                                                                                                          hideThreadedEvents: appSettings.threadsEnabled),
+                                                                                                          threadMode: .automatic(hideThreadedEvents: appSettings.threadsEnabled)),
                                                                                             filter: .all,
                                                                                             internalIdPrefix: UUID().uuidString,
                                                                                             dateDividerMode: .daily,
-                                                                                            trackReadReceipts: false,
+                                                                                            trackReadReceipts: .disabled,
                                                                                             reportUtds: true))
             
             return .success(TimelineProxy(timeline: sdkTimeline, kind: .detached))
@@ -177,7 +179,7 @@ class JoinedRoomProxy: JoinedRoomProxyProtocol {
                                                                                             filter: .all,
                                                                                             internalIdPrefix: UUID().uuidString,
                                                                                             dateDividerMode: .daily,
-                                                                                            trackReadReceipts: true,
+                                                                                            trackReadReceipts: .messageLikeEvents,
                                                                                             reportUtds: true))
             
             let timeline = TimelineProxy(timeline: sdkTimeline, kind: .thread(rootEventID: eventID))
@@ -196,9 +198,9 @@ class JoinedRoomProxy: JoinedRoomProxyProtocol {
         do {
             let rustFocus: MatrixRustSDK.TimelineFocus = switch focus {
             case .live: .live(hideThreadedEvents: false)
-            case .eventID(let eventID): .event(eventId: eventID, numContextEvents: 100, hideThreadedEvents: false)
+            case .eventID(let eventID): .event(eventId: eventID, numContextEvents: 100, threadMode: .automatic(hideThreadedEvents: false))
             case .thread(let eventID): .thread(rootEventId: eventID)
-            case .pinned: .pinnedEvents(maxEventsToLoad: 100, maxConcurrentRequests: 10)
+            case .pinned: .pinnedEvents
             }
             
             let rustMessageTypes: [MatrixRustSDK.RoomMessageEventMessageType] = allowedMessageTypes.map {
@@ -214,7 +216,7 @@ class JoinedRoomProxy: JoinedRoomProxyProtocol {
                                                                                             filter: .onlyMessage(types: rustMessageTypes),
                                                                                             internalIdPrefix: nil,
                                                                                             dateDividerMode: .monthly,
-                                                                                            trackReadReceipts: false,
+                                                                                            trackReadReceipts: .disabled,
                                                                                             reportUtds: true))
             
             let timeline = TimelineProxy(timeline: sdkTimeline, kind: .media(presentation))
@@ -241,11 +243,11 @@ class JoinedRoomProxy: JoinedRoomProxyProtocol {
                 }
                 
                 do {
-                    let sdkTimeline = try await room.timelineWithConfiguration(configuration: .init(focus: .pinnedEvents(maxEventsToLoad: 100, maxConcurrentRequests: 10),
+                    let sdkTimeline = try await room.timelineWithConfiguration(configuration: .init(focus: .pinnedEvents,
                                                                                                     filter: .all,
                                                                                                     internalIdPrefix: nil,
                                                                                                     dateDividerMode: .daily,
-                                                                                                    trackReadReceipts: false,
+                                                                                                    trackReadReceipts: .disabled,
                                                                                                     reportUtds: true))
                     
                     let timeline = TimelineProxy(timeline: sdkTimeline, kind: .pinned)
@@ -286,7 +288,7 @@ class JoinedRoomProxy: JoinedRoomProxyProtocol {
     
     func reportContent(_ eventID: String, reason: String?) async -> Result<Void, RoomProxyError> {
         do {
-            try await room.reportContent(eventId: eventID, score: nil, reason: reason)
+            try await room.reportContent(eventId: eventID, reason: reason)
             return .success(())
         } catch {
             MXLog.error("Failed reporting eventID: \(eventID) with error: \(error)")
@@ -639,6 +641,27 @@ class JoinedRoomProxy: JoinedRoomProxyProtocol {
         ElementCallWidgetDriver(room: room, deviceID: deviceID)
     }
     
+    func declineCall(notificationID: String) async -> Result<Void, RoomProxyError> {
+        do {
+            try await room.declineCall(rtcNotificationEventId: notificationID)
+            return .success(())
+        } catch {
+            MXLog.error("Failed to decline rtc notification \(notificationID) with error: \(error)")
+            return .failure(.sdkError(error))
+        }
+    }
+    
+    /// Subscribe to call decline events from that rtc notification event.
+    func subscribeToCallDeclineEvents(rtcNotificationEventID: String, listener: CallDeclineListener) -> Result<TaskHandle, RoomProxyError> {
+        do {
+            let handle = try room.subscribeToCallDeclineEvents(rtcNotificationEventId: rtcNotificationEventID, listener: listener)
+            return .success(handle)
+        } catch {
+            MXLog.error("Failed observing rtc decline with error: \(error)")
+            return .failure(.sdkError(error))
+        }
+    }
+    
     // MARK: - Permalinks
     
     func matrixToPermalink() async -> Result<URL, RoomProxyError> {
@@ -714,9 +737,9 @@ class JoinedRoomProxy: JoinedRoomProxyProtocol {
             
             let typingMembers = typingUserIDs.compactMap { userID in
                 if let member = self.membersPublisher.value.filter({ $0.userID == userID }).first {
-                    return member.displayName ?? member.userID
+                    return member.displayName ?? member.userID.guaDisplayHandle
                 } else {
-                    return userID
+                    return userID.guaDisplayHandle
                 }
             }
             
@@ -751,9 +774,8 @@ class JoinedRoomProxy: JoinedRoomProxyProtocol {
         }
     }
     
-    private let excludedEventsFilter: TimelineEventTypeFilter = {
-        var stateEventFilters: [StateEventType] = [.roomAliases,
-                                                   .roomCanonicalAlias,
+    private let excludedEventsFilter: TimelineEventFilter = {
+        var stateEventFilters: [StateEventType] = [.roomCanonicalAlias,
                                                    .roomGuestAccess,
                                                    .roomHistoryVisibility,
                                                    .roomJoinRules,
@@ -766,7 +788,7 @@ class JoinedRoomProxy: JoinedRoomProxyProtocol {
                                                    .policyRuleRoom,
                                                    .policyRuleServer,
                                                    .policyRuleUser]
-        return .exclude(eventTypes: stateEventFilters.map { FilterTimelineEventType.state(eventType: $0) })
+        return .excludeEventTypes(eventTypes: stateEventFilters.map { FilterTimelineEventType.state(eventType: $0) })
     }()
 }
 

@@ -64,6 +64,13 @@ enum KnockRequestsState {
     case loaded([KnockRequestProxyProtocol])
 }
 
+struct RTCDeclinedEvent {
+    /// The sender of the decline event
+    let sender: String
+    /// The rtc.notification event that is beeing declined
+    let notificationEventID: String
+}
+
 // sourcery: AutoMockable
 protocol JoinedRoomProxyProtocol: RoomProxyProtocol {
     var infoPublisher: CurrentValuePublisher<RoomInfoProxyProtocol, Never> { get }
@@ -169,6 +176,8 @@ protocol JoinedRoomProxyProtocol: RoomProxyProtocol {
     // MARK: - Element Call
     
     func elementCallWidgetDriver(deviceID: String) -> ElementCallWidgetDriverProtocol
+    func declineCall(notificationID: String) async -> Result<Void, RoomProxyError>
+    func subscribeToCallDeclineEvents(rtcNotificationEventID: String, listener: CallDeclineListener) -> Result<TaskHandle, RoomProxyError>
     
     // MARK: - Permalinks
     
@@ -202,7 +211,7 @@ extension JoinedRoomProxyProtocol {
         return membersPublisher.value
     }
     
-    // This is a horrible workaround for not having any server names available when using tombstone links with v12 room IDs.
+    /// This is a horrible workaround for not having any server names available when using tombstone links with v12 room IDs.
     func knownServerNames(maxCount: Int) -> any Sequence<String> {
         membersPublisher.value
             .prefix(1000) // No need to go crazy here…
