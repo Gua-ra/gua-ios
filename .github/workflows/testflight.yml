@@ -197,18 +197,6 @@ jobs:
       ARCHIVE_PATH: ${{ github.workspace }}/build/Gua.xcarchive
       EXPORT_PATH: ${{ github.workspace }}/build/export
       EXPORT_OPTIONS: ${{ github.workspace }}/fastlane/exportOptions.plist
-      # Each run gets a unique, monotonically increasing build number (the workflow
-      # run number) so every upload is accepted by TestFlight.
-      # NOT github.run_number. This app already has builds numbered by date on the
-      # same marketing version (2026080201, 2026081301), and run_number restarted at
-      # single digits, so a fresh upload looked OLDER than what testers had installed
-      # and TestFlight offered no update at all. It would take about two million runs
-      # to climb back past them.
-      #
-      # YYYYMMDDHH keeps the existing convention, always increases, and stays under
-      # the 4294967295 ceiling Apple puts on a build number component until 2099.
-      # Two uploads inside the same hour collide, and Apple rejects the duplicate with
-      # a clear message; dispatch with build_number to override when that happens.
       BUILD_NUMBER_OVERRIDE: ${{ inputs.build_number || '' }}
       # Which app record this run targets. prod is the shipping app on the committed
       # gua.global endpoints; dev is the side-by-side Gua QA variant on the dev backend.
