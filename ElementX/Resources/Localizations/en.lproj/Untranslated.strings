@@ -14,3 +14,9 @@
 "soft_logout_clear_data_submit" = "Clear all data";
 "soft_logout_clear_data_dialog_title" = "Clear data";
 "soft_logout_clear_data_dialog_content" = "Clear all data currently stored on this device?\nSign in again to access your account data and messages.";
+
+// MARK: - Gua: no homeserver in room-address copy
+
+/* Hint under the "Join room by address" field. Replaces upstream's "e.g. #room-name:matrix.org",
+   which named another network's homeserver and taught people the server-qualified form Gua hides. */
+"gua_join_room_by_address_hint" = "Paste the room address you were given.";

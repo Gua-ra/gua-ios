@@ -109,7 +109,7 @@ class UserDiscoveryServiceTest: XCTestCase {
     
     // MARK: - Gua federated bare-handle search
 
-    func testBareHandleFansOutAcrossFederationSkippingOwnServer() async {
+    func testBareHandleFansOutAcrossFederationIncludingOwnServer() async {
         makeFederatedService(entries: [("matrix.org", "ACTIVE"), ("ca.gua.example", "ACTIVE"), ("br.gua.example", "ACTIVE")])
         clientProxy.searchUsersSearchTermLimitReturnValue = .success(.init(results: [.mockAlice], limited: false))
         clientProxy.profileForClosure = { userID in .success(.init(userID: userID)) }
@@ -117,6 +117,7 @@ class UserDiscoveryServiceTest: XCTestCase {
         let results = await (try? search(query: "ana-souza").get()) ?? []
 
         XCTAssertEqual(results.map(\.userID), ["@alice:matrix.org",
+                                               "@ana-souza:matrix.org",
                                                "@ana-souza:ca.gua.example",
                                                "@ana-souza:br.gua.example"])
     }
@@ -140,7 +141,7 @@ class UserDiscoveryServiceTest: XCTestCase {
 
         let results = await (try? search(query: "ana-souza").get()) ?? []
 
-        XCTAssertEqual(results.map(\.userID), ["@ana-souza:ca.gua.example"])
+        XCTAssertEqual(results.map(\.userID), ["@ana-souza:ca.gua.example", "@ana-souza:matrix.org"])
     }
 
     func testFederatedMatchesShowWhenLocalSearchFails() async {
@@ -150,7 +151,7 @@ class UserDiscoveryServiceTest: XCTestCase {
 
         let results = await (try? search(query: "ana-souza").get()) ?? []
 
-        XCTAssertEqual(results.map(\.userID), ["@ana-souza:ca.gua.example"])
+        XCTAssertEqual(results.map(\.userID), ["@ana-souza:matrix.org", "@ana-souza:ca.gua.example"])
     }
 
     func testSlowFederatedLookupIsDroppedAfterTimeout() async {
@@ -166,7 +167,9 @@ class UserDiscoveryServiceTest: XCTestCase {
 
         let results = await (try? search(query: "ana-souza").get()) ?? []
 
-        XCTAssertEqual(results.map(\.userID), ["@alice:matrix.org", "@ana-souza:br.gua.example"])
+        XCTAssertEqual(results.map(\.userID), ["@alice:matrix.org",
+                                               "@ana-souza:matrix.org",
+                                               "@ana-souza:br.gua.example"])
     }
 
     func testNonHandleQueryDoesNotFanOut() async {
