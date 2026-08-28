@@ -1408,7 +1408,7 @@
 "screen_otp_code_placeholder" = "Code à 6 chiffres";
 "screen_otp_invalid_code" = "Le code est incorrect ou a expiré.";
 
-// GUA FORK: Gua-custom keys missing from fr.lproj — ported from en/pt-BR so the
+// GUA FORK: Gua-custom keys missing from fr.lproj, ported from en/pt-BR so the
 // onboarding, two-step verification, PIN, profile-setup and re-auth flows render
 // in French instead of falling back to English.
 "screen_account_reauth_code_label" = "Code de vérification";
@@ -1432,7 +1432,7 @@
 
 /* GUA FORK - Two-step verification (missing translations) */
 "screen_two_step_verification_overview_header" = "État";
-"screen_two_step_verification_overview_footer_on" = "Votre code PIN est requis lors de la connexion sur un nouvel appareil. Gardez-le secret — toute personne disposant de votre code PIN et de votre code SMS peut accéder à votre compte.";
+"screen_two_step_verification_overview_footer_on" = "Votre code PIN est requis lors de la connexion sur un nouvel appareil. Gardez-le secret : toute personne disposant de votre code PIN et de votre code SMS peut accéder à votre compte.";
 "screen_two_step_verification_overview_footer_off" = "Ajoutez un code PIN à 6 chiffres pour protéger votre compte contre les attaques par échange de carte SIM. Il vous sera demandé lors de la connexion sur un nouvel appareil.";
 "screen_two_step_verification_status_on" = "Code PIN activé";
 "screen_two_step_verification_status_off" = "Aucun code PIN défini";
