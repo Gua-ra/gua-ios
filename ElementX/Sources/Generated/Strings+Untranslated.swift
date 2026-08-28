@@ -14,6 +14,12 @@ internal enum UntranslatedL10n {
   internal static func guaIdentityChangeBannerDescription(_ p1: Any, _ p2: Any) -> String {
     return UntranslatedL10n.tr("Untranslated", "gua_identity_change_banner_description", String(describing: p1), String(describing: p2))
   }
+  /// %1$@’s security details changed. This can happen when they reinstall Gua or get a new phone.
+  internal static func guaIdentityChangeProfile(_ p1: Any) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_identity_change_profile", String(describing: p1))
+  }
+  /// This message can’t be opened because the sender’s security details changed.
+  internal static var guaIdentityChangeUndecryptable: String { return UntranslatedL10n.tr("Untranslated", "gua_identity_change_undecryptable") }
   /// Clear all data currently stored on this device?
   /// Sign in again to access your account data and messages.
   internal static var softLogoutClearDataDialogContent: String { return UntranslatedL10n.tr("Untranslated", "soft_logout_clear_data_dialog_content") }

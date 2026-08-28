@@ -57,7 +57,8 @@ struct RoomEventStringBuilder {
             case .unableToDecrypt(let encryptedMessage):
                 let errorMessage = switch encryptedMessage {
                 case .megolmV1AesSha2(_, .sentBeforeWeJoined): L10n.commonUnableToDecryptNoAccess
-                case .megolmV1AesSha2(_, .verificationViolation): L10n.commonUnableToDecryptVerificationViolation
+                // GUA FORK: upstream said the sender's "verified identity was reset".
+                case .megolmV1AesSha2(_, .verificationViolation): UntranslatedL10n.guaIdentityChangeUndecryptable
                 case .megolmV1AesSha2(_, .unknownDevice), .megolmV1AesSha2(_, .unsignedDevice): L10n.commonUnableToDecryptInsecureDevice
                 default: L10n.commonWaitingForDecryptionKey
                 }

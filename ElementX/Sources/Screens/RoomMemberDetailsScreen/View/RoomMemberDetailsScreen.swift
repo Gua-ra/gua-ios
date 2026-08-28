@@ -68,12 +68,14 @@ struct RoomMemberDetailsScreen: View {
     private var withdrawVerificationSection: some View {
         VStack(spacing: 16) {
             if let memberDetails = context.viewState.memberDetails {
-                Text(L10n.cryptoIdentityChangeProfilePinViolation(memberDetails.name ?? memberDetails.id.guaDisplayHandle))
-                    .foregroundStyle(.compound.textCriticalPrimary)
+                // GUA FORK: plain wording, and no longer styled as critical. A contact
+                // reinstalling Gua is information, not an error.
+                Text(UntranslatedL10n.guaIdentityChangeProfile(memberDetails.name ?? memberDetails.id.guaDisplayHandle))
+                    .foregroundStyle(.compound.textSecondary)
                     .font(.compound.bodyMDSemibold)
             } else {
-                Text(L10n.cryptoIdentityChangeProfilePinViolation(context.viewState.userID.guaDisplayHandle))
-                    .foregroundStyle(.compound.textCriticalPrimary)
+                Text(UntranslatedL10n.guaIdentityChangeProfile(context.viewState.userID.guaDisplayHandle))
+                    .foregroundStyle(.compound.textSecondary)
                     .font(.compound.bodyMDSemibold)
             }
             

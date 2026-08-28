@@ -19,3 +19,11 @@
 "soft_logout_clear_data_submit" = "Clear all data";
 "soft_logout_clear_data_dialog_title" = "Clear data";
 "soft_logout_clear_data_dialog_content" = "Clear all data currently stored on this device?\nSign in again to access your account data and messages.";
+
+// MARK: - Gua identity change, other surfaces
+
+/* Shown in place of a message that cannot be decrypted because the sender's encryption identity changed. Replaces upstream's "Sender's verified identity was reset". */
+"gua_identity_change_undecryptable" = "This message can’t be opened because the sender’s security details changed.";
+
+/* Shown on a contact's profile when their encryption identity changed. Replaces upstream's "%1$@'s identity was reset." %1$@ is the contact's display name. */
+"gua_identity_change_profile" = "%1$@’s security details changed. This can happen when they reinstall Gua or get a new phone.";
