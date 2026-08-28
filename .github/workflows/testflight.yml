@@ -17,7 +17,7 @@ name: TestFlight
 # One .p12 to manage, no .mobileprovision files in the repo, no Match repo.
 #
 # Release paths, in order of how often they are used:
-#   - label a PR `deploy:qa` -> archives that PR's branch and uploads it to the Gua QA
+#   - label a PR `release-qa` -> archives that PR's branch and uploads it to the Gua QA
 #                               app, so a change can be handed to testers before it is
 #                               merged. Pushing more commits rebuilds it automatically.
 #   - merge develop to main  -> stages the PROD upload, which waits for an approver on
@@ -54,7 +54,7 @@ name: TestFlight
 #   GUA_DEV_RESOLVER_BASE_URL, GUA_DEV_IDENTITY_SERVICE_BASE_URL,
 #   GUA_DEV_ACCOUNT_PROVIDER
 #                   The dev backend endpoints baked into a QA build. Required for
-#                   every `deploy:qa` run; the build fails loudly without them.
+#                   every `release-qa` run; the build fails loudly without them.
 # See docs/TESTFLIGHT.md for setup details.
 
 on:
@@ -94,7 +94,7 @@ env:
   # write access can label, which is what keeps this from being an open door on a public
   # repo. The internal plumbing still calls this variant "dev" (environment=dev, lane
   # config_dev, bundle global.gua.dev); "QA" is only what testers see.
-  DEPLOY_LABEL: deploy:qa
+  DEPLOY_LABEL: release-qa
 
 # Scoped per PR (and per branch otherwise) rather than one global lane: pushing a fixup
 # to a labelled PR should supersede that PR's in-flight archive instead of queueing a
