@@ -4,6 +4,11 @@
 /* Used for testing */
 "untranslated" = "Untranslated";
 
+// MARK: - Gua identity change banner
+
+/* Shown in a conversation when a contact's encryption identity changed, e.g. after reinstalling the app or moving to a new phone. %1$@ is the contact's display name, %2$@ is replaced with a "Learn more" link. */
+"gua_identity_change_banner_description" = "%1$@’s security details changed. This can happen when they reinstall Gua or get a new phone. %2$@";
+
 // MARK: - Soft logout
 
 "soft_logout_signin_title" = "Sign in";

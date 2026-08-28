@@ -375,4 +375,93 @@ class RoomScreenViewModelTests: XCTestCase {
         }
         try await deferred.fulfill()
     }
+
+    // MARK: - Identity change banner (Gua)
+
+    func testIdentityPinViolationBannerAcknowledgeResolvesPin() async throws {
+        // Given a room where a contact's identity is in pin violation.
+        let clientProxyMock = ClientProxyMock(.init())
+        clientProxyMock.pinUserIdentityReturnValue = .success(())
+        let (viewModel, footerURL) = makeIdentityViolationViewModel(changedTo: .pinViolation, clientProxyMock: clientProxyMock)
+        self.viewModel = viewModel
+
+        // Then the informational banner is shown with Gua's own learn more URL.
+        let deferred = deferFulfillment(viewModel.context.$viewState) { state in
+            if case .pinViolation = state.footerDetails { return true } else { return false }
+        }
+        try await deferred.fulfill()
+        XCTAssertEqual(footerURL(), ServiceLocator.shared.settings.identityPinningViolationDetailsURL)
+        XCTAssertEqual(footerURL()?.host, "gua.global")
+
+        // When the user acknowledges the change with the banner's single action.
+        viewModel.context.send(viewAction: .footerViewAction(.resolvePinViolation(userID: "@bob:matrix.org")))
+
+        // Then the new identity is pinned so sending is not obstructed.
+        try await waitUntil { clientProxyMock.pinUserIdentityCalled }
+        XCTAssertEqual(clientProxyMock.pinUserIdentityReceivedUserID, "@bob:matrix.org")
+        XCTAssertFalse(clientProxyMock.withdrawUserIdentityVerificationCalled)
+    }
+
+    func testIdentityVerificationViolationBannerAcknowledgeWithdrawsVerification() async throws {
+        // Given a room where a previously verified contact reset their identity.
+        let clientProxyMock = ClientProxyMock(.init())
+        clientProxyMock.withdrawUserIdentityVerificationReturnValue = .success(())
+        let (viewModel, footerURL) = makeIdentityViolationViewModel(changedTo: .verificationViolation, clientProxyMock: clientProxyMock)
+        self.viewModel = viewModel
+
+        // Then the informational banner is shown with Gua's own learn more URL.
+        let deferred = deferFulfillment(viewModel.context.$viewState) { state in
+            if case .verificationViolation = state.footerDetails { return true } else { return false }
+        }
+        try await deferred.fulfill()
+        XCTAssertEqual(footerURL()?.host, "gua.global")
+
+        // When the user acknowledges the change with the banner's single action.
+        viewModel.context.send(viewAction: .footerViewAction(.resolveVerificationViolation(userID: "@bob:matrix.org")))
+
+        // Then the stale verification is withdrawn so sending is not obstructed.
+        try await waitUntil { clientProxyMock.withdrawUserIdentityVerificationCalled }
+        XCTAssertEqual(clientProxyMock.withdrawUserIdentityVerificationReceivedUserID, "@bob:matrix.org")
+        XCTAssertFalse(clientProxyMock.pinUserIdentityCalled)
+    }
+
+    // MARK: - Identity change helpers
+
+    private func makeIdentityViolationViewModel(changedTo: IdentityState,
+                                                clientProxyMock: ClientProxyMock) -> (RoomScreenViewModel, () -> URL?) {
+        let roomProxyMock = JoinedRoomProxyMock(.init(members: [.mockBob]))
+        roomProxyMock.underlyingIdentityStatusChangesPublisher = CurrentValueSubject([IdentityStatusChange(userId: "@bob:matrix.org",
+                                                                                                           changedTo: changedTo)]).asCurrentValuePublisher()
+
+        let viewModel = RoomScreenViewModel(userSession: UserSessionMock(.init(clientProxy: clientProxyMock)),
+                                            roomProxy: roomProxyMock,
+                                            initialSelectedPinnedEventID: nil,
+                                            ongoingCallRoomIDPublisher: .init(.init(nil)),
+                                            appSettings: ServiceLocator.shared.settings,
+                                            appHooks: AppHooks(),
+                                            analyticsService: ServiceLocator.shared.analytics,
+                                            userIndicatorController: ServiceLocator.shared.userIndicatorController)
+
+        let footerURL: () -> URL? = { [weak viewModel] in
+            switch viewModel?.context.viewState.footerDetails {
+            case .pinViolation(_, let url), .verificationViolation(_, let url):
+                return url
+            case .none:
+                return nil
+            }
+        }
+
+        return (viewModel, footerURL)
+    }
+
+    private func waitUntil(timeout: TimeInterval = 5, _ condition: @MainActor () -> Bool) async throws {
+        let deadline = Date(timeIntervalSinceNow: timeout)
+        while !condition() {
+            guard Date.now < deadline else {
+                XCTFail("Timed out waiting for the condition to become true.")
+                return
+            }
+            try await Task.sleep(for: .milliseconds(50))
+        }
+    }
 }

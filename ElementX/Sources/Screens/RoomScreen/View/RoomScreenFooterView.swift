@@ -13,23 +13,21 @@ struct RoomScreenFooterView: View {
     let mediaProvider: MediaProviderProtocol?
     let callback: (RoomScreenFooterViewAction) -> Void
     
+    /// GUA FORK: identity changes are informational, never alarming. Both the pin and the
+    /// verification variants share the calm informational styling instead of the critical one.
     private var borderColor: Color {
         switch details {
-        case .pinViolation:
+        case .pinViolation, .verificationViolation:
             .compound.borderInfoSubtle
-        case .verificationViolation:
-            .compound.borderCriticalSubtle
         case .none:
             Color.compound.bgCanvasDefault
         }
     }
-    
+
     private var gradient: Gradient {
         switch details {
-        case .pinViolation:
+        case .pinViolation, .verificationViolation:
             .compound.info
-        case .verificationViolation:
-            Gradient(colors: [.compound.bgCriticalSubtle, .clear])
         case .none:
             Gradient(colors: [.clear])
         }
@@ -48,16 +46,21 @@ struct RoomScreenFooterView: View {
     
     @ViewBuilder
     private func detailsView(_ details: RoomScreenFooterViewDetails) -> some View {
+        // GUA FORK: WhatsApp-style identity change experience. One informational banner for
+        // both variants, acknowledged with a single OK tap. The tap resolves the underlying
+        // violation (pins the new identity, or withdraws the stale verification) so sending
+        // is never obstructed afterwards.
         switch details {
         case .pinViolation(let member, let learnMoreURL):
-            pinViolation(member: member, learnMoreURL: learnMoreURL)
-        case .verificationViolation(member: let member, learnMoreURL: let learnMoreURL):
-            verificationViolation(member: member, learnMoreURL: learnMoreURL)
+            identityChange(member: member, learnMoreURL: learnMoreURL, action: .resolvePinViolation(userID: member.userID))
+        case .verificationViolation(let member, let learnMoreURL):
+            identityChange(member: member, learnMoreURL: learnMoreURL, action: .resolveVerificationViolation(userID: member.userID))
         }
     }
-    
-    private func pinViolation(member: RoomMemberProxyProtocol,
-                              learnMoreURL: URL) -> some View {
+
+    private func identityChange(member: RoomMemberProxyProtocol,
+                                learnMoreURL: URL,
+                                action: RoomScreenFooterViewAction) -> some View {
         VStack(spacing: 16) {
             HStack(spacing: 16) {
                 LoadableAvatarImage(url: member.avatarURL,
@@ -65,18 +68,18 @@ struct RoomScreenFooterView: View {
                                     contentID: member.userID,
                                     avatarSize: .user(on: .timeline),
                                     mediaProvider: mediaProvider)
-                
-                Text(pinViolationDescriptionWithLearnMoreLink(displayName: member.displayName,
-                                                              userID: member.userID,
-                                                              url: learnMoreURL))
+
+                Text(identityChangeDescriptionWithLearnMoreLink(displayName: member.displayName,
+                                                                userID: member.userID,
+                                                                url: learnMoreURL))
                     .font(.compound.bodyMD)
                     .foregroundColor(.compound.textPrimary)
             }
-            
+
             Button {
-                callback(.resolvePinViolation(userID: member.userID))
+                callback(action)
             } label: {
-                Text(L10n.actionDismiss)
+                Text(L10n.actionOk)
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.compound(.primary, size: .medium))
@@ -85,64 +88,12 @@ struct RoomScreenFooterView: View {
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
     }
-    
-    private func verificationViolation(member: RoomMemberProxyProtocol,
-                                       learnMoreURL: URL) -> some View {
-        VStack(spacing: 16) {
-            HStack(spacing: 16) {
-                LoadableAvatarImage(url: member.avatarURL,
-                                    name: member.disambiguatedDisplayName,
-                                    contentID: member.userID,
-                                    avatarSize: .user(on: .timeline),
-                                    mediaProvider: mediaProvider)
-                
-                Text(verificationViolationDescriptionWithLearnMoreLink(displayName: member.displayName,
-                                                                       userID: member.userID,
-                                                                       url: learnMoreURL))
-                    .font(.compound.bodyMD)
-                    .foregroundColor(.compound.textCriticalPrimary)
-            }
-            
-            Button {
-                callback(.resolveVerificationViolation(userID: member.userID))
-            } label: {
-                Text(L10n.cryptoIdentityChangeWithdrawVerificationAction)
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.compound(.primary, size: .medium))
-        }
-        .padding(.top, 16)
-        .padding(.horizontal, 16)
-        .padding(.bottom, 8)
-    }
-    
-    private func pinViolationDescriptionWithLearnMoreLink(displayName: String?, userID: String, url: URL) -> AttributedString {
-        let userIDPlaceholder = "{mxid}"
+
+    private func identityChangeDescriptionWithLearnMoreLink(displayName: String?, userID: String, url: URL) -> AttributedString {
         let linkPlaceholder = "{link}"
         let displayName = displayName ?? fallbackDisplayName(userID)
-        var description = AttributedString(L10n.cryptoIdentityChangePinViolationNew(displayName, userIDPlaceholder, linkPlaceholder))
-        
-        var userIDString = AttributedString(L10n.cryptoIdentityChangePinViolationNewUserId(userID.guaDisplayHandle))
-        userIDString.bold()
-        description.replace(userIDPlaceholder, with: userIDString)
-        
-        var linkString = AttributedString(L10n.actionLearnMore)
-        linkString.link = url
-        linkString.bold()
-        description.replace(linkPlaceholder, with: linkString)
-        return description
-    }
-    
-    private func verificationViolationDescriptionWithLearnMoreLink(displayName: String?, userID: String, url: URL) -> AttributedString {
-        let userIDPlaceholder = "{mxid}"
-        let linkPlaceholder = "{link}"
-        let displayName = displayName ?? fallbackDisplayName(userID)
-        var description = AttributedString(L10n.cryptoIdentityChangeVerificationViolationNew(displayName, userIDPlaceholder, linkPlaceholder))
-        
-        var userIDString = AttributedString(L10n.cryptoIdentityChangePinViolationNewUserId(userID.guaDisplayHandle))
-        userIDString.bold()
-        description.replace(userIDPlaceholder, with: userIDString)
-        
+        var description = AttributedString(UntranslatedL10n.guaIdentityChangeBannerDescription(displayName, linkPlaceholder))
+
         var linkString = AttributedString(L10n.actionLearnMore)
         linkString.link = url
         linkString.bold()
@@ -158,12 +109,12 @@ struct RoomScreenFooterView: View {
 
 struct RoomScreenFooterView_Previews: PreviewProvider, TestablePreview {
     static let bobDetails: RoomScreenFooterViewDetails = .pinViolation(member: RoomMemberProxyMock.mockBob,
-                                                                       learnMoreURL: "https://element.io/")
+                                                                       learnMoreURL: "https://gua.global/help#security-changes")
     static let noNameDetails: RoomScreenFooterViewDetails = .pinViolation(member: RoomMemberProxyMock.mockNoName,
-                                                                          learnMoreURL: "https://element.io/")
-    
+                                                                          learnMoreURL: "https://gua.global/help#security-changes")
+
     static let verificationViolationDetails: RoomScreenFooterViewDetails = .verificationViolation(member: RoomMemberProxyMock.mockBob,
-                                                                                                  learnMoreURL: "https://element.io/")
+                                                                                                  learnMoreURL: "https://gua.global/help#security-changes")
     
     static var previews: some View {
         RoomScreenFooterView(details: bobDetails, mediaProvider: MediaProviderMock(configuration: .init())) { _ in }
