@@ -10,6 +10,12 @@ import Foundation
 // swiftlint:disable explicit_type_interface function_parameter_count identifier_name line_length
 // swiftlint:disable nesting type_body_length type_name vertical_whitespace_opening_braces
 internal enum UntranslatedL10n {
+  /// We couldn't confirm your organization details. Please try again.
+  internal static var guaResolverClaimsInvalid: String { return UntranslatedL10n.tr("Untranslated", "gua_resolver_claims_invalid") }
+  /// We can't set up new accounts right now. Please try again later.
+  internal static var guaResolverRegistrationClosed: String { return UntranslatedL10n.tr("Untranslated", "gua_resolver_registration_closed") }
+  /// We're having trouble connecting right now. Please try again in a moment.
+  internal static var guaResolverRoutingUnavailable: String { return UntranslatedL10n.tr("Untranslated", "gua_resolver_routing_unavailable") }
   /// Clear all data currently stored on this device?
   /// Sign in again to access your account data and messages.
   internal static var softLogoutClearDataDialogContent: String { return UntranslatedL10n.tr("Untranslated", "soft_logout_clear_data_dialog_content") }
