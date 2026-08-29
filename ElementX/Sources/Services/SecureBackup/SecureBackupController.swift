@@ -141,7 +141,18 @@ class SecureBackupController: SecureBackupControllerProtocol {
 
     func generateRecoveryKey() async -> Result<String, SecureBackupControllerError> {
         do {
-            guard await settledRecoveryState() == .disabled else {
+            let state = await settledRecoveryState()
+
+            // GUA FORK: `.unknown` here means the SDK never reported, i.e. the wait timed out.
+            // Resetting on it would rotate the storage key while the account state is still
+            // unknown and orphan an existing backup, which is the exact failure this method was
+            // changed to avoid. Refuse instead; the caller retries on the next launch.
+            guard state != .unknown else {
+                MXLog.warning("Recovery state never settled, refusing to touch key storage.")
+                return .failure(.failedGeneratingRecoveryKey)
+            }
+
+            guard state == .disabled else {
                 MXLog.info("Resetting recovery key")
                 
                 let key = try await encryption.resetRecoveryKey()

@@ -127,6 +127,14 @@ class UserSessionStore: UserSessionStoreProtocol {
                 // storage half-built for every account created so far.
                 let state = await secureBackupController.settledRecoveryState()
 
+                // GUA FORK: never act on an unsettled state. Everything below either enables or
+                // repairs key storage, and doing that without knowing where the account stands
+                // is what broke it in the first place. Leaving the flag unset retries next launch.
+                guard state != .unknown else {
+                    MXLog.warning("Recovery state never settled, deferring key storage bootstrap.")
+                    return
+                }
+
                 if state == .enabled {
                     MXLog.info("Recovery already enabled, marking key storage as bootstrapped.")
                     appSettings.setHasBootstrappedKeyStorage(true, forUserID: userID)
@@ -198,7 +206,8 @@ class UserSessionStore: UserSessionStoreProtocol {
 
                 // Only attempt a restore when recovery isn't already fully enabled (e.g. .incomplete).
                 let state = await secureBackupController.settledRecoveryState()
-                guard state != .enabled else { return }
+                // Same reasoning as the bootstrap path: an unsettled state is not a signal.
+                guard state != .enabled, state != .unknown else { return }
 
                 MXLog.info("Restoring key storage from stored recovery key.")
                 // GUA FORK: `.incomplete` means storage is present but missing secrets, which is
