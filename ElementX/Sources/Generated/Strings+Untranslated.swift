@@ -10,6 +10,16 @@ import Foundation
 // swiftlint:disable explicit_type_interface function_parameter_count identifier_name line_length
 // swiftlint:disable nesting type_body_length type_name vertical_whitespace_opening_braces
 internal enum UntranslatedL10n {
+  /// %1$@’s security details changed. This can happen when they reinstall Gua or get a new phone. %2$@
+  internal static func guaIdentityChangeBannerDescription(_ p1: Any, _ p2: Any) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_identity_change_banner_description", String(describing: p1), String(describing: p2))
+  }
+  /// %1$@’s security details changed. This can happen when they reinstall Gua or get a new phone.
+  internal static func guaIdentityChangeProfile(_ p1: Any) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_identity_change_profile", String(describing: p1))
+  }
+  /// This message can’t be opened because the sender’s security details changed.
+  internal static var guaIdentityChangeUndecryptable: String { return UntranslatedL10n.tr("Untranslated", "gua_identity_change_undecryptable") }
   /// Paste the room address you were given.
   internal static var guaJoinRoomByAddressHint: String { return UntranslatedL10n.tr("Untranslated", "gua_join_room_by_address_hint") }
   /// Clear all data currently stored on this device?
