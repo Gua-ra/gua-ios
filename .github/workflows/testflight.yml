@@ -372,7 +372,15 @@ jobs:
           # re-applied to every step and would shadow what is written here.
           BUILD_NUMBER="${BUILD_NUMBER_OVERRIDE:-}"
           if [ -z "$BUILD_NUMBER" ]; then
-            BUILD_NUMBER="$(date -u +%Y%m%d%H)"
+            # Minute precision, not hourly. Two QA builds in the same UTC hour used to produce
+            # the same number, and App Store Connect rejects the second with "The bundle version
+            # must be higher than the previously uploaded version" after a full archive and
+            # upload has already run. That happens whenever more than one PR is labelled for QA
+            # in an hour, which is normal.
+            #
+            # Widening 10 digits to 12 stays monotonic: every YYYYMMDDHHMM value is numerically
+            # larger than any YYYYMMDDHH value already uploaded, and they keep increasing.
+            BUILD_NUMBER="$(date -u +%Y%m%d%H%M)"
           fi
           case "$BUILD_NUMBER" in
             ''|*[!0-9]*) echo "::error::Build number '$BUILD_NUMBER' must be digits only."; exit 1 ;;
