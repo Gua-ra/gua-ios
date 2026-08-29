@@ -56,8 +56,10 @@ protocol SecureBackupControllerProtocol {
     
     func generateRecoveryKey() async -> Result<String, SecureBackupControllerError>
     func confirmRecoveryKey(_ key: String) async -> Result<Void, SecureBackupControllerError>
-    /// GUA FORK: recover AND repair a key backup that is present but inconsistent.
+    /// GUA FORK: pull the secrets this device is missing, using a key we already hold.
     func repairRecovery(with key: String) async -> Result<Void, SecureBackupControllerError>
+    /// GUA FORK: repair an `.incomplete` account when no recovery key exists anywhere.
+    func provisionRecoveryWithoutKey() async -> Result<String, SecureBackupControllerError>
     /// GUA FORK: `recoveryState` once it is no longer `.unknown`, so callers never branch on the
     /// initial value. Falls back to `.unknown` if the SDK stays silent past `timeout`.
     func settledRecoveryState(timeout: Duration) async -> SecureBackupRecoveryState

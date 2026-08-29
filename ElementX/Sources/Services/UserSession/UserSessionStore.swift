@@ -202,12 +202,34 @@ class UserSessionStore: UserSessionStoreProtocol {
             guard let self else { return }
 
             do {
-                guard let storedKey = keychainController.recoveryKey(forUsername: userID) else { return }
-
-                // Only attempt a restore when recovery isn't already fully enabled (e.g. .incomplete).
+                // Only act when recovery isn't already fully enabled (e.g. .incomplete).
                 let state = await secureBackupController.settledRecoveryState()
                 // Same reasoning as the bootstrap path: an unsettled state is not a signal.
                 guard state != .enabled, state != .unknown else { return }
+
+                // GUA FORK: every account damaged by the old silent bootstrap is sitting at
+                // .incomplete with no stored key, and this is the only path those users ever
+                // reach, because bootstrap runs on login and they are already signed in. It used
+                // to give up right here when the keychain was empty, which meant an app update
+                // could never fix an existing account. That is the whole population in
+                // production, so it now repairs without a key too.
+                guard let storedKey = keychainController.recoveryKey(forUsername: userID) else {
+                    guard state == .incomplete else { return }
+
+                    MXLog.info("Key storage incomplete with no stored key, repairing.")
+                    switch await secureBackupController.provisionRecoveryWithoutKey() {
+                    case .success(let key):
+                        keychainController.setRecoveryKey(key, forUsername: userID)
+                        MXLog.info("Repaired key storage and stored the new recovery key.")
+                    case .failure:
+                        // Cross-signing keys are genuinely missing; only another signed-in
+                        // device can supply them. Resetting the identity would fix the state at
+                        // the cost of warning every contact, which is not a trade we make
+                        // silently.
+                        MXLog.warning("Key storage needs another signed-in device to repair.")
+                    }
+                    return
+                }
 
                 MXLog.info("Restoring key storage from stored recovery key.")
                 // GUA FORK: `.incomplete` means storage is present but missing secrets, which is

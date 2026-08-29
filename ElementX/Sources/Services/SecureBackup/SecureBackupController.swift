@@ -195,20 +195,47 @@ class SecureBackupController: SecureBackupControllerProtocol {
         }
     }
         
-    /// GUA FORK: repairs a half-built key storage rather than merely unlocking a healthy one.
+    /// GUA FORK: repairs key storage for an account stuck at `.incomplete`.
     ///
-    /// `recover` assumes secret storage is consistent and just needs the key. The state we
-    /// actually hit is `.incomplete`: storage exists but is missing secrets. `recoverAndFixBackup`
-    /// is the SDK call documented to reconcile that, so self-heal uses this rather than
-    /// `confirmRecoveryKey`.
+    /// Deliberately NOT `recoverAndFixBackup`, despite the repair-shaped name. Its fix branch
+    /// deletes the server-side key backup and creates a new one, so any history whose room keys
+    /// live only in that backup is destroyed. `recover` just opens secret storage and pulls the
+    /// secrets this device is missing, which is the actual meaning of `.incomplete`.
     func repairRecovery(with key: String) async -> Result<Void, SecureBackupControllerError> {
         do {
             MXLog.info("Repairing recovery from the stored key")
-            try await encryption.recoverAndFixBackup(recoveryKey: key)
+            try await encryption.recover(recoveryKey: key)
             return .success(())
         } catch {
             MXLog.error("Failed repairing recovery with error: \(error)")
             return .failure(.failedConfirmingRecoveryKey)
+        }
+    }
+
+    /// GUA FORK: repairs an account that is `.incomplete` with NO recovery key available.
+    ///
+    /// This is the state every account damaged by the old silent bootstrap is in, so it is the
+    /// one that decides whether existing users can be fixed by an app update at all.
+    ///
+    /// `enableRecovery` is the only safe call here. It never deletes a key backup and never
+    /// touches the cross-signing identity, so no contact sees a "security details changed"
+    /// warning, and if a server backup blocks it, it fails with `BackupExistsOnServer` before
+    /// mutating anything. `resetRecoveryKey` cannot help: it builds new storage without making
+    /// any missing secret locally available, which is the only thing `.incomplete` measures.
+    ///
+    /// It fixes the case where cross-signing is intact but backup was never enabled. If the
+    /// private cross-signing keys themselves are missing, nothing here can help and the account
+    /// needs another signed-in device; we leave it alone rather than reset the identity.
+    func provisionRecoveryWithoutKey() async -> Result<String, SecureBackupControllerError> {
+        do {
+            MXLog.info("Provisioning recovery for an incomplete account with no stored key")
+            let key = try await encryption.enableRecovery(waitForBackupsToUpload: false,
+                                                          passphrase: nil,
+                                                          progressListener: SDKListener { _ in })
+            return .success(key)
+        } catch {
+            MXLog.warning("Could not provision recovery without a key: \(error)")
+            return .failure(.failedGeneratingRecoveryKey)
         }
     }
 

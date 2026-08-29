@@ -15492,6 +15492,70 @@ class SecureBackupControllerMock: SecureBackupControllerProtocol, @unchecked Sen
             return repairRecoveryWithReturnValue
         }
     }
+    //MARK: - provisionRecoveryWithoutKey
+
+    var provisionRecoveryWithoutKeyUnderlyingCallsCount = 0
+    var provisionRecoveryWithoutKeyCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return provisionRecoveryWithoutKeyUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = provisionRecoveryWithoutKeyUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                provisionRecoveryWithoutKeyUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    provisionRecoveryWithoutKeyUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var provisionRecoveryWithoutKeyCalled: Bool {
+        return provisionRecoveryWithoutKeyCallsCount > 0
+    }
+
+    var provisionRecoveryWithoutKeyUnderlyingReturnValue: Result<String, SecureBackupControllerError>!
+    var provisionRecoveryWithoutKeyReturnValue: Result<String, SecureBackupControllerError>! {
+        get {
+            if Thread.isMainThread {
+                return provisionRecoveryWithoutKeyUnderlyingReturnValue
+            } else {
+                var returnValue: Result<String, SecureBackupControllerError>? = nil
+                DispatchQueue.main.sync {
+                    returnValue = provisionRecoveryWithoutKeyUnderlyingReturnValue
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                provisionRecoveryWithoutKeyUnderlyingReturnValue = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    provisionRecoveryWithoutKeyUnderlyingReturnValue = newValue
+                }
+            }
+        }
+    }
+    var provisionRecoveryWithoutKeyClosure: (() async -> Result<String, SecureBackupControllerError>)?
+
+    func provisionRecoveryWithoutKey() async -> Result<String, SecureBackupControllerError> {
+        provisionRecoveryWithoutKeyCallsCount += 1
+        if let provisionRecoveryWithoutKeyClosure = provisionRecoveryWithoutKeyClosure {
+            return await provisionRecoveryWithoutKeyClosure()
+        } else {
+            return provisionRecoveryWithoutKeyReturnValue
+        }
+    }
     //MARK: - settledRecoveryState
 
     var settledRecoveryStateTimeoutUnderlyingCallsCount = 0
