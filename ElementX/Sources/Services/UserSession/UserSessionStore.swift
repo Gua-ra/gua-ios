@@ -95,6 +95,10 @@ class UserSessionStore: UserSessionStoreProtocol {
         let userID = userSession.clientProxy.userID
         let credentials = keychainController.restorationTokens().first { $0.userID == userID }
         keychainController.removeRestorationTokenForUsername(userID)
+        // GUA FORK: the stored recovery key belongs to the session being torn down. Left behind
+        // it survives logout and gets replayed against whatever secret storage comes next.
+        keychainController.removeRecoveryKey(forUsername: userID)
+        appSettings.setHasBootstrappedKeyStorage(false, forUserID: userID)
         
         if let credentials {
             credentials.restorationToken.sessionDirectories.delete()
@@ -116,12 +120,28 @@ class UserSessionStore: UserSessionStoreProtocol {
             guard let self else { return }
 
             do {
-                guard !appSettings.hasBootstrappedKeyStorage else { return }
+                guard !appSettings.hasBootstrappedKeyStorage(forUserID: userID) else { return }
 
-                if secureBackupController.recoveryState.value == .enabled {
+                // GUA FORK: wait for the SDK to report where this account actually stands.
+                // The subject starts at `.unknown`, and acting on that is what left key
+                // storage half-built for every account created so far.
+                let state = await secureBackupController.settledRecoveryState()
+
+                if state == .enabled {
                     MXLog.info("Recovery already enabled, marking key storage as bootstrapped.")
-                    appSettings.hasBootstrappedKeyStorage = true
+                    appSettings.setHasBootstrappedKeyStorage(true, forUserID: userID)
                     return
+                }
+
+                // GUA FORK: storage exists but is missing secrets. If we still hold the key we
+                // generated, repair in place instead of rotating, which would orphan the backup.
+                if state == .incomplete, let storedKey = keychainController.recoveryKey(forUsername: userID) {
+                    MXLog.info("Key storage incomplete, repairing from the stored recovery key.")
+                    if case .success = await secureBackupController.repairRecovery(with: storedKey) {
+                        appSettings.setHasBootstrappedKeyStorage(true, forUserID: userID)
+                        return
+                    }
+                    MXLog.warning("Repair from the stored recovery key failed, falling through to bootstrap.")
                 }
 
                 if secureBackupController.keyBackupState.value != .enabled {
@@ -142,7 +162,15 @@ class UserSessionStore: UserSessionStoreProtocol {
                         return
                     }
 
-                    appSettings.hasBootstrappedKeyStorage = true
+                    // GUA FORK: only latch once the state is genuinely `.enabled`. Latching on a
+                    // completed attempt is what made a half-finished bootstrap permanent, because
+                    // this block never ran again on later launches.
+                    guard await secureBackupController.settledRecoveryState() == .enabled else {
+                        MXLog.warning("Key storage did not reach .enabled; will retry on next launch.")
+                        return
+                    }
+
+                    appSettings.setHasBootstrappedKeyStorage(true, forUserID: userID)
                     MXLog.info("Finished bootstrapping key storage.")
                 case .failure(let error):
                     MXLog.error("Failed generating recovery key while bootstrapping key storage: \(error)")
@@ -169,10 +197,18 @@ class UserSessionStore: UserSessionStoreProtocol {
                 guard let storedKey = keychainController.recoveryKey(forUsername: userID) else { return }
 
                 // Only attempt a restore when recovery isn't already fully enabled (e.g. .incomplete).
-                guard secureBackupController.recoveryState.value != .enabled else { return }
+                let state = await secureBackupController.settledRecoveryState()
+                guard state != .enabled else { return }
 
                 MXLog.info("Restoring key storage from stored recovery key.")
-                switch await secureBackupController.confirmRecoveryKey(storedKey) {
+                // GUA FORK: `.incomplete` means storage is present but missing secrets, which is
+                // what `recoverAndFixBackup` exists to reconcile. Plain `recover` assumes a
+                // healthy store and leaves the banner up.
+                let result = state == .incomplete
+                    ? await secureBackupController.repairRecovery(with: storedKey)
+                    : await secureBackupController.confirmRecoveryKey(storedKey)
+
+                switch result {
                 case .success:
                     MXLog.info("Finished restoring key storage from stored recovery key.")
                 case .failure(let error):

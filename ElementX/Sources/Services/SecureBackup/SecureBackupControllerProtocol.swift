@@ -56,6 +56,18 @@ protocol SecureBackupControllerProtocol {
     
     func generateRecoveryKey() async -> Result<String, SecureBackupControllerError>
     func confirmRecoveryKey(_ key: String) async -> Result<Void, SecureBackupControllerError>
+    /// GUA FORK: recover AND repair a key backup that is present but inconsistent.
+    func repairRecovery(with key: String) async -> Result<Void, SecureBackupControllerError>
+    /// GUA FORK: `recoveryState` once it is no longer `.unknown`, so callers never branch on the
+    /// initial value. Falls back to `.unknown` if the SDK stays silent past `timeout`.
+    func settledRecoveryState(timeout: Duration) async -> SecureBackupRecoveryState
     
     func waitForKeyBackupUpload(uploadStateSubject: CurrentValueSubject<SecureBackupSteadyState, Never>) async -> Result<Void, SecureBackupControllerError>
+}
+
+extension SecureBackupControllerProtocol {
+    /// GUA FORK: protocol requirements can't carry default arguments, so the common call gets one here.
+    func settledRecoveryState() async -> SecureBackupRecoveryState {
+        await settledRecoveryState(timeout: .seconds(10))
+    }
 }

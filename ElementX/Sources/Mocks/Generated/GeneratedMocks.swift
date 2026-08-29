@@ -15422,6 +15422,146 @@ class SecureBackupControllerMock: SecureBackupControllerProtocol, @unchecked Sen
             return confirmRecoveryKeyReturnValue
         }
     }
+    //MARK: - repairRecovery
+
+    var repairRecoveryWithUnderlyingCallsCount = 0
+    var repairRecoveryWithCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return repairRecoveryWithUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = repairRecoveryWithUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                repairRecoveryWithUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    repairRecoveryWithUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var repairRecoveryWithCalled: Bool {
+        return repairRecoveryWithCallsCount > 0
+    }
+    var repairRecoveryWithReceivedKey: String?
+    var repairRecoveryWithReceivedInvocations: [String] = []
+
+    var repairRecoveryWithUnderlyingReturnValue: Result<Void, SecureBackupControllerError>!
+    var repairRecoveryWithReturnValue: Result<Void, SecureBackupControllerError>! {
+        get {
+            if Thread.isMainThread {
+                return repairRecoveryWithUnderlyingReturnValue
+            } else {
+                var returnValue: Result<Void, SecureBackupControllerError>? = nil
+                DispatchQueue.main.sync {
+                    returnValue = repairRecoveryWithUnderlyingReturnValue
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                repairRecoveryWithUnderlyingReturnValue = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    repairRecoveryWithUnderlyingReturnValue = newValue
+                }
+            }
+        }
+    }
+    var repairRecoveryWithClosure: ((String) async -> Result<Void, SecureBackupControllerError>)?
+
+    func repairRecovery(with key: String) async -> Result<Void, SecureBackupControllerError> {
+        repairRecoveryWithCallsCount += 1
+        repairRecoveryWithReceivedKey = key
+        DispatchQueue.main.async {
+            self.repairRecoveryWithReceivedInvocations.append(key)
+        }
+        if let repairRecoveryWithClosure = repairRecoveryWithClosure {
+            return await repairRecoveryWithClosure(key)
+        } else {
+            return repairRecoveryWithReturnValue
+        }
+    }
+    //MARK: - settledRecoveryState
+
+    var settledRecoveryStateTimeoutUnderlyingCallsCount = 0
+    var settledRecoveryStateTimeoutCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return settledRecoveryStateTimeoutUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = settledRecoveryStateTimeoutUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                settledRecoveryStateTimeoutUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    settledRecoveryStateTimeoutUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var settledRecoveryStateTimeoutCalled: Bool {
+        return settledRecoveryStateTimeoutCallsCount > 0
+    }
+    var settledRecoveryStateTimeoutReceivedTimeout: Duration?
+    var settledRecoveryStateTimeoutReceivedInvocations: [Duration] = []
+
+    var settledRecoveryStateTimeoutUnderlyingReturnValue: SecureBackupRecoveryState!
+    var settledRecoveryStateTimeoutReturnValue: SecureBackupRecoveryState! {
+        get {
+            if Thread.isMainThread {
+                return settledRecoveryStateTimeoutUnderlyingReturnValue
+            } else {
+                var returnValue: SecureBackupRecoveryState? = nil
+                DispatchQueue.main.sync {
+                    returnValue = settledRecoveryStateTimeoutUnderlyingReturnValue
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                settledRecoveryStateTimeoutUnderlyingReturnValue = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    settledRecoveryStateTimeoutUnderlyingReturnValue = newValue
+                }
+            }
+        }
+    }
+    var settledRecoveryStateTimeoutClosure: ((Duration) async -> SecureBackupRecoveryState)?
+
+    func settledRecoveryState(timeout: Duration) async -> SecureBackupRecoveryState {
+        settledRecoveryStateTimeoutCallsCount += 1
+        settledRecoveryStateTimeoutReceivedTimeout = timeout
+        DispatchQueue.main.async {
+            self.settledRecoveryStateTimeoutReceivedInvocations.append(timeout)
+        }
+        if let settledRecoveryStateTimeoutClosure = settledRecoveryStateTimeoutClosure {
+            return await settledRecoveryStateTimeoutClosure(timeout)
+        } else {
+            return settledRecoveryStateTimeoutReturnValue
+        }
+    }
     //MARK: - waitForKeyBackupUpload
 
     var waitForKeyBackupUploadUploadStateSubjectUnderlyingCallsCount = 0

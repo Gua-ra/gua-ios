@@ -143,7 +143,10 @@ private extension TimelineItemSendInfo {
         status = if case .sendingFailed = adjustedDeliveryStatus {
             .sendingFailed
         } else if let authenticity = timelineItem.properties.encryptionAuthenticity {
-            .encryptionAuthenticity(authenticity)
+            // GUA FORK: a shield about the sender's own setup says nothing useful on your own
+            // message. It is not a risk you can act on, it is not something you did wrong, and
+            // sitting in the delivery-status slot it reads as "this failed to send".
+            timelineItem.isOutgoing && authenticity.describesOwnSetup ? nil : .encryptionAuthenticity(authenticity)
         } else {
             nil
         }
@@ -175,7 +178,12 @@ private extension TimelineItemSendInfo {
 
 private extension EncryptionAuthenticity {
     var foregroundStyle: SwiftUI.Color {
-        switch color {
+        // GUA FORK: the SDK's red is advisory, and this label shares its slot and colour with
+        // "failed to send". Only the states that genuinely mean "this may not be who you think"
+        // are allowed to borrow the critical colour.
+        guard isAlarming else { return .compound.textSecondary }
+
+        return switch color {
         case .red: .compound.textCriticalPrimary
         case .gray: .compound.textSecondary
         }

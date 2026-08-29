@@ -109,9 +109,39 @@ class SecureBackupController: SecureBackupControllerProtocol {
         return .success(())
     }
     
+    /// GUA FORK: waits for `recoveryState` to report something other than `.unknown`.
+    ///
+    /// The subject starts at `.unknown` and only settles once the SDK has told us where the
+    /// account stands. Branching before then silently picks the wrong path, which is how key
+    /// storage ended up half-built: a fresh account read `.unknown`, failed the `== .disabled`
+    /// test, and rotated the storage key instead of running the full bootstrap.
+    func settledRecoveryState(timeout: Duration = .seconds(10)) async -> SecureBackupRecoveryState {
+        if recoveryState.value != .unknown {
+            return recoveryState.value
+        }
+
+        return await withTaskGroup(of: SecureBackupRecoveryState.self) { group in
+            group.addTask { [recoveryState] in
+                for await state in recoveryState.values where state != .unknown {
+                    return state
+                }
+                return .unknown
+            }
+
+            group.addTask {
+                try? await Task.sleep(for: timeout)
+                return .unknown
+            }
+
+            let state = await group.next() ?? .unknown
+            group.cancelAll()
+            return state
+        }
+    }
+
     func generateRecoveryKey() async -> Result<String, SecureBackupControllerError> {
         do {
-            guard recoveryState.value == .disabled else {
+            guard await settledRecoveryState() == .disabled else {
                 MXLog.info("Resetting recovery key")
                 
                 let key = try await encryption.resetRecoveryKey()
@@ -154,6 +184,23 @@ class SecureBackupController: SecureBackupControllerProtocol {
         }
     }
         
+    /// GUA FORK: repairs a half-built key storage rather than merely unlocking a healthy one.
+    ///
+    /// `recover` assumes secret storage is consistent and just needs the key. The state we
+    /// actually hit is `.incomplete`: storage exists but is missing secrets. `recoverAndFixBackup`
+    /// is the SDK call documented to reconcile that, so self-heal uses this rather than
+    /// `confirmRecoveryKey`.
+    func repairRecovery(with key: String) async -> Result<Void, SecureBackupControllerError> {
+        do {
+            MXLog.info("Repairing recovery from the stored key")
+            try await encryption.recoverAndFixBackup(recoveryKey: key)
+            return .success(())
+        } catch {
+            MXLog.error("Failed repairing recovery with error: \(error)")
+            return .failure(.failedConfirmingRecoveryKey)
+        }
+    }
+
     func waitForKeyBackupUpload(uploadStateSubject: CurrentValueSubject<SecureBackupSteadyState, Never>) async -> Result<Void, SecureBackupControllerError> {
         do {
             MXLog.info("Waiting for backup upload steady state")
