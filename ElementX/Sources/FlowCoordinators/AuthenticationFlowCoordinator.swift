@@ -212,10 +212,20 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         
         // QR Code
         
-        stateMachine.addRoutes(event: .loginWithQR, transitions: [.startScreen => .qrCodeLoginScreen]) { [weak self] _ in
+        // GUA FORK: reachable from the phone-entry screen too, not only the legacy start screen.
+        // This is the new-device side of the device-to-device secrets transfer: scan the code an
+        // already signed-in phone is showing and the account, and its history, come across with
+        // nothing typed and nothing the server can read.
+        stateMachine.addRoutes(event: .loginWithQR, transitions: [.startScreen => .qrCodeLoginScreen,
+                                                                  .phoneEntryScreen => .qrCodeLoginScreen]) { [weak self] _ in
             self?.showQRCodeLoginScreen()
         }
-        stateMachine.addRoutes(event: .cancelledLoginWithQR, transitions: [.qrCodeLoginScreen => .startScreen])
+        stateMachine.addRoutes(event: .cancelledLoginWithQR, transitions: [.qrCodeLoginScreen => .startScreen]) { [weak self] _ in
+            // Returning from the scanner has to land back on the phone-entry screen for the Gua
+            // flow, otherwise cancelling drops the user onto the legacy start screen.
+            guard let self, !appSettings.legacyAuthEnabled else { return }
+            showPhoneEntryScreen(fromState: .qrCodeLoginScreen)
+        }
         
         // Manual Authentication
         
@@ -339,6 +349,8 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                     handlePhoneSubmission(phoneNumber: phoneNumber, coordinator: coordinator)
                 case .useLegacyAuth:
                     stateMachine.tryEvent(.useLegacyAuth)
+                case .linkWithExistingDevice:
+                    stateMachine.tryEvent(.loginWithQR)
                 }
             }
             .store(in: &cancellables)
