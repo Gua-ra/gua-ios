@@ -27,3 +27,9 @@
 
 /* Shown on a contact's profile when their encryption identity changed. Replaces upstream's "%1$@'s identity was reset." %1$@ is the contact's display name. */
 "gua_identity_change_profile" = "%1$@’s security details changed. This can happen when they reinstall Gua or get a new phone.";
+
+// MARK: - Gua: no homeserver in room-address copy
+
+/* Hint under the "Join room by address" field. Replaces upstream's "e.g. #room-name:matrix.org",
+   which named another network's homeserver and taught people the server-qualified form Gua hides. */
+"gua_join_room_by_address_hint" = "Paste the room address you were given.";
