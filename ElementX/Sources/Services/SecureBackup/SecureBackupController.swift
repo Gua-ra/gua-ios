@@ -229,14 +229,42 @@ class SecureBackupController: SecureBackupControllerProtocol {
     func provisionRecoveryWithoutKey() async -> Result<String, SecureBackupControllerError> {
         do {
             MXLog.info("Provisioning recovery for an incomplete account with no stored key")
-            let key = try await encryption.enableRecovery(waitForBackupsToUpload: false,
-                                                          passphrase: nil,
-                                                          progressListener: SDKListener { _ in })
-            return .success(key)
+            return try await .success(enableRecoveryReturningKey())
+        } catch RecoveryError.BackupExistsOnServer {
+            // The common case for accounts the old bootstrap damaged: server storage and a key
+            // backup both exist, but this device is missing the secrets and no key survives.
+            // enableRecovery refuses to overwrite a backup, so on its own it can never get an
+            // account out of .incomplete. This is why the previous attempt changed nothing.
+            MXLog.info("A key backup exists on the server; deciding whether it is still reachable.")
+
+            // If another signed-in device exists it can hand the secrets over, which repairs
+            // this for free and keeps the backup. Never destroy anything while that is possible.
+            if await (try? encryption.hasDevicesToVerifyAgainst()) == true {
+                MXLog.warning("Another device can supply the secrets; leaving key storage alone.")
+                return .failure(.failedGeneratingRecoveryKey)
+            }
+
+            // No key anywhere and no other device, so nothing can ever decrypt that backup
+            // again. Keeping it preserves only a permanently broken account, so replace it.
+            // This does not touch the cross-signing identity, so no contact is warned.
+            MXLog.warning("Backup is unreachable by any key or device; replacing key storage.")
+            do {
+                try await encryption.disableRecovery()
+                return try await .success(enableRecoveryReturningKey())
+            } catch {
+                MXLog.error("Failed replacing unreachable key storage: \(error)")
+                return .failure(.failedGeneratingRecoveryKey)
+            }
         } catch {
             MXLog.warning("Could not provision recovery without a key: \(error)")
             return .failure(.failedGeneratingRecoveryKey)
         }
+    }
+
+    private func enableRecoveryReturningKey() async throws -> String {
+        try await encryption.enableRecovery(waitForBackupsToUpload: false,
+                                            passphrase: nil,
+                                            progressListener: SDKListener { _ in })
     }
 
     func waitForKeyBackupUpload(uploadStateSubject: CurrentValueSubject<SecureBackupSteadyState, Never>) async -> Result<Void, SecureBackupControllerError> {
