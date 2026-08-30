@@ -1,0 +1,7 @@
+/*
+  Gua fork strings for this locale. English source lives in en.lproj/Untranslated.strings.
+*/
+
+"gua_encryption_repair_title" = "Fullfør oppsettet av denne enheten";
+"gua_encryption_repair_message" = "Fullfør oppsettet for å gjenopprette den krypterte chatthistorikken din og få tilgang til tidligere meldinger på denne enheten.";
+"gua_encryption_repair_action" = "Fullfør oppsett";

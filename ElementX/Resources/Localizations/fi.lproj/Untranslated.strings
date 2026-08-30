@@ -1,0 +1,7 @@
+/*
+  Gua fork strings for this locale. English source lives in en.lproj/Untranslated.strings.
+*/
+
+"gua_encryption_repair_title" = "Viimeistele tämän laitteen määritys";
+"gua_encryption_repair_message" = "Viimeistele määritys palauttaaksesi salatun keskusteluhistoriasi ja päästäksesi aiempiin viesteihisi tällä laitteella.";
+"gua_encryption_repair_action" = "Viimeistele määritys";

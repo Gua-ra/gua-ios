@@ -1,0 +1,7 @@
+/*
+  Gua fork strings for this locale. English source lives in en.lproj/Untranslated.strings.
+*/
+
+"gua_encryption_repair_title" = "完成此设备的设置";
+"gua_encryption_repair_message" = "完成设置以恢复你的加密聊天记录，并在此设备上访问以前的消息。";
+"gua_encryption_repair_action" = "完成设置";

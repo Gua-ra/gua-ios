@@ -34,5 +34,5 @@
    Replaces upstream's "Your key storage is out of sync" / "Confirm your recovery key", which
    asked for a recovery key Gua never shows anyone. */
 "gua_encryption_repair_title" = "Finish setting up this device";
-"gua_encryption_repair_message" = "This device can't secure your messages yet. Setting it up takes a moment and you don't need anything to hand.";
-"gua_encryption_repair_action" = "Set up";
+"gua_encryption_repair_message" = "Complete setup to restore your encrypted chat history and access your previous messages on this device.";
+"gua_encryption_repair_action" = "Finish setup";

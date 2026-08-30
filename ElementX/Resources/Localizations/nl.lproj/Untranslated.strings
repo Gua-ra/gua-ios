@@ -1,0 +1,7 @@
+/*
+  Gua fork strings for this locale. English source lives in en.lproj/Untranslated.strings.
+*/
+
+"gua_encryption_repair_title" = "Voltooi de installatie van dit apparaat";
+"gua_encryption_repair_message" = "Voltooi de installatie om je versleutelde chatgeschiedenis te herstellen en je eerdere berichten op dit apparaat te bekijken.";
+"gua_encryption_repair_action" = "Installatie voltooien";

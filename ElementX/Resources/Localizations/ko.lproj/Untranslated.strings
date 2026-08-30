@@ -1,0 +1,7 @@
+/*
+  Gua fork strings for this locale. English source lives in en.lproj/Untranslated.strings.
+*/
+
+"gua_encryption_repair_title" = "이 기기 설정 마치기";
+"gua_encryption_repair_message" = "설정을 완료하면 암호화된 대화 기록을 복원하고 이 기기에서 이전 메시지를 볼 수 있습니다.";
+"gua_encryption_repair_action" = "설정 완료";

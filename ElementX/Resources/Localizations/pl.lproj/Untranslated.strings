@@ -1,0 +1,7 @@
+/*
+  Gua fork strings for this locale. English source lives in en.lproj/Untranslated.strings.
+*/
+
+"gua_encryption_repair_title" = "Dokończ konfigurację tego urządzenia";
+"gua_encryption_repair_message" = "Dokończ konfigurację, aby przywrócić historię zaszyfrowanych czatów i uzyskać dostęp do wcześniejszych wiadomości na tym urządzeniu.";
+"gua_encryption_repair_action" = "Zakończ konfigurację";
