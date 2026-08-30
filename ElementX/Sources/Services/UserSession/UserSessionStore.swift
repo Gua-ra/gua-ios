@@ -221,34 +221,34 @@ class UserSessionStore: UserSessionStoreProtocol {
                 // the banner survived: the account had a key, so it never reached the repair
                 // written for accounts without one.
                 if let storedKey = keychainController.recoveryKey(forUsername: userID) {
-                    MXLog.info("Restoring key storage from stored recovery key.")
+                    MXLog.info("GUA-KEYSTORE: state=\(state), stored key present, trying it.")
                     let result = state == .incomplete
                         ? await secureBackupController.repairRecovery(with: storedKey)
                         : await secureBackupController.confirmRecoveryKey(storedKey)
 
                     if case .success = result,
                        await secureBackupController.settledRecoveryState() == .enabled {
-                        MXLog.info("Finished restoring key storage from stored recovery key.")
+                        MXLog.info("GUA-KEYSTORE: repaired using the stored key.")
                         return
                     }
 
-                    MXLog.warning("Stored recovery key did not restore key storage; discarding it.")
+                    MXLog.warning("GUA-KEYSTORE: stored key did not restore storage, discarding it and falling through.")
                     keychainController.removeRecoveryKey(forUsername: userID)
                 }
 
                 guard await secureBackupController.settledRecoveryState() == .incomplete else { return }
 
-                MXLog.info("Key storage still incomplete, repairing without a key.")
+                MXLog.info("GUA-KEYSTORE: still incomplete, repairing without a key.")
                 switch await secureBackupController.provisionRecoveryWithoutKey() {
                 case .success(let key):
                     keychainController.setRecoveryKey(key, forUsername: userID)
-                    MXLog.info("Repaired key storage and stored the new recovery key.")
+                    MXLog.info("GUA-KEYSTORE: repaired without a key, new key stored.")
                 case .failure:
                     // Either another signed-in device can supply the secrets, or the private
                     // cross-signing keys are genuinely gone. Resetting the identity would fix
                     // the state at the cost of warning every contact, which is not a trade we
                     // make silently.
-                    MXLog.warning("Key storage needs another signed-in device to repair.")
+                    MXLog.warning("GUA-KEYSTORE: could not repair; needs another signed-in device.")
                 }
             } catch {
                 MXLog.error("Unexpected error while restoring key storage: \(error)")

@@ -148,7 +148,7 @@ class SecureBackupController: SecureBackupControllerProtocol {
             // unknown and orphan an existing backup, which is the exact failure this method was
             // changed to avoid. Refuse instead; the caller retries on the next launch.
             guard state != .unknown else {
-                MXLog.warning("Recovery state never settled, refusing to touch key storage.")
+                MXLog.warning("GUA-KEYSTORE: recovery state never settled, refusing to act.")
                 return .failure(.failedGeneratingRecoveryKey)
             }
 
@@ -228,26 +228,33 @@ class SecureBackupController: SecureBackupControllerProtocol {
     /// needs another signed-in device; we leave it alone rather than reset the identity.
     func provisionRecoveryWithoutKey() async -> Result<String, SecureBackupControllerError> {
         do {
-            MXLog.info("Provisioning recovery for an incomplete account with no stored key")
+            MXLog.info("GUA-KEYSTORE: enableRecovery on an incomplete account.")
             return try await .success(enableRecoveryReturningKey())
         } catch RecoveryError.BackupExistsOnServer {
             // The common case for accounts the old bootstrap damaged: server storage and a key
             // backup both exist, but this device is missing the secrets and no key survives.
             // enableRecovery refuses to overwrite a backup, so on its own it can never get an
             // account out of .incomplete. This is why the previous attempt changed nothing.
-            MXLog.info("A key backup exists on the server; deciding whether it is still reachable.")
+            MXLog.info("GUA-KEYSTORE: blocked by BackupExistsOnServer; checking reachability.")
 
-            // If another signed-in device exists it can hand the secrets over, which repairs
-            // this for free and keeps the backup. Never destroy anything while that is possible.
-            if await (try? encryption.hasDevicesToVerifyAgainst()) == true {
-                MXLog.warning("Another device can supply the secrets; leaving key storage alone.")
+            // A verified device would have gossiped the secrets to us already, and the state
+            // would no longer be .incomplete. So give that a moment to land, and only treat the
+            // backup as unreachable once it has not.
+            //
+            // Deliberately NOT gated on hasDevicesToVerifyAgainst. That only counts whether
+            // other device entries exist, and every reinstall leaves one behind: a test account
+            // here had five, none of which could supply anything. Gating on it meant the repair
+            // declined on essentially every real account, which is exactly how this reached QA
+            // three times without fixing anyone.
+            if await waitForRecoveryEnabled(timeout: .seconds(15)) {
+                MXLog.info("GUA-KEYSTORE: secrets arrived from another device, nothing to repair.")
                 return .failure(.failedGeneratingRecoveryKey)
             }
 
-            // No key anywhere and no other device, so nothing can ever decrypt that backup
-            // again. Keeping it preserves only a permanently broken account, so replace it.
-            // This does not touch the cross-signing identity, so no contact is warned.
-            MXLog.warning("Backup is unreachable by any key or device; replacing key storage.")
+            // Nothing supplied the secrets and no key survives, so nothing can decrypt that
+            // backup again. Keeping it preserves only a permanently broken account, so replace
+            // it. This does not touch the cross-signing identity, so no contact is warned.
+            MXLog.warning("GUA-KEYSTORE: backup unreachable, replacing key storage.")
             do {
                 try await encryption.disableRecovery()
                 return try await .success(enableRecoveryReturningKey())
@@ -258,6 +265,35 @@ class SecureBackupController: SecureBackupControllerProtocol {
         } catch {
             MXLog.warning("Could not provision recovery without a key: \(error)")
             return .failure(.failedGeneratingRecoveryKey)
+        }
+    }
+
+    /// GUA FORK: whether recovery reaches `.enabled` within `timeout`.
+    ///
+    /// Used to give secret gossip from an already-verified device a chance to land before we
+    /// conclude the key backup is unreachable. `settledRecoveryState` is no use here: it returns
+    /// the first non-`.unknown` value, which is `.incomplete` immediately.
+    private func waitForRecoveryEnabled(timeout: Duration) async -> Bool {
+        if recoveryState.value == .enabled {
+            return true
+        }
+
+        return await withTaskGroup(of: Bool.self) { group in
+            group.addTask { [recoveryState] in
+                for await state in recoveryState.values where state == .enabled {
+                    return true
+                }
+                return false
+            }
+
+            group.addTask {
+                try? await Task.sleep(for: timeout)
+                return false
+            }
+
+            let enabled = await group.next() ?? false
+            group.cancelAll()
+            return enabled
         }
     }
 
