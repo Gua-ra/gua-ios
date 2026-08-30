@@ -207,6 +207,23 @@ class UserSessionStore: UserSessionStoreProtocol {
                 // Same reasoning as the bootstrap path: an unsettled state is not a signal.
                 guard state != .enabled, state != .unknown else { return }
 
+                // GUA FORK: an identity reset leaves recovery `.disabled`, not `.enabled`: it
+                // clears the default secret-storage key and does not create a new one. Without
+                // this, finishing the repair simply swapped one banner for another, asking the
+                // user to "set up recovery" with a recovery key, which is the jargon the whole
+                // exercise exists to remove. Provision it for them instead.
+                if state == .disabled {
+                    MXLog.info("GUA-KEYSTORE: recovery disabled, provisioning it silently.")
+                    switch await secureBackupController.generateRecoveryKey() {
+                    case .success(let key):
+                        keychainController.setRecoveryKey(key, forUsername: userID)
+                        MXLog.info("GUA-KEYSTORE: provisioned recovery and stored the key.")
+                    case .failure(let error):
+                        MXLog.warning("GUA-KEYSTORE: could not provision recovery: \(error)")
+                    }
+                    return
+                }
+
                 // GUA FORK: every account damaged by the old silent bootstrap is sitting at
                 // .incomplete with no stored key, and this is the only path those users ever
                 // reach, because bootstrap runs on login and they are already signed in. It used

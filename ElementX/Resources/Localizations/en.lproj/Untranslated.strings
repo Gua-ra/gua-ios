@@ -27,3 +27,12 @@
 
 /* Shown on a contact's profile when their encryption identity changed. Replaces upstream's "%1$@'s identity was reset." %1$@ is the contact's display name. */
 "gua_identity_change_profile" = "%1$@’s security details changed. This can happen when they reinstall Gua or get a new phone.";
+
+// MARK: - Gua: encryption repair banner
+
+/* Banner shown when this device's encryption setup is broken and cannot repair itself.
+   Replaces upstream's "Your key storage is out of sync" / "Confirm your recovery key", which
+   asked for a recovery key Gua never shows anyone. */
+"gua_encryption_repair_title" = "Finish setting up this device";
+"gua_encryption_repair_message" = "This device can't secure your messages yet. Setting it up takes a moment and you don't need anything to hand.";
+"gua_encryption_repair_action" = "Set up";

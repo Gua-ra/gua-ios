@@ -17,28 +17,33 @@ struct HomeScreenRecoveryKeyConfirmationBanner: View {
     var title: String {
         switch state {
         case .setUpRecovery: L10n.bannerSetUpRecoveryTitle
-        case .recoveryOutOfSync: L10n.confirmRecoveryKeyBannerTitle
+        // GUA FORK: this state means the device cannot secure messages yet, and the fix is a
+        // reset it performs itself. Nobody has a recovery key to confirm, because Gua never
+        // shows one, so asking for one is a dead end dressed up as an instruction.
+        case .recoveryOutOfSync: UntranslatedL10n.guaEncryptionRepairTitle
         }
     }
 
     var message: String {
         switch state {
         case .setUpRecovery: L10n.bannerSetUpRecoveryContent
-        case .recoveryOutOfSync: L10n.confirmRecoveryKeyBannerMessage
+        case .recoveryOutOfSync: UntranslatedL10n.guaEncryptionRepairMessage
         }
     }
 
     var actionTitle: String {
         switch state {
         case .setUpRecovery: L10n.bannerSetUpRecoverySubmit
-        case .recoveryOutOfSync: L10n.confirmRecoveryKeyBannerPrimaryButtonTitle
+        case .recoveryOutOfSync: UntranslatedL10n.guaEncryptionRepairAction
         }
     }
 
     var primaryAction: HomeScreenViewAction {
         switch state {
         case .setUpRecovery: .setupRecovery
-        case .recoveryOutOfSync: .confirmRecoveryKey
+        // GUA FORK: straight to the reset, which is the only thing that can actually repair
+        // this. It handles the MAS approval sheet itself, so it is one tap and no secrets.
+        case .recoveryOutOfSync: .resetEncryption
         }
     }
     
@@ -89,15 +94,10 @@ struct HomeScreenRecoveryKeyConfirmationBanner: View {
             .buttonStyle(.compound(.primary, size: .medium))
             .accessibilityIdentifier(A11yIdentifiers.homeScreen.recoveryKeyConfirmationBannerContinue)
             
-            if state == .recoveryOutOfSync {
-                Button {
-                    context.send(viewAction: .resetEncryption)
-                } label: {
-                    Text(L10n.confirmRecoveryKeyBannerSecondaryButtonTitle)
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.compound(.tertiary, size: .medium))
-            }
+            // GUA FORK: no second button. It used to offer "Forgot your recovery key?" beside a
+            // prompt to enter one, which is two ways of asking about a secret the user has never
+            // seen. The primary action now performs the reset directly, so there is one tap and
+            // nothing to remember.
         }
     }
 }
