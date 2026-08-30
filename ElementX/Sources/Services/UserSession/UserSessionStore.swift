@@ -213,37 +213,42 @@ class UserSessionStore: UserSessionStoreProtocol {
                 // to give up right here when the keychain was empty, which meant an app update
                 // could never fix an existing account. That is the whole population in
                 // production, so it now repairs without a key too.
-                guard let storedKey = keychainController.recoveryKey(forUsername: userID) else {
-                    guard state == .incomplete else { return }
+                // If we hold a key, try it first: it is the only path that keeps the existing
+                // key backup. But a stored key is NOT proof it still opens anything. The old
+                // bootstrap saved the key it got from rotating storage and then left that
+                // storage incomplete, so on damaged accounts the saved key is stale and
+                // `recover` fails with it. Treating that failure as the end of the road is why
+                // the banner survived: the account had a key, so it never reached the repair
+                // written for accounts without one.
+                if let storedKey = keychainController.recoveryKey(forUsername: userID) {
+                    MXLog.info("Restoring key storage from stored recovery key.")
+                    let result = state == .incomplete
+                        ? await secureBackupController.repairRecovery(with: storedKey)
+                        : await secureBackupController.confirmRecoveryKey(storedKey)
 
-                    MXLog.info("Key storage incomplete with no stored key, repairing.")
-                    switch await secureBackupController.provisionRecoveryWithoutKey() {
-                    case .success(let key):
-                        keychainController.setRecoveryKey(key, forUsername: userID)
-                        MXLog.info("Repaired key storage and stored the new recovery key.")
-                    case .failure:
-                        // Cross-signing keys are genuinely missing; only another signed-in
-                        // device can supply them. Resetting the identity would fix the state at
-                        // the cost of warning every contact, which is not a trade we make
-                        // silently.
-                        MXLog.warning("Key storage needs another signed-in device to repair.")
+                    if case .success = result,
+                       await secureBackupController.settledRecoveryState() == .enabled {
+                        MXLog.info("Finished restoring key storage from stored recovery key.")
+                        return
                     }
-                    return
+
+                    MXLog.warning("Stored recovery key did not restore key storage; discarding it.")
+                    keychainController.removeRecoveryKey(forUsername: userID)
                 }
 
-                MXLog.info("Restoring key storage from stored recovery key.")
-                // GUA FORK: `.incomplete` means storage is present but missing secrets, which is
-                // what `recoverAndFixBackup` exists to reconcile. Plain `recover` assumes a
-                // healthy store and leaves the banner up.
-                let result = state == .incomplete
-                    ? await secureBackupController.repairRecovery(with: storedKey)
-                    : await secureBackupController.confirmRecoveryKey(storedKey)
+                guard await secureBackupController.settledRecoveryState() == .incomplete else { return }
 
-                switch result {
-                case .success:
-                    MXLog.info("Finished restoring key storage from stored recovery key.")
-                case .failure(let error):
-                    MXLog.error("Failed restoring key storage from stored recovery key: \(error)")
+                MXLog.info("Key storage still incomplete, repairing without a key.")
+                switch await secureBackupController.provisionRecoveryWithoutKey() {
+                case .success(let key):
+                    keychainController.setRecoveryKey(key, forUsername: userID)
+                    MXLog.info("Repaired key storage and stored the new recovery key.")
+                case .failure:
+                    // Either another signed-in device can supply the secrets, or the private
+                    // cross-signing keys are genuinely gone. Resetting the identity would fix
+                    // the state at the cost of warning every contact, which is not a trade we
+                    // make silently.
+                    MXLog.warning("Key storage needs another signed-in device to repair.")
                 }
             } catch {
                 MXLog.error("Unexpected error while restoring key storage: \(error)")
