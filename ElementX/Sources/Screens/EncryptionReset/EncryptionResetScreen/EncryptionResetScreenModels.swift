@@ -20,6 +20,11 @@ enum EncryptionResetScreenViewModelAction {
 }
 
 struct EncryptionResetScreenViewState: BindableState {
+    /// GUA FORK: true from the moment the destructive button is pressed until the reset settles.
+    /// resetIdentity() deletes the key backup before it even returns the MAS approval URL, so a
+    /// second press must never reach it.
+    var isResetting = false
+
     private let listItem3AttributedText = {
         let boldPlaceholder = "{bold}"
         var finalString = AttributedString(L10n.screenCreateNewRecoveryKeyListItem3(boldPlaceholder))

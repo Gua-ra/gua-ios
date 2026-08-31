@@ -40,6 +40,12 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
             // already names what is lost and the button itself is destructive; the alert that used
             // to sit here asked "are you sure you want to reset your digital identity?", which is
             // jargon on top of a confirmation the user had just given.
+            // The flag is set here, synchronously, not inside startResetFlow: the handle it used
+            // to guard on is only assigned after resetIdentity() returns, and resetIdentity() is
+            // itself the call that deletes the key backup. A second press in that window started a
+            // second destructive reset.
+            guard !state.isResetting else { return }
+            state.isResetting = true
             Task { await startResetFlow() }
         case .cancel:
             actionsSubject.send(.cancel)
@@ -55,14 +61,6 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
     // MARK: - Private
     
     private func startResetFlow() async {
-        // GUA FORK: a second tap used to start an entirely NEW reset, minting a new handle and a
-        // new MAS approval URL, which is why pressing the button again looped straight back into
-        // MAS instead of finishing. There is one reset in flight at a time.
-        guard identityResetHandle == nil else {
-            MXLog.info("GUA-KEYSTORE: a reset is already awaiting approval, ignoring the tap.")
-            return
-        }
-
         showLoadingIndicator()
         
         defer {
@@ -130,6 +128,7 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
             }
         case .failure(let error):
             MXLog.error("Failed resetting encryption with error \(error)")
+            state.isResetting = false
             showErrorToast()
         }
     }
@@ -168,6 +167,7 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
         do {
             try await identityResetHandle.reset(auth: nil)
             self.identityResetHandle = nil
+            state.isResetting = false
             // MAS never navigates its approval page to the app's callback, so the web sheet has no
             // reason to close itself. Now that the approval has demonstrably landed, close it.
             actionsSubject.send(.dismissOIDCPresentation)
