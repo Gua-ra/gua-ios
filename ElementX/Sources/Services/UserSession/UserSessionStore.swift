@@ -255,17 +255,24 @@ class UserSessionStore: UserSessionStoreProtocol {
 
                 guard await secureBackupController.settledRecoveryState() == .incomplete else { return }
 
-                MXLog.info("GUA-KEYSTORE: still incomplete, repairing without a key.")
-                switch await secureBackupController.provisionRecoveryWithoutKey() {
-                case .success(let key):
-                    keychainController.setRecoveryKey(key, forUsername: userID)
-                    MXLog.info("GUA-KEYSTORE: repaired without a key, new key stored.")
-                case .failure:
-                    // Either another signed-in device can supply the secrets, or the private
-                    // cross-signing keys are genuinely gone. Resetting the identity would fix
-                    // the state at the cost of warning every contact, which is not a trade we
-                    // make silently.
-                    MXLog.warning("GUA-KEYSTORE: could not repair; needs another signed-in device.")
+                // GUA FORK: this used to call provisionRecoveryWithoutKey, which enables recovery
+                // and writes the fresh key back to the keychain. That was a self-perpetuating
+                // rotation: enabling mints a new secret store, the account stays .incomplete
+                // because there are no private cross-signing keys to export into it, and next
+                // launch the key we just saved opens a store containing nothing, so it discards it
+                // and rotates again. Worse across platforms, since the same account on Android was
+                // doing the same thing at its own launch and invalidating whatever this saved.
+                //
+                // repairWithoutReset only enables recovery where that can actually finish the job,
+                // and reports honestly otherwise. Nothing here is destructive, and .resetRequired
+                // is left to the banner, where the user is present to consent.
+                switch await secureBackupController.repairWithoutReset() {
+                case .repaired:
+                    MXLog.info("GUA-KEYSTORE: key storage repaired at launch.")
+                case .notYet:
+                    MXLog.info("GUA-KEYSTORE: state not readable yet, will retry next launch.")
+                case .resetRequired:
+                    MXLog.warning("GUA-KEYSTORE: only a reset can finish this device; leaving it to the banner.")
                 }
             } catch {
                 MXLog.error("Unexpected error while restoring key storage: \(error)")

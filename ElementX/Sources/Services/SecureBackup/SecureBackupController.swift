@@ -330,6 +330,24 @@ class SecureBackupController: SecureBackupControllerProtocol {
         }
     }
 
+    /// GUA FORK: provisions key storage straight after a reset, and does NOT go through
+    /// `repairWithoutReset`.
+    ///
+    /// That path deliberately refuses `enableRecovery` on an `.incomplete` account, because
+    /// enabling rotates the secret store and would invalidate a recovery key saved elsewhere.
+    /// Immediately after a reset there is no such key left to protect and no cross-signing identity
+    /// either, so the conservative path can never succeed here: it would return `.resetRequired`
+    /// forever and put the setup banner back in front of the user who just completed a reset.
+    func provisionAfterReset() async -> EncryptionRepairOutcome {
+        do {
+            _ = try await enableRecoveryReturningKey()
+            return .repaired
+        } catch {
+            MXLog.error("GUA-KEYSTORE: could not provision key storage after the reset: \(error)")
+            return .resetRequired
+        }
+    }
+
     /// Repairs an account whose secret storage exists but whose secrets this device cannot use.
     ///
     /// Deliberately does NOT call `enableRecovery`. `Recovery::enable` always runs

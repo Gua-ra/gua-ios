@@ -149,6 +149,9 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
             actionsSubject.send(.resetFinished)
         } catch {
             MXLog.error("Failed resetting encryption with error \(error)")
+            // Without this the button stays disabled and the screen cannot be escaped except by
+            // Cancel, with the key backup already destroyed.
+            state.isResetting = false
             showErrorToast()
         }
     }

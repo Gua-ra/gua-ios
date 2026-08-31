@@ -62,6 +62,9 @@ protocol SecureBackupControllerProtocol {
     func provisionRecoveryWithoutKey() async -> Result<String, SecureBackupControllerError>
     /// GUA FORK: everything that can finish encryption setup WITHOUT destroying anything.
     func repairWithoutReset() async -> EncryptionRepairOutcome
+
+    /// GUA FORK: provisions key storage straight after a reset, unconditionally.
+    func provisionAfterReset() async -> EncryptionRepairOutcome
     /// GUA FORK: `recoveryState` once it is no longer `.unknown`, so callers never branch on the
     /// initial value. Falls back to `.unknown` if the SDK stays silent past `timeout`.
     func settledRecoveryState(timeout: Duration) async -> SecureBackupRecoveryState

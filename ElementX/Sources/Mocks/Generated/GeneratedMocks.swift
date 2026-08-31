@@ -15620,6 +15620,70 @@ class SecureBackupControllerMock: SecureBackupControllerProtocol, @unchecked Sen
             return repairWithoutResetReturnValue
         }
     }
+    //MARK: - provisionAfterReset
+
+    var provisionAfterResetUnderlyingCallsCount = 0
+    var provisionAfterResetCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return provisionAfterResetUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = provisionAfterResetUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                provisionAfterResetUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    provisionAfterResetUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var provisionAfterResetCalled: Bool {
+        return provisionAfterResetCallsCount > 0
+    }
+
+    var provisionAfterResetUnderlyingReturnValue: EncryptionRepairOutcome!
+    var provisionAfterResetReturnValue: EncryptionRepairOutcome! {
+        get {
+            if Thread.isMainThread {
+                return provisionAfterResetUnderlyingReturnValue
+            } else {
+                var returnValue: EncryptionRepairOutcome? = nil
+                DispatchQueue.main.sync {
+                    returnValue = provisionAfterResetUnderlyingReturnValue
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                provisionAfterResetUnderlyingReturnValue = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    provisionAfterResetUnderlyingReturnValue = newValue
+                }
+            }
+        }
+    }
+    var provisionAfterResetClosure: (() async -> EncryptionRepairOutcome)?
+
+    func provisionAfterReset() async -> EncryptionRepairOutcome {
+        provisionAfterResetCallsCount += 1
+        if let provisionAfterResetClosure = provisionAfterResetClosure {
+            return await provisionAfterResetClosure()
+        } else {
+            return provisionAfterResetReturnValue
+        }
+    }
     //MARK: - settledRecoveryState
 
     var settledRecoveryStateTimeoutUnderlyingCallsCount = 0

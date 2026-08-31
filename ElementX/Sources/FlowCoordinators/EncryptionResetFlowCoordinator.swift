@@ -134,7 +134,7 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
                 // here instead, before the sheet goes away. The generated key is discarded on
                 // purpose: nothing in Gua ever asks for it.
                 Task {
-                    switch await self.userSession.clientProxy.secureBackupController.repairWithoutReset() {
+                    switch await self.userSession.clientProxy.secureBackupController.provisionAfterReset() {
                     case .repaired:
                         MXLog.info("GUA-KEYSTORE: provisioned key storage after the reset.")
                     case .notYet, .resetRequired:
