@@ -36,13 +36,11 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
     override func process(viewAction: EncryptionResetScreenViewAction) {
         switch viewAction {
         case .reset:
-            state.bindings.alertInfo = .init(id: UUID(),
-                                             title: L10n.screenResetEncryptionConfirmationAlertTitle,
-                                             message: L10n.screenResetEncryptionConfirmationAlertSubtitle,
-                                             primaryButton: .init(title: L10n.screenResetEncryptionConfirmationAlertAction, role: .destructive) { [weak self] in
-                                                 guard let self else { return }
-                                                 Task { await self.startResetFlow() }
-                                             })
+            // GUA FORK: straight through, no second confirmation. The screen behind this button
+            // already names what is lost and the button itself is destructive; the alert that used
+            // to sit here asked "are you sure you want to reset your digital identity?", which is
+            // jargon on top of a confirmation the user had just given.
+            Task { await startResetFlow() }
         case .cancel:
             actionsSubject.send(.cancel)
         }
