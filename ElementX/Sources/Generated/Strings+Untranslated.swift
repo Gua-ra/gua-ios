@@ -18,9 +18,9 @@ internal enum UntranslatedL10n {
   internal static var guaEncryptionRepairTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_repair_title") }
   /// Reset and finish setup
   internal static var guaEncryptionResetRequiredAction: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_required_action") }
-  /// To finish setting up encrypted chats on this device, your encrypted backup needs to be reset. Messages stored only in that backup will be lost. Messages already on your devices wonu2019t be affected.
+  /// To finish setting up encrypted chats on this device, your encrypted backup needs to be reset. Messages stored only in that backup will be lost. Messages already on your devices won’t be affected.
   internal static var guaEncryptionResetRequiredMessage: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_required_message") }
-  /// Some previous messages canu2019t be recovered
+  /// Some previous messages can’t be recovered
   internal static var guaEncryptionResetRequiredTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_required_title") }
   /// %1$@’s security details changed. This can happen when they reinstall Gua or get a new phone. %2$@
   internal static func guaIdentityChangeBannerDescription(_ p1: Any, _ p2: Any) -> String {

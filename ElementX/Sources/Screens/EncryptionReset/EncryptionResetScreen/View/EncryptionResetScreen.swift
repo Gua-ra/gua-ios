@@ -33,7 +33,6 @@ struct EncryptionResetScreen: View {
     private var mainContent: some View {
         VStack(spacing: 24) {
             header
-            checkmarkList
             footer
         }
     }
@@ -54,29 +53,9 @@ struct EncryptionResetScreen: View {
     
     private var footer: some View {
         Text(UntranslatedL10n.guaEncryptionResetRequiredMessage)
-            .font(.compound.bodyMDSemibold)
+            .font(.compound.bodyMD)
             .multilineTextAlignment(.center)
-            .foregroundColor(.compound.textPrimary)
-    }
-    
-    /// The list of re-assurances about analytics.
-    private var checkmarkList: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            checkMarkItem(title: L10n.screenEncryptionResetBullet1, position: .top, positive: true)
-            checkMarkItem(title: L10n.screenEncryptionResetBullet2, position: .middle, positive: false)
-            checkMarkItem(title: L10n.screenEncryptionResetBullet3, position: .bottom, positive: false)
-        }
-        .fixedSize(horizontal: false, vertical: true)
-        .frame(maxWidth: .infinity)
-        .environment(\.backgroundStyle, AnyShapeStyle(.compound.bgSubtleSecondary))
-    }
-
-    private func checkMarkItem(title: String, position: ListPosition, positive: Bool) -> some View {
-        VisualListItem(title: title, position: position) {
-            CompoundIcon(positive ? \.check : \.info)
-                .foregroundColor(positive ? .compound.iconAccentPrimary : .compound.iconSecondary)
-                .alignmentGuide(.top) { _ in 2 }
-        }
+            .foregroundColor(.compound.textSecondary)
     }
     
     @ToolbarContentBuilder
