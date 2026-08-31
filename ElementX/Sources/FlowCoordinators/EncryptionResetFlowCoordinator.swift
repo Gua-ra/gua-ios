@@ -125,7 +125,20 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
             case .cancel:
                 actionsSubject.send(.cancel)
             case .resetFinished:
-                actionsSubject.send(.resetComplete)
+                // GUA FORK: a reset destroys the key backup and leaves recovery disabled.
+                // Upstream expects the user to walk the "set up recovery" flow from there and
+                // write down a recovery key. Gua shows nobody a recovery key, so provision it
+                // here instead, before the sheet goes away. The generated key is discarded on
+                // purpose: nothing in Gua ever asks for it.
+                Task {
+                    switch await self.userSession.clientProxy.secureBackupController.repairWithoutReset() {
+                    case .success:
+                        MXLog.info("GUA-KEYSTORE: provisioned key storage after the reset.")
+                    case .failure(let error):
+                        MXLog.error("GUA-KEYSTORE: could not provision key storage after the reset: \(error)")
+                    }
+                    self.actionsSubject.send(.resetComplete)
+                }
             }
         }
         .store(in: &cancellables)

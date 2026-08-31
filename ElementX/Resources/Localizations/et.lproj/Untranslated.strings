@@ -11,3 +11,5 @@
 "gua_encryption_reset_required_message" = "Selles seadmes krüptitud vestluste seadistamise lõpetamiseks tuleb sinu krüptitud varukoopia lähtestada. Ainult selles varukoopias olevad sõnumid lähevad kaotsi. Sõnumid, mis on juba sinu seadmetes, ei muutu.";
 "gua_encryption_reset_required_action" = "Lähtesta ja lõpeta";
 "gua_soft_logout_signin_notice" = "Sind logiti Gua kontolt välja. Jätkamiseks logi uuesti sisse.";
+"gua_signout_last_device_title" = "Väljalogimine eemaldab sinu sõnumid sellest seadmest";
+"gua_signout_last_device_message" = "See on sinu ainus seade. Ainult siin hoitavad sõnumid ei ole pärast uuesti sisselogimist saadaval.";

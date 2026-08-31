@@ -11,3 +11,5 @@
 "gua_encryption_reset_required_message" = "A titkosított beszélgetések beállításának befejezéséhez ezen az eszközön vissza kell állítani a titkosított biztonsági mentést. A csak abban a mentésben tárolt üzenetek elvesznek. Az eszközein már meglévő üzeneteket ez nem érinti.";
 "gua_encryption_reset_required_action" = "Visszaállítás és befejezés";
 "gua_soft_logout_signin_notice" = "Kijelentkeztették a Gua-fiókjából. A folytatáshoz jelentkezzen be újra.";
+"gua_signout_last_device_title" = "A kijelentkezés eltávolítja az üzeneteit erről az eszközről";
+"gua_signout_last_device_message" = "Ez az egyetlen eszköze. A csak itt tárolt üzenetek nem lesznek elérhetők, amikor újra bejelentkezik.";

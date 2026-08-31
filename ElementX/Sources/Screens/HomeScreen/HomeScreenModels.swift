@@ -27,7 +27,7 @@ enum HomeScreenViewModelAction: Equatable {
     case logout
 }
 
-enum HomeScreenViewAction {
+enum HomeScreenViewAction: Equatable {
     case selectRoom(roomIdentifier: String)
     case showRoomDetails(roomIdentifier: String)
     case leaveRoom(roomIdentifier: String)

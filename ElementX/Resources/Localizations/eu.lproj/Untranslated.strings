@@ -11,3 +11,5 @@
 "gua_encryption_reset_required_message" = "Gailu honetan zifratutako txatak konfiguratzen amaitzeko, zure zifratutako babeskopia berrezarri behar da. Babeskopia horretan bakarrik gordetako mezuak galdu egingo dira. Zure gailuetan dagoeneko dauden mezuei ez die eragingo.";
 "gua_encryption_reset_required_action" = "Berrezarri eta amaitu";
 "gua_soft_logout_signin_notice" = "Zure Gua kontutik saioa itxi da. Hasi saioa berriro jarraitzeko.";
+"gua_signout_last_device_title" = "Saioa ixteak zure mezuak gailu honetatik kenduko ditu";
+"gua_signout_last_device_message" = "Hau da zure gailu bakarra. Hemen soilik gordetako mezuak ez dira eskuragarri egongo berriro saioa hastean.";

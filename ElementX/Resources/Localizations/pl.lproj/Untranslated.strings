@@ -1,10 +1,9 @@
-/*
-  Gua fork strings for this locale. English source lives in en.lproj/Untranslated.strings.
-*/
-
+/* GUA FORK: translations for the fork's own strings. The English source of truth lives in
+   en.lproj/Untranslated.strings. Upstream's soft-logout strings are deliberately absent:
+   they are Element's and go through Localazy. */
 "gua_encryption_repair_title" = "Dokończ konfigurację tego urządzenia";
 "gua_encryption_repair_message" = "Dokończ konfigurację, aby uzyskać dostęp do zaszyfrowanych czatów i historii wiadomości dostępnej na tym urządzeniu.";
-"gua_encryption_repair_action" = "Dokończ konfigurację";
+"gua_encryption_repair_action" = "Zakończ konfigurację";
 "gua_encryption_reset_required_title" = "Niektórych wcześniejszych wiadomości nie można odzyskać";
 "gua_encryption_reset_required_message" = "Aby dokończyć konfigurację zaszyfrowanych czatów na tym urządzeniu, trzeba zresetować zaszyfrowaną kopię zapasową. Wiadomości zapisane tylko w tej kopii zostaną utracone. Wiadomości już obecne na Twoich urządzeniach nie zostaną naruszone.";
 "gua_encryption_reset_required_action" = "Zresetuj i zakończ";
@@ -12,3 +11,5 @@
 "gua_identity_change_undecryptable" = "Nie można otworzyć tej wiadomości, ponieważ dane zabezpieczeń nadawcy uległy zmianie.";
 "gua_identity_change_profile" = "Dane zabezpieczeń użytkownika %1$@ uległy zmianie. Może się tak zdarzyć po ponownej instalacji Gua lub zmianie telefonu.";
 "gua_soft_logout_signin_notice" = "Nastąpiło wylogowanie z konta Gua. Zaloguj się ponownie, aby kontynuować.";
+"gua_signout_last_device_title" = "Wylogowanie usunie Twoje wiadomości z tego urządzenia";
+"gua_signout_last_device_message" = "To Twoje jedyne urządzenie. Wiadomości zapisane tylko tutaj nie będą dostępne po ponownym zalogowaniu.";

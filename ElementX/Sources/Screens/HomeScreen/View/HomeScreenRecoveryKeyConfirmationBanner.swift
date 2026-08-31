@@ -10,7 +10,23 @@ import Compound
 import SwiftUI
 
 struct HomeScreenRecoveryKeyConfirmationBanner: View {
-    enum State { case setUpRecovery, recoveryOutOfSync }
+    enum State {
+        case setUpRecovery, recoveryOutOfSync
+
+        /// The action the banner's button sends. Lives on the state, not the view, so a test can
+        /// assert it without standing up SwiftUI.
+        var primaryAction: HomeScreenViewAction {
+            switch self {
+            case .setUpRecovery: .setupRecovery
+            // GUA FORK: this must stay .confirmRecoveryKey. It routes to finishEncryptionSetup(),
+            // which tries every repair that keeps the backup intact and only offers the reset when
+            // there is genuinely no other way. Pointing it at .resetEncryption sends every tap
+            // straight to the destructive screen and leaves the staged path dead code.
+            case .recoveryOutOfSync: .confirmRecoveryKey
+            }
+        }
+    }
+
     let state: State
     var context: HomeScreenViewModel.Context
     
@@ -39,12 +55,7 @@ struct HomeScreenRecoveryKeyConfirmationBanner: View {
     }
 
     var primaryAction: HomeScreenViewAction {
-        switch state {
-        case .setUpRecovery: .setupRecovery
-        // GUA FORK: straight to the reset, which is the only thing that can actually repair
-        // this. It handles the MAS approval sheet itself, so it is one tap and no secrets.
-        case .recoveryOutOfSync: .resetEncryption
-        }
+        state.primaryAction
     }
     
     var body: some View {

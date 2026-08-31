@@ -11,3 +11,5 @@
 "gua_encryption_reset_required_message" = "Ushbu qurilmada shifrlangan chatlarni sozlashni yakunlash uchun shifrlangan zaxira nusxangizni qayta tiklash kerak. Faqat o'sha zaxirada saqlangan xabarlar yo'qoladi. Qurilmalaringizda allaqachon mavjud xabarlarga ta'sir qilmaydi.";
 "gua_encryption_reset_required_action" = "Qayta tiklash va yakunlash";
 "gua_soft_logout_signin_notice" = "Gua hisobingizdan chiqarildingiz. Davom etish uchun qayta kiring.";
+"gua_signout_last_device_title" = "Chiqish xabarlaringizni ushbu qurilmadan o'chiradi";
+"gua_signout_last_device_message" = "Bu sizning yagona qurilmangiz. Faqat shu yerda saqlangan xabarlar qayta kirganingizda mavjud bo'lmaydi.";

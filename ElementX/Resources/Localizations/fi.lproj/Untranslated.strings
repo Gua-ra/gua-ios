@@ -1,7 +1,6 @@
-/*
-  Gua fork strings for this locale. English source lives in en.lproj/Untranslated.strings.
-*/
-
+/* GUA FORK: translations for the fork's own strings. The English source of truth lives in
+   en.lproj/Untranslated.strings. Upstream's soft-logout strings are deliberately absent:
+   they are Element's and go through Localazy. */
 "gua_encryption_repair_title" = "Viimeistele tämän laitteen määritys";
 "gua_encryption_repair_message" = "Viimeistele määritys päästäksesi salattuihin keskusteluihin ja tällä laitteella saatavilla olevaan viestihistoriaan.";
 "gua_encryption_repair_action" = "Viimeistele määritys";
@@ -12,3 +11,5 @@
 "gua_identity_change_undecryptable" = "Tätä viestiä ei voi avata, koska lähettäjän turvatiedot muuttuivat.";
 "gua_identity_change_profile" = "Käyttäjän %1$@ turvatiedot muuttuivat. Näin voi käydä, kun hän asentaa Guan uudelleen tai vaihtaa puhelinta.";
 "gua_soft_logout_signin_notice" = "Sinut kirjattiin ulos Gua-tilistäsi. Kirjaudu uudelleen jatkaaksesi.";
+"gua_signout_last_device_title" = "Uloskirjautuminen poistaa viestisi tältä laitteelta";
+"gua_signout_last_device_message" = "Tämä on ainoa laitteesi. Vain täällä olevat viestit eivät ole käytettävissä, kun kirjaudut takaisin sisään.";

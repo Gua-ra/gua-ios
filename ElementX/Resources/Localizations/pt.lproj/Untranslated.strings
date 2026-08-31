@@ -1,8 +1,7 @@
-/*
-  Gua fork strings for this locale. English source lives in en.lproj/Untranslated.strings.
-*/
-
-"gua_encryption_repair_title" = "Conclua a configuração deste dispositivo";
+/* GUA FORK: translations for the fork's own strings. The English source of truth lives in
+   en.lproj/Untranslated.strings. Upstream's soft-logout strings are deliberately absent:
+   they are Element's and go through Localazy. */
+"gua_encryption_repair_title" = "Termine de configurar este dispositivo";
 "gua_encryption_repair_message" = "Conclua a configuração para aceder às conversas encriptadas e ao histórico de mensagens disponíveis neste dispositivo.";
 "gua_encryption_repair_action" = "Concluir configuração";
 "gua_encryption_reset_required_title" = "Algumas mensagens anteriores não podem ser recuperadas";
@@ -12,3 +11,5 @@
 "gua_identity_change_undecryptable" = "Esta mensagem não pode ser aberta porque os dados de segurança do remetente mudaram.";
 "gua_identity_change_profile" = "Os dados de segurança de %1$@ mudaram. Isto pode acontecer quando a pessoa reinstala o Gua ou muda de telemóvel.";
 "gua_soft_logout_signin_notice" = "A sua sessão na conta Gua terminou. Inicie sessão novamente para continuar.";
+"gua_signout_last_device_title" = "Terminar sessão vai remover as suas mensagens deste dispositivo";
+"gua_signout_last_device_message" = "Este é o seu único dispositivo. As mensagens guardadas apenas aqui não estarão disponíveis quando iniciar sessão novamente.";

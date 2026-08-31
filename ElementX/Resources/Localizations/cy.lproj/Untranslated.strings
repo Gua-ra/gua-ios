@@ -11,3 +11,5 @@
 "gua_encryption_reset_required_message" = "I orffen gosod sgyrsiau wedi'u hamgryptio ar y ddyfais hon, mae angen ailosod eich copi wrth gefn wedi'i amgryptio. Bydd negeseuon sydd wedi'u cadw yn y copi hwnnw yn unig yn cael eu colli. Ni fydd negeseuon sydd eisoes ar eich dyfeisiau yn cael eu heffeithio.";
 "gua_encryption_reset_required_action" = "Ailosod a gorffen";
 "gua_soft_logout_signin_notice" = "Cawsoch eich allgofnodi o'ch cyfrif Gua. Mewngofnodwch eto i barhau.";
+"gua_signout_last_device_title" = "Bydd allgofnodi'n dileu eich negeseuon o'r ddyfais hon";
+"gua_signout_last_device_message" = "Dyma eich unig ddyfais. Ni fydd negeseuon sydd wedi'u cadw yma'n unig ar gael pan fyddwch yn mewngofnodi eto.";

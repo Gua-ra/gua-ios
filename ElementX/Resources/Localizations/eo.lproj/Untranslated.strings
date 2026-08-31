@@ -11,3 +11,5 @@
 "gua_encryption_reset_required_message" = "Por fini la agordon de ĉifritaj babiloj sur ĉi tiu aparato, via ĉifrita savkopio devas esti restarigita. Mesaĝoj konservitaj nur en tiu savkopio perdiĝos. Mesaĝoj jam sur viaj aparatoj ne estos tuŝitaj.";
 "gua_encryption_reset_required_action" = "Restarigi kaj fini agordon";
 "gua_soft_logout_signin_notice" = "Vi estis elsalutita el via Gua-konto. Ensalutu denove por daŭrigi.";
+"gua_signout_last_device_title" = "Elsaluti forigos viajn mesaĝojn el ĉi tiu aparato";
+"gua_signout_last_device_message" = "Mesaĝoj konservitaj nur ĉi tie ne estos disponeblaj kiam vi reensalutos.";

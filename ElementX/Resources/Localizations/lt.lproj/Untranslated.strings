@@ -11,3 +11,5 @@
 "gua_encryption_reset_required_message" = "Kad šiame įrenginyje būtų baigta šifruotų pokalbių sąranka, reikia atstatyti jūsų šifruotą atsarginę kopiją. Žinutės, saugomos tik toje kopijoje, bus prarastos. Žinutėms, jau esančioms jūsų įrenginiuose, tai neturės įtakos.";
 "gua_encryption_reset_required_action" = "Atstatyti ir užbaigti";
 "gua_soft_logout_signin_notice" = "Buvote atjungti nuo savo Gua paskyros. Norėdami tęsti, prisijunkite iš naujo.";
+"gua_signout_last_device_title" = "Atsijungus jūsų žinutės bus pašalintos iš šio įrenginio";
+"gua_signout_last_device_message" = "Tai vienintelis jūsų įrenginys. Žinutės, saugomos tik čia, nebus pasiekiamos vėl prisijungus.";

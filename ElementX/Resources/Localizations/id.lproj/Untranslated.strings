@@ -11,3 +11,5 @@
 "gua_encryption_reset_required_message" = "Untuk menyelesaikan penyiapan obrolan terenkripsi di perangkat ini, cadangan terenkripsi Anda perlu disetel ulang. Pesan yang hanya tersimpan di cadangan itu akan hilang. Pesan yang sudah ada di perangkat Anda tidak akan terpengaruh.";
 "gua_encryption_reset_required_action" = "Setel ulang dan selesaikan";
 "gua_soft_logout_signin_notice" = "Anda telah keluar dari akun Gua. Masuk lagi untuk melanjutkan.";
+"gua_signout_last_device_title" = "Keluar akan menghapus pesan Anda dari perangkat ini";
+"gua_signout_last_device_message" = "Ini satu-satunya perangkat Anda. Pesan yang hanya tersimpan di sini tidak akan tersedia saat Anda masuk lagi.";

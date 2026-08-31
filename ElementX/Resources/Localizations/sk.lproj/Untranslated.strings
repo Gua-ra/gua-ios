@@ -11,3 +11,5 @@
 "gua_encryption_reset_required_message" = "Ak chcete dokončiť nastavenie šifrovaných konverzácií v tomto zariadení, vaša šifrovaná záloha sa musí resetovať. Správy uložené iba v tejto zálohe budú stratené. Správy, ktoré už máte vo svojich zariadeniach, zostanú nedotknuté.";
 "gua_encryption_reset_required_action" = "Resetovať a dokončiť";
 "gua_soft_logout_signin_notice" = "Boli ste odhlásení zo svojho účtu Gua. Prihláste sa znova a pokračujte.";
+"gua_signout_last_device_title" = "Odhlásenie odstráni vaše správy z tohto zariadenia";
+"gua_signout_last_device_message" = "Toto je vaše jediné zariadenie. Správy uložené iba tu nebudú po opätovnom prihlásení dostupné.";

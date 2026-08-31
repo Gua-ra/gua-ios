@@ -11,3 +11,5 @@
 "gua_encryption_reset_required_message" = "Pentru a finaliza configurarea conversațiilor criptate pe acest dispozitiv, copia ta de rezervă criptată trebuie resetată. Mesajele stocate doar în acea copie vor fi pierdute. Mesajele aflate deja pe dispozitivele tale nu vor fi afectate.";
 "gua_encryption_reset_required_action" = "Resetează și finalizează";
 "gua_soft_logout_signin_notice" = "Ai fost deconectat de la contul tău Gua. Conectează-te din nou pentru a continua.";
+"gua_signout_last_device_title" = "Deconectarea îți va elimina mesajele de pe acest dispozitiv";
+"gua_signout_last_device_message" = "Acesta este singurul tău dispozitiv. Mesajele păstrate doar aici nu vor fi disponibile când te vei conecta din nou.";
