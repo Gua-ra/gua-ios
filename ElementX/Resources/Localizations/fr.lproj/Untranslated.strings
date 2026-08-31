@@ -13,3 +13,4 @@
 "gua_soft_logout_signin_notice" = "Vous avez été déconnecté de votre compte Gua. Reconnectez-vous pour continuer.";
 "gua_signout_last_device_title" = "Se déconnecter supprimera vos messages de cet appareil";
 "gua_signout_last_device_message" = "C'est votre seul appareil. Les messages conservés uniquement ici ne seront pas disponibles à votre prochaine connexion.";
+"gua_join_room_by_address_hint" = "Collez l'adresse du salon qui vous a été communiquée.";

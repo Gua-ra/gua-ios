@@ -13,3 +13,4 @@
 "gua_soft_logout_signin_notice" = "你已登出 Gua 帳號。請重新登入以繼續。";
 "gua_signout_last_device_title" = "登出會從這台裝置移除你的訊息";
 "gua_signout_last_device_message" = "這是你唯一的裝置。僅儲存在此處的訊息在你重新登入後將無法使用。";
+"gua_join_room_by_address_hint" = "貼上你收到的聊天室位址。";

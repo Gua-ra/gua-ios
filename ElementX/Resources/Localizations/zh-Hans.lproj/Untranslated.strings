@@ -13,3 +13,4 @@
 "gua_soft_logout_signin_notice" = "你已退出 Gua 账号。请重新登录以继续。";
 "gua_signout_last_device_title" = "退出登录会从此设备上移除你的消息";
 "gua_signout_last_device_message" = "这是你唯一的设备。仅保存在此处的消息在你重新登录后将无法使用。";
+"gua_join_room_by_address_hint" = "粘贴你收到的房间地址。";

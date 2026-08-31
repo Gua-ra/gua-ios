@@ -13,3 +13,4 @@
 "gua_soft_logout_signin_notice" = "Kijelentkeztették a Gua-fiókjából. A folytatáshoz jelentkezzen be újra.";
 "gua_signout_last_device_title" = "A kijelentkezés eltávolítja az üzeneteit erről az eszközről";
 "gua_signout_last_device_message" = "Ez az egyetlen eszköze. A csak itt tárolt üzenetek nem lesznek elérhetők, amikor újra bejelentkezik.";
+"gua_join_room_by_address_hint" = "Illessze be a kapott szobacímet.";

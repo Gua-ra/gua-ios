@@ -13,3 +13,4 @@
 "gua_soft_logout_signin_notice" = "Anda telah keluar dari akun Gua. Masuk lagi untuk melanjutkan.";
 "gua_signout_last_device_title" = "Keluar akan menghapus pesan Anda dari perangkat ini";
 "gua_signout_last_device_message" = "Ini satu-satunya perangkat Anda. Pesan yang hanya tersimpan di sini tidak akan tersedia saat Anda masuk lagi.";
+"gua_join_room_by_address_hint" = "Tempelkan alamat ruang yang Anda terima.";

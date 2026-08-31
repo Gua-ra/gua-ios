@@ -13,3 +13,4 @@
 "gua_soft_logout_signin_notice" = "Vi estis elsalutita el via Gua-konto. Ensalutu denove por daŭrigi.";
 "gua_signout_last_device_title" = "Elsaluti forigos viajn mesaĝojn el ĉi tiu aparato";
 "gua_signout_last_device_message" = "Mesaĝoj konservitaj nur ĉi tie ne estos disponeblaj kiam vi reensalutos.";
+"gua_join_room_by_address_hint" = "Algluu la ĉambran adreson, kiun vi ricevis.";

@@ -13,3 +13,4 @@
 "gua_soft_logout_signin_notice" = "Você foi desconectado da sua conta Gua. Entre novamente para continuar.";
 "gua_signout_last_device_title" = "Sair vai remover suas mensagens deste dispositivo";
 "gua_signout_last_device_message" = "Este é o seu único dispositivo. As mensagens guardadas apenas aqui não estarão disponíveis quando você entrar novamente.";
+"gua_join_room_by_address_hint" = "Cole o endereço da sala que você recebeu.";

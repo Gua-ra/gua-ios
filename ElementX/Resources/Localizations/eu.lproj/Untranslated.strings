@@ -13,3 +13,4 @@
 "gua_soft_logout_signin_notice" = "Zure Gua kontutik saioa itxi da. Hasi saioa berriro jarraitzeko.";
 "gua_signout_last_device_title" = "Saioa ixteak zure mezuak gailu honetatik kenduko ditu";
 "gua_signout_last_device_message" = "Hau da zure gailu bakarra. Hemen soilik gordetako mezuak ez dira eskuragarri egongo berriro saioa hastean.";
+"gua_join_room_by_address_hint" = "Itsatsi eman dizuten gelaren helbidea.";

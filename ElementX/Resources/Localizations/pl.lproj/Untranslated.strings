@@ -13,3 +13,4 @@
 "gua_soft_logout_signin_notice" = "Nastąpiło wylogowanie z konta Gua. Zaloguj się ponownie, aby kontynuować.";
 "gua_signout_last_device_title" = "Wylogowanie usunie Twoje wiadomości z tego urządzenia";
 "gua_signout_last_device_message" = "To Twoje jedyne urządzenie. Wiadomości zapisane tylko tutaj nie będą dostępne po ponownym zalogowaniu.";
+"gua_join_room_by_address_hint" = "Wklej otrzymany adres pokoju.";

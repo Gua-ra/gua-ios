@@ -13,3 +13,4 @@
 "gua_soft_logout_signin_notice" = "Gua hisobingizdan chiqarildingiz. Davom etish uchun qayta kiring.";
 "gua_signout_last_device_title" = "Chiqish xabarlaringizni ushbu qurilmadan o'chiradi";
 "gua_signout_last_device_message" = "Bu sizning yagona qurilmangiz. Faqat shu yerda saqlangan xabarlar qayta kirganingizda mavjud bo'lmaydi.";
+"gua_join_room_by_address_hint" = "Sizga berilgan xona manzilini joylashtiring.";

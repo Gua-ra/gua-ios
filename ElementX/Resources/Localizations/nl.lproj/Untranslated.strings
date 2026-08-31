@@ -13,3 +13,4 @@
 "gua_soft_logout_signin_notice" = "Je bent uitgelogd bij je Gua-account. Log opnieuw in om verder te gaan.";
 "gua_signout_last_device_title" = "Uitloggen verwijdert je berichten van dit apparaat";
 "gua_signout_last_device_message" = "Dit is je enige apparaat. Berichten die alleen hier staan, zijn niet beschikbaar wanneer je weer inlogt.";
+"gua_join_room_by_address_hint" = "Plak het kameradres dat je hebt gekregen.";

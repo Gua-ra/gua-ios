@@ -13,3 +13,4 @@
 "gua_soft_logout_signin_notice" = "Byli jste odhlášeni ze svého účtu Gua. Přihlaste se znovu a pokračujte.";
 "gua_signout_last_device_title" = "Odhlášení odstraní vaše zprávy z tohoto zařízení";
 "gua_signout_last_device_message" = "Toto je vaše jediné zařízení. Zprávy uložené pouze zde nebudou po opětovném přihlášení dostupné.";
+"gua_join_room_by_address_hint" = "Vložte adresu místnosti, kterou jste dostali.";

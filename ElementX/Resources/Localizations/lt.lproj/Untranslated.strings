@@ -13,3 +13,4 @@
 "gua_soft_logout_signin_notice" = "Buvote atjungti nuo savo Gua paskyros. Norėdami tęsti, prisijunkite iš naujo.";
 "gua_signout_last_device_title" = "Atsijungus jūsų žinutės bus pašalintos iš šio įrenginio";
 "gua_signout_last_device_message" = "Tai vienintelis jūsų įrenginys. Žinutės, saugomos tik čia, nebus pasiekiamos vėl prisijungus.";
+"gua_join_room_by_address_hint" = "Įklijuokite gautą kambario adresą.";

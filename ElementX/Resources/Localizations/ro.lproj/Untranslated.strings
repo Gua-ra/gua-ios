@@ -13,3 +13,4 @@
 "gua_soft_logout_signin_notice" = "Ai fost deconectat de la contul tău Gua. Conectează-te din nou pentru a continua.";
 "gua_signout_last_device_title" = "Deconectarea îți va elimina mesajele de pe acest dispozitiv";
 "gua_signout_last_device_message" = "Acesta este singurul tău dispozitiv. Mesajele păstrate doar aici nu vor fi disponibile când te vei conecta din nou.";
+"gua_join_room_by_address_hint" = "Lipește adresa camerei pe care ai primit-o.";

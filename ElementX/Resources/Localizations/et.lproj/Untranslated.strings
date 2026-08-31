@@ -13,3 +13,4 @@
 "gua_soft_logout_signin_notice" = "Sind logiti Gua kontolt välja. Jätkamiseks logi uuesti sisse.";
 "gua_signout_last_device_title" = "Väljalogimine eemaldab sinu sõnumid sellest seadmest";
 "gua_signout_last_device_message" = "See on sinu ainus seade. Ainult siin hoitavad sõnumid ei ole pärast uuesti sisselogimist saadaval.";
+"gua_join_room_by_address_hint" = "Kleebi ruumi aadress, mille said.";

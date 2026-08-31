@@ -13,3 +13,4 @@
 "gua_soft_logout_signin_notice" = "Gua hesabınızdan çıkış yapıldı. Devam etmek için yeniden giriş yapın.";
 "gua_signout_last_device_title" = "Çıkış yapmak mesajlarınızı bu cihazdan kaldırır";
 "gua_signout_last_device_message" = "Bu tek cihazınız. Yalnızca burada tutulan mesajlar, yeniden giriş yaptığınızda kullanılamaz.";
+"gua_join_room_by_address_hint" = "Size verilen oda adresini yapıştırın.";

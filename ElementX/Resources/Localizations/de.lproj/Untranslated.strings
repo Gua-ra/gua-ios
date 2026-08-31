@@ -13,3 +13,4 @@
 "gua_soft_logout_signin_notice" = "Du wurdest von deinem Gua-Konto abgemeldet. Melde dich erneut an, um fortzufahren.";
 "gua_signout_last_device_title" = "Beim Abmelden werden deine Nachrichten von diesem Gerät entfernt";
 "gua_signout_last_device_message" = "Dies ist dein einziges Gerät. Nachrichten, die nur hier liegen, sind nach der nächsten Anmeldung nicht mehr verfügbar.";
+"gua_join_room_by_address_hint" = "Füge die Raumadresse ein, die du erhalten hast.";

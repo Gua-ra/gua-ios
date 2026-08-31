@@ -13,3 +13,4 @@
 "gua_soft_logout_signin_notice" = "Du er blevet logget ud af din Gua-konto. Log ind igen for at fortsætte.";
 "gua_signout_last_device_title" = "Log ud fjerner dine beskeder fra denne enhed";
 "gua_signout_last_device_message" = "Dette er din eneste enhed. Beskeder, der kun er gemt her, vil ikke være tilgængelige, når du logger ind igen.";
+"gua_join_room_by_address_hint" = "Indsæt den rumadresse, du har fået.";

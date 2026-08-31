@@ -13,3 +13,4 @@
 "gua_soft_logout_signin_notice" = "A sua sessão na conta Gua terminou. Inicie sessão novamente para continuar.";
 "gua_signout_last_device_title" = "Terminar sessão vai remover as suas mensagens deste dispositivo";
 "gua_signout_last_device_message" = "Este é o seu único dispositivo. As mensagens guardadas apenas aqui não estarão disponíveis quando iniciar sessão novamente.";
+"gua_join_room_by_address_hint" = "Cole o endereço da sala que lhe foi dado.";
