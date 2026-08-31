@@ -209,8 +209,10 @@ class HomeScreenViewModelTests: XCTestCase {
         securityStateStateSubject.send(.init(verificationState: .verified, recoveryState: .disabled))
         try await deferred.fulfill()
         
-        // Then the banner should be shown to set up recovery.
-        XCTAssertEqual(context.viewState.securityBannerMode, .show(.setUpRecovery))
+        // Then the banner should be the one that finishes setup silently. GUA FORK: .disabled
+        // used to show .setUpRecovery, whose flow hands the user a recovery key to write down,
+        // and .disabled is the state an identity reset leaves behind.
+        XCTAssertEqual(context.viewState.securityBannerMode, .show(.recoveryOutOfSync))
         
         // When the recovery is enabled.
         deferred = deferFulfillment(context.$viewState) { $0.requiresExtraAccountSetup == false }
@@ -261,7 +263,7 @@ class HomeScreenViewModelTests: XCTestCase {
         // Given a view model with the setup recovery banner shown.
         let securityStateStateSubject = CurrentValueSubject<SessionSecurityState, Never>(.init(verificationState: .verified, recoveryState: .unknown))
         setupViewModel(securityStatePublisher: securityStateStateSubject.asCurrentValuePublisher())
-        var deferred = deferFulfillment(context.$viewState) { $0.securityBannerMode == .show(.setUpRecovery) }
+        var deferred = deferFulfillment(context.$viewState) { $0.securityBannerMode == .show(.recoveryOutOfSync) }
         securityStateStateSubject.send(.init(verificationState: .verified, recoveryState: .disabled))
         try await deferred.fulfill()
         
