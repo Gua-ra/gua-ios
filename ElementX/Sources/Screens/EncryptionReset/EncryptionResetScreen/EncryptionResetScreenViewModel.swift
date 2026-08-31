@@ -167,13 +167,24 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
         do {
             try await identityResetHandle.reset(auth: nil)
             self.identityResetHandle = nil
-            state.isResetting = false
+            // Deliberately NOT clearing isResetting here. .resetFinished does not dismiss this
+            // screen: the flow coordinator first awaits the key-storage repair and only then sends
+            // .resetComplete, which is what actually closes it. Clearing the flag on this line put
+            // the destructive button back within reach for that whole window, on the screen the
+            // user is still looking at, and one press there ran resetIdentity() a second time,
+            // deleting the key backup again and minting a fresh MAS approval URL. That was the
+            // loop back to MAS. The screen is on its way out; the button stays disabled.
+            //
             // MAS never navigates its approval page to the app's callback, so the web sheet has no
             // reason to close itself. Now that the approval has demonstrably landed, close it.
             actionsSubject.send(.dismissOIDCPresentation)
             actionsSubject.send(.resetFinished)
         } catch {
             MXLog.error("Failed resetting encryption with error \(error)")
+            // The sheet is still open on this path, and MAS will not close it. Take it away rather
+            // than leave the user reading an approval page that can no longer lead anywhere.
+            actionsSubject.send(.dismissOIDCPresentation)
+            state.isResetting = false
             showErrorToast()
         }
     }
