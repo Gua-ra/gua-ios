@@ -8,3 +8,5 @@
 "gua_encryption_reset_required_title" = "Sommige eerdere berichten kunnen niet worden hersteld";
 "gua_encryption_reset_required_message" = "Om de installatie van versleutelde chats op dit apparaat te voltooien, moet je versleutelde back-up opnieuw worden ingesteld. Berichten die alleen in die back-up staan, gaan verloren. Berichten die al op je apparaten staan, blijven ongewijzigd.";
 "gua_encryption_reset_required_action" = "Opnieuw instellen en voltooien";
+"gua_signout_last_device_title" = "Uitloggen verwijdert je berichten van dit apparaat";
+"gua_signout_last_device_message" = "Dit is je enige apparaat. Berichten die alleen hier staan, zijn niet beschikbaar wanneer je weer inlogt.";

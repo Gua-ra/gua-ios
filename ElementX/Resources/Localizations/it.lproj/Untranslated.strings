@@ -8,3 +8,5 @@
 "gua_encryption_reset_required_title" = "Alcuni messaggi precedenti non possono essere recuperati";
 "gua_encryption_reset_required_message" = "Per completare la configurazione delle chat cifrate su questo dispositivo, il tuo backup cifrato deve essere reimpostato. I messaggi salvati solo in quel backup andranno persi. I messaggi già presenti sui tuoi dispositivi non saranno interessati.";
 "gua_encryption_reset_required_action" = "Reimposta e completa";
+"gua_signout_last_device_title" = "Uscire rimuoverà i tuoi messaggi da questo dispositivo";
+"gua_signout_last_device_message" = "Questo è il tuo unico dispositivo. I messaggi conservati solo qui non saranno disponibili al prossimo accesso.";

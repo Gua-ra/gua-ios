@@ -8,3 +8,5 @@
 "gua_encryption_reset_required_title" = "Bazı önceki mesajlar kurtarılamaz";
 "gua_encryption_reset_required_message" = "Bu cihazda şifreli sohbetlerin kurulumunu tamamlamak için şifreli yedeğinizin sıfırlanması gerekir. Yalnızca o yedekte saklanan mesajlar kaybolur. Cihazlarınızda zaten bulunan mesajlar etkilenmez.";
 "gua_encryption_reset_required_action" = "Sıfırla ve tamamla";
+"gua_signout_last_device_title" = "Çıkış yapmak mesajlarınızı bu cihazdan kaldırır";
+"gua_signout_last_device_message" = "Bu tek cihazınız. Yalnızca burada tutulan mesajlar, yeniden giriş yaptığınızda kullanılamaz.";

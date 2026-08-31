@@ -8,3 +8,5 @@
 "gua_encryption_reset_required_title" = "Certains messages précédents ne peuvent pas être récupérés";
 "gua_encryption_reset_required_message" = "Pour terminer la configuration des conversations chiffrées sur cet appareil, votre sauvegarde chiffrée doit être réinitialisée. Les messages stockés uniquement dans cette sauvegarde seront perdus. Les messages déjà présents sur vos appareils ne seront pas affectés.";
 "gua_encryption_reset_required_action" = "Réinitialiser et terminer";
+"gua_signout_last_device_title" = "Se déconnecter supprimera vos messages de cet appareil";
+"gua_signout_last_device_message" = "C'est votre seul appareil. Les messages conservés uniquement ici ne seront pas disponibles à votre prochaine connexion.";

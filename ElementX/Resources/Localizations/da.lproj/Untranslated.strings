@@ -8,3 +8,5 @@
 "gua_encryption_reset_required_title" = "Nogle tidligere beskeder kan ikke gendannes";
 "gua_encryption_reset_required_message" = "For at færdiggøre opsætningen af krypterede chats på denne enhed skal din krypterede sikkerhedskopi nulstilles. Beskeder, der kun er gemt i den sikkerhedskopi, går tabt. Beskeder, der allerede findes på dine enheder, påvirkes ikke.";
 "gua_encryption_reset_required_action" = "Nulstil og færdiggør";
+"gua_signout_last_device_title" = "Log ud fjerner dine beskeder fra denne enhed";
+"gua_signout_last_device_message" = "Dette er din eneste enhed. Beskeder, der kun er gemt her, vil ikke være tilgængelige, når du logger ind igen.";

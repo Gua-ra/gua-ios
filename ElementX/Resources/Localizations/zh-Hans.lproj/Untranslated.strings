@@ -8,3 +8,5 @@
 "gua_encryption_reset_required_title" = "部分历史消息无法恢复";
 "gua_encryption_reset_required_message" = "要在此设备上完成加密聊天的设置，需要重置你的加密备份。仅保存在该备份中的消息将会丢失。已在你设备上的消息不受影响。";
 "gua_encryption_reset_required_action" = "重置并完成";
+"gua_signout_last_device_title" = "退出登录会从此设备上移除你的消息";
+"gua_signout_last_device_message" = "这是你唯一的设备。仅保存在此处的消息在你重新登录后将无法使用。";

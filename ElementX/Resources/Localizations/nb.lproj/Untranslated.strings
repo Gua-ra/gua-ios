@@ -8,3 +8,5 @@
 "gua_encryption_reset_required_title" = "Noen tidligere meldinger kan ikke gjenopprettes";
 "gua_encryption_reset_required_message" = "For å fullføre oppsettet av krypterte chatter på denne enheten må den krypterte sikkerhetskopien tilbakestilles. Meldinger som bare er lagret i den sikkerhetskopien, går tapt. Meldinger som allerede finnes på enhetene dine, påvirkes ikke.";
 "gua_encryption_reset_required_action" = "Tilbakestill og fullfør";
+"gua_signout_last_device_title" = "Å logge ut fjerner meldingene dine fra denne enheten";
+"gua_signout_last_device_message" = "Dette er din eneste enhet. Meldinger som bare er lagret her, blir ikke tilgjengelige når du logger inn igjen.";

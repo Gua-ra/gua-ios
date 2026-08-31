@@ -8,3 +8,5 @@
 "gua_encryption_reset_required_title" = "Einige frühere Nachrichten können nicht wiederhergestellt werden";
 "gua_encryption_reset_required_message" = "Um die Einrichtung verschlüsselter Chats auf diesem Gerät abzuschließen, muss dein verschlüsseltes Backup zurückgesetzt werden. Nachrichten, die nur in diesem Backup liegen, gehen verloren. Nachrichten, die bereits auf deinen Geräten sind, bleiben unberührt.";
 "gua_encryption_reset_required_action" = "Zurücksetzen und abschließen";
+"gua_signout_last_device_title" = "Beim Abmelden werden deine Nachrichten von diesem Gerät entfernt";
+"gua_signout_last_device_message" = "Dies ist dein einziges Gerät. Nachrichten, die nur hier liegen, sind nach der nächsten Anmeldung nicht mehr verfügbar.";

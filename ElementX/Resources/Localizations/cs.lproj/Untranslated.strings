@@ -8,3 +8,5 @@
 "gua_encryption_reset_required_title" = "Některé předchozí zprávy nelze obnovit";
 "gua_encryption_reset_required_message" = "Abyste dokončili nastavení šifrovaných konverzací v tomto zařízení, je nutné resetovat vaši šifrovanou zálohu. Zprávy uložené pouze v této záloze budou ztraceny. Zprávy, které už máte ve svých zařízeních, zůstanou beze změny.";
 "gua_encryption_reset_required_action" = "Resetovat a dokončit";
+"gua_signout_last_device_title" = "Odhlášení odstraní vaše zprávy z tohoto zařízení";
+"gua_signout_last_device_message" = "Toto je vaše jediné zařízení. Zprávy uložené pouze zde nebudou po opětovném přihlášení dostupné.";

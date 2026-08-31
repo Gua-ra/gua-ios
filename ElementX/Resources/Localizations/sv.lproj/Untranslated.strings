@@ -8,3 +8,5 @@
 "gua_encryption_reset_required_title" = "Vissa tidigare meddelanden kan inte återställas";
 "gua_encryption_reset_required_message" = "För att slutföra konfigurationen av krypterade chattar på den här enheten måste din krypterade säkerhetskopia återställas. Meddelanden som bara finns i den säkerhetskopian går förlorade. Meddelanden som redan finns på dina enheter påverkas inte.";
 "gua_encryption_reset_required_action" = "Återställ och slutför";
+"gua_signout_last_device_title" = "Att logga ut tar bort dina meddelanden från den här enheten";
+"gua_signout_last_device_message" = "Det här är din enda enhet. Meddelanden som bara finns här kommer inte att vara tillgängliga när du loggar in igen.";

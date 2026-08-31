@@ -8,3 +8,5 @@
 "gua_encryption_reset_required_title" = "일부 이전 메시지는 복구할 수 없습니다";
 "gua_encryption_reset_required_message" = "이 기기에서 암호화된 대화 설정을 마치려면 암호화된 백업을 재설정해야 합니다. 해당 백업에만 저장된 메시지는 사라집니다. 이미 기기에 있는 메시지는 영향을 받지 않습니다.";
 "gua_encryption_reset_required_action" = "재설정하고 완료";
+"gua_signout_last_device_title" = "로그아웃하면 이 기기에서 메시지가 삭제됩니다";
+"gua_signout_last_device_message" = "이 기기는 사용 중인 유일한 기기입니다. 여기에만 저장된 메시지는 다시 로그인해도 사용할 수 없습니다.";

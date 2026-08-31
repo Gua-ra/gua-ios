@@ -8,3 +8,5 @@
 "gua_encryption_reset_required_title" = "Algumas mensagens anteriores não podem ser recuperadas";
 "gua_encryption_reset_required_message" = "Para terminar de configurar as conversas encriptadas neste dispositivo, a sua cópia de segurança encriptada tem de ser reposta. As mensagens guardadas apenas nessa cópia serão perdidas. As mensagens já presentes nos seus dispositivos não serão afetadas.";
 "gua_encryption_reset_required_action" = "Repor e concluir";
+"gua_signout_last_device_title" = "Terminar sessão vai remover as suas mensagens deste dispositivo";
+"gua_signout_last_device_message" = "Este é o seu único dispositivo. As mensagens guardadas apenas aqui não estarão disponíveis quando iniciar sessão novamente.";

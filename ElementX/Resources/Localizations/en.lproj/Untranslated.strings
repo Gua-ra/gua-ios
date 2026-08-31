@@ -20,6 +20,14 @@
 "soft_logout_clear_data_dialog_title" = "Clear data";
 "soft_logout_clear_data_dialog_content" = "Clear all data currently stored on this device?\nSign in again to access your account data and messages.";
 
+// MARK: - Gua: signing out
+
+/* GUA FORK: replaces upstream's screen_signout_recovery_disabled_* and
+   screen_signout_key_backup_disabled_*, which told the user they would need a recovery key to
+   restore their chats, and offered a "Settings" button through to the console that generates one. */
+"gua_signout_last_device_title" = "Signing out will remove your messages from this device";
+"gua_signout_last_device_message" = "Messages kept only here will not be available when you sign back in.";
+
 // MARK: - Gua identity change, other surfaces
 
 /* Shown in place of a message that cannot be decrypted because the sender's encryption identity changed. Replaces upstream's "Sender's verified identity was reset". */

@@ -8,3 +8,5 @@
 "gua_encryption_reset_required_title" = "Joitakin aiempia viestejä ei voi palauttaa";
 "gua_encryption_reset_required_message" = "Jotta salattujen keskustelujen määritys saadaan valmiiksi tällä laitteella, salattu varmuuskopio on nollattava. Vain siinä varmuuskopiossa olevat viestit menetetään. Laitteillasi jo olevat viestit eivät muutu.";
 "gua_encryption_reset_required_action" = "Nollaa ja viimeistele";
+"gua_signout_last_device_title" = "Uloskirjautuminen poistaa viestisi tältä laitteelta";
+"gua_signout_last_device_message" = "Tämä on ainoa laitteesi. Vain täällä olevat viestit eivät ole käytettävissä, kun kirjaudut takaisin sisään.";

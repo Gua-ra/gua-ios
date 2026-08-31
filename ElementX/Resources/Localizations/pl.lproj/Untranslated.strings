@@ -8,3 +8,5 @@
 "gua_encryption_reset_required_title" = "Niektórych wcześniejszych wiadomości nie można odzyskać";
 "gua_encryption_reset_required_message" = "Aby dokończyć konfigurację zaszyfrowanych czatów na tym urządzeniu, trzeba zresetować zaszyfrowaną kopię zapasową. Wiadomości zapisane tylko w tej kopii zostaną utracone. Wiadomości już obecne na Twoich urządzeniach nie zostaną naruszone.";
 "gua_encryption_reset_required_action" = "Zresetuj i zakończ";
+"gua_signout_last_device_title" = "Wylogowanie usunie Twoje wiadomości z tego urządzenia";
+"gua_signout_last_device_message" = "To Twoje jedyne urządzenie. Wiadomości zapisane tylko tutaj nie będą dostępne po ponownym zalogowaniu.";
