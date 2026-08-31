@@ -313,7 +313,7 @@ class SecureBackupController: SecureBackupControllerProtocol {
             // as "needs a reset" would march the user into a MAS round trip to fix nothing.
             MXLog.warning("GUA-KEYSTORE: state not settled, leaving it alone.")
             return .notYet
-        case .disabled, .incomplete:
+        case .disabled:
             // GUA FORK: both broken states take the same path, and it does not wait around.
             //
             // This used to sit for ten seconds hoping a verified device would gossip the secrets
@@ -325,7 +325,32 @@ class SecureBackupController: SecureBackupControllerProtocol {
             // MAS round trip. It does not have to. Replacing a backup nothing can decrypt any more
             // finishes the job locally, and never touches the cross-signing identity.
             return await provisionKeyStorage()
+        case .incomplete:
+            return await repairIncomplete()
         }
+    }
+
+    /// Repairs an account whose secret storage exists but whose secrets this device cannot use.
+    ///
+    /// Deliberately does NOT call `enableRecovery`. `Recovery::enable` always runs
+    /// `create_secret_store`, which mints a new SSSS key and PUTs a new
+    /// `m.secret_storage.default_key`. That strands the previous store's `m.cross_signing.*` copies
+    /// and permanently invalidates any recovery key already saved for this account, including one
+    /// sitting in the same user's Android session. On a device with no private cross-signing keys
+    /// it cannot help anyway, so the tap would spend the account's last silent way back and still
+    /// end at a reset. Turning backups on is the one non-rotating thing worth trying.
+    private func repairIncomplete() async -> EncryptionRepairOutcome {
+        do {
+            try await encryption.enableBackups()
+        } catch {
+            MXLog.info("GUA-KEYSTORE: could not enable backups: \(error)")
+        }
+
+        if await waitForRecoveryEnabled(timeout: .seconds(2)) {
+            return .repaired
+        }
+        MXLog.info("GUA-KEYSTORE: still not enabled, this device needs a reset.")
+        return .resetRequired
     }
 
     /// Provisions key storage, and reports honestly whether it actually worked.

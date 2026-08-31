@@ -95,6 +95,8 @@ struct HomeScreenViewState: BindableState {
     
     var securityBannerMode = HomeScreenSecurityBannerMode.none
     
+    /// GUA FORK: true while the silent repair behind the banner button is running.
+    var isFinishingEncryptionSetup = false
     var requiresExtraAccountSetup = false
 
     /// Set to true when the identity service reports the user has not yet

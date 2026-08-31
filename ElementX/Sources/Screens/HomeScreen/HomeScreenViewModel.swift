@@ -161,6 +161,12 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             // GUA FORK: the banner's single button. Try everything non-destructive first and
             // only surface the reset, with its warning, if one is genuinely required. Most
             // devices repair silently here and the user never learns a reset existed.
+            //
+            // The flag is set here, synchronously on the main actor, so the spinner lands in the
+            // same frame as the tap rather than after the first await. It doubles as the re-entry
+            // guard, and finishEncryptionSetup clears it on every outcome.
+            guard !state.isFinishingEncryptionSetup else { return }
+            state.isFinishingEncryptionSetup = true
             Task { await finishEncryptionSetup() }
         case .resetEncryption:
             actionsSubject.send(.presentEncryptionResetScreen)
@@ -244,6 +250,9 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
     /// untrue. The destructive confirmation is only shown once we know a reset is actually
     /// required, which is the only case where anything can be lost.
     private func finishEncryptionSetup() async {
+        // Clears on every path out, so the button can never latch.
+        defer { state.isFinishingEncryptionSetup = false }
+
         let secureBackupController = userSession.clientProxy.secureBackupController
         switch await secureBackupController.repairWithoutReset() {
         case .repaired:
