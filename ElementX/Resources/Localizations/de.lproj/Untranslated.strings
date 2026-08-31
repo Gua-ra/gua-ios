@@ -3,5 +3,8 @@
 */
 
 "gua_encryption_repair_title" = "Richte dieses Gerät fertig ein";
-"gua_encryption_repair_message" = "Schließe die Einrichtung ab, um deinen verschlüsselten Chatverlauf wiederherzustellen und auf diesem Gerät auf deine früheren Nachrichten zuzugreifen.";
+"gua_encryption_repair_message" = "Schließe die Einrichtung ab, um auf die verschlüsselten Chats und den auf diesem Gerät verfügbaren Nachrichtenverlauf zuzugreifen.";
 "gua_encryption_repair_action" = "Einrichtung abschließen";
+"gua_encryption_reset_required_title" = "Einige frühere Nachrichten können nicht wiederhergestellt werden";
+"gua_encryption_reset_required_message" = "Um die Einrichtung verschlüsselter Chats auf diesem Gerät abzuschließen, muss dein verschlüsseltes Backup zurückgesetzt werden. Nachrichten, die nur in diesem Backup liegen, gehen verloren. Nachrichten, die bereits auf deinen Geräten sind, bleiben unberührt.";
+"gua_encryption_reset_required_action" = "Zurücksetzen und abschließen";

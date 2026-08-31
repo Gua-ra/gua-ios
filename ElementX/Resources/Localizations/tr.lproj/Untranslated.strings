@@ -3,5 +3,8 @@
 */
 
 "gua_encryption_repair_title" = "Bu cihazın kurulumunu tamamlayın";
-"gua_encryption_repair_message" = "Şifreli sohbet geçmişinizi geri yüklemek ve önceki mesajlarınıza bu cihazdan erişmek için kurulumu tamamlayın.";
+"gua_encryption_repair_message" = "Şifreli sohbetlere ve bu cihazda bulunan mesaj geçmişine erişmek için kurulumu tamamlayın.";
 "gua_encryption_repair_action" = "Kurulumu tamamla";
+"gua_encryption_reset_required_title" = "Bazı önceki mesajlar kurtarılamaz";
+"gua_encryption_reset_required_message" = "Bu cihazda şifreli sohbetlerin kurulumunu tamamlamak için şifreli yedeğinizin sıfırlanması gerekir. Yalnızca o yedekte saklanan mesajlar kaybolur. Cihazlarınızda zaten bulunan mesajlar etkilenmez.";
+"gua_encryption_reset_required_action" = "Sıfırla ve tamamla";

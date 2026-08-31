@@ -3,5 +3,8 @@
 */
 
 "gua_encryption_repair_title" = "Dokončete nastavení tohoto zařízení";
-"gua_encryption_repair_message" = "Dokončete nastavení, abyste obnovili historii šifrovaných konverzací a získali přístup k předchozím zprávám na tomto zařízení.";
+"gua_encryption_repair_message" = "Dokončete nastavení, abyste získali přístup k šifrovaným konverzacím a historii zpráv dostupné v tomto zařízení.";
 "gua_encryption_repair_action" = "Dokončit nastavení";
+"gua_encryption_reset_required_title" = "Některé předchozí zprávy nelze obnovit";
+"gua_encryption_reset_required_message" = "Abyste dokončili nastavení šifrovaných konverzací v tomto zařízení, je nutné resetovat vaši šifrovanou zálohu. Zprávy uložené pouze v této záloze budou ztraceny. Zprávy, které už máte ve svých zařízeních, zůstanou beze změny.";
+"gua_encryption_reset_required_action" = "Resetovat a dokončit";

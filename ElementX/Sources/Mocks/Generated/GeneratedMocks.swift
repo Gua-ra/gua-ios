@@ -15556,6 +15556,70 @@ class SecureBackupControllerMock: SecureBackupControllerProtocol, @unchecked Sen
             return provisionRecoveryWithoutKeyReturnValue
         }
     }
+    //MARK: - repairWithoutReset
+
+    var repairWithoutResetUnderlyingCallsCount = 0
+    var repairWithoutResetCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return repairWithoutResetUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = repairWithoutResetUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                repairWithoutResetUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    repairWithoutResetUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var repairWithoutResetCalled: Bool {
+        return repairWithoutResetCallsCount > 0
+    }
+
+    var repairWithoutResetUnderlyingReturnValue: Result<Void, SecureBackupControllerError>!
+    var repairWithoutResetReturnValue: Result<Void, SecureBackupControllerError>! {
+        get {
+            if Thread.isMainThread {
+                return repairWithoutResetUnderlyingReturnValue
+            } else {
+                var returnValue: Result<Void, SecureBackupControllerError>? = nil
+                DispatchQueue.main.sync {
+                    returnValue = repairWithoutResetUnderlyingReturnValue
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                repairWithoutResetUnderlyingReturnValue = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    repairWithoutResetUnderlyingReturnValue = newValue
+                }
+            }
+        }
+    }
+    var repairWithoutResetClosure: (() async -> Result<Void, SecureBackupControllerError>)?
+
+    func repairWithoutReset() async -> Result<Void, SecureBackupControllerError> {
+        repairWithoutResetCallsCount += 1
+        if let repairWithoutResetClosure = repairWithoutResetClosure {
+            return await repairWithoutResetClosure()
+        } else {
+            return repairWithoutResetReturnValue
+        }
+    }
     //MARK: - settledRecoveryState
 
     var settledRecoveryStateTimeoutUnderlyingCallsCount = 0

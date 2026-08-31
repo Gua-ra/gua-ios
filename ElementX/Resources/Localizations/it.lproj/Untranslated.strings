@@ -3,5 +3,8 @@
 */
 
 "gua_encryption_repair_title" = "Completa la configurazione di questo dispositivo";
-"gua_encryption_repair_message" = "Completa la configurazione per ripristinare la cronologia delle chat cifrate e accedere ai messaggi precedenti su questo dispositivo.";
+"gua_encryption_repair_message" = "Completa la configurazione per accedere alle chat cifrate e alla cronologia dei messaggi disponibili su questo dispositivo.";
 "gua_encryption_repair_action" = "Completa la configurazione";
+"gua_encryption_reset_required_title" = "Alcuni messaggi precedenti non possono essere recuperati";
+"gua_encryption_reset_required_message" = "Per completare la configurazione delle chat cifrate su questo dispositivo, il tuo backup cifrato deve essere reimpostato. I messaggi salvati solo in quel backup andranno persi. I messaggi già presenti sui tuoi dispositivi non saranno interessati.";
+"gua_encryption_reset_required_action" = "Reimposta e completa";

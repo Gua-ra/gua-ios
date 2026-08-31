@@ -3,5 +3,8 @@
 */
 
 "gua_encryption_repair_title" = "Dokończ konfigurację tego urządzenia";
-"gua_encryption_repair_message" = "Dokończ konfigurację, aby przywrócić historię zaszyfrowanych czatów i uzyskać dostęp do wcześniejszych wiadomości na tym urządzeniu.";
+"gua_encryption_repair_message" = "Dokończ konfigurację, aby uzyskać dostęp do zaszyfrowanych czatów i historii wiadomości dostępnej na tym urządzeniu.";
 "gua_encryption_repair_action" = "Zakończ konfigurację";
+"gua_encryption_reset_required_title" = "Niektórych wcześniejszych wiadomości nie można odzyskać";
+"gua_encryption_reset_required_message" = "Aby dokończyć konfigurację zaszyfrowanych czatów na tym urządzeniu, trzeba zresetować zaszyfrowaną kopię zapasową. Wiadomości zapisane tylko w tej kopii zostaną utracone. Wiadomości już obecne na Twoich urządzeniach nie zostaną naruszone.";
+"gua_encryption_reset_required_action" = "Zresetuj i zakończ";

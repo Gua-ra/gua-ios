@@ -34,5 +34,12 @@
    Replaces upstream's "Your key storage is out of sync" / "Confirm your recovery key", which
    asked for a recovery key Gua never shows anyone. */
 "gua_encryption_repair_title" = "Finish setting up this device";
-"gua_encryption_repair_message" = "Complete setup to restore your encrypted chat history and access your previous messages on this device.";
+"gua_encryption_repair_message" = "Complete setup to access encrypted chats and message history available on this device.";
 "gua_encryption_repair_action" = "Finish setup";
+
+/* Shown only when the automatic repair could not finish and a reset of the encrypted backup is
+   genuinely required. Deliberately names the loss rather than burying it, because the reset is
+   irreversible for history that lives only in that backup. */
+"gua_encryption_reset_required_title" = "Some previous messages can\u2019t be recovered";
+"gua_encryption_reset_required_message" = "To finish setting up encrypted chats on this device, your encrypted backup needs to be reset. Messages stored only in that backup will be lost. Messages already on your devices won\u2019t be affected.";
+"gua_encryption_reset_required_action" = "Reset and finish setup";

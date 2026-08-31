@@ -3,5 +3,8 @@
 */
 
 "gua_encryption_repair_title" = "Voltooi de installatie van dit apparaat";
-"gua_encryption_repair_message" = "Voltooi de installatie om je versleutelde chatgeschiedenis te herstellen en je eerdere berichten op dit apparaat te bekijken.";
+"gua_encryption_repair_message" = "Voltooi de installatie om toegang te krijgen tot de versleutelde chats en de berichtgeschiedenis die op dit apparaat beschikbaar is.";
 "gua_encryption_repair_action" = "Installatie voltooien";
+"gua_encryption_reset_required_title" = "Sommige eerdere berichten kunnen niet worden hersteld";
+"gua_encryption_reset_required_message" = "Om de installatie van versleutelde chats op dit apparaat te voltooien, moet je versleutelde back-up opnieuw worden ingesteld. Berichten die alleen in die back-up staan, gaan verloren. Berichten die al op je apparaten staan, blijven ongewijzigd.";
+"gua_encryption_reset_required_action" = "Opnieuw instellen en voltooien";

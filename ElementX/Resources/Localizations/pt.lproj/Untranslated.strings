@@ -3,5 +3,8 @@
 */
 
 "gua_encryption_repair_title" = "Termine de configurar este dispositivo";
-"gua_encryption_repair_message" = "Conclua a configuração para restaurar o seu histórico de conversas encriptadas e aceder às suas mensagens anteriores neste dispositivo.";
+"gua_encryption_repair_message" = "Conclua a configuração para aceder às conversas encriptadas e ao histórico de mensagens disponíveis neste dispositivo.";
 "gua_encryption_repair_action" = "Concluir configuração";
+"gua_encryption_reset_required_title" = "Algumas mensagens anteriores não podem ser recuperadas";
+"gua_encryption_reset_required_message" = "Para terminar de configurar as conversas encriptadas neste dispositivo, a sua cópia de segurança encriptada tem de ser reposta. As mensagens guardadas apenas nessa cópia serão perdidas. As mensagens já presentes nos seus dispositivos não serão afetadas.";
+"gua_encryption_reset_required_action" = "Repor e concluir";

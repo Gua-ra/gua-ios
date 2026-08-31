@@ -3,5 +3,8 @@
 */
 
 "gua_encryption_repair_title" = "Fullfør oppsettet av denne enheten";
-"gua_encryption_repair_message" = "Fullfør oppsettet for å gjenopprette den krypterte chatthistorikken din og få tilgang til tidligere meldinger på denne enheten.";
+"gua_encryption_repair_message" = "Fullfør oppsettet for å få tilgang til de krypterte chattene og meldingsloggen som finnes på denne enheten.";
 "gua_encryption_repair_action" = "Fullfør oppsett";
+"gua_encryption_reset_required_title" = "Noen tidligere meldinger kan ikke gjenopprettes";
+"gua_encryption_reset_required_message" = "For å fullføre oppsettet av krypterte chatter på denne enheten må den krypterte sikkerhetskopien tilbakestilles. Meldinger som bare er lagret i den sikkerhetskopien, går tapt. Meldinger som allerede finnes på enhetene dine, påvirkes ikke.";
+"gua_encryption_reset_required_action" = "Tilbakestill og fullfør";

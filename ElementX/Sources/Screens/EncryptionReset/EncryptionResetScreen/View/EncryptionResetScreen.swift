@@ -15,7 +15,7 @@ struct EncryptionResetScreen: View {
         FullscreenDialog {
             mainContent
         } bottomContent: {
-            Button(L10n.screenEncryptionResetActionContinueReset, role: .destructive) {
+            Button(UntranslatedL10n.guaEncryptionResetRequiredAction, role: .destructive) {
                 context.send(viewAction: .reset)
             }
             .buttonStyle(.compound(.primary))
@@ -43,7 +43,9 @@ struct EncryptionResetScreen: View {
             BigIcon(icon: \.errorSolid, style: .alertSolid)
                 .padding(.bottom, 8)
             
-            Text(L10n.screenEncryptionResetTitle)
+            // GUA FORK: this screen is only reached once a reset is genuinely required, so
+            // it names the loss plainly instead of leading with jargon about identities.
+            Text(UntranslatedL10n.guaEncryptionResetRequiredTitle)
                 .font(.compound.headingMDBold)
                 .multilineTextAlignment(.center)
                 .foregroundColor(.compound.textPrimary)
@@ -51,7 +53,7 @@ struct EncryptionResetScreen: View {
     }
     
     private var footer: some View {
-        Text(L10n.screenEncryptionResetFooter)
+        Text(UntranslatedL10n.guaEncryptionResetRequiredMessage)
             .font(.compound.bodyMDSemibold)
             .multilineTextAlignment(.center)
             .foregroundColor(.compound.textPrimary)

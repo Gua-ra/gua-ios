@@ -3,5 +3,8 @@
 */
 
 "gua_encryption_repair_title" = "完成此设备的设置";
-"gua_encryption_repair_message" = "完成设置以恢复你的加密聊天记录，并在此设备上访问以前的消息。";
+"gua_encryption_repair_message" = "完成设置即可访问此设备上可用的加密聊天和消息记录。";
 "gua_encryption_repair_action" = "完成设置";
+"gua_encryption_reset_required_title" = "部分历史消息无法恢复";
+"gua_encryption_reset_required_message" = "要在此设备上完成加密聊天的设置，需要重置你的加密备份。仅保存在该备份中的消息将会丢失。已在你设备上的消息不受影响。";
+"gua_encryption_reset_required_action" = "重置并完成";

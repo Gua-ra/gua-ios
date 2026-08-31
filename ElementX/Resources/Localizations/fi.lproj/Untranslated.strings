@@ -3,5 +3,8 @@
 */
 
 "gua_encryption_repair_title" = "Viimeistele tämän laitteen määritys";
-"gua_encryption_repair_message" = "Viimeistele määritys palauttaaksesi salatun keskusteluhistoriasi ja päästäksesi aiempiin viesteihisi tällä laitteella.";
+"gua_encryption_repair_message" = "Viimeistele määritys päästäksesi salattuihin keskusteluihin ja tällä laitteella saatavilla olevaan viestihistoriaan.";
 "gua_encryption_repair_action" = "Viimeistele määritys";
+"gua_encryption_reset_required_title" = "Joitakin aiempia viestejä ei voi palauttaa";
+"gua_encryption_reset_required_message" = "Jotta salattujen keskustelujen määritys saadaan valmiiksi tällä laitteella, salattu varmuuskopio on nollattava. Vain siinä varmuuskopiossa olevat viestit menetetään. Laitteillasi jo olevat viestit eivät muutu.";
+"gua_encryption_reset_required_action" = "Nollaa ja viimeistele";

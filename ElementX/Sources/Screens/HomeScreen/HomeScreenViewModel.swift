@@ -157,7 +157,10 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
         case .setupRecovery:
             actionsSubject.send(.presentSecureBackupSettings)
         case .confirmRecoveryKey:
-            actionsSubject.send(.presentRecoveryKeyScreen)
+            // GUA FORK: the banner's single button. Try everything non-destructive first and
+            // only surface the reset, with its warning, if one is genuinely required. Most
+            // devices repair silently here and the user never learns a reset existed.
+            Task { await finishEncryptionSetup() }
         case .resetEncryption:
             actionsSubject.send(.presentEncryptionResetScreen)
         case .skipRecoveryKeyConfirmation:
@@ -233,6 +236,24 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
         }
     }
     
+    /// GUA FORK: completes encryption setup for a device that could not do it on its own.
+    ///
+    /// Staged on purpose. The repair that needs no reset is attempted first and silently, because
+    /// for most devices it works and a warning about losing messages would be both alarming and
+    /// untrue. The destructive confirmation is only shown once we know a reset is actually
+    /// required, which is the only case where anything can be lost.
+    private func finishEncryptionSetup() async {
+        let secureBackupController = userSession.clientProxy.secureBackupController
+
+        if case .success = await secureBackupController.repairWithoutReset() {
+            MXLog.info("GUA-KEYSTORE: finished encryption setup without a reset.")
+            return
+        }
+
+        MXLog.info("GUA-KEYSTORE: setup needs a reset, asking first.")
+        actionsSubject.send(.presentEncryptionResetScreen)
+    }
+
     // MARK: - Private
     
     private func updateFilter() {

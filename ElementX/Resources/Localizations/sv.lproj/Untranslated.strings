@@ -3,5 +3,8 @@
 */
 
 "gua_encryption_repair_title" = "Slutför konfigurationen av den här enheten";
-"gua_encryption_repair_message" = "Slutför konfigurationen för att återställa din krypterade chatthistorik och komma åt dina tidigare meddelanden på den här enheten.";
+"gua_encryption_repair_message" = "Slutför konfigurationen för att komma åt de krypterade chattarna och den meddelandehistorik som finns på den här enheten.";
 "gua_encryption_repair_action" = "Slutför konfiguration";
+"gua_encryption_reset_required_title" = "Vissa tidigare meddelanden kan inte återställas";
+"gua_encryption_reset_required_message" = "För att slutföra konfigurationen av krypterade chattar på den här enheten måste din krypterade säkerhetskopia återställas. Meddelanden som bara finns i den säkerhetskopian går förlorade. Meddelanden som redan finns på dina enheter påverkas inte.";
+"gua_encryption_reset_required_action" = "Återställ och slutför";

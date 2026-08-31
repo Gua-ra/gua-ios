@@ -297,6 +297,46 @@ class SecureBackupController: SecureBackupControllerProtocol {
         }
     }
 
+    /// GUA FORK: everything that can finish encryption setup without destroying anything.
+    ///
+    /// Split out from the reset so the banner can try this first and stay silent when it works.
+    /// Nothing here deletes a key backup or touches the cross-signing identity, so it is safe to
+    /// run without asking, and only its failure justifies showing a destructive warning.
+    func repairWithoutReset() async -> Result<Void, SecureBackupControllerError> {
+        let state = await settledRecoveryState()
+
+        switch state {
+        case .enabled:
+            return .success(())
+        case .unknown, .settingUp:
+            MXLog.warning("GUA-KEYSTORE: state not settled, cannot repair yet.")
+            return .failure(.failedGeneratingRecoveryKey)
+        case .disabled:
+            // Nothing to recover, just provision storage.
+            do {
+                _ = try await enableRecoveryReturningKey()
+                return .success(())
+            } catch {
+                MXLog.warning("GUA-KEYSTORE: could not provision recovery: \(error)")
+                return .failure(.failedGeneratingRecoveryKey)
+            }
+        case .incomplete:
+            // A verified device may still gossip the secrets across; that repairs this for free.
+            if await waitForRecoveryEnabled(timeout: .seconds(10)) {
+                return .success(())
+            }
+
+            do {
+                _ = try await enableRecoveryReturningKey()
+                return .success(())
+            } catch {
+                // BackupExistsOnServer lands here, which is the case that genuinely needs a reset.
+                MXLog.info("GUA-KEYSTORE: no non-destructive repair available: \(error)")
+                return .failure(.failedGeneratingRecoveryKey)
+            }
+        }
+    }
+
     private func enableRecoveryReturningKey() async throws -> String {
         try await encryption.enableRecovery(waitForBackupsToUpload: false,
                                             passphrase: nil,
