@@ -339,12 +339,73 @@ class SecureBackupController: SecureBackupControllerProtocol {
     /// either, so the conservative path can never succeed here: it would return `.resetRequired`
     /// forever and put the setup banner back in front of the user who just completed a reset.
     func provisionAfterReset() async -> EncryptionRepairOutcome {
-        do {
-            _ = try await enableRecoveryReturningKey()
-            return .repaired
-        } catch {
-            MXLog.error("GUA-KEYSTORE: could not provision key storage after the reset: \(error)")
-            return .resetRequired
+        // The reset has only just uploaded a new cross-signing identity, and `Recovery::enable`
+        // exports whatever private cross-signing keys the crypto store can hand over at the moment
+        // it runs. Run too early it exports nothing, writes a secret store holding only the backup
+        // key, and the account drops straight back to `.incomplete`. That is not a cosmetic miss:
+        // it puts the setup banner back in front of the user who has just finished a reset, and
+        // the only thing that banner can now offer them is another reset. That is the loop.
+        //
+        // Two things keep it closed. Wait for the identity to be usable before exporting, and take
+        // the state as the verdict rather than the call's return value, because `enableRecovery`
+        // reports success for a store it populated with nothing.
+        await waitForVerifiedIdentity(timeout: .seconds(5))
+
+        // Rotating the secret store is normally the one thing to avoid, since it invalidates any
+        // recovery key saved elsewhere for this account. Immediately after a reset there is no such
+        // key and no earlier store left to strand, so a second attempt costs nothing.
+        for attempt in 1...2 {
+            do {
+                _ = try await enableRecoveryReturningKey()
+            } catch {
+                MXLog.error("GUA-KEYSTORE: provision attempt \(attempt) after the reset threw: \(error)")
+            }
+
+            if await waitForRecoveryEnabled(timeout: .seconds(5)) {
+                return .repaired
+            }
+
+            MXLog.warning("GUA-KEYSTORE: provision attempt \(attempt) left the account incomplete.")
+        }
+
+        MXLog.error("GUA-KEYSTORE: could not provision key storage after the reset.")
+        return .resetRequired
+    }
+
+    /// Waits until the session trusts its own cross-signing identity.
+    ///
+    /// This is the signal that the private keys the reset just minted have reached the crypto store
+    /// and can be exported into a secret store. Returns on the timeout rather than failing: the
+    /// caller checks the resulting state either way, so a slow identity costs an attempt, not the
+    /// whole provision.
+    private func waitForVerifiedIdentity(timeout: Duration) async -> Bool {
+        if await (try? encryption.verificationState()) == .verified {
+            return true
+        }
+
+        return await withTaskGroup(of: Bool.self) { group in
+            group.addTask { [encryption] in
+                let stream = AsyncStream<VerificationState> { continuation in
+                    let handle = encryption.verificationStateListener(listener: SDKListener { state in
+                        continuation.yield(state)
+                    })
+                    continuation.onTermination = { _ in handle.cancel() }
+                }
+
+                for await state in stream where state == .verified {
+                    return true
+                }
+                return false
+            }
+
+            group.addTask {
+                try? await Task.sleep(for: timeout)
+                return false
+            }
+
+            let verified = await group.next() ?? false
+            group.cancelAll()
+            return verified
         }
     }
 
@@ -358,16 +419,25 @@ class SecureBackupController: SecureBackupControllerProtocol {
     /// it cannot help anyway, so the tap would spend the account's last silent way back and still
     /// end at a reset. Turning backups on is the one non-rotating thing worth trying.
     private func repairIncomplete() async -> EncryptionRepairOutcome {
-        // Enabling backups needs no cross-signing keys, so on a device that genuinely lacks them
-        // this still succeeds and only the state check below says otherwise. A THROW here therefore
-        // means the server or the network, not a broken account, and must not be reported as
-        // needing a destructive reset: a user who taps through that on a bad connection loses their
-        // backup to a blip. Retry next time instead.
+        // Best effort. A throw here is not fatal and must not return .notYet: enableBackups fails
+        // on exactly the accounts this exists to repair, because a backup version already exists on
+        // the server, and treating that as "try again later" is a button that does nothing at all.
+        // The state is the only honest verdict, so ask it either way.
+        //
+        // What the throw does settle is how long to wait for that state. Recovery can only flip to
+        // .enabled off the back of a call that worked, so waiting after a failure is dead time the
+        // user spends staring at a spinner before the same answer. Only wait when there is
+        // something to wait for.
         do {
             try await encryption.enableBackups()
         } catch {
-            MXLog.info("GUA-KEYSTORE: could not enable backups, treating as retryable: \(error)")
-            return .notYet
+            MXLog.info("GUA-KEYSTORE: enableBackups failed, reading the state now: \(error)")
+
+            if recoveryState.value == .enabled {
+                return .repaired
+            }
+            MXLog.info("GUA-KEYSTORE: not enabled, this device needs a reset.")
+            return .resetRequired
         }
 
         if await waitForRecoveryEnabled(timeout: .seconds(2)) {
@@ -394,7 +464,15 @@ class SecureBackupController: SecureBackupControllerProtocol {
         do {
             _ = try await enableRecoveryReturningKey()
         } catch {
+            // As in `repairIncomplete`, a failed call cannot be what flips the state, so read it
+            // once and answer rather than holding the user on a spinner for three more seconds.
             MXLog.warning("GUA-KEYSTORE: could not provision recovery: \(error)")
+
+            if recoveryState.value == .enabled {
+                return .repaired
+            }
+            MXLog.info("GUA-KEYSTORE: not enabled, this device needs a reset.")
+            return .resetRequired
         }
 
         // Only the state can say whether that finished the job.
