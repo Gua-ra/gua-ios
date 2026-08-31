@@ -302,39 +302,58 @@ class SecureBackupController: SecureBackupControllerProtocol {
     /// Split out from the reset so the banner can try this first and stay silent when it works.
     /// Nothing here deletes a key backup or touches the cross-signing identity, so it is safe to
     /// run without asking, and only its failure justifies showing a destructive warning.
-    func repairWithoutReset() async -> Result<Void, SecureBackupControllerError> {
-        let state = await settledRecoveryState()
+    func repairWithoutReset() async -> EncryptionRepairOutcome {
+        let state = await settledRecoveryState(timeout: .seconds(2))
 
         switch state {
         case .enabled:
-            return .success(())
+            return .repaired
         case .unknown, .settingUp:
-            MXLog.warning("GUA-KEYSTORE: state not settled, cannot repair yet.")
-            return .failure(.failedGeneratingRecoveryKey)
-        case .disabled:
-            // Nothing to recover, just provision storage.
-            do {
-                _ = try await enableRecoveryReturningKey()
-                return .success(())
-            } catch {
-                MXLog.warning("GUA-KEYSTORE: could not provision recovery: \(error)")
-                return .failure(.failedGeneratingRecoveryKey)
-            }
-        case .incomplete:
-            // A verified device may still gossip the secrets across; that repairs this for free.
-            if await waitForRecoveryEnabled(timeout: .seconds(10)) {
-                return .success(())
-            }
-
-            do {
-                _ = try await enableRecoveryReturningKey()
-                return .success(())
-            } catch {
-                // BackupExistsOnServer lands here, which is the case that genuinely needs a reset.
-                MXLog.info("GUA-KEYSTORE: no non-destructive repair available: \(error)")
-                return .failure(.failedGeneratingRecoveryKey)
-            }
+            // Not a broken account, just a client that cannot see its own state yet. Treating this
+            // as "needs a reset" would march the user into a MAS round trip to fix nothing.
+            MXLog.warning("GUA-KEYSTORE: state not settled, leaving it alone.")
+            return .notYet
+        case .disabled, .incomplete:
+            // GUA FORK: both broken states take the same path, and it does not wait around.
+            //
+            // This used to sit for ten seconds hoping a verified device would gossip the secrets
+            // across, on top of a ten second settle. That is twenty seconds of a button that looks
+            // dead, buying a rescue that never arrives for the accounts this exists to fix: their
+            // other device entries are stale reinstalls that answer nothing.
+            //
+            // It also used to give up here and hand the caller to the reset screen, which is the
+            // MAS round trip. It does not have to. Replacing a backup nothing can decrypt any more
+            // finishes the job locally, and never touches the cross-signing identity.
+            return await provisionKeyStorage()
         }
+    }
+
+    /// Provisions key storage, and reports honestly whether it actually worked.
+    ///
+    /// `enableRecovery` SUCCEEDS on a device that holds no private cross-signing keys: it mints a
+    /// new secret store, exports nothing into it, and the account falls straight back to
+    /// `.incomplete`. Taking that success at face value made the button look like it did nothing,
+    /// so the state itself is the verdict here, not the call's return value.
+    ///
+    /// There is deliberately no `disableRecovery()` escalation. It cannot help and it can
+    /// permanently harm: `Backups.disable()` throws `BackupNotEnabled` exactly when the local store
+    /// has no backup version, which is the precise condition under which `enableRecovery` returns
+    /// `BackupExistsOnServer`, so the two are exact complements and the escalation can never fire.
+    /// In the one case it would fire, it blanks the `m.cross_signing.*` account data, destroying
+    /// the last server-side copy of the private cross-signing keys.
+    private func provisionKeyStorage() async -> EncryptionRepairOutcome {
+        do {
+            _ = try await enableRecoveryReturningKey()
+        } catch {
+            MXLog.warning("GUA-KEYSTORE: could not provision recovery: \(error)")
+        }
+
+        // Only the state can say whether that finished the job.
+        if await waitForRecoveryEnabled(timeout: .seconds(3)) {
+            return .repaired
+        }
+        MXLog.info("GUA-KEYSTORE: still not enabled, this device needs a reset.")
+        return .resetRequired
     }
 
     private func enableRecoveryReturningKey() async throws -> String {

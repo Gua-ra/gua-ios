@@ -46,6 +46,16 @@ class OIDCAccountSettingsPresenter: NSObject {
             session.start()
         }
     }
+
+    /// GUA FORK: closes the sheet from the app side.
+    ///
+    /// MAS's approval page never navigates to the callback URL, so the session has no reason to
+    /// dismiss itself and the user is left reading "go back to the app" with only an X to press.
+    /// Once we have established the approval landed, we close it for them.
+    func dismiss() {
+        session?.cancel()
+        session = nil
+    }
 }
 
 // MARK: ASWebAuthenticationPresentationContextProviding

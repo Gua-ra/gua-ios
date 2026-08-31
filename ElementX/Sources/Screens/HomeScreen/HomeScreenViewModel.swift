@@ -245,14 +245,17 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
     /// required, which is the only case where anything can be lost.
     private func finishEncryptionSetup() async {
         let secureBackupController = userSession.clientProxy.secureBackupController
-
-        if case .success = await secureBackupController.repairWithoutReset() {
+        switch await secureBackupController.repairWithoutReset() {
+        case .repaired:
             MXLog.info("GUA-KEYSTORE: finished encryption setup without a reset.")
-            return
+        case .notYet:
+            // The client cannot read its own state yet, so there is nothing to repair and nothing
+            // to warn about. Leave the banner up rather than sending anyone to a reset.
+            MXLog.info("GUA-KEYSTORE: encryption state not readable yet, leaving the banner.")
+        case .resetRequired:
+            MXLog.info("GUA-KEYSTORE: setup needs a reset, asking first.")
+            actionsSubject.send(.presentEncryptionResetScreen)
         }
-
-        MXLog.info("GUA-KEYSTORE: setup needs a reset, asking first.")
-        actionsSubject.send(.presentEncryptionResetScreen)
     }
 
     // MARK: - Private

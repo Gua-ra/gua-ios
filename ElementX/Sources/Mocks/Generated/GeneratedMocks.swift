@@ -15586,13 +15586,13 @@ class SecureBackupControllerMock: SecureBackupControllerProtocol, @unchecked Sen
         return repairWithoutResetCallsCount > 0
     }
 
-    var repairWithoutResetUnderlyingReturnValue: Result<Void, SecureBackupControllerError>!
-    var repairWithoutResetReturnValue: Result<Void, SecureBackupControllerError>! {
+    var repairWithoutResetUnderlyingReturnValue: EncryptionRepairOutcome!
+    var repairWithoutResetReturnValue: EncryptionRepairOutcome! {
         get {
             if Thread.isMainThread {
                 return repairWithoutResetUnderlyingReturnValue
             } else {
-                var returnValue: Result<Void, SecureBackupControllerError>? = nil
+                var returnValue: EncryptionRepairOutcome? = nil
                 DispatchQueue.main.sync {
                     returnValue = repairWithoutResetUnderlyingReturnValue
                 }
@@ -15610,9 +15610,9 @@ class SecureBackupControllerMock: SecureBackupControllerProtocol, @unchecked Sen
             }
         }
     }
-    var repairWithoutResetClosure: (() async -> Result<Void, SecureBackupControllerError>)?
+    var repairWithoutResetClosure: (() async -> EncryptionRepairOutcome)?
 
-    func repairWithoutReset() async -> Result<Void, SecureBackupControllerError> {
+    func repairWithoutReset() async -> EncryptionRepairOutcome {
         repairWithoutResetCallsCount += 1
         if let repairWithoutResetClosure = repairWithoutResetClosure {
             return await repairWithoutResetClosure()

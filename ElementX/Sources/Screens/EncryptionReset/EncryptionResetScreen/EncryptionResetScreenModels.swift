@@ -13,6 +13,8 @@ enum EncryptionResetScreenViewModelAction {
     /// `completionPublisher` fires when the OIDC approval web sheet is dismissed,
     /// signalling that the reset may now be performed.
     case requestOIDCAuthorisation(url: URL, completionPublisher: PassthroughSubject<Void, Never>)
+    /// GUA FORK: the approval landed, so close the web sheet rather than leaving the user to.
+    case dismissOIDCPresentation
     case resetFinished
     case cancel
 }

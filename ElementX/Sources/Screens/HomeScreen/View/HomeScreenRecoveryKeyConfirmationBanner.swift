@@ -29,6 +29,7 @@ struct HomeScreenRecoveryKeyConfirmationBanner: View {
 
     let state: State
     var context: HomeScreenViewModel.Context
+    @SwiftUI.State private var isWorking = false
     
     var title: String {
         switch state {
@@ -97,11 +98,22 @@ struct HomeScreenRecoveryKeyConfirmationBanner: View {
     var buttons: some View {
         VStack(spacing: 16) {
             Button {
+                // GUA FORK: the repair runs off-screen and can take a moment, so the button has to
+                // change the instant it is pressed. Without this a tap looked like nothing at all
+                // happened for several seconds, which reads as a dead button.
+                isWorking = true
                 context.send(viewAction: primaryAction)
             } label: {
-                Text(actionTitle)
-                    .frame(maxWidth: .infinity)
+                HStack(spacing: 8) {
+                    if isWorking {
+                        ProgressView()
+                            .tint(.compound.iconOnSolidPrimary)
+                    }
+                    Text(isWorking ? UntranslatedL10n.guaEncryptionRepairActionInProgress : actionTitle)
+                }
+                .frame(maxWidth: .infinity)
             }
+            .disabled(isWorking)
             .buttonStyle(.compound(.primary, size: .medium))
             .accessibilityIdentifier(A11yIdentifiers.homeScreen.recoveryKeyConfirmationBannerContinue)
             

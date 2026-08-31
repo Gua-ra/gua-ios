@@ -120,6 +120,9 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
             switch action {
             case .requestOIDCAuthorisation(let url, let completionPublisher):
                 presentOIDCAuthorization(for: url, completionPublisher: completionPublisher)
+            case .dismissOIDCPresentation:
+                accountSettingsPresenter?.dismiss()
+                accountSettingsPresenter = nil
             case .requestPassword(let passwordPublisher):
                 stateMachine.tryEvent(.confirmPassword, userInfo: passwordPublisher)
             case .cancel:
@@ -132,10 +135,10 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
                 // purpose: nothing in Gua ever asks for it.
                 Task {
                     switch await self.userSession.clientProxy.secureBackupController.repairWithoutReset() {
-                    case .success:
+                    case .repaired:
                         MXLog.info("GUA-KEYSTORE: provisioned key storage after the reset.")
-                    case .failure(let error):
-                        MXLog.error("GUA-KEYSTORE: could not provision key storage after the reset: \(error)")
+                    case .notYet, .resetRequired:
+                        MXLog.error("GUA-KEYSTORE: could not provision key storage after the reset.")
                     }
                     self.actionsSubject.send(.resetComplete)
                 }

@@ -61,7 +61,7 @@ protocol SecureBackupControllerProtocol {
     /// GUA FORK: repair an `.incomplete` account when no recovery key exists anywhere.
     func provisionRecoveryWithoutKey() async -> Result<String, SecureBackupControllerError>
     /// GUA FORK: everything that can finish encryption setup WITHOUT destroying anything.
-    func repairWithoutReset() async -> Result<Void, SecureBackupControllerError>
+    func repairWithoutReset() async -> EncryptionRepairOutcome
     /// GUA FORK: `recoveryState` once it is no longer `.unknown`, so callers never branch on the
     /// initial value. Falls back to `.unknown` if the SDK stays silent past `timeout`.
     func settledRecoveryState(timeout: Duration) async -> SecureBackupRecoveryState
@@ -74,4 +74,15 @@ extension SecureBackupControllerProtocol {
     func settledRecoveryState() async -> SecureBackupRecoveryState {
         await settledRecoveryState(timeout: .seconds(10))
     }
+}
+
+/// GUA FORK: what `repairWithoutReset` managed to do, so callers only offer the destructive reset
+/// when one is actually warranted.
+enum EncryptionRepairOutcome: Equatable {
+    /// Key storage is healthy. Nothing to show the user.
+    case repaired
+    /// Transient: the client cannot read its own state yet. Change nothing, do not offer a reset.
+    case notYet
+    /// Everything non-destructive has been tried. Only a reset can finish this device.
+    case resetRequired
 }

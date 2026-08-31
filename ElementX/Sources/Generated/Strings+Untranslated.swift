@@ -12,6 +12,8 @@ import Foundation
 internal enum UntranslatedL10n {
   /// Finish setup
   internal static var guaEncryptionRepairAction: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_repair_action") }
+  /// Setting up…
+  internal static var guaEncryptionRepairActionInProgress: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_repair_action_in_progress") }
   /// Complete setup to access encrypted chats and message history available on this device.
   internal static var guaEncryptionRepairMessage: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_repair_message") }
   /// Finish setting up this device

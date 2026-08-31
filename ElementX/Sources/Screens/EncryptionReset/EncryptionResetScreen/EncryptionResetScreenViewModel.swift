@@ -55,6 +55,14 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
     // MARK: - Private
     
     private func startResetFlow() async {
+        // GUA FORK: a second tap used to start an entirely NEW reset, minting a new handle and a
+        // new MAS approval URL, which is why pressing the button again looped straight back into
+        // MAS instead of finishing. There is one reset in flight at a time.
+        guard identityResetHandle == nil else {
+            MXLog.info("GUA-KEYSTORE: a reset is already awaiting approval, ignoring the tap.")
+            return
+        }
+
         showLoadingIndicator()
         
         defer {
@@ -95,6 +103,16 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
                 // unverified and the identity-confirmation gate looping forever. Wait for the
                 // sheet to be dismissed (signalled on the publisher) before resetting — this
                 // mirrors how the UIAA/password path waits for the entered password.
+                // GUA FORK: MAS gives us no completion signal. Its approval page never navigates
+                // to the app's callback URL, so ASWebAuthenticationSession has no reason to close
+                // itself and the only event we ever receive is "the user dismissed it" — which is
+                // indistinguishable from them cancelling. That is why the sheet sat there telling
+                // people to go back to the app, and why they had to close it by hand.
+                //
+                // reset(auth: nil) succeeding IS the authoritative "MAS approved it" signal, so
+                // poll that instead of waiting to be told. The moment it succeeds we close the
+                // sheet ourselves and finish. Dismissing by hand still works: the publisher fires
+                // and we make one final attempt.
                 let oidcAuthorisationPublisher = PassthroughSubject<Void, Never>()
                 oidcCancellable = oidcAuthorisationPublisher.sink { [weak self] in
                     guard let self else { return }
@@ -103,6 +121,7 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
                 }
 
                 actionsSubject.send(.requestOIDCAuthorisation(url: url, completionPublisher: oidcAuthorisationPublisher))
+                await pollForOIDCApproval(handle: handle)
             }
         case .failure(let error):
             MXLog.error("Failed resetting encryption with error \(error)")
@@ -130,10 +149,40 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
         }
     }
     
-    private func resetWithOIDCAuthorisation() async {
-        guard let identityResetHandle else {
-            fatalError("Requested reset flow continuation without a stored handle")
+    /// Retries the reset until MAS has approved it, then closes the sheet for the user.
+    ///
+    /// The SDK exposes no approval callback: `IdentityResetHandle` has only `authType()`,
+    /// `cancel()` and `reset(auth:)`, and `OAuthCrossSigningResetInfo` carries just the URL. So the
+    /// success of `reset(auth: nil)` is the only thing that can tell us the approval landed.
+    private func pollForOIDCApproval(handle: IdentityResetHandle) async {
+        let deadline = Date().addingTimeInterval(Self.approvalPollTimeout)
+
+        while Date() < deadline, !Task.isCancelled {
+            try? await Task.sleep(for: .seconds(2))
+            guard identityResetHandle != nil else { return }
+
+            do {
+                try await handle.reset(auth: nil)
+            } catch {
+                continue // Not approved yet.
+            }
+
+            MXLog.info("GUA-KEYSTORE: MAS approved the reset, closing the sheet.")
+            oidcCancellable = nil
+            identityResetHandle = nil
+            actionsSubject.send(.dismissOIDCPresentation)
+            actionsSubject.send(.resetFinished)
+            return
         }
+    }
+
+    /// Long enough for someone to read the MAS page and press Allow, short enough to give up on.
+    private static let approvalPollTimeout: TimeInterval = 180
+
+    private func resetWithOIDCAuthorisation() async {
+        // The poller may have finished first and cleared the handle; a manual dismissal after that
+        // is nothing to act on.
+        guard let identityResetHandle else { return }
 
         showLoadingIndicator()
 
@@ -143,6 +192,7 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
 
         do {
             try await identityResetHandle.reset(auth: nil)
+            self.identityResetHandle = nil
             actionsSubject.send(.resetFinished)
         } catch {
             MXLog.error("Failed resetting encryption with error \(error)")

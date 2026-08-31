@@ -44,6 +44,8 @@
 "gua_encryption_repair_title" = "Finish setting up this device";
 "gua_encryption_repair_message" = "Complete setup to access encrypted chats and message history available on this device.";
 "gua_encryption_repair_action" = "Finish setup";
+/* Shown on the same button while the repair is running, so a tap is never silent. */
+"gua_encryption_repair_action_in_progress" = "Setting up…";
 
 /* Shown only when the automatic repair could not finish and a reset of the encrypted backup is
    genuinely required. Deliberately names the loss rather than burying it, because the reset is
