@@ -221,6 +221,42 @@ class HomeScreenViewModelTests: XCTestCase {
         XCTAssertEqual(context.viewState.securityBannerMode, .none)
     }
     
+    func testFinishSetupRepairsWithoutAskingToReset() async throws {
+        // Given a device whose key storage can still be repaired without discarding the backup.
+        setupViewModel()
+        let secureBackupController = try XCTUnwrap(clientProxy.secureBackupController as? SecureBackupControllerMock)
+        secureBackupController.repairWithoutResetReturnValue = .success(())
+
+        var receivedAction: HomeScreenViewModelAction?
+        viewModel.actions.sink { receivedAction = $0 }.store(in: &cancellables)
+
+        // When the user taps Finish setup.
+        context.send(viewAction: .confirmRecoveryKey)
+        try await Task.sleep(for: .milliseconds(200))
+
+        // Then it repairs silently and never offers the destructive reset.
+        XCTAssertEqual(secureBackupController.repairWithoutResetCallsCount, 1)
+        XCTAssertNil(receivedAction)
+    }
+
+    func testFinishSetupAsksBeforeResettingWhenRepairIsImpossible() async throws {
+        // Given a device that cannot be finished without discarding the backup.
+        setupViewModel()
+        let secureBackupController = try XCTUnwrap(clientProxy.secureBackupController as? SecureBackupControllerMock)
+        secureBackupController.repairWithoutResetReturnValue = .failure(.failedGeneratingRecoveryKey)
+
+        var receivedAction: HomeScreenViewModelAction?
+        viewModel.actions.sink { receivedAction = $0 }.store(in: &cancellables)
+
+        // When the user taps Finish setup.
+        context.send(viewAction: .confirmRecoveryKey)
+        try await Task.sleep(for: .milliseconds(200))
+
+        // Then the reset is disclosed rather than performed silently.
+        XCTAssertEqual(secureBackupController.repairWithoutResetCallsCount, 1)
+        XCTAssertEqual(receivedAction, .presentEncryptionResetScreen)
+    }
+
     func testDismissSetUpRecoveryBannerState() async throws {
         // Given a view model with the setup recovery banner shown.
         let securityStateStateSubject = CurrentValueSubject<SessionSecurityState, Never>(.init(verificationState: .verified, recoveryState: .unknown))
