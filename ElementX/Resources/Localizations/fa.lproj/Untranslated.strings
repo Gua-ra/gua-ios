@@ -1,0 +1,13 @@
+/* GUA FORK: translations for the fork's own strings. The English source of truth lives in
+   en.lproj/Untranslated.strings. Upstream's soft-logout strings are deliberately absent:
+   they are Element's and go through Localazy. */
+"gua_identity_change_banner_description" = "اطلاعات امنیتی %1$@ تغییر کرد. این اتفاق ممکن است هنگام نصب دوبارهٔ Gua یا تعویض گوشی رخ دهد. %2$@";
+"gua_identity_change_undecryptable" = "این پیام باز نمی‌شود، چون اطلاعات امنیتی فرستنده تغییر کرده است.";
+"gua_identity_change_profile" = "اطلاعات امنیتی %1$@ تغییر کرد. این اتفاق ممکن است هنگام نصب دوبارهٔ Gua یا تعویض گوشی رخ دهد.";
+"gua_encryption_repair_title" = "راه‌اندازی این دستگاه را کامل کنید";
+"gua_encryption_repair_message" = "برای دسترسی به گفت‌وگوهای رمزگذاری‌شده و تاریخچهٔ پیام‌های موجود روی این دستگاه، راه‌اندازی را کامل کنید.";
+"gua_encryption_repair_action" = "تکمیل راه‌اندازی";
+"gua_encryption_reset_required_title" = "برخی پیام‌های پیشین قابل بازیابی نیستند";
+"gua_encryption_reset_required_message" = "برای تکمیل راه‌اندازی گفت‌وگوهای رمزگذاری‌شده روی این دستگاه، پشتیبان رمزگذاری‌شدهٔ شما باید بازنشانی شود. پیام‌هایی که فقط در آن پشتیبان ذخیره شده‌اند از دست می‌روند. پیام‌هایی که همین حالا روی دستگاه‌های شما هستند تحت تأثیر قرار نمی‌گیرند.";
+"gua_encryption_reset_required_action" = "بازنشانی و تکمیل";
+"gua_soft_logout_signin_notice" = "از حساب Gua خود خارج شدید. برای ادامه دوباره وارد شوید.";

@@ -1,0 +1,13 @@
+/* GUA FORK: translations for the fork's own strings. The English source of truth lives in
+   en.lproj/Untranslated.strings. Upstream's soft-logout strings are deliberately absent:
+   they are Element's and go through Localazy. */
+"gua_identity_change_banner_description" = "%1$@ کی سیکیورٹی تفصیلات تبدیل ہو گئیں۔ ایسا اس وقت ہو سکتا ہے جب کوئی Gua دوبارہ انسٹال کرے یا نیا فون لے۔ %2$@";
+"gua_identity_change_undecryptable" = "یہ پیغام نہیں کھولا جا سکتا کیونکہ بھیجنے والے کی سیکیورٹی تفصیلات تبدیل ہو گئی ہیں۔";
+"gua_identity_change_profile" = "%1$@ کی سیکیورٹی تفصیلات تبدیل ہو گئیں۔ ایسا اس وقت ہو سکتا ہے جب کوئی Gua دوبارہ انسٹال کرے یا نیا فون لے۔";
+"gua_encryption_repair_title" = "اس ڈیوائس کا سیٹ اپ مکمل کریں";
+"gua_encryption_repair_message" = "اس ڈیوائس پر دستیاب خفیہ کردہ چیٹس اور پیغامات کی تاریخ تک رسائی کے لیے سیٹ اپ مکمل کریں۔";
+"gua_encryption_repair_action" = "سیٹ اپ مکمل کریں";
+"gua_encryption_reset_required_title" = "کچھ پچھلے پیغامات بازیافت نہیں کیے جا سکتے";
+"gua_encryption_reset_required_message" = "اس ڈیوائس پر خفیہ کردہ چیٹس کا سیٹ اپ مکمل کرنے کے لیے آپ کے خفیہ کردہ بیک اپ کو ری سیٹ کرنا ہوگا۔ صرف اسی بیک اپ میں محفوظ پیغامات ضائع ہو جائیں گے۔ جو پیغامات پہلے سے آپ کی ڈیوائسز پر ہیں وہ متاثر نہیں ہوں گے۔";
+"gua_encryption_reset_required_action" = "ری سیٹ کریں اور مکمل کریں";
+"gua_soft_logout_signin_notice" = "آپ اپنے Gua اکاؤنٹ سے سائن آؤٹ ہو گئے۔ جاری رکھنے کے لیے دوبارہ سائن ان کریں۔";

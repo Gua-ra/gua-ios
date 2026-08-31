@@ -1,0 +1,13 @@
+/* GUA FORK: translations for the fork's own strings. The English source of truth lives in
+   en.lproj/Untranslated.strings. Upstream's soft-logout strings are deliberately absent:
+   they are Element's and go through Localazy. */
+"gua_identity_change_banner_description" = "Kasutaja %1$@ turvaandmed muutusid. Nii võib juhtuda, kui keegi paigaldab Gua uuesti või saab uue telefoni. %2$@";
+"gua_identity_change_undecryptable" = "Seda sõnumit ei saa avada, sest saatja turvaandmed muutusid.";
+"gua_identity_change_profile" = "Kasutaja %1$@ turvaandmed muutusid. Nii võib juhtuda, kui keegi paigaldab Gua uuesti või saab uue telefoni.";
+"gua_encryption_repair_title" = "Lõpeta selle seadme seadistamine";
+"gua_encryption_repair_message" = "Lõpeta seadistamine, et pääseda ligi krüptitud vestlustele ja selles seadmes saadaolevale sõnumiajaloole.";
+"gua_encryption_repair_action" = "Lõpeta seadistamine";
+"gua_encryption_reset_required_title" = "Mõnda varasemat sõnumit ei saa taastada";
+"gua_encryption_reset_required_message" = "Selles seadmes krüptitud vestluste seadistamise lõpetamiseks tuleb sinu krüptitud varukoopia lähtestada. Ainult selles varukoopias olevad sõnumid lähevad kaotsi. Sõnumid, mis on juba sinu seadmetes, ei muutu.";
+"gua_encryption_reset_required_action" = "Lähtesta ja lõpeta";
+"gua_soft_logout_signin_notice" = "Sind logiti Gua kontolt välja. Jätkamiseks logi uuesti sisse.";

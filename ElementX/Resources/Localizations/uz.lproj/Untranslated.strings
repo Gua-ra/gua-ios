@@ -1,0 +1,13 @@
+/* GUA FORK: translations for the fork's own strings. The English source of truth lives in
+   en.lproj/Untranslated.strings. Upstream's soft-logout strings are deliberately absent:
+   they are Element's and go through Localazy. */
+"gua_identity_change_banner_description" = "%1$@ xavfsizlik ma'lumotlari o'zgardi. Bu Gua qayta o'rnatilganda yoki telefon almashtirilganda sodir bo'lishi mumkin. %2$@";
+"gua_identity_change_undecryptable" = "Bu xabarni ochib bo'lmaydi, chunki jo'natuvchining xavfsizlik ma'lumotlari o'zgargan.";
+"gua_identity_change_profile" = "%1$@ xavfsizlik ma'lumotlari o'zgardi. Bu Gua qayta o'rnatilganda yoki telefon almashtirilganda sodir bo'lishi mumkin.";
+"gua_encryption_repair_title" = "Ushbu qurilma sozlashni yakunlang";
+"gua_encryption_repair_message" = "Ushbu qurilmada mavjud shifrlangan chatlar va xabarlar tarixiga kirish uchun sozlashni yakunlang.";
+"gua_encryption_repair_action" = "Sozlashni yakunlash";
+"gua_encryption_reset_required_title" = "Ba'zi oldingi xabarlarni tiklab bo'lmaydi";
+"gua_encryption_reset_required_message" = "Ushbu qurilmada shifrlangan chatlarni sozlashni yakunlash uchun shifrlangan zaxira nusxangizni qayta tiklash kerak. Faqat o'sha zaxirada saqlangan xabarlar yo'qoladi. Qurilmalaringizda allaqachon mavjud xabarlarga ta'sir qilmaydi.";
+"gua_encryption_reset_required_action" = "Qayta tiklash va yakunlash";
+"gua_soft_logout_signin_notice" = "Gua hisobingizdan chiqarildingiz. Davom etish uchun qayta kiring.";

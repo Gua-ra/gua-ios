@@ -1,0 +1,13 @@
+/* GUA FORK: translations for the fork's own strings. The English source of truth lives in
+   en.lproj/Untranslated.strings. Upstream's soft-logout strings are deliberately absent:
+   they are Element's and go through Localazy. */
+"gua_identity_change_banner_description" = "Datele de securitate ale lui %1$@ s-au schimbat. Se poate întâmpla la reinstalarea Gua sau la schimbarea telefonului. %2$@";
+"gua_identity_change_undecryptable" = "Acest mesaj nu poate fi deschis pentru că datele de securitate ale expeditorului s-au schimbat.";
+"gua_identity_change_profile" = "Datele de securitate ale lui %1$@ s-au schimbat. Se poate întâmpla la reinstalarea Gua sau la schimbarea telefonului.";
+"gua_encryption_repair_title" = "Finalizează configurarea acestui dispozitiv";
+"gua_encryption_repair_message" = "Finalizează configurarea pentru a accesa conversațiile criptate și istoricul mesajelor disponibil pe acest dispozitiv.";
+"gua_encryption_repair_action" = "Finalizează configurarea";
+"gua_encryption_reset_required_title" = "Unele mesaje anterioare nu pot fi recuperate";
+"gua_encryption_reset_required_message" = "Pentru a finaliza configurarea conversațiilor criptate pe acest dispozitiv, copia ta de rezervă criptată trebuie resetată. Mesajele stocate doar în acea copie vor fi pierdute. Mesajele aflate deja pe dispozitivele tale nu vor fi afectate.";
+"gua_encryption_reset_required_action" = "Resetează și finalizează";
+"gua_soft_logout_signin_notice" = "Ai fost deconectat de la contul tău Gua. Conectează-te din nou pentru a continua.";

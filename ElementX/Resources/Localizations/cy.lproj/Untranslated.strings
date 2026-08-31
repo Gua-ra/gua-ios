@@ -1,0 +1,13 @@
+/* GUA FORK: translations for the fork's own strings. The English source of truth lives in
+   en.lproj/Untranslated.strings. Upstream's soft-logout strings are deliberately absent:
+   they are Element's and go through Localazy. */
+"gua_identity_change_banner_description" = "Mae manylion diogelwch %1$@ wedi newid. Gall hyn ddigwydd pan fydd rhywun yn ailosod Gua neu'n cael ffôn newydd. %2$@";
+"gua_identity_change_undecryptable" = "Nid oes modd agor y neges hon am fod manylion diogelwch yr anfonwr wedi newid.";
+"gua_identity_change_profile" = "Mae manylion diogelwch %1$@ wedi newid. Gall hyn ddigwydd pan fydd rhywun yn ailosod Gua neu'n cael ffôn newydd.";
+"gua_encryption_repair_title" = "Gorffennwch osod y ddyfais hon";
+"gua_encryption_repair_message" = "Cwblhewch y gosodiad i gael mynediad at y sgyrsiau wedi'u hamgryptio a'r hanes negeseuon sydd ar gael ar y ddyfais hon.";
+"gua_encryption_repair_action" = "Gorffen gosod";
+"gua_encryption_reset_required_title" = "Nid oes modd adfer rhai negeseuon blaenorol";
+"gua_encryption_reset_required_message" = "I orffen gosod sgyrsiau wedi'u hamgryptio ar y ddyfais hon, mae angen ailosod eich copi wrth gefn wedi'i amgryptio. Bydd negeseuon sydd wedi'u cadw yn y copi hwnnw yn unig yn cael eu colli. Ni fydd negeseuon sydd eisoes ar eich dyfeisiau yn cael eu heffeithio.";
+"gua_encryption_reset_required_action" = "Ailosod a gorffen";
+"gua_soft_logout_signin_notice" = "Cawsoch eich allgofnodi o'ch cyfrif Gua. Mewngofnodwch eto i barhau.";

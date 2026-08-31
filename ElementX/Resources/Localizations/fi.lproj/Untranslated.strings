@@ -8,3 +8,7 @@
 "gua_encryption_reset_required_title" = "Joitakin aiempia viestejä ei voi palauttaa";
 "gua_encryption_reset_required_message" = "Jotta salattujen keskustelujen määritys saadaan valmiiksi tällä laitteella, salattu varmuuskopio on nollattava. Vain siinä varmuuskopiossa olevat viestit menetetään. Laitteillasi jo olevat viestit eivät muutu.";
 "gua_encryption_reset_required_action" = "Nollaa ja viimeistele";
+"gua_identity_change_banner_description" = "Käyttäjän %1$@ turvatiedot muuttuivat. Näin voi käydä, kun hän asentaa Guan uudelleen tai vaihtaa puhelinta. %2$@";
+"gua_identity_change_undecryptable" = "Tätä viestiä ei voi avata, koska lähettäjän turvatiedot muuttuivat.";
+"gua_identity_change_profile" = "Käyttäjän %1$@ turvatiedot muuttuivat. Näin voi käydä, kun hän asentaa Guan uudelleen tai vaihtaa puhelinta.";
+"gua_soft_logout_signin_notice" = "Sinut kirjattiin ulos Gua-tilistäsi. Kirjaudu uudelleen jatkaaksesi.";

@@ -1,0 +1,13 @@
+/* GUA FORK: translations for the fork's own strings. The English source of truth lives in
+   en.lproj/Untranslated.strings. Upstream's soft-logout strings are deliberately absent:
+   they are Element's and go through Localazy. */
+"gua_identity_change_banner_description" = "Τα στοιχεία ασφαλείας του χρήστη %1$@ άλλαξαν. Αυτό μπορεί να συμβεί όταν κάποιος εγκαταστήσει ξανά το Gua ή αλλάξει τηλέφωνο. %2$@";
+"gua_identity_change_undecryptable" = "Αυτό το μήνυμα δεν μπορεί να ανοίξει επειδή άλλαξαν τα στοιχεία ασφαλείας του αποστολέα.";
+"gua_identity_change_profile" = "Τα στοιχεία ασφαλείας του χρήστη %1$@ άλλαξαν. Αυτό μπορεί να συμβεί όταν κάποιος εγκαταστήσει ξανά το Gua ή αλλάξει τηλέφωνο.";
+"gua_encryption_repair_title" = "Ολοκληρώστε τη ρύθμιση αυτής της συσκευής";
+"gua_encryption_repair_message" = "Ολοκληρώστε τη ρύθμιση για να αποκτήσετε πρόσβαση στις κρυπτογραφημένες συνομιλίες και στο ιστορικό μηνυμάτων που είναι διαθέσιμο σε αυτή τη συσκευή.";
+"gua_encryption_repair_action" = "Ολοκλήρωση ρύθμισης";
+"gua_encryption_reset_required_title" = "Ορισμένα προηγούμενα μηνύματα δεν μπορούν να ανακτηθούν";
+"gua_encryption_reset_required_message" = "Για να ολοκληρωθεί η ρύθμιση των κρυπτογραφημένων συνομιλιών σε αυτή τη συσκευή, πρέπει να γίνει επαναφορά του κρυπτογραφημένου αντιγράφου ασφαλείας. Τα μηνύματα που είναι αποθηκευμένα μόνο εκεί θα χαθούν. Τα μηνύματα που βρίσκονται ήδη στις συσκευές σας δεν θα επηρεαστούν.";
+"gua_encryption_reset_required_action" = "Επαναφορά και ολοκλήρωση";
+"gua_soft_logout_signin_notice" = "Αποσυνδεθήκατε από τον λογαριασμό σας στο Gua. Συνδεθείτε ξανά για να συνεχίσετε.";

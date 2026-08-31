@@ -8,3 +8,7 @@
 "gua_encryption_reset_required_title" = "Sommige eerdere berichten kunnen niet worden hersteld";
 "gua_encryption_reset_required_message" = "Om de installatie van versleutelde chats op dit apparaat te voltooien, moet je versleutelde back-up opnieuw worden ingesteld. Berichten die alleen in die back-up staan, gaan verloren. Berichten die al op je apparaten staan, blijven ongewijzigd.";
 "gua_encryption_reset_required_action" = "Opnieuw instellen en voltooien";
+"gua_identity_change_banner_description" = "De beveiligingsgegevens van %1$@ zijn gewijzigd. Dat kan gebeuren wanneer iemand Gua opnieuw installeert of een nieuwe telefoon heeft. %2$@";
+"gua_identity_change_undecryptable" = "Dit bericht kan niet worden geopend omdat de beveiligingsgegevens van de afzender zijn gewijzigd.";
+"gua_identity_change_profile" = "De beveiligingsgegevens van %1$@ zijn gewijzigd. Dat kan gebeuren wanneer iemand Gua opnieuw installeert of een nieuwe telefoon heeft.";
+"gua_soft_logout_signin_notice" = "Je bent uitgelogd bij je Gua-account. Log opnieuw in om verder te gaan.";

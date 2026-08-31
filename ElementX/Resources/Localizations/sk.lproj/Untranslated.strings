@@ -1,0 +1,13 @@
+/* GUA FORK: translations for the fork's own strings. The English source of truth lives in
+   en.lproj/Untranslated.strings. Upstream's soft-logout strings are deliberately absent:
+   they are Element's and go through Localazy. */
+"gua_identity_change_banner_description" = "Bezpečnostné údaje používateľa %1$@ sa zmenili. Stáva sa to, keď si niekto preinštaluje Gua alebo si zaobstará nový telefón. %2$@";
+"gua_identity_change_undecryptable" = "Túto správu nemožno otvoriť, pretože sa zmenili bezpečnostné údaje odosielateľa.";
+"gua_identity_change_profile" = "Bezpečnostné údaje používateľa %1$@ sa zmenili. Stáva sa to, keď si niekto preinštaluje Gua alebo si zaobstará nový telefón.";
+"gua_encryption_repair_title" = "Dokončite nastavenie tohto zariadenia";
+"gua_encryption_repair_message" = "Dokončite nastavenie, aby ste získali prístup k šifrovaným konverzáciám a histórii správ dostupnej v tomto zariadení.";
+"gua_encryption_repair_action" = "Dokončiť nastavenie";
+"gua_encryption_reset_required_title" = "Niektoré predchádzajúce správy sa nedajú obnoviť";
+"gua_encryption_reset_required_message" = "Ak chcete dokončiť nastavenie šifrovaných konverzácií v tomto zariadení, vaša šifrovaná záloha sa musí resetovať. Správy uložené iba v tejto zálohe budú stratené. Správy, ktoré už máte vo svojich zariadeniach, zostanú nedotknuté.";
+"gua_encryption_reset_required_action" = "Resetovať a dokončiť";
+"gua_soft_logout_signin_notice" = "Boli ste odhlásení zo svojho účtu Gua. Prihláste sa znova a pokračujte.";

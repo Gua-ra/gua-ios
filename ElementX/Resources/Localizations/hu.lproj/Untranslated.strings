@@ -1,0 +1,13 @@
+/* GUA FORK: translations for the fork's own strings. The English source of truth lives in
+   en.lproj/Untranslated.strings. Upstream's soft-logout strings are deliberately absent:
+   they are Element's and go through Localazy. */
+"gua_identity_change_banner_description" = "%1$@ biztonsági adatai megváltoztak. Ez akkor fordulhat elő, ha újratelepíti a Guát vagy új telefonja lett. %2$@";
+"gua_identity_change_undecryptable" = "Ez az üzenet nem nyitható meg, mert a feladó biztonsági adatai megváltoztak.";
+"gua_identity_change_profile" = "%1$@ biztonsági adatai megváltoztak. Ez akkor fordulhat elő, ha újratelepíti a Guát vagy új telefonja lett.";
+"gua_encryption_repair_title" = "Fejezze be az eszköz beállítását";
+"gua_encryption_repair_message" = "Fejezze be a beállítást, hogy hozzáférjen a titkosított beszélgetésekhez és az ezen az eszközön elérhető üzenetelőzményekhez.";
+"gua_encryption_repair_action" = "Beállítás befejezése";
+"gua_encryption_reset_required_title" = "Néhány korábbi üzenet nem állítható vissza";
+"gua_encryption_reset_required_message" = "A titkosított beszélgetések beállításának befejezéséhez ezen az eszközön vissza kell állítani a titkosított biztonsági mentést. A csak abban a mentésben tárolt üzenetek elvesznek. Az eszközein már meglévő üzeneteket ez nem érinti.";
+"gua_encryption_reset_required_action" = "Visszaállítás és befejezés";
+"gua_soft_logout_signin_notice" = "Kijelentkeztették a Gua-fiókjából. A folytatáshoz jelentkezzen be újra.";

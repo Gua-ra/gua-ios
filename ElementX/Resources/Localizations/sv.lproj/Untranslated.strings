@@ -8,3 +8,7 @@
 "gua_encryption_reset_required_title" = "Vissa tidigare meddelanden kan inte återställas";
 "gua_encryption_reset_required_message" = "För att slutföra konfigurationen av krypterade chattar på den här enheten måste din krypterade säkerhetskopia återställas. Meddelanden som bara finns i den säkerhetskopian går förlorade. Meddelanden som redan finns på dina enheter påverkas inte.";
 "gua_encryption_reset_required_action" = "Återställ och slutför";
+"gua_identity_change_banner_description" = "Säkerhetsuppgifterna för %1$@ har ändrats. Det kan hända när någon installerar om Gua eller byter telefon. %2$@";
+"gua_identity_change_undecryptable" = "Det här meddelandet kan inte öppnas eftersom avsändarens säkerhetsuppgifter har ändrats.";
+"gua_identity_change_profile" = "Säkerhetsuppgifterna för %1$@ har ändrats. Det kan hända när någon installerar om Gua eller byter telefon.";
+"gua_soft_logout_signin_notice" = "Du har loggats ut från ditt Gua-konto. Logga in igen för att fortsätta.";

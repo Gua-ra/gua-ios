@@ -1,0 +1,13 @@
+/* GUA FORK: translations for the fork's own strings. The English source of truth lives in
+   en.lproj/Untranslated.strings. Upstream's soft-logout strings are deliberately absent:
+   they are Element's and go through Localazy. */
+"gua_identity_change_banner_description" = "Detail keamanan %1$@ berubah. Ini bisa terjadi saat orang tersebut memasang ulang Gua atau berganti ponsel. %2$@";
+"gua_identity_change_undecryptable" = "Pesan ini tidak dapat dibuka karena detail keamanan pengirim berubah.";
+"gua_identity_change_profile" = "Detail keamanan %1$@ berubah. Ini bisa terjadi saat orang tersebut memasang ulang Gua atau berganti ponsel.";
+"gua_encryption_repair_title" = "Selesaikan penyiapan perangkat ini";
+"gua_encryption_repair_message" = "Selesaikan penyiapan untuk mengakses obrolan terenkripsi dan riwayat pesan yang tersedia di perangkat ini.";
+"gua_encryption_repair_action" = "Selesaikan penyiapan";
+"gua_encryption_reset_required_title" = "Beberapa pesan sebelumnya tidak dapat dipulihkan";
+"gua_encryption_reset_required_message" = "Untuk menyelesaikan penyiapan obrolan terenkripsi di perangkat ini, cadangan terenkripsi Anda perlu disetel ulang. Pesan yang hanya tersimpan di cadangan itu akan hilang. Pesan yang sudah ada di perangkat Anda tidak akan terpengaruh.";
+"gua_encryption_reset_required_action" = "Setel ulang dan selesaikan";
+"gua_soft_logout_signin_notice" = "Anda telah keluar dari akun Gua. Masuk lagi untuk melanjutkan.";

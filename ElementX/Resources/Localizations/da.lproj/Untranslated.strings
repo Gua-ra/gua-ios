@@ -8,3 +8,7 @@
 "gua_encryption_reset_required_title" = "Nogle tidligere beskeder kan ikke gendannes";
 "gua_encryption_reset_required_message" = "For at færdiggøre opsætningen af krypterede chats på denne enhed skal din krypterede sikkerhedskopi nulstilles. Beskeder, der kun er gemt i den sikkerhedskopi, går tabt. Beskeder, der allerede findes på dine enheder, påvirkes ikke.";
 "gua_encryption_reset_required_action" = "Nulstil og færdiggør";
+"gua_identity_change_banner_description" = "Sikkerhedsoplysningerne for %1$@ er ændret. Det kan ske, når nogen geninstallerer Gua eller får en ny telefon. %2$@";
+"gua_identity_change_undecryptable" = "Denne besked kan ikke åbnes, fordi afsenderens sikkerhedsoplysninger er ændret.";
+"gua_identity_change_profile" = "Sikkerhedsoplysningerne for %1$@ er ændret. Det kan ske, når nogen geninstallerer Gua eller får en ny telefon.";
+"gua_soft_logout_signin_notice" = "Du er blevet logget ud af din Gua-konto. Log ind igen for at fortsætte.";

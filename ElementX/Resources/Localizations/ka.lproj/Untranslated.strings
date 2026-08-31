@@ -1,0 +1,13 @@
+/* GUA FORK: translations for the fork's own strings. The English source of truth lives in
+   en.lproj/Untranslated.strings. Upstream's soft-logout strings are deliberately absent:
+   they are Element's and go through Localazy. */
+"gua_identity_change_banner_description" = "%1$@-ის უსაფრთხოების მონაცემები შეიცვალა. ეს შეიძლება მოხდეს, როცა ადამიანი ხელახლა აყენებს Gua-ს ან იცვლის ტელეფონს. %2$@";
+"gua_identity_change_undecryptable" = "ამ შეტყობინების გახსნა შეუძლებელია, რადგან გამომგზავნის უსაფრთხოების მონაცემები შეიცვალა.";
+"gua_identity_change_profile" = "%1$@-ის უსაფრთხოების მონაცემები შეიცვალა. ეს შეიძლება მოხდეს, როცა ადამიანი ხელახლა აყენებს Gua-ს ან იცვლის ტელეფონს.";
+"gua_encryption_repair_title" = "დაასრულეთ ამ მოწყობილობის დაყენება";
+"gua_encryption_repair_message" = "დაასრულეთ დაყენება, რომ იხილოთ დაშიფრული ჩატები და ამ მოწყობილობაზე ხელმისაწვდომი შეტყობინებების ისტორია.";
+"gua_encryption_repair_action" = "დაყენების დასრულება";
+"gua_encryption_reset_required_title" = "ზოგიერთი წინა შეტყობინების აღდგენა შეუძლებელია";
+"gua_encryption_reset_required_message" = "ამ მოწყობილობაზე დაშიფრული ჩატების დაყენების დასასრულებლად საჭიროა თქვენი დაშიფრული სარეზერვო ასლის განულება. მხოლოდ იმ ასლში შენახული შეტყობინებები დაიკარგება. თქვენს მოწყობილობებზე უკვე არსებულ შეტყობინებებს ეს არ შეეხება.";
+"gua_encryption_reset_required_action" = "განულება და დასრულება";
+"gua_soft_logout_signin_notice" = "თქვენ გამოხვედით თქვენი Gua ანგარიშიდან. გასაგრძელებლად ხელახლა შედით.";

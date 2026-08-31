@@ -8,3 +8,7 @@
 "gua_encryption_reset_required_title" = "Některé předchozí zprávy nelze obnovit";
 "gua_encryption_reset_required_message" = "Abyste dokončili nastavení šifrovaných konverzací v tomto zařízení, je nutné resetovat vaši šifrovanou zálohu. Zprávy uložené pouze v této záloze budou ztraceny. Zprávy, které už máte ve svých zařízeních, zůstanou beze změny.";
 "gua_encryption_reset_required_action" = "Resetovat a dokončit";
+"gua_identity_change_banner_description" = "Bezpečnostní údaje uživatele %1$@ se změnily. Stává se to, když si někdo přeinstaluje Gua nebo pořídí nový telefon. %2$@";
+"gua_identity_change_undecryptable" = "Tuto zprávu nelze otevřít, protože se změnily bezpečnostní údaje odesílatele.";
+"gua_identity_change_profile" = "Bezpečnostní údaje uživatele %1$@ se změnily. Stává se to, když si někdo přeinstaluje Gua nebo pořídí nový telefon.";
+"gua_soft_logout_signin_notice" = "Byli jste odhlášeni ze svého účtu Gua. Přihlaste se znovu a pokračujte.";

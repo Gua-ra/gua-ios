@@ -8,3 +8,7 @@
 "gua_encryption_reset_required_title" = "Certains messages précédents ne peuvent pas être récupérés";
 "gua_encryption_reset_required_message" = "Pour terminer la configuration des conversations chiffrées sur cet appareil, votre sauvegarde chiffrée doit être réinitialisée. Les messages stockés uniquement dans cette sauvegarde seront perdus. Les messages déjà présents sur vos appareils ne seront pas affectés.";
 "gua_encryption_reset_required_action" = "Réinitialiser et terminer";
+"gua_identity_change_banner_description" = "Les informations de sécurité de %1$@ ont changé. Cela arrive lorsqu’une personne réinstalle Gua ou change de téléphone. %2$@";
+"gua_identity_change_undecryptable" = "Ce message ne peut pas être ouvert, car les informations de sécurité de l’expéditeur ont changé.";
+"gua_identity_change_profile" = "Les informations de sécurité de %1$@ ont changé. Cela arrive quand la personne réinstalle Gua ou change de téléphone.";
+"gua_soft_logout_signin_notice" = "Vous avez été déconnecté de votre compte Gua. Reconnectez-vous pour continuer.";

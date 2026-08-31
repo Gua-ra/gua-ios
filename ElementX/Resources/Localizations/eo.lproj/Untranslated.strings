@@ -1,0 +1,13 @@
+/* GUA FORK: translations for the fork's own strings. The English source of truth lives in
+   en.lproj/Untranslated.strings. Upstream's soft-logout strings are deliberately absent:
+   they are Element's and go through Localazy. */
+"gua_identity_change_banner_description" = "La sekurecaj detaloj de %1$@ ŝanĝiĝis. Tio povas okazi kiam iu reinstalas Gua aŭ ricevas novan telefonon. %2$@";
+"gua_identity_change_undecryptable" = "Ĉi tiu mesaĝo ne malfermeblas, ĉar la sekurecaj detaloj de la sendinto ŝanĝiĝis.";
+"gua_identity_change_profile" = "La sekurecaj detaloj de %1$@ ŝanĝiĝis. Tio povas okazi kiam iu reinstalas Gua aŭ ricevas novan telefonon.";
+"gua_encryption_repair_title" = "Finu la agordon de ĉi tiu aparato";
+"gua_encryption_repair_message" = "Kompletigu la agordon por atingi la ĉifritajn babilojn kaj la mesaĝhistorion disponeblan sur ĉi tiu aparato.";
+"gua_encryption_repair_action" = "Fini agordon";
+"gua_encryption_reset_required_title" = "Iuj antaŭaj mesaĝoj ne reakireblas";
+"gua_encryption_reset_required_message" = "Por fini la agordon de ĉifritaj babiloj sur ĉi tiu aparato, via ĉifrita savkopio devas esti restarigita. Mesaĝoj konservitaj nur en tiu savkopio perdiĝos. Mesaĝoj jam sur viaj aparatoj ne estos tuŝitaj.";
+"gua_encryption_reset_required_action" = "Restarigi kaj fini agordon";
+"gua_soft_logout_signin_notice" = "Vi estis elsalutita el via Gua-konto. Ensalutu denove por daŭrigi.";

@@ -32,6 +32,8 @@ internal enum UntranslatedL10n {
   }
   /// This message can’t be opened because the sender’s security details changed.
   internal static var guaIdentityChangeUndecryptable: String { return UntranslatedL10n.tr("Untranslated", "gua_identity_change_undecryptable") }
+  /// You were signed out of your Gua account. Sign in again to carry on.
+  internal static var guaSoftLogoutSigninNotice: String { return UntranslatedL10n.tr("Untranslated", "gua_soft_logout_signin_notice") }
   /// Clear all data currently stored on this device?
   /// Sign in again to access your account data and messages.
   internal static var softLogoutClearDataDialogContent: String { return UntranslatedL10n.tr("Untranslated", "soft_logout_clear_data_dialog_content") }

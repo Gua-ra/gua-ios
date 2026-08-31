@@ -2,9 +2,13 @@
   Gua fork strings for this locale. English source lives in en.lproj/Untranslated.strings.
 */
 
-"gua_encryption_repair_title" = "이 기기 설정 마치기";
+"gua_encryption_repair_title" = "이 기기 설정을 완료하세요";
 "gua_encryption_repair_message" = "설정을 완료하면 이 기기에서 사용할 수 있는 암호화된 대화와 메시지 기록에 접근할 수 있습니다.";
 "gua_encryption_repair_action" = "설정 완료";
 "gua_encryption_reset_required_title" = "일부 이전 메시지는 복구할 수 없습니다";
 "gua_encryption_reset_required_message" = "이 기기에서 암호화된 대화 설정을 마치려면 암호화된 백업을 재설정해야 합니다. 해당 백업에만 저장된 메시지는 사라집니다. 이미 기기에 있는 메시지는 영향을 받지 않습니다.";
 "gua_encryption_reset_required_action" = "재설정하고 완료";
+"gua_identity_change_banner_description" = "%1$@님의 보안 정보가 변경되었습니다. Gua를 다시 설치하거나 새 기기로 바꿀 때 생길 수 있습니다. %2$@";
+"gua_identity_change_undecryptable" = "보낸 사람의 보안 정보가 변경되어 이 메시지를 열 수 없습니다.";
+"gua_identity_change_profile" = "%1$@님의 보안 정보가 변경되었습니다. Gua를 다시 설치하거나 새 기기로 바꿀 때 생길 수 있습니다.";
+"gua_soft_logout_signin_notice" = "Gua 계정에서 로그아웃되었습니다. 계속하려면 다시 로그인하세요.";

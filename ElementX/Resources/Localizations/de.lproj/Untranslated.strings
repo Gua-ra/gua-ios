@@ -2,9 +2,13 @@
   Gua fork strings for this locale. English source lives in en.lproj/Untranslated.strings.
 */
 
-"gua_encryption_repair_title" = "Richte dieses Gerät fertig ein";
+"gua_encryption_repair_title" = "Einrichtung dieses Geräts abschließen";
 "gua_encryption_repair_message" = "Schließe die Einrichtung ab, um auf die verschlüsselten Chats und den auf diesem Gerät verfügbaren Nachrichtenverlauf zuzugreifen.";
 "gua_encryption_repair_action" = "Einrichtung abschließen";
 "gua_encryption_reset_required_title" = "Einige frühere Nachrichten können nicht wiederhergestellt werden";
 "gua_encryption_reset_required_message" = "Um die Einrichtung verschlüsselter Chats auf diesem Gerät abzuschließen, muss dein verschlüsseltes Backup zurückgesetzt werden. Nachrichten, die nur in diesem Backup liegen, gehen verloren. Nachrichten, die bereits auf deinen Geräten sind, bleiben unberührt.";
 "gua_encryption_reset_required_action" = "Zurücksetzen und abschließen";
+"gua_identity_change_banner_description" = "Die Sicherheitsdaten von %1$@ haben sich geändert. Das kann passieren, wenn die Person Gua neu installiert oder ein neues Telefon hat. %2$@";
+"gua_identity_change_undecryptable" = "Diese Nachricht kann nicht geöffnet werden, weil sich die Sicherheitsdaten des Absenders geändert haben.";
+"gua_identity_change_profile" = "Die Sicherheitsdaten von %1$@ haben sich geändert. Das kann passieren, wenn die Person Gua neu installiert oder ein neues Telefon hat.";
+"gua_soft_logout_signin_notice" = "Du wurdest von deinem Gua-Konto abgemeldet. Melde dich erneut an, um fortzufahren.";

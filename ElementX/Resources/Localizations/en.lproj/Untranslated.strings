@@ -20,6 +20,12 @@
 "soft_logout_clear_data_dialog_title" = "Clear data";
 "soft_logout_clear_data_dialog_content" = "Clear all data currently stored on this device?\nSign in again to access your account data and messages.";
 
+/* GUA FORK: replaces upstream's soft_logout_signin_notice, which read "Your homeserver (%1$s)
+   admin has signed you out of your account %2$s (%3$s)." That put the homeserver name and the
+   full Matrix ID on screen, neither of which Gua ever shows anyone. Nothing here needs naming
+   for the message to be actionable. */
+"gua_soft_logout_signin_notice" = "You were signed out of your Gua account. Sign in again to carry on.";
+
 // MARK: - Gua identity change, other surfaces
 
 /* Shown in place of a message that cannot be decrypted because the sender's encryption identity changed. Replaces upstream's "Sender's verified identity was reset". */

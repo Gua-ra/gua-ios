@@ -8,3 +8,7 @@
 "gua_encryption_reset_required_title" = "部分历史消息无法恢复";
 "gua_encryption_reset_required_message" = "要在此设备上完成加密聊天的设置，需要重置你的加密备份。仅保存在该备份中的消息将会丢失。已在你设备上的消息不受影响。";
 "gua_encryption_reset_required_action" = "重置并完成";
+"gua_identity_change_banner_description" = "%1$@ 的安全信息已更改。对方重新安装 Gua 或更换手机时可能会这样。%2$@";
+"gua_identity_change_undecryptable" = "发件人的安全信息已更改，无法打开此消息。";
+"gua_identity_change_profile" = "%1$@ 的安全信息已更改。对方重新安装 Gua 或更换手机时可能会这样。";
+"gua_soft_logout_signin_notice" = "你已退出 Gua 账号。请重新登录以继续。";

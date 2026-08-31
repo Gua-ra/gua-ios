@@ -2,9 +2,13 @@
   Gua fork strings for this locale. English source lives in en.lproj/Untranslated.strings.
 */
 
-"gua_encryption_repair_title" = "Termine de configurar este dispositivo";
+"gua_encryption_repair_title" = "Conclua a configuração deste dispositivo";
 "gua_encryption_repair_message" = "Conclua a configuração para acessar as conversas criptografadas e o histórico de mensagens disponíveis neste dispositivo.";
 "gua_encryption_repair_action" = "Concluir configuração";
 "gua_encryption_reset_required_title" = "Algumas mensagens anteriores não podem ser recuperadas";
 "gua_encryption_reset_required_message" = "Para terminar de configurar as conversas criptografadas neste dispositivo, seu backup criptografado precisa ser redefinido. As mensagens guardadas apenas nesse backup serão perdidas. As mensagens já presentes nos seus dispositivos não serão afetadas.";
 "gua_encryption_reset_required_action" = "Redefinir e concluir";
+"gua_identity_change_banner_description" = "Os dados de segurança de %1$@ mudaram. Isso acontece quando a pessoa reinstala o Gua ou troca de celular. %2$@";
+"gua_identity_change_undecryptable" = "Não é possível abrir esta mensagem porque os dados de segurança de quem enviou mudaram.";
+"gua_identity_change_profile" = "Os dados de segurança de %1$@ mudaram. Isso acontece quando a pessoa reinstala o Gua ou troca de celular.";
+"gua_soft_logout_signin_notice" = "Você foi desconectado da sua conta Gua. Entre novamente para continuar.";
