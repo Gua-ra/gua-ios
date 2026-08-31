@@ -358,10 +358,16 @@ class SecureBackupController: SecureBackupControllerProtocol {
     /// it cannot help anyway, so the tap would spend the account's last silent way back and still
     /// end at a reset. Turning backups on is the one non-rotating thing worth trying.
     private func repairIncomplete() async -> EncryptionRepairOutcome {
+        // Enabling backups needs no cross-signing keys, so on a device that genuinely lacks them
+        // this still succeeds and only the state check below says otherwise. A THROW here therefore
+        // means the server or the network, not a broken account, and must not be reported as
+        // needing a destructive reset: a user who taps through that on a bad connection loses their
+        // backup to a blip. Retry next time instead.
         do {
             try await encryption.enableBackups()
         } catch {
-            MXLog.info("GUA-KEYSTORE: could not enable backups: \(error)")
+            MXLog.info("GUA-KEYSTORE: could not enable backups, treating as retryable: \(error)")
+            return .notYet
         }
 
         if await waitForRecoveryEnabled(timeout: .seconds(2)) {
