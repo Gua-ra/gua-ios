@@ -43,3 +43,8 @@
 "gua_encryption_reset_required_title" = "Some previous messages can’t be recovered";
 "gua_encryption_reset_required_message" = "To finish setting up encrypted chats on this device, your encrypted backup needs to be reset. Messages stored only in that backup will be lost. Messages already on your devices won’t be affected.";
 "gua_encryption_reset_required_action" = "Reset and finish setup";
+// MARK: - Gua: no homeserver in room-address copy
+
+/* Hint under the "Join room by address" field. Replaces upstream's "e.g. #room-name:matrix.org",
+   which named another network's homeserver and taught people the server-qualified form Gua hides. */
+"gua_join_room_by_address_hint" = "Paste the room address you were given.";

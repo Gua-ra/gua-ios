@@ -15,6 +15,10 @@ class UserDiscoveryServiceTest: XCTestCase {
     
     override func setUpWithError() throws {
         clientProxy = .init(.init(userID: "@foo:matrix.org"))
+        // A bare handle now always resolves against the searcher's own server, so the default
+        // has to be "no such user" or every search in this file would invent one. Tests that
+        // want a hit override this with their own returnValue or closure.
+        clientProxy.profileForReturnValue = .failure(.sdkError(ClientProxyMockError.generic))
         service = UserDiscoveryService(clientProxy: clientProxy, federationRosterProvider: nil)
     }
     
@@ -32,11 +36,12 @@ class UserDiscoveryServiceTest: XCTestCase {
         assertSearchResults(results, toBe: 0)
     }
     
-    func testGetProfileIsNotCalled() async {
+    func testGetProfileIsNotCalledForATooShortQuery() async {
         clientProxy.searchUsersSearchTermLimitReturnValue = .success(.init(results: searchResults, limited: true))
         clientProxy.profileForReturnValue = .success(.init(userID: "@alice:matrix.org"))
         
-        let results = await (try? search(query: "AAA").get()) ?? []
+        // Below the three-character floor, so this is not a handle and must not fan out.
+        let results = await (try? search(query: "AA").get()) ?? []
         assertSearchResults(results, toBe: 3)
         XCTAssertFalse(clientProxy.profileForCalled)
     }
@@ -109,7 +114,7 @@ class UserDiscoveryServiceTest: XCTestCase {
     
     // MARK: - Gua federated bare-handle search
 
-    func testBareHandleFansOutAcrossFederationSkippingOwnServer() async {
+    func testBareHandleFansOutAcrossFederationIncludingOwnServer() async {
         makeFederatedService(entries: [("matrix.org", "ACTIVE"), ("ca.gua.example", "ACTIVE"), ("br.gua.example", "ACTIVE")])
         clientProxy.searchUsersSearchTermLimitReturnValue = .success(.init(results: [.mockAlice], limited: false))
         clientProxy.profileForClosure = { userID in .success(.init(userID: userID)) }
@@ -117,6 +122,7 @@ class UserDiscoveryServiceTest: XCTestCase {
         let results = await (try? search(query: "ana-souza").get()) ?? []
 
         XCTAssertEqual(results.map(\.userID), ["@alice:matrix.org",
+                                               "@ana-souza:matrix.org",
                                                "@ana-souza:ca.gua.example",
                                                "@ana-souza:br.gua.example"])
     }
@@ -140,7 +146,7 @@ class UserDiscoveryServiceTest: XCTestCase {
 
         let results = await (try? search(query: "ana-souza").get()) ?? []
 
-        XCTAssertEqual(results.map(\.userID), ["@ana-souza:ca.gua.example"])
+        XCTAssertEqual(results.map(\.userID), ["@ana-souza:ca.gua.example", "@ana-souza:matrix.org"])
     }
 
     func testFederatedMatchesShowWhenLocalSearchFails() async {
@@ -150,7 +156,7 @@ class UserDiscoveryServiceTest: XCTestCase {
 
         let results = await (try? search(query: "ana-souza").get()) ?? []
 
-        XCTAssertEqual(results.map(\.userID), ["@ana-souza:ca.gua.example"])
+        XCTAssertEqual(results.map(\.userID), ["@ana-souza:matrix.org", "@ana-souza:ca.gua.example"])
     }
 
     func testSlowFederatedLookupIsDroppedAfterTimeout() async {
@@ -166,7 +172,31 @@ class UserDiscoveryServiceTest: XCTestCase {
 
         let results = await (try? search(query: "ana-souza").get()) ?? []
 
-        XCTAssertEqual(results.map(\.userID), ["@alice:matrix.org", "@ana-souza:br.gua.example"])
+        XCTAssertEqual(results.map(\.userID), ["@alice:matrix.org",
+                                               "@ana-souza:matrix.org",
+                                               "@ana-souza:br.gua.example"])
+    }
+
+    /// Regression: an unconfigured or unreachable resolver must not remove the ability to find
+    /// someone on your own server. That is the common case and the whole point of the fix.
+    func testOwnServerIsStillSearchedWithoutARoster() async {
+        service = UserDiscoveryService(clientProxy: clientProxy, federationRosterProvider: nil)
+        clientProxy.searchUsersSearchTermLimitReturnValue = .success(.init(results: [], limited: false))
+        clientProxy.profileForClosure = { userID in .success(.init(userID: userID)) }
+
+        let results = await (try? search(query: "ana-souza").get()) ?? []
+
+        XCTAssertEqual(results.map(\.userID), ["@ana-souza:matrix.org"])
+    }
+
+    func testOwnServerIsStillSearchedWhenTheRosterIsEmpty() async {
+        makeFederatedService(entries: [])
+        clientProxy.searchUsersSearchTermLimitReturnValue = .success(.init(results: [], limited: false))
+        clientProxy.profileForClosure = { userID in .success(.init(userID: userID)) }
+
+        let results = await (try? search(query: "ana-souza").get()) ?? []
+
+        XCTAssertEqual(results.map(\.userID), ["@ana-souza:matrix.org"])
     }
 
     func testNonHandleQueryDoesNotFanOut() async {
