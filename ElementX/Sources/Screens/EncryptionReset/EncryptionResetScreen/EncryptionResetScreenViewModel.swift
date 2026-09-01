@@ -76,7 +76,7 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
         let deadline = ContinuousClock.now.advanced(by: .seconds(600))
 
         while identityResetHandle != nil, ContinuousClock.now < deadline {
-            if await resetWithOIDCAuthorisation(showingIndicator: false) {
+            if await resetWithOIDCAuthorisation(showingIndicator: false, surfacingFailure: false) {
                 return
             }
 
@@ -85,6 +85,13 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
             // hard failure cannot spin, then ask again.
             guard identityResetHandle != nil else { return }
             try? await Task.sleep(for: .seconds(2))
+        }
+
+        // Ten minutes without an approval. Say so and take the sheet away, rather than leaving
+        // someone on a page that is no longer connected to anything.
+        if identityResetHandle != nil {
+            MXLog.error("GUA-KEYSTORE: no approval within the deadline, giving up.")
+            await resetWithOIDCAuthorisation(showingIndicator: false, surfacingFailure: true)
         }
     }
     
@@ -204,8 +211,14 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
     }
     
     /// Returns true once the reset has actually landed, false if this attempt did not get there.
+    ///
+    /// `surfacingFailure` is false while the approval sheet is still open. An attempt that fails
+    /// there has almost always simply run out its two minute budget with the user still reading the
+    /// page, which is not a failure of anything -- the approval may be seconds away. Treating it as
+    /// one is what tore the flow down mid-approval and dropped people back on the banner with their
+    /// backup already destroyed. The caller retries instead; the user always has Cancel.
     @discardableResult
-    private func resetWithOIDCAuthorisation(showingIndicator: Bool) async -> Bool {
+    private func resetWithOIDCAuthorisation(showingIndicator: Bool, surfacingFailure: Bool = true) async -> Bool {
         // Nothing to act on if a reset already succeeded and cleared the handle, and nothing to
         // start if one is already running: each reset(auth:) deletes the backup and secret storage
         // again, so a second concurrent call is destructive, not just wasteful.
@@ -241,6 +254,13 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
             return true
         } catch {
             MXLog.error("Failed resetting encryption with error \(error)")
+
+            guard surfacingFailure else {
+                // The sheet is still up and the handle is still good. Keep both: the next attempt
+                // is what picks the approval up once the user gets to it.
+                MXLog.info("GUA-KEYSTORE: reset attempt ended unapproved, will ask again.")
+                return false
+            }
 
             // Drop the handle BEFORE dismissing, mirroring the success path. The send below is
             // synchronous through Combine and reaches the presenter, whose dismissal fires the
