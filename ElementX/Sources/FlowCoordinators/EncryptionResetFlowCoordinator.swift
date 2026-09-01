@@ -128,19 +128,32 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
             case .cancel:
                 actionsSubject.send(.cancel)
             case .resetFinished:
-                // GUA FORK: a reset destroys the key backup and leaves recovery disabled.
-                // Upstream expects the user to walk the "set up recovery" flow from there and
-                // write down a recovery key. Gua shows nobody a recovery key, so provision it
-                // here instead, before the sheet goes away. The generated key is discarded on
-                // purpose: nothing in Gua ever asks for it.
-                Task {
-                    switch await self.userSession.clientProxy.secureBackupController.provisionAfterReset() {
+                // GUA FORK: leave FIRST, provision after.
+                //
+                // A reset destroys the key backup and leaves recovery disabled. Upstream expects
+                // the user to walk the "set up recovery" flow from there and write down a recovery
+                // key; Gua shows nobody a recovery key, so we provision it ourselves. That used to
+                // happen here, awaited, before `.resetComplete` was sent -- and `.resetComplete` is
+                // the only thing that dismisses this flow. So the user sat on the destructive
+                // confirmation screen for the length of the provisioning, with the one spinner in
+                // the flow already retracted, looking at a live "Reset and finish setup" button
+                // with nothing to tell them what was happening. The obvious move from there is to
+                // press it again, which is the loop back into MAS.
+                //
+                // The reset itself has landed by this point, so there is nothing left to keep them
+                // for. Dismiss, then provision behind the chat list: it needs no input, its
+                // outcome is visible in the banner, and SecureBackupController serialises it
+                // against a tap on that banner.
+                actionsSubject.send(.resetComplete)
+
+                Task { [userSession] in
+                    switch await userSession.clientProxy.secureBackupController.provisionAfterReset() {
                     case .repaired:
                         MXLog.info("GUA-KEYSTORE: provisioned key storage after the reset.")
                     case .notYet, .resetRequired:
+                        // The banner is still up and is now the retry: this is not a dead end.
                         MXLog.error("GUA-KEYSTORE: could not provision key storage after the reset.")
                     }
-                    self.actionsSubject.send(.resetComplete)
                 }
             }
         }

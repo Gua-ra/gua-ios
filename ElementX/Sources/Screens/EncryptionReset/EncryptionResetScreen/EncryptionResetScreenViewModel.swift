@@ -23,6 +23,13 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
     private var identityResetHandle: IdentityResetHandle?
     private var passwordCancellable: AnyCancellable?
     private var oidcCancellable: AnyCancellable?
+    /// GUA FORK: true while a reset(auth:) is in flight, so a second one can never start.
+    ///
+    /// The handle alone could not carry this. It is only cleared once a reset SUCCEEDS, so during
+    /// the minutes that reset(auth: nil) spends waiting for MAS approval it is still non-nil, and
+    /// closing the sheet by hand ran a second concurrent reset on it. Per the SDK, each reset
+    /// deletes the key backup and secret storage again, so that was not merely noisy.
+    private var isResetInFlight = false
 
     init(clientProxy: ClientProxyProtocol, userIndicatorController: UserIndicatorControllerProtocol) {
         self.clientProxy = clientProxy
@@ -115,6 +122,10 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
                 oidcCancellable = oidcAuthorisationPublisher.sink { [weak self] in
                     guard let self else { return }
                     oidcCancellable = nil
+                    // The sheet was closed by hand. If the reset we started below is still waiting
+                    // on MAS, leave it alone: starting another one here is what deleted the backup
+                    // a second time. It is only worth attempting when nothing is in flight.
+                    guard !isResetInFlight else { return }
                     Task { await self.resetWithOIDCAuthorisation() }
                 }
 
@@ -157,13 +168,16 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
     }
     
     private func resetWithOIDCAuthorisation() async {
-        // The poller may have finished first and cleared the handle; a manual dismissal after that
-        // is nothing to act on.
-        guard let identityResetHandle else { return }
+        // Nothing to act on if a reset already succeeded and cleared the handle, and nothing to
+        // start if one is already running: each reset(auth:) deletes the backup and secret storage
+        // again, so a second concurrent call is destructive, not just wasteful.
+        guard let identityResetHandle, !isResetInFlight else { return }
 
+        isResetInFlight = true
         showLoadingIndicator()
 
         defer {
+            isResetInFlight = false
             hideLoadingIndicator()
         }
 
@@ -184,11 +198,24 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
             actionsSubject.send(.resetFinished)
         } catch {
             MXLog.error("Failed resetting encryption with error \(error)")
+
+            // Drop the handle BEFORE dismissing, mirroring the success path. The send below is
+            // synchronous through Combine and reaches the presenter, whose dismissal fires the
+            // completion publisher; with the handle still populated that re-entered here and
+            // started a fresh full-length reset with no approval page on screen.
+            await identityResetHandle.cancel()
+            self.identityResetHandle = nil
+
             // The sheet is still open on this path, and MAS will not close it. Take it away rather
             // than leave the user reading an approval page that can no longer lead anywhere.
             actionsSubject.send(.dismissOIDCPresentation)
-            state.isResetting = false
             showErrorToast()
+
+            // Leave, rather than clearing isResetting and putting a destructive button back under
+            // the thumb of someone stranded on a screen whose backup is already gone. Pressing it
+            // is what looped them back into MAS. The banner is still on the chat list behind this,
+            // so retrying stays one tap away, from a screen that can actually explain itself.
+            actionsSubject.send(.cancel)
         }
     }
     

@@ -23,6 +23,9 @@ class SecureBackupController: SecureBackupControllerProtocol {
     // periphery:ignore - auto cancels when reassigned
     /// Used to dedupe remote backup state requests
     @CancellableTask private var remoteBackupStateTask: Task<Void, Error>?
+
+    /// GUA FORK: in-flight post-reset provisioning, so two of them can never race.
+    private var provisioningTask: Task<EncryptionRepairOutcome, Never>?
     
     var recoveryState: CurrentValuePublisher<SecureBackupRecoveryState, Never> {
         recoveryStateSubject.asCurrentValuePublisher()
@@ -339,75 +342,73 @@ class SecureBackupController: SecureBackupControllerProtocol {
     /// either, so the conservative path can never succeed here: it would return `.resetRequired`
     /// forever and put the setup banner back in front of the user who just completed a reset.
     func provisionAfterReset() async -> EncryptionRepairOutcome {
-        // The reset has only just uploaded a new cross-signing identity, and `Recovery::enable`
-        // exports whatever private cross-signing keys the crypto store can hand over at the moment
-        // it runs. Run too early it exports nothing, writes a secret store holding only the backup
-        // key, and the account drops straight back to `.incomplete`. That is not a cosmetic miss:
-        // it puts the setup banner back in front of the user who has just finished a reset, and
-        // the only thing that banner can now offer them is another reset. That is the loop.
-        //
-        // Two things keep it closed. Wait for the identity to be usable before exporting, and take
-        // the state as the verdict rather than the call's return value, because `enableRecovery`
-        // reports success for a store it populated with nothing.
-        await waitForVerifiedIdentity(timeout: .seconds(5))
+        // Serialised against everything else that provisions, because this now runs behind the chat
+        // list where the setup banner is still on screen and still tappable. Two `enableRecovery`
+        // calls racing each other both mint a secret store, and the loser's store is the one that
+        // survives in account data.
+        if let provisioningTask {
+            return await provisioningTask.value
+        }
 
+        let task = Task<EncryptionRepairOutcome, Never> { [weak self] in
+            guard let self else { return .resetRequired }
+            return await performProvisionAfterReset()
+        }
+
+        provisioningTask = task
+        let outcome = await task.value
+        provisioningTask = nil
+        return outcome
+    }
+
+    /// Provisions key storage after a reset, and keeps trying until the state agrees.
+    ///
+    /// `Recovery::enable` exports whatever private cross-signing keys the crypto store can hand over
+    /// at the moment it runs, and reports success even when it exported nothing. The reset has only
+    /// just minted those keys, so an export that runs too early writes a secret store holding only
+    /// the backup key and the account lands straight back on `.incomplete` -- which is the setup
+    /// banner, back in front of someone who has just finished a reset, offering them another reset.
+    ///
+    /// The previous attempt at this gated on `verificationState() == .verified`. That is not a sound
+    /// signal: it reports the identity the session currently trusts, which immediately after a reset
+    /// is often still the OLD one, so the gate passed instantly and bought nothing. What is sound is
+    /// the outcome itself, so this asks for it and, if the account is still incomplete, waits and
+    /// asks again. Nothing here is on a user's critical path any more, so it can afford to be
+    /// patient where the foreground version could not.
+    private func performProvisionAfterReset() async -> EncryptionRepairOutcome {
         // Rotating the secret store is normally the one thing to avoid, since it invalidates any
         // recovery key saved elsewhere for this account. Immediately after a reset there is no such
-        // key and no earlier store left to strand, so a second attempt costs nothing.
-        for attempt in 1...2 {
-            do {
-                _ = try await enableRecoveryReturningKey()
-            } catch {
-                MXLog.error("GUA-KEYSTORE: provision attempt \(attempt) after the reset threw: \(error)")
-            }
-
-            if await waitForRecoveryEnabled(timeout: .seconds(5)) {
+        // key and no earlier store left to strand, so re-running it costs nothing but a round trip.
+        for (attempt, backoff) in Self.provisionBackoff.enumerated() {
+            // Re-read before spending another rotation: an earlier attempt may have landed while
+            // this one was waiting, and rotating over a store that already works would undo it.
+            if recoveryState.value == .enabled {
                 return .repaired
             }
 
-            MXLog.warning("GUA-KEYSTORE: provision attempt \(attempt) left the account incomplete.")
+            do {
+                _ = try await enableRecoveryReturningKey()
+            } catch {
+                MXLog.warning("GUA-KEYSTORE: post-reset provision attempt \(attempt + 1) threw: \(error)")
+            }
+
+            if await waitForRecoveryEnabled(timeout: backoff) {
+                MXLog.info("GUA-KEYSTORE: key storage provisioned on attempt \(attempt + 1).")
+                return .repaired
+            }
+
+            MXLog.warning("GUA-KEYSTORE: post-reset attempt \(attempt + 1) left the account incomplete.")
         }
 
         MXLog.error("GUA-KEYSTORE: could not provision key storage after the reset.")
         return .resetRequired
     }
 
-    /// Waits until the session trusts its own cross-signing identity.
+    /// How long to wait for the state to agree after each attempt, growing as the identity settles.
     ///
-    /// This is the signal that the private keys the reset just minted have reached the crypto store
-    /// and can be exported into a secret store. Returns on the timeout rather than failing: the
-    /// caller checks the resulting state either way, so a slow identity costs an attempt, not the
-    /// whole provision.
-    private func waitForVerifiedIdentity(timeout: Duration) async -> Bool {
-        if await (try? encryption.verificationState()) == .verified {
-            return true
-        }
-
-        return await withTaskGroup(of: Bool.self) { group in
-            group.addTask { [encryption] in
-                let stream = AsyncStream<VerificationState> { continuation in
-                    let handle = encryption.verificationStateListener(listener: SDKListener { state in
-                        continuation.yield(state)
-                    })
-                    continuation.onTermination = { _ in handle.cancel() }
-                }
-
-                for await state in stream where state == .verified {
-                    return true
-                }
-                return false
-            }
-
-            group.addTask {
-                try? await Task.sleep(for: timeout)
-                return false
-            }
-
-            let verified = await group.next() ?? false
-            group.cancelAll()
-            return verified
-        }
-    }
+    /// Doubles as the retry schedule: the whole sequence spans about a minute, which is generous
+    /// enough for a slow device and still bounded, and the user is not waiting on any of it.
+    private static let provisionBackoff: [Duration] = [.seconds(3), .seconds(5), .seconds(10), .seconds(20), .seconds(20)]
 
     /// Repairs an account whose secret storage exists but whose secrets this device cannot use.
     ///
