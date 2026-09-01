@@ -58,6 +58,35 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
             actionsSubject.send(.cancel)
         }
     }
+
+    /// Keeps asking until the approval lands, because one call is not enough.
+    ///
+    /// `CrossSigningResetHandle.auth()` retries the key upload for about two minutes and then gives
+    /// up, and that budget starts the moment we call it -- which is the moment the sheet opens, not
+    /// the moment the user approves. So the whole of it is spent while they are still reading the
+    /// MAS page. Anyone slower than that approves into a call that has already expired: the reset
+    /// never completes, so the sheet is never dismissed, and they are left on a page telling them to
+    /// go back to an app that has stopped listening. That is the "close it yourself with the X".
+    ///
+    /// Retrying the SAME handle is what picks the approval up: the handle carries the UIAA session
+    /// the approval was granted against, so a later attempt sees it as approved and succeeds. The
+    /// attempts are strictly sequential -- `isResetInFlight` guarantees it -- because two of them
+    /// overlapping is what made this unsafe the last time it was tried.
+    private func keepAskingUntilApproved() async {
+        let deadline = ContinuousClock.now.advanced(by: .seconds(600))
+
+        while identityResetHandle != nil, ContinuousClock.now < deadline {
+            if await resetWithOIDCAuthorisation(showingIndicator: false) {
+                return
+            }
+
+            // The failure path clears the handle and leaves the flow, so reaching here with it
+            // still set means the attempt simply ran out its budget unapproved. Pause briefly so a
+            // hard failure cannot spin, then ask again.
+            guard identityResetHandle != nil else { return }
+            try? await Task.sleep(for: .seconds(2))
+        }
+    }
     
     func stop() {
         Task {
@@ -142,7 +171,7 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
                 // is waiting for. A modal "Loading…" over the top of the page they are trying to
                 // read is not progress, it is an obstruction, and it made a normal two minute read
                 // look like the app had hung. The sheet is the user interface here.
-                await resetWithOIDCAuthorisation(showingIndicator: false)
+                await keepAskingUntilApproved()
             }
         case .failure(let error):
             MXLog.error("Failed resetting encryption with error \(error)")
@@ -174,11 +203,13 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
         }
     }
     
-    private func resetWithOIDCAuthorisation(showingIndicator: Bool) async {
+    /// Returns true once the reset has actually landed, false if this attempt did not get there.
+    @discardableResult
+    private func resetWithOIDCAuthorisation(showingIndicator: Bool) async -> Bool {
         // Nothing to act on if a reset already succeeded and cleared the handle, and nothing to
         // start if one is already running: each reset(auth:) deletes the backup and secret storage
         // again, so a second concurrent call is destructive, not just wasteful.
-        guard let identityResetHandle, !isResetInFlight else { return }
+        guard let identityResetHandle, !isResetInFlight else { return false }
 
         isResetInFlight = true
         if showingIndicator {
@@ -207,6 +238,7 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
             // reason to close itself. Now that the approval has demonstrably landed, close it.
             actionsSubject.send(.dismissOIDCPresentation)
             actionsSubject.send(.resetFinished)
+            return true
         } catch {
             MXLog.error("Failed resetting encryption with error \(error)")
 
@@ -227,6 +259,7 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
             // is what looped them back into MAS. The banner is still on the chat list behind this,
             // so retrying stays one tap away, from a screen that can actually explain itself.
             actionsSubject.send(.cancel)
+            return false
         }
     }
     
