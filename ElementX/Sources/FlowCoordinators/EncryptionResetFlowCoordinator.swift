@@ -128,32 +128,39 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
             case .cancel:
                 actionsSubject.send(.cancel)
             case .resetFinished:
-                // GUA FORK: leave FIRST, provision after.
+                // GUA FORK: hold the user here, visibly, until the account is actually finished.
                 //
-                // A reset destroys the key backup and leaves recovery disabled. Upstream expects
-                // the user to walk the "set up recovery" flow from there and write down a recovery
-                // key; Gua shows nobody a recovery key, so we provision it ourselves. That used to
-                // happen here, awaited, before `.resetComplete` was sent -- and `.resetComplete` is
-                // the only thing that dismisses this flow. So the user sat on the destructive
-                // confirmation screen for the length of the provisioning, with the one spinner in
-                // the flow already retracted, looking at a live "Reset and finish setup" button
-                // with nothing to tell them what was happening. The obvious move from there is to
-                // press it again, which is the loop back into MAS.
+                // The reset has landed but recovery is still disabled, and provisioning it is what
+                // clears the setup banner. Dismissing before that put people back on the chat list
+                // with the banner still up -- a phantom, since nothing was wrong any more except
+                // that the work had not finished -- so they pressed it, and the press looked like
+                // what fixed the account.
                 //
-                // The reset itself has landed by this point, so there is nothing left to keep them
-                // for. Dismiss, then provision behind the chat list: it needs no input, its
-                // outcome is visible in the banner, and SecureBackupController serialises it
-                // against a tap on that banner.
-                actionsSubject.send(.resetComplete)
+                // So: one blocking wait that says wait, then a confirmation that says it worked,
+                // and only then back to the chat list, by which point the banner is genuinely gone.
+                // It takes about a second, and there is nothing here for the user to get wrong.
+                Task { [weak self] in
+                    guard let self else { return }
 
-                Task { [userSession] in
-                    switch await userSession.clientProxy.secureBackupController.provisionAfterReset() {
+                    userIndicatorController.submitIndicator(UserIndicator(id: Self.finishingIndicatorID,
+                                                                          type: .modal,
+                                                                          title: L10n.commonPleaseWait,
+                                                                          persistent: true))
+
+                    let outcome = await userSession.clientProxy.secureBackupController.provisionAfterReset()
+                    userIndicatorController.retractIndicatorWithId(Self.finishingIndicatorID)
+
+                    switch outcome {
                     case .repaired:
                         MXLog.info("GUA-KEYSTORE: provisioned key storage after the reset.")
+                        userIndicatorController.submitIndicator(UserIndicator(title: L10n.commonSuccess))
                     case .notYet, .resetRequired:
-                        // The banner is still up and is now the retry: this is not a dead end.
+                        // The banner is still up and is now the retry, so this is not a dead end.
                         MXLog.error("GUA-KEYSTORE: could not provision key storage after the reset.")
+                        userIndicatorController.submitIndicator(UserIndicator(title: L10n.errorUnknown))
                     }
+
+                    actionsSubject.send(.resetComplete)
                 }
             }
         }
@@ -182,6 +189,8 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
         }
     }
     
+    private static let finishingIndicatorID = "\(EncryptionResetFlowCoordinator.self)-Finishing"
+
     private var accountSettingsPresenter: OIDCAccountSettingsPresenter?
     private func presentOIDCAuthorization(for url: URL, completionPublisher: PassthroughSubject<Void, Never>) {
         // Note to anyone in the future if you come back here to make this open in Safari instead of a WAS.

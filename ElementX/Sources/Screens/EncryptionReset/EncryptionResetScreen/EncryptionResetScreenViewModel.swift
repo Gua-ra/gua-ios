@@ -59,50 +59,14 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
         }
     }
 
-    /// Keeps asking until the approval lands, because one call is not enough.
-    ///
-    /// `CrossSigningResetHandle.auth()` retries the key upload for about two minutes and then gives
-    /// up, and that budget starts the moment we call it -- which is the moment the sheet opens, not
-    /// the moment the user approves. So the whole of it is spent while they are still reading the
-    /// MAS page. Anyone slower than that approves into a call that has already expired: the reset
-    /// never completes, so the sheet is never dismissed, and they are left on a page telling them to
-    /// go back to an app that has stopped listening. That is the "close it yourself with the X".
-    ///
-    /// Retrying the SAME handle is what picks the approval up: the handle carries the UIAA session
-    /// the approval was granted against, so a later attempt sees it as approved and succeeds. The
-    /// attempts are strictly sequential -- `isResetInFlight` guarantees it -- because two of them
-    /// overlapping is what made this unsafe the last time it was tried.
-    private func keepAskingUntilApproved() async {
-        let deadline = ContinuousClock.now.advanced(by: .seconds(600))
-
-        while identityResetHandle != nil, ContinuousClock.now < deadline {
-            if await resetWithOIDCAuthorisation(showingIndicator: false, surfacingFailure: false) {
-                return
-            }
-
-            // The failure path clears the handle and leaves the flow, so reaching here with it
-            // still set means the attempt simply ran out its budget unapproved. Pause briefly so a
-            // hard failure cannot spin, then ask again.
-            guard identityResetHandle != nil else { return }
-            try? await Task.sleep(for: .seconds(2))
-        }
-
-        // Ten minutes without an approval. Say so and take the sheet away, rather than leaving
-        // someone on a page that is no longer connected to anything.
-        if identityResetHandle != nil {
-            MXLog.error("GUA-KEYSTORE: no approval within the deadline, giving up.")
-            await resetWithOIDCAuthorisation(showingIndicator: false, surfacingFailure: true)
-        }
-    }
-    
     func stop() {
         Task {
             await identityResetHandle?.cancel()
         }
     }
-    
+
     // MARK: - Private
-    
+
     private func startResetFlow() async {
         showLoadingIndicator()
         
@@ -154,31 +118,26 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
                 // poll that instead of waiting to be told. The moment it succeeds we close the
                 // sheet ourselves and finish. Dismissing by hand still works: the publisher fires
                 // and we make one final attempt.
+                // The sheet closing IS the signal, and it is the only one there is.
+                //
+                // Running reset(auth: nil) while the sheet is open was the mistake. Its approval
+                // budget is about two minutes and it starts when the sheet opens, so it is spent on
+                // the time the user takes to read the page. Worse, it holds isResetInFlight for
+                // that whole window, so when they did close the sheet the close was ignored, the
+                // destructive button behind it stayed disabled, and the only way out was Cancel --
+                // with the banner still up afterwards, because nothing had finished.
+                //
+                // So nothing runs until the sheet goes. By then the approval is in force and a
+                // single call settles in about a second. If they closed it without approving, that
+                // call fails and says so, which is the honest outcome for that case.
                 let oidcAuthorisationPublisher = PassthroughSubject<Void, Never>()
                 oidcCancellable = oidcAuthorisationPublisher.sink { [weak self] in
                     guard let self else { return }
                     oidcCancellable = nil
-                    // The sheet was closed by hand. If the reset we started below is still waiting
-                    // on MAS, leave it alone: starting another one here is what deleted the backup
-                    // a second time. It is only worth attempting when nothing is in flight.
-                    guard !isResetInFlight else { return }
-                    // The sheet is gone by now, so this one IS the user waiting on us: show it.
                     Task { await self.resetWithOIDCAuthorisation(showingIndicator: true) }
                 }
 
                 actionsSubject.send(.requestOIDCAuthorisation(url: url, completionPublisher: oidcAuthorisationPublisher))
-
-                // One call, not a poll loop. CrossSigningResetHandle.auth() already retries the
-                // key upload twice a second for two minutes and keeps going at the OAuth stage, so
-                // reset(auth: nil) blocks until MAS approval lands by itself. Polling on top of
-                // that just started overlapping two-minute resets.
-                //
-                // No spinner for this one. It runs for exactly as long as the user spends at MAS --
-                // reading the page, scrolling it, pressing Finish reset -- because that is what it
-                // is waiting for. A modal "Loading…" over the top of the page they are trying to
-                // read is not progress, it is an obstruction, and it made a normal two minute read
-                // look like the app had hung. The sheet is the user interface here.
-                await keepAskingUntilApproved()
             }
         case .failure(let error):
             MXLog.error("Failed resetting encryption with error \(error)")
