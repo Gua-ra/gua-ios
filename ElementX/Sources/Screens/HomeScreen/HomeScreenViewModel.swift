@@ -76,6 +76,27 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             }
             .store(in: &cancellables)
         
+        // GUA FORK: the banner reports the background provisioning as work in progress.
+        //
+        // After a reset, key storage is provisioned behind this screen. Until it lands the recovery
+        // state is legitimately still unhealthy, so the banner is still up -- and it used to look
+        // exactly like an untouched "Finish setup" call to action, so people pressed it, and the
+        // press looked like the thing that fixed the account. It was not; it just arrived after the
+        // work had finished. Showing the work is the difference between those two readings.
+        userSession.clientProxy.secureBackupController.isProvisioningKeyStorage
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isProvisioning in
+                guard let self else { return }
+                // Never clears the tap-driven flag: finishEncryptionSetup owns that one and clears
+                // it in its own defer.
+                if isProvisioning {
+                    state.isFinishingEncryptionSetup = true
+                } else if !state.isRepairingEncryptionSetupFromTap {
+                    state.isFinishingEncryptionSetup = false
+                }
+            }
+            .store(in: &cancellables)
+
         userSession.sessionSecurityStatePublisher
             .receive(on: DispatchQueue.main)
             .filter { state in
@@ -166,6 +187,7 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             // same frame as the tap rather than after the first await. It doubles as the re-entry
             // guard, and finishEncryptionSetup clears it on every outcome.
             guard !state.isFinishingEncryptionSetup else { return }
+            state.isRepairingEncryptionSetupFromTap = true
             state.isFinishingEncryptionSetup = true
             Task { await finishEncryptionSetup() }
         case .resetEncryption:
@@ -251,7 +273,10 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
     /// required, which is the only case where anything can be lost.
     private func finishEncryptionSetup() async {
         // Clears on every path out, so the button can never latch.
-        defer { state.isFinishingEncryptionSetup = false }
+        defer {
+            state.isRepairingEncryptionSetupFromTap = false
+            state.isFinishingEncryptionSetup = false
+        }
 
         let secureBackupController = userSession.clientProxy.secureBackupController
         switch await secureBackupController.repairWithoutReset() {

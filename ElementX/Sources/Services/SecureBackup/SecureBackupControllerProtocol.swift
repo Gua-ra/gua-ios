@@ -50,6 +50,14 @@ protocol SecureBackupControllerProtocol {
     var recoveryState: CurrentValuePublisher<SecureBackupRecoveryState, Never> { get }
     
     var keyBackupState: CurrentValuePublisher<SecureBackupKeyBackupState, Never> { get }
+
+    /// GUA FORK: true while key storage is being provisioned in the background.
+    ///
+    /// Provisioning after a reset runs behind the chat list, where the setup banner is still on
+    /// screen because the recovery state is genuinely not healthy yet. Without this the banner
+    /// reads as an untouched call to action for the whole of that window, so the user presses it,
+    /// and the press appears to be what fixed things. It is not; it just arrived after the work.
+    var isProvisioningKeyStorage: CurrentValuePublisher<Bool, Never> { get }
     
     func enable() async -> Result<Void, SecureBackupControllerError>
     func disable() async -> Result<Void, SecureBackupControllerError>

@@ -126,7 +126,8 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
                     // on MAS, leave it alone: starting another one here is what deleted the backup
                     // a second time. It is only worth attempting when nothing is in flight.
                     guard !isResetInFlight else { return }
-                    Task { await self.resetWithOIDCAuthorisation() }
+                    // The sheet is gone by now, so this one IS the user waiting on us: show it.
+                    Task { await self.resetWithOIDCAuthorisation(showingIndicator: true) }
                 }
 
                 actionsSubject.send(.requestOIDCAuthorisation(url: url, completionPublisher: oidcAuthorisationPublisher))
@@ -135,7 +136,13 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
                 // key upload twice a second for two minutes and keeps going at the OAuth stage, so
                 // reset(auth: nil) blocks until MAS approval lands by itself. Polling on top of
                 // that just started overlapping two-minute resets.
-                await resetWithOIDCAuthorisation()
+                //
+                // No spinner for this one. It runs for exactly as long as the user spends at MAS --
+                // reading the page, scrolling it, pressing Finish reset -- because that is what it
+                // is waiting for. A modal "Loading…" over the top of the page they are trying to
+                // read is not progress, it is an obstruction, and it made a normal two minute read
+                // look like the app had hung. The sheet is the user interface here.
+                await resetWithOIDCAuthorisation(showingIndicator: false)
             }
         case .failure(let error):
             MXLog.error("Failed resetting encryption with error \(error)")
@@ -167,18 +174,22 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
         }
     }
     
-    private func resetWithOIDCAuthorisation() async {
+    private func resetWithOIDCAuthorisation(showingIndicator: Bool) async {
         // Nothing to act on if a reset already succeeded and cleared the handle, and nothing to
         // start if one is already running: each reset(auth:) deletes the backup and secret storage
         // again, so a second concurrent call is destructive, not just wasteful.
         guard let identityResetHandle, !isResetInFlight else { return }
 
         isResetInFlight = true
-        showLoadingIndicator()
+        if showingIndicator {
+            showLoadingIndicator()
+        }
 
         defer {
             isResetInFlight = false
-            hideLoadingIndicator()
+            if showingIndicator {
+                hideLoadingIndicator()
+            }
         }
 
         do {

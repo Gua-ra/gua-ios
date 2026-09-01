@@ -15159,6 +15159,11 @@ class SecureBackupControllerMock: SecureBackupControllerProtocol, @unchecked Sen
         set(value) { underlyingKeyBackupState = value }
     }
     var underlyingKeyBackupState: CurrentValuePublisher<SecureBackupKeyBackupState, Never>!
+    var isProvisioningKeyStorage: CurrentValuePublisher<Bool, Never> {
+        get { return underlyingIsProvisioningKeyStorage }
+        set(value) { underlyingIsProvisioningKeyStorage = value }
+    }
+    var underlyingIsProvisioningKeyStorage: CurrentValuePublisher<Bool, Never>!
 
     //MARK: - enable
 

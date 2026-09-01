@@ -26,6 +26,7 @@ class SecureBackupController: SecureBackupControllerProtocol {
 
     /// GUA FORK: in-flight post-reset provisioning, so two of them can never race.
     private var provisioningTask: Task<EncryptionRepairOutcome, Never>?
+    private let isProvisioningKeyStorageSubject = CurrentValueSubject<Bool, Never>(false)
     
     var recoveryState: CurrentValuePublisher<SecureBackupRecoveryState, Never> {
         recoveryStateSubject.asCurrentValuePublisher()
@@ -33,6 +34,10 @@ class SecureBackupController: SecureBackupControllerProtocol {
     
     var keyBackupState: CurrentValuePublisher<SecureBackupKeyBackupState, Never> {
         keyBackupStateSubject.asCurrentValuePublisher()
+    }
+
+    var isProvisioningKeyStorage: CurrentValuePublisher<Bool, Never> {
+        isProvisioningKeyStorageSubject.asCurrentValuePublisher()
     }
     
     init(encryption: Encryption) {
@@ -356,8 +361,10 @@ class SecureBackupController: SecureBackupControllerProtocol {
         }
 
         provisioningTask = task
+        isProvisioningKeyStorageSubject.send(true)
         let outcome = await task.value
         provisioningTask = nil
+        isProvisioningKeyStorageSubject.send(false)
         return outcome
     }
 
@@ -462,6 +469,14 @@ class SecureBackupController: SecureBackupControllerProtocol {
     /// In the one case it would fire, it blanks the `m.cross_signing.*` account data, destroying
     /// the last server-side copy of the private cross-signing keys.
     private func provisionKeyStorage() async -> EncryptionRepairOutcome {
+        // A post-reset provision may already be running behind the chat list. Join it rather than
+        // starting a second one: two enableRecovery calls each mint a secret store, and the loser's
+        // is the one that ends up in account data. This is the tap that lands while the background
+        // work is still going.
+        if let provisioningTask {
+            return await provisioningTask.value
+        }
+
         do {
             _ = try await enableRecoveryReturningKey()
         } catch {
