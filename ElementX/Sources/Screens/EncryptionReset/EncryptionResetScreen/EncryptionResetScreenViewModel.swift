@@ -39,14 +39,15 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
 
     // MARK: - Recovery from another device
 
-    /// GUA FORK: offers recovery from another device only when it can actually work: this device
-    /// is missing keys that exist on the server (recovery is incomplete) AND another device of the
-    /// account is signed by the current identity, so a verification with it hands the keys over.
-    /// Anything else, and the reset stays the only option.
+    /// GUA FORK: offers recovery from another device only when there is one to recover from: this
+    /// device is missing keys that exist on the server (recovery is incomplete) AND another device
+    /// of the account is signed by the current identity. Whether that device still holds the keys
+    /// and answers is only learnt by trying; the flow says so plainly when it does not. Anything
+    /// else, and the reset stays the only option.
     private func checkForOtherDevice() async {
         guard clientProxy.secureBackupController.recoveryState.value == .incomplete else { return }
         guard case let .success(hasOtherDevice) = await clientProxy.hasDevicesToVerifyAgainst() else { return }
-        MXLog.info("GUA-KEYSTORE: another device holds the keys: \(hasOtherDevice)")
+        MXLog.info("GUA-KEYSTORE: another device signed by the current identity exists: \(hasOtherDevice)")
         state.canRecoverFromOtherDevice = hasOtherDevice
     }
 

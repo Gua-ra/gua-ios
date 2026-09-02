@@ -280,9 +280,11 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
         }
     }
 
-    /// The other device answers within a second or two once the emojis match; the bound only
-    /// exists so that a device that never answers cannot hold the user on a spinner.
-    private static let recoveryFromOtherDeviceCeiling: Duration = .seconds(30)
+    /// The other device answers within a second or two once the emojis match, but the keys ride
+    /// on the encryption sync, which polls every 30 s at rest. The bound covers one poll with
+    /// margin; it only exists so that a device that never answers cannot hold the user on a
+    /// spinner. If the keys arrive after it, the banner still clears by itself.
+    private static let recoveryFromOtherDeviceCeiling: Duration = .seconds(60)
 
     private static let finishingIndicatorID = "\(EncryptionResetFlowCoordinator.self)-Finishing"
 
