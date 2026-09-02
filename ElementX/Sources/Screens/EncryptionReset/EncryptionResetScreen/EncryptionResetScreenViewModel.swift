@@ -104,9 +104,22 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
 
                 hideLoadingIndicator()
 
-                // GUA FORK: nothing runs while the sheet is open. The approval page hands control
-                // back to the app once the user has approved, and that is the moment to upload.
-                // The sheet closing by hand is the other outcome, and it means no approval.
+                // GUA FORK: approve from the app's own session first. The web sheet shares cookies
+                // with the system browser, which on most phones holds no session at all (sign-in
+                // uses an ephemeral browser context), so the page would demand a whole new
+                // phone-number login; on a phone whose browser holds another account it would
+                // approve the reset for that account. The server now accepts the access token the
+                // app already uses, for this user only, and the upload can follow at once.
+                showFinishingIndicator()
+                if await approveFromApp(approvalURL: url) {
+                    await finishApprovedReset()
+                    return
+                }
+                hideFinishingIndicator()
+
+                // Older servers: fall back to the web sheet. Nothing runs while it is open. The
+                // approval page hands control back to the app once the user has approved, and
+                // that is the moment to upload. The sheet closing by hand means no approval.
                 let outcomePublisher = PassthroughSubject<OIDCAccountSettingsPresenter.Outcome, Never>()
                 oidcCancellable = outcomePublisher.sink { [weak self] outcome in
                     guard let self else { return }
@@ -143,6 +156,40 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
             // Cancel, with the key backup already destroyed.
             state.isResetting = false
             showErrorToast()
+        }
+    }
+
+    // MARK: Approval from the app's own session
+
+    /// Asks the server to open the reset window for this account, authenticated with the
+    /// session's own access token. Returns false when the server does not offer this (an
+    /// older deployment) or refuses, in which case the web sheet is the fallback.
+    private func approveFromApp(approvalURL: URL) async -> Bool {
+        guard let accessToken = clientProxy.accessToken,
+              var components = URLComponents(url: approvalURL, resolvingAgainstBaseURL: false) else {
+            return false
+        }
+        components.path = "/api/gua/identity-reset/allow"
+        components.query = nil
+        components.fragment = nil
+        guard let endpoint = components.url else { return false }
+
+        var request = URLRequest(url: endpoint, timeoutInterval: 10)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            guard let status = (response as? HTTPURLResponse)?.statusCode else { return false }
+            if (200..<300).contains(status) {
+                MXLog.info("GUA-KEYSTORE: reset approved from the app's own session.")
+                return true
+            }
+            MXLog.warning("GUA-KEYSTORE: app-side approval answered \(status); falling back to the web sheet.")
+            return false
+        } catch {
+            MXLog.warning("GUA-KEYSTORE: app-side approval failed (\(error)); falling back to the web sheet.")
+            return false
         }
     }
 
