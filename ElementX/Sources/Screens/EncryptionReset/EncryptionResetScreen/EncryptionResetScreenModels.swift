@@ -16,10 +16,15 @@ enum EncryptionResetScreenViewModelAction {
     /// GUA FORK: the approval landed, so close the web sheet rather than leaving the user to.
     case dismissOIDCPresentation
     case resetFinished
+    /// GUA FORK: the user chose to get the keys from another device of theirs instead of resetting.
+    case recoverFromOtherDevice
     case cancel
 }
 
 struct EncryptionResetScreenViewState: BindableState {
+    /// GUA FORK: true only when another device of this account holds the keys, so verifying
+    /// with it can bring the messages here without a reset.
+    var canRecoverFromOtherDevice = false
     /// GUA FORK: true from the moment the destructive button is pressed until the reset settles.
     /// resetIdentity() deletes the key backup before it even returns the MAS approval URL, so a
     /// second press must never reach it.
@@ -53,5 +58,6 @@ struct EncryptionResetScreenViewStateBindings {
 
 enum EncryptionResetScreenViewAction {
     case reset
+    case recoverFromOtherDevice
     case cancel
 }

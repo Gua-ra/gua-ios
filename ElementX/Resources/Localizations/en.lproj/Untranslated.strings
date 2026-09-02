@@ -67,3 +67,16 @@
 "gua_encryption_reset_not_approved" = "Setup wasn’t approved. Tap Reset and finish setup to try again.";
 /* Toast when the approval came back but the setup could not be confirmed in time. */
 "gua_encryption_reset_failed" = "Couldn’t finish setup. Tap Reset and finish setup to try again.";
+
+// MARK: - Gua: recovering keys from another device
+
+/* Secondary option on the reset screen, shown only when another device holds the keys. */
+"gua_encryption_recover_from_other_device_action" = "Get them from my other device";
+/* Toast when the other device did not hand the keys over in time. */
+"gua_encryption_recover_from_other_device_failed" = "Couldn’t get your messages from the other device. Make sure it’s open and try again, or reset.";
+/* Verification with another device of the same account, in plain words. */
+"gua_verification_other_device_title" = "Open Gua on your other device";
+"gua_verification_other_device_subtitle" = "Keep it open. You’ll compare a few emojis on both devices to confirm it’s you.";
+"gua_verification_waiting_other_device_title" = "Waiting for your other device";
+"gua_verification_compare_emojis_subtitle" = "Make sure the emojis below match the ones on your other device.";
+"gua_verification_complete_subtitle" = "Your messages will now show up on this device.";

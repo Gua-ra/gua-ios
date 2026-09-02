@@ -14,6 +14,7 @@ enum EncryptionResetScreenCoordinatorAction {
     /// GUA FORK: the approval landed, so close the web sheet rather than leaving the user to.
     case dismissOIDCPresentation
     case resetFinished
+    case recoverFromOtherDevice
     case cancel
 }
 
@@ -53,6 +54,8 @@ final class EncryptionResetScreenCoordinator: CoordinatorProtocol {
                 self.actionsSubject.send(.requestPassword(passwordPublisher: passwordPublisher))
             case .resetFinished:
                 self.actionsSubject.send(.resetFinished)
+            case .recoverFromOtherDevice:
+                self.actionsSubject.send(.recoverFromOtherDevice)
             case .cancel:
                 self.actionsSubject.send(.cancel)
             }

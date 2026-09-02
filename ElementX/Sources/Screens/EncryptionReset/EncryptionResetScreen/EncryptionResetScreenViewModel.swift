@@ -33,6 +33,21 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
         self.userIndicatorController = userIndicatorController
 
         super.init(initialViewState: EncryptionResetScreenViewState(bindings: .init()))
+
+        Task { await checkForOtherDevice() }
+    }
+
+    // MARK: - Recovery from another device
+
+    /// GUA FORK: offers recovery from another device only when it can actually work: this device
+    /// is missing keys that exist on the server (recovery is incomplete) AND another device of the
+    /// account is signed by the current identity, so a verification with it hands the keys over.
+    /// Anything else, and the reset stays the only option.
+    private func checkForOtherDevice() async {
+        guard clientProxy.secureBackupController.recoveryState.value == .incomplete else { return }
+        guard case let .success(hasOtherDevice) = await clientProxy.hasDevicesToVerifyAgainst() else { return }
+        MXLog.info("GUA-KEYSTORE: another device holds the keys: \(hasOtherDevice)")
+        state.canRecoverFromOtherDevice = hasOtherDevice
     }
 
     // MARK: - Public
@@ -51,6 +66,9 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
             guard !state.isResetting else { return }
             state.isResetting = true
             Task { await startResetFlow() }
+        case .recoverFromOtherDevice:
+            guard !state.isResetting else { return }
+            actionsSubject.send(.recoverFromOtherDevice)
         case .cancel:
             actionsSubject.send(.cancel)
         }

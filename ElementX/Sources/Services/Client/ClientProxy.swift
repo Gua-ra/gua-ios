@@ -1147,6 +1147,15 @@ class ClientProxy: ClientProxyProtocol {
             return .failure(.sdkError(error))
         }
     }
+
+    func hasDevicesToVerifyAgainst() async -> Result<Bool, ClientProxyError> {
+        do {
+            return try await .success(client.encryption().hasDevicesToVerifyAgainst())
+        } catch {
+            MXLog.error("Failed checking for devices to verify against: \(error)")
+            return .failure(.sdkError(error))
+        }
+    }
 }
 
 private class ClientDelegateWrapper: ClientDelegate {

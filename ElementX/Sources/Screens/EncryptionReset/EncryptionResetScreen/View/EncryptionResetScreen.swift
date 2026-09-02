@@ -15,12 +15,25 @@ struct EncryptionResetScreen: View {
         FullscreenDialog {
             mainContent
         } bottomContent: {
-            Button(UntranslatedL10n.guaEncryptionResetRequiredAction, role: .destructive) {
-                context.send(viewAction: .reset)
+            VStack(spacing: 16) {
+                // GUA FORK: offered only when another device of this account holds the keys. It
+                // brings the messages here without resetting anything; otherwise the reset is
+                // the only way forward and the sole option shown.
+                if context.viewState.canRecoverFromOtherDevice {
+                    Button(UntranslatedL10n.guaEncryptionRecoverFromOtherDeviceAction) {
+                        context.send(viewAction: .recoverFromOtherDevice)
+                    }
+                    .disabled(context.viewState.isResetting)
+                    .buttonStyle(.compound(.primary))
+                }
+
+                Button(UntranslatedL10n.guaEncryptionResetRequiredAction, role: .destructive) {
+                    context.send(viewAction: .reset)
+                }
+                .disabled(context.viewState.isResetting)
+                .buttonStyle(.compound(context.viewState.canRecoverFromOtherDevice ? .secondary : .primary))
+                .accessibilityIdentifier(A11yIdentifiers.encryptionResetScreen.continueReset)
             }
-            .disabled(context.viewState.isResetting)
-            .buttonStyle(.compound(.primary))
-            .accessibilityIdentifier(A11yIdentifiers.encryptionResetScreen.continueReset)
         }
         .background()
         .backgroundStyle(.compound.bgCanvasDefault)

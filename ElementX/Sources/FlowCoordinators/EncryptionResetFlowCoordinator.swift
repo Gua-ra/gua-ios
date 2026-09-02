@@ -127,6 +127,8 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
                 stateMachine.tryEvent(.confirmPassword, userInfo: passwordPublisher)
             case .cancel:
                 actionsSubject.send(.cancel)
+            case .recoverFromOtherDevice:
+                presentRecoveryFromOtherDevice()
             case .resetFinished:
                 // GUA FORK: hold the user here, visibly, until the account is actually finished.
                 //
@@ -194,6 +196,94 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
         }
     }
     
+    // MARK: - Recovery from another device
+
+    /// GUA FORK: verifies this device with another device of the account. Once the two agree on
+    /// the emojis, the SDK asks that device for the keys and it hands them over; nothing is reset
+    /// and no recovery key is involved. The verdict is the recovery state: enabled means the keys
+    /// (and the backup key with them) arrived; anything else within the bound is an honest "not
+    /// yet", and the reset screen stays with both options.
+    private func presentRecoveryFromOtherDevice() {
+        guard let sessionVerificationController = userSession.clientProxy.sessionVerificationController else {
+            MXLog.error("GUA-KEYSTORE: no session verification controller yet, cannot recover from another device.")
+            userIndicatorController.submitIndicator(UserIndicator(title: UntranslatedL10n.guaEncryptionRecoverFromOtherDeviceFailed))
+            return
+        }
+
+        let parameters = SessionVerificationScreenCoordinatorParameters(sessionVerificationControllerProxy: sessionVerificationController,
+                                                                        flow: .deviceInitiator,
+                                                                        appSettings: appSettings,
+                                                                        mediaProvider: userSession.mediaProvider)
+        let coordinator = SessionVerificationScreenCoordinator(parameters: parameters)
+        coordinator.actions
+            .sink { [weak self] action in
+                guard let self else { return }
+                switch action {
+                case .done:
+                    navigationStackCoordinator.pop()
+                    Task { await self.finishRecoveryFromOtherDevice() }
+                }
+            }
+            .store(in: &cancellables)
+        navigationStackCoordinator.push(coordinator)
+    }
+
+    private func finishRecoveryFromOtherDevice() async {
+        userIndicatorController.submitIndicator(UserIndicator(id: Self.finishingIndicatorID,
+                                                              type: .modal,
+                                                              title: UntranslatedL10n.guaEncryptionResetFinishing,
+                                                              persistent: true))
+        let recovered = await waitForRecoveryEnabled(timeout: Self.recoveryFromOtherDeviceCeiling)
+        userIndicatorController.retractIndicatorWithId(Self.finishingIndicatorID)
+
+        if recovered {
+            MXLog.info("GUA-KEYSTORE: keys arrived from the other device.")
+            userIndicatorController.submitIndicator(UserIndicator(title: L10n.commonSuccess))
+            actionsSubject.send(.resetComplete)
+        } else {
+            MXLog.warning("GUA-KEYSTORE: keys did not arrive from the other device within the bound.")
+            userIndicatorController.submitIndicator(UserIndicator(title: UntranslatedL10n.guaEncryptionRecoverFromOtherDeviceFailed))
+        }
+    }
+
+    private func waitForRecoveryEnabled(timeout: Duration) async -> Bool {
+        let publisher = userSession.clientProxy.secureBackupController.recoveryState
+        if publisher.value == .enabled { return true }
+        return await withCheckedContinuation { continuation in
+            let gate = OnceGate()
+            var cancellable: AnyCancellable?
+            cancellable = publisher
+                .filter { $0 == .enabled }
+                .first()
+                .sink { _ in
+                    gate.resume(continuation, with: true)
+                    cancellable?.cancel()
+                }
+            Task {
+                try? await Task.sleep(for: timeout)
+                gate.resume(continuation, with: false)
+                cancellable?.cancel()
+            }
+        }
+    }
+
+    private final class OnceGate: @unchecked Sendable {
+        private let lock = NSLock()
+        private var resumed = false
+
+        func resume(_ continuation: CheckedContinuation<Bool, Never>, with value: Bool) {
+            lock.lock()
+            defer { lock.unlock() }
+            guard !resumed else { return }
+            resumed = true
+            continuation.resume(returning: value)
+        }
+    }
+
+    /// The other device answers within a second or two once the emojis match; the bound only
+    /// exists so that a device that never answers cannot hold the user on a spinner.
+    private static let recoveryFromOtherDeviceCeiling: Duration = .seconds(30)
+
     private static let finishingIndicatorID = "\(EncryptionResetFlowCoordinator.self)-Finishing"
 
     private var accountSettingsPresenter: OIDCAccountSettingsPresenter?

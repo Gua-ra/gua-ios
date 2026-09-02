@@ -10,6 +10,10 @@ import Foundation
 // swiftlint:disable explicit_type_interface function_parameter_count identifier_name line_length
 // swiftlint:disable nesting type_body_length type_name vertical_whitespace_opening_braces
 internal enum UntranslatedL10n {
+  /// Get them from my other device
+  internal static var guaEncryptionRecoverFromOtherDeviceAction: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_recover_from_other_device_action") }
+  /// Couldn’t get your messages from the other device. Make sure it’s open and try again, or reset.
+  internal static var guaEncryptionRecoverFromOtherDeviceFailed: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_recover_from_other_device_failed") }
   /// Finish setup
   internal static var guaEncryptionRepairAction: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_repair_action") }
   /// Setting up…
@@ -46,6 +50,16 @@ internal enum UntranslatedL10n {
   internal static var guaSignoutLastDeviceMessage: String { return UntranslatedL10n.tr("Untranslated", "gua_signout_last_device_message") }
   /// Signing out will remove your messages from this device
   internal static var guaSignoutLastDeviceTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_signout_last_device_title") }
+  /// Make sure the emojis below match the ones on your other device.
+  internal static var guaVerificationCompareEmojisSubtitle: String { return UntranslatedL10n.tr("Untranslated", "gua_verification_compare_emojis_subtitle") }
+  /// Your messages will now show up on this device.
+  internal static var guaVerificationCompleteSubtitle: String { return UntranslatedL10n.tr("Untranslated", "gua_verification_complete_subtitle") }
+  /// Keep it open. You’ll compare a few emojis on both devices to confirm it’s you.
+  internal static var guaVerificationOtherDeviceSubtitle: String { return UntranslatedL10n.tr("Untranslated", "gua_verification_other_device_subtitle") }
+  /// Open Gua on your other device
+  internal static var guaVerificationOtherDeviceTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_verification_other_device_title") }
+  /// Waiting for your other device
+  internal static var guaVerificationWaitingOtherDeviceTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_verification_waiting_other_device_title") }
   /// Clear all data currently stored on this device?
   /// Sign in again to access your account data and messages.
   internal static var softLogoutClearDataDialogContent: String { return UntranslatedL10n.tr("Untranslated", "soft_logout_clear_data_dialog_content") }
