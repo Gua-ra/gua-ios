@@ -192,10 +192,29 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
     private static let finishingIndicatorID = "\(EncryptionResetFlowCoordinator.self)-Finishing"
 
     private var accountSettingsPresenter: OIDCAccountSettingsPresenter?
+    /// GUA FORK: tells MAS which app scheme to hand control back to when the reset is approved.
+    ///
+    /// MAS's success page used to be a dead end -- it said "go back to the app" and the user had to
+    /// close the sheet by hand. Given this, it navigates to the scheme instead, which is what makes
+    /// ASWebAuthenticationSession dismiss itself. MAS compares the value against a fixed allow-list
+    /// and builds the URL itself, so this names an app rather than supplying a destination.
+    private func approvalURL(_ url: URL) -> URL {
+        guard let scheme = appSettings.oidcRedirectURL.scheme,
+              var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            return url
+        }
+
+        var items = components.queryItems ?? []
+        items.append(URLQueryItem(name: "gua_return", value: scheme))
+        components.queryItems = items
+
+        return components.url ?? url
+    }
+
     private func presentOIDCAuthorization(for url: URL, completionPublisher: PassthroughSubject<Void, Never>) {
         // Note to anyone in the future if you come back here to make this open in Safari instead of a WAS.
         // As of iOS 16, there is an issue on the simulator with accessing the cookie but it works on a device. 🤷‍♂️
-        let presenter = OIDCAccountSettingsPresenter(accountURL: url,
+        let presenter = OIDCAccountSettingsPresenter(accountURL: approvalURL(url),
                                                      presentationAnchor: windowManager.mainWindow,
                                                      appSettings: appSettings)
         accountSettingsPresenter = presenter
