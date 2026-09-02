@@ -58,3 +58,12 @@
 /* Hint under the "Join room by address" field. Replaces upstream's "e.g. #room-name:matrix.org",
    which named another network's homeserver and taught people the server-qualified form Gua hides. */
 "gua_join_room_by_address_hint" = "Paste the room address you were given.";
+
+// MARK: - Gua: finishing an identity reset
+
+/* Modal shown between the approval sheet closing and the setup being confirmed. */
+"gua_encryption_reset_finishing" = "Finishing setup…";
+/* Toast when the approval sheet was closed without approving. */
+"gua_encryption_reset_not_approved" = "Setup wasn’t approved. Tap Reset and finish setup to try again.";
+/* Toast when the approval came back but the setup could not be confirmed in time. */
+"gua_encryption_reset_failed" = "Couldn’t finish setup. Tap Reset and finish setup to try again.";

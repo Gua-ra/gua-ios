@@ -9,7 +9,7 @@ import Combine
 import SwiftUI
 
 enum EncryptionResetScreenCoordinatorAction {
-    case requestOIDCAuthorisation(URL, completionPublisher: PassthroughSubject<Void, Never>)
+    case requestOIDCAuthorisation(URL, completionPublisher: PassthroughSubject<OIDCAccountSettingsPresenter.Outcome, Never>)
     case requestPassword(passwordPublisher: PassthroughSubject<String, Never>)
     /// GUA FORK: the approval landed, so close the web sheet rather than leaving the user to.
     case dismissOIDCPresentation

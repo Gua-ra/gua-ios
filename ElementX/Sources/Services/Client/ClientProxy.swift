@@ -168,7 +168,7 @@ class ClientProxy: ClientProxyProtocol {
         
         notificationSettings = await NotificationSettingsProxy(notificationSettings: client.getNotificationSettings())
         
-        secureBackupController = SecureBackupController(encryption: client.encryption())
+        secureBackupController = SecureBackupController(encryption: client.encryption(), userID: (try? client.userId()) ?? "")
         
         spaceService = await SpaceServiceProxy(spaceService: client.spaceService())
         

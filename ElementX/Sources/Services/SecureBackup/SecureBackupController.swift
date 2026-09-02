@@ -11,6 +11,8 @@ import MatrixRustSDK
 
 class SecureBackupController: SecureBackupControllerProtocol {
     private let encryption: Encryption
+    /// GUA FORK: which account this controller serves, for the identity-reset-pending marker.
+    private let userID: String
     
     private let recoveryStateSubject = CurrentValueSubject<SecureBackupRecoveryState, Never>(.unknown)
     private let keyBackupStateSubject = CurrentValueSubject<SecureBackupKeyBackupState, Never>(.unknown)
@@ -40,8 +42,9 @@ class SecureBackupController: SecureBackupControllerProtocol {
         isProvisioningKeyStorageSubject.asCurrentValuePublisher()
     }
     
-    init(encryption: Encryption) {
+    init(encryption: Encryption, userID: String) {
         self.encryption = encryption
+        self.userID = userID
         
         backupStateListenerTaskHandle = encryption.backupStateListener(listener: SDKListener { [weak self] state in
             guard let self else { return }
@@ -311,6 +314,14 @@ class SecureBackupController: SecureBackupControllerProtocol {
     /// Nothing here deletes a key backup or touches the cross-signing identity, so it is safe to
     /// run without asking, and only its failure justifies showing a destructive warning.
     func repairWithoutReset() async -> EncryptionRepairOutcome {
+        // GUA FORK: a reset that was started but never approved leaves a freshly minted identity
+        // in the local store that the server has never seen. Every repair below would export it
+        // into new key storage and call the account healthy. Only finishing the reset can fix it.
+        if IdentityResetPendingStore.isPending(for: userID) {
+            MXLog.info("GUA-KEYSTORE: an identity reset is still pending, refusing to repair around it.")
+            return .resetRequired
+        }
+
         let state = await settledRecoveryState(timeout: .seconds(2))
 
         switch state {

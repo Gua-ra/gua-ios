@@ -23,12 +23,9 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
     private var identityResetHandle: IdentityResetHandle?
     private var passwordCancellable: AnyCancellable?
     private var oidcCancellable: AnyCancellable?
-    /// GUA FORK: true while a reset(auth:) is in flight, so a second one can never start.
-    ///
-    /// The handle alone could not carry this. It is only cleared once a reset SUCCEEDS, so during
-    /// the minutes that reset(auth: nil) spends waiting for MAS approval it is still non-nil, and
-    /// closing the sheet by hand ran a second concurrent reset on it. Per the SDK, each reset
-    /// deletes the key backup and secret storage again, so that was not merely noisy.
+    /// GUA FORK: true while an upload is in flight, so a second one can never start on the same
+    /// handle. Each reset deletes the key backup and secret storage again, so a concurrent call is
+    /// destructive, not just noisy.
     private var isResetInFlight = false
 
     init(clientProxy: ClientProxyProtocol, userIndicatorController: UserIndicatorControllerProtocol) {
@@ -85,6 +82,11 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
 
             identityResetHandle = handle
 
+            // GUA FORK: from here on this account carries a freshly minted identity that the
+            // server has never seen. Until an approval lands it, the setup banner must not try
+            // to repair around it. See IdentityResetPendingStore.
+            IdentityResetPendingStore.markPending(for: clientProxy.userID)
+
             switch handle.authType() {
             case .uiaa:
                 let passwordPublisher = PassthroughSubject<String, Never>()
@@ -102,42 +104,17 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
 
                 hideLoadingIndicator()
 
-                // The reset must only be performed *after* the user has approved it in the
-                // MAS web sheet. Calling reset(auth: nil) immediately (as before) made the
-                // server reject the unapproved cross-signing key upload, leaving the device
-                // unverified and the identity-confirmation gate looping forever. Wait for the
-                // sheet to be dismissed (signalled on the publisher) before resetting — this
-                // mirrors how the UIAA/password path waits for the entered password.
-                // GUA FORK: MAS gives us no completion signal. Its approval page never navigates
-                // to the app's callback URL, so ASWebAuthenticationSession has no reason to close
-                // itself and the only event we ever receive is "the user dismissed it" — which is
-                // indistinguishable from them cancelling. That is why the sheet sat there telling
-                // people to go back to the app, and why they had to close it by hand.
-                //
-                // reset(auth: nil) succeeding IS the authoritative "MAS approved it" signal, so
-                // poll that instead of waiting to be told. The moment it succeeds we close the
-                // sheet ourselves and finish. Dismissing by hand still works: the publisher fires
-                // and we make one final attempt.
-                // The sheet closing IS the signal, and it is the only one there is.
-                //
-                // Running reset(auth: nil) while the sheet is open was the mistake. Its approval
-                // budget is about two minutes and it starts when the sheet opens, so it is spent on
-                // the time the user takes to read the page. Worse, it holds isResetInFlight for
-                // that whole window, so when they did close the sheet the close was ignored, the
-                // destructive button behind it stayed disabled, and the only way out was Cancel --
-                // with the banner still up afterwards, because nothing had finished.
-                //
-                // So nothing runs until the sheet goes. By then the approval is in force and a
-                // single call settles in about a second. If they closed it without approving, that
-                // call fails and says so, which is the honest outcome for that case.
-                let oidcAuthorisationPublisher = PassthroughSubject<Void, Never>()
-                oidcCancellable = oidcAuthorisationPublisher.sink { [weak self] in
+                // GUA FORK: nothing runs while the sheet is open. The approval page hands control
+                // back to the app once the user has approved, and that is the moment to upload.
+                // The sheet closing by hand is the other outcome, and it means no approval.
+                let outcomePublisher = PassthroughSubject<OIDCAccountSettingsPresenter.Outcome, Never>()
+                oidcCancellable = outcomePublisher.sink { [weak self] outcome in
                     guard let self else { return }
                     oidcCancellable = nil
-                    Task { await self.resetWithOIDCAuthorisation(showingIndicator: true) }
+                    Task { await self.handleApprovalSheet(outcome: outcome) }
                 }
 
-                actionsSubject.send(.requestOIDCAuthorisation(url: url, completionPublisher: oidcAuthorisationPublisher))
+                actionsSubject.send(.requestOIDCAuthorisation(url: url, completionPublisher: outcomePublisher))
             }
         case let .failure(error):
             MXLog.error("Failed resetting encryption with error \(error)")
@@ -169,108 +146,137 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
         }
     }
 
-    /// Returns true once the reset has actually landed, false if this attempt did not get there.
-    ///
-    /// `surfacingFailure` is false while the approval sheet is still open. An attempt that fails
-    /// there has almost always simply run out its two minute budget with the user still reading the
-    /// page, which is not a failure of anything -- the approval may be seconds away. Treating it as
-    /// one is what tore the flow down mid-approval and dropped people back on the banner with their
-    /// backup already destroyed. The caller retries instead; the user always has Cancel.
-    @discardableResult
-    private func resetWithOIDCAuthorisation(showingIndicator: Bool, surfacingFailure: Bool = true) async -> Bool {
-        // Nothing to act on if a reset already succeeded and cleared the handle, and nothing to
-        // start if one is already running: each reset(auth:) deletes the backup and secret storage
-        // again, so a second concurrent call is destructive, not just wasteful.
-        guard let identityResetHandle, !isResetInFlight else { return false }
+    // MARK: Approval sheet outcome
 
-        isResetInFlight = true
-        if showingIndicator {
-            showLoadingIndicator()
-        }
-
-        defer {
-            isResetInFlight = false
-            if showingIndicator {
-                hideLoadingIndicator()
-            }
-        }
-
-        // GUA FORK: bound the call, then judge by outcome rather than by whether it returned.
-        //
-        // reset(auth:) does four things: it deletes the key backup and secret storage, runs the
-        // cross-signing reset that MAS just approved, and then re-enables key backups -- and that
-        // last step needs a live sync. On a real phone the approval sheet makes the app inactive,
-        // the app stops sync about thirty seconds later, and anyone who spends longer than that
-        // reading the MAS page comes back to a sync that has only just been asked to restart. The
-        // upload succeeds, the backup step waits on a sync that is not there yet, and the call
-        // times out after two to three minutes. That was reported as "Loading… for three minutes,
-        // then an error, then the banner is still there" -- an error for something that had in
-        // fact worked. The simulator never resigns active behind the sheet, which is why it never
-        // showed this.
-        //
-        // So: kick sync, give the call a bounded window, and whatever it says, hand over to
-        // provisioning. Provisioning is judged on the recovery state and can only reach .enabled
-        // if the new cross-signing keys are really there, so it is the honest verdict on whether
-        // the reset landed. Calling reset(auth:) a second time would delete the backup again, so
-        // that is exactly what this must not do.
-        clientProxy.startSync()
-
-        let outcome = await withTaskGroup(of: Bool?.self) { group in
-            group.addTask {
-                do {
-                    try await identityResetHandle.reset(auth: nil)
-                    return true
-                } catch {
-                    MXLog.error("Failed resetting encryption with error \(error)")
-                    return false
-                }
-            }
-            group.addTask {
-                try? await Task.sleep(for: Self.resetCallCeiling)
-                return nil
-            }
-            let first = await group.next() ?? nil
-            group.cancelAll()
-            return first
-        }
-
+    private func handleApprovalSheet(outcome: OIDCAccountSettingsPresenter.Outcome) async {
         switch outcome {
-        case true:
-            MXLog.info("GUA-KEYSTORE: reset(auth:) returned; handing over to provisioning.")
-        case false where !surfacingFailure:
-            MXLog.info("GUA-KEYSTORE: reset attempt ended unapproved, will ask again.")
-            return false
-        case false:
-            MXLog.warning("GUA-KEYSTORE: reset(auth:) threw; provisioning will say whether it landed.")
-            await identityResetHandle.cancel()
-        case nil:
-            MXLog.warning("GUA-KEYSTORE: reset(auth:) ran past its ceiling; provisioning will say whether it landed.")
-            await identityResetHandle.cancel()
+        case .dismissed:
+            // Closed without approving. Nothing to upload, so nothing to wait for: say so, and
+            // put the button back. The pending marker stays, because the backup is already gone
+            // and only finishing the reset can put the account right.
+            MXLog.info("GUA-KEYSTORE: approval sheet dismissed without approving.")
+            await abandonAttempt()
+            userIndicatorController.submitIndicator(UserIndicator(title: UntranslatedL10n.guaEncryptionResetNotApproved))
+        case .returned:
+            await finishApprovedReset()
         }
-
-        // Drop the handle BEFORE dismissing: the send is synchronous through Combine and reaches
-        // the presenter, whose dismissal fires the completion publisher, and with the handle still
-        // populated that used to re-enter here and start a fresh reset.
-        self.identityResetHandle = nil
-
-        // Deliberately NOT clearing isResetting. .resetFinished does not dismiss this screen; the
-        // flow coordinator holds the user on a visible wait while key storage is provisioned, shows
-        // the verdict, and only then sends .resetComplete. Clearing the flag here put the
-        // destructive button back within reach for that whole window.
-        actionsSubject.send(.dismissOIDCPresentation)
-        actionsSubject.send(.resetFinished)
-        return true
     }
 
-    /// How long a single reset(auth:) call may hold the user before provisioning takes over.
+    /// Uploads the new identity now that the approval page has handed control back.
     ///
-    /// Generous for the happy path, which settles in a couple of seconds, and short enough that a
-    /// sync-starved backup step cannot turn into minutes of "Loading…".
-    private static let resetCallCeiling: Duration = .seconds(30)
+    /// The SDK call is the verdict. It returns normally only after the server has accepted both
+    /// uploads, and `cancel()` is never called on a handle whose result is still being trusted:
+    /// a cancelled call returns success without uploading anything, which is exactly the false
+    /// success this flow must never produce.
+    ///
+    /// The call cannot be interrupted from Swift, so the wait on it is bounded separately. If it
+    /// has not returned by then the attempt is given up on, the user is told plainly, and the
+    /// destructive button comes back. Once approved, a good network settles in a second or two.
+    private func finishApprovedReset() async {
+        guard let identityResetHandle, !isResetInFlight else { return }
+
+        isResetInFlight = true
+        showFinishingIndicator()
+        defer {
+            isResetInFlight = false
+            hideFinishingIndicator()
+        }
+
+        clientProxy.startSync()
+
+        let outcome = await Self.awaitReset(on: identityResetHandle, ceiling: Self.resetCallCeiling)
+
+        switch outcome {
+        case .landed:
+            MXLog.info("GUA-KEYSTORE: the new identity is on the server; handing over to provisioning.")
+            // Drop the handle BEFORE dismissing: the send is synchronous through Combine and reaches
+            // the presenter, whose dismissal fires the completion publisher, and with the handle
+            // still populated that used to re-enter here.
+            self.identityResetHandle = nil
+            // Deliberately NOT clearing isResetting. .resetFinished does not dismiss this screen;
+            // the flow coordinator holds the user on a visible wait while key storage is
+            // provisioned, shows the verdict, and only then sends .resetComplete.
+            actionsSubject.send(.dismissOIDCPresentation)
+            actionsSubject.send(.resetFinished)
+        case let .failed(error):
+            MXLog.error("GUA-KEYSTORE: reset(auth:) threw after the approval came back: \(error)")
+            await abandonAttempt()
+            userIndicatorController.submitIndicator(UserIndicator(title: UntranslatedL10n.guaEncryptionResetFailed))
+        case .timedOut:
+            MXLog.warning("GUA-KEYSTORE: reset(auth:) has not returned within \(Self.resetCallCeiling); giving up on this attempt.")
+            await abandonAttempt()
+            userIndicatorController.submitIndicator(UserIndicator(title: UntranslatedL10n.guaEncryptionResetFailed))
+        }
+    }
+
+    /// Stops trusting the current handle and returns the screen to a retryable state.
+    ///
+    /// `cancel()` is only ever called here, after the attempt's result has been discarded, so its
+    /// habit of making `reset()` return success can no longer mislead anyone. A retry starts a
+    /// fresh reset, which is safe: the server side is idempotent and the approval window is long.
+    private func abandonAttempt() async {
+        actionsSubject.send(.dismissOIDCPresentation)
+        if let identityResetHandle {
+            await identityResetHandle.cancel()
+        }
+        identityResetHandle = nil
+        state.isResetting = false
+    }
+
+    private enum ResetCallOutcome {
+        case landed
+        case failed(Error)
+        case timedOut
+    }
+
+    /// Runs `reset(auth: nil)` and resolves with whichever comes first: its result, or the ceiling.
+    ///
+    /// The SDK call keeps running past the ceiling because the bindings cannot cancel it; its
+    /// late result is simply dropped. That is why the caller must never act on the handle again
+    /// except to cancel it.
+    private static func awaitReset(on handle: IdentityResetHandle, ceiling: Duration) async -> ResetCallOutcome {
+        let gate = ResetOutcomeGate()
+
+        return await withCheckedContinuation { (continuation: CheckedContinuation<ResetCallOutcome, Never>) in
+            Task {
+                do {
+                    try await handle.reset(auth: nil)
+                    gate.resume(continuation, with: .landed)
+                } catch {
+                    gate.resume(continuation, with: .failed(error))
+                }
+            }
+            Task {
+                try? await Task.sleep(for: ceiling)
+                gate.resume(continuation, with: .timedOut)
+            }
+        }
+    }
+
+    /// Resumes a continuation exactly once, whichever task gets there first.
+    private final class ResetOutcomeGate: @unchecked Sendable {
+        private let lock = NSLock()
+        private var resumed = false
+
+        func resume(_ continuation: CheckedContinuation<ResetCallOutcome, Never>, with outcome: ResetCallOutcome) {
+            lock.lock()
+            defer { lock.unlock() }
+            guard !resumed else { return }
+            resumed = true
+            continuation.resume(returning: outcome)
+        }
+    }
+
+    /// How long the upload may take once the approval page has handed control back.
+    ///
+    /// Generous for the happy path, which settles in a second or two, and short enough that a
+    /// refused upload cannot turn into minutes of spinner.
+    private static let resetCallCeiling: Duration = .seconds(20)
 
     // MARK: Toasts and loading indicators
 
     private static let loadingIndicatorIdentifier = "\(EncryptionResetScreenViewModel.self)-Loading"
+    private static let finishingIndicatorIdentifier = "\(EncryptionResetScreenViewModel.self)-Finishing"
 
     private func showLoadingIndicator() {
         userIndicatorController.submitIndicator(UserIndicator(id: Self.loadingIndicatorIdentifier,
@@ -281,6 +287,17 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
 
     private func hideLoadingIndicator() {
         userIndicatorController.retractIndicatorWithId(Self.loadingIndicatorIdentifier)
+    }
+
+    private func showFinishingIndicator() {
+        userIndicatorController.submitIndicator(UserIndicator(id: Self.finishingIndicatorIdentifier,
+                                                              type: .modal,
+                                                              title: UntranslatedL10n.guaEncryptionResetFinishing,
+                                                              persistent: true))
+    }
+
+    private func hideFinishingIndicator() {
+        userIndicatorController.retractIndicatorWithId(Self.finishingIndicatorIdentifier)
     }
 
     private func showErrorToast() {

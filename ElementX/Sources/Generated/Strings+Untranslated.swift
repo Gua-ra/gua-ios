@@ -18,6 +18,12 @@ internal enum UntranslatedL10n {
   internal static var guaEncryptionRepairMessage: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_repair_message") }
   /// Finish setting up this device
   internal static var guaEncryptionRepairTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_repair_title") }
+  /// Couldn’t finish setup. Tap Reset and finish setup to try again.
+  internal static var guaEncryptionResetFailed: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_failed") }
+  /// Finishing setup…
+  internal static var guaEncryptionResetFinishing: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_finishing") }
+  /// Setup wasn’t approved. Tap Reset and finish setup to try again.
+  internal static var guaEncryptionResetNotApproved: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_not_approved") }
   /// Reset and finish setup
   internal static var guaEncryptionResetRequiredAction: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_required_action") }
   /// To finish setting up encrypted chats on this device, your encrypted backup needs to be reset. Messages stored only in that backup will be lost. Messages already on your devices won’t be affected.

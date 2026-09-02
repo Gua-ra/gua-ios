@@ -142,9 +142,14 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
                 Task { [weak self] in
                     guard let self else { return }
 
+                    // The reset has landed on the server: the SDK call returned normally and was
+                    // never cancelled, which is the only signal that proves the upload. Only now
+                    // may the pending marker go and key storage be provisioned.
+                    IdentityResetPendingStore.clear(for: userSession.clientProxy.userID)
+
                     userIndicatorController.submitIndicator(UserIndicator(id: Self.finishingIndicatorID,
                                                                           type: .modal,
-                                                                          title: L10n.commonPleaseWait,
+                                                                          title: UntranslatedL10n.guaEncryptionResetFinishing,
                                                                           persistent: true))
 
                     let outcome = await userSession.clientProxy.secureBackupController.provisionAfterReset()
@@ -204,14 +209,23 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
             return url
         }
 
+        // GUA FORK: name the account this app is signed in as. The sheet shares cookies with the
+        // system browser, so the page can otherwise open under some other account's session and
+        // approve the reset for that account while ours keeps being refused. The server compares
+        // and, on a mismatch, signs that session out and asks for a login as this account first.
+        let userID = userSession.clientProxy.userID
+        let localpart = String(userID.dropFirst().prefix { $0 != ":" })
+
         var items = components.queryItems ?? []
         items.append(URLQueryItem(name: "gua_return", value: scheme))
+        items.append(URLQueryItem(name: "gua_user", value: localpart))
+        items.append(URLQueryItem(name: "org.matrix.msc4198.login_hint", value: "mxid:\(userID)"))
         components.queryItems = items
 
         return components.url ?? url
     }
 
-    private func presentOIDCAuthorization(for url: URL, completionPublisher: PassthroughSubject<Void, Never>) {
+    private func presentOIDCAuthorization(for url: URL, completionPublisher: PassthroughSubject<OIDCAccountSettingsPresenter.Outcome, Never>) {
         // Note to anyone in the future if you come back here to make this open in Safari instead of a WAS.
         // As of iOS 16, there is an issue on the simulator with accessing the cookie but it works on a device. 🤷‍♂️
         let presenter = OIDCAccountSettingsPresenter(accountURL: approvalURL(url),
@@ -221,8 +235,8 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
         // Wait for the approval sheet to be dismissed before signalling the view model,
         // so the reset runs only once the user has approved it in MAS.
         Task { @MainActor in
-            await presenter.start()
-            completionPublisher.send(())
+            let outcome = await presenter.start()
+            completionPublisher.send(outcome)
         }
     }
 }

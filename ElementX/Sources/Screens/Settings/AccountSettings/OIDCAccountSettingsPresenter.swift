@@ -32,10 +32,21 @@ class OIDCAccountSettingsPresenter: NSObject {
     /// is dismissed — either because the page redirected to the callback URL or because
     /// the user closed the sheet. Callers that need to act on the result of the web flow
     /// (e.g. the identity-reset approval) must `await` this before continuing.
-    func start() async {
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            let session = ASWebAuthenticationSession(url: accountURL, callback: .oidcRedirectURL(oidcRedirectURL)) { _, _ in
-                continuation.resume()
+    /// GUA FORK: how the web sheet ended.
+    enum Outcome {
+        /// The page navigated to the app's own scheme: whatever it was asked to do, it finished.
+        case returned
+        /// Closed by hand, or failed to present. Nothing on the page was completed.
+        case dismissed
+    }
+
+    /// Resolves once the sheet is gone, saying whether the page came back to the app or was
+    /// dismissed. The two used to be indistinguishable, and callers had to guess whether the
+    /// user had approved anything.
+    func start() async -> Outcome {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Outcome, Never>) in
+            let session = ASWebAuthenticationSession(url: accountURL, callback: .oidcRedirectURL(oidcRedirectURL)) { callbackURL, _ in
+                continuation.resume(returning: callbackURL == nil ? .dismissed : .returned)
             }
             session.prefersEphemeralWebBrowserSession = false
             session.presentationContextProvider = self
