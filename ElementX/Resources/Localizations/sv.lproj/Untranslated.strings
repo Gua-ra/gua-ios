@@ -10,3 +10,15 @@
 "gua_encryption_reset_required_action" = "Återställ och slutför";
 "gua_signout_last_device_title" = "Att logga ut tar bort dina meddelanden från den här enheten";
 "gua_signout_last_device_message" = "Det här är din enda enhet. Meddelanden som bara finns här kommer inte att vara tillgängliga när du loggar in igen.";
+"gua_encryption_reset_finishing" = "Slutför konfigurationen …";
+"gua_encryption_reset_failed" = "Kunde inte slutföra konfigurationen. Tryck på ”Återställ och slutför” för att försöka igen.";
+"gua_encryption_recover_from_other_device_title" = "Få tillbaka dina tidigare meddelanden";
+"gua_encryption_recover_from_other_device_message" = "Använd din andra enhet för att få tillbaka meddelanden som ännu inte finns på den här enheten.\n\nOm du inte har tillgång till den kan du återställa och slutföra konfigurationen, men meddelanden som bara finns i din säkerhetskopia går förlorade för alltid.";
+"gua_encryption_recover_from_other_device_action" = "Använd min andra enhet";
+"gua_encryption_recover_from_other_device_failed" = "Kunde inte hämta dina meddelanden från den andra enheten. Se till att du har appen öppen där och försök igen, eller återställ.";
+"gua_verification_other_device_title" = "Öppna Gua på din andra enhet";
+"gua_verification_other_device_subtitle" = "Låt appen vara öppen. Du jämför några emojier på båda enheterna för att bekräfta att det är du.";
+"gua_verification_waiting_other_device_title" = "Väntar på din andra enhet";
+"gua_verification_compare_emojis_subtitle" = "Bekräfta att emojierna nedan matchar de som visas på din andra enhet.";
+"gua_encryption_reset_not_approved" = "Konfigurationen godkändes inte. Tryck på ”Återställ och slutför” för att försöka igen.";
+"gua_verification_complete_subtitle" = "Dina meddelanden visas nu på den här enheten.";

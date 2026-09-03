@@ -10,3 +10,15 @@
 "gua_encryption_reset_required_action" = "Zurücksetzen und abschließen";
 "gua_signout_last_device_title" = "Beim Abmelden werden deine Nachrichten von diesem Gerät entfernt";
 "gua_signout_last_device_message" = "Dies ist dein einziges Gerät. Nachrichten, die nur hier liegen, sind nach der nächsten Anmeldung nicht mehr verfügbar.";
+"gua_encryption_reset_finishing" = "Einrichtung wird abgeschlossen…";
+"gua_encryption_reset_failed" = "Die Einrichtung konnte nicht abgeschlossen werden. Tippe auf „Zurücksetzen und abschließen“, um es erneut zu versuchen.";
+"gua_encryption_recover_from_other_device_title" = "Stelle deine früheren Nachrichten wieder her";
+"gua_encryption_recover_from_other_device_message" = "Verwende dein anderes Gerät, um Nachrichten wiederherzustellen, die auf diesem Gerät noch nicht verfügbar sind.\n\nWenn du keinen Zugriff darauf hast, kannst du zurücksetzen und die Einrichtung abschließen, aber Nachrichten, die nur in deinem Backup liegen, gehen dann dauerhaft verloren.";
+"gua_encryption_recover_from_other_device_action" = "Anderes Gerät verwenden";
+"gua_encryption_recover_from_other_device_failed" = "Deine Nachrichten konnten nicht vom anderen Gerät abgerufen werden. Stelle sicher, dass Gua dort geöffnet ist, und versuche es erneut. Du kannst auch zurücksetzen und die Einrichtung abschließen.";
+"gua_verification_other_device_title" = "Öffne Gua auf deinem anderen Gerät";
+"gua_verification_other_device_subtitle" = "Lass die App geöffnet. Du vergleichst gleich ein paar Emojis auf beiden Geräten, um zu bestätigen, dass du es bist.";
+"gua_verification_waiting_other_device_title" = "Warten auf dein anderes Gerät";
+"gua_verification_compare_emojis_subtitle" = "Stelle sicher, dass die folgenden Emojis mit denen auf deinem anderen Gerät übereinstimmen.";
+"gua_encryption_reset_not_approved" = "Die Einrichtung wurde nicht bestätigt. Tippe auf „Zurücksetzen und abschließen“, um es erneut zu versuchen.";
+"gua_verification_complete_subtitle" = "Deine Nachrichten werden jetzt auf diesem Gerät angezeigt.";

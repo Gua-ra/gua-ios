@@ -1,3 +1,18 @@
 
 "gua_signout_last_device_title" = "Saioa ixteak zure mezuak gailu honetatik kenduko ditu";
 "gua_signout_last_device_message" = "Hau da zure gailu bakarra. Hemen soilik gordetako mezuak ez dira eskuragarri egongo berriro saioa hastean.";
+"gua_encryption_reset_required_title" = "Aurreko mezu batzuk ezin dira berreskuratu";
+"gua_encryption_reset_required_message" = "Gailu honetan zifratutako txatak konfiguratzen amaitzeko, zure zifratutako babeskopia berrezarri behar da. Babeskopia horretan bakarrik gordetako mezuak galdu egingo dira. Zure gailuetan dagoeneko dauden mezuei ez die eragingo.";
+"gua_encryption_reset_required_action" = "Berrezarri eta amaitu";
+"gua_encryption_reset_finishing" = "Konfigurazioa amaitzen…";
+"gua_encryption_reset_failed" = "Ezin izan da konfigurazioa amaitu. Sakatu «Berrezarri eta amaitu» berriro saiatzeko.";
+"gua_encryption_recover_from_other_device_title" = "Berreskuratu zure aurreko mezuak";
+"gua_encryption_recover_from_other_device_message" = "Gailu honetan oraindik eskuragarri ez dauden mezuak berreskuratzeko, erabili zure beste gailua.\n\nGailu hori eskura ez baduzu, berrezarri eta konfigurazioa amaitu dezakezu, baina zure babeskopian soilik gordetako mezuak betiko galduko dira.";
+"gua_encryption_recover_from_other_device_action" = "Erabili beste gailua";
+"gua_encryption_recover_from_other_device_failed" = "Ezin izan dira zure mezuak beste gailutik eskuratu. Ziurtatu Gua bertan irekita duzula eta saiatu berriro, edo berrezarri.";
+"gua_verification_other_device_title" = "Ireki Gua zure beste gailuan";
+"gua_verification_other_device_subtitle" = "Utzi irekita. Bi gailuetan emoji batzuk alderatuko dituzu, zu zarela berresteko.";
+"gua_verification_waiting_other_device_title" = "Zure beste gailuaren zain";
+"gua_verification_compare_emojis_subtitle" = "Egiaztatu beheko emojiak zure beste gailuan erakutsitakoekin bat datozela.";
+"gua_encryption_reset_not_approved" = "Konfigurazioa ez da onartu. Sakatu «Berrezarri eta amaitu» berriro saiatzeko.";
+"gua_verification_complete_subtitle" = "Orain zure mezuak gailu honetan agertuko dira.";

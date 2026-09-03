@@ -10,3 +10,15 @@
 "gua_encryption_reset_required_action" = "Restablecer y finalizar";
 "gua_signout_last_device_title" = "Cerrar sesión eliminará tus mensajes de este dispositivo";
 "gua_signout_last_device_message" = "Este es tu único dispositivo. Los mensajes guardados solo aquí no estarán disponibles cuando vuelvas a iniciar sesión.";
+"gua_encryption_reset_finishing" = "Finalizando la configuración…";
+"gua_encryption_reset_failed" = "No se pudo finalizar la configuración. Pulsa «Restablecer y finalizar» para volver a intentarlo.";
+"gua_encryption_recover_from_other_device_title" = "Recupera tus mensajes anteriores";
+"gua_encryption_recover_from_other_device_message" = "Usa tu otro dispositivo para recuperar los mensajes que aún no están disponibles en este dispositivo.\n\nSi no tienes acceso a él, puedes restablecer y finalizar la configuración, pero los mensajes guardados solo en tu copia de seguridad se perderán para siempre.";
+"gua_encryption_recover_from_other_device_action" = "Usar mi otro dispositivo";
+"gua_encryption_recover_from_other_device_failed" = "No se pudieron recuperar tus mensajes desde el otro dispositivo. Asegúrate de que esté abierto y vuelve a intentarlo, o restablece y finaliza.";
+"gua_verification_other_device_title" = "Abre Gua en tu otro dispositivo";
+"gua_verification_other_device_subtitle" = "Déjalo abierto. Compararás unos emojis en ambos dispositivos para confirmar que eres tú.";
+"gua_verification_waiting_other_device_title" = "A la espera de tu otro dispositivo";
+"gua_verification_compare_emojis_subtitle" = "Asegúrate de que los emojis que aparecen a continuación coinciden con los de tu otro dispositivo.";
+"gua_encryption_reset_not_approved" = "No se aprobó la configuración. Pulsa «Restablecer y finalizar» para volver a intentarlo.";
+"gua_verification_complete_subtitle" = "Ahora tus mensajes aparecerán en este dispositivo.";

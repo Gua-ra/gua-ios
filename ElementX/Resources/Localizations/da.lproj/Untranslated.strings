@@ -10,3 +10,15 @@
 "gua_encryption_reset_required_action" = "Nulstil og færdiggør";
 "gua_signout_last_device_title" = "Log ud fjerner dine beskeder fra denne enhed";
 "gua_signout_last_device_message" = "Dette er din eneste enhed. Beskeder, der kun er gemt her, vil ikke være tilgængelige, når du logger ind igen.";
+"gua_encryption_reset_finishing" = "Færdiggør opsætningen…";
+"gua_encryption_reset_failed" = "Opsætningen kunne ikke færdiggøres. Tryk på Nulstil og færdiggør for at prøve igen.";
+"gua_encryption_recover_from_other_device_title" = "Gendan dine tidligere beskeder";
+"gua_encryption_recover_from_other_device_message" = "Brug din anden enhed til at gendanne de beskeder, der endnu ikke er tilgængelige på denne enhed.\n\nHvis du ikke har adgang til den, kan du nulstille og færdiggøre opsætningen, men beskeder, der kun er gemt i din sikkerhedskopi, går tabt for altid.";
+"gua_encryption_recover_from_other_device_action" = "Brug min anden enhed";
+"gua_encryption_recover_from_other_device_failed" = "Kunne ikke hente dine beskeder fra den anden enhed. Sørg for, at Gua er åben på den, og prøv igen, eller nulstil.";
+"gua_verification_other_device_title" = "Åbn Gua på din anden enhed";
+"gua_verification_other_device_subtitle" = "Lad den være åben. Du skal sammenligne et par emojier på begge enheder for at bekræfte, at det er dig.";
+"gua_verification_waiting_other_device_title" = "Venter på din anden enhed";
+"gua_verification_compare_emojis_subtitle" = "Sørg for, at emojierne nedenfor matcher dem på din anden enhed.";
+"gua_encryption_reset_not_approved" = "Opsætningen blev ikke godkendt. Tryk på Nulstil og færdiggør for at prøve igen.";
+"gua_verification_complete_subtitle" = "Dine beskeder vises nu på denne enhed.";

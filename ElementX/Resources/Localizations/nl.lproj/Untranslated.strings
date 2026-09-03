@@ -10,3 +10,15 @@
 "gua_encryption_reset_required_action" = "Opnieuw instellen en voltooien";
 "gua_signout_last_device_title" = "Uitloggen verwijdert je berichten van dit apparaat";
 "gua_signout_last_device_message" = "Dit is je enige apparaat. Berichten die alleen hier staan, zijn niet beschikbaar wanneer je weer inlogt.";
+"gua_encryption_reset_finishing" = "Installatie voltooien…";
+"gua_encryption_reset_failed" = "De installatie kon niet worden voltooid. Tik op “Opnieuw instellen en voltooien” om het opnieuw te proberen.";
+"gua_encryption_recover_from_other_device_title" = "Herstel je eerdere berichten";
+"gua_encryption_recover_from_other_device_message" = "Gebruik je andere apparaat om berichten te herstellen die nog niet op dit apparaat beschikbaar zijn.\n\nAls je daar geen toegang toe hebt, kun je opnieuw instellen en de installatie voltooien, maar berichten die alleen in je back-up staan, gaan definitief verloren.";
+"gua_encryption_recover_from_other_device_action" = "Gebruik mijn andere apparaat";
+"gua_encryption_recover_from_other_device_failed" = "Je berichten konden niet van het andere apparaat worden opgehaald. Zorg dat Gua daar open staat en probeer het opnieuw, of stel opnieuw in.";
+"gua_verification_other_device_title" = "Open Gua op je andere apparaat";
+"gua_verification_other_device_subtitle" = "Houd de app open. Je vergelijkt straks een paar emoji’s op beide apparaten om te bevestigen dat jij het bent.";
+"gua_verification_waiting_other_device_title" = "Wachten op je andere apparaat";
+"gua_verification_compare_emojis_subtitle" = "Controleer of de emoji’s hieronder overeenkomen met die op je andere apparaat.";
+"gua_encryption_reset_not_approved" = "De installatie is niet goedgekeurd. Tik op “Opnieuw instellen en voltooien” om het opnieuw te proberen.";
+"gua_verification_complete_subtitle" = "Je berichten verschijnen nu op dit apparaat.";

@@ -10,3 +10,15 @@
 "gua_encryption_reset_required_action" = "재설정하고 완료";
 "gua_signout_last_device_title" = "로그아웃하면 이 기기에서 메시지가 삭제됩니다";
 "gua_signout_last_device_message" = "이 기기는 사용 중인 유일한 기기입니다. 여기에만 저장된 메시지는 다시 로그인해도 사용할 수 없습니다.";
+"gua_encryption_reset_finishing" = "설정을 마치는 중…";
+"gua_encryption_reset_failed" = "설정을 마치지 못했습니다. 다시 시도하려면 ‘재설정하고 완료’를 누르세요.";
+"gua_encryption_recover_from_other_device_title" = "이전 메시지 복구하기";
+"gua_encryption_recover_from_other_device_message" = "다른 기기를 사용해 아직 이 기기에 없는 메시지를 복구하세요.\n\n그 기기를 사용할 수 없다면 재설정한 뒤 설정을 마칠 수 있지만, 백업에만 저장된 메시지는 영구히 사라집니다.";
+"gua_encryption_recover_from_other_device_action" = "다른 기기 사용하기";
+"gua_encryption_recover_from_other_device_failed" = "다른 기기에서 메시지를 가져오지 못했습니다. 그 기기에서 Gua가 열려 있는지 확인한 뒤 다시 시도하거나 재설정하세요.";
+"gua_verification_other_device_title" = "다른 기기에서 Gua를 여세요";
+"gua_verification_other_device_subtitle" = "앱을 계속 열어 두세요. 두 기기에 표시되는 이모지 몇 개를 비교해 본인인지 확인합니다.";
+"gua_verification_waiting_other_device_title" = "다른 기기를 기다리고 있습니다";
+"gua_verification_compare_emojis_subtitle" = "아래 이모지가 다른 기기에 표시된 이모지와 일치하는지 확인하세요.";
+"gua_encryption_reset_not_approved" = "설정이 승인되지 않았습니다. 다시 시도하려면 ‘재설정하고 완료’를 누르세요.";
+"gua_verification_complete_subtitle" = "이제 이 기기에서도 메시지를 볼 수 있습니다.";

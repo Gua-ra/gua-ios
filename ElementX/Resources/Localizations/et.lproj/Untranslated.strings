@@ -1,3 +1,18 @@
 
 "gua_signout_last_device_title" = "Väljalogimine eemaldab sinu sõnumid sellest seadmest";
 "gua_signout_last_device_message" = "See on sinu ainus seade. Ainult siin hoitavad sõnumid ei ole pärast uuesti sisselogimist saadaval.";
+"gua_encryption_reset_required_title" = "Mõnda varasemat sõnumit ei saa taastada";
+"gua_encryption_reset_required_message" = "Selles seadmes krüptitud vestluste seadistamise lõpetamiseks tuleb sinu krüptitud varukoopia lähtestada. Ainult selles varukoopias olevad sõnumid lähevad kaotsi. Sõnumid, mis on juba sinu seadmetes, ei muutu.";
+"gua_encryption_reset_required_action" = "Lähtesta ja lõpeta";
+"gua_encryption_reset_finishing" = "Lõpetame seadistamise…";
+"gua_encryption_reset_failed" = "Seadistamise lõpetamine ei õnnestunud. Uuesti proovimiseks puuduta „Lähtesta ja lõpeta“.";
+"gua_encryption_recover_from_other_device_title" = "Taasta oma varasemad sõnumid";
+"gua_encryption_recover_from_other_device_message" = "Kasuta oma teist seadet, et taastada sõnumid, mis pole selles seadmes veel saadaval.\n\nKui sul pole ligipääsu oma teisele seadmele, siis saad lähtestada ja seadistamise lõpetada, kuid ainult sinu varukoopias olevad sõnumid lähevad jäädavalt kaotsi.";
+"gua_encryption_recover_from_other_device_action" = "Kasuta teist seadet";
+"gua_encryption_recover_from_other_device_failed" = "Sõnumite toomine teisest seadmest ei õnnestunud. Veendu, et Gua on teises seadmes avatud, ja proovi uuesti või lähtesta.";
+"gua_verification_other_device_title" = "Ava Gua oma teises seadmes";
+"gua_verification_other_device_subtitle" = "Hoia see avatuna. Võrdled mõlemas seadmes mõnda emojit, et kinnitada, et see oled sina.";
+"gua_verification_waiting_other_device_title" = "Ootame sinu teise seadme järgi";
+"gua_verification_compare_emojis_subtitle" = "Kontrolli, et allpool näidatud emojid on samad, mida näed oma teises seadmes.";
+"gua_encryption_reset_not_approved" = "Seadistamist ei kinnitatud. Uuesti proovimiseks puuduta „Lähtesta ja lõpeta“.";
+"gua_verification_complete_subtitle" = "Nüüd näed oma sõnumeid ka selles seadmes.";

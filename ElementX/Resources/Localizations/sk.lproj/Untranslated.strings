@@ -1,3 +1,18 @@
 
 "gua_signout_last_device_title" = "Odhlásenie odstráni vaše správy z tohto zariadenia";
 "gua_signout_last_device_message" = "Toto je vaše jediné zariadenie. Správy uložené iba tu nebudú po opätovnom prihlásení dostupné.";
+"gua_encryption_reset_required_title" = "Niektoré predchádzajúce správy sa nedajú obnoviť";
+"gua_encryption_reset_required_message" = "Ak chcete dokončiť nastavenie šifrovaných konverzácií v tomto zariadení, vaša šifrovaná záloha sa musí resetovať. Správy uložené iba v tejto zálohe budú stratené. Správy, ktoré už máte vo svojich zariadeniach, zostanú nedotknuté.";
+"gua_encryption_reset_required_action" = "Resetovať a dokončiť";
+"gua_encryption_reset_finishing" = "Dokončuje sa nastavenie…";
+"gua_encryption_reset_failed" = "Nastavenie sa nepodarilo dokončiť. Ak to chcete skúsiť znova, ťuknite na „Resetovať a dokončiť“.";
+"gua_encryption_recover_from_other_device_title" = "Obnovte svoje predchádzajúce správy";
+"gua_encryption_recover_from_other_device_message" = "Pomocou svojho druhého zariadenia obnovte správy, ktoré ešte nie sú dostupné v tomto zariadení.\n\nAk k nemu nemáte prístup, môžete resetovať a dokončiť nastavenie, ale správy uložené iba vo vašej zálohe budú natrvalo stratené.";
+"gua_encryption_recover_from_other_device_action" = "Použiť druhé zariadenie";
+"gua_encryption_recover_from_other_device_failed" = "Nepodarilo sa získať vaše správy z druhého zariadenia. Uistite sa, že je na ňom aplikácia otvorená, a skúste to znova alebo resetujte.";
+"gua_verification_other_device_title" = "Otvorte Gua na svojom druhom zariadení";
+"gua_verification_other_device_subtitle" = "Nechajte aplikáciu otvorenú. Na oboch zariadeniach porovnáte niekoľko emotikonov a potvrdíte tak, že ste to vy.";
+"gua_verification_waiting_other_device_title" = "Čaká sa na vaše druhé zariadenie";
+"gua_verification_compare_emojis_subtitle" = "Skontrolujte, či sa emotikony uvedené nižšie zhodujú s tými na vašom druhom zariadení.";
+"gua_encryption_reset_not_approved" = "Nastavenie nebolo schválené. Ak to chcete skúsiť znova, ťuknite na „Resetovať a dokončiť“.";
+"gua_verification_complete_subtitle" = "Vaše správy sa teraz zobrazia v tomto zariadení.";

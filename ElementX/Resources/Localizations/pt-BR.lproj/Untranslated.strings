@@ -10,3 +10,15 @@
 "gua_encryption_reset_required_action" = "Redefinir e concluir";
 "gua_signout_last_device_title" = "Sair vai remover suas mensagens deste dispositivo";
 "gua_signout_last_device_message" = "Este é o seu único dispositivo. As mensagens guardadas apenas aqui não estarão disponíveis quando você entrar novamente.";
+"gua_encryption_reset_finishing" = "Concluindo a configuração…";
+"gua_encryption_reset_failed" = "Não foi possível concluir a configuração. Toque em Redefinir e concluir para tentar novamente.";
+"gua_encryption_recover_from_other_device_title" = "Recupere suas mensagens anteriores";
+"gua_encryption_recover_from_other_device_message" = "Use seu outro dispositivo para recuperar as mensagens que ainda não estão disponíveis aqui.\n\nSe você não tiver acesso a ele, pode redefinir e concluir a configuração, mas as mensagens guardadas apenas no seu backup serão perdidas para sempre.";
+"gua_encryption_recover_from_other_device_action" = "Usar meu outro dispositivo";
+"gua_encryption_recover_from_other_device_failed" = "Não foi possível obter suas mensagens do outro dispositivo. Verifique se o Gua está aberto nele e tente novamente, ou redefina.";
+"gua_verification_other_device_title" = "Abra o Gua no seu outro dispositivo";
+"gua_verification_other_device_subtitle" = "Mantenha o Gua aberto. Você vai comparar alguns emojis nos dois dispositivos para confirmar que é você.";
+"gua_verification_waiting_other_device_title" = "Aguardando seu outro dispositivo";
+"gua_verification_compare_emojis_subtitle" = "Confirme se os emojis abaixo correspondem aos mostrados no seu outro dispositivo.";
+"gua_encryption_reset_not_approved" = "A configuração não foi aprovada. Toque em Redefinir e concluir para tentar novamente.";
+"gua_verification_complete_subtitle" = "Agora suas mensagens vão aparecer neste dispositivo.";

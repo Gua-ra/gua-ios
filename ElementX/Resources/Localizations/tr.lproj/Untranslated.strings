@@ -10,3 +10,15 @@
 "gua_encryption_reset_required_action" = "Sıfırla ve tamamla";
 "gua_signout_last_device_title" = "Çıkış yapmak mesajlarınızı bu cihazdan kaldırır";
 "gua_signout_last_device_message" = "Bu tek cihazınız. Yalnızca burada tutulan mesajlar, yeniden giriş yaptığınızda kullanılamaz.";
+"gua_encryption_reset_finishing" = "Kurulum tamamlanıyor…";
+"gua_encryption_reset_failed" = "Kurulum tamamlanamadı. Tekrar denemek için “Sıfırla ve tamamla”ya dokunun.";
+"gua_encryption_recover_from_other_device_title" = "Önceki mesajlarınızı geri getirin";
+"gua_encryption_recover_from_other_device_message" = "Bu cihazda henüz bulunmayan mesajları geri getirmek için diğer cihazınızı kullanın.\n\nO cihaza erişiminiz yoksa sıfırlayıp kurulumu tamamlayabilirsiniz, ancak yalnızca yedeğinizde saklanan mesajlar kalıcı olarak kaybolur.";
+"gua_encryption_recover_from_other_device_action" = "Diğer cihazımı kullan";
+"gua_encryption_recover_from_other_device_failed" = "Mesajlarınız diğer cihazdan alınamadı. Gua'nın o cihazda açık olduğundan emin olup tekrar deneyin veya sıfırlayın.";
+"gua_verification_other_device_title" = "Gua'yı diğer cihazınızda açın";
+"gua_verification_other_device_subtitle" = "Açık tutun. Siz olduğunuzu onaylamak için iki cihazdaki birkaç emojiyi karşılaştıracaksınız.";
+"gua_verification_waiting_other_device_title" = "Diğer cihazınız bekleniyor";
+"gua_verification_compare_emojis_subtitle" = "Aşağıdaki emojilerin diğer cihazınızdakilerle eşleştiğinden emin olun.";
+"gua_encryption_reset_not_approved" = "Kurulum onaylanmadı. Tekrar denemek için “Sıfırla ve tamamla”ya dokunun.";
+"gua_verification_complete_subtitle" = "Mesajlarınız artık bu cihazda görünecek.";
