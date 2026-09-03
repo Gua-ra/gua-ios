@@ -1,0 +1,18 @@
+
+"gua_signout_last_device_title" = "登出會從這台裝置移除你的訊息";
+"gua_signout_last_device_message" = "這是你唯一的裝置。僅儲存在此處的訊息在你重新登入後將無法使用。";
+"gua_encryption_reset_required_title" = "部分先前的訊息無法復原";
+"gua_encryption_reset_required_message" = "若要在這台裝置上完成加密聊天的設定，必須重設你的加密備份。僅儲存在該備份中的訊息將會遺失。已在你裝置上的訊息不受影響。";
+"gua_encryption_reset_required_action" = "重設並完成";
+"gua_encryption_reset_finishing" = "正在完成設定…";
+"gua_encryption_reset_failed" = "無法完成設定。請點選「重設並完成」再試一次。";
+"gua_encryption_recover_from_other_device_title" = "復原你先前的訊息";
+"gua_encryption_recover_from_other_device_message" = "使用你的其他裝置，復原這台裝置上還無法使用的訊息。\n\n如果你無法存取該裝置，可以重設並完成設定，但僅儲存在備份中的訊息將永久遺失。";
+"gua_encryption_recover_from_other_device_action" = "使用我的其他裝置";
+"gua_encryption_recover_from_other_device_failed" = "無法從其他裝置取得你的訊息。請確認該裝置上的 Gua 已開啟，然後再試一次，或改為重設。";
+"gua_verification_other_device_title" = "在你的其他裝置上開啟 Gua";
+"gua_verification_other_device_subtitle" = "請保持開啟。你會在兩台裝置上比對幾個表情符號，確認是你本人。";
+"gua_verification_waiting_other_device_title" = "正在等待你的其他裝置";
+"gua_verification_compare_emojis_subtitle" = "請確認下方的表情符號與你其他裝置上顯示的相符。";
+"gua_encryption_reset_not_approved" = "設定未獲確認。請點選「重設並完成」再試一次。";
+"gua_verification_complete_subtitle" = "你的訊息現在會出現在這台裝置上。";

@@ -1,0 +1,18 @@
+
+"gua_signout_last_device_title" = "Bydd allgofnodi'n dileu eich negeseuon o'r ddyfais hon";
+"gua_signout_last_device_message" = "Dyma eich unig ddyfais. Ni fydd negeseuon sydd wedi'u cadw yma'n unig ar gael pan fyddwch yn mewngofnodi eto.";
+"gua_encryption_reset_required_title" = "Nid oes modd adfer rhai negeseuon blaenorol";
+"gua_encryption_reset_required_message" = "I orffen gosod sgyrsiau wedi'u hamgryptio ar y ddyfais hon, mae angen ailosod eich copi wrth gefn wedi'i amgryptio. Bydd negeseuon sydd wedi'u cadw yn y copi hwnnw yn unig yn cael eu colli. Ni fydd negeseuon sydd eisoes ar eich dyfeisiau yn cael eu heffeithio.";
+"gua_encryption_reset_required_action" = "Ailosod a gorffen";
+"gua_encryption_reset_finishing" = "Yn gorffen y broses osod…";
+"gua_encryption_reset_failed" = "Doedd dim modd gorffen y broses osod. Tapiwch Ailosod a gorffen i geisio eto.";
+"gua_encryption_recover_from_other_device_title" = "Adferwch eich negeseuon blaenorol";
+"gua_encryption_recover_from_other_device_message" = "Defnyddiwch eich dyfais arall i adfer negeseuon nad ydyn nhw ar gael ar y ddyfais hon eto.\n\nOs nad oes gennych fynediad iddi, gallwch ailosod a gorffen y broses osod, ond bydd negeseuon sydd wedi’u cadw yn eich copi wrth gefn yn unig yn cael eu colli am byth.";
+"gua_encryption_recover_from_other_device_action" = "Defnyddio fy nyfais arall";
+"gua_encryption_recover_from_other_device_failed" = "Doedd dim modd cael eich negeseuon o’r ddyfais arall. Gwnewch yn siŵr ei bod ar agor a cheisiwch eto, neu ailosodwch.";
+"gua_verification_other_device_title" = "Agorwch Gua ar eich dyfais arall";
+"gua_verification_other_device_subtitle" = "Gadewch hi ar agor. Byddwch yn cymharu ychydig o emojis ar y ddwy ddyfais i gadarnhau mai chi sydd yno.";
+"gua_verification_waiting_other_device_title" = "Yn aros am eich dyfais arall";
+"gua_verification_compare_emojis_subtitle" = "Gwnewch yn siŵr bod yr emojis isod yn cyd-fynd â’r rhai ar eich dyfais arall.";
+"gua_encryption_reset_not_approved" = "Ni chafodd y broses osod ei chymeradwyo. Tapiwch Ailosod a gorffen i geisio eto.";
+"gua_verification_complete_subtitle" = "Bydd eich negeseuon yn ymddangos ar y ddyfais hon nawr.";

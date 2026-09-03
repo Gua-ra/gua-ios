@@ -1,0 +1,18 @@
+
+"gua_signout_last_device_title" = "A kijelentkezés eltávolítja az üzeneteit erről az eszközről";
+"gua_signout_last_device_message" = "Ez az egyetlen eszköze. A csak itt tárolt üzenetek nem lesznek elérhetők, amikor újra bejelentkezik.";
+"gua_encryption_reset_required_title" = "Néhány korábbi üzenet nem állítható vissza";
+"gua_encryption_reset_required_message" = "A titkosított beszélgetések beállításának befejezéséhez ezen az eszközön vissza kell állítani a titkosított biztonsági mentést. A csak abban a mentésben tárolt üzenetek elvesznek. Az eszközein már meglévő üzeneteket ez nem érinti.";
+"gua_encryption_reset_required_action" = "Visszaállítás és befejezés";
+"gua_encryption_reset_finishing" = "Beállítás befejezése…";
+"gua_encryption_reset_failed" = "Nem sikerült befejezni a beállítást. Az újrapróbálkozáshoz koppintson a „Visszaállítás és befejezés” gombra.";
+"gua_encryption_recover_from_other_device_title" = "Állítsa vissza a korábbi üzeneteit";
+"gua_encryption_recover_from_other_device_message" = "A másik eszközével visszaállíthatja azokat az üzeneteket, amelyek ezen az eszközön még nem érhetők el.\n\nHa nem fér hozzá ahhoz az eszközhöz, visszaállíthatja a biztonsági mentést és befejezheti a beállítást, de véglegesen elvesznek azok az üzenetek, amelyek csak a mentésben vannak meg.";
+"gua_encryption_recover_from_other_device_action" = "Másik eszköz használata";
+"gua_encryption_recover_from_other_device_failed" = "Nem sikerült lekérni az üzeneteit a másik eszközről. Győződjön meg róla, hogy nyitva van rajta a Gua, majd próbálja újra, vagy válassza a „Visszaállítás és befejezés” lehetőséget.";
+"gua_verification_other_device_title" = "Nyissa meg a Gua alkalmazást a másik eszközén";
+"gua_verification_other_device_subtitle" = "Hagyja nyitva. Néhány emodzsit fog összehasonlítani a két eszközön, hogy igazolja, valóban Ön az.";
+"gua_verification_waiting_other_device_title" = "Várakozás a másik eszközre";
+"gua_verification_compare_emojis_subtitle" = "Győződjön meg róla, hogy az alábbi emodzsik megegyeznek a másik eszközén láthatókkal.";
+"gua_encryption_reset_not_approved" = "A beállítást nem hagyták jóvá. Az újrapróbálkozáshoz koppintson a „Visszaállítás és befejezés” gombra.";
+"gua_verification_complete_subtitle" = "Az üzenetei mostantól megjelennek ezen az eszközön.";

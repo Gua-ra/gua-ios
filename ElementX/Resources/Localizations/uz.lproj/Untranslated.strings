@@ -1,0 +1,18 @@
+
+"gua_signout_last_device_title" = "Chiqish xabarlaringizni ushbu qurilmadan o'chiradi";
+"gua_signout_last_device_message" = "Bu sizning yagona qurilmangiz. Faqat shu yerda saqlangan xabarlar qayta kirganingizda mavjud bo'lmaydi.";
+"gua_encryption_reset_required_title" = "Ba'zi oldingi xabarlarni tiklab bo'lmaydi";
+"gua_encryption_reset_required_message" = "Ushbu qurilmada shifrlangan chatlarni sozlashni yakunlash uchun shifrlangan zaxira nusxangizni qayta tiklash kerak. Faqat o'sha zaxirada saqlangan xabarlar yo'qoladi. Qurilmalaringizda allaqachon mavjud xabarlarga ta'sir qilmaydi.";
+"gua_encryption_reset_required_action" = "Qayta tiklash va yakunlash";
+"gua_encryption_reset_finishing" = "Sozlash yakunlanmoqda…";
+"gua_encryption_reset_failed" = "Sozlashni yakunlab boʻlmadi. Qayta urinish uchun “Qayta tiklash va yakunlash”ni bosing.";
+"gua_encryption_recover_from_other_device_title" = "Oldingi xabarlaringizni tiklang";
+"gua_encryption_recover_from_other_device_message" = "Ushbu qurilmada hali mavjud boʻlmagan xabarlarni tiklash uchun boshqa qurilmangizdan foydalaning.\n\nAgar unga kira olmasangiz, qayta tiklab, sozlashni yakunlashingiz mumkin, biroq faqat zaxira nusxangizda saqlangan xabarlar butunlay yoʻqoladi.";
+"gua_encryption_recover_from_other_device_action" = "Boshqa qurilmamni ishlatish";
+"gua_encryption_recover_from_other_device_failed" = "Xabarlaringizni boshqa qurilmangizdan olib boʻlmadi. Unda Gua ochiq ekaniga ishonch hosil qiling va qayta urinib koʻring yoki qayta tiklang.";
+"gua_verification_other_device_title" = "Boshqa qurilmangizda Guaʼni oching";
+"gua_verification_other_device_subtitle" = "Uni ochiq qoldiring. Siz ekanligingizni tasdiqlash uchun har ikkala qurilmadagi bir nechta emojini solishtirasiz.";
+"gua_verification_waiting_other_device_title" = "Boshqa qurilmangiz kutilmoqda";
+"gua_verification_compare_emojis_subtitle" = "Quyidagi emojilar boshqa qurilmangizdagilarga mos kelishiga ishonch hosil qiling.";
+"gua_encryption_reset_not_approved" = "Sozlash tasdiqlanmadi. Qayta urinish uchun “Qayta tiklash va yakunlash”ni bosing.";
+"gua_verification_complete_subtitle" = "Endi xabarlaringiz ushbu qurilmada koʻrinadi.";

@@ -1,0 +1,24 @@
+/*
+  Gua fork strings for this locale. English source lives in en.lproj/Untranslated.strings.
+*/
+
+"gua_encryption_repair_title" = "完成此设备的设置";
+"gua_encryption_repair_message" = "完成设置即可访问此设备上可用的加密聊天和消息记录。";
+"gua_encryption_repair_action" = "完成设置";
+"gua_encryption_reset_required_title" = "部分历史消息无法恢复";
+"gua_encryption_reset_required_message" = "要在此设备上完成加密聊天的设置，需要重置你的加密备份。仅保存在该备份中的消息将会丢失。已在你设备上的消息不受影响。";
+"gua_encryption_reset_required_action" = "重置并完成";
+"gua_signout_last_device_title" = "退出登录会从此设备上移除你的消息";
+"gua_signout_last_device_message" = "这是你唯一的设备。仅保存在此处的消息在你重新登录后将无法使用。";
+"gua_encryption_reset_finishing" = "正在完成设置…";
+"gua_encryption_reset_failed" = "无法完成设置。点击“重置并完成”重试。";
+"gua_encryption_recover_from_other_device_title" = "恢复你的历史消息";
+"gua_encryption_recover_from_other_device_message" = "用你的另一台设备，恢复此设备上还看不到的消息。\n\n如果你无法使用那台设备，也可以重置并完成设置，但仅保存在备份中的消息将永久丢失。";
+"gua_encryption_recover_from_other_device_action" = "使用我的另一台设备";
+"gua_encryption_recover_from_other_device_failed" = "无法从另一台设备获取你的消息。请确认那台设备上的 Gua 已打开，然后重试，或者重置。";
+"gua_verification_other_device_title" = "在你的另一台设备上打开 Gua";
+"gua_verification_other_device_subtitle" = "请让 Gua 保持打开。你会在两台设备上比较几个表情符号，确认是你本人。";
+"gua_verification_waiting_other_device_title" = "正在等待你的另一台设备";
+"gua_verification_compare_emojis_subtitle" = "确认下方的表情符号与你的另一台设备上显示的相同。";
+"gua_encryption_reset_not_approved" = "设置未获批准。点击“重置并完成”重试。";
+"gua_verification_complete_subtitle" = "你的消息现在会显示在此设备上。";

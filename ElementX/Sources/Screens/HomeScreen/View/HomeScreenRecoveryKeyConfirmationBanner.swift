@@ -10,36 +10,55 @@ import Compound
 import SwiftUI
 
 struct HomeScreenRecoveryKeyConfirmationBanner: View {
-    enum State { case setUpRecovery, recoveryOutOfSync }
+    enum State {
+        case setUpRecovery, recoveryOutOfSync
+
+        /// The action the banner's button sends. Lives on the state, not the view, so a test can
+        /// assert it without standing up SwiftUI.
+        var primaryAction: HomeScreenViewAction {
+            switch self {
+            case .setUpRecovery: .setupRecovery
+            // GUA FORK: this must stay .confirmRecoveryKey. It routes to finishEncryptionSetup(),
+            // which tries every repair that keeps the backup intact and only offers the reset when
+            // there is genuinely no other way. Pointing it at .resetEncryption sends every tap
+            // straight to the destructive screen and leaves the staged path dead code.
+            case .recoveryOutOfSync: .confirmRecoveryKey
+            }
+        }
+    }
+
     let state: State
     var context: HomeScreenViewModel.Context
+    /// GUA FORK: owned by the view model, not by this view. As view-local state it was set on tap
+    /// and never cleared, so the `.notYet` outcome left the button reading "Setting up…" for good.
+    let isWorking: Bool
     
     var title: String {
         switch state {
         case .setUpRecovery: L10n.bannerSetUpRecoveryTitle
-        case .recoveryOutOfSync: L10n.confirmRecoveryKeyBannerTitle
+        // GUA FORK: this state means the device cannot secure messages yet, and the fix is a
+        // reset it performs itself. Nobody has a recovery key to confirm, because Gua never
+        // shows one, so asking for one is a dead end dressed up as an instruction.
+        case .recoveryOutOfSync: UntranslatedL10n.guaEncryptionRepairTitle
         }
     }
 
     var message: String {
         switch state {
         case .setUpRecovery: L10n.bannerSetUpRecoveryContent
-        case .recoveryOutOfSync: L10n.confirmRecoveryKeyBannerMessage
+        case .recoveryOutOfSync: UntranslatedL10n.guaEncryptionRepairMessage
         }
     }
 
     var actionTitle: String {
         switch state {
         case .setUpRecovery: L10n.bannerSetUpRecoverySubmit
-        case .recoveryOutOfSync: L10n.confirmRecoveryKeyBannerPrimaryButtonTitle
+        case .recoveryOutOfSync: UntranslatedL10n.guaEncryptionRepairAction
         }
     }
 
     var primaryAction: HomeScreenViewAction {
-        switch state {
-        case .setUpRecovery: .setupRecovery
-        case .recoveryOutOfSync: .confirmRecoveryKey
-        }
+        state.primaryAction
     }
     
     var body: some View {
@@ -83,21 +102,23 @@ struct HomeScreenRecoveryKeyConfirmationBanner: View {
             Button {
                 context.send(viewAction: primaryAction)
             } label: {
-                Text(actionTitle)
-                    .frame(maxWidth: .infinity)
+                HStack(spacing: 8) {
+                    if isWorking {
+                        ProgressView()
+                            .tint(.compound.iconOnSolidPrimary)
+                    }
+                    Text(isWorking ? UntranslatedL10n.guaEncryptionRepairActionInProgress : actionTitle)
+                }
+                .frame(maxWidth: .infinity)
             }
+            .disabled(isWorking)
             .buttonStyle(.compound(.primary, size: .medium))
             .accessibilityIdentifier(A11yIdentifiers.homeScreen.recoveryKeyConfirmationBannerContinue)
             
-            if state == .recoveryOutOfSync {
-                Button {
-                    context.send(viewAction: .resetEncryption)
-                } label: {
-                    Text(L10n.confirmRecoveryKeyBannerSecondaryButtonTitle)
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.compound(.tertiary, size: .medium))
-            }
+            // GUA FORK: no second button. It used to offer "Forgot your recovery key?" beside a
+            // prompt to enter one, which is two ways of asking about a secret the user has never
+            // seen. The primary action now performs the reset directly, so there is one tap and
+            // nothing to remember.
         }
     }
 }
@@ -107,10 +128,12 @@ struct HomeScreenRecoveryKeyConfirmationBanner_Previews: PreviewProvider, Testab
     
     static var previews: some View {
         HomeScreenRecoveryKeyConfirmationBanner(state: .setUpRecovery,
-                                                context: viewModel.context)
+                                                context: viewModel.context,
+                                                isWorking: false)
             .previewDisplayName("Set up recovery")
         HomeScreenRecoveryKeyConfirmationBanner(state: .recoveryOutOfSync,
-                                                context: viewModel.context)
+                                                context: viewModel.context,
+                                                isWorking: false)
             .previewDisplayName("Out of sync")
     }
     
