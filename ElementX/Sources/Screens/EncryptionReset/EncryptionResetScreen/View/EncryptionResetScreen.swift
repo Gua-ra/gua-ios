@@ -66,7 +66,11 @@ struct EncryptionResetScreen: View {
     }
     
     private var footer: some View {
-        Text(UntranslatedL10n.guaEncryptionResetRequiredMessage)
+        // GUA FORK: when the keys can be fetched from another device, saying the backup
+        // "needs to be reset" would be untrue, and the button below offers the other way out.
+        Text(context.viewState.canRecoverFromOtherDevice
+            ? UntranslatedL10n.guaEncryptionRecoverFromOtherDeviceMessage
+            : UntranslatedL10n.guaEncryptionResetRequiredMessage)
             .font(.compound.bodyMD)
             .multilineTextAlignment(.center)
             .foregroundColor(.compound.textSecondary)
@@ -87,9 +91,24 @@ struct EncryptionResetScreen: View {
 struct EncryptionResetScreen_Previews: PreviewProvider, TestablePreview {
     static let viewModel = EncryptionResetScreenViewModel(clientProxy: ClientProxyMock(.init()),
                                                           userIndicatorController: UserIndicatorControllerMock())
+    
+    /// GUA FORK: the same screen when another device of this account still holds the keys.
+    /// The offer to fetch them is conditional, so both shapes need to be seen.
+    static let recoverViewModel: EncryptionResetScreenViewModel = {
+        let clientProxy = ClientProxyMock(.init(recoveryState: .incomplete))
+        clientProxy.hasDevicesToVerifyAgainstReturnValue = .success(true)
+        return EncryptionResetScreenViewModel(clientProxy: clientProxy,
+                                              userIndicatorController: UserIndicatorControllerMock())
+    }()
+    
     static var previews: some View {
         NavigationStack {
             EncryptionResetScreen(context: viewModel.context)
         }
+        
+        NavigationStack {
+            EncryptionResetScreen(context: recoverViewModel.context)
+        }
+        .snapshotPreferences(expect: recoverViewModel.context.observe(\.viewState.canRecoverFromOtherDevice).map { $0 == true }.eraseToStream())
     }
 }

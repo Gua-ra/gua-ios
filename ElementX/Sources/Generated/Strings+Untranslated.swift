@@ -10,10 +10,12 @@ import Foundation
 // swiftlint:disable explicit_type_interface function_parameter_count identifier_name line_length
 // swiftlint:disable nesting type_body_length type_name vertical_whitespace_opening_braces
 internal enum UntranslatedL10n {
-  /// Get them from my other device
+  /// Use my other device
   internal static var guaEncryptionRecoverFromOtherDeviceAction: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_recover_from_other_device_action") }
   /// Couldn’t get your messages from the other device. Make sure it’s open and try again, or reset.
   internal static var guaEncryptionRecoverFromOtherDeviceFailed: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_recover_from_other_device_failed") }
+  /// Your other device still has the keys for these messages. Verify it to copy them over. Resetting instead finishes setup right away, but messages stored only in the backup will be lost.
+  internal static var guaEncryptionRecoverFromOtherDeviceMessage: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_recover_from_other_device_message") }
   /// Finish setup
   internal static var guaEncryptionRepairAction: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_repair_action") }
   /// Setting up…
