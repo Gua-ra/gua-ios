@@ -95,6 +95,10 @@ class UserSessionStore: UserSessionStoreProtocol {
         let userID = userSession.clientProxy.userID
         let credentials = keychainController.restorationTokens().first { $0.userID == userID }
         keychainController.removeRestorationTokenForUsername(userID)
+        // GUA FORK: the stored recovery key belongs to the session being torn down. Left behind
+        // it survives logout and gets replayed against whatever secret storage comes next.
+        keychainController.removeRecoveryKey(forUsername: userID)
+        appSettings.setHasBootstrappedKeyStorage(false, forUserID: userID)
         
         if let credentials {
             credentials.restorationToken.sessionDirectories.delete()
@@ -116,12 +120,36 @@ class UserSessionStore: UserSessionStoreProtocol {
             guard let self else { return }
 
             do {
-                guard !appSettings.hasBootstrappedKeyStorage else { return }
+                guard !appSettings.hasBootstrappedKeyStorage(forUserID: userID) else { return }
 
-                if secureBackupController.recoveryState.value == .enabled {
-                    MXLog.info("Recovery already enabled, marking key storage as bootstrapped.")
-                    appSettings.hasBootstrappedKeyStorage = true
+                // GUA FORK: wait for the SDK to report where this account actually stands.
+                // The subject starts at `.unknown`, and acting on that is what left key
+                // storage half-built for every account created so far.
+                let state = await secureBackupController.settledRecoveryState()
+
+                // GUA FORK: never act on an unsettled state. Everything below either enables or
+                // repairs key storage, and doing that without knowing where the account stands
+                // is what broke it in the first place. Leaving the flag unset retries next launch.
+                guard state != .unknown else {
+                    MXLog.warning("Recovery state never settled, deferring key storage bootstrap.")
                     return
+                }
+
+                if state == .enabled {
+                    MXLog.info("Recovery already enabled, marking key storage as bootstrapped.")
+                    appSettings.setHasBootstrappedKeyStorage(true, forUserID: userID)
+                    return
+                }
+
+                // GUA FORK: storage exists but is missing secrets. If we still hold the key we
+                // generated, repair in place instead of rotating, which would orphan the backup.
+                if state == .incomplete, let storedKey = keychainController.recoveryKey(forUsername: userID) {
+                    MXLog.info("Key storage incomplete, repairing from the stored recovery key.")
+                    if case .success = await secureBackupController.repairRecovery(with: storedKey) {
+                        appSettings.setHasBootstrappedKeyStorage(true, forUserID: userID)
+                        return
+                    }
+                    MXLog.warning("Repair from the stored recovery key failed, falling through to bootstrap.")
                 }
 
                 if secureBackupController.keyBackupState.value != .enabled {
@@ -142,7 +170,15 @@ class UserSessionStore: UserSessionStoreProtocol {
                         return
                     }
 
-                    appSettings.hasBootstrappedKeyStorage = true
+                    // GUA FORK: only latch once the state is genuinely `.enabled`. Latching on a
+                    // completed attempt is what made a half-finished bootstrap permanent, because
+                    // this block never ran again on later launches.
+                    guard await secureBackupController.settledRecoveryState() == .enabled else {
+                        MXLog.warning("Key storage did not reach .enabled; will retry on next launch.")
+                        return
+                    }
+
+                    appSettings.setHasBootstrappedKeyStorage(true, forUserID: userID)
                     MXLog.info("Finished bootstrapping key storage.")
                 case .failure(let error):
                     MXLog.error("Failed generating recovery key while bootstrapping key storage: \(error)")
@@ -166,17 +202,77 @@ class UserSessionStore: UserSessionStoreProtocol {
             guard let self else { return }
 
             do {
-                guard let storedKey = keychainController.recoveryKey(forUsername: userID) else { return }
+                // Only act when recovery isn't already fully enabled (e.g. .incomplete).
+                let state = await secureBackupController.settledRecoveryState()
+                // Same reasoning as the bootstrap path: an unsettled state is not a signal.
+                guard state != .enabled, state != .unknown else { return }
 
-                // Only attempt a restore when recovery isn't already fully enabled (e.g. .incomplete).
-                guard secureBackupController.recoveryState.value != .enabled else { return }
+                // GUA FORK: an identity reset leaves recovery `.disabled`, not `.enabled`: it
+                // clears the default secret-storage key and does not create a new one. Without
+                // this, finishing the repair simply swapped one banner for another, asking the
+                // user to "set up recovery" with a recovery key, which is the jargon the whole
+                // exercise exists to remove. Provision it for them instead.
+                if state == .disabled {
+                    MXLog.info("GUA-KEYSTORE: recovery disabled, provisioning it silently.")
+                    switch await secureBackupController.generateRecoveryKey() {
+                    case .success(let key):
+                        keychainController.setRecoveryKey(key, forUsername: userID)
+                        MXLog.info("GUA-KEYSTORE: provisioned recovery and stored the key.")
+                    case .failure(let error):
+                        MXLog.warning("GUA-KEYSTORE: could not provision recovery: \(error)")
+                    }
+                    return
+                }
 
-                MXLog.info("Restoring key storage from stored recovery key.")
-                switch await secureBackupController.confirmRecoveryKey(storedKey) {
-                case .success:
-                    MXLog.info("Finished restoring key storage from stored recovery key.")
-                case .failure(let error):
-                    MXLog.error("Failed restoring key storage from stored recovery key: \(error)")
+                // GUA FORK: every account damaged by the old silent bootstrap is sitting at
+                // .incomplete with no stored key, and this is the only path those users ever
+                // reach, because bootstrap runs on login and they are already signed in. It used
+                // to give up right here when the keychain was empty, which meant an app update
+                // could never fix an existing account. That is the whole population in
+                // production, so it now repairs without a key too.
+                // If we hold a key, try it first: it is the only path that keeps the existing
+                // key backup. But a stored key is NOT proof it still opens anything. The old
+                // bootstrap saved the key it got from rotating storage and then left that
+                // storage incomplete, so on damaged accounts the saved key is stale and
+                // `recover` fails with it. Treating that failure as the end of the road is why
+                // the banner survived: the account had a key, so it never reached the repair
+                // written for accounts without one.
+                if let storedKey = keychainController.recoveryKey(forUsername: userID) {
+                    MXLog.info("GUA-KEYSTORE: state=\(state), stored key present, trying it.")
+                    let result = state == .incomplete
+                        ? await secureBackupController.repairRecovery(with: storedKey)
+                        : await secureBackupController.confirmRecoveryKey(storedKey)
+
+                    if case .success = result,
+                       await secureBackupController.settledRecoveryState() == .enabled {
+                        MXLog.info("GUA-KEYSTORE: repaired using the stored key.")
+                        return
+                    }
+
+                    MXLog.warning("GUA-KEYSTORE: stored key did not restore storage, discarding it and falling through.")
+                    keychainController.removeRecoveryKey(forUsername: userID)
+                }
+
+                guard await secureBackupController.settledRecoveryState() == .incomplete else { return }
+
+                // GUA FORK: this used to call provisionRecoveryWithoutKey, which enables recovery
+                // and writes the fresh key back to the keychain. That was a self-perpetuating
+                // rotation: enabling mints a new secret store, the account stays .incomplete
+                // because there are no private cross-signing keys to export into it, and next
+                // launch the key we just saved opens a store containing nothing, so it discards it
+                // and rotates again. Worse across platforms, since the same account on Android was
+                // doing the same thing at its own launch and invalidating whatever this saved.
+                //
+                // repairWithoutReset only enables recovery where that can actually finish the job,
+                // and reports honestly otherwise. Nothing here is destructive, and .resetRequired
+                // is left to the banner, where the user is present to consent.
+                switch await secureBackupController.repairWithoutReset() {
+                case .repaired:
+                    MXLog.info("GUA-KEYSTORE: key storage repaired at launch.")
+                case .notYet:
+                    MXLog.info("GUA-KEYSTORE: state not readable yet, will retry next launch.")
+                case .resetRequired:
+                    MXLog.warning("GUA-KEYSTORE: only a reset can finish this device; leaving it to the banner.")
                 }
             } catch {
                 MXLog.error("Unexpected error while restoring key storage: \(error)")

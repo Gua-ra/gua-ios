@@ -1,0 +1,18 @@
+
+"gua_signout_last_device_title" = "Keluar akan menghapus pesan Anda dari perangkat ini";
+"gua_signout_last_device_message" = "Ini satu-satunya perangkat Anda. Pesan yang hanya tersimpan di sini tidak akan tersedia saat Anda masuk lagi.";
+"gua_encryption_reset_required_title" = "Beberapa pesan sebelumnya tidak dapat dipulihkan";
+"gua_encryption_reset_required_message" = "Untuk menyelesaikan penyiapan obrolan terenkripsi di perangkat ini, cadangan terenkripsi Anda perlu disetel ulang. Pesan yang hanya tersimpan di cadangan itu akan hilang. Pesan yang sudah ada di perangkat Anda tidak akan terpengaruh.";
+"gua_encryption_reset_required_action" = "Setel ulang dan selesaikan";
+"gua_encryption_reset_finishing" = "Menyelesaikan penyiapan…";
+"gua_encryption_reset_failed" = "Tidak dapat menyelesaikan penyiapan. Ketuk Setel ulang dan selesaikan untuk mencoba lagi.";
+"gua_encryption_recover_from_other_device_title" = "Pulihkan pesan lama Anda";
+"gua_encryption_recover_from_other_device_message" = "Gunakan perangkat Anda yang lain untuk memulihkan pesan yang belum tersedia di perangkat ini.\n\nJika Anda tidak memiliki akses ke perangkat itu, Anda dapat menyetel ulang dan menyelesaikan penyiapan, tetapi pesan yang hanya tersimpan di cadangan Anda akan hilang selamanya.";
+"gua_encryption_recover_from_other_device_action" = "Gunakan perangkat lain";
+"gua_encryption_recover_from_other_device_failed" = "Tidak dapat mengambil pesan Anda dari perangkat lain. Pastikan Gua terbuka di perangkat itu, lalu coba lagi atau setel ulang.";
+"gua_verification_other_device_title" = "Buka Gua di perangkat Anda yang lain";
+"gua_verification_other_device_subtitle" = "Biarkan aplikasi tetap terbuka. Anda akan membandingkan beberapa emoji di kedua perangkat untuk memastikan bahwa itu benar-benar Anda.";
+"gua_verification_waiting_other_device_title" = "Menunggu perangkat Anda yang lain";
+"gua_verification_compare_emojis_subtitle" = "Pastikan emoji di bawah ini cocok dengan yang ada di perangkat Anda yang lain.";
+"gua_encryption_reset_not_approved" = "Penyiapan tidak disetujui. Ketuk Setel ulang dan selesaikan untuk mencoba lagi.";
+"gua_verification_complete_subtitle" = "Pesan Anda sekarang akan muncul di perangkat ini.";

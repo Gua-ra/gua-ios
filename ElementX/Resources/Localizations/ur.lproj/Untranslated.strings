@@ -1,0 +1,18 @@
+
+"gua_signout_last_device_title" = "سائن آؤٹ کرنے سے آپ کے پیغامات اس ڈیوائس سے ہٹ جائیں گے";
+"gua_signout_last_device_message" = "یہ آپ کی واحد ڈیوائس ہے۔ صرف یہاں محفوظ پیغامات دوبارہ سائن ان کرنے پر دستیاب نہیں ہوں گے۔";
+"gua_encryption_reset_required_title" = "کچھ پچھلے پیغامات بازیافت نہیں کیے جا سکتے";
+"gua_encryption_reset_required_message" = "اس ڈیوائس پر خفیہ کردہ چیٹس کا سیٹ اپ مکمل کرنے کے لیے آپ کے خفیہ کردہ بیک اپ کو ری سیٹ کرنا ہوگا۔ صرف اسی بیک اپ میں محفوظ پیغامات ضائع ہو جائیں گے۔ جو پیغامات پہلے سے آپ کی ڈیوائسز پر ہیں وہ متاثر نہیں ہوں گے۔";
+"gua_encryption_reset_required_action" = "ری سیٹ کریں اور مکمل کریں";
+"gua_encryption_reset_finishing" = "سیٹ اپ مکمل ہو رہا ہے…";
+"gua_encryption_reset_failed" = "سیٹ اپ مکمل نہیں ہو سکا۔ دوبارہ کوشش کرنے کے لیے ”ری سیٹ کریں اور مکمل کریں“ پر ٹیپ کریں۔";
+"gua_encryption_recover_from_other_device_title" = "اپنے پچھلے پیغامات بازیافت کریں";
+"gua_encryption_recover_from_other_device_message" = "جو پیغامات ابھی اس ڈیوائس پر دستیاب نہیں ہیں، انہیں بازیافت کرنے کے لیے اپنی دوسری ڈیوائس استعمال کریں۔\n\nاگر آپ کو اس تک رسائی نہیں ہے، تو آپ ری سیٹ کر کے سیٹ اپ مکمل کر سکتے ہیں، لیکن صرف آپ کے بیک اپ میں محفوظ پیغامات ہمیشہ کے لیے ضائع ہو جائیں گے۔";
+"gua_encryption_recover_from_other_device_action" = "دوسری ڈیوائس استعمال کریں";
+"gua_encryption_recover_from_other_device_failed" = "دوسری ڈیوائس سے آپ کے پیغامات حاصل نہیں کیے جا سکے۔ یقینی بنائیں کہ اس پر Gua کھلا ہے اور دوبارہ کوشش کریں، یا ری سیٹ کریں۔";
+"gua_verification_other_device_title" = "اپنی دوسری ڈیوائس پر Gua کھولیں";
+"gua_verification_other_device_subtitle" = "اسے کھلا رہنے دیں۔ یہ تصدیق کرنے کے لیے کہ یہ آپ ہی ہیں، دونوں ڈیوائسز پر آپ چند ایموجی کا موازنہ کریں گے۔";
+"gua_verification_waiting_other_device_title" = "آپ کی دوسری ڈیوائس کا انتظار";
+"gua_verification_compare_emojis_subtitle" = "یقینی بنائیں کہ نیچے دیے گئے ایموجی آپ کی دوسری ڈیوائس پر دکھائے گئے ایموجی سے مماثل ہیں۔";
+"gua_encryption_reset_not_approved" = "سیٹ اپ کی منظوری نہیں دی گئی۔ دوبارہ کوشش کرنے کے لیے ”ری سیٹ کریں اور مکمل کریں“ پر ٹیپ کریں۔";
+"gua_verification_complete_subtitle" = "اب آپ کے پیغامات اس ڈیوائس پر نظر آنے لگیں گے۔";

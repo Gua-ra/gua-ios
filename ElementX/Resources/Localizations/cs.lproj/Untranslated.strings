@@ -1,0 +1,24 @@
+/*
+  Gua fork strings for this locale. English source lives in en.lproj/Untranslated.strings.
+*/
+
+"gua_encryption_repair_title" = "Dokončete nastavení tohoto zařízení";
+"gua_encryption_repair_message" = "Dokončete nastavení, abyste získali přístup k šifrovaným konverzacím a historii zpráv dostupné v tomto zařízení.";
+"gua_encryption_repair_action" = "Dokončit nastavení";
+"gua_encryption_reset_required_title" = "Některé předchozí zprávy nelze obnovit";
+"gua_encryption_reset_required_message" = "Abyste dokončili nastavení šifrovaných konverzací v tomto zařízení, je nutné resetovat vaši šifrovanou zálohu. Zprávy uložené pouze v této záloze budou ztraceny. Zprávy, které už máte ve svých zařízeních, zůstanou beze změny.";
+"gua_encryption_reset_required_action" = "Resetovat a dokončit";
+"gua_signout_last_device_title" = "Odhlášení odstraní vaše zprávy z tohoto zařízení";
+"gua_signout_last_device_message" = "Toto je vaše jediné zařízení. Zprávy uložené pouze zde nebudou po opětovném přihlášení dostupné.";
+"gua_encryption_reset_finishing" = "Dokončování nastavení…";
+"gua_encryption_reset_failed" = "Nastavení se nepodařilo dokončit. Zkuste to znovu klepnutím na „Resetovat a dokončit“.";
+"gua_encryption_recover_from_other_device_title" = "Obnovte své předchozí zprávy";
+"gua_encryption_recover_from_other_device_message" = "Pomocí svého druhého zařízení obnovte zprávy, které v tomto zařízení zatím nejsou dostupné.\n\nPokud k němu nemáte přístup, můžete provést reset a dokončit nastavení, ale zprávy uložené pouze ve vaší záloze budou nenávratně ztraceny.";
+"gua_encryption_recover_from_other_device_action" = "Použít druhé zařízení";
+"gua_encryption_recover_from_other_device_failed" = "Zprávy se nepodařilo získat z druhého zařízení. Ujistěte se, že na něm máte aplikaci otevřenou, a zkuste to znovu, nebo proveďte reset.";
+"gua_verification_other_device_title" = "Otevřete Gua na druhém zařízení";
+"gua_verification_other_device_subtitle" = "Nechte aplikaci otevřenou. Na obou zařízeních porovnáte několik emotikonů a potvrdíte tak, že jste to vy.";
+"gua_verification_waiting_other_device_title" = "Čekání na druhé zařízení";
+"gua_verification_compare_emojis_subtitle" = "Zkontrolujte, zda se níže uvedené emotikony shodují s emotikony na vašem druhém zařízení.";
+"gua_encryption_reset_not_approved" = "Nastavení nebylo schváleno. Zkuste to znovu klepnutím na „Resetovat a dokončit“.";
+"gua_verification_complete_subtitle" = "Vaše zprávy se nyní zobrazí v tomto zařízení.";

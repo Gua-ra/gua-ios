@@ -57,15 +57,7 @@ struct SecureBackupLogoutConfirmationScreen: View {
     
     private var footer: some View {
         VStack(spacing: 16.0) {
-            if case .saveRecoveryKey = context.viewState.mode {
-                Button {
-                    context.send(viewAction: .settings)
-                } label: {
-                    Text(L10n.commonSettings)
-                }
-                .buttonStyle(.compound(.primary))
-            }
-            
+            // GUA FORK: no Settings button. It opened the recovery-key console.
             Button(role: .destructive) {
                 context.send(viewAction: .logout)
             } label: {
@@ -87,7 +79,7 @@ struct SecureBackupLogoutConfirmationScreen: View {
     private var title: String {
         switch context.viewState.mode {
         case .saveRecoveryKey:
-            return L10n.screenSignoutSaveRecoveryKeyTitle
+            return UntranslatedL10n.guaSignoutLastDeviceTitle
         case .waitingToStart, .backupOngoing:
             return L10n.screenSignoutKeyBackupOngoingTitle
         case .offline:
@@ -98,7 +90,7 @@ struct SecureBackupLogoutConfirmationScreen: View {
     private var subtitle: String {
         switch context.viewState.mode {
         case .saveRecoveryKey:
-            return L10n.screenSignoutSaveRecoveryKeySubtitle
+            return UntranslatedL10n.guaSignoutLastDeviceMessage
         case .waitingToStart, .backupOngoing:
             return L10n.screenSignoutKeyBackupOngoingSubtitle
         case .offline:

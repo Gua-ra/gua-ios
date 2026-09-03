@@ -209,8 +209,10 @@ class HomeScreenViewModelTests: XCTestCase {
         securityStateStateSubject.send(.init(verificationState: .verified, recoveryState: .disabled))
         try await deferred.fulfill()
         
-        // Then the banner should be shown to set up recovery.
-        XCTAssertEqual(context.viewState.securityBannerMode, .show(.setUpRecovery))
+        // Then the banner should be the one that finishes setup silently. GUA FORK: .disabled
+        // used to show .setUpRecovery, whose flow hands the user a recovery key to write down,
+        // and .disabled is the state an identity reset leaves behind.
+        XCTAssertEqual(context.viewState.securityBannerMode, .show(.recoveryOutOfSync))
         
         // When the recovery is enabled.
         deferred = deferFulfillment(context.$viewState) { $0.requiresExtraAccountSetup == false }
@@ -221,11 +223,57 @@ class HomeScreenViewModelTests: XCTestCase {
         XCTAssertEqual(context.viewState.securityBannerMode, .none)
     }
     
+    func testTheBannerButtonRoutesToTheStagedRepair() {
+        // The banner is the ONLY encryption affordance a user has, so its button must go to the
+        // staged repair. If it points at .resetEncryption again, every tap skips straight to
+        // "Some previous messages can't be recovered" and the silent path becomes dead code.
+        XCTAssertEqual(HomeScreenRecoveryKeyConfirmationBanner.State.recoveryOutOfSync.primaryAction,
+                       .confirmRecoveryKey)
+    }
+
+    func testFinishSetupRepairsWithoutAskingToReset() async throws {
+        // Given a device whose key storage can still be repaired without discarding the backup.
+        setupViewModel()
+        let secureBackupController = try XCTUnwrap(clientProxy.secureBackupController as? SecureBackupControllerMock)
+        secureBackupController.repairWithoutResetReturnValue = .repaired
+
+        var receivedAction: HomeScreenViewModelAction?
+        viewModel.actions.sink { receivedAction = $0 }.store(in: &cancellables)
+
+        // When the user taps the banner's button. Drive it through the banner's own primaryAction
+        // rather than naming the action: sending .confirmRecoveryKey directly is what let the
+        // banner sit on .resetEncryption for a whole release with these tests green.
+        context.send(viewAction: HomeScreenRecoveryKeyConfirmationBanner.State.recoveryOutOfSync.primaryAction)
+        try await Task.sleep(for: .milliseconds(200))
+
+        // Then it repairs silently and never offers the destructive reset.
+        XCTAssertEqual(secureBackupController.repairWithoutResetCallsCount, 1)
+        XCTAssertNil(receivedAction)
+    }
+
+    func testFinishSetupAsksBeforeResettingWhenRepairIsImpossible() async throws {
+        // Given a device that cannot be finished without discarding the backup.
+        setupViewModel()
+        let secureBackupController = try XCTUnwrap(clientProxy.secureBackupController as? SecureBackupControllerMock)
+        secureBackupController.repairWithoutResetReturnValue = .resetRequired
+
+        var receivedAction: HomeScreenViewModelAction?
+        viewModel.actions.sink { receivedAction = $0 }.store(in: &cancellables)
+
+        // When the user taps the banner's button, via the banner's own primaryAction.
+        context.send(viewAction: HomeScreenRecoveryKeyConfirmationBanner.State.recoveryOutOfSync.primaryAction)
+        try await Task.sleep(for: .milliseconds(200))
+
+        // Then the reset is disclosed rather than performed silently.
+        XCTAssertEqual(secureBackupController.repairWithoutResetCallsCount, 1)
+        XCTAssertEqual(receivedAction, .presentEncryptionResetScreen)
+    }
+
     func testDismissSetUpRecoveryBannerState() async throws {
         // Given a view model with the setup recovery banner shown.
         let securityStateStateSubject = CurrentValueSubject<SessionSecurityState, Never>(.init(verificationState: .verified, recoveryState: .unknown))
         setupViewModel(securityStatePublisher: securityStateStateSubject.asCurrentValuePublisher())
-        var deferred = deferFulfillment(context.$viewState) { $0.securityBannerMode == .show(.setUpRecovery) }
+        var deferred = deferFulfillment(context.$viewState) { $0.securityBannerMode == .show(.recoveryOutOfSync) }
         securityStateStateSubject.send(.init(verificationState: .verified, recoveryState: .disabled))
         try await deferred.fulfill()
         
