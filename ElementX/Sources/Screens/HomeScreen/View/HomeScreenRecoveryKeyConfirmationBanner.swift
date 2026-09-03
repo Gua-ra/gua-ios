@@ -29,6 +29,9 @@ struct HomeScreenRecoveryKeyConfirmationBanner: View {
 
     let state: State
     var context: HomeScreenViewModel.Context
+    /// GUA FORK: owned by the view model, not by this view. As view-local state it was set on tap
+    /// and never cleared, so the `.notYet` outcome left the button reading "Setting up…" for good.
+    let isWorking: Bool
     
     var title: String {
         switch state {
@@ -99,9 +102,16 @@ struct HomeScreenRecoveryKeyConfirmationBanner: View {
             Button {
                 context.send(viewAction: primaryAction)
             } label: {
-                Text(actionTitle)
-                    .frame(maxWidth: .infinity)
+                HStack(spacing: 8) {
+                    if isWorking {
+                        ProgressView()
+                            .tint(.compound.iconOnSolidPrimary)
+                    }
+                    Text(isWorking ? UntranslatedL10n.guaEncryptionRepairActionInProgress : actionTitle)
+                }
+                .frame(maxWidth: .infinity)
             }
+            .disabled(isWorking)
             .buttonStyle(.compound(.primary, size: .medium))
             .accessibilityIdentifier(A11yIdentifiers.homeScreen.recoveryKeyConfirmationBannerContinue)
             
@@ -118,10 +128,12 @@ struct HomeScreenRecoveryKeyConfirmationBanner_Previews: PreviewProvider, Testab
     
     static var previews: some View {
         HomeScreenRecoveryKeyConfirmationBanner(state: .setUpRecovery,
-                                                context: viewModel.context)
+                                                context: viewModel.context,
+                                                isWorking: false)
             .previewDisplayName("Set up recovery")
         HomeScreenRecoveryKeyConfirmationBanner(state: .recoveryOutOfSync,
-                                                context: viewModel.context)
+                                                context: viewModel.context,
+                                                isWorking: false)
             .previewDisplayName("Out of sync")
     }
     

@@ -1,16 +1,26 @@
-/* GUA FORK: translations for the fork's own strings. The English source of truth lives in
-   en.lproj/Untranslated.strings. Upstream's soft-logout strings are deliberately absent:
-   they are Element's and go through Localazy. */
+
+"gua_signout_last_device_title" = "Atsijungus jūsų žinutės bus pašalintos iš šio įrenginio";
+"gua_signout_last_device_message" = "Tai vienintelis jūsų įrenginys. Žinutės, saugomos tik čia, nebus pasiekiamos vėl prisijungus.";
+"gua_encryption_reset_required_title" = "Kai kurių ankstesnių žinučių atkurti nepavyks";
+"gua_encryption_reset_required_message" = "Kad šiame įrenginyje būtų baigta šifruotų pokalbių sąranka, reikia atstatyti jūsų šifruotą atsarginę kopiją. Žinutės, saugomos tik toje kopijoje, bus prarastos. Žinutėms, jau esančioms jūsų įrenginiuose, tai neturės įtakos.";
+"gua_encryption_reset_required_action" = "Atstatyti ir užbaigti";
+"gua_encryption_reset_finishing" = "Baigiama sąranka…";
+"gua_encryption_reset_failed" = "Nepavyko užbaigti sąrankos. Palieskite „Atstatyti ir užbaigti“ ir bandykite dar kartą.";
+"gua_encryption_recover_from_other_device_title" = "Atkurkite ankstesnes žinutes";
+"gua_encryption_recover_from_other_device_message" = "Naudokite kitą savo įrenginį, kad atkurtumėte žinutes, kurių šiame įrenginyje dar nėra.\n\nJei negalite jo pasiekti, galite atstatyti ir užbaigti sąranką, bet žinutės, saugomos tik jūsų atsarginėje kopijoje, bus visam laikui prarastos.";
+"gua_encryption_recover_from_other_device_action" = "Naudoti kitą įrenginį";
+"gua_encryption_recover_from_other_device_failed" = "Nepavyko gauti jūsų žinučių iš kito įrenginio. Įsitikinkite, kad jame atidaryta Gua, ir bandykite dar kartą arba atstatykite.";
+"gua_verification_other_device_title" = "Atidarykite Gua kitame įrenginyje";
+"gua_verification_other_device_subtitle" = "Palikite programą atidarytą. Palyginsite kelis jaustukus abiejuose įrenginiuose, kad patvirtintumėte, jog tai jūs.";
+"gua_verification_waiting_other_device_title" = "Laukiama kito jūsų įrenginio";
+"gua_verification_compare_emojis_subtitle" = "Įsitikinkite, kad žemiau esantys jaustukai atitinka tuos, kurie rodomi kitame jūsų įrenginyje.";
+"gua_encryption_reset_not_approved" = "Sąranka nebuvo patvirtinta. Palieskite „Atstatyti ir užbaigti“ ir bandykite dar kartą.";
+"gua_verification_complete_subtitle" = "Dabar jūsų žinutės bus matomos šiame įrenginyje.";
 "gua_identity_change_banner_description" = "%1$@ saugumo duomenys pasikeitė. Taip nutinka, kai žmogus iš naujo įdiegia Gua arba įsigyja naują telefoną. %2$@";
 "gua_identity_change_undecryptable" = "Šio pranešimo atidaryti negalima, nes pasikeitė siuntėjo saugumo duomenys.";
 "gua_identity_change_profile" = "%1$@ saugumo duomenys pasikeitė. Taip nutinka, kai žmogus iš naujo įdiegia Gua arba įsigyja naują telefoną.";
 "gua_encryption_repair_title" = "Užbaikite šio įrenginio sąranką";
 "gua_encryption_repair_message" = "Užbaikite sąranką, kad pasiektumėte šifruotus pokalbius ir šiame įrenginyje esančią žinučių istoriją.";
 "gua_encryption_repair_action" = "Užbaigti sąranką";
-"gua_encryption_reset_required_title" = "Kai kurių ankstesnių žinučių atkurti nepavyks";
-"gua_encryption_reset_required_message" = "Kad šiame įrenginyje būtų baigta šifruotų pokalbių sąranka, reikia atstatyti jūsų šifruotą atsarginę kopiją. Žinutės, saugomos tik toje kopijoje, bus prarastos. Žinutėms, jau esančioms jūsų įrenginiuose, tai neturės įtakos.";
-"gua_encryption_reset_required_action" = "Atstatyti ir užbaigti";
 "gua_soft_logout_signin_notice" = "Buvote atjungti nuo savo Gua paskyros. Norėdami tęsti, prisijunkite iš naujo.";
-"gua_signout_last_device_title" = "Atsijungus jūsų žinutės bus pašalintos iš šio įrenginio";
-"gua_signout_last_device_message" = "Tai vienintelis jūsų įrenginys. Žinutės, saugomos tik čia, nebus pasiekiamos vėl prisijungus.";
 "gua_join_room_by_address_hint" = "Įklijuokite gautą kambario adresą.";

@@ -1,16 +1,29 @@
-/* GUA FORK: translations for the fork's own strings. The English source of truth lives in
-   en.lproj/Untranslated.strings. Upstream's soft-logout strings are deliberately absent:
-   they are Element's and go through Localazy. */
+/*
+  Gua fork strings for this locale. English source lives in en.lproj/Untranslated.strings.
+*/
+
 "gua_encryption_repair_title" = "Завершіть налаштування цього пристрою";
 "gua_encryption_repair_message" = "Завершіть налаштування, щоб отримати доступ до зашифрованих чатів і історії повідомлень, доступної на цьому пристрої.";
 "gua_encryption_repair_action" = "Завершити налаштування";
 "gua_encryption_reset_required_title" = "Деякі попередні повідомлення неможливо відновити";
 "gua_encryption_reset_required_message" = "Щоб завершити налаштування зашифрованих чатів на цьому пристрої, потрібно скинути зашифровану резервну копію. Повідомлення, збережені лише в цій копії, буде втрачено. Повідомлення, які вже є на ваших пристроях, не постраждають.";
 "gua_encryption_reset_required_action" = "Скинути й завершити";
+"gua_signout_last_device_title" = "Вихід видалить ваші повідомлення з цього пристрою";
+"gua_signout_last_device_message" = "Це ваш єдиний пристрій. Повідомлення, збережені лише тут, не будуть доступні після повторного входу.";
+"gua_encryption_reset_finishing" = "Завершуємо налаштування…";
+"gua_encryption_reset_failed" = "Не вдалося завершити налаштування. Натисніть «Скинути й завершити», щоб спробувати ще раз.";
+"gua_encryption_recover_from_other_device_title" = "Відновіть свої попередні повідомлення";
+"gua_encryption_recover_from_other_device_message" = "Скористайтеся іншим пристроєм, щоб відновити повідомлення, яких поки що немає на цьому пристрої.\n\nЯкщо у вас немає до нього доступу, ви можете скинути й завершити налаштування, але повідомлення, збережені лише у вашій резервній копії, буде втрачено назавжди.";
+"gua_encryption_recover_from_other_device_action" = "Використати інший пристрій";
+"gua_encryption_recover_from_other_device_failed" = "Не вдалося отримати ваші повідомлення з іншого пристрою. Переконайтеся, що на ньому відкрито Gua, і спробуйте ще раз або скиньте й завершіть налаштування.";
+"gua_verification_other_device_title" = "Відкрийте Gua на іншому пристрої";
+"gua_verification_other_device_subtitle" = "Не закривайте його. Ви порівняєте кілька емодзі на обох пристроях, щоб підтвердити, що це ви.";
+"gua_verification_waiting_other_device_title" = "Очікуємо на ваш інший пристрій";
+"gua_verification_compare_emojis_subtitle" = "Переконайтеся, що емодзі нижче збігаються з тими, що показані на вашому іншому пристрої.";
+"gua_encryption_reset_not_approved" = "Налаштування не підтверджено. Натисніть «Скинути й завершити», щоб спробувати ще раз.";
+"gua_verification_complete_subtitle" = "Тепер ваші повідомлення з’являться на цьому пристрої.";
 "gua_identity_change_banner_description" = "Дані безпеки %1$@ змінилися. Так буває, коли людина перевстановлює Gua або змінює телефон. %2$@";
 "gua_identity_change_undecryptable" = "Це повідомлення неможливо відкрити, бо дані безпеки відправника змінилися.";
 "gua_identity_change_profile" = "Дані безпеки %1$@ змінилися. Так буває, коли людина перевстановлює Gua або змінює телефон.";
 "gua_soft_logout_signin_notice" = "Ви вийшли з облікового запису Gua. Увійдіть знову, щоб продовжити.";
-"gua_signout_last_device_title" = "Вихід видалить ваші повідомлення з цього пристрою";
-"gua_signout_last_device_message" = "Це ваш єдиний пристрій. Повідомлення, збережені лише тут, не будуть доступні після повторного входу.";
 "gua_join_room_by_address_hint" = "Вставте отриману адресу кімнати.";

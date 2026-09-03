@@ -238,6 +238,9 @@ protocol ClientProxyProtocol: AnyObject {
     func resetIdentity() async -> Result<IdentityResetHandle?, ClientProxyError>
     
     func userIdentity(for userID: String) async -> Result<UserIdentityProxyProtocol?, ClientProxyError>
+    /// GUA FORK: whether another device of this account is signed by the current identity, i.e.
+    /// could hand this device its keys through a verification.
+    func hasDevicesToVerifyAgainst() async -> Result<Bool, ClientProxyError>
     
     // MARK: - Moderation & Safety
     

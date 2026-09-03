@@ -50,6 +50,14 @@ protocol SecureBackupControllerProtocol {
     var recoveryState: CurrentValuePublisher<SecureBackupRecoveryState, Never> { get }
     
     var keyBackupState: CurrentValuePublisher<SecureBackupKeyBackupState, Never> { get }
+
+    /// GUA FORK: true while key storage is being provisioned in the background.
+    ///
+    /// Provisioning after a reset runs behind the chat list, where the setup banner is still on
+    /// screen because the recovery state is genuinely not healthy yet. Without this the banner
+    /// reads as an untouched call to action for the whole of that window, so the user presses it,
+    /// and the press appears to be what fixed things. It is not; it just arrived after the work.
+    var isProvisioningKeyStorage: CurrentValuePublisher<Bool, Never> { get }
     
     func enable() async -> Result<Void, SecureBackupControllerError>
     func disable() async -> Result<Void, SecureBackupControllerError>
@@ -61,7 +69,10 @@ protocol SecureBackupControllerProtocol {
     /// GUA FORK: repair an `.incomplete` account when no recovery key exists anywhere.
     func provisionRecoveryWithoutKey() async -> Result<String, SecureBackupControllerError>
     /// GUA FORK: everything that can finish encryption setup WITHOUT destroying anything.
-    func repairWithoutReset() async -> Result<Void, SecureBackupControllerError>
+    func repairWithoutReset() async -> EncryptionRepairOutcome
+
+    /// GUA FORK: provisions key storage straight after a reset, unconditionally.
+    func provisionAfterReset() async -> EncryptionRepairOutcome
     /// GUA FORK: `recoveryState` once it is no longer `.unknown`, so callers never branch on the
     /// initial value. Falls back to `.unknown` if the SDK stays silent past `timeout`.
     func settledRecoveryState(timeout: Duration) async -> SecureBackupRecoveryState
@@ -74,4 +85,15 @@ extension SecureBackupControllerProtocol {
     func settledRecoveryState() async -> SecureBackupRecoveryState {
         await settledRecoveryState(timeout: .seconds(10))
     }
+}
+
+/// GUA FORK: what `repairWithoutReset` managed to do, so callers only offer the destructive reset
+/// when one is actually warranted.
+enum EncryptionRepairOutcome: Equatable {
+    /// Key storage is healthy. Nothing to show the user.
+    case repaired
+    /// Transient: the client cannot read its own state yet. Change nothing, do not offer a reset.
+    case notYet
+    /// Everything non-destructive has been tried. Only a reset can finish this device.
+    case resetRequired
 }

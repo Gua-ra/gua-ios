@@ -235,7 +235,7 @@ class HomeScreenViewModelTests: XCTestCase {
         // Given a device whose key storage can still be repaired without discarding the backup.
         setupViewModel()
         let secureBackupController = try XCTUnwrap(clientProxy.secureBackupController as? SecureBackupControllerMock)
-        secureBackupController.repairWithoutResetReturnValue = .success(())
+        secureBackupController.repairWithoutResetReturnValue = .repaired
 
         var receivedAction: HomeScreenViewModelAction?
         viewModel.actions.sink { receivedAction = $0 }.store(in: &cancellables)
@@ -255,7 +255,7 @@ class HomeScreenViewModelTests: XCTestCase {
         // Given a device that cannot be finished without discarding the backup.
         setupViewModel()
         let secureBackupController = try XCTUnwrap(clientProxy.secureBackupController as? SecureBackupControllerMock)
-        secureBackupController.repairWithoutResetReturnValue = .failure(.failedGeneratingRecoveryKey)
+        secureBackupController.repairWithoutResetReturnValue = .resetRequired
 
         var receivedAction: HomeScreenViewModelAction?
         viewModel.actions.sink { receivedAction = $0 }.store(in: &cancellables)

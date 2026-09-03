@@ -1,16 +1,26 @@
-/* GUA FORK: translations for the fork's own strings. The English source of truth lives in
-   en.lproj/Untranslated.strings. Upstream's soft-logout strings are deliberately absent:
-   they are Element's and go through Localazy. */
+
+"gua_signout_last_device_title" = "Deconectarea îți va elimina mesajele de pe acest dispozitiv";
+"gua_signout_last_device_message" = "Acesta este singurul tău dispozitiv. Mesajele păstrate doar aici nu vor fi disponibile când te vei conecta din nou.";
+"gua_encryption_reset_required_title" = "Unele mesaje anterioare nu pot fi recuperate";
+"gua_encryption_reset_required_message" = "Pentru a finaliza configurarea conversațiilor criptate pe acest dispozitiv, copia ta de rezervă criptată trebuie resetată. Mesajele stocate doar în acea copie vor fi pierdute. Mesajele aflate deja pe dispozitivele tale nu vor fi afectate.";
+"gua_encryption_reset_required_action" = "Resetează și finalizează";
+"gua_encryption_reset_finishing" = "Se finalizează configurarea…";
+"gua_encryption_reset_failed" = "Configurarea nu a putut fi finalizată. Apasă „Resetează și finalizează” pentru a încerca din nou.";
+"gua_encryption_recover_from_other_device_title" = "Recuperează-ți mesajele anterioare";
+"gua_encryption_recover_from_other_device_message" = "Folosește celălalt dispozitiv pentru a recupera mesajele care nu sunt încă disponibile pe acest dispozitiv.\n\nDacă nu ai acces la el, poți să resetezi și să finalizezi configurarea, dar mesajele păstrate doar în copia ta de rezervă vor fi pierdute definitiv.";
+"gua_encryption_recover_from_other_device_action" = "Folosește alt dispozitiv";
+"gua_encryption_recover_from_other_device_failed" = "Mesajele nu au putut fi preluate de pe celălalt dispozitiv. Asigură-te că este deschis și încearcă din nou sau resetează.";
+"gua_verification_other_device_title" = "Deschide Gua pe celălalt dispozitiv";
+"gua_verification_other_device_subtitle" = "Ține-l deschis. Vei compara câteva emoji-uri pe ambele dispozitive, ca să confirmi că ești tu.";
+"gua_verification_waiting_other_device_title" = "În așteptarea celuilalt dispozitiv";
+"gua_verification_compare_emojis_subtitle" = "Asigură-te că emoji-urile de mai jos se potrivesc cu cele de pe celălalt dispozitiv.";
+"gua_encryption_reset_not_approved" = "Configurarea nu a fost aprobată. Apasă „Resetează și finalizează” pentru a încerca din nou.";
+"gua_verification_complete_subtitle" = "Mesajele tale vor apărea acum pe acest dispozitiv.";
 "gua_identity_change_banner_description" = "Datele de securitate ale lui %1$@ s-au schimbat. Se poate întâmpla la reinstalarea Gua sau la schimbarea telefonului. %2$@";
 "gua_identity_change_undecryptable" = "Acest mesaj nu poate fi deschis pentru că datele de securitate ale expeditorului s-au schimbat.";
 "gua_identity_change_profile" = "Datele de securitate ale lui %1$@ s-au schimbat. Se poate întâmpla la reinstalarea Gua sau la schimbarea telefonului.";
 "gua_encryption_repair_title" = "Finalizează configurarea acestui dispozitiv";
 "gua_encryption_repair_message" = "Finalizează configurarea pentru a accesa conversațiile criptate și istoricul mesajelor disponibil pe acest dispozitiv.";
 "gua_encryption_repair_action" = "Finalizează configurarea";
-"gua_encryption_reset_required_title" = "Unele mesaje anterioare nu pot fi recuperate";
-"gua_encryption_reset_required_message" = "Pentru a finaliza configurarea conversațiilor criptate pe acest dispozitiv, copia ta de rezervă criptată trebuie resetată. Mesajele stocate doar în acea copie vor fi pierdute. Mesajele aflate deja pe dispozitivele tale nu vor fi afectate.";
-"gua_encryption_reset_required_action" = "Resetează și finalizează";
 "gua_soft_logout_signin_notice" = "Ai fost deconectat de la contul tău Gua. Conectează-te din nou pentru a continua.";
-"gua_signout_last_device_title" = "Deconectarea îți va elimina mesajele de pe acest dispozitiv";
-"gua_signout_last_device_message" = "Acesta este singurul tău dispozitiv. Mesajele păstrate doar aici nu vor fi disponibile când te vei conecta din nou.";
 "gua_join_room_by_address_hint" = "Lipește adresa camerei pe care ai primit-o.";

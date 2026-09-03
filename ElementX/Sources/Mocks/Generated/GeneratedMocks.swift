@@ -5175,6 +5175,70 @@ class ClientProxyMock: ClientProxyProtocol, @unchecked Sendable {
             return userIdentityForReturnValue
         }
     }
+    //MARK: - hasDevicesToVerifyAgainst
+
+    var hasDevicesToVerifyAgainstUnderlyingCallsCount = 0
+    var hasDevicesToVerifyAgainstCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return hasDevicesToVerifyAgainstUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = hasDevicesToVerifyAgainstUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                hasDevicesToVerifyAgainstUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    hasDevicesToVerifyAgainstUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var hasDevicesToVerifyAgainstCalled: Bool {
+        return hasDevicesToVerifyAgainstCallsCount > 0
+    }
+
+    var hasDevicesToVerifyAgainstUnderlyingReturnValue: Result<Bool, ClientProxyError>!
+    var hasDevicesToVerifyAgainstReturnValue: Result<Bool, ClientProxyError>! {
+        get {
+            if Thread.isMainThread {
+                return hasDevicesToVerifyAgainstUnderlyingReturnValue
+            } else {
+                var returnValue: Result<Bool, ClientProxyError>? = nil
+                DispatchQueue.main.sync {
+                    returnValue = hasDevicesToVerifyAgainstUnderlyingReturnValue
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                hasDevicesToVerifyAgainstUnderlyingReturnValue = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    hasDevicesToVerifyAgainstUnderlyingReturnValue = newValue
+                }
+            }
+        }
+    }
+    var hasDevicesToVerifyAgainstClosure: (() async -> Result<Bool, ClientProxyError>)?
+
+    func hasDevicesToVerifyAgainst() async -> Result<Bool, ClientProxyError> {
+        hasDevicesToVerifyAgainstCallsCount += 1
+        if let hasDevicesToVerifyAgainstClosure = hasDevicesToVerifyAgainstClosure {
+            return await hasDevicesToVerifyAgainstClosure()
+        } else {
+            return hasDevicesToVerifyAgainstReturnValue
+        }
+    }
     //MARK: - setTimelineMediaVisibility
 
     var setTimelineMediaVisibilityUnderlyingCallsCount = 0
@@ -15159,6 +15223,11 @@ class SecureBackupControllerMock: SecureBackupControllerProtocol, @unchecked Sen
         set(value) { underlyingKeyBackupState = value }
     }
     var underlyingKeyBackupState: CurrentValuePublisher<SecureBackupKeyBackupState, Never>!
+    var isProvisioningKeyStorage: CurrentValuePublisher<Bool, Never> {
+        get { return underlyingIsProvisioningKeyStorage }
+        set(value) { underlyingIsProvisioningKeyStorage = value }
+    }
+    var underlyingIsProvisioningKeyStorage: CurrentValuePublisher<Bool, Never>!
 
     //MARK: - enable
 
@@ -15586,13 +15655,13 @@ class SecureBackupControllerMock: SecureBackupControllerProtocol, @unchecked Sen
         return repairWithoutResetCallsCount > 0
     }
 
-    var repairWithoutResetUnderlyingReturnValue: Result<Void, SecureBackupControllerError>!
-    var repairWithoutResetReturnValue: Result<Void, SecureBackupControllerError>! {
+    var repairWithoutResetUnderlyingReturnValue: EncryptionRepairOutcome!
+    var repairWithoutResetReturnValue: EncryptionRepairOutcome! {
         get {
             if Thread.isMainThread {
                 return repairWithoutResetUnderlyingReturnValue
             } else {
-                var returnValue: Result<Void, SecureBackupControllerError>? = nil
+                var returnValue: EncryptionRepairOutcome? = nil
                 DispatchQueue.main.sync {
                     returnValue = repairWithoutResetUnderlyingReturnValue
                 }
@@ -15610,14 +15679,78 @@ class SecureBackupControllerMock: SecureBackupControllerProtocol, @unchecked Sen
             }
         }
     }
-    var repairWithoutResetClosure: (() async -> Result<Void, SecureBackupControllerError>)?
+    var repairWithoutResetClosure: (() async -> EncryptionRepairOutcome)?
 
-    func repairWithoutReset() async -> Result<Void, SecureBackupControllerError> {
+    func repairWithoutReset() async -> EncryptionRepairOutcome {
         repairWithoutResetCallsCount += 1
         if let repairWithoutResetClosure = repairWithoutResetClosure {
             return await repairWithoutResetClosure()
         } else {
             return repairWithoutResetReturnValue
+        }
+    }
+    //MARK: - provisionAfterReset
+
+    var provisionAfterResetUnderlyingCallsCount = 0
+    var provisionAfterResetCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return provisionAfterResetUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = provisionAfterResetUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                provisionAfterResetUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    provisionAfterResetUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var provisionAfterResetCalled: Bool {
+        return provisionAfterResetCallsCount > 0
+    }
+
+    var provisionAfterResetUnderlyingReturnValue: EncryptionRepairOutcome!
+    var provisionAfterResetReturnValue: EncryptionRepairOutcome! {
+        get {
+            if Thread.isMainThread {
+                return provisionAfterResetUnderlyingReturnValue
+            } else {
+                var returnValue: EncryptionRepairOutcome? = nil
+                DispatchQueue.main.sync {
+                    returnValue = provisionAfterResetUnderlyingReturnValue
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                provisionAfterResetUnderlyingReturnValue = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    provisionAfterResetUnderlyingReturnValue = newValue
+                }
+            }
+        }
+    }
+    var provisionAfterResetClosure: (() async -> EncryptionRepairOutcome)?
+
+    func provisionAfterReset() async -> EncryptionRepairOutcome {
+        provisionAfterResetCallsCount += 1
+        if let provisionAfterResetClosure = provisionAfterResetClosure {
+            return await provisionAfterResetClosure()
+        } else {
+            return provisionAfterResetReturnValue
         }
     }
     //MARK: - settledRecoveryState

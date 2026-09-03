@@ -1,16 +1,29 @@
-/* GUA FORK: translations for the fork's own strings. The English source of truth lives in
-   en.lproj/Untranslated.strings. Upstream's soft-logout strings are deliberately absent:
-   they are Element's and go through Localazy. */
+/*
+  Gua fork strings for this locale. English source lives in en.lproj/Untranslated.strings.
+*/
+
 "gua_encryption_repair_title" = "이 기기 설정 마치기";
 "gua_encryption_repair_message" = "설정을 완료하면 이 기기에서 사용할 수 있는 암호화된 대화와 메시지 기록에 접근할 수 있습니다.";
 "gua_encryption_repair_action" = "설정 완료";
 "gua_encryption_reset_required_title" = "일부 이전 메시지는 복구할 수 없습니다";
 "gua_encryption_reset_required_message" = "이 기기에서 암호화된 대화 설정을 마치려면 암호화된 백업을 재설정해야 합니다. 해당 백업에만 저장된 메시지는 사라집니다. 이미 기기에 있는 메시지는 영향을 받지 않습니다.";
 "gua_encryption_reset_required_action" = "재설정하고 완료";
+"gua_signout_last_device_title" = "로그아웃하면 이 기기에서 메시지가 삭제됩니다";
+"gua_signout_last_device_message" = "이 기기는 사용 중인 유일한 기기입니다. 여기에만 저장된 메시지는 다시 로그인해도 사용할 수 없습니다.";
+"gua_encryption_reset_finishing" = "설정을 마치는 중…";
+"gua_encryption_reset_failed" = "설정을 마치지 못했습니다. 다시 시도하려면 ‘재설정하고 완료’를 누르세요.";
+"gua_encryption_recover_from_other_device_title" = "이전 메시지 복구하기";
+"gua_encryption_recover_from_other_device_message" = "다른 기기를 사용해 아직 이 기기에 없는 메시지를 복구하세요.\n\n그 기기를 사용할 수 없다면 재설정한 뒤 설정을 마칠 수 있지만, 백업에만 저장된 메시지는 영구히 사라집니다.";
+"gua_encryption_recover_from_other_device_action" = "다른 기기 사용하기";
+"gua_encryption_recover_from_other_device_failed" = "다른 기기에서 메시지를 가져오지 못했습니다. 그 기기에서 Gua가 열려 있는지 확인한 뒤 다시 시도하거나 재설정하세요.";
+"gua_verification_other_device_title" = "다른 기기에서 Gua를 여세요";
+"gua_verification_other_device_subtitle" = "앱을 계속 열어 두세요. 두 기기에 표시되는 이모지 몇 개를 비교해 본인인지 확인합니다.";
+"gua_verification_waiting_other_device_title" = "다른 기기를 기다리고 있습니다";
+"gua_verification_compare_emojis_subtitle" = "아래 이모지가 다른 기기에 표시된 이모지와 일치하는지 확인하세요.";
+"gua_encryption_reset_not_approved" = "설정이 승인되지 않았습니다. 다시 시도하려면 ‘재설정하고 완료’를 누르세요.";
+"gua_verification_complete_subtitle" = "이제 이 기기에서도 메시지를 볼 수 있습니다.";
 "gua_identity_change_banner_description" = "%1$@님의 보안 정보가 변경되었습니다. Gua를 다시 설치하거나 새 기기로 바꿀 때 생길 수 있습니다. %2$@";
 "gua_identity_change_undecryptable" = "보낸 사람의 보안 정보가 변경되어 이 메시지를 열 수 없습니다.";
 "gua_identity_change_profile" = "%1$@님의 보안 정보가 변경되었습니다. Gua를 다시 설치하거나 새 기기로 바꿀 때 생길 수 있습니다.";
 "gua_soft_logout_signin_notice" = "Gua 계정에서 로그아웃되었습니다. 계속하려면 다시 로그인하세요.";
-"gua_signout_last_device_title" = "로그아웃하면 이 기기에서 메시지가 삭제됩니다";
-"gua_signout_last_device_message" = "이 기기는 사용 중인 유일한 기기입니다. 여기에만 저장된 메시지는 다시 로그인해도 사용할 수 없습니다.";
 "gua_join_room_by_address_hint" = "받은 대화방 주소를 붙여넣으세요.";

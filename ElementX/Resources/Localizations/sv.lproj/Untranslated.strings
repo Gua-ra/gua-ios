@@ -1,16 +1,29 @@
-/* GUA FORK: translations for the fork's own strings. The English source of truth lives in
-   en.lproj/Untranslated.strings. Upstream's soft-logout strings are deliberately absent:
-   they are Element's and go through Localazy. */
+/*
+  Gua fork strings for this locale. English source lives in en.lproj/Untranslated.strings.
+*/
+
 "gua_encryption_repair_title" = "Slutför konfigurationen av den här enheten";
 "gua_encryption_repair_message" = "Slutför konfigurationen för att komma åt de krypterade chattarna och den meddelandehistorik som finns på den här enheten.";
 "gua_encryption_repair_action" = "Slutför konfiguration";
 "gua_encryption_reset_required_title" = "Vissa tidigare meddelanden kan inte återställas";
 "gua_encryption_reset_required_message" = "För att slutföra konfigurationen av krypterade chattar på den här enheten måste din krypterade säkerhetskopia återställas. Meddelanden som bara finns i den säkerhetskopian går förlorade. Meddelanden som redan finns på dina enheter påverkas inte.";
 "gua_encryption_reset_required_action" = "Återställ och slutför";
+"gua_signout_last_device_title" = "Att logga ut tar bort dina meddelanden från den här enheten";
+"gua_signout_last_device_message" = "Det här är din enda enhet. Meddelanden som bara finns här kommer inte att vara tillgängliga när du loggar in igen.";
+"gua_encryption_reset_finishing" = "Slutför konfigurationen …";
+"gua_encryption_reset_failed" = "Kunde inte slutföra konfigurationen. Tryck på ”Återställ och slutför” för att försöka igen.";
+"gua_encryption_recover_from_other_device_title" = "Få tillbaka dina tidigare meddelanden";
+"gua_encryption_recover_from_other_device_message" = "Använd din andra enhet för att få tillbaka meddelanden som ännu inte finns på den här enheten.\n\nOm du inte har tillgång till den kan du återställa och slutföra konfigurationen, men meddelanden som bara finns i din säkerhetskopia går förlorade för alltid.";
+"gua_encryption_recover_from_other_device_action" = "Använd min andra enhet";
+"gua_encryption_recover_from_other_device_failed" = "Kunde inte hämta dina meddelanden från den andra enheten. Se till att du har appen öppen där och försök igen, eller återställ.";
+"gua_verification_other_device_title" = "Öppna Gua på din andra enhet";
+"gua_verification_other_device_subtitle" = "Låt appen vara öppen. Du jämför några emojier på båda enheterna för att bekräfta att det är du.";
+"gua_verification_waiting_other_device_title" = "Väntar på din andra enhet";
+"gua_verification_compare_emojis_subtitle" = "Bekräfta att emojierna nedan matchar de som visas på din andra enhet.";
+"gua_encryption_reset_not_approved" = "Konfigurationen godkändes inte. Tryck på ”Återställ och slutför” för att försöka igen.";
+"gua_verification_complete_subtitle" = "Dina meddelanden visas nu på den här enheten.";
 "gua_identity_change_banner_description" = "Säkerhetsuppgifterna för %1$@ har ändrats. Det kan hända när någon installerar om Gua eller byter telefon. %2$@";
 "gua_identity_change_undecryptable" = "Det här meddelandet kan inte öppnas eftersom avsändarens säkerhetsuppgifter har ändrats.";
 "gua_identity_change_profile" = "Säkerhetsuppgifterna för %1$@ har ändrats. Det kan hända när någon installerar om Gua eller byter telefon.";
 "gua_soft_logout_signin_notice" = "Du har loggats ut från ditt Gua-konto. Logga in igen för att fortsätta.";
-"gua_signout_last_device_title" = "Att logga ut tar bort dina meddelanden från den här enheten";
-"gua_signout_last_device_message" = "Det här är din enda enhet. Meddelanden som bara finns här kommer inte att vara tillgängliga när du loggar in igen.";
 "gua_join_room_by_address_hint" = "Klistra in rumsadressen du fick.";

@@ -1,16 +1,29 @@
-/* GUA FORK: translations for the fork's own strings. The English source of truth lives in
-   en.lproj/Untranslated.strings. Upstream's soft-logout strings are deliberately absent:
-   they are Element's and go through Localazy. */
+/*
+  Gua fork strings for this locale. English source lives in en.lproj/Untranslated.strings.
+*/
+
 "gua_encryption_repair_title" = "Terminez la configuration de cet appareil";
 "gua_encryption_repair_message" = "Terminez la configuration pour accéder aux conversations chiffrées et à l'historique des messages disponibles sur cet appareil.";
 "gua_encryption_repair_action" = "Terminer la configuration";
 "gua_encryption_reset_required_title" = "Certains messages précédents ne peuvent pas être récupérés";
 "gua_encryption_reset_required_message" = "Pour terminer la configuration des conversations chiffrées sur cet appareil, votre sauvegarde chiffrée doit être réinitialisée. Les messages stockés uniquement dans cette sauvegarde seront perdus. Les messages déjà présents sur vos appareils ne seront pas affectés.";
 "gua_encryption_reset_required_action" = "Réinitialiser et terminer";
+"gua_signout_last_device_title" = "Se déconnecter supprimera vos messages de cet appareil";
+"gua_signout_last_device_message" = "C'est votre seul appareil. Les messages conservés uniquement ici ne seront pas disponibles à votre prochaine connexion.";
+"gua_encryption_reset_finishing" = "Finalisation de la configuration…";
+"gua_encryption_reset_failed" = "Impossible de terminer la configuration. Appuyez sur « Réinitialiser et terminer » pour réessayer.";
+"gua_encryption_recover_from_other_device_title" = "Restaurez vos messages précédents";
+"gua_encryption_recover_from_other_device_message" = "Utilisez votre autre appareil pour restaurer les messages qui ne sont pas encore disponibles sur cet appareil.\n\nSi vous n’y avez pas accès, vous pouvez réinitialiser et terminer la configuration, mais les messages stockés uniquement dans votre sauvegarde seront définitivement perdus.";
+"gua_encryption_recover_from_other_device_action" = "Utiliser mon autre appareil";
+"gua_encryption_recover_from_other_device_failed" = "Impossible de récupérer vos messages depuis l’autre appareil. Assurez-vous que Gua y est ouvert, puis réessayez ou réinitialisez.";
+"gua_verification_other_device_title" = "Ouvrez Gua sur votre autre appareil";
+"gua_verification_other_device_subtitle" = "Laissez-le ouvert. Vous comparerez quelques émojis sur les deux appareils pour confirmer que c’est bien vous.";
+"gua_verification_waiting_other_device_title" = "En attente de votre autre appareil";
+"gua_verification_compare_emojis_subtitle" = "Assurez-vous que les émojis ci-dessous correspondent à ceux affichés sur votre autre appareil.";
+"gua_encryption_reset_not_approved" = "La configuration n’a pas été approuvée. Appuyez sur « Réinitialiser et terminer » pour réessayer.";
+"gua_verification_complete_subtitle" = "Vos messages apparaîtront désormais sur cet appareil.";
 "gua_identity_change_banner_description" = "Les informations de sécurité de %1$@ ont changé. Cela arrive lorsqu’une personne réinstalle Gua ou change de téléphone. %2$@";
 "gua_identity_change_undecryptable" = "Ce message ne peut pas être ouvert, car les informations de sécurité de l’expéditeur ont changé.";
 "gua_identity_change_profile" = "Les informations de sécurité de %1$@ ont changé. Cela arrive quand la personne réinstalle Gua ou change de téléphone.";
 "gua_soft_logout_signin_notice" = "Vous avez été déconnecté de votre compte Gua. Reconnectez-vous pour continuer.";
-"gua_signout_last_device_title" = "Se déconnecter supprimera vos messages de cet appareil";
-"gua_signout_last_device_message" = "C'est votre seul appareil. Les messages conservés uniquement ici ne seront pas disponibles à votre prochaine connexion.";
 "gua_join_room_by_address_hint" = "Collez l'adresse du salon qui vous a été communiquée.";

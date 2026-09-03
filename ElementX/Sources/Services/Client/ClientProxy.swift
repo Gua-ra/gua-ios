@@ -168,7 +168,7 @@ class ClientProxy: ClientProxyProtocol {
         
         notificationSettings = await NotificationSettingsProxy(notificationSettings: client.getNotificationSettings())
         
-        secureBackupController = SecureBackupController(encryption: client.encryption())
+        secureBackupController = SecureBackupController(encryption: client.encryption(), userID: (try? client.userId()) ?? "")
         
         spaceService = await SpaceServiceProxy(spaceService: client.spaceService())
         
@@ -1144,6 +1144,15 @@ class ClientProxy: ClientProxyProtocol {
             return try await .success(client.encryption().userIdentity(userId: userID, fallbackToServer: true).map(UserIdentityProxy.init))
         } catch {
             MXLog.error("Failed retrieving user identity: \(error)")
+            return .failure(.sdkError(error))
+        }
+    }
+
+    func hasDevicesToVerifyAgainst() async -> Result<Bool, ClientProxyError> {
+        do {
+            return try await .success(client.encryption().hasDevicesToVerifyAgainst())
+        } catch {
+            MXLog.error("Failed checking for devices to verify against: \(error)")
             return .failure(.sdkError(error))
         }
     }
