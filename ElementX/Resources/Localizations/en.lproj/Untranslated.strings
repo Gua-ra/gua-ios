@@ -53,7 +53,8 @@
 "gua_encryption_reset_required_title" = "Some previous messages can’t be recovered";
 "gua_encryption_reset_required_message" = "To finish setting up encrypted chats on this device, your encrypted backup needs to be reset. Messages stored only in that backup will be lost. Messages already on your devices won’t be affected.";
 "gua_encryption_reset_required_action" = "Reset and finish setup";
-"gua_encryption_recover_from_other_device_message" = "Your other device still has the keys for these messages. Verify it to copy them over. Resetting instead finishes setup right away, but messages stored only in the backup will be lost.";
+"gua_encryption_recover_from_other_device_title" = "Restore your previous messages";
+"gua_encryption_recover_from_other_device_message" = "Use your other device to restore messages that aren’t available on this device yet.\n\nIf you don’t have access to it, you can reset and finish setup, but messages saved only in your backup will be permanently lost.";
 // MARK: - Gua: no homeserver in room-address copy
 
 /* Hint under the "Join room by address" field. Replaces upstream's "e.g. #room-name:matrix.org",

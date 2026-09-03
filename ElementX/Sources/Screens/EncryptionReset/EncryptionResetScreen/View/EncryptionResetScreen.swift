@@ -58,7 +58,11 @@ struct EncryptionResetScreen: View {
             
             // GUA FORK: this screen is only reached once a reset is genuinely required, so
             // it names the loss plainly instead of leading with jargon about identities.
-            Text(UntranslatedL10n.guaEncryptionResetRequiredTitle)
+            // GUA FORK: when the keys can come from another device, this screen is about
+            // getting them back, not about what is lost.
+            Text(context.viewState.canRecoverFromOtherDevice
+                ? UntranslatedL10n.guaEncryptionRecoverFromOtherDeviceTitle
+                : UntranslatedL10n.guaEncryptionResetRequiredTitle)
                 .font(.compound.headingMDBold)
                 .multilineTextAlignment(.center)
                 .foregroundColor(.compound.textPrimary)

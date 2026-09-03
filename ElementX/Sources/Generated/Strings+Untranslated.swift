@@ -14,8 +14,12 @@ internal enum UntranslatedL10n {
   internal static var guaEncryptionRecoverFromOtherDeviceAction: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_recover_from_other_device_action") }
   /// Couldn’t get your messages from the other device. Make sure it’s open and try again, or reset.
   internal static var guaEncryptionRecoverFromOtherDeviceFailed: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_recover_from_other_device_failed") }
-  /// Your other device still has the keys for these messages. Verify it to copy them over. Resetting instead finishes setup right away, but messages stored only in the backup will be lost.
+  /// Use your other device to restore messages that aren’t available on this device yet.
+  /// 
+  /// If you don’t have access to it, you can reset and finish setup, but messages saved only in your backup will be permanently lost.
   internal static var guaEncryptionRecoverFromOtherDeviceMessage: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_recover_from_other_device_message") }
+  /// Restore your previous messages
+  internal static var guaEncryptionRecoverFromOtherDeviceTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_recover_from_other_device_title") }
   /// Finish setup
   internal static var guaEncryptionRepairAction: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_repair_action") }
   /// Setting up…
