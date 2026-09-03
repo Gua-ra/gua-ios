@@ -92,7 +92,7 @@ final class FederatedUserSearchTests: XCTestCase {
 
     // MARK: - Candidate construction
 
-    func testCandidatesSkipOwnServerAndFollowRosterOrder() {
+    func testCandidatesLeadWithOwnServerThenFollowRosterOrder() {
         let roster = makeRoster([
             .init(serverName: "br.gua.example", searchVisibility: nil, searchGroups: nil),
             .init(serverName: "ca.gua.example", searchVisibility: "global", searchGroups: nil)
@@ -100,7 +100,7 @@ final class FederatedUserSearchTests: XCTestCase {
 
         let candidates = FederatedUserSearch.candidates(forHandle: "ana-souza", roster: roster, ownServerName: "br.gua.example")
 
-        XCTAssertEqual(candidates, ["@ana-souza:ca.gua.example"])
+        XCTAssertEqual(candidates, ["@ana-souza:br.gua.example", "@ana-souza:ca.gua.example"])
     }
 
     func testCandidatesSkipInactiveEntries() {
@@ -112,7 +112,7 @@ final class FederatedUserSearchTests: XCTestCase {
 
         let candidates = FederatedUserSearch.candidates(forHandle: "ana-souza", roster: roster, ownServerName: "br.gua.example")
 
-        XCTAssertEqual(candidates, ["@ana-souza:ca.gua.example"])
+        XCTAssertEqual(candidates, ["@ana-souza:br.gua.example", "@ana-souza:ca.gua.example"])
     }
 
     func testCandidatesSkipServerVisibility() {
@@ -123,7 +123,7 @@ final class FederatedUserSearchTests: XCTestCase {
 
         let candidates = FederatedUserSearch.candidates(forHandle: "ana-souza", roster: roster, ownServerName: "br.gua.example")
 
-        XCTAssertEqual(candidates, ["@ana-souza:ca.gua.example"])
+        XCTAssertEqual(candidates, ["@ana-souza:br.gua.example", "@ana-souza:ca.gua.example"])
     }
 
     func testCandidatesSkipUnrecognizedVisibility() {
@@ -133,7 +133,7 @@ final class FederatedUserSearchTests: XCTestCase {
 
         let candidates = FederatedUserSearch.candidates(forHandle: "ana-souza", roster: roster, ownServerName: "br.gua.example")
 
-        XCTAssertEqual(candidates, [])
+        XCTAssertEqual(candidates, ["@ana-souza:br.gua.example"])
     }
 
     func testGroupVisibilityRequiresASharedGroup() {
@@ -146,7 +146,7 @@ final class FederatedUserSearchTests: XCTestCase {
 
         let candidates = FederatedUserSearch.candidates(forHandle: "ana-souza", roster: roster, ownServerName: "br.gua.example")
 
-        XCTAssertEqual(candidates, ["@ana-souza:edu.gua.example"])
+        XCTAssertEqual(candidates, ["@ana-souza:br.gua.example", "@ana-souza:edu.gua.example"])
     }
 
     func testGroupVisibilityExcludesSearcherWithoutGroups() {
@@ -157,7 +157,7 @@ final class FederatedUserSearchTests: XCTestCase {
 
         let candidates = FederatedUserSearch.candidates(forHandle: "ana-souza", roster: roster, ownServerName: "br.gua.example")
 
-        XCTAssertEqual(candidates, [])
+        XCTAssertEqual(candidates, ["@ana-souza:br.gua.example"])
     }
 
     func testGroupVisibilityExcludesSearcherAbsentFromRoster() {
@@ -168,7 +168,7 @@ final class FederatedUserSearchTests: XCTestCase {
 
         let candidates = FederatedUserSearch.candidates(forHandle: "ana-souza", roster: roster, ownServerName: "nowhere.example")
 
-        XCTAssertEqual(candidates, ["@ana-souza:ca.gua.example"])
+        XCTAssertEqual(candidates, ["@ana-souza:nowhere.example", "@ana-souza:ca.gua.example"])
     }
 
     // MARK: - Roster cache

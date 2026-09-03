@@ -50,20 +50,14 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
             .sink { [weak self] securityState in
                 guard let self else { return }
                 
-                switch (securityState.verificationState, securityState.recoveryState) {
-                case (.verified, .disabled):
-                    state.showSecuritySectionBadge = true
-                    state.securitySectionMode = .secureBackup
-                case (.verified, .incomplete):
-                    state.showSecuritySectionBadge = true
-                    state.securitySectionMode = .secureBackup
-                case (.unknown, _):
-                    state.showSecuritySectionBadge = false
-                    state.securitySectionMode = .none
-                default:
-                    state.showSecuritySectionBadge = false
-                    state.securitySectionMode = .secureBackup
-                }
+                // GUA FORK: the secure-backup section is upstream's recovery-key console, with
+                // a key-storage toggle, "set up recovery", "change recovery key" and "confirm
+                // recovery key". Every one of those is a thing Gua promises never to put in front
+                // of anyone, and the home-screen banner now repairs a broken account silently and
+                // escalates to a reset by itself, so nothing here is a user's last way out.
+                _ = securityState
+                state.showSecuritySectionBadge = false
+                state.securitySectionMode = .none
             }
             .store(in: &cancellables)
         

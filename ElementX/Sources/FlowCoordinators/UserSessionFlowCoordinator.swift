@@ -496,27 +496,19 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
             return
         }
         
-        guard secureBackupController.recoveryState.value == .enabled else {
+        // GUA FORK: one warning, and no route into the recovery-key console. Upstream shows two
+        // alerts here, both saying the user will need a recovery key to restore their chats, and
+        // both offering a "Settings" button through to the screen that generates and displays one.
+        // Signing out of your only device is the moment this fork most needs not to hand out a key,
+        // so the warning names the real consequence and offers only the two real choices.
+        guard secureBackupController.recoveryState.value == .enabled,
+              secureBackupController.keyBackupState.value == .enabled else {
             flowParameters.userIndicatorController.alertInfo = .init(id: .init(),
-                                                                     title: L10n.screenSignoutRecoveryDisabledTitle,
-                                                                     message: L10n.screenSignoutRecoveryDisabledSubtitle,
+                                                                     title: UntranslatedL10n.guaSignoutLastDeviceTitle,
+                                                                     message: UntranslatedL10n.guaSignoutLastDeviceMessage,
                                                                      primaryButton: .init(title: L10n.screenSignoutConfirmationDialogSubmit, role: .destructive) { [weak self] in
                                                                          self?.actionsSubject.send(.logout)
-                                                                     }, secondaryButton: .init(title: L10n.commonSettings, role: .cancel) { [weak self] in
-                                                                         self?.chatsFlowCoordinator.handleAppRoute(.chatBackupSettings, animated: true)
-                                                                     })
-            return
-        }
-        
-        guard secureBackupController.keyBackupState.value == .enabled else {
-            flowParameters.userIndicatorController.alertInfo = .init(id: .init(),
-                                                                     title: L10n.screenSignoutKeyBackupDisabledTitle,
-                                                                     message: L10n.screenSignoutKeyBackupDisabledSubtitle,
-                                                                     primaryButton: .init(title: L10n.screenSignoutConfirmationDialogSubmit, role: .destructive) { [weak self] in
-                                                                         self?.actionsSubject.send(.logout)
-                                                                     }, secondaryButton: .init(title: L10n.commonSettings, role: .cancel) { [weak self] in
-                                                                         self?.chatsFlowCoordinator.handleAppRoute(.chatBackupSettings, animated: true)
-                                                                     })
+                                                                     }, secondaryButton: .init(title: L10n.actionCancel, role: .cancel) { })
             return
         }
         

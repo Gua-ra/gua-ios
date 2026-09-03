@@ -9,9 +9,12 @@ import Combine
 import SwiftUI
 
 enum EncryptionResetScreenCoordinatorAction {
-    case requestOIDCAuthorisation(URL, completionPublisher: PassthroughSubject<Void, Never>)
+    case requestOIDCAuthorisation(URL, completionPublisher: PassthroughSubject<OIDCAccountSettingsPresenter.Outcome, Never>)
     case requestPassword(passwordPublisher: PassthroughSubject<String, Never>)
+    /// GUA FORK: the approval landed, so close the web sheet rather than leaving the user to.
+    case dismissOIDCPresentation
     case resetFinished
+    case recoverFromOtherDevice
     case cancel
 }
 
@@ -45,10 +48,14 @@ final class EncryptionResetScreenCoordinator: CoordinatorProtocol {
             switch action {
             case .requestOIDCAuthorisation(let url, let completionPublisher):
                 self.actionsSubject.send(.requestOIDCAuthorisation(url, completionPublisher: completionPublisher))
+            case .dismissOIDCPresentation:
+                self.actionsSubject.send(.dismissOIDCPresentation)
             case .requestPassword(let passwordPublisher):
                 self.actionsSubject.send(.requestPassword(passwordPublisher: passwordPublisher))
             case .resetFinished:
                 self.actionsSubject.send(.resetFinished)
+            case .recoverFromOtherDevice:
+                self.actionsSubject.send(.recoverFromOtherDevice)
             case .cancel:
                 self.actionsSubject.send(.cancel)
             }

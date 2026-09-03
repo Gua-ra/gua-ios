@@ -27,6 +27,8 @@ private struct GuaAppSettingsHook: AppSettingsHookProtocol {
         static let copyrightURL: URL = "https://gua.global/copyright"
         static let acceptableUseURL: URL = "https://gua.global/terms"
         static let privacyURL: URL = "https://gua.global/privacy"
+        // Key storage help lives on the Gua help page (see gua-deploy static/help.html).
+        static let chatBackupDetailsURL: URL = "https://gua.global/help#key-backup"
         static let localStaticRegistrationURLs = [
             "http://localhost:8008",
             "http://localhost:8008/",
@@ -67,7 +69,7 @@ private struct GuaAppSettingsHook: AppSettingsHookProtocol {
                              privacyURL: Constants.privacyURL,
                              encryptionURL: appSettings.encryptionURL,
                              deviceVerificationURL: appSettings.deviceVerificationURL,
-                             chatBackupDetailsURL: appSettings.chatBackupDetailsURL,
+                             chatBackupDetailsURL: Constants.chatBackupDetailsURL,
                              identityPinningViolationDetailsURL: appSettings.identityPinningViolationDetailsURL,
                              elementWebHosts: appSettings.elementWebHosts,
                              accountProvisioningHost: appSettings.accountProvisioningHost,

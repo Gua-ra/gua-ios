@@ -15,11 +15,25 @@ struct EncryptionResetScreen: View {
         FullscreenDialog {
             mainContent
         } bottomContent: {
-            Button(L10n.screenEncryptionResetActionContinueReset, role: .destructive) {
-                context.send(viewAction: .reset)
+            VStack(spacing: 16) {
+                // GUA FORK: offered only when another device of this account holds the keys. It
+                // brings the messages here without resetting anything; otherwise the reset is
+                // the only way forward and the sole option shown.
+                if context.viewState.canRecoverFromOtherDevice {
+                    Button(UntranslatedL10n.guaEncryptionRecoverFromOtherDeviceAction) {
+                        context.send(viewAction: .recoverFromOtherDevice)
+                    }
+                    .disabled(context.viewState.isResetting)
+                    .buttonStyle(.compound(.primary))
+                }
+
+                Button(UntranslatedL10n.guaEncryptionResetRequiredAction, role: .destructive) {
+                    context.send(viewAction: .reset)
+                }
+                .disabled(context.viewState.isResetting)
+                .buttonStyle(.compound(context.viewState.canRecoverFromOtherDevice ? .secondary : .primary))
+                .accessibilityIdentifier(A11yIdentifiers.encryptionResetScreen.continueReset)
             }
-            .buttonStyle(.compound(.primary))
-            .accessibilityIdentifier(A11yIdentifiers.encryptionResetScreen.continueReset)
         }
         .background()
         .backgroundStyle(.compound.bgCanvasDefault)
@@ -33,7 +47,6 @@ struct EncryptionResetScreen: View {
     private var mainContent: some View {
         VStack(spacing: 24) {
             header
-            checkmarkList
             footer
         }
     }
@@ -43,7 +56,13 @@ struct EncryptionResetScreen: View {
             BigIcon(icon: \.errorSolid, style: .alertSolid)
                 .padding(.bottom, 8)
             
-            Text(L10n.screenEncryptionResetTitle)
+            // GUA FORK: this screen is only reached once a reset is genuinely required, so
+            // it names the loss plainly instead of leading with jargon about identities.
+            // GUA FORK: when the keys can come from another device, this screen is about
+            // getting them back, not about what is lost.
+            Text(context.viewState.canRecoverFromOtherDevice
+                ? UntranslatedL10n.guaEncryptionRecoverFromOtherDeviceTitle
+                : UntranslatedL10n.guaEncryptionResetRequiredTitle)
                 .font(.compound.headingMDBold)
                 .multilineTextAlignment(.center)
                 .foregroundColor(.compound.textPrimary)
@@ -51,30 +70,14 @@ struct EncryptionResetScreen: View {
     }
     
     private var footer: some View {
-        Text(L10n.screenEncryptionResetFooter)
-            .font(.compound.bodyMDSemibold)
+        // GUA FORK: when the keys can be fetched from another device, saying the backup
+        // "needs to be reset" would be untrue, and the button below offers the other way out.
+        Text(context.viewState.canRecoverFromOtherDevice
+            ? UntranslatedL10n.guaEncryptionRecoverFromOtherDeviceMessage
+            : UntranslatedL10n.guaEncryptionResetRequiredMessage)
+            .font(.compound.bodyMD)
             .multilineTextAlignment(.center)
-            .foregroundColor(.compound.textPrimary)
-    }
-    
-    /// The list of re-assurances about analytics.
-    private var checkmarkList: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            checkMarkItem(title: L10n.screenEncryptionResetBullet1, position: .top, positive: true)
-            checkMarkItem(title: L10n.screenEncryptionResetBullet2, position: .middle, positive: false)
-            checkMarkItem(title: L10n.screenEncryptionResetBullet3, position: .bottom, positive: false)
-        }
-        .fixedSize(horizontal: false, vertical: true)
-        .frame(maxWidth: .infinity)
-        .environment(\.backgroundStyle, AnyShapeStyle(.compound.bgSubtleSecondary))
-    }
-
-    private func checkMarkItem(title: String, position: ListPosition, positive: Bool) -> some View {
-        VisualListItem(title: title, position: position) {
-            CompoundIcon(positive ? \.check : \.info)
-                .foregroundColor(positive ? .compound.iconAccentPrimary : .compound.iconSecondary)
-                .alignmentGuide(.top) { _ in 2 }
-        }
+            .foregroundColor(.compound.textSecondary)
     }
     
     @ToolbarContentBuilder
@@ -92,9 +95,24 @@ struct EncryptionResetScreen: View {
 struct EncryptionResetScreen_Previews: PreviewProvider, TestablePreview {
     static let viewModel = EncryptionResetScreenViewModel(clientProxy: ClientProxyMock(.init()),
                                                           userIndicatorController: UserIndicatorControllerMock())
+    
+    /// GUA FORK: the same screen when another device of this account still holds the keys.
+    /// The offer to fetch them is conditional, so both shapes need to be seen.
+    static let recoverViewModel: EncryptionResetScreenViewModel = {
+        let clientProxy = ClientProxyMock(.init(recoveryState: .incomplete))
+        clientProxy.hasDevicesToVerifyAgainstReturnValue = .success(true)
+        return EncryptionResetScreenViewModel(clientProxy: clientProxy,
+                                              userIndicatorController: UserIndicatorControllerMock())
+    }()
+    
     static var previews: some View {
         NavigationStack {
             EncryptionResetScreen(context: viewModel.context)
         }
+        
+        NavigationStack {
+            EncryptionResetScreen(context: recoverViewModel.context)
+        }
+        .snapshotPreferences(expect: recoverViewModel.context.observe(\.viewState.canRecoverFromOtherDevice).map { $0 == true }.eraseToStream())
     }
 }

@@ -10,12 +10,68 @@ import Foundation
 // swiftlint:disable explicit_type_interface function_parameter_count identifier_name line_length
 // swiftlint:disable nesting type_body_length type_name vertical_whitespace_opening_braces
 internal enum UntranslatedL10n {
+  /// Use my other device
+  internal static var guaEncryptionRecoverFromOtherDeviceAction: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_recover_from_other_device_action") }
+  /// Couldn’t get your messages from the other device. Make sure it’s open and try again, or reset.
+  internal static var guaEncryptionRecoverFromOtherDeviceFailed: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_recover_from_other_device_failed") }
+  /// Use your other device to restore messages that aren’t available on this device yet.
+  /// 
+  /// If you don’t have access to it, you can reset and finish setup, but messages saved only in your backup will be permanently lost.
+  internal static var guaEncryptionRecoverFromOtherDeviceMessage: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_recover_from_other_device_message") }
+  /// Restore your previous messages
+  internal static var guaEncryptionRecoverFromOtherDeviceTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_recover_from_other_device_title") }
+  /// Finish setup
+  internal static var guaEncryptionRepairAction: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_repair_action") }
+  /// Setting up…
+  internal static var guaEncryptionRepairActionInProgress: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_repair_action_in_progress") }
+  /// Complete setup to access encrypted chats and message history available on this device.
+  internal static var guaEncryptionRepairMessage: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_repair_message") }
+  /// Finish setting up this device
+  internal static var guaEncryptionRepairTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_repair_title") }
+  /// Couldn’t finish setup. Tap Reset and finish setup to try again.
+  internal static var guaEncryptionResetFailed: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_failed") }
+  /// Finishing setup…
+  internal static var guaEncryptionResetFinishing: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_finishing") }
+  /// Setup wasn’t approved. Tap Reset and finish setup to try again.
+  internal static var guaEncryptionResetNotApproved: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_not_approved") }
+  /// Reset and finish setup
+  internal static var guaEncryptionResetRequiredAction: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_required_action") }
+  /// To finish setting up encrypted chats on this device, your encrypted backup needs to be reset. Messages stored only in that backup will be lost. Messages already on your devices won’t be affected.
+  internal static var guaEncryptionResetRequiredMessage: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_required_message") }
+  /// Some previous messages can’t be recovered
+  internal static var guaEncryptionResetRequiredTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_required_title") }
+  /// %1$@’s security details changed. This can happen when they reinstall Gua or get a new phone. %2$@
+  internal static func guaIdentityChangeBannerDescription(_ p1: Any, _ p2: Any) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_identity_change_banner_description", String(describing: p1), String(describing: p2))
+  }
+  /// %1$@’s security details changed. This can happen when they reinstall Gua or get a new phone.
+  internal static func guaIdentityChangeProfile(_ p1: Any) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_identity_change_profile", String(describing: p1))
+  }
+  /// This message can’t be opened because the sender’s security details changed.
+  internal static var guaIdentityChangeUndecryptable: String { return UntranslatedL10n.tr("Untranslated", "gua_identity_change_undecryptable") }
+  /// Paste the room address you were given.
+  internal static var guaJoinRoomByAddressHint: String { return UntranslatedL10n.tr("Untranslated", "gua_join_room_by_address_hint") }
   /// We couldn't confirm your organization details. Please try again.
   internal static var guaResolverClaimsInvalid: String { return UntranslatedL10n.tr("Untranslated", "gua_resolver_claims_invalid") }
   /// We can't set up new accounts right now. Please try again later.
   internal static var guaResolverRegistrationClosed: String { return UntranslatedL10n.tr("Untranslated", "gua_resolver_registration_closed") }
   /// We're having trouble connecting right now. Please try again in a moment.
   internal static var guaResolverRoutingUnavailable: String { return UntranslatedL10n.tr("Untranslated", "gua_resolver_routing_unavailable") }
+  /// Messages kept only here will not be available when you sign back in.
+  internal static var guaSignoutLastDeviceMessage: String { return UntranslatedL10n.tr("Untranslated", "gua_signout_last_device_message") }
+  /// Signing out will remove your messages from this device
+  internal static var guaSignoutLastDeviceTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_signout_last_device_title") }
+  /// Make sure the emojis below match the ones on your other device.
+  internal static var guaVerificationCompareEmojisSubtitle: String { return UntranslatedL10n.tr("Untranslated", "gua_verification_compare_emojis_subtitle") }
+  /// Your messages will now show up on this device.
+  internal static var guaVerificationCompleteSubtitle: String { return UntranslatedL10n.tr("Untranslated", "gua_verification_complete_subtitle") }
+  /// Keep it open. You’ll compare a few emojis on both devices to confirm it’s you.
+  internal static var guaVerificationOtherDeviceSubtitle: String { return UntranslatedL10n.tr("Untranslated", "gua_verification_other_device_subtitle") }
+  /// Open Gua on your other device
+  internal static var guaVerificationOtherDeviceTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_verification_other_device_title") }
+  /// Waiting for your other device
+  internal static var guaVerificationWaitingOtherDeviceTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_verification_waiting_other_device_title") }
   /// Clear all data currently stored on this device?
   /// Sign in again to access your account data and messages.
   internal static var softLogoutClearDataDialogContent: String { return UntranslatedL10n.tr("Untranslated", "soft_logout_clear_data_dialog_content") }
