@@ -89,3 +89,8 @@
 /* Button on the phone-entry screen offering to sign in by scanning the code shown on a phone
    that is already signed in, instead of entering a number and waiting for a code. */
 "gua_sign_in_with_existing_device" = "Use a device you're already signed in on";
+
+/* Gua resolver v1 problem codes, surfaced on the phone entry screen */
+"gua_resolver_claims_invalid" = "We couldn't confirm your organization details. Please try again.";
+"gua_resolver_routing_unavailable" = "We're having trouble connecting right now. Please try again in a moment.";
+"gua_resolver_registration_closed" = "We can't set up new accounts right now. Please try again later.";
