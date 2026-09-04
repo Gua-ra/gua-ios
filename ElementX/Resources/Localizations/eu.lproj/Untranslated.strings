@@ -16,3 +16,11 @@
 "gua_verification_compare_emojis_subtitle" = "Egiaztatu beheko emojiak zure beste gailuan erakutsitakoekin bat datozela.";
 "gua_encryption_reset_not_approved" = "Konfigurazioa ez da onartu. Sakatu «Berrezarri eta amaitu» berriro saiatzeko.";
 "gua_verification_complete_subtitle" = "Orain zure mezuak gailu honetan agertuko dira.";
+"gua_identity_change_banner_description" = "%1$@(r)en segurtasun datuak aldatu dira. Hori gerta daiteke Gua berriro instalatzean edo telefonoz aldatzean. %2$@";
+"gua_identity_change_undecryptable" = "Mezu hau ezin da ireki bidaltzailearen segurtasun datuak aldatu direlako.";
+"gua_identity_change_profile" = "%1$@(r)en segurtasun datuak aldatu dira. Hori gerta daiteke Gua berriro instalatzean edo telefonoz aldatzean.";
+"gua_encryption_repair_title" = "Amaitu gailu hau konfiguratzen";
+"gua_encryption_repair_message" = "Osatu konfigurazioa gailu honetan eskuragarri dauden zifratutako txatetara eta mezuen historiara sartzeko.";
+"gua_encryption_repair_action" = "Amaitu konfigurazioa";
+"gua_soft_logout_signin_notice" = "Zure Gua kontutik saioa itxi da. Hasi saioa berriro jarraitzeko.";
+"gua_join_room_by_address_hint" = "Itsatsi eman dizuten gelaren helbidea.";

@@ -22,3 +22,8 @@
 "gua_verification_compare_emojis_subtitle" = "Sørg for, at emojierne nedenfor matcher dem på din anden enhed.";
 "gua_encryption_reset_not_approved" = "Opsætningen blev ikke godkendt. Tryk på Nulstil og færdiggør for at prøve igen.";
 "gua_verification_complete_subtitle" = "Dine beskeder vises nu på denne enhed.";
+"gua_identity_change_banner_description" = "Sikkerhedsoplysningerne for %1$@ er ændret. Det kan ske, når nogen geninstallerer Gua eller får en ny telefon. %2$@";
+"gua_identity_change_undecryptable" = "Denne besked kan ikke åbnes, fordi afsenderens sikkerhedsoplysninger er ændret.";
+"gua_identity_change_profile" = "Sikkerhedsoplysningerne for %1$@ er ændret. Det kan ske, når nogen geninstallerer Gua eller får en ny telefon.";
+"gua_soft_logout_signin_notice" = "Du er blevet logget ud af din Gua-konto. Log ind igen for at fortsætte.";
+"gua_join_room_by_address_hint" = "Indsæt den rumadresse, du har fået.";

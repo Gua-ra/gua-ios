@@ -16,3 +16,11 @@
 "gua_verification_compare_emojis_subtitle" = "Győződjön meg róla, hogy az alábbi emodzsik megegyeznek a másik eszközén láthatókkal.";
 "gua_encryption_reset_not_approved" = "A beállítást nem hagyták jóvá. Az újrapróbálkozáshoz koppintson a „Visszaállítás és befejezés” gombra.";
 "gua_verification_complete_subtitle" = "Az üzenetei mostantól megjelennek ezen az eszközön.";
+"gua_identity_change_banner_description" = "%1$@ biztonsági adatai megváltoztak. Ez akkor fordulhat elő, ha újratelepíti a Guát vagy új telefonja lett. %2$@";
+"gua_identity_change_undecryptable" = "Ez az üzenet nem nyitható meg, mert a feladó biztonsági adatai megváltoztak.";
+"gua_identity_change_profile" = "%1$@ biztonsági adatai megváltoztak. Ez akkor fordulhat elő, ha újratelepíti a Guát vagy új telefonja lett.";
+"gua_encryption_repair_title" = "Fejezze be az eszköz beállítását";
+"gua_encryption_repair_message" = "Fejezze be a beállítást, hogy hozzáférjen a titkosított beszélgetésekhez és az ezen az eszközön elérhető üzenetelőzményekhez.";
+"gua_encryption_repair_action" = "Beállítás befejezése";
+"gua_soft_logout_signin_notice" = "Kijelentkeztették a Gua-fiókjából. A folytatáshoz jelentkezzen be újra.";
+"gua_join_room_by_address_hint" = "Illessze be a kapott szobacímet.";

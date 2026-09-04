@@ -16,3 +16,11 @@
 "gua_verification_compare_emojis_subtitle" = "Gwnewch yn siŵr bod yr emojis isod yn cyd-fynd â’r rhai ar eich dyfais arall.";
 "gua_encryption_reset_not_approved" = "Ni chafodd y broses osod ei chymeradwyo. Tapiwch Ailosod a gorffen i geisio eto.";
 "gua_verification_complete_subtitle" = "Bydd eich negeseuon yn ymddangos ar y ddyfais hon nawr.";
+"gua_identity_change_banner_description" = "Mae manylion diogelwch %1$@ wedi newid. Gall hyn ddigwydd pan fydd rhywun yn ailosod Gua neu'n cael ffôn newydd. %2$@";
+"gua_identity_change_undecryptable" = "Nid oes modd agor y neges hon am fod manylion diogelwch yr anfonwr wedi newid.";
+"gua_identity_change_profile" = "Mae manylion diogelwch %1$@ wedi newid. Gall hyn ddigwydd pan fydd rhywun yn ailosod Gua neu'n cael ffôn newydd.";
+"gua_encryption_repair_title" = "Gorffennwch osod y ddyfais hon";
+"gua_encryption_repair_message" = "Cwblhewch y gosodiad i gael mynediad at y sgyrsiau wedi'u hamgryptio a'r hanes negeseuon sydd ar gael ar y ddyfais hon.";
+"gua_encryption_repair_action" = "Gorffen gosod";
+"gua_soft_logout_signin_notice" = "Cawsoch eich allgofnodi o'ch cyfrif Gua. Mewngofnodwch eto i barhau.";
+"gua_join_room_by_address_hint" = "Gludwch gyfeiriad yr ystafell a roddwyd i chi.";

@@ -22,3 +22,8 @@
 "gua_verification_compare_emojis_subtitle" = "Controleer of de emoji’s hieronder overeenkomen met die op je andere apparaat.";
 "gua_encryption_reset_not_approved" = "De installatie is niet goedgekeurd. Tik op “Opnieuw instellen en voltooien” om het opnieuw te proberen.";
 "gua_verification_complete_subtitle" = "Je berichten verschijnen nu op dit apparaat.";
+"gua_identity_change_banner_description" = "De beveiligingsgegevens van %1$@ zijn gewijzigd. Dat kan gebeuren wanneer iemand Gua opnieuw installeert of een nieuwe telefoon heeft. %2$@";
+"gua_identity_change_undecryptable" = "Dit bericht kan niet worden geopend omdat de beveiligingsgegevens van de afzender zijn gewijzigd.";
+"gua_identity_change_profile" = "De beveiligingsgegevens van %1$@ zijn gewijzigd. Dat kan gebeuren wanneer iemand Gua opnieuw installeert of een nieuwe telefoon heeft.";
+"gua_soft_logout_signin_notice" = "Je bent uitgelogd bij je Gua-account. Log opnieuw in om verder te gaan.";
+"gua_join_room_by_address_hint" = "Plak het kameradres dat je hebt gekregen.";

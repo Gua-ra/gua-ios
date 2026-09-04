@@ -16,3 +16,11 @@
 "gua_verification_compare_emojis_subtitle" = "Įsitikinkite, kad žemiau esantys jaustukai atitinka tuos, kurie rodomi kitame jūsų įrenginyje.";
 "gua_encryption_reset_not_approved" = "Sąranka nebuvo patvirtinta. Palieskite „Atstatyti ir užbaigti“ ir bandykite dar kartą.";
 "gua_verification_complete_subtitle" = "Dabar jūsų žinutės bus matomos šiame įrenginyje.";
+"gua_identity_change_banner_description" = "%1$@ saugumo duomenys pasikeitė. Taip nutinka, kai žmogus iš naujo įdiegia Gua arba įsigyja naują telefoną. %2$@";
+"gua_identity_change_undecryptable" = "Šio pranešimo atidaryti negalima, nes pasikeitė siuntėjo saugumo duomenys.";
+"gua_identity_change_profile" = "%1$@ saugumo duomenys pasikeitė. Taip nutinka, kai žmogus iš naujo įdiegia Gua arba įsigyja naują telefoną.";
+"gua_encryption_repair_title" = "Užbaikite šio įrenginio sąranką";
+"gua_encryption_repair_message" = "Užbaikite sąranką, kad pasiektumėte šifruotus pokalbius ir šiame įrenginyje esančią žinučių istoriją.";
+"gua_encryption_repair_action" = "Užbaigti sąranką";
+"gua_soft_logout_signin_notice" = "Buvote atjungti nuo savo Gua paskyros. Norėdami tęsti, prisijunkite iš naujo.";
+"gua_join_room_by_address_hint" = "Įklijuokite gautą kambario adresą.";

@@ -16,3 +16,11 @@
 "gua_verification_compare_emojis_subtitle" = "Kontrolli, et allpool näidatud emojid on samad, mida näed oma teises seadmes.";
 "gua_encryption_reset_not_approved" = "Seadistamist ei kinnitatud. Uuesti proovimiseks puuduta „Lähtesta ja lõpeta“.";
 "gua_verification_complete_subtitle" = "Nüüd näed oma sõnumeid ka selles seadmes.";
+"gua_identity_change_banner_description" = "Kasutaja %1$@ turvaandmed muutusid. Nii võib juhtuda, kui keegi paigaldab Gua uuesti või saab uue telefoni. %2$@";
+"gua_identity_change_undecryptable" = "Seda sõnumit ei saa avada, sest saatja turvaandmed muutusid.";
+"gua_identity_change_profile" = "Kasutaja %1$@ turvaandmed muutusid. Nii võib juhtuda, kui keegi paigaldab Gua uuesti või saab uue telefoni.";
+"gua_encryption_repair_title" = "Lõpeta selle seadme seadistamine";
+"gua_encryption_repair_message" = "Lõpeta seadistamine, et pääseda ligi krüptitud vestlustele ja selles seadmes saadaolevale sõnumiajaloole.";
+"gua_encryption_repair_action" = "Lõpeta seadistamine";
+"gua_soft_logout_signin_notice" = "Sind logiti Gua kontolt välja. Jätkamiseks logi uuesti sisse.";
+"gua_join_room_by_address_hint" = "Kleebi ruumi aadress, mille said.";

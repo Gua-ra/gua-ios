@@ -16,3 +16,11 @@
 "gua_verification_compare_emojis_subtitle" = "Quyidagi emojilar boshqa qurilmangizdagilarga mos kelishiga ishonch hosil qiling.";
 "gua_encryption_reset_not_approved" = "Sozlash tasdiqlanmadi. Qayta urinish uchun “Qayta tiklash va yakunlash”ni bosing.";
 "gua_verification_complete_subtitle" = "Endi xabarlaringiz ushbu qurilmada koʻrinadi.";
+"gua_identity_change_banner_description" = "%1$@ xavfsizlik ma'lumotlari o'zgardi. Bu Gua qayta o'rnatilganda yoki telefon almashtirilganda sodir bo'lishi mumkin. %2$@";
+"gua_identity_change_undecryptable" = "Bu xabarni ochib bo'lmaydi, chunki jo'natuvchining xavfsizlik ma'lumotlari o'zgargan.";
+"gua_identity_change_profile" = "%1$@ xavfsizlik ma'lumotlari o'zgardi. Bu Gua qayta o'rnatilganda yoki telefon almashtirilganda sodir bo'lishi mumkin.";
+"gua_encryption_repair_title" = "Ushbu qurilma sozlashni yakunlang";
+"gua_encryption_repair_message" = "Ushbu qurilmada mavjud shifrlangan chatlar va xabarlar tarixiga kirish uchun sozlashni yakunlang.";
+"gua_encryption_repair_action" = "Sozlashni yakunlash";
+"gua_soft_logout_signin_notice" = "Gua hisobingizdan chiqarildingiz. Davom etish uchun qayta kiring.";
+"gua_join_room_by_address_hint" = "Sizga berilgan xona manzilini joylashtiring.";

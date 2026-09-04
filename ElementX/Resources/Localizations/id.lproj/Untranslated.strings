@@ -16,3 +16,11 @@
 "gua_verification_compare_emojis_subtitle" = "Pastikan emoji di bawah ini cocok dengan yang ada di perangkat Anda yang lain.";
 "gua_encryption_reset_not_approved" = "Penyiapan tidak disetujui. Ketuk Setel ulang dan selesaikan untuk mencoba lagi.";
 "gua_verification_complete_subtitle" = "Pesan Anda sekarang akan muncul di perangkat ini.";
+"gua_identity_change_banner_description" = "Detail keamanan %1$@ berubah. Ini bisa terjadi saat orang tersebut memasang ulang Gua atau berganti ponsel. %2$@";
+"gua_identity_change_undecryptable" = "Pesan ini tidak dapat dibuka karena detail keamanan pengirim berubah.";
+"gua_identity_change_profile" = "Detail keamanan %1$@ berubah. Ini bisa terjadi saat orang tersebut memasang ulang Gua atau berganti ponsel.";
+"gua_encryption_repair_title" = "Selesaikan penyiapan perangkat ini";
+"gua_encryption_repair_message" = "Selesaikan penyiapan untuk mengakses obrolan terenkripsi dan riwayat pesan yang tersedia di perangkat ini.";
+"gua_encryption_repair_action" = "Selesaikan penyiapan";
+"gua_soft_logout_signin_notice" = "Anda telah keluar dari akun Gua. Masuk lagi untuk melanjutkan.";
+"gua_join_room_by_address_hint" = "Tempelkan alamat ruang yang Anda terima.";

@@ -22,3 +22,8 @@
 "gua_verification_compare_emojis_subtitle" = "Varmista, että alla olevat emojit vastaavat toisella laitteellasi näkyviä emojeja.";
 "gua_encryption_reset_not_approved" = "Määritystä ei hyväksytty. Napauta ”Nollaa ja viimeistele” yrittääksesi uudelleen.";
 "gua_verification_complete_subtitle" = "Viestisi näkyvät nyt tällä laitteella.";
+"gua_identity_change_banner_description" = "Käyttäjän %1$@ turvatiedot muuttuivat. Näin voi käydä, kun hän asentaa Guan uudelleen tai vaihtaa puhelinta. %2$@";
+"gua_identity_change_undecryptable" = "Tätä viestiä ei voi avata, koska lähettäjän turvatiedot muuttuivat.";
+"gua_identity_change_profile" = "Käyttäjän %1$@ turvatiedot muuttuivat. Näin voi käydä, kun hän asentaa Guan uudelleen tai vaihtaa puhelinta.";
+"gua_soft_logout_signin_notice" = "Sinut kirjattiin ulos Gua-tilistäsi. Kirjaudu uudelleen jatkaaksesi.";
+"gua_join_room_by_address_hint" = "Liitä saamasi huoneen osoite.";

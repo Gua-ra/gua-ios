@@ -22,3 +22,8 @@
 "gua_verification_compare_emojis_subtitle" = "确认下方的表情符号与你的另一台设备上显示的相同。";
 "gua_encryption_reset_not_approved" = "设置未获批准。点击“重置并完成”重试。";
 "gua_verification_complete_subtitle" = "你的消息现在会显示在此设备上。";
+"gua_identity_change_banner_description" = "%1$@ 的安全信息已更改。对方重新安装 Gua 或更换手机时可能会这样。%2$@";
+"gua_identity_change_undecryptable" = "发件人的安全信息已更改，无法打开此消息。";
+"gua_identity_change_profile" = "%1$@ 的安全信息已更改。对方重新安装 Gua 或更换手机时可能会这样。";
+"gua_soft_logout_signin_notice" = "你已退出 Gua 账号。请重新登录以继续。";
+"gua_join_room_by_address_hint" = "粘贴你收到的房间地址。";

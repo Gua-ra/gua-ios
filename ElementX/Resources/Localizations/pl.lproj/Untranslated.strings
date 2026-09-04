@@ -22,3 +22,8 @@
 "gua_verification_compare_emojis_subtitle" = "Upewnij się, że emoji poniżej pasują do tych na drugim urządzeniu.";
 "gua_encryption_reset_not_approved" = "Konfiguracja nie została zatwierdzona. Stuknij „Zresetuj i zakończ”, aby spróbować ponownie.";
 "gua_verification_complete_subtitle" = "Twoje wiadomości pojawią się teraz na tym urządzeniu.";
+"gua_identity_change_banner_description" = "Dane zabezpieczeń użytkownika %1$@ uległy zmianie. Może się tak zdarzyć po ponownej instalacji Gua lub zmianie telefonu. %2$@";
+"gua_identity_change_undecryptable" = "Nie można otworzyć tej wiadomości, ponieważ dane zabezpieczeń nadawcy uległy zmianie.";
+"gua_identity_change_profile" = "Dane zabezpieczeń użytkownika %1$@ uległy zmianie. Może się tak zdarzyć po ponownej instalacji Gua lub zmianie telefonu.";
+"gua_soft_logout_signin_notice" = "Nastąpiło wylogowanie z konta Gua. Zaloguj się ponownie, aby kontynuować.";
+"gua_join_room_by_address_hint" = "Wklej otrzymany adres pokoju.";

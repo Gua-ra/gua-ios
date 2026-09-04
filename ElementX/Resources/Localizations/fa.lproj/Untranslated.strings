@@ -16,3 +16,11 @@
 "gua_verification_compare_emojis_subtitle" = "مطمئن شوید ایموجی‌های زیر با ایموجی‌های روی دستگاه دیگر شما یکسان هستند.";
 "gua_encryption_reset_not_approved" = "راه‌اندازی تأیید نشد. برای تلاش دوباره، «بازنشانی و تکمیل» را بزنید.";
 "gua_verification_complete_subtitle" = "اکنون پیام‌های شما روی این دستگاه نمایش داده می‌شوند.";
+"gua_identity_change_banner_description" = "اطلاعات امنیتی %1$@ تغییر کرد. این اتفاق ممکن است هنگام نصب دوبارهٔ Gua یا تعویض گوشی رخ دهد. %2$@";
+"gua_identity_change_undecryptable" = "این پیام باز نمی‌شود، چون اطلاعات امنیتی فرستنده تغییر کرده است.";
+"gua_identity_change_profile" = "اطلاعات امنیتی %1$@ تغییر کرد. این اتفاق ممکن است هنگام نصب دوبارهٔ Gua یا تعویض گوشی رخ دهد.";
+"gua_encryption_repair_title" = "راه‌اندازی این دستگاه را کامل کنید";
+"gua_encryption_repair_message" = "برای دسترسی به گفت‌وگوهای رمزگذاری‌شده و تاریخچهٔ پیام‌های موجود روی این دستگاه، راه‌اندازی را کامل کنید.";
+"gua_encryption_repair_action" = "تکمیل راه‌اندازی";
+"gua_soft_logout_signin_notice" = "از حساب Gua خود خارج شدید. برای ادامه دوباره وارد شوید.";
+"gua_join_room_by_address_hint" = "نشانی اتاقی را که به شما داده شده جای‌گذاری کنید.";
