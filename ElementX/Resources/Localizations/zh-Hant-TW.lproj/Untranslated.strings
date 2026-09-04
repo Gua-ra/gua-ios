@@ -16,3 +16,11 @@
 "gua_verification_compare_emojis_subtitle" = "請確認下方的表情符號與你其他裝置上顯示的相符。";
 "gua_encryption_reset_not_approved" = "設定未獲確認。請點選「重設並完成」再試一次。";
 "gua_verification_complete_subtitle" = "你的訊息現在會出現在這台裝置上。";
+"gua_identity_change_banner_description" = "%1$@ 的安全資訊已變更。對方重新安裝 Gua 或更換手機時可能會這樣。%2$@";
+"gua_identity_change_undecryptable" = "寄件者的安全資訊已變更，無法開啟這則訊息。";
+"gua_identity_change_profile" = "%1$@ 的安全資訊已變更。對方重新安裝 Gua 或更換手機時可能會這樣。";
+"gua_encryption_repair_title" = "完成這台裝置的設定";
+"gua_encryption_repair_message" = "完成設定即可存取這台裝置上可用的加密聊天與訊息記錄。";
+"gua_encryption_repair_action" = "完成設定";
+"gua_soft_logout_signin_notice" = "你已登出 Gua 帳號。請重新登入以繼續。";
+"gua_join_room_by_address_hint" = "貼上你收到的聊天室位址。";

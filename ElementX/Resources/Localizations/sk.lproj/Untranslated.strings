@@ -16,3 +16,11 @@
 "gua_verification_compare_emojis_subtitle" = "Skontrolujte, či sa emotikony uvedené nižšie zhodujú s tými na vašom druhom zariadení.";
 "gua_encryption_reset_not_approved" = "Nastavenie nebolo schválené. Ak to chcete skúsiť znova, ťuknite na „Resetovať a dokončiť“.";
 "gua_verification_complete_subtitle" = "Vaše správy sa teraz zobrazia v tomto zariadení.";
+"gua_identity_change_banner_description" = "Bezpečnostné údaje používateľa %1$@ sa zmenili. Stáva sa to, keď si niekto preinštaluje Gua alebo si zaobstará nový telefón. %2$@";
+"gua_identity_change_undecryptable" = "Túto správu nemožno otvoriť, pretože sa zmenili bezpečnostné údaje odosielateľa.";
+"gua_identity_change_profile" = "Bezpečnostné údaje používateľa %1$@ sa zmenili. Stáva sa to, keď si niekto preinštaluje Gua alebo si zaobstará nový telefón.";
+"gua_encryption_repair_title" = "Dokončite nastavenie tohto zariadenia";
+"gua_encryption_repair_message" = "Dokončite nastavenie, aby ste získali prístup k šifrovaným konverzáciám a histórii správ dostupnej v tomto zariadení.";
+"gua_encryption_repair_action" = "Dokončiť nastavenie";
+"gua_soft_logout_signin_notice" = "Boli ste odhlásení zo svojho účtu Gua. Prihláste sa znova a pokračujte.";
+"gua_join_room_by_address_hint" = "Vložte adresu miestnosti, ktorú ste dostali.";

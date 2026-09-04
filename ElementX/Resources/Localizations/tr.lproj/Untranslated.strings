@@ -22,3 +22,8 @@
 "gua_verification_compare_emojis_subtitle" = "Aşağıdaki emojilerin diğer cihazınızdakilerle eşleştiğinden emin olun.";
 "gua_encryption_reset_not_approved" = "Kurulum onaylanmadı. Tekrar denemek için “Sıfırla ve tamamla”ya dokunun.";
 "gua_verification_complete_subtitle" = "Mesajlarınız artık bu cihazda görünecek.";
+"gua_identity_change_banner_description" = "%1$@ kişisinin güvenlik bilgileri değişti. Bu, Gua'yı yeniden kurduğunda veya telefonunu değiştirdiğinde olabilir. %2$@";
+"gua_identity_change_undecryptable" = "Gönderenin güvenlik bilgileri değiştiği için bu mesaj açılamıyor.";
+"gua_identity_change_profile" = "%1$@ kişisinin güvenlik bilgileri değişti. Bu, Gua'yı yeniden kurduğunda veya telefonunu değiştirdiğinde olabilir.";
+"gua_soft_logout_signin_notice" = "Gua hesabınızdan çıkış yapıldı. Devam etmek için yeniden giriş yapın.";
+"gua_join_room_by_address_hint" = "Size verilen oda adresini yapıştırın.";
