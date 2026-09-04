@@ -82,3 +82,9 @@
 "gua_verification_waiting_other_device_title" = "Waiting for your other device";
 "gua_verification_compare_emojis_subtitle" = "Make sure the emojis below match the ones on your other device.";
 "gua_verification_complete_subtitle" = "Your messages will now show up on this device.";
+
+// MARK: - Gua: sign in by linking an existing device
+
+/* Button on the phone-entry screen offering to sign in by scanning the code shown on a phone
+   that is already signed in, instead of entering a number and waiting for a code. */
+"gua_sign_in_with_existing_device" = "Use a device you're already signed in on";
