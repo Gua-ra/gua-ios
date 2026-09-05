@@ -44,8 +44,6 @@ class PhoneEntryScreenViewModel: PhoneEntryScreenViewModelType, PhoneEntryScreen
             actionsSubject.send(.continue(phoneNumber: state.e164PhoneNumber))
         case .useLegacyAuthTapped:
             actionsSubject.send(.useLegacyAuth)
-        case .linkWithExistingDeviceTapped:
-            actionsSubject.send(.linkWithExistingDevice)
         case .countrySelected(let country):
             state.selectedCountry = country
             state.bindings.isCountryPickerPresented = false

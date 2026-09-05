@@ -23,8 +23,6 @@ struct PhoneEntryScreenCoordinatorParameters {
 enum PhoneEntryScreenCoordinatorAction {
     case `continue`(phoneNumber: String)
     case useLegacyAuth
-    /// GUA FORK: sign in by scanning the code shown on a device already signed in.
-    case linkWithExistingDevice
 }
 
 final class PhoneEntryScreenCoordinator: CoordinatorProtocol {
@@ -53,8 +51,6 @@ final class PhoneEntryScreenCoordinator: CoordinatorProtocol {
                 actionsSubject.send(.continue(phoneNumber: phoneNumber))
             case .useLegacyAuth:
                 actionsSubject.send(.useLegacyAuth)
-            case .linkWithExistingDevice:
-                actionsSubject.send(.linkWithExistingDevice)
             }
         }
         .store(in: &cancellables)
