@@ -1,0 +1,29 @@
+/*
+  Gua fork strings for this locale. English source lives in en.lproj/Untranslated.strings.
+*/
+
+"gua_encryption_repair_title" = "Bu cihazın kurulumunu tamamlayın";
+"gua_encryption_repair_message" = "Şifreli sohbetlere ve bu cihazda bulunan mesaj geçmişine erişmek için kurulumu tamamlayın.";
+"gua_encryption_repair_action" = "Kurulumu tamamla";
+"gua_encryption_reset_required_title" = "Bazı önceki mesajlar kurtarılamaz";
+"gua_encryption_reset_required_message" = "Bu cihazda şifreli sohbetlerin kurulumunu tamamlamak için şifreli yedeğinizin sıfırlanması gerekir. Yalnızca o yedekte saklanan mesajlar kaybolur. Cihazlarınızda zaten bulunan mesajlar etkilenmez.";
+"gua_encryption_reset_required_action" = "Sıfırla ve tamamla";
+"gua_signout_last_device_title" = "Çıkış yapmak mesajlarınızı bu cihazdan kaldırır";
+"gua_signout_last_device_message" = "Bu tek cihazınız. Yalnızca burada tutulan mesajlar, yeniden giriş yaptığınızda kullanılamaz.";
+"gua_encryption_reset_finishing" = "Kurulum tamamlanıyor…";
+"gua_encryption_reset_failed" = "Kurulum tamamlanamadı. Tekrar denemek için “Sıfırla ve tamamla”ya dokunun.";
+"gua_encryption_recover_from_other_device_title" = "Önceki mesajlarınızı geri getirin";
+"gua_encryption_recover_from_other_device_message" = "Bu cihazda henüz bulunmayan mesajları geri getirmek için diğer cihazınızı kullanın.\n\nO cihaza erişiminiz yoksa sıfırlayıp kurulumu tamamlayabilirsiniz, ancak yalnızca yedeğinizde saklanan mesajlar kalıcı olarak kaybolur.";
+"gua_encryption_recover_from_other_device_action" = "Diğer cihazımı kullan";
+"gua_encryption_recover_from_other_device_failed" = "Mesajlarınız diğer cihazdan alınamadı. Gua'nın o cihazda açık olduğundan emin olup tekrar deneyin veya sıfırlayın.";
+"gua_verification_other_device_title" = "Gua'yı diğer cihazınızda açın";
+"gua_verification_other_device_subtitle" = "Açık tutun. Siz olduğunuzu onaylamak için iki cihazdaki birkaç emojiyi karşılaştıracaksınız.";
+"gua_verification_waiting_other_device_title" = "Diğer cihazınız bekleniyor";
+"gua_verification_compare_emojis_subtitle" = "Aşağıdaki emojilerin diğer cihazınızdakilerle eşleştiğinden emin olun.";
+"gua_encryption_reset_not_approved" = "Kurulum onaylanmadı. Tekrar denemek için “Sıfırla ve tamamla”ya dokunun.";
+"gua_verification_complete_subtitle" = "Mesajlarınız artık bu cihazda görünecek.";
+"gua_identity_change_banner_description" = "%1$@ kişisinin güvenlik bilgileri değişti. Bu, Gua'yı yeniden kurduğunda veya telefonunu değiştirdiğinde olabilir. %2$@";
+"gua_identity_change_undecryptable" = "Gönderenin güvenlik bilgileri değiştiği için bu mesaj açılamıyor.";
+"gua_identity_change_profile" = "%1$@ kişisinin güvenlik bilgileri değişti. Bu, Gua'yı yeniden kurduğunda veya telefonunu değiştirdiğinde olabilir.";
+"gua_soft_logout_signin_notice" = "Gua hesabınızdan çıkış yapıldı. Devam etmek için yeniden giriş yapın.";
+"gua_join_room_by_address_hint" = "Size verilen oda adresini yapıştırın.";

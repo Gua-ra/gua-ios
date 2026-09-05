@@ -71,19 +71,29 @@ final class UserDiscoveryService: UserDiscoveryServiceProtocol {
 
     // MARK: - Gua federated bare-handle search
 
-    /// GUA FORK: exact-handle matches for a bare username on the other homeservers of the Gua
-    /// federation, honouring each server's discoverability policy. Empty when the query isn't a
-    /// bare handle or the roster is unavailable.
+    /// GUA FORK: exact-handle matches for a bare username, on the searcher's own homeserver and
+    /// on the other homeservers of the Gua federation, honouring each server's discoverability
+    /// policy. Empty when the query isn't a bare handle.
+    ///
+    /// The own-server lookup deliberately does NOT depend on the roster. The searcher's server
+    /// name comes from their own user ID, so an unconfigured or unreachable resolver must not
+    /// take away the ability to find someone on your own server, which is the common case and
+    /// the bug this whole path exists to fix. The roster only ever adds the other servers.
     private func federatedProfiles(matching searchQuery: String) async -> [UserProfileProxy] {
-        guard let federationRosterProvider,
-              let handle = FederatedUserSearch.bareHandle(from: searchQuery),
-              let roster = await federationRosterProvider.currentRoster() else {
+        guard let handle = FederatedUserSearch.bareHandle(from: searchQuery) else {
             return []
         }
 
-        let candidates = FederatedUserSearch.candidates(forHandle: handle,
-                                                        roster: roster,
-                                                        ownServerName: ownServerName)
+        var candidates = ["@\(handle):\(ownServerName)"]
+
+        if let federationRosterProvider,
+           let roster = await federationRosterProvider.currentRoster() {
+            candidates += FederatedUserSearch.candidates(forHandle: handle,
+                                                         roster: roster,
+                                                         ownServerName: ownServerName)
+                .filter { $0 != candidates[0] }
+        }
+
         guard !candidates.isEmpty else {
             return []
         }

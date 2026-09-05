@@ -1,0 +1,29 @@
+/*
+  Gua fork strings for this locale. English source lives in en.lproj/Untranslated.strings.
+*/
+
+"gua_encryption_repair_title" = "Viimeistele tämän laitteen määritys";
+"gua_encryption_repair_message" = "Viimeistele määritys päästäksesi salattuihin keskusteluihin ja tällä laitteella saatavilla olevaan viestihistoriaan.";
+"gua_encryption_repair_action" = "Viimeistele määritys";
+"gua_encryption_reset_required_title" = "Joitakin aiempia viestejä ei voi palauttaa";
+"gua_encryption_reset_required_message" = "Jotta salattujen keskustelujen määritys saadaan valmiiksi tällä laitteella, salattu varmuuskopio on nollattava. Vain siinä varmuuskopiossa olevat viestit menetetään. Laitteillasi jo olevat viestit eivät muutu.";
+"gua_encryption_reset_required_action" = "Nollaa ja viimeistele";
+"gua_signout_last_device_title" = "Uloskirjautuminen poistaa viestisi tältä laitteelta";
+"gua_signout_last_device_message" = "Tämä on ainoa laitteesi. Vain täällä olevat viestit eivät ole käytettävissä, kun kirjaudut takaisin sisään.";
+"gua_encryption_reset_finishing" = "Viimeistellään määritystä…";
+"gua_encryption_reset_failed" = "Määrityksen viimeistely ei onnistunut. Napauta ”Nollaa ja viimeistele” yrittääksesi uudelleen.";
+"gua_encryption_recover_from_other_device_title" = "Palauta aiemmat viestisi";
+"gua_encryption_recover_from_other_device_message" = "Palauta toisella laitteellasi viestit, jotka eivät ole vielä käytettävissä tällä laitteella.\n\nJos et voi käyttää sitä, voit nollata ja viimeistellä määrityksen, mutta vain varmuuskopiossa olevat viestit menetetään lopullisesti.";
+"gua_encryption_recover_from_other_device_action" = "Käytä toista laitettani";
+"gua_encryption_recover_from_other_device_failed" = "Viestien hakeminen toiselta laitteelta ei onnistunut. Varmista, että Gua on siellä avoinna, ja yritä uudelleen tai nollaa.";
+"gua_verification_other_device_title" = "Avaa Gua toisella laitteellasi";
+"gua_verification_other_device_subtitle" = "Pidä se avoinna. Vertaat muutamaa emojia molemmilla laitteilla varmistaaksesi, että se olet sinä.";
+"gua_verification_waiting_other_device_title" = "Odotetaan toista laitettasi";
+"gua_verification_compare_emojis_subtitle" = "Varmista, että alla olevat emojit vastaavat toisella laitteellasi näkyviä emojeja.";
+"gua_encryption_reset_not_approved" = "Määritystä ei hyväksytty. Napauta ”Nollaa ja viimeistele” yrittääksesi uudelleen.";
+"gua_verification_complete_subtitle" = "Viestisi näkyvät nyt tällä laitteella.";
+"gua_identity_change_banner_description" = "Käyttäjän %1$@ turvatiedot muuttuivat. Näin voi käydä, kun hän asentaa Guan uudelleen tai vaihtaa puhelinta. %2$@";
+"gua_identity_change_undecryptable" = "Tätä viestiä ei voi avata, koska lähettäjän turvatiedot muuttuivat.";
+"gua_identity_change_profile" = "Käyttäjän %1$@ turvatiedot muuttuivat. Näin voi käydä, kun hän asentaa Guan uudelleen tai vaihtaa puhelinta.";
+"gua_soft_logout_signin_notice" = "Sinut kirjattiin ulos Gua-tilistäsi. Kirjaudu uudelleen jatkaaksesi.";
+"gua_join_room_by_address_hint" = "Liitä saamasi huoneen osoite.";

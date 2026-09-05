@@ -10,6 +10,8 @@ import Foundation
 enum PhoneEntryScreenViewModelAction {
     case `continue`(phoneNumber: String)
     case useLegacyAuth
+    /// GUA FORK: sign in by scanning the code shown on a device already signed in.
+    case linkWithExistingDevice
 }
 
 struct PhoneEntryScreenViewState: BindableState {
@@ -53,6 +55,7 @@ struct PhoneEntryScreenViewStateBindings {
 enum PhoneEntryScreenViewAction {
     case continueTapped
     case useLegacyAuthTapped
+    case linkWithExistingDeviceTapped
     case countrySelected(Country)
     case phoneNumberChanged
 }

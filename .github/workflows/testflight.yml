@@ -17,7 +17,7 @@ name: TestFlight
 # One .p12 to manage, no .mobileprovision files in the repo, no Match repo.
 #
 # Release paths, in order of how often they are used:
-#   - label a PR `deploy:qa` -> archives that PR's branch and uploads it to the Gua QA
+#   - label a PR `release-qa` -> archives that PR's branch and uploads it to the Gua QA
 #                               app, so a change can be handed to testers before it is
 #                               merged. Pushing more commits rebuilds it automatically.
 #   - merge develop to main  -> stages the PROD upload, which waits for an approver on
@@ -54,7 +54,7 @@ name: TestFlight
 #   GUA_DEV_RESOLVER_BASE_URL, GUA_DEV_IDENTITY_SERVICE_BASE_URL,
 #   GUA_DEV_ACCOUNT_PROVIDER
 #                   The dev backend endpoints baked into a QA build. Required for
-#                   every `deploy:qa` run; the build fails loudly without them.
+#                   every `release-qa` run; the build fails loudly without them.
 # See docs/TESTFLIGHT.md for setup details.
 
 on:
@@ -94,7 +94,7 @@ env:
   # write access can label, which is what keeps this from being an open door on a public
   # repo. The internal plumbing still calls this variant "dev" (environment=dev, lane
   # config_dev, bundle global.gua.dev); "QA" is only what testers see.
-  DEPLOY_LABEL: deploy:qa
+  DEPLOY_LABEL: release-qa
 
 # Scoped per PR (and per branch otherwise) rather than one global lane: pushing a fixup
 # to a labelled PR should supersede that PR's in-flight archive instead of queueing a
@@ -372,11 +372,29 @@ jobs:
           # re-applied to every step and would shadow what is written here.
           BUILD_NUMBER="${BUILD_NUMBER_OVERRIDE:-}"
           if [ -z "$BUILD_NUMBER" ]; then
-            BUILD_NUMBER="$(date -u +%Y%m%d%H)"
+            # Minute precision, not hourly. Two QA builds in the same UTC hour used to produce
+            # the same number, and App Store Connect rejects the second with "The bundle version
+            # must be higher than the previously uploaded version" after a full archive and
+            # upload has already run. That happens whenever more than one PR is labelled for QA
+            # in an hour, which is normal.
+            #
+            # Two-digit year, NOT four. A CFBundleVersion component must be <= 4294967295, and
+            # YYYYMMDDHHMM (202608290240) is roughly 202 billion, which every build would be
+            # rejected for. YYMMDDHHMM (2608290240) is about 2.6 billion, so it fits, and it is
+            # still larger than the YYYYMMDDHH values already uploaded (2026082902), so the
+            # sequence keeps increasing across the change. Headroom runs out in 2043.
+            BUILD_NUMBER="$(date -u +%y%m%d%H%M)"
           fi
           case "$BUILD_NUMBER" in
             ''|*[!0-9]*) echo "::error::Build number '$BUILD_NUMBER' must be digits only."; exit 1 ;;
           esac
+          # A CFBundleVersion component must be <= 4294967295. Without this, an over-large
+          # number is only caught by altool at the Validate IPA step, after a full archive,
+          # signing and upload have already run.
+          if [ "$BUILD_NUMBER" -gt 4294967295 ]; then
+            echo "::error::Build number '$BUILD_NUMBER' exceeds the CFBundleVersion limit of 4294967295."
+            exit 1
+          fi
           echo "BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
           echo "Marketing version: $MARKETING_VERSION (build $BUILD_NUMBER)"
           echo "MARKETING_VERSION=$MARKETING_VERSION" >> "$GITHUB_ENV"

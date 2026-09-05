@@ -1,0 +1,26 @@
+
+"gua_signout_last_device_title" = "Bydd allgofnodi'n dileu eich negeseuon o'r ddyfais hon";
+"gua_signout_last_device_message" = "Dyma eich unig ddyfais. Ni fydd negeseuon sydd wedi'u cadw yma'n unig ar gael pan fyddwch yn mewngofnodi eto.";
+"gua_encryption_reset_required_title" = "Nid oes modd adfer rhai negeseuon blaenorol";
+"gua_encryption_reset_required_message" = "I orffen gosod sgyrsiau wedi'u hamgryptio ar y ddyfais hon, mae angen ailosod eich copi wrth gefn wedi'i amgryptio. Bydd negeseuon sydd wedi'u cadw yn y copi hwnnw yn unig yn cael eu colli. Ni fydd negeseuon sydd eisoes ar eich dyfeisiau yn cael eu heffeithio.";
+"gua_encryption_reset_required_action" = "Ailosod a gorffen";
+"gua_encryption_reset_finishing" = "Yn gorffen y broses osod…";
+"gua_encryption_reset_failed" = "Doedd dim modd gorffen y broses osod. Tapiwch Ailosod a gorffen i geisio eto.";
+"gua_encryption_recover_from_other_device_title" = "Adferwch eich negeseuon blaenorol";
+"gua_encryption_recover_from_other_device_message" = "Defnyddiwch eich dyfais arall i adfer negeseuon nad ydyn nhw ar gael ar y ddyfais hon eto.\n\nOs nad oes gennych fynediad iddi, gallwch ailosod a gorffen y broses osod, ond bydd negeseuon sydd wedi’u cadw yn eich copi wrth gefn yn unig yn cael eu colli am byth.";
+"gua_encryption_recover_from_other_device_action" = "Defnyddio fy nyfais arall";
+"gua_encryption_recover_from_other_device_failed" = "Doedd dim modd cael eich negeseuon o’r ddyfais arall. Gwnewch yn siŵr ei bod ar agor a cheisiwch eto, neu ailosodwch.";
+"gua_verification_other_device_title" = "Agorwch Gua ar eich dyfais arall";
+"gua_verification_other_device_subtitle" = "Gadewch hi ar agor. Byddwch yn cymharu ychydig o emojis ar y ddwy ddyfais i gadarnhau mai chi sydd yno.";
+"gua_verification_waiting_other_device_title" = "Yn aros am eich dyfais arall";
+"gua_verification_compare_emojis_subtitle" = "Gwnewch yn siŵr bod yr emojis isod yn cyd-fynd â’r rhai ar eich dyfais arall.";
+"gua_encryption_reset_not_approved" = "Ni chafodd y broses osod ei chymeradwyo. Tapiwch Ailosod a gorffen i geisio eto.";
+"gua_verification_complete_subtitle" = "Bydd eich negeseuon yn ymddangos ar y ddyfais hon nawr.";
+"gua_identity_change_banner_description" = "Mae manylion diogelwch %1$@ wedi newid. Gall hyn ddigwydd pan fydd rhywun yn ailosod Gua neu'n cael ffôn newydd. %2$@";
+"gua_identity_change_undecryptable" = "Nid oes modd agor y neges hon am fod manylion diogelwch yr anfonwr wedi newid.";
+"gua_identity_change_profile" = "Mae manylion diogelwch %1$@ wedi newid. Gall hyn ddigwydd pan fydd rhywun yn ailosod Gua neu'n cael ffôn newydd.";
+"gua_encryption_repair_title" = "Gorffennwch osod y ddyfais hon";
+"gua_encryption_repair_message" = "Cwblhewch y gosodiad i gael mynediad at y sgyrsiau wedi'u hamgryptio a'r hanes negeseuon sydd ar gael ar y ddyfais hon.";
+"gua_encryption_repair_action" = "Gorffen gosod";
+"gua_soft_logout_signin_notice" = "Cawsoch eich allgofnodi o'ch cyfrif Gua. Mewngofnodwch eto i barhau.";
+"gua_join_room_by_address_hint" = "Gludwch gyfeiriad yr ystafell a roddwyd i chi.";

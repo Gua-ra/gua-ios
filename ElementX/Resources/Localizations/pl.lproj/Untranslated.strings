@@ -1,0 +1,29 @@
+/*
+  Gua fork strings for this locale. English source lives in en.lproj/Untranslated.strings.
+*/
+
+"gua_encryption_repair_title" = "Dokończ konfigurację tego urządzenia";
+"gua_encryption_repair_message" = "Dokończ konfigurację, aby uzyskać dostęp do zaszyfrowanych czatów i historii wiadomości dostępnej na tym urządzeniu.";
+"gua_encryption_repair_action" = "Zakończ konfigurację";
+"gua_encryption_reset_required_title" = "Niektórych wcześniejszych wiadomości nie można odzyskać";
+"gua_encryption_reset_required_message" = "Aby dokończyć konfigurację zaszyfrowanych czatów na tym urządzeniu, trzeba zresetować zaszyfrowaną kopię zapasową. Wiadomości zapisane tylko w tej kopii zostaną utracone. Wiadomości już obecne na Twoich urządzeniach nie zostaną naruszone.";
+"gua_encryption_reset_required_action" = "Zresetuj i zakończ";
+"gua_signout_last_device_title" = "Wylogowanie usunie Twoje wiadomości z tego urządzenia";
+"gua_signout_last_device_message" = "To Twoje jedyne urządzenie. Wiadomości zapisane tylko tutaj nie będą dostępne po ponownym zalogowaniu.";
+"gua_encryption_reset_finishing" = "Kończę konfigurację…";
+"gua_encryption_reset_failed" = "Nie udało się zakończyć konfiguracji. Stuknij „Zresetuj i zakończ”, aby spróbować ponownie.";
+"gua_encryption_recover_from_other_device_title" = "Przywróć swoje wcześniejsze wiadomości";
+"gua_encryption_recover_from_other_device_message" = "Użyj drugiego urządzenia, aby przywrócić wiadomości, które nie są jeszcze dostępne na tym urządzeniu.\n\nJeśli nie masz do niego dostępu, możesz zresetować i zakończyć konfigurację, ale wiadomości zapisane tylko w kopii zapasowej zostaną bezpowrotnie utracone.";
+"gua_encryption_recover_from_other_device_action" = "Użyj drugiego urządzenia";
+"gua_encryption_recover_from_other_device_failed" = "Nie udało się pobrać wiadomości z drugiego urządzenia. Upewnij się, że aplikacja jest tam otwarta, i spróbuj ponownie lub zresetuj.";
+"gua_verification_other_device_title" = "Otwórz Gua na drugim urządzeniu";
+"gua_verification_other_device_subtitle" = "Nie zamykaj aplikacji. Porównasz kilka emoji na obu urządzeniach, aby potwierdzić, że to Ty.";
+"gua_verification_waiting_other_device_title" = "Oczekiwanie na drugie urządzenie";
+"gua_verification_compare_emojis_subtitle" = "Upewnij się, że emoji poniżej pasują do tych na drugim urządzeniu.";
+"gua_encryption_reset_not_approved" = "Konfiguracja nie została zatwierdzona. Stuknij „Zresetuj i zakończ”, aby spróbować ponownie.";
+"gua_verification_complete_subtitle" = "Twoje wiadomości pojawią się teraz na tym urządzeniu.";
+"gua_identity_change_banner_description" = "Dane zabezpieczeń użytkownika %1$@ uległy zmianie. Może się tak zdarzyć po ponownej instalacji Gua lub zmianie telefonu. %2$@";
+"gua_identity_change_undecryptable" = "Nie można otworzyć tej wiadomości, ponieważ dane zabezpieczeń nadawcy uległy zmianie.";
+"gua_identity_change_profile" = "Dane zabezpieczeń użytkownika %1$@ uległy zmianie. Może się tak zdarzyć po ponownej instalacji Gua lub zmianie telefonu.";
+"gua_soft_logout_signin_notice" = "Nastąpiło wylogowanie z konta Gua. Zaloguj się ponownie, aby kontynuować.";
+"gua_join_room_by_address_hint" = "Wklej otrzymany adres pokoju.";

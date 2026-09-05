@@ -141,6 +141,16 @@ struct PhoneEntryScreen: View {
             .buttonStyle(.compound(.primary))
             .disabled(!context.viewState.canContinue)
 
+            // GUA FORK: the new-device side of device linking. Scanning the code an already
+            // signed-in phone shows brings the account and its message history across, with
+            // nothing typed and nothing the server can read.
+            Button {
+                context.send(viewAction: .linkWithExistingDeviceTapped)
+            } label: {
+                Label(UntranslatedL10n.guaSignInWithExistingDevice, icon: \.qrCode)
+            }
+            .buttonStyle(.compound(.tertiary))
+
             if context.viewState.isLegacyAuthEnabled {
                 Button {
                     context.send(viewAction: .useLegacyAuthTapped)

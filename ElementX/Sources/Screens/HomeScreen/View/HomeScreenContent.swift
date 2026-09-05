@@ -129,7 +129,7 @@ struct HomeScreenContent: View {
                 }
 
                 if case let .show(state) = context.viewState.securityBannerMode {
-                    HomeScreenRecoveryKeyConfirmationBanner(state: state, context: context)
+                    HomeScreenRecoveryKeyConfirmationBanner(state: state, context: context, isWorking: context.viewState.isFinishingEncryptionSetup)
                 }
 
                 // GUA FORK: Two-step verification PIN setup reminder.

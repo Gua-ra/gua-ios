@@ -73,7 +73,7 @@ struct SessionVerificationScreenViewState: BindableState {
         case .initial:
             switch flow {
             case .deviceInitiator:
-                return L10n.screenSessionVerificationUseAnotherDeviceTitle
+                return UntranslatedL10n.guaVerificationOtherDeviceTitle
             case .userInitiator:
                 return L10n.screenSessionVerificationUserInitiatorTitle
             case .deviceResponder, .userResponder:
@@ -107,7 +107,7 @@ struct SessionVerificationScreenViewState: BindableState {
     private var waitingTitle: String {
         switch flow {
         case .deviceInitiator, .deviceResponder:
-            return L10n.screenSessionVerificationWaitingOtherDeviceTitle
+            return UntranslatedL10n.guaVerificationWaitingOtherDeviceTitle
         case .userInitiator, .userResponder:
             return L10n.screenSessionVerificationWaitingOtherUserTitle
         }
@@ -118,7 +118,7 @@ struct SessionVerificationScreenViewState: BindableState {
         case .initial:
             switch flow {
             case .deviceInitiator:
-                return L10n.screenSessionVerificationUseAnotherDeviceSubtitle
+                return UntranslatedL10n.guaVerificationOtherDeviceSubtitle
             case .userInitiator:
                 return L10n.screenSessionVerificationUserInitiatorSubtitle
             case .deviceResponder:
@@ -145,14 +145,14 @@ struct SessionVerificationScreenViewState: BindableState {
         case .showingChallenge:
             switch flow {
             case .deviceInitiator, .deviceResponder:
-                return L10n.screenSessionVerificationCompareEmojisSubtitle
+                return UntranslatedL10n.guaVerificationCompareEmojisSubtitle
             case .userInitiator, .userResponder:
                 return L10n.screenSessionVerificationCompareEmojisUserSubtitle
             }
         case .verified:
             switch flow {
             case .deviceInitiator, .deviceResponder:
-                return L10n.screenSessionVerificationCompleteSubtitle
+                return UntranslatedL10n.guaVerificationCompleteSubtitle
             case .userInitiator, .userResponder:
                 return L10n.screenSessionVerificationCompleteUserSubtitle
             }

@@ -20,6 +20,12 @@ enum KeychainControllerService: String {
     var mainID: String {
         InfoPlistReader.main.baseBundleIdentifier + ".keychain.\(rawValue)"
     }
+
+    /// GUA FORK: the recovery key lives in its own keychain so it can be marked
+    /// `synchronizable` without also pushing session restoration tokens to iCloud.
+    var recoveryID: String {
+        InfoPlistReader.main.baseBundleIdentifier + ".keychain.recovery.\(rawValue)"
+    }
 }
 
 class KeychainController: KeychainControllerProtocol {
@@ -27,6 +33,16 @@ class KeychainController: KeychainControllerProtocol {
     private let restorationTokenKeychain: Keychain
     /// The keychain responsible for storing all other secrets in the app (keyed by `Key`s).
     private let mainKeychain: Keychain
+    /// GUA FORK: the keychain holding the automatically generated recovery key, keyed by userID.
+    ///
+    /// This one is `synchronizable`, so the key rides iCloud Keychain to the account's other
+    /// devices. Without it the "recovery" key is device-local and dies with the phone, which
+    /// makes the word recovery a lie. It is deliberately separate from
+    /// `restorationTokenKeychain`: session tokens must NOT leave the device.
+    ///
+    /// `.whenUnlocked` rather than `.afterFirstUnlock` because synchronizable items must be
+    /// readable by iCloud only while the device is unlocked.
+    private let recoveryKeychain: Keychain
     
     private enum Key: String {
         case appLockPINCode
@@ -38,6 +54,9 @@ class KeychainController: KeychainControllerProtocol {
     init(service: KeychainControllerService, accessGroup: String) {
         restorationTokenKeychain = Keychain(service: service.restorationTokenID, accessGroup: accessGroup)
         mainKeychain = Keychain(service: service.mainID, accessGroup: accessGroup)
+        recoveryKeychain = Keychain(service: service.recoveryID, accessGroup: accessGroup)
+            .synchronizable(true)
+            .accessibility(.whenUnlocked)
     }
     
     // MARK: - Restoration Tokens
@@ -103,7 +122,7 @@ class KeychainController: KeychainControllerProtocol {
 
     func setRecoveryKey(_ key: String, forUsername username: String) {
         do {
-            try restorationTokenKeychain.set(key, key: Self.recoveryKeyPrefix + username)
+            try recoveryKeychain.set(key, key: Self.recoveryKeyPrefix + username)
         } catch {
             MXLog.error("Failed storing recovery key with error: \(error)")
         }
@@ -111,7 +130,22 @@ class KeychainController: KeychainControllerProtocol {
 
     func recoveryKey(forUsername username: String) -> String? {
         do {
-            return try restorationTokenKeychain.getString(Self.recoveryKeyPrefix + username)
+            if let key = try recoveryKeychain.getString(Self.recoveryKeyPrefix + username) {
+                return key
+            }
+
+            // GUA FORK: keys written before the recovery keychain existed live in the
+            // restoration-token keychain and are device-local. Move them across on first
+            // read so those installs also gain iCloud sync, then drop the old copy.
+            guard let legacyKey = try restorationTokenKeychain.getString(Self.recoveryKeyPrefix + username) else {
+                return nil
+            }
+
+            MXLog.info("Migrating recovery key to the synchronised keychain.")
+            try recoveryKeychain.set(legacyKey, key: Self.recoveryKeyPrefix + username)
+            try? restorationTokenKeychain.remove(Self.recoveryKeyPrefix + username)
+
+            return legacyKey
         } catch {
             MXLog.error("Failed retrieving recovery key")
             return nil
@@ -120,7 +154,9 @@ class KeychainController: KeychainControllerProtocol {
 
     func removeRecoveryKey(forUsername username: String) {
         do {
-            try restorationTokenKeychain.remove(Self.recoveryKeyPrefix + username)
+            try recoveryKeychain.remove(Self.recoveryKeyPrefix + username)
+            // Old device-local copies from before the recovery keychain existed.
+            try? restorationTokenKeychain.remove(Self.recoveryKeyPrefix + username)
         } catch {
             MXLog.error("Failed removing recovery key with error: \(error)")
         }

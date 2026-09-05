@@ -1,0 +1,26 @@
+
+"gua_signout_last_device_title" = "خروج از حساب، پیام‌های شما را از این دستگاه حذف می‌کند";
+"gua_signout_last_device_message" = "این تنها دستگاه شماست. پیام‌هایی که فقط اینجا نگهداری می‌شوند، هنگام ورود مجدد در دسترس نخواهند بود.";
+"gua_encryption_reset_required_title" = "برخی پیام‌های پیشین قابل بازیابی نیستند";
+"gua_encryption_reset_required_message" = "برای تکمیل راه‌اندازی گفت‌وگوهای رمزگذاری‌شده روی این دستگاه، پشتیبان رمزگذاری‌شدهٔ شما باید بازنشانی شود. پیام‌هایی که فقط در آن پشتیبان ذخیره شده‌اند از دست می‌روند. پیام‌هایی که همین حالا روی دستگاه‌های شما هستند تحت تأثیر قرار نمی‌گیرند.";
+"gua_encryption_reset_required_action" = "بازنشانی و تکمیل";
+"gua_encryption_reset_finishing" = "در حال تکمیل راه‌اندازی…";
+"gua_encryption_reset_failed" = "راه‌اندازی تکمیل نشد. برای تلاش دوباره، «بازنشانی و تکمیل» را بزنید.";
+"gua_encryption_recover_from_other_device_title" = "پیام‌های پیشین خود را بازیابی کنید";
+"gua_encryption_recover_from_other_device_message" = "با دستگاه دیگر خود، پیام‌هایی را که هنوز روی این دستگاه در دسترس نیستند بازیابی کنید.\n\nاگر به آن دسترسی ندارید، می‌توانید بازنشانی کنید و راه‌اندازی را تکمیل کنید، اما پیام‌هایی که فقط در پشتیبان شما ذخیره شده‌اند برای همیشه از دست می‌روند.";
+"gua_encryption_recover_from_other_device_action" = "استفاده از دستگاه دیگرم";
+"gua_encryption_recover_from_other_device_failed" = "پیام‌های شما از دستگاه دیگر دریافت نشد. مطمئن شوید که Gua روی آن باز است و دوباره تلاش کنید، یا بازنشانی کنید.";
+"gua_verification_other_device_title" = "Gua را روی دستگاه دیگر خود باز کنید";
+"gua_verification_other_device_subtitle" = "آن را باز نگه دارید. چند ایموجی را روی هر دو دستگاه مقایسه می‌کنید تا تأیید شود که خودتان هستید.";
+"gua_verification_waiting_other_device_title" = "در انتظار دستگاه دیگر شما";
+"gua_verification_compare_emojis_subtitle" = "مطمئن شوید ایموجی‌های زیر با ایموجی‌های روی دستگاه دیگر شما یکسان هستند.";
+"gua_encryption_reset_not_approved" = "راه‌اندازی تأیید نشد. برای تلاش دوباره، «بازنشانی و تکمیل» را بزنید.";
+"gua_verification_complete_subtitle" = "اکنون پیام‌های شما روی این دستگاه نمایش داده می‌شوند.";
+"gua_identity_change_banner_description" = "اطلاعات امنیتی %1$@ تغییر کرد. این اتفاق ممکن است هنگام نصب دوبارهٔ Gua یا تعویض گوشی رخ دهد. %2$@";
+"gua_identity_change_undecryptable" = "این پیام باز نمی‌شود، چون اطلاعات امنیتی فرستنده تغییر کرده است.";
+"gua_identity_change_profile" = "اطلاعات امنیتی %1$@ تغییر کرد. این اتفاق ممکن است هنگام نصب دوبارهٔ Gua یا تعویض گوشی رخ دهد.";
+"gua_encryption_repair_title" = "راه‌اندازی این دستگاه را کامل کنید";
+"gua_encryption_repair_message" = "برای دسترسی به گفت‌وگوهای رمزگذاری‌شده و تاریخچهٔ پیام‌های موجود روی این دستگاه، راه‌اندازی را کامل کنید.";
+"gua_encryption_repair_action" = "تکمیل راه‌اندازی";
+"gua_soft_logout_signin_notice" = "از حساب Gua خود خارج شدید. برای ادامه دوباره وارد شوید.";
+"gua_join_room_by_address_hint" = "نشانی اتاقی را که به شما داده شده جای‌گذاری کنید.";

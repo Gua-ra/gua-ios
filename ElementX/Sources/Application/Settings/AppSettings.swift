@@ -99,7 +99,12 @@ final class AppSettings {
     static func resetSessionSpecificSettings() {
         MXLog.warning("Resetting the user session specific AppSettings.")
         store.removeObject(forKey: UserDefaultsKeys.hasRunIdentityConfirmationOnboarding.rawValue)
-        store.removeObject(forKey: UserDefaultsKeys.hasBootstrappedKeyStorage.rawValue)
+        // GUA FORK: the bootstrap flag is now per account, so clear every account's copy along
+        // with the pre-migration global one.
+        let bootstrapPrefix = UserDefaultsKeys.hasBootstrappedKeyStorage.rawValue
+        for key in store.dictionaryRepresentation().keys where key.hasPrefix(bootstrapPrefix) {
+            store.removeObject(forKey: key)
+        }
     }
     
     static func configureWithSuiteName(_ name: String) {
@@ -211,7 +216,9 @@ final class AppSettings {
     /// A URL where users can go read more about the chat backup.
     private(set) var chatBackupDetailsURL: URL = "https://element.io/help#encryption5"
     /// A URL where users can go read more about identity pinning violations
-    private(set) var identityPinningViolationDetailsURL: URL = "https://element.io/help#encryption18"
+    /// GUA FORK: the identity change banner's "Learn more" must point at Gua's own help,
+    /// never at element.io.
+    private(set) var identityPinningViolationDetailsURL: URL = "https://gua.global/help#security-changes"
     /// Any domains that Element web may be hosted on - used for handling links.
     private(set) var elementWebHosts = ["app.element.io", "staging.element.io", "develop.element.io"]
     /// The domain that account provisioning links will be hosted on - used for handling the links.
@@ -332,8 +339,26 @@ final class AppSettings {
     @UserPreference(key: UserDefaultsKeys.hasRunIdentityConfirmationOnboarding, defaultValue: false, storageType: .userDefaults(store))
     var hasRunIdentityConfirmationOnboarding
 
-    @UserPreference(key: UserDefaultsKeys.hasBootstrappedKeyStorage, defaultValue: false, storageType: .userDefaults(store))
-    var hasBootstrappedKeyStorage
+    /// GUA FORK: whether key storage has been fully bootstrapped for a specific account.
+    ///
+    /// This used to be one global flag. On a device with more than one account, the first
+    /// bootstrap silenced it for every other account, and a half-finished bootstrap could never
+    /// retry because the flag was set on attempt rather than on success.
+    func hasBootstrappedKeyStorage(forUserID userID: String) -> Bool {
+        Self.store.bool(forKey: Self.bootstrappedKeyStorageKey(forUserID: userID))
+    }
+
+    func setHasBootstrappedKeyStorage(_ value: Bool, forUserID userID: String) {
+        if value {
+            Self.store.set(true, forKey: Self.bootstrappedKeyStorageKey(forUserID: userID))
+        } else {
+            Self.store.removeObject(forKey: Self.bootstrappedKeyStorageKey(forUserID: userID))
+        }
+    }
+
+    private static func bootstrappedKeyStorageKey(forUserID userID: String) -> String {
+        "\(UserDefaultsKeys.hasBootstrappedKeyStorage.rawValue).\(userID)"
+    }
 
     @UserPreference(key: UserDefaultsKeys.frequentlyUsedSystemEmojis, defaultValue: [FrequentlyUsedEmoji](), storageType: .userDefaults(store))
     var frequentlyUsedSystemEmojis

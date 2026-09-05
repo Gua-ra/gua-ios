@@ -26,9 +26,16 @@ jobs:
         with:
           persist-credentials: false
 
-      # The dockerized action bundles a compatible danger-js runtime; the brew
-      # tap's packaged binary crashes fetching PR data (pkg snapshot stream bug).
+      # The dockerized action bundles a danger-js runtime; the brew tap's packaged
+      # binary crashes fetching PR data (pkg snapshot stream bug).
+      #
+      # Pinned PAST the 3.22.1 release on purpose. The action image installs danger-js
+      # unpinned at build time, and 3.22.1's Dockerfile installs Node 18, so once
+      # danger-js started requiring the `File` global (Node 20+) every run died with
+      # "ReferenceError: File is not defined" before reading the Dangerfile. A correct
+      # pin with an unpinned dependency inside it. This commit's Dockerfile uses Node 24.
+      # Move back to a tag once one ships that includes it.
       - name: Danger
-        uses: danger/swift@434d7c25f3b02d490a340b23f5e78dd15a5670bc # 3.22.1
+        uses: danger/swift@53887414329bbf7deecde31f7d1d20bb15e6c4d3 # master, 2026-08-24, Node 24
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

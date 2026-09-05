@@ -1,0 +1,26 @@
+
+"gua_signout_last_device_title" = "Elsaluti forigos viajn mesaĝojn el ĉi tiu aparato";
+"gua_signout_last_device_message" = "Mesaĝoj konservitaj nur ĉi tie ne estos disponeblaj kiam vi reensalutos.";
+"gua_encryption_recover_from_other_device_title" = "Restarigu viajn antaŭajn mesaĝojn";
+"gua_encryption_recover_from_other_device_message" = "Uzu vian alian aparaton por restarigi mesaĝojn, kiuj ankoraŭ ne estas disponeblaj en ĉi tiu aparato.\n\nSe vi ne povas atingi ĝin, vi povas renuligi kaj fini la agordon, sed mesaĝoj konservitaj nur en via sekurkopio perdiĝos por ĉiam.";
+"gua_encryption_recover_from_other_device_action" = "Uzi mian alian aparaton";
+"gua_encryption_recover_from_other_device_failed" = "Ne eblis ricevi viajn mesaĝojn de la alia aparato. Certiĝu, ke ĝi estas malfermita, kaj reprovu, aŭ renuligu.";
+"gua_encryption_reset_finishing" = "Finiĝas la agordo…";
+"gua_encryption_reset_failed" = "Ne eblis fini la agordon. Premu \"Renuligi kaj fini la agordon\" por reprovi.";
+"gua_encryption_reset_not_approved" = "La agordo ne estis aprobita. Premu \"Renuligi kaj fini la agordon\" por reprovi.";
+"gua_verification_other_device_title" = "Malfermu Gua en via alia aparato";
+"gua_verification_other_device_subtitle" = "Tenu ĝin malfermita. Vi komparos kelkajn emoĝiojn en ambaŭ aparatoj por konfirmi, ke tio estas vi.";
+"gua_verification_waiting_other_device_title" = "Atendante vian alian aparaton";
+"gua_verification_compare_emojis_subtitle" = "Certiĝu, ke la subaj emoĝioj kongruas kun tiuj en via alia aparato.";
+"gua_verification_complete_subtitle" = "Viaj mesaĝoj nun aperos en ĉi tiu aparato.";
+"gua_encryption_reset_required_title" = "Iuj antaŭaj mesaĝoj ne restareblas";
+"gua_encryption_reset_required_message" = "Por fini la agordon de ĉifritaj babiloj en ĉi tiu aparato, necesas renuligi vian ĉifritan sekurkopion. Mesaĝoj konservitaj nur en tiu sekurkopio perdiĝos. Mesaĝoj jam en viaj aparatoj ne estos tuŝitaj.";
+"gua_encryption_reset_required_action" = "Renuligi kaj fini la agordon";
+"gua_identity_change_banner_description" = "La sekurecaj detaloj de %1$@ ŝanĝiĝis. Tio povas okazi kiam iu reinstalas Gua aŭ ricevas novan telefonon. %2$@";
+"gua_identity_change_undecryptable" = "Ĉi tiu mesaĝo ne malfermeblas, ĉar la sekurecaj detaloj de la sendinto ŝanĝiĝis.";
+"gua_identity_change_profile" = "La sekurecaj detaloj de %1$@ ŝanĝiĝis. Tio povas okazi kiam iu reinstalas Gua aŭ ricevas novan telefonon.";
+"gua_encryption_repair_title" = "Finu la agordon de ĉi tiu aparato";
+"gua_encryption_repair_message" = "Kompletigu la agordon por atingi la ĉifritajn babilojn kaj la mesaĝhistorion disponeblan sur ĉi tiu aparato.";
+"gua_encryption_repair_action" = "Fini agordon";
+"gua_soft_logout_signin_notice" = "Vi estis elsalutita el via Gua-konto. Ensalutu denove por daŭrigi.";
+"gua_join_room_by_address_hint" = "Algluu la ĉambran adreson, kiun vi ricevis.";

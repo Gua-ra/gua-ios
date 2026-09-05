@@ -1,0 +1,29 @@
+/*
+  Gua fork strings for this locale. English source lives in en.lproj/Untranslated.strings.
+*/
+
+"gua_encryption_repair_title" = "Completa la configurazione di questo dispositivo";
+"gua_encryption_repair_message" = "Completa la configurazione per accedere alle chat cifrate e alla cronologia dei messaggi disponibili su questo dispositivo.";
+"gua_encryption_repair_action" = "Completa la configurazione";
+"gua_encryption_reset_required_title" = "Alcuni messaggi precedenti non possono essere recuperati";
+"gua_encryption_reset_required_message" = "Per completare la configurazione delle chat cifrate su questo dispositivo, il tuo backup cifrato deve essere reimpostato. I messaggi salvati solo in quel backup andranno persi. I messaggi già presenti sui tuoi dispositivi non saranno interessati.";
+"gua_encryption_reset_required_action" = "Reimposta e completa";
+"gua_signout_last_device_title" = "Uscire rimuoverà i tuoi messaggi da questo dispositivo";
+"gua_signout_last_device_message" = "Questo è il tuo unico dispositivo. I messaggi conservati solo qui non saranno disponibili al prossimo accesso.";
+"gua_encryption_reset_finishing" = "Completamento della configurazione…";
+"gua_encryption_reset_failed" = "Non è stato possibile completare la configurazione. Tocca “Reimposta e completa” per riprovare.";
+"gua_encryption_recover_from_other_device_title" = "Ripristina i tuoi messaggi precedenti";
+"gua_encryption_recover_from_other_device_message" = "Usa l’altro dispositivo per ripristinare i messaggi che non sono ancora disponibili su questo dispositivo.\n\nSe non hai accesso a quel dispositivo, puoi reimpostare e completare la configurazione, ma i messaggi salvati solo nel tuo backup andranno persi per sempre.";
+"gua_encryption_recover_from_other_device_action" = "Usa l’altro dispositivo";
+"gua_encryption_recover_from_other_device_failed" = "Non è stato possibile recuperare i tuoi messaggi dall’altro dispositivo. Assicurati che Gua sia aperto e riprova, oppure reimposta.";
+"gua_verification_other_device_title" = "Apri Gua sull’altro dispositivo";
+"gua_verification_other_device_subtitle" = "Tienilo aperto. Confronterai alcune emoji su entrambi i dispositivi per confermare che sei tu.";
+"gua_verification_waiting_other_device_title" = "In attesa dell’altro dispositivo";
+"gua_verification_compare_emojis_subtitle" = "Assicurati che le emoji qui sotto corrispondano a quelle sull’altro dispositivo.";
+"gua_encryption_reset_not_approved" = "La configurazione non è stata approvata. Tocca “Reimposta e completa” per riprovare.";
+"gua_verification_complete_subtitle" = "Ora i tuoi messaggi appariranno su questo dispositivo.";
+"gua_identity_change_banner_description" = "I dati di sicurezza di %1$@ sono cambiati. Può succedere quando la persona reinstalla Gua o cambia telefono. %2$@";
+"gua_identity_change_undecryptable" = "Questo messaggio non può essere aperto perché i dati di sicurezza del mittente sono cambiati.";
+"gua_identity_change_profile" = "I dati di sicurezza di %1$@ sono cambiati. Può succedere quando la persona reinstalla Gua o cambia telefono.";
+"gua_soft_logout_signin_notice" = "La tua sessione sull'account Gua è terminata. Accedi di nuovo per continuare.";
+"gua_join_room_by_address_hint" = "Incolla l'indirizzo della stanza che ti è stato dato.";

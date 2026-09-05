@@ -9,7 +9,7 @@ name: Feedback fix
 # It then runs Claude Code headlessly against this repository to investigate,
 # fix, build and QA the change on a simulator, and open a pull request that links
 # back to the issue with its evidence attached. Review happens on that pull
-# request; shipping it to QA is still the `deploy:qa` label, and production is
+# request; shipping it to QA is still the `release-qa` label, and production is
 # still gated on the `production` environment. Nothing here bypasses either.
 #
 # Claude runs on a Claude subscription token, not API credits.
@@ -165,7 +165,7 @@ jobs:
                  --head "feedback/issue-${ISSUE}" --json url --jq '.[0].url // ""')
           if [ -n "$PR" ]; then
             gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" \
-              --body "Opened $PR for this. Review it there; add \`deploy:qa\` on that pull request to get it onto a QA build."
+              --body "Opened $PR for this. Review it there; add \`release-qa\` on that pull request to get it onto a QA build."
           else
             gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" \
               --body "No pull request came out of this attempt. The [run]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID) has the detail. Re-apply \`feedback:approved\` to try again, or pick it up by hand."

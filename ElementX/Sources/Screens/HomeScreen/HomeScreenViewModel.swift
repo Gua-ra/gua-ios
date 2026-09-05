@@ -60,14 +60,15 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
                 guard let self else { return }
                 
                 switch securityState.recoveryState {
-                case .disabled:
+                // GUA FORK: both broken states get the same banner, the one that finishes setup
+                // silently. Upstream sends .disabled to a "set up recovery" banner whose flow
+                // hands the user a recovery key to write down, and .disabled is exactly what an
+                // identity reset leaves behind, so that was the second half of the reset dead end.
+                case .disabled, .incomplete:
                     state.requiresExtraAccountSetup = true
                     if !state.securityBannerMode.isDismissed {
-                        state.securityBannerMode = .show(.setUpRecovery)
+                        state.securityBannerMode = .show(.recoveryOutOfSync)
                     }
-                case .incomplete:
-                    state.requiresExtraAccountSetup = true
-                    state.securityBannerMode = .show(.recoveryOutOfSync)
                 default:
                     state.securityBannerMode = .none
                     state.requiresExtraAccountSetup = false
@@ -75,6 +76,27 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             }
             .store(in: &cancellables)
         
+        // GUA FORK: the banner reports the background provisioning as work in progress.
+        //
+        // After a reset, key storage is provisioned behind this screen. Until it lands the recovery
+        // state is legitimately still unhealthy, so the banner is still up -- and it used to look
+        // exactly like an untouched "Finish setup" call to action, so people pressed it, and the
+        // press looked like the thing that fixed the account. It was not; it just arrived after the
+        // work had finished. Showing the work is the difference between those two readings.
+        userSession.clientProxy.secureBackupController.isProvisioningKeyStorage
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isProvisioning in
+                guard let self else { return }
+                // Never clears the tap-driven flag: finishEncryptionSetup owns that one and clears
+                // it in its own defer.
+                if isProvisioning {
+                    state.isFinishingEncryptionSetup = true
+                } else if !state.isRepairingEncryptionSetupFromTap {
+                    state.isFinishingEncryptionSetup = false
+                }
+            }
+            .store(in: &cancellables)
+
         userSession.sessionSecurityStatePublisher
             .receive(on: DispatchQueue.main)
             .filter { state in
@@ -157,7 +179,17 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
         case .setupRecovery:
             actionsSubject.send(.presentSecureBackupSettings)
         case .confirmRecoveryKey:
-            actionsSubject.send(.presentRecoveryKeyScreen)
+            // GUA FORK: the banner's single button. Try everything non-destructive first and
+            // only surface the reset, with its warning, if one is genuinely required. Most
+            // devices repair silently here and the user never learns a reset existed.
+            //
+            // The flag is set here, synchronously on the main actor, so the spinner lands in the
+            // same frame as the tap rather than after the first await. It doubles as the re-entry
+            // guard, and finishEncryptionSetup clears it on every outcome.
+            guard !state.isFinishingEncryptionSetup else { return }
+            state.isRepairingEncryptionSetupFromTap = true
+            state.isFinishingEncryptionSetup = true
+            Task { await finishEncryptionSetup() }
         case .resetEncryption:
             actionsSubject.send(.presentEncryptionResetScreen)
         case .skipRecoveryKeyConfirmation:
@@ -233,6 +265,33 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
         }
     }
     
+    /// GUA FORK: completes encryption setup for a device that could not do it on its own.
+    ///
+    /// Staged on purpose. The repair that needs no reset is attempted first and silently, because
+    /// for most devices it works and a warning about losing messages would be both alarming and
+    /// untrue. The destructive confirmation is only shown once we know a reset is actually
+    /// required, which is the only case where anything can be lost.
+    private func finishEncryptionSetup() async {
+        // Clears on every path out, so the button can never latch.
+        defer {
+            state.isRepairingEncryptionSetupFromTap = false
+            state.isFinishingEncryptionSetup = false
+        }
+
+        let secureBackupController = userSession.clientProxy.secureBackupController
+        switch await secureBackupController.repairWithoutReset() {
+        case .repaired:
+            MXLog.info("GUA-KEYSTORE: finished encryption setup without a reset.")
+        case .notYet:
+            // The client cannot read its own state yet, so there is nothing to repair and nothing
+            // to warn about. Leave the banner up rather than sending anyone to a reset.
+            MXLog.info("GUA-KEYSTORE: encryption state not readable yet, leaving the banner.")
+        case .resetRequired:
+            MXLog.info("GUA-KEYSTORE: setup needs a reset, asking first.")
+            actionsSubject.send(.presentEncryptionResetScreen)
+        }
+    }
+
     // MARK: - Private
     
     private func updateFilter() {

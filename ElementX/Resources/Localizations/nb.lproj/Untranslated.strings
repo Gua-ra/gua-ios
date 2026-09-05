@@ -1,0 +1,29 @@
+/*
+  Gua fork strings for this locale. English source lives in en.lproj/Untranslated.strings.
+*/
+
+"gua_encryption_repair_title" = "Fullfør oppsettet av denne enheten";
+"gua_encryption_repair_message" = "Fullfør oppsettet for å få tilgang til de krypterte chattene og meldingsloggen som finnes på denne enheten.";
+"gua_encryption_repair_action" = "Fullfør oppsett";
+"gua_encryption_reset_required_title" = "Noen tidligere meldinger kan ikke gjenopprettes";
+"gua_encryption_reset_required_message" = "For å fullføre oppsettet av krypterte chatter på denne enheten må den krypterte sikkerhetskopien tilbakestilles. Meldinger som bare er lagret i den sikkerhetskopien, går tapt. Meldinger som allerede finnes på enhetene dine, påvirkes ikke.";
+"gua_encryption_reset_required_action" = "Tilbakestill og fullfør";
+"gua_signout_last_device_title" = "Å logge ut fjerner meldingene dine fra denne enheten";
+"gua_signout_last_device_message" = "Dette er din eneste enhet. Meldinger som bare er lagret her, blir ikke tilgjengelige når du logger inn igjen.";
+"gua_encryption_reset_finishing" = "Fullfører oppsettet…";
+"gua_encryption_reset_failed" = "Kunne ikke fullføre oppsettet. Trykk på «Tilbakestill og fullfør» for å prøve igjen.";
+"gua_encryption_recover_from_other_device_title" = "Gjenopprett de tidligere meldingene dine";
+"gua_encryption_recover_from_other_device_message" = "Bruk den andre enheten din til å gjenopprette meldinger som ennå ikke er tilgjengelige på denne enheten.\n\nHvis du ikke har tilgang til den, kan du tilbakestille og fullføre oppsettet, men meldinger som bare er lagret i sikkerhetskopien din, går tapt for alltid.";
+"gua_encryption_recover_from_other_device_action" = "Bruk den andre enheten min";
+"gua_encryption_recover_from_other_device_failed" = "Kunne ikke hente meldingene dine fra den andre enheten. Sørg for at Gua er åpen der, og prøv igjen, eller tilbakestill.";
+"gua_verification_other_device_title" = "Åpne Gua på den andre enheten din";
+"gua_verification_other_device_subtitle" = "La den være åpen. Du skal sammenligne noen emojier på begge enhetene for å bekrefte at det er deg.";
+"gua_verification_waiting_other_device_title" = "Venter på den andre enheten din";
+"gua_verification_compare_emojis_subtitle" = "Sørg for at emojiene nedenfor samsvarer med de som vises på den andre enheten din.";
+"gua_encryption_reset_not_approved" = "Oppsettet ble ikke godkjent. Trykk på «Tilbakestill og fullfør» for å prøve igjen.";
+"gua_verification_complete_subtitle" = "Meldingene dine vises nå på denne enheten.";
+"gua_identity_change_banner_description" = "Sikkerhetsopplysningene til %1$@ er endret. Det kan skje når noen installerer Gua på nytt eller får ny telefon. %2$@";
+"gua_identity_change_undecryptable" = "Denne meldingen kan ikke åpnes fordi avsenderens sikkerhetsopplysninger er endret.";
+"gua_identity_change_profile" = "Sikkerhetsopplysningene til %1$@ er endret. Det kan skje når noen installerer Gua på nytt eller får ny telefon.";
+"gua_soft_logout_signin_notice" = "Du har blitt logget ut av Gua-kontoen din. Logg inn igjen for å fortsette.";
+"gua_join_room_by_address_hint" = "Lim inn romadressen du fikk.";

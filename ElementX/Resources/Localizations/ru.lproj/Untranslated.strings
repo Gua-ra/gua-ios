@@ -1,0 +1,29 @@
+/*
+  Gua fork strings for this locale. English source lives in en.lproj/Untranslated.strings.
+*/
+
+"gua_encryption_repair_title" = "Завершите настройку этого устройства";
+"gua_encryption_repair_message" = "Завершите настройку, чтобы получить доступ к зашифрованным чатам и истории сообщений, доступной на этом устройстве.";
+"gua_encryption_repair_action" = "Завершить настройку";
+"gua_encryption_reset_required_title" = "Некоторые прошлые сообщения восстановить нельзя";
+"gua_encryption_reset_required_message" = "Чтобы завершить настройку зашифрованных чатов на этом устройстве,需 нужно сбросить зашифрованную резервную копию. Сообщения, хранящиеся только в этой копии, будут потеряны. Сообщения, уже имеющиеся на ваших устройствах, не пострадают.";
+"gua_encryption_reset_required_action" = "Сбросить и завершить";
+"gua_signout_last_device_title" = "Выход удалит ваши сообщения с этого устройства";
+"gua_signout_last_device_message" = "Это ваше единственное устройство. Сообщения, хранящиеся только здесь, не будут доступны при следующем входе.";
+"gua_encryption_reset_finishing" = "Завершение настройки…";
+"gua_encryption_reset_failed" = "Не удалось завершить настройку. Нажмите «Сбросить и завершить», чтобы попробовать ещё раз.";
+"gua_encryption_recover_from_other_device_title" = "Восстановите прошлые сообщения";
+"gua_encryption_recover_from_other_device_message" = "Воспользуйтесь другим устройством, чтобы восстановить сообщения, которых пока нет на этом устройстве.\n\nЕсли у вас нет к нему доступа, вы можете сбросить и завершить настройку, но сообщения, хранящиеся только в резервной копии, будут потеряны навсегда.";
+"gua_encryption_recover_from_other_device_action" = "Другое устройство";
+"gua_encryption_recover_from_other_device_failed" = "Не удалось получить сообщения с другого устройства. Убедитесь, что на нём открыт Gua, и попробуйте ещё раз или выполните сброс.";
+"gua_verification_other_device_title" = "Откройте Gua на другом устройстве";
+"gua_verification_other_device_subtitle" = "Не закрывайте приложение. Вы сравните несколько эмодзи на обоих устройствах, чтобы подтвердить, что это вы.";
+"gua_verification_waiting_other_device_title" = "Ожидание другого устройства";
+"gua_verification_compare_emojis_subtitle" = "Убедитесь, что эмодзи ниже совпадают с теми, что показаны на другом устройстве.";
+"gua_encryption_reset_not_approved" = "Настройка не подтверждена. Нажмите «Сбросить и завершить», чтобы попробовать ещё раз.";
+"gua_verification_complete_subtitle" = "Теперь ваши сообщения появятся на этом устройстве.";
+"gua_identity_change_banner_description" = "Данные безопасности %1$@ изменились. Это бывает, когда человек переустанавливает Gua или меняет телефон. %2$@";
+"gua_identity_change_undecryptable" = "Это сообщение нельзя открыть, потому что данные безопасности отправителя изменились.";
+"gua_identity_change_profile" = "Данные безопасности %1$@ изменились. Это бывает, когда человек переустанавливает Gua или меняет телефон.";
+"gua_soft_logout_signin_notice" = "Вы вышли из аккаунта Gua. Войдите снова, чтобы продолжить.";
+"gua_join_room_by_address_hint" = "Вставьте полученный адрес комнаты.";
