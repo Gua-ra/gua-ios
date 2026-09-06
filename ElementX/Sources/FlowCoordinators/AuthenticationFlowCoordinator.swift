@@ -337,6 +337,8 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                 switch action {
                 case .continue(let phoneNumber):
                     handlePhoneSubmission(phoneNumber: phoneNumber, coordinator: coordinator)
+                case .signInWithPasskey:
+                    handlePasskeySignIn(coordinator: coordinator)
                 case .useLegacyAuth:
                     stateMachine.tryEvent(.useLegacyAuth)
                 }
@@ -411,6 +413,66 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         }
     }
     
+    /// GUA FORK: start the OIDC flow with no login hint so the sign-in page offers the passkey.
+    ///
+    /// A passkey here is a discoverable credential: it was registered with a resident key and the
+    /// assertion carries neither a username nor an allow list, so the credential identifies the
+    /// account by itself. Nothing about signing in this way needs a phone number, and the only
+    /// reason it used to need one is that the app always sent the number as an OIDC login hint,
+    /// which the page auto-submits. That dispatches a verification code before the passkey is ever
+    /// offered, so every passkey sign-in cost a message that nobody read.
+    ///
+    /// Omitting the hint is the whole fix: with nothing to auto-submit the page stays on its first
+    /// step, where it already offers to sign in with a passkey, and no code is sent.
+    ///
+    /// The resolver is skipped for the same reason it cannot be used: it maps a phone number to a
+    /// homeserver, and there is no number here. This configures the deployment's default account
+    /// provider instead, so someone whose account lives elsewhere still has to sign in by number.
+    private func handlePasskeySignIn(coordinator: PhoneEntryScreenCoordinator) {
+        guard !isHandlingPhoneSubmission else { return }
+        isHandlingPhoneSubmission = true
+        coordinator.setSubmitting(true)
+        Task { [weak self] in
+            guard let self else { return }
+            defer {
+                coordinator.setSubmitting(false)
+                self.isHandlingPhoneSubmission = false
+            }
+
+            guard let accountProvider = appSettings.accountProviders.first, !accountProvider.isEmpty else {
+                coordinator.displayError(L10n.errorUnknown)
+                return
+            }
+
+            switch await authenticationService.configure(for: accountProvider, flow: .login) {
+            case .success:
+                break
+            case .failure(let error):
+                MXLog.error("Failed configuring OIDC login for passkey sign-in: \(error)")
+                coordinator.displayError(error.localizedDescription)
+                return
+            }
+
+            guard authenticationService.homeserver.value.loginMode.supportsOIDCFlow else {
+                coordinator.displayError(L10n.screenLoginErrorUnsupportedAuthentication)
+                return
+            }
+
+            guard let window = appMediator.windowManager.mainWindow else {
+                coordinator.displayError(L10n.errorUnknown)
+                return
+            }
+
+            switch await authenticationService.urlForOIDCLogin(loginHint: nil) {
+            case .success(let oidcData):
+                stateMachine.tryEvent(.continueWithOIDC, userInfo: (oidcData, window))
+            case .failure(let error):
+                MXLog.error("Failed creating OIDC login URL for passkey sign-in: \(error)")
+                coordinator.displayError(error.localizedDescription)
+            }
+        }
+    }
+
     /// GUA FORK: resolve a phone to its homeserver via the Gua resolver. The resolver is required for
     /// phone auth so the app doesn't silently route to the wrong MAS/homeserver.
     private func resolveHomeserver(forPhone phoneNumber: String) async throws -> HomeserverResolution {
