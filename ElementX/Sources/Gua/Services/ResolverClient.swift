@@ -170,7 +170,8 @@ enum ResolverError: Error, LocalizedError {
 }
 
 protocol ResolverClientProtocol: Sendable {
-    /// Resolve a verified phone number to the homeserver it belongs to (or should be created on).
+    /// Resolve a phone number to the homeserver it belongs to (or should be created on).
+    /// The resolver verifies nothing about the number (ADM-001 L16).
     func resolve(phoneNumber: String) async throws -> HomeserverResolution
 
     /// Resolve with the additive v1 contract fields (carrier and geo hints, routing claims, trace).
@@ -192,7 +193,7 @@ protocol FederationRosterFetching: Sendable {
     func fetchRoster() async throws -> FederationRoster
 }
 
-/// Talks to the Gua resolver — the federation front door. `POST /resolve` maps a phone number to a
+/// Talks to the Gua resolver, the federation front door. `POST /resolve` maps a phone number to a
 /// homeserver, so the client never hardcodes one; `GET /roster` lists the federation's homeservers so
 /// bare-handle search can fan out across them. See `gua-resolver`.
 final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {

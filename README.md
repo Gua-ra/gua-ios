@@ -43,7 +43,7 @@ Matrix homeserver in the Gua federation
 ```
 
 - The resolver tells the app which homeserver to use, so the client stays universal and never hardcodes a server.
-- [`gua-auth-service`](https://github.com/Gua-ra/gua-auth-service) is Gua's Matrix Authentication Service; it skips the consent interstitial for first-party clients and delegates identity upstream.
+- [`gua-auth-service`](https://github.com/Gua-ra/gua-auth-service) is Gua's Matrix Authentication Service fork; today it delegates identity upstream to the identity service.
 - The [Gua Identity Service](https://github.com/Gua-ra/identity-service) implements verification codes, the account PIN, contact lookup, and phone-number changes.
 - Every sign-in performs a fresh upstream authentication (ephemeral web session, `prompt=login`), so a cached browser session never bypasses verification.
 
