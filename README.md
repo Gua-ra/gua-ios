@@ -7,7 +7,7 @@
   <h1>Gua for iOS</h1>
 </div>
 
-**Gua** is a private messenger built on the open [Matrix](https://matrix.org/) protocol. It pairs an end-to-end encrypted, federated network with the simplicity people expect from a mainstream messaging app: sign in with something you already have, find your friends privately, and start talking. Sign-in is deliberately simple: it is phone-based by default today, and the account model is designed to stay flexible, including institutional SSO for organizations that bring their own identity.
+**Gua** is a private messenger built on the open [Matrix](https://matrix.org/) protocol. It pairs an end-to-end encrypted, federated network with the simplicity people expect from a mainstream messaging app: sign in with something you already have, find your friends privately, and start talking. Sign-in is deliberately simple: it is phone-based by default today, and the account model is designed to stay flexible, with institutional SSO planned for organizations that bring their own identity.
 
 This repository is the Gua iOS client. It began as a fork of [`element-hq/element-x-ios`](https://github.com/element-hq/element-x-ios) and keeps its Matrix core (Matrix Rust SDK, timelines, calls, encryption) while adding a Gua product layer that spans routing, onboarding, account security, contact discovery, and the day-to-day experience.
 
@@ -15,11 +15,11 @@ This repository is the Gua iOS client. It began as a fork of [`element-hq/elemen
 
 ## The Gua product layer
 
-- **Trusted-federation routing.** Sign-in starts at the Gua resolver, which answers where in the closed Gua federation an account lives (sign-in) or should be created (registration). The client then authenticates against that server. Users never pick, type, or see a server name.
-- **Homeserver abstraction.** Server details stay out of the product: people appear as simple usernames rather than full Matrix IDs, and the homeserver behind an account is an implementation detail, not part of a user's identity.
-- **Simplified onboarding.** A native welcome and sign-in flow: enter a phone number, confirm a one-time code, set up a profile, and secure the account, all inside the app. Under the hood the client authenticates over OIDC (authorization code + PKCE) against a Matrix Authentication Service that delegates identity to the Gua identity service.
+- **Trusted-federation routing.** Sign-in starts at the Gua resolver: the app asks it by phone number which homeserver in the closed Gua federation to use, then signs in through the Gua identity host and connects to that homeserver. Users never pick, type, or see a server name.
+- **Homeserver abstraction.** Server details stay out of the product: people appear as simple usernames rather than full Matrix IDs, and the homeserver behind an account is kept out of the interface.
+- **Simplified onboarding.** A native welcome and sign-in flow: enter a phone number, confirm a one-time code, set up a profile, and secure the account, all inside the app. Under the hood the client currently authenticates over OIDC (authorization code + PKCE) against a Matrix Authentication Service that delegates sign-in to the Gua identity service (see [Architecture](#architecture)).
 - **Two-step verification (account PIN).** A six-digit account PIN is the account's second factor: set during onboarding, required for sensitive operations, and changeable or resettable with verification. The client mirrors the server's PIN strength policy (no repeated, sequential, or common PINs).
-- **Private contact discovery.** Find Friends shows which of your contacts are already on Gua. It runs only with address-book permission, normalizes numbers on the device, and looks up matches in capped batches; the address book itself never leaves the phone.
+- **Private contact discovery.** Find Friends shows which of your contacts are already on Gua. It runs only with address-book permission, normalizes numbers on the device, and sends hashed identifiers in capped batches rather than the address book itself. The hashing is a privacy-hardening step, not a guarantee of irreversibility.
 - **Phone-number management.** The number linked to an account can be changed from Settings, verified with a one-time code sent to the new number plus the account PIN as the second factor.
 - **Welcome experience.** A polished, localized welcome screen (en, fr, es, pt, pt-BR) with the animated glass Gua logo.
 - **Safe defaults.** End-to-end encryption stays on with sensible defaults while advanced encryption controls are hidden; the app-lock code is called a passcode so it is never confused with the account PIN.
@@ -28,13 +28,13 @@ This repository is the Gua iOS client. It began as a fork of [`element-hq/elemen
 
 ```
 Gua iOS app
-    |  1. resolver lookup: which homeserver serves this account?
+    |  1. resolver lookup by phone number: which homeserver to use
     ▼
 Gua resolver
     |  2. OIDC authorization code + PKCE against the resolved server
     ▼
 Matrix Authentication Service (gua-auth-service)
-    |  3. delegated sign-in (phone + one-time code + PIN today, SSO-capable)
+    |  3. delegated sign-in (phone + one-time code + PIN today; institutional SSO planned)
     ▼
 Gua Identity Service
     |
@@ -42,10 +42,12 @@ Gua Identity Service
 Matrix homeserver in the Gua federation
 ```
 
-- The resolver answers "where does this account live?" so the client stays universal and account placement remains a backend concern.
+- The resolver tells the app which homeserver to use, so the client stays universal and never hardcodes a server.
 - [`gua-auth-service`](https://github.com/Gua-ra/gua-auth-service) is Gua's Matrix Authentication Service; it skips the consent interstitial for first-party clients and delegates identity upstream.
 - The [Gua Identity Service](https://github.com/Gua-ra/identity-service) implements verification codes, the account PIN, contact lookup, and phone-number changes.
 - Every sign-in performs a fresh upstream authentication (ephemeral web session, `prompt=login`), so a cached browser session never bypasses verification.
+
+This is the current implementation. The target is explained in plain language in [Gua identity and federation](https://github.com/Gua-ra/gua-resolver/blob/main/docs/architecture/gua-identity-and-federation.md) and decided in [ADM-001](https://github.com/Gua-ra/gua-resolver/blob/main/docs/decisions/ADM-001-identifier-binding-placement-trust.md). Per-homeserver authentication and verified routing are part of that target and are not shipped yet: today every sign-in completes at the single Gua identity host, and the app follows the resolver's answer without verifying it against signed federation state.
 
 ---
 

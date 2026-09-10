@@ -6,10 +6,10 @@
 
 import Foundation
 
-/// A homeserver as advertised by the Gua resolver: where a phone's account lives (login) or should be
-/// created (register). The homeserver is identified by its Matrix `serverName`; the client configures OIDC
-/// against that and discovers the base URL + MAS issuer via well-known, exactly as it would for any
-/// account provider.
+/// A homeserver as advertised by the Gua resolver for a phone number: the one to sign in to, or the one
+/// to create the account on. `serverName` is its Matrix server name. The client hands `baseURL` straight to
+/// the authentication service (no well-known rediscovery); `masIssuer` is decoded from the v1 contract but
+/// not currently read.
 struct ResolvedHomeserver: Equatable {
     let serverName: String
     let baseURL: String
@@ -19,7 +19,9 @@ struct ResolvedHomeserver: Equatable {
 
 /// Outcome of resolving a phone number against the Gua resolver.
 struct HomeserverResolution: Equatable {
-    /// `true` when an account already exists for this phone (→ login); `false` when it does not (→ register).
+    /// `true` when the resolver reports an account for this phone (→ login); `false` when it does not
+    /// (→ register). Current v1 wire contract: ADM-001 L16 schedules this explicit existence signal for
+    /// change (spike S4), see https://github.com/Gua-ra/gua-resolver/blob/main/docs/decisions/ADM-001-identifier-binding-placement-trust.md
     let exists: Bool
     /// The homeserver to authenticate against (login) or create the account on (register).
     let homeserver: ResolvedHomeserver
@@ -42,10 +44,10 @@ struct ResolveOptions: Encodable, Equatable {
     var trace: Bool?
 }
 
-/// Signed claims from the identity layer transported to the resolver for routing decisions
-/// (schema `gua-routing-claims.v1`). The client is a courier only: it never mints or alters an
-/// envelope, and the resolver trusts its contents solely after signature, audience, expiry and
-/// subject-binding verification. Android counterpart: `ResolverRoutingClaimsEnvelope`.
+/// Signed routing claims transported to the resolver as an opaque envelope (schema
+/// `gua-routing-claims.v1`). The client is a courier: it never mints or alters an envelope. No component
+/// issues these envelopes today, so this path is unexercised; how the resolver verifies them is governed
+/// by ADM-001 L8. Android counterpart: `ResolverRoutingClaimsEnvelope`.
 struct RoutingClaimsEnvelope: Codable, Equatable {
     let schemaVersion: String
     let issuer: String
@@ -79,7 +81,8 @@ struct DecisionTrace: Decodable, Equatable {
     let delegatedZoneId: String?
     let assignmentPolicy: String?
     let homeserverId: String?
-    /// The roster version the decision was made against; what a verifying client pins.
+    /// The roster version the resolver reports it decided against. Informational: the client does not verify
+    /// or pin it today (client-side verification is target architecture, ADM-001 L6).
     let rosterVersion: Int64?
 }
 
