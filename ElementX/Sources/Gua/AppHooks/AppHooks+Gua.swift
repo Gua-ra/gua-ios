@@ -60,7 +60,7 @@ private struct GuaAppSettingsHook: AppSettingsHookProtocol {
         appSettings.override(accountProviders: accountProviders,
                              allowOtherAccountProviders: true,
                              hideBrandChrome: appSettings.hideBrandChrome,
-                             pushGatewayBaseURL: appSettings.pushGatewayBaseURL,
+                             pushGatewayBaseURL: GuaDeployment.current.pushGatewayBaseURL,
                              oidcRedirectURL: redirectURL,
                              websiteURL: Constants.websiteURL,
                              logoURL: Constants.logoURL,
