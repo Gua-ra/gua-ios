@@ -1138,6 +1138,7 @@
 		C7E6BAF6CFB7C64CD38DBCB3 /* ShimmerModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4A5B73D326A2AFE8A12BF0B /* ShimmerModifier.swift */; };
 		C8113A92E6B99431F15D4044 /* RoomListFilterModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8440ECDCF78239B91BD2A82B /* RoomListFilterModels.swift */; };
 		C81B8E1FC35662BCBFFFDF6E /* RoomMemberDetailsScreenCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39C9BE9A25DF807F249DC124 /* RoomMemberDetailsScreenCoordinator.swift */; };
+		C83CFB1DE3C6D0A80911D2E7 /* AuthenticationService+Gua.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB65375051BA47D4C33C1180 /* AuthenticationService+Gua.swift */; };
 		C89625E011A06877ED8EEBFC /* PINTextFieldTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 678A9B238C02B80A47507209 /* PINTextFieldTests.swift */; };
 		C8C5E83101C9A6675BA09936 /* AppCoordinatorProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE5807ABBE9F5B428D3EA81B /* AppCoordinatorProtocol.swift */; };
 		C8E76319EFCC3B1139767DB5 /* SwiftOGG in Frameworks */ = {isa = PBXBuildFile; productRef = 556DAE413B87CE6713721432 /* SwiftOGG */; };
@@ -2545,6 +2546,7 @@
 		BB228B756544A5577EFF8199 /* XCUIElement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XCUIElement.swift; sourceTree = "<group>"; };
 		BB386F87CAA635C5517D9A89 /* PollMock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollMock.swift; sourceTree = "<group>"; };
 		BB4E1C9A61563790AE32C94F /* SpaceListScreenCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpaceListScreenCoordinator.swift; sourceTree = "<group>"; };
+		BB65375051BA47D4C33C1180 /* AuthenticationService+Gua.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AuthenticationService+Gua.swift"; sourceTree = "<group>"; };
 		BB71629C9E0492B8C4E5ECCD /* AudioRoomTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRoomTimelineView.swift; sourceTree = "<group>"; };
 		BBBF4103D76B0029ECE53C04 /* PillContextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PillContextTests.swift; sourceTree = "<group>"; };
 		BC84FA218B5572C8C73ED1B0 /* Collection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Collection.swift; sourceTree = "<group>"; };
@@ -3674,6 +3676,7 @@
 		2E0247EFE2BF01A64641C12F /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				BB65375051BA47D4C33C1180 /* AuthenticationService+Gua.swift */,
 				F3B8565C69E96BD619586FC1 /* ContactDiscoveryService.swift */,
 				336FB49551A4972328D98853 /* FederatedUserSearch.swift */,
 				BA1FC4218C8D1345BEF6FC97 /* IdentityServiceClient.swift */,
@@ -7586,6 +7589,7 @@
 				FAAAB0A3C042B41705882424 /* AuthenticationClientBuilderFactoryMock.swift in Sources */,
 				0524FFA88B79193223DA2BF3 /* AuthenticationClientFactory.swift in Sources */,
 				71B794DA32CC49B139EE82B8 /* AuthenticationFlowCoordinator.swift in Sources */,
+				C83CFB1DE3C6D0A80911D2E7 /* AuthenticationService+Gua.swift in Sources */,
 				C60B5A8D761EF7EB276B3C81 /* AuthenticationService.swift in Sources */,
 				D2264A9C141F18947BF9048A /* AuthenticationServiceProtocol.swift in Sources */,
 				7F3B780EFB8F2B85AFA52B88 /* AuthenticationStartLogo.swift in Sources */,

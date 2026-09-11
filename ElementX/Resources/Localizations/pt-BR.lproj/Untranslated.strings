@@ -27,3 +27,4 @@
 "gua_identity_change_profile" = "Os dados de segurança de %1$@ mudaram. Isso acontece quando a pessoa reinstala o Gua ou troca de celular.";
 "gua_soft_logout_signin_notice" = "Você foi desconectado da sua conta Gua. Entre novamente para continuar.";
 "gua_join_room_by_address_hint" = "Cole o endereço da sala que você recebeu.";
+"gua_sign_in_with_passkey" = "Entrar com chave de acesso";
