@@ -52,6 +52,24 @@ enum GuaDeployment {
         }
     }
 
+    /// Push gateway base URL, the host the homeserver hands every notification to on its way to APNs.
+    ///
+    /// Registering a pusher publishes this URL and the device's APNs token to whoever owns that host.
+    /// Upstream ships a default of `matrix.org` and the fork went out still carrying it, so each
+    /// install was handing its token to a gateway that is not ours and that cannot deliver for an
+    /// app id it does not know. This property exists to make that impossible to repeat, which is why
+    /// it is the one endpoint here that is not optional and has no upstream fallback.
+    ///
+    /// Both deployments currently point at the same gateway because there is no development push
+    /// host yet. When one exists it joins the `Secrets` pipeline like the endpoints above, so the
+    /// non-public host stays out of this repo. Until then a development build is served by the
+    /// production gateway, which knows the development app ids, rather than by anything upstream.
+    var pushGatewayBaseURL: URL {
+        Self.pushGateway
+    }
+
+    private static let pushGateway: URL = "https://push.gua.global"
+
     /// Default account provider (homeserver host) offered on the login screen, or `nil` when unconfigured.
     /// Production is the committed `gua.global` brand host; development is injected via the `Secrets`
     /// pipeline — the committed placeholder keeps the non-public dev host out of this repo, same as the
