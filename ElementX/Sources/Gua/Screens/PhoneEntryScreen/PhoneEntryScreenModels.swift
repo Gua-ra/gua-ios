@@ -10,6 +10,10 @@ import Foundation
 enum PhoneEntryScreenViewModelAction {
     case `continue`(phoneNumber: String)
     case useLegacyAuth
+    /// Sign in with a passkey instead of a number. Deliberately does NOT carry a phone
+    /// number: the credential is discoverable, so it identifies the account by itself and
+    /// no code has to be sent to reach it.
+    case signInWithPasskey
 }
 
 struct PhoneEntryScreenViewState: BindableState {
@@ -52,6 +56,7 @@ struct PhoneEntryScreenViewStateBindings {
 
 enum PhoneEntryScreenViewAction {
     case continueTapped
+    case signInWithPasskeyTapped
     case useLegacyAuthTapped
     case countrySelected(Country)
     case phoneNumberChanged

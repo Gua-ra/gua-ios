@@ -23,6 +23,7 @@ struct PhoneEntryScreenCoordinatorParameters {
 enum PhoneEntryScreenCoordinatorAction {
     case `continue`(phoneNumber: String)
     case useLegacyAuth
+    case signInWithPasskey
 }
 
 final class PhoneEntryScreenCoordinator: CoordinatorProtocol {
@@ -49,6 +50,8 @@ final class PhoneEntryScreenCoordinator: CoordinatorProtocol {
             switch action {
             case .continue(let phoneNumber):
                 actionsSubject.send(.continue(phoneNumber: phoneNumber))
+            case .signInWithPasskey:
+                actionsSubject.send(.signInWithPasskey)
             case .useLegacyAuth:
                 actionsSubject.send(.useLegacyAuth)
             }
