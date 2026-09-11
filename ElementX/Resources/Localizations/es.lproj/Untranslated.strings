@@ -27,3 +27,4 @@
 "gua_identity_change_profile" = "Los datos de seguridad de %1$@ han cambiado. Esto puede ocurrir cuando reinstala Gua o cambia de teléfono.";
 "gua_soft_logout_signin_notice" = "Se cerró tu sesión en la cuenta de Gua. Vuelve a iniciar sesión para continuar.";
 "gua_join_room_by_address_hint" = "Pega la dirección de la sala que te han dado.";
+"gua_sign_in_with_passkey" = "Entrar con clave de acceso";

@@ -47,6 +47,19 @@ class PhoneEntryScreenViewModelTests: XCTestCase {
         try await deferred.fulfill()
     }
 
+    func testSignInWithPasskeyTappedEmitsAction() async throws {
+        // No number is needed: the credential identifies the account by itself.
+        XCTAssertTrue(context.viewState.bindings.localPhoneNumber.isEmpty)
+        XCTAssertFalse(context.viewState.canContinue)
+        let deferred = deferFulfillment(viewModel.actionsPublisher) { action in
+            if case .signInWithPasskey = action { return true }
+            return false
+        }
+        context.send(viewAction: .signInWithPasskeyTapped)
+        try await deferred.fulfill()
+        XCTAssertTrue(context.viewState.isSubmitting)
+    }
+
     func testInitialPhoneNumberParsesCountry() {
         viewModel = PhoneEntryScreenViewModel(isLegacyAuthEnabled: false, initialPhoneNumber: "+5511987654321")
         XCTAssertEqual(context.viewState.selectedCountry.isoCode, "BR")

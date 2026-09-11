@@ -87,6 +87,28 @@ class AuthenticationServiceTests: XCTestCase {
         }
     }
     
+    func testOIDCLoginPassesPasskeyLoginHint() async {
+        setupMocks()
+        
+        switch await service.configure(for: "matrix.org", flow: .login) {
+        case .success:
+            break
+        case .failure(let error):
+            XCTFail("Unexpected failure: \(error)")
+        }
+        
+        switch await service.urlForOIDCLogin(loginHint: AuthenticationService.passkeyLoginHint) {
+        case .success:
+            let arguments = client.urlForOauthOauthConfigurationPromptLoginHintDeviceIdAdditionalScopesReceivedArguments
+            XCTAssertEqual(client.urlForOauthOauthConfigurationPromptLoginHintDeviceIdAdditionalScopesCallsCount, 1)
+            // The literal is the wire contract with identity-service and the sign-in page.
+            XCTAssertEqual(arguments?.loginHint, "passkey")
+            XCTAssertEqual(arguments?.prompt, .login)
+        case .failure(let error):
+            XCTFail("Unexpected failure: \(error)")
+        }
+    }
+    
     func testConfigureRegisterNoSupport() async {
         let homeserverAddress = "example.com"
         setupMocks(serverAddress: homeserverAddress)

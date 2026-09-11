@@ -413,21 +413,27 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         }
     }
     
-    /// GUA FORK: start the OIDC flow with no login hint so the sign-in page offers the passkey.
+    /// GUA FORK: start the OIDC flow with the reserved `passkey` login hint so the sign-in page leads
+    /// with the passkey.
     ///
     /// A passkey here is a discoverable credential: it was registered with a resident key and the
     /// assertion carries neither a username nor an allow list, so the credential identifies the
-    /// account by itself. Nothing about signing in this way needs a phone number, and the only
-    /// reason it used to need one is that the app always sent the number as an OIDC login hint,
-    /// which the page auto-submits. That dispatches a verification code before the passkey is ever
-    /// offered, so every passkey sign-in cost a message that nobody read.
+    /// account by itself. Nothing about signing in this way needs a phone number. Sending the number
+    /// as the login hint is what used to cost a verification code per passkey sign-in, because the
+    /// page auto-submits a phone hint before the passkey is ever offered.
     ///
-    /// Omitting the hint is the whole fix: with nothing to auto-submit the page stays on its first
-    /// step, where it already offers to sign in with a passkey, and no code is sent.
+    /// The contract with the sign-in page: the app sends `login_hint=passkey`
+    /// (`AuthenticationService.passkeyLoginHint`) and keeps `prompt=login`, MAS forwards the hint
+    /// verbatim, and identity-service maps this reserved value to the session intent `PASSKEY`
+    /// (`LoginState.intent`, absent on older servers) instead of a phone hint. With that intent the
+    /// page leads with a primary "Sign in with a passkey" button and a visible "Use my phone number
+    /// instead" link. It never starts the WebAuthn ceremony on its own, because WebKit only allows
+    /// one from a user gesture. A server that predates the intent sees no phone hint at all, which
+    /// is the behaviour this button shipped with, so the app can roll out ahead of the server.
     ///
-    /// The resolver is skipped for the same reason it cannot be used: it maps a phone number to a
-    /// homeserver, and there is no number here. This configures the deployment's default account
-    /// provider instead, so someone whose account lives elsewhere still has to sign in by number.
+    /// The resolver is skipped because it maps a phone number to a homeserver and there is no number
+    /// here. The passkey signs in to the deployment's default account provider instead, so someone
+    /// whose account lives elsewhere still has to sign in by number.
     private func handlePasskeySignIn(coordinator: PhoneEntryScreenCoordinator) {
         guard !isHandlingPhoneSubmission else { return }
         isHandlingPhoneSubmission = true
@@ -439,8 +445,15 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                 self.isHandlingPhoneSubmission = false
             }
 
-            guard let accountProvider = appSettings.accountProviders.first, !accountProvider.isEmpty else {
-                coordinator.displayError(L10n.errorUnknown)
+            // A build with no Gua deployment configured (a development build without the injected
+            // Secrets) has no default account provider, and `appSettings.accountProviders` then
+            // still holds upstream's fallback. The phone path fails closed in that build because its
+            // resolver is unconfigured (`ResolverError.notConfigured`); fail closed the same way,
+            // with the same error, rather than send a passkey sign-in to a provider that is not ours.
+            guard GuaDeployment.current.defaultAccountProvider != nil,
+                  let accountProvider = appSettings.accountProviders.first, !accountProvider.isEmpty else {
+                MXLog.error("Refusing passkey sign-in: no Gua deployment is configured for this build.")
+                coordinator.displayError(ResolverError.notConfigured.userFacingMessage)
                 return
             }
 
@@ -463,7 +476,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                 return
             }
 
-            switch await authenticationService.urlForOIDCLogin(loginHint: nil) {
+            switch await authenticationService.urlForOIDCLogin(loginHint: AuthenticationService.passkeyLoginHint) {
             case .success(let oidcData):
                 stateMachine.tryEvent(.continueWithOIDC, userInfo: (oidcData, window))
             case .failure(let error):
