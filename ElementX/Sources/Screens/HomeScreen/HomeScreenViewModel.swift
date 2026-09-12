@@ -560,8 +560,12 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
                                          message: message ?? L10n.errorUnknown)
     }
 
-    /// GUA FORK: One-shot check at session start. If the identity service reports no PIN
-    /// configured and the reminder isn't snoozed, surface the home-screen banner.
+    /// GUA FORK: One-shot check at session start. The banner asks for two-step verification, so it
+    /// is shown when the account holds neither factor that counts as one, not when it merely has no
+    /// PIN: somebody who signs in with a passkey has already done what the banner is asking for.
+    ///
+    /// A report that cannot be read shows nothing. The banner is a nudge, and nudging an account
+    /// that may already be protected is the wrong way to be wrong.
     private func refreshPinSetupReminder() async {
         guard let identityServiceClient = IdentityServiceClient(),
               let accessToken = userSession.clientProxy.accessToken else {
@@ -571,10 +575,10 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             return
         }
         do {
-            let pinStatus = try await identityServiceClient.pinStatus(accessToken: accessToken)
-            state.pinSetupReminderVisible = !pinStatus.hasPin
+            let status = try await identityServiceClient.securityStatus(accessToken: accessToken)
+            state.pinSetupReminderVisible = !status.holdsStrongFactor
         } catch {
-            MXLog.warning("Could not fetch PIN status for home screen reminder: \(error)")
+            MXLog.warning("Could not fetch the account's factor status for the home screen reminder: \(error)")
         }
     }
 }

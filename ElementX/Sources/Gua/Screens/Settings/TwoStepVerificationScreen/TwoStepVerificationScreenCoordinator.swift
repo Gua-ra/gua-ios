@@ -14,6 +14,9 @@ struct TwoStepVerificationScreenCoordinatorParameters {
     let userIndicatorController: UserIndicatorControllerProtocol
     let windowManager: WindowManagerProtocol
     let appSettings: AppSettings
+    /// A factor to start setting up on arrival, when the caller already knows which one the user
+    /// asked for. `nil` just opens the overview.
+    let initialSetup: AuthFactor?
 }
 
 enum TwoStepVerificationScreenCoordinatorAction {
@@ -39,7 +42,8 @@ final class TwoStepVerificationScreenCoordinator: CoordinatorProtocol {
         self.parameters = parameters
         viewModel = TwoStepVerificationScreenViewModel(clientProxy: parameters.clientProxy,
                                                        identityServiceClient: parameters.identityServiceClient,
-                                                       userIndicatorController: parameters.userIndicatorController)
+                                                       userIndicatorController: parameters.userIndicatorController,
+                                                       initialSetup: parameters.initialSetup)
     }
 
     func start() {

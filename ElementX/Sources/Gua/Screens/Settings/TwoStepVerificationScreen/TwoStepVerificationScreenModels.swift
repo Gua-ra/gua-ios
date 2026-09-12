@@ -21,10 +21,13 @@ enum TwoStepVerificationScreenViewModelAction {
 /// Change flow (existing PIN, OTP-protected):
 /// ``enteringPhone`` → ``enteringCurrent`` (verified live with the backend) →
 /// ``enteringOtp`` → ``enteringNew`` → ``confirmingNew`` → ``submitting``.
+///
+/// GUA FORK: there is one overview phase, not one per PIN state. What the account holds is read
+/// from the server's factor report and rendered from ``TwoStepVerificationScreenViewState/factors``,
+/// so a passkey holder is not shown the screen of somebody with nothing.
 enum TwoStepVerificationScreenPhase: Equatable {
     case loading
-    case overviewNoPin
-    case overviewHasPin
+    case overview
     case enteringPhone
     case enteringCurrent
     case enteringOtp
@@ -38,6 +41,10 @@ struct TwoStepVerificationScreenViewState: BindableState {
     static let otpLength = 6
 
     var phase: TwoStepVerificationScreenPhase = .loading
+    /// What the account has registered, as reported by the identity service. `nil` means the report
+    /// could not be read, which is deliberately not the same as "nothing registered": the overview
+    /// says so and offers a retry rather than inviting the user to set up a factor it cannot see.
+    var factors: AccountSecurityStatus?
     var phone = ""
     var selectedCountry: Country = .deviceDefault
     var currentPin = ""
@@ -47,9 +54,18 @@ struct TwoStepVerificationScreenViewState: BindableState {
     var errorMessage: String?
     var bindings = TwoStepVerificationScreenViewStateBindings()
 
+    /// True only when the account is known to have a PIN. An unknown report never reads as "no PIN".
+    var hasPin: Bool {
+        factors?.hasPin ?? false
+    }
+
+    var passkeyRegistered: Bool {
+        factors?.passkeyRegistered ?? false
+    }
+
     var titleKey: String {
         switch phase {
-        case .loading, .overviewNoPin, .overviewHasPin, .submitting:
+        case .loading, .overview, .submitting:
             return L10n.screenTwoStepVerificationTitle
         case .enteringPhone:
             return L10n.screenTwoStepVerificationPhoneHeader
@@ -135,6 +151,8 @@ struct TwoStepVerificationScreenViewStateBindings {
 enum TwoStepVerificationScreenViewAction {
     case startSetup
     case startChange
+    /// Re-read the factor report after it failed to load.
+    case retryStatus
     case pinChanged
     case phoneChanged
     case countrySelected(Country)

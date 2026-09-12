@@ -1433,13 +1433,18 @@
 /* GUA FORK - Two-step verification (missing translations) */
 "screen_two_step_verification_overview_header" = "Status";
 "screen_two_step_verification_overview_footer_on" = "Seu PIN é solicitado ao entrar em um novo dispositivo. Mantenha-o em segredo — qualquer pessoa com seu PIN e seu código SMS pode acessar sua conta.";
-"screen_two_step_verification_overview_footer_off" = "Adicione um PIN de 6 dígitos para proteger sua conta contra ataques de troca de chip (SIM swap). Ele será solicitado ao entrar em um novo dispositivo.";
+"screen_two_step_verification_overview_footer_off" = "Adicione uma chave de acesso ou um PIN de 6 dígitos para proteger sua conta contra ataques de troca de chip (SIM swap). Eles serão solicitados ao entrar em um novo dispositivo.";
+"screen_two_step_verification_overview_footer_passkey" = "Sua chave de acesso confirma que é você ao entrar em um novo dispositivo e ao alterar seu número.";
 "screen_two_step_verification_status_on" = "PIN ativado";
 "screen_two_step_verification_status_off" = "Nenhum PIN definido";
 "screen_two_step_verification_set_button" = "Configurar PIN";
 "screen_two_step_verification_change_button" = "Alterar PIN";
 "screen_two_step_verification_passkey_button" = "Configurar uma chave de acesso";
 "screen_two_step_verification_passkey_footer" = "Use o Face ID, o Touch ID ou uma chave de segurança para entrar sem senha.";
+"screen_two_step_verification_passkey_status_on" = "Chave de acesso configurada";
+"screen_two_step_verification_passkey_status_off" = "Sem chave de acesso";
+"screen_two_step_verification_pin_backup_footer" = "O PIN é a alternativa para quando sua chave de acesso não está disponível no dispositivo que você tem em mãos.";
+"screen_two_step_verification_status_unavailable" = "Não conseguimos carregar suas configurações de segurança.";
 "screen_two_step_verification_current_header" = "Digite seu PIN atual";
 "screen_two_step_verification_current_footer" = "Confirme seu PIN atual para autorizar a alteração.";
 "screen_two_step_verification_new_header" = "Escolha um novo PIN";
@@ -1451,8 +1456,8 @@
 "screen_two_step_verification_locked" = "Muitas tentativas incorretas. Tente novamente mais tarde.";
 "screen_two_step_verification_updated" = "PIN atualizado";
 "screen_two_step_verification_reminder_title" = "Proteja sua conta";
-"screen_two_step_verification_reminder_message" = "Configure um PIN de 6 dígitos para manter sua conta segura mesmo se alguém assumir o controle do seu número de telefone.";
-"screen_two_step_verification_reminder_action" = "Configurar PIN";
+"screen_two_step_verification_reminder_message" = "Configure uma chave de acesso ou um PIN de 6 dígitos para manter sua conta segura mesmo se alguém assumir o controle do seu número de telefone.";
+"screen_two_step_verification_reminder_action" = "Configurar";
 "screen_two_step_verification_reminder_dismiss" = "Agora não";
 "screen_two_step_verification_phone_header" = "Confirme seu número de telefone";
 "screen_two_step_verification_phone_footer" = "Enviaremos um código de verificação por SMS para o telefone vinculado à sua conta.";
@@ -1464,13 +1469,18 @@
 /* GUA FORK - Change phone number */
 "screen_change_phone_title" = "Alterar número de telefone";
 "screen_change_phone_intro_header" = "Alterar seu número";
-"screen_change_phone_intro_message" = "Vamos confirmar seu PIN e depois enviar um código por SMS para o seu novo número. Sua conta, suas conversas e suas mensagens continuam as mesmas.";
+"screen_change_phone_intro_message" = "Vamos confirmar que é você e depois enviar um código por SMS para o seu novo número. Sua conta, suas conversas e suas mensagens continuam as mesmas.";
 "screen_change_phone_already_linked" = "Esse número de telefone já está vinculado a outra conta.";
 "screen_change_phone_new_header" = "Novo número de telefone";
 "screen_change_phone_new_footer" = "Digite o número que você quer usar a partir de agora.";
-"screen_change_phone_pin_setup_required_header" = "Configure um PIN primeiro";
-"screen_change_phone_pin_setup_required_message" = "Você precisa de um PIN para alterar seu número. Configure um e depois volte para alterar seu número.";
-"screen_change_phone_pin_setup_required_action" = "Configurar PIN";
+"screen_change_phone_reauth_header" = "Confirme que é você";
+"screen_change_phone_reauth_footer" = "Digite o código de 6 dígitos que enviamos para o seu número atual.";
+"screen_change_phone_step_up_header" = "Antes, adicione uma segunda etapa";
+"screen_change_phone_step_up_message" = "Para alterar seu número, sua conta precisa de uma chave de acesso ou de um PIN. Configure um e depois volte.";
+"screen_change_phone_step_up_passkey_unusable_message" = "Não conseguimos usar sua chave de acesso neste dispositivo. Configure um PIN para sempre ter como confirmar que é você, ou tente de novo no dispositivo que tem sua chave de acesso.";
+"screen_change_phone_step_up_passkey_action" = "Configurar uma chave de acesso";
+"screen_change_phone_step_up_pin_action" = "Configurar um PIN";
+"screen_change_phone_passkey_fallback" = "Não conseguimos usar sua chave de acesso. Digite seu PIN.";
 "screen_change_phone_cooldown_header" = "Ainda não";
 "screen_change_phone_cooldown_message" = "Por segurança, você poderá alterar seu número em %1$@.";
 "screen_change_phone_cooldown_message_generic" = "Por segurança, você ainda não pode alterar seu número. Tente novamente mais tarde.";

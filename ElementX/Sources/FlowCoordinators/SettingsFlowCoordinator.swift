@@ -238,7 +238,7 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
 
     /// GUA FORK: Find-friends-from-contacts entry-point.
     /// GUA FORK: Two-step verification entry-point.
-    private func presentTwoStepVerification() {
+    private func presentTwoStepVerification(initialSetup: AuthFactor? = nil) {
         guard let identityServiceClient = IdentityServiceClient() else {
             MXLog.warning("Identity service is not configured; cannot show two-step verification screen.")
             return
@@ -247,7 +247,8 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                                                                         identityServiceClient: identityServiceClient,
                                                                         userIndicatorController: flowParameters.userIndicatorController,
                                                                         windowManager: flowParameters.windowManager,
-                                                                        appSettings: flowParameters.appSettings)
+                                                                        appSettings: flowParameters.appSettings,
+                                                                        initialSetup: initialSetup)
         let coordinator = TwoStepVerificationScreenCoordinator(parameters: parameters)
 
         coordinator.actionsPublisher
@@ -265,7 +266,8 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
         }
         let parameters = ChangePhoneScreenCoordinatorParameters(clientProxy: flowParameters.userSession.clientProxy,
                                                                 identityServiceClient: identityServiceClient,
-                                                                userIndicatorController: flowParameters.userIndicatorController)
+                                                                userIndicatorController: flowParameters.userIndicatorController,
+                                                                windowManager: flowParameters.windowManager)
         let coordinator = ChangePhoneScreenCoordinator(parameters: parameters)
 
         coordinator.actionsPublisher
@@ -274,11 +276,13 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                 switch action {
                 case .close:
                     navigationStackCoordinator.pop()
-                case .setUpPin:
-                    // No PIN set — drop the change-phone screen and route to the 2SV PIN-setup flow.
-                    // The fresh-2FA cooldown will hold after setup, so no auto-return is needed.
+                case .setUpStepUpFactor(let factor):
+                    // The account can produce no step-up factor. Route to the one the user picked,
+                    // not to a hardcoded PIN setup: a passkey is the preferred factor, and sending
+                    // a passkey user to create a PIN is what the old funnel did. The fresh-2FA hold
+                    // runs after either one is created, so there is no auto-return.
                     navigationStackCoordinator.pop()
-                    presentTwoStepVerification()
+                    presentTwoStepVerification(initialSetup: factor)
                 }
             }
             .store(in: &cancellables)
