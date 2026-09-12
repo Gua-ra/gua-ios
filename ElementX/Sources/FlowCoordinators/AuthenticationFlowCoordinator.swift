@@ -24,6 +24,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     private let analytics: AnalyticsService
     private let userIndicatorController: UserIndicatorControllerProtocol
     private let resolverClient: ResolverClientProtocol? // GUA FORK: phone -> homeserver routing
+    private let accountGenesisService: AccountGenesisServiceProtocol? // GUA FORK: ADM-008 account genesis
     private let usesPhoneLoginHint: Bool // GUA FORK
     
     enum State: StateType {
@@ -110,6 +111,9 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     // periphery:ignore - retaining purpose
     private var phoneEntryScreenCoordinator: PhoneEntryScreenCoordinator?
     private var isHandlingPhoneSubmission = false
+    /// GUA FORK: the genesis this signup registered, held for the length of that signup and no longer.
+    /// The attach proof is signed against it when the sign-in page asks for one.
+    private var pendingAccountGenesis: PendingAccountGenesis?
     
     weak var delegate: AuthenticationFlowCoordinatorDelegate?
     
@@ -121,6 +125,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
          analytics: AnalyticsService,
          userIndicatorController: UserIndicatorControllerProtocol,
          resolverClient: ResolverClientProtocol? = nil,
+         accountGenesisService: AccountGenesisServiceProtocol? = nil,
          usesPhoneLoginHint: Bool = false) {
         self.authenticationService = authenticationService
         self.bugReportService = bugReportService
@@ -130,6 +135,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         self.analytics = analytics
         self.userIndicatorController = userIndicatorController
         self.resolverClient = resolverClient
+        self.accountGenesisService = accountGenesisService
         self.usesPhoneLoginHint = usesPhoneLoginHint
         
         navigationStackCoordinator = NavigationStackCoordinator()
@@ -403,14 +409,73 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                 return
             }
             
-            switch await authenticationService.urlForOIDCLogin(loginHint: phoneNumber) {
+            // GUA FORK: ADM-008 Phase 3. A flagged-on signup mints an AccountGenesis on this device
+            // and carries its attach handle in the reserved login-hint grammar. Every other case,
+            // this one included when the flag is off, sends the bare phone number as before.
+            let loginHint: String
+            do {
+                loginHint = try await guaLoginHint(phoneNumber: phoneNumber, flow: flow)
+            } catch {
+                // This device meant to register a genesis and could not. Failing here is the point:
+                // an account created without the genesis it intended is a silent bootstrap, which is
+                // the failure mode ADM-008 decision 6 warns about, and it cannot be told apart later.
+                MXLog.error("Failed preparing the account genesis for this signup: \(error)")
+                coordinator.displayError(UntranslatedL10n.guaAccountGenesisSetupFailed)
+                return
+            }
+
+            switch await authenticationService.urlForOIDCLogin(loginHint: loginHint) {
             case .success(let oidcData):
                 stateMachine.tryEvent(.continueWithOIDC, userInfo: (oidcData, window))
             case .failure(let error):
                 MXLog.error("Failed creating OIDC login URL from phone hint: \(error)")
+                discardPendingAccountGenesis()
                 coordinator.displayError(error.localizedDescription)
             }
         }
+    }
+
+    /// GUA FORK: the `login_hint` this submission should send (ADM-008 decision 6).
+    ///
+    /// Returns the bare phone number, exactly as this flow has always sent it, in every case that is
+    /// not a flagged-on signup: the feature flag is off, no genesis service is configured, this is an
+    /// existing account signing in, or the deployment answered 503 and does not do genesis. Only the
+    /// last of those involved a network call, and none of them is shown to the user.
+    ///
+    /// Throws when this device meant to register a genesis and could not, which fails the signup.
+    private func guaLoginHint(phoneNumber: String, flow: AuthenticationFlow) async throws -> String {
+        // A resubmitted number starts a new signup, so whatever the last one registered is abandoned
+        // here rather than left in the keychain.
+        discardPendingAccountGenesis()
+
+        // Sign-in never registers a genesis: only a new account gets one, so an existing user's path
+        // through this method is the single `return` below, byte for byte what it was before.
+        guard case .register = flow,
+              let accountGenesisService,
+              accountGenesisService.isEnabled else {
+            return phoneNumber
+        }
+
+        switch try await accountGenesisService.registerGenesis() {
+        case .disabled, .notSupportedByDeployment:
+            return phoneNumber
+        case .registered(let pending):
+            pendingAccountGenesis = pending
+            return accountGenesisService.loginHint(phoneNumber: phoneNumber, pending: pending)
+        }
+    }
+
+    /// GUA FORK: drop the genesis of a signup that will not complete.
+    ///
+    /// The authority and recovery keys are filed in the keychain under the accountId, and nothing but
+    /// this pending value knows that accountId. An abandoned signup that does not discard them leaves
+    /// two Ed25519 private keys behind that no later code path can read or remove, once per abandoned
+    /// attempt. Every path that ends a signup without attaching calls this, so the only keys that
+    /// outlive a signup are the ones an account actually owns.
+    private func discardPendingAccountGenesis() {
+        guard let pendingAccountGenesis else { return }
+        accountGenesisService?.discard(pendingAccountGenesis)
+        self.pendingAccountGenesis = nil
     }
     
     /// GUA FORK: start the OIDC flow with the reserved `passkey` login hint so the sign-in page leads
@@ -444,6 +509,10 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                 coordinator.setSubmitting(false)
                 self.isHandlingPhoneSubmission = false
             }
+
+            // GUA FORK: signing in with a passkey abandons any genesis a signup on this screen had
+            // already registered, so its keys go with it.
+            discardPendingAccountGenesis()
 
             // A build with no Gua deployment configured (a development build without the injected
             // Secrets) has no default account provider, and `appSettings.accountProviders` then
@@ -597,6 +666,9 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
             case .success(let userSession):
                 stateMachine.tryEvent(.signedIn, userInfo: userSession)
             case .failure:
+                // GUA FORK: the sign-in page was cancelled or failed, so the genesis this signup
+                // registered will never be attached and its keys go with it.
+                discardPendingAccountGenesis()
                 stateMachine.tryEvent(.cancelledOIDCAuthentication(previousState: fromState))
                 // Nothing more to do, the alerts are handled by the presenter.
             }

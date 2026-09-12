@@ -68,6 +68,7 @@ final class AppSettings {
         case latestEventSorterEnabled
         case legacyAuthEnabled
         case guaHidesAdvancedEncryption
+        case guaAccountGenesisEnabled
         
         // Doug's tweaks 🔧
         case hideUnreadMessagesBadge
@@ -467,7 +468,23 @@ final class AppSettings {
     /// users. Gov / advanced users can reveal it from developer options.
     @UserPreference(key: UserDefaultsKeys.guaHidesAdvancedEncryption, defaultValue: true, storageType: .userDefaults(store))
     var guaHidesAdvancedEncryption
-    
+
+    /// GUA FORK: when `true`, a new account is given an on-device `AccountGenesis` at signup: the
+    /// account authority key is created in the keychain, the genesis is registered with
+    /// identity-service, and its single-use attach handle rides the reserved `login_hint` grammar
+    /// (ADM-008 Phase 3).
+    ///
+    /// Off by default, and off is a hard off: with the flag down no key is created, no registration
+    /// call is made, and the phone number is sent as the login hint exactly as before. Sign-in is
+    /// unaffected either way, since only a signup registers a genesis.
+    ///
+    /// It must stay off everywhere for now. The attach step is not wired end to end yet: the sign-in
+    /// page issues no attach challenge and asks for no proof, and a handle that is presented and does
+    /// not attach fails the signup by design (ADM-008 decision 6). Turning this on where genesis is
+    /// enabled and issuing would therefore break account creation there.
+    @UserPreference(key: UserDefaultsKeys.guaAccountGenesisEnabled, defaultValue: false, storageType: .userDefaults(store))
+    var guaAccountGenesisEnabled
+
     @UserPreference(key: UserDefaultsKeys.developerOptionsEnabled, defaultValue: isDevelopmentBuild, storageType: .userDefaults(store))
     var developerOptionsEnabled
 }
