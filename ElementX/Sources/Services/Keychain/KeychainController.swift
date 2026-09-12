@@ -26,6 +26,13 @@ enum KeychainControllerService: String {
     var recoveryID: String {
         InfoPlistReader.main.baseBundleIdentifier + ".keychain.recovery.\(rawValue)"
     }
+
+    /// GUA FORK: the account authority and recovery keys an `AccountGenesis` commits live in their own
+    /// keychain, kept device-only and non-synced (ADM-008 decision 5). Deliberately separate from
+    /// `recoveryID`, which syncs on purpose, and from the session tokens, which must not leave the device.
+    var genesisID: String {
+        InfoPlistReader.main.baseBundleIdentifier + ".keychain.genesis.\(rawValue)"
+    }
 }
 
 class KeychainController: KeychainControllerProtocol {

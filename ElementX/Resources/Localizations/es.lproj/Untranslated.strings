@@ -28,3 +28,4 @@
 "gua_soft_logout_signin_notice" = "Se cerró tu sesión en la cuenta de Gua. Vuelve a iniciar sesión para continuar.";
 "gua_join_room_by_address_hint" = "Pega la dirección de la sala que te han dado.";
 "gua_sign_in_with_passkey" = "Entrar con clave de acceso";
+"gua_account_genesis_setup_failed" = "No se pudo finalizar la configuración de tu cuenta en este dispositivo. Inténtalo de nuevo.";

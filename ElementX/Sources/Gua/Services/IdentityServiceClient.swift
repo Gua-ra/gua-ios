@@ -21,6 +21,9 @@ enum IdentityServiceError: Error, LocalizedError {
     case twoFactorCooldown(retryAfterSeconds: Int?)
     case invalidReauthToken
     case phoneAlreadyLinked
+    /// `POST /account/genesis` answered 503: this deployment does not do account genesis. Callers treat
+    /// it as "not supported here" and carry on with the existing signup, never as a failure.
+    case genesisUnavailable
     case server(status: Int, message: String?)
     case transport(Error)
     case decoding(Error)
@@ -47,6 +50,7 @@ enum IdentityServiceError: Error, LocalizedError {
             } else { "For your security, you can't change your number just yet. Please try again later." }
         case .invalidReauthToken: "Your verification expired. Please request a new code."
         case .phoneAlreadyLinked: "That phone number is already linked to another account."
+        case .genesisUnavailable: "Account genesis is not enabled on this deployment."
         case let .server(status, message): message ?? "Server error (\(status))."
         case let .transport(error): error.localizedDescription
         case let .decoding(error): "Could not parse the server response: \(error.localizedDescription)"
@@ -78,6 +82,14 @@ struct PinStatus {
     let cooldownRemaining: Int
 }
 
+/// GUA FORK: what `POST /account/genesis` returns (ADM-008 decision 6). The handle is single-use and
+/// expires with `expiresAt`; the server stores only its hash.
+struct AccountGenesisRegistrationResponse: Equatable {
+    let accountID: String
+    let attachHandle: String
+    let expiresAt: Date
+}
+
 @MainActor
 protocol IdentityServiceClientProtocol {
     /// Contact discovery: match a batch of address-book phone numbers (E.164) against Gua
@@ -105,6 +117,19 @@ protocol IdentityServiceClientProtocol {
     func startPasskeyEnrollment(accessToken: String) async throws -> URL
 }
 
+/// GUA FORK: the slice of identity-service that account genesis needs, kept separate from
+/// `IdentityServiceClientProtocol` because this one call is unauthenticated and runs before any session
+/// exists. Mirrors how `FederationRosterFetching` narrows the resolver.
+protocol AccountGenesisRegistering: Sendable {
+    /// Registers an on-device `AccountGenesis` and returns its accountId with a single-use attach
+    /// handle. Self-authenticating: the body carries a possession proof under the key committed inside
+    /// the genesis itself, which is what lets it run with no session to authenticate against.
+    ///
+    /// Both arguments are base64url without padding. Throws ``IdentityServiceError/genesisUnavailable``
+    /// on 503, which means the deployment does not do genesis rather than that anything went wrong.
+    func registerAccountGenesis(genesis: String, proof: String) async throws -> AccountGenesisRegistrationResponse
+}
+
 /// Ephemeral credentials minted by the identity-service for the Matrix
 /// `m.login.password` UIA stage during `client.resetIdentity()`.
 struct IdentityResetCredentials: Equatable {
@@ -126,7 +151,7 @@ struct ContactMatch: Equatable, Identifiable {
     }
 }
 
-final class IdentityServiceClient: IdentityServiceClientProtocol {
+final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesisRegistering {
     private let baseURL: URL
     private let session: URLSession
     private let decoder: JSONDecoder
@@ -384,6 +409,63 @@ final class IdentityServiceClient: IdentityServiceClientProtocol {
             return url
         } catch let error as IdentityServiceError {
             throw error
+        } catch {
+            throw IdentityServiceError.decoding(error)
+        }
+    }
+
+    // MARK: - Account genesis
+
+    func registerAccountGenesis(genesis: String, proof: String) async throws -> AccountGenesisRegistrationResponse {
+        struct Body: Encodable {
+            let genesis: String
+            let proof: String
+        }
+        struct Response: Decodable {
+            let accountId: String
+            let attachHandle: String
+            let expiresAt: Date
+        }
+
+        guard let url = URL(string: "/account/genesis", relativeTo: baseURL) else {
+            throw IdentityServiceError.invalidURL
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        do {
+            request.httpBody = try encoder.encode(Body(genesis: genesis, proof: proof))
+        } catch {
+            throw IdentityServiceError.transport(error)
+        }
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            throw IdentityServiceError.transport(error)
+        }
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw IdentityServiceError.server(status: -1, message: "Non-HTTP response.")
+        }
+        // 503 is the deployment saying it does not do genesis, which is not a failure. Everything else
+        // that is not a 201 is, and the caller must not quietly create an account without one.
+        guard httpResponse.statusCode != 503 else { throw IdentityServiceError.genesisUnavailable }
+        guard httpResponse.statusCode == 201 else {
+            let errorBody = try? decoder.decode(ErrorBody.self, from: data)
+            throw IdentityServiceError.server(status: httpResponse.statusCode,
+                                              message: errorBody?.message ?? errorBody?.error)
+        }
+
+        do {
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            let parsed = try decoder.decode(Response.self, from: data)
+            return AccountGenesisRegistrationResponse(accountID: parsed.accountId,
+                                                      attachHandle: parsed.attachHandle,
+                                                      expiresAt: parsed.expiresAt)
         } catch {
             throw IdentityServiceError.decoding(error)
         }

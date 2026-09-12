@@ -28,3 +28,4 @@
 "gua_soft_logout_signin_notice" = "Você foi desconectado da sua conta Gua. Entre novamente para continuar.";
 "gua_join_room_by_address_hint" = "Cole o endereço da sala que você recebeu.";
 "gua_sign_in_with_passkey" = "Entrar com chave de acesso";
+"gua_account_genesis_setup_failed" = "Não foi possível concluir a configuração da sua conta neste dispositivo. Tente novamente.";

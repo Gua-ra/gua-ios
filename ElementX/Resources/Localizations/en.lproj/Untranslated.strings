@@ -95,3 +95,10 @@
 "gua_resolver_claims_invalid" = "We couldn't confirm your organization details. Please try again.";
 "gua_resolver_routing_unavailable" = "We're having trouble connecting right now. Please try again in a moment.";
 "gua_resolver_registration_closed" = "We can't set up new accounts right now. Please try again later.";
+
+// MARK: - Gua: account genesis
+
+/* Shown on the phone entry screen when this device meant to register an account genesis at signup
+   and could not. Deliberately a failure rather than a silent fallback: an account created without
+   the genesis it intended would be indistinguishable afterwards. */
+"gua_account_genesis_setup_failed" = "We couldn’t finish setting up your account on this device. Please try again.";
