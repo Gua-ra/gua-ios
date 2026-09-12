@@ -74,9 +74,9 @@ struct ChangePhoneScreen: View {
                                  iconTint: .compound.iconPrimary,
                                  title: L10n.screenChangePhoneIntroHeader,
                                  message: L10n.screenChangePhoneIntroMessage,
-                                 actionTitle: L10n.actionContinue) {
-            context.send(viewAction: .start)
-        }
+                                 primary: ChangePhoneMessageButton(title: L10n.actionContinue) {
+                                     context.send(viewAction: .start)
+                                 })
     }
 
     // MARK: - Step-up required interstitial
@@ -89,10 +89,12 @@ struct ChangePhoneScreen: View {
                                  iconTint: .compound.iconPrimary,
                                  title: L10n.screenChangePhoneStepUpHeader,
                                  message: context.viewState.stepUpBlockMessage,
-                                 actionTitle: L10n.screenChangePhoneStepUpPasskeyAction,
-                                 action: { context.send(viewAction: .setUpStepUpFactor(.passkey)) },
-                                 secondaryActionTitle: L10n.screenChangePhoneStepUpPinAction,
-                                 secondaryAction: { context.send(viewAction: .setUpStepUpFactor(.pin)) })
+                                 primary: ChangePhoneMessageButton(title: L10n.screenChangePhoneStepUpPasskeyAction) {
+                                     context.send(viewAction: .setUpStepUpFactor(.passkey))
+                                 },
+                                 secondary: ChangePhoneMessageButton(title: L10n.screenChangePhoneStepUpPinAction) {
+                                     context.send(viewAction: .setUpStepUpFactor(.pin))
+                                 })
     }
 
     // MARK: - Cooldown interstitial
@@ -101,9 +103,7 @@ struct ChangePhoneScreen: View {
         ChangePhoneMessageScreen(icon: \.time,
                                  iconTint: .compound.iconCriticalPrimary,
                                  title: L10n.screenChangePhoneCooldownHeader,
-                                 message: context.viewState.cooldownMessage,
-                                 actionTitle: nil,
-                                 action: nil)
+                                 message: context.viewState.cooldownMessage)
     }
 
     // MARK: - New phone entry
@@ -218,9 +218,9 @@ struct ChangePhoneScreen: View {
                                  iconTint: .compound.iconSuccessPrimary,
                                  title: L10n.screenChangePhoneDoneHeader,
                                  message: L10n.screenChangePhoneDoneMessage,
-                                 actionTitle: L10n.actionDone) {
-            context.send(viewAction: .done)
-        }
+                                 primary: ChangePhoneMessageButton(title: L10n.actionDone) {
+                                     context.send(viewAction: .done)
+                                 })
     }
 
     // MARK: - Shared
@@ -241,32 +241,38 @@ struct ChangePhoneScreen: View {
 /// A polished, centered "hero" message screen used by the intro / needs-PIN / cooldown / done phases.
 /// Mirrors the Android `MessageCard`: a tinted card near the top holding an icon tile, a bold title and
 /// a muted body, with an optional full-width primary CTA below the card (outside it).
+/// One button on a message phase: its title and its handler travel together.
+///
+/// They are bundled rather than passed as a title plus a bare closure because the screen offers two
+/// buttons. With two closure parameters an unlabelled trailing closure binds to the LAST of them,
+/// so a call site that meant to pass the primary handler silently filled in the secondary one and
+/// left `action` nil, and the primary button was then nil-guarded out of the layout entirely. One
+/// closure per initialiser makes that misbinding impossible to write.
+private struct ChangePhoneMessageButton {
+    let title: String
+    let action: () -> Void
+}
+
 private struct ChangePhoneMessageScreen: View {
     let icon: KeyPath<CompoundIcons, Image>
     let iconTint: Color
     let title: String
     let message: String
-    let actionTitle: String?
-    let action: (() -> Void)?
-    let secondaryActionTitle: String?
-    let secondaryAction: (() -> Void)?
+    let primary: ChangePhoneMessageButton?
+    let secondary: ChangePhoneMessageButton?
 
     init(icon: KeyPath<CompoundIcons, Image>,
          iconTint: Color,
          title: String,
          message: String,
-         actionTitle: String? = nil,
-         action: (() -> Void)? = nil,
-         secondaryActionTitle: String? = nil,
-         secondaryAction: (() -> Void)? = nil) {
+         primary: ChangePhoneMessageButton? = nil,
+         secondary: ChangePhoneMessageButton? = nil) {
         self.icon = icon
         self.iconTint = iconTint
         self.title = title
         self.message = message
-        self.actionTitle = actionTitle
-        self.action = action
-        self.secondaryActionTitle = secondaryActionTitle
-        self.secondaryAction = secondaryAction
+        self.primary = primary
+        self.secondary = secondary
     }
 
     var body: some View {
@@ -274,13 +280,13 @@ private struct ChangePhoneMessageScreen: View {
             ChangePhoneMessageCard(icon: icon, iconTint: iconTint, title: title, message: message)
                 .padding(.bottom, 8)
 
-            if let actionTitle, let action {
-                Button(actionTitle, action: action)
+            if let primary {
+                Button(primary.title, action: primary.action)
                     .buttonStyle(.compound(.primary))
             }
 
-            if let secondaryActionTitle, let secondaryAction {
-                Button(secondaryActionTitle, action: secondaryAction)
+            if let secondary {
+                Button(secondary.title, action: secondary.action)
                     .buttonStyle(.compound(.secondary))
             }
         }

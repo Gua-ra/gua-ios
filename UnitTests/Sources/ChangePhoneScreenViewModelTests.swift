@@ -153,6 +153,8 @@ class ChangePhoneScreenViewModelTests: XCTestCase {
 
         XCTAssertTrue(identityService.startPhoneChangeCalls.isEmpty,
                       "Nothing may be sent to the new number before a step-up has been accepted")
+        XCTAssertFalse(context.viewState.passkeyRefusedByServer,
+                       "A ceremony that failed on the device says nothing about the credential")
 
         enterCode("654321")
         try await waitForPhase(.otp)
@@ -242,6 +244,83 @@ class ChangePhoneScreenViewModelTests: XCTestCase {
         XCTAssertTrue(context.viewState.reauthToken.isEmpty)
     }
 
+    /// The product rule at its sharpest. A refusal that comes back from the SERVER is precisely the
+    /// case the PIN fallback exists for: the credential is registered and the ceremony did run, so
+    /// re-offering it would walk into the identical refusal and the PIN would never get its turn.
+    /// The reauth token was spent by the refused attempt, so a fresh one has to be minted first.
+    func testServerRefusedPasskeyLetsThePinFinishTheChange() async throws {
+        makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: true))
+        identityService.startPhoneChangeResults = [.failure(IdentityServiceError.passkeyUserVerificationRequired)]
+        try await advanceToNewPhone()
+
+        try enterNewNumber()
+        try await waitForPhase(.reauth)
+
+        XCTAssertEqual(passkeyPresenter.callCount, 1)
+        XCTAssertTrue(context.viewState.reauthToken.isEmpty, "The refused attempt spent the token")
+        XCTAssertEqual(identityService.startReauthCallCount, 2, "A spent token has to be re-minted before the PIN can be tried")
+
+        enterCode("123456")
+        try await waitForPhase(.newPhone)
+        try enterNewNumber()
+        try await waitForPhase(.pin)
+
+        XCTAssertEqual(passkeyPresenter.callCount, 1, "The refused ceremony must not be run into the same refusal again")
+
+        enterCode("654321")
+        try await waitForPhase(.otp)
+
+        XCTAssertEqual(identityService.startPhoneChangeCalls.count, 2)
+        let call = try XCTUnwrap(identityService.startPhoneChangeCalls.last)
+        XCTAssertEqual(call.pin, "654321", "The PIN is the fallback, so it has to be able to settle the change")
+        XCTAssertNil(call.passkeyAssertion)
+        XCTAssertNil(call.passkeyStepUpID)
+    }
+
+    /// The server spends the reauth token before it checks the PIN, so one wrong digit costs the
+    /// whole reauth leg. The flow has to say that and mint a new token, rather than returning to a
+    /// PIN field that can only fail again and then blaming an expiry that never happened.
+    func testWrongPinRestartsAtReauthAndReportsTheRealReason() async throws {
+        makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: false))
+        identityService.startPhoneChangeResults = [.failure(IdentityServiceError.invalidPin)]
+        try await advanceToNewPhone()
+
+        try enterNewNumber()
+        try await waitForPhase(.pin)
+        enterCode("111111")
+        try await waitForPhase(.reauth)
+
+        XCTAssertTrue(context.viewState.reauthToken.isEmpty)
+        XCTAssertEqual(identityService.startReauthCallCount, 2)
+        XCTAssertEqual(context.viewState.errorMessage, L10n.screenChangePhonePinIncorrect)
+
+        enterCode("123456")
+        try await waitForPhase(.newPhone)
+        try enterNewNumber()
+        try await waitForPhase(.pin)
+        enterCode("654321")
+        try await waitForPhase(.otp)
+
+        XCTAssertEqual(identityService.startPhoneChangeCalls.map(\.pin), ["111111", "654321"])
+    }
+
+    /// No exit from `/start` may keep the token, including the ones that simply give up: the server
+    /// spends it on entry, so anything that carried it forward would report a stale token instead of
+    /// the reason the attempt actually failed.
+    func testAnAbandonedAttemptDoesNotKeepTheSpentToken() async throws {
+        makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: false))
+        identityService.startPhoneChangeResults = [.failure(IdentityServiceError.rateLimited)]
+        try await advanceToNewPhone()
+
+        try enterNewNumber()
+        try await waitForPhase(.pin)
+        enterCode("654321")
+        try await waitForPhase(.intro)
+
+        XCTAssertTrue(context.viewState.reauthToken.isEmpty)
+        XCTAssertEqual(identityService.startReauthCallCount, 1, "Giving up must not spend another code on the user's behalf")
+    }
+
     func testCompletingTheChangeRedeemsTheChallengeFromStart() async throws {
         makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: true))
         try await advanceToNewPhone()
@@ -293,6 +372,10 @@ private final class ChangePhoneIdentityServiceStub: IdentityServiceClientProtoco
                                              allowedCredentialIDs: [Data([4, 5, 6])])
     var startPhoneChangeResult: Result<PhoneChangeChallenge, Error> = .success(PhoneChangeChallenge(challengeID: "challenge-id",
                                                                                                     otpExpiresInSeconds: 300))
+    /// Answers for successive calls, oldest first, for the flows where the server refuses once and
+    /// then accepts. Once it runs dry `startPhoneChangeResult` answers everything, so the
+    /// single-answer tests below read exactly as they did.
+    var startPhoneChangeResults: [Result<PhoneChangeChallenge, Error>] = []
     private(set) var startReauthCallCount = 0
     private(set) var startPhoneChangeCalls: [StartPhoneChangeCall] = []
     private(set) var completeCalls: [CompleteCall] = []
@@ -328,7 +411,8 @@ private final class ChangePhoneIdentityServiceStub: IdentityServiceClientProtoco
         startPhoneChangeCalls.append(StartPhoneChangeCall(pin: pin,
                                                           passkeyStepUpID: passkeyStepUpID,
                                                           passkeyAssertion: passkeyAssertion))
-        return try startPhoneChangeResult.get()
+        let result = startPhoneChangeResults.isEmpty ? startPhoneChangeResult : startPhoneChangeResults.removeFirst()
+        return try result.get()
     }
 
     func completePhoneChange(accessToken: String, challengeId: String, code: String) async throws {

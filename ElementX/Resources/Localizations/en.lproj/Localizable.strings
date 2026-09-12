@@ -678,12 +678,13 @@
 "screen_change_phone_step_up_passkey_action" = "Set up a passkey";
 "screen_change_phone_step_up_pin_action" = "Set up a PIN";
 "screen_change_phone_passkey_fallback" = "We couldn't use your passkey. Enter your PIN instead.";
+"screen_change_phone_passkey_refused_restart" = "We couldn't use your passkey. Enter the new code we just sent to your current number, then confirm with your PIN.";
 "screen_change_phone_cooldown_header" = "Not just yet";
 "screen_change_phone_cooldown_message" = "For your security, you can change your number in %1$@.";
 "screen_change_phone_cooldown_message_generic" = "For your security, you can't change your number just yet. Please try again later.";
 "screen_change_phone_pin_header" = "Enter your PIN";
 "screen_change_phone_pin_footer" = "Confirm your 6-digit PIN to authorize this change.";
-"screen_change_phone_pin_incorrect" = "That PIN is incorrect. Please try again.";
+"screen_change_phone_pin_incorrect" = "That PIN is incorrect. For your security, enter the new code we just sent to your current number.";
 "screen_change_phone_otp_header" = "Verify your new number";
 "screen_change_phone_otp_footer" = "Enter the 6-digit code we sent to your new number.";
 "screen_change_phone_otp_invalid" = "That code is invalid or has expired. Please try again.";
