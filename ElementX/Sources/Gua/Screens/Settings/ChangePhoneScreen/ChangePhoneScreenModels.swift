@@ -92,6 +92,13 @@ struct ChangePhoneScreenViewState: BindableState {
     /// The step-up factors this account can be offered, strongest first, as published by the
     /// server for this operation and filtered to the ones the account holds.
     var stepUpFactors: [AuthFactor] = []
+    /// Set when the SERVER refused this flow's passkey leg, as opposed to this device failing to
+    /// produce an assertion. The credential is registered and the ceremony did run, so repeating it
+    /// would walk into the identical refusal and the PIN underneath would never get its turn; the
+    /// rest of this flow therefore asks for the PIN. It lives and dies with one flow, it only ever
+    /// steers which factor the UI asks for, and it is never reported to the server: the fallback is
+    /// reachable because the account holds a PIN, not because the client said anything about it.
+    var passkeyRefusedByServer = false
     /// Remaining cooldown in seconds; populated when entering the `.cooldown` phase.
     var cooldownRemainingSeconds = 0
     var stepUpBlockReason: ChangePhoneStepUpBlockReason = .noFactorRegistered

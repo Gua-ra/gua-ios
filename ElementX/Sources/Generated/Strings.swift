@@ -1444,11 +1444,13 @@ internal enum L10n {
   internal static var screenChangePhoneOtpInvalid: String { return L10n.tr("Localizable", "screen_change_phone_otp_invalid") }
   /// We couldn't use your passkey. Enter your PIN instead.
   internal static var screenChangePhonePasskeyFallback: String { return L10n.tr("Localizable", "screen_change_phone_passkey_fallback") }
+  /// We couldn't use your passkey. Enter the new code we just sent to your current number, then confirm with your PIN.
+  internal static var screenChangePhonePasskeyRefusedRestart: String { return L10n.tr("Localizable", "screen_change_phone_passkey_refused_restart") }
   /// Confirm your 6-digit PIN to authorize this change.
   internal static var screenChangePhonePinFooter: String { return L10n.tr("Localizable", "screen_change_phone_pin_footer") }
   /// Enter your PIN
   internal static var screenChangePhonePinHeader: String { return L10n.tr("Localizable", "screen_change_phone_pin_header") }
-  /// That PIN is incorrect. Please try again.
+  /// That PIN is incorrect. For your security, enter the new code we just sent to your current number.
   internal static var screenChangePhonePinIncorrect: String { return L10n.tr("Localizable", "screen_change_phone_pin_incorrect") }
   /// Enter the 6-digit code we sent to your current number.
   internal static var screenChangePhoneReauthFooter: String { return L10n.tr("Localizable", "screen_change_phone_reauth_footer") }

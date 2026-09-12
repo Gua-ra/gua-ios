@@ -46,6 +46,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             state.reauthToken = ""
             state.challengeID = ""
             state.stepUpFactors = []
+            state.passkeyRefusedByServer = false
             state.bindings.code = ""
             state.errorMessage = nil
             Task { await beginFlow() }
@@ -255,7 +256,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
     /// device and turns into "ask for the next factor", never into a message saying a factor was
     /// declined.
     private func stepUp() async {
-        if state.stepUpFactors.first == .passkey, let passkeyStepUpPresenter {
+        if state.stepUpFactors.first == .passkey, !state.passkeyRefusedByServer, let passkeyStepUpPresenter {
             guard let accessToken = clientProxy.accessToken else {
                 state.errorMessage = L10n.errorUnknown
                 return
@@ -265,14 +266,26 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
                                                                   type: .modal,
                                                                   title: L10n.commonLoading,
                                                                   persistent: true))
-            let assertion: PasskeyAssertion
             let options: PasskeyStepUpOptions
             do {
                 options = try await identityServiceClient.startPasskeyStepUp(accessToken: accessToken)
-                userIndicatorController.retractIndicatorWithId(indicatorID)
-                assertion = try await passkeyStepUpPresenter.assertion(for: options)
             } catch {
                 userIndicatorController.retractIndicatorWithId(indicatorID)
+                // The server would not mint the ceremony at all, so this flow's passkey leg is
+                // closed and re-running it later would only repeat the refusal. Nothing has been
+                // spent yet, so the next factor can be asked for straight away.
+                state.passkeyRefusedByServer = true
+                fallBackFromPasskey(error: error)
+                return
+            }
+            userIndicatorController.retractIndicatorWithId(indicatorID)
+
+            let assertion: PasskeyAssertion
+            do {
+                assertion = try await passkeyStepUpPresenter.assertion(for: options)
+            } catch {
+                // Device side: this never reached the server, the credential is untouched and the
+                // reauth token is unspent, so the passkey stays available to a later attempt.
                 fallBackFromPasskey(error: error)
                 return
             }
@@ -306,78 +319,112 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
                                                               title: L10n.commonLoading,
                                                               persistent: true))
         defer { userIndicatorController.retractIndicatorWithId(indicatorID) }
+
+        // `/start` consumes the single-use reauth token as its first act, BEFORE it looks at the
+        // step-up, so the token is spent whatever the rest of the call then answers. Drop it here,
+        // in one place, rather than per outcome: anything that carried it into a retry would earn
+        // `invalid_reauth_token` and report an expiry that never happened, and the factor the user
+        // still had to spend would never get its turn.
+        let spentReauthToken = state.reauthToken
+        state.reauthToken = ""
+        state.bindings.code = ""
+
         do {
             let challenge = try await identityServiceClient.startPhoneChange(accessToken: accessToken,
-                                                                             reauthToken: state.reauthToken,
+                                                                             reauthToken: spentReauthToken,
                                                                              newPhone: state.newPhoneE164,
                                                                              pin: pin,
                                                                              passkeyStepUpID: passkey?.stepUpID,
                                                                              passkeyAssertion: passkey?.assertion,
                                                                              language: Locale.current.identifier)
-            // The token is single use and has just been spent.
-            state.reauthToken = ""
             state.challengeID = challenge.challengeID
-            state.bindings.code = ""
             state.errorMessage = nil
             state.phase = .otp
-        } catch IdentityServiceError.stepUpRequired {
+        } catch {
+            await handleStartChangeFailure(error)
+        }
+    }
+
+    /// Routes a refusal from `/account/phone/change/start`.
+    ///
+    /// Every outcome here arrives with the reauth token already spent, so there are only three
+    /// honest answers: the operation is over (the hard block), the account has to wait, or the flow
+    /// goes back to where a token is minted. Nothing returns to a factor prompt still holding the
+    /// dead token, because that prompt cannot succeed and would blame the wrong thing when it fails.
+    private func handleStartChangeFailure(_ error: Error) async {
+        switch error as? IdentityServiceError {
+        case .stepUpRequired:
             // The hard block, as the server states it. The operation ends: the reauth token is
             // gone, and nothing here retries with a weaker proof.
-            state.reauthToken = ""
-            state.bindings.code = ""
             block(reason: .noFactorRegistered)
-        } catch let IdentityServiceError.twoFactorCooldown(retry) {
+        case .twoFactorCooldown(let retry):
             // The mid-flow re-check. The factor exists but is too new to be spent yet.
-            state.reauthToken = ""
-            state.bindings.code = ""
-            state.errorMessage = nil
-            state.cooldownRemainingSeconds = retry ?? 0
-            state.phase = .cooldown
-        } catch let IdentityServiceError.phoneChangeCooldown(retry) {
-            state.reauthToken = ""
-            state.bindings.code = ""
-            state.errorMessage = nil
-            state.cooldownRemainingSeconds = retry ?? 0
-            state.phase = .cooldown
-        } catch IdentityServiceError.passkeyUserVerificationRequired {
-            fallBackFromPasskey(error: IdentityServiceError.passkeyUserVerificationRequired)
-        } catch IdentityServiceError.passkeyStepUpUnavailable {
-            fallBackFromPasskey(error: IdentityServiceError.passkeyStepUpUnavailable)
-        } catch IdentityServiceError.invalidPin {
-            state.errorMessage = L10n.screenChangePhonePinIncorrect
-            state.bindings.code = ""
-            state.phase = .pin
-        } catch let IdentityServiceError.pinLocked(retry) {
-            state.errorMessage = IdentityServiceError.pinLocked(retryAfterSeconds: retry).errorDescription
-            state.bindings.code = ""
-            state.phase = .pin
-        } catch IdentityServiceError.invalidReauthToken {
+            showCooldown(seconds: retry ?? 0)
+        case .phoneChangeCooldown(let retry):
+            showCooldown(seconds: retry ?? 0)
+        case .pinLocked(let retry):
+            // Too many wrong PINs. A fresh code would only arrive at a PIN that is still locked,
+            // so the flow stops here rather than texting the user something they cannot use.
+            showCooldown(seconds: retry ?? 0)
+        case .passkeyUserVerificationRequired, .passkeyStepUpUnavailable:
+            await fallBackFromRefusedPasskey()
+        case .invalidPin:
+            // The server burns the token before it checks the PIN, so a typo costs the whole reauth
+            // leg. Say that plainly instead of letting the next attempt fail as a stale token.
+            await restartAtReauth(message: L10n.screenChangePhonePinIncorrect)
+        case .invalidReauthToken:
             // Single use, five minutes. Restart where the token is minted, which is also where the
-            // step-up is presented again; nothing is carried over.
+            // step-up is presented again.
             await restartAtReauth(message: IdentityServiceError.invalidReauthToken.errorDescription)
-        } catch IdentityServiceError.phoneAlreadyLinked {
+        case .phoneAlreadyLinked:
             // Keep the typed number so the user can see which one was rejected and tweak it, and
-            // surface the reason as a toast, otherwise the bounce back reads as an unexplained loop.
-            state.errorMessage = L10n.screenChangePhoneAlreadyLinked
-            state.bindings.code = ""
-            state.phase = .newPhone
+            // surface the reason on the way back, otherwise the restart reads as an unexplained loop.
             userIndicatorController.submitIndicator(UserIndicator(title: L10n.screenChangePhoneAlreadyLinked,
                                                                   iconName: "xmark"))
-        } catch IdentityServiceError.rateLimited {
-            state.errorMessage = IdentityServiceError.rateLimited.errorDescription
-            state.bindings.code = ""
-            state.phase = state.stepUpFactors.contains(.pin) ? .pin : .newPhone
-        } catch let IdentityServiceError.server(status, message) where status == 400 {
+            await restartAtReauth(message: L10n.screenChangePhoneAlreadyLinked)
+        case .server(let status, let message) where status == 400:
             // Invalid or unsupported number for the configured SMS region.
-            state.errorMessage = message ?? L10n.screenPhoneLoginInvalidNumber
             state.bindings.localPhoneNumber = ""
-            state.phase = .newPhone
-        } catch {
+            await restartAtReauth(message: message ?? L10n.screenPhoneLoginInvalidNumber)
+        case .rateLimited:
+            // Resending immediately is exactly what is being rate limited, so hand the flow back to
+            // the user rather than spending another code on their behalf.
+            abandonFlow(message: IdentityServiceError.rateLimited.errorDescription ?? L10n.errorUnknown)
+        default:
             MXLog.error("Failed to start the phone-number change: \(error)")
-            state.errorMessage = (error as? LocalizedError)?.errorDescription ?? L10n.errorUnknown
-            state.bindings.code = ""
-            state.phase = .newPhone
+            abandonFlow(message: (error as? LocalizedError)?.errorDescription ?? L10n.errorUnknown)
         }
+    }
+
+    /// The server refused the assertion this device produced. The credential is registered and the
+    /// ceremony did run, so running it again would reach the identical refusal; remember that for
+    /// the rest of this flow so the PIN actually gets its turn. The server is told nothing, and the
+    /// PIN is only reachable because the account holds one.
+    private func fallBackFromRefusedPasskey() async {
+        MXLog.info("The passkey step-up was refused by the server; the rest of this flow uses the PIN")
+        state.passkeyRefusedByServer = true
+        guard state.stepUpFactors.contains(.pin) else {
+            // Nothing underneath the passkey, so there is no weaker proof to offer and none is
+            // invented here.
+            block(reason: .passkeyUnusableHere)
+            return
+        }
+        await restartAtReauth(message: L10n.screenChangePhonePasskeyRefusedRestart)
+    }
+
+    private func showCooldown(seconds: Int) {
+        state.errorMessage = nil
+        state.cooldownRemainingSeconds = seconds
+        state.phase = .cooldown
+    }
+
+    /// Ends the attempt without spending another code. The token is gone, so the flow starts again
+    /// from the top when the user chooses to.
+    private func abandonFlow(message: String) {
+        state.challengeID = ""
+        state.errorMessage = nil
+        state.phase = .intro
+        userIndicatorController.submitIndicator(UserIndicator(title: message, iconName: "xmark"))
     }
 
     /// Redeems the challenge with the code that arrived at the new number.
@@ -428,8 +475,13 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         }
     }
 
-    /// Goes back to where the reauth token is minted and sends a fresh code. Everything the
-    /// previous attempt held is dropped, so the step-up is produced again too.
+    /// Goes back to where the reauth token is minted and sends a fresh code, so the step-up is
+    /// produced again against a token that can actually be spent.
+    ///
+    /// Every proof the previous attempt held is dropped. What deliberately survives is
+    /// ``ChangePhoneScreenViewState/passkeyRefusedByServer``, which is not a proof but a record of
+    /// an answer the server already gave: re-offering the refused ceremony here is what would strand
+    /// the flow in a loop the PIN could never break out of.
     private func restartAtReauth(message: String?) async {
         guard let accessToken = clientProxy.accessToken else {
             state.errorMessage = L10n.errorUnknown
@@ -445,9 +497,13 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         }
     }
 
-    /// This device could not produce the assertion. Offer the next factor down, and tell the server
-    /// nothing: it never learns that a passkey was unavailable, because that claim is free to make
-    /// and could only ever ask for something weaker.
+    /// The assertion was not produced on this device, or the ceremony could not be started. Offer
+    /// the next factor down, and tell the server nothing: it never learns that a passkey was
+    /// unavailable, because that claim is free to make and could only ever ask for something weaker.
+    ///
+    /// The reauth token has not been spent on either of these paths, so the PIN can be asked for
+    /// straight away. A refusal that comes back from `/start` is the other case and goes through
+    /// ``fallBackFromRefusedPasskey()``, which has to mint a fresh token first.
     private func fallBackFromPasskey(error: Error) {
         MXLog.info("Passkey step-up was not produced on this device; offering the next factor")
         let cancelled: Bool
