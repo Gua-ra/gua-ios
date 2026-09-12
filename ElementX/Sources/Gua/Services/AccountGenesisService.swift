@@ -36,12 +36,31 @@ struct PendingAccountGenesis: Equatable {
     let accountID: AccountID
     let attachHandle: String
     let expiresAt: Date
+
+    /// The attach-handle alphabet. identity-service issues 32 CSPRNG bytes as base64url without
+    /// padding and validates what it receives against the same shape, answering anything else with a
+    /// 400 that kills the whole authorize request. A handle this client would not accept is therefore
+    /// one it must never put in a hint, which is the rule the Android client applies too.
+    static func isValidAttachHandle(_ value: String) -> Bool {
+        guard (16...128).contains(value.count) else { return false }
+        return value.allSatisfy { character in
+            character.isASCII && (character.isLetter || character.isNumber || character == "-" || character == "_")
+        }
+    }
+
+    /// Whether the window the server put on this handle is still open. A handle presented outside it
+    /// does not attach, and a handle that does not attach fails the signup, so it is worth knowing
+    /// before it is presented rather than after.
+    func isUsable(at date: Date = Date()) -> Bool {
+        expiresAt > date
+    }
 }
 
 enum AccountGenesisRegistration: Equatable {
     case registered(PendingAccountGenesis)
-    /// The deployment answered 503: it does not do genesis. The caller continues with today's signup,
-    /// unchanged and with nothing shown to the user.
+    /// The deployment answered 503 or 403: it does not do genesis, or it declines to issue under this
+    /// recovery framework. Either way no handle exists to present, so the caller continues with
+    /// today's signup, unchanged and with nothing shown to the user.
     case notSupportedByDeployment
     /// The feature flag is off, so nothing was generated, stored or sent.
     case disabled
@@ -53,6 +72,12 @@ enum AccountGenesisServiceError: Error {
     case keyUnavailable
     case signingFailed
     case malformedChallenge
+    /// The server returned a handle its own login-hint parser would refuse. Presenting it would fail
+    /// the authorize request, so the signup fails here instead of there.
+    case malformedAttachHandle
+    /// The attach window closed before the handle was presented. The attach would fail server-side and
+    /// take the signup with it, so this fails at the same place with a clearer cause.
+    case handleExpired
     case registrationFailed(Error)
 }
 
@@ -73,7 +98,9 @@ protocol AccountGenesisServiceProtocol {
     /// signature as base64url, for the profile step's `attachProof`.
     func attachProof(challenge: String, for pending: PendingAccountGenesis) throws -> String
 
-    /// Drops the keys of a signup that did not complete.
+    /// Drops the keys of a signup that did not complete. Every path that abandons a registered genesis
+    /// calls this: the keys are filed under an accountId only the pending signup knows, so keys left
+    /// behind are unreadable and unremovable for the life of the install.
     func discard(_ pending: PendingAccountGenesis)
 }
 
@@ -155,14 +182,35 @@ final class AccountGenesisService: AccountGenesisServiceProtocol {
                 keyStore.removeKeys(forAccountID: accountID.value)
                 throw AccountGenesisServiceError.registrationFailed(AccountGenesisError.badAccountID)
             }
-            return .registered(PendingAccountGenesis(accountID: accountID,
-                                                     attachHandle: response.attachHandle,
-                                                     expiresAt: response.expiresAt))
-        } catch IdentityServiceError.genesisUnavailable {
-            // 503: this deployment does not do genesis. Not an error, and nothing the user should see.
-            MXLog.info("Account genesis is not enabled on this deployment; continuing with the existing signup.")
+            guard PendingAccountGenesis.isValidAttachHandle(response.attachHandle) else {
+                // The server's own parser would refuse this value in a login hint, and refusing it
+                // there fails the authorize request rather than the registration.
+                MXLog.error("The registered attach handle is not a well-formed value.")
+                keyStore.removeKeys(forAccountID: accountID.value)
+                throw AccountGenesisServiceError.malformedAttachHandle
+            }
+            let pending = PendingAccountGenesis(accountID: accountID,
+                                                attachHandle: response.attachHandle,
+                                                expiresAt: response.expiresAt)
+            guard pending.isUsable() else {
+                MXLog.error("The registered attach handle is already outside its window.")
+                keyStore.removeKeys(forAccountID: accountID.value)
+                throw AccountGenesisServiceError.handleExpired
+            }
+            return .registered(pending)
+        } catch IdentityServiceError.genesisUnavailable, IdentityServiceError.genesisIssuanceNotPermitted {
+            // 503, or 403 while the deployment declines to issue under this recovery framework. Neither
+            // is an error and neither is anything the user should see: no handle exists to present, so
+            // this signup takes the bootstrap branch ADM-008 decision 6 calls not a failure. The Android
+            // client reads the two statuses the same way.
+            MXLog.info("This deployment issues no account genesis; continuing with the existing signup.")
             keyStore.removeKeys(forAccountID: accountID.value)
             return .notSupportedByDeployment
+        } catch let error as AccountGenesisServiceError {
+            // This service's own refusal: a handle it will not present, a window that has already
+            // closed, an accountId it does not agree with. Each cleaned up where it was raised, and
+            // each says more than `registrationFailed` wrapped around it a second time would.
+            throw error
         } catch {
             keyStore.removeKeys(forAccountID: accountID.value)
             throw AccountGenesisServiceError.registrationFailed(error)
@@ -174,10 +222,18 @@ final class AccountGenesisService: AccountGenesisServiceProtocol {
         // malformed handle all fail the signup rather than being quietly dropped, because dropping a
         // handle is the silent downgrade ADM-008 decision 6 forbids. The reserved bare value `passkey`
         // is a different hint entirely and is untouched by the `gua:` grammar.
+        //
+        // Both halves are known-good by construction: the handle was checked against the server's own
+        // alphabet at registration, and the phone is `+` followed by digits, so neither can carry the
+        // `;` or `=` that would let one field be read as another.
         "gua:phone=\(phoneNumber);genesis=\(pending.attachHandle)"
     }
 
     func attachProof(challenge: String, for pending: PendingAccountGenesis) throws -> String {
+        guard pending.isUsable() else {
+            throw AccountGenesisServiceError.handleExpired
+        }
+
         guard let challengeBytes = GuaBase64URL.decode(challenge),
               challengeBytes.count == GenesisProofs.attachChallengeLength else {
             throw AccountGenesisServiceError.malformedChallenge

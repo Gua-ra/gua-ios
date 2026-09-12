@@ -89,6 +89,20 @@ final class AccountGenesisServiceTests: XCTestCase {
         XCTAssertTrue(keyStore.stored.isEmpty)
     }
 
+    func testADeploymentThatDeclinesToIssueFallsBackSilently() async throws {
+        appSettings.guaAccountGenesisEnabled = true
+        registrar.errorToThrow = IdentityServiceError.genesisIssuanceNotPermitted
+
+        let outcome = try await service.registerGenesis()
+
+        // 403 is the deployment declining to issue under this recovery framework, which is another way
+        // of saying no handle exists to present. Failing the signup here would stop account creation on
+        // every deployment that has genesis on without issuance permitted, which is the documented
+        // default. The Android client reads 403 and 503 identically for the same reason.
+        XCTAssertEqual(outcome, .notSupportedByDeployment)
+        XCTAssertTrue(keyStore.stored.isEmpty)
+    }
+
     func testAFailedRegistrationThrowsAndLeavesNoKeys() async throws {
         appSettings.guaAccountGenesisEnabled = true
         registrar.errorToThrow = IdentityServiceError.server(status: 500, message: nil)
@@ -109,6 +123,48 @@ final class AccountGenesisServiceTests: XCTestCase {
             _ = try await service.registerGenesis()
             XCTFail("An accountId that does not match the one derived on device must be refused.")
         } catch AccountGenesisServiceError.registrationFailed {
+            XCTAssertTrue(keyStore.stored.isEmpty)
+        }
+    }
+
+    // MARK: - The attach handle
+
+    func testTheAttachHandleAlphabetMatchesTheServerParser() {
+        XCTAssertTrue(PendingAccountGenesis.isValidAttachHandle(String(repeating: "a", count: 16)))
+        XCTAssertTrue(PendingAccountGenesis.isValidAttachHandle(String(repeating: "a", count: 128)))
+        XCTAssertTrue(PendingAccountGenesis.isValidAttachHandle("AZaz09-_AZaz09-_"))
+
+        XCTAssertFalse(PendingAccountGenesis.isValidAttachHandle(String(repeating: "a", count: 15)))
+        XCTAssertFalse(PendingAccountGenesis.isValidAttachHandle(String(repeating: "a", count: 129)))
+        XCTAssertFalse(PendingAccountGenesis.isValidAttachHandle("padded+handle/with=="))
+        XCTAssertFalse(PendingAccountGenesis.isValidAttachHandle("handle-with-a-\u{e7}-in-it"))
+        XCTAssertFalse(PendingAccountGenesis.isValidAttachHandle("handle with spaces!!"))
+    }
+
+    func testAMalformedAttachHandleIsRefusedAndLeavesNoKeys() async throws {
+        appSettings.guaAccountGenesisEnabled = true
+
+        for handle in ["", "too-short", "handle with spaces!!", "semicolon;and=equals;in-it", String(repeating: "a", count: 129)] {
+            keyStore.stored.removeAll()
+            registrar.handle = handle
+
+            do {
+                _ = try await service.registerGenesis()
+                XCTFail("A handle the server's own parser would refuse must never reach a login hint: \(handle)")
+            } catch AccountGenesisServiceError.malformedAttachHandle {
+                XCTAssertTrue(keyStore.stored.isEmpty, "No keys may survive a registration this client refused.")
+            }
+        }
+    }
+
+    func testAHandleThatArrivesOutsideItsWindowIsRefused() async throws {
+        appSettings.guaAccountGenesisEnabled = true
+        registrar.expiresAt = Date().addingTimeInterval(-1)
+
+        do {
+            _ = try await service.registerGenesis()
+            XCTFail("A handle that is already outside its window must not be presented.")
+        } catch AccountGenesisServiceError.handleExpired {
             XCTAssertTrue(keyStore.stored.isEmpty)
         }
     }
@@ -188,6 +244,23 @@ final class AccountGenesisServiceTests: XCTestCase {
         }
     }
 
+    func testTheAttachProofIsRefusedOnceTheWindowHasClosed() async throws {
+        appSettings.guaAccountGenesisEnabled = true
+        guard case .registered(let pending) = try await service.registerGenesis() else {
+            return XCTFail("Expected the genesis to be registered.")
+        }
+        let expired = PendingAccountGenesis(accountID: pending.accountID,
+                                            attachHandle: pending.attachHandle,
+                                            expiresAt: Date().addingTimeInterval(-1))
+
+        XCTAssertThrowsError(try service.attachProof(challenge: GuaBase64URL.encode([UInt8](0..<32)),
+                                                     for: expired)) { error in
+            guard case AccountGenesisServiceError.handleExpired = error else {
+                return XCTFail("Expected handleExpired, got \(error).")
+            }
+        }
+    }
+
     func testDiscardingASignupRemovesItsKeys() async throws {
         appSettings.guaAccountGenesisEnabled = true
         guard case .registered(let pending) = try await service.registerGenesis() else {
@@ -207,6 +280,7 @@ final class AccountGenesisServiceTests: XCTestCase {
 /// test can assert on what the client actually put on the wire.
 private final class GenesisRegistrarStub: AccountGenesisRegistering, @unchecked Sendable {
     var handle = "c3R1Yi1hdHRhY2gtaGFuZGxlLWZvci10ZXN0cw"
+    var expiresAt = Date().addingTimeInterval(1800)
     var errorToThrow: Error?
     var accountIDOverride: String?
     private(set) var receivedGenesis: String?
@@ -223,7 +297,7 @@ private final class GenesisRegistrarStub: AccountGenesisRegistering, @unchecked 
         let accountID = try AccountGenesis.decode(bytes).accountID()
         return AccountGenesisRegistrationResponse(accountID: accountIDOverride ?? accountID.value,
                                                   attachHandle: handle,
-                                                  expiresAt: Date().addingTimeInterval(1800))
+                                                  expiresAt: expiresAt)
     }
 }
 

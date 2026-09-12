@@ -429,6 +429,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                 stateMachine.tryEvent(.continueWithOIDC, userInfo: (oidcData, window))
             case .failure(let error):
                 MXLog.error("Failed creating OIDC login URL from phone hint: \(error)")
+                discardPendingAccountGenesis()
                 coordinator.displayError(error.localizedDescription)
             }
         }
@@ -443,7 +444,9 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     ///
     /// Throws when this device meant to register a genesis and could not, which fails the signup.
     private func guaLoginHint(phoneNumber: String, flow: AuthenticationFlow) async throws -> String {
-        pendingAccountGenesis = nil
+        // A resubmitted number starts a new signup, so whatever the last one registered is abandoned
+        // here rather than left in the keychain.
+        discardPendingAccountGenesis()
 
         // Sign-in never registers a genesis: only a new account gets one, so an existing user's path
         // through this method is the single `return` below, byte for byte what it was before.
@@ -460,6 +463,19 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
             pendingAccountGenesis = pending
             return accountGenesisService.loginHint(phoneNumber: phoneNumber, pending: pending)
         }
+    }
+
+    /// GUA FORK: drop the genesis of a signup that will not complete.
+    ///
+    /// The authority and recovery keys are filed in the keychain under the accountId, and nothing but
+    /// this pending value knows that accountId. An abandoned signup that does not discard them leaves
+    /// two Ed25519 private keys behind that no later code path can read or remove, once per abandoned
+    /// attempt. Every path that ends a signup without attaching calls this, so the only keys that
+    /// outlive a signup are the ones an account actually owns.
+    private func discardPendingAccountGenesis() {
+        guard let pendingAccountGenesis else { return }
+        accountGenesisService?.discard(pendingAccountGenesis)
+        self.pendingAccountGenesis = nil
     }
     
     /// GUA FORK: start the OIDC flow with the reserved `passkey` login hint so the sign-in page leads
@@ -493,6 +509,10 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                 coordinator.setSubmitting(false)
                 self.isHandlingPhoneSubmission = false
             }
+
+            // GUA FORK: signing in with a passkey abandons any genesis a signup on this screen had
+            // already registered, so its keys go with it.
+            discardPendingAccountGenesis()
 
             // A build with no Gua deployment configured (a development build without the injected
             // Secrets) has no default account provider, and `appSettings.accountProviders` then
@@ -646,6 +666,9 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
             case .success(let userSession):
                 stateMachine.tryEvent(.signedIn, userInfo: userSession)
             case .failure:
+                // GUA FORK: the sign-in page was cancelled or failed, so the genesis this signup
+                // registered will never be attached and its keys go with it.
+                discardPendingAccountGenesis()
                 stateMachine.tryEvent(.cancelledOIDCAuthentication(previousState: fromState))
                 // Nothing more to do, the alerts are handled by the presenter.
             }

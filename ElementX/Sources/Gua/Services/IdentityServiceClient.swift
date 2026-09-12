@@ -24,6 +24,11 @@ enum IdentityServiceError: Error, LocalizedError {
     /// `POST /account/genesis` answered 503: this deployment does not do account genesis. Callers treat
     /// it as "not supported here" and carry on with the existing signup, never as a failure.
     case genesisUnavailable
+    /// `POST /account/genesis` answered 403: the deployment declines to issue under the recovery
+    /// framework this client commits to, which ADM-008 decision 4 gates on ADM-002. Like 503 it means
+    /// no handle exists to present, so callers take the no-handle bootstrap branch decision 6 calls
+    /// not a failure rather than blocking the signup.
+    case genesisIssuanceNotPermitted
     case server(status: Int, message: String?)
     case transport(Error)
     case decoding(Error)
@@ -51,6 +56,7 @@ enum IdentityServiceError: Error, LocalizedError {
         case .invalidReauthToken: "Your verification expired. Please request a new code."
         case .phoneAlreadyLinked: "That phone number is already linked to another account."
         case .genesisUnavailable: "Account genesis is not enabled on this deployment."
+        case .genesisIssuanceNotPermitted: "Account genesis issuance is not permitted on this deployment."
         case let .server(status, message): message ?? "Server error (\(status))."
         case let .transport(error): error.localizedDescription
         case let .decoding(error): "Could not parse the server response: \(error.localizedDescription)"
@@ -126,7 +132,8 @@ protocol AccountGenesisRegistering: Sendable {
     /// the genesis itself, which is what lets it run with no session to authenticate against.
     ///
     /// Both arguments are base64url without padding. Throws ``IdentityServiceError/genesisUnavailable``
-    /// on 503, which means the deployment does not do genesis rather than that anything went wrong.
+    /// on 503 and ``IdentityServiceError/genesisIssuanceNotPermitted`` on 403. Both mean the deployment
+    /// issues no handle, rather than that anything went wrong.
     func registerAccountGenesis(genesis: String, proof: String) async throws -> AccountGenesisRegistrationResponse
 }
 
@@ -450,9 +457,11 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         guard let httpResponse = response as? HTTPURLResponse else {
             throw IdentityServiceError.server(status: -1, message: "Non-HTTP response.")
         }
-        // 503 is the deployment saying it does not do genesis, which is not a failure. Everything else
+        // 503 and 403 are the deployment saying no handle exists to present: genesis is off here, or
+        // it declines to issue under this recovery framework. Neither is a failure. Everything else
         // that is not a 201 is, and the caller must not quietly create an account without one.
         guard httpResponse.statusCode != 503 else { throw IdentityServiceError.genesisUnavailable }
+        guard httpResponse.statusCode != 403 else { throw IdentityServiceError.genesisIssuanceNotPermitted }
         guard httpResponse.statusCode == 201 else {
             let errorBody = try? decoder.decode(ErrorBody.self, from: data)
             throw IdentityServiceError.server(status: httpResponse.statusCode,
