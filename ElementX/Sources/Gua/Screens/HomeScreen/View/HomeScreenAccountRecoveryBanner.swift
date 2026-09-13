@@ -15,6 +15,11 @@ struct HomeScreenAccountRecoveryBanner: View {
     let recovery: PendingAccountRecovery
     var context: HomeScreenViewModel.Context
 
+    /// Set to the completable time when it arrives, so a device left open on the home screen switches
+    /// to "can be finished now" instead of showing a time that has already passed. Nothing else
+    /// redraws the banner then: the periodic re-read reports the same recovery.
+    @State private var reachedCompletableAt = Date.distantPast
+
     var body: some View {
         VStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
@@ -23,9 +28,15 @@ struct HomeScreenAccountRecoveryBanner: View {
                     .foregroundColor(.compound.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                Text(Self.message(for: recovery, now: .now))
+                Text(Self.message(for: recovery, now: max(reachedCompletableAt, .now)))
                     .font(.compound.bodyMD)
                     .foregroundColor(.compound.textSecondary)
+                    .task(id: recovery.completableAt) {
+                        guard let completableAt = recovery.completableAt, completableAt > .now else { return }
+                        try? await Task.sleep(for: .seconds(completableAt.timeIntervalSinceNow))
+                        guard !Task.isCancelled else { return }
+                        reachedCompletableAt = completableAt
+                    }
             }
 
             Button {
@@ -51,7 +62,7 @@ struct HomeScreenAccountRecoveryBanner: View {
         guard completableAt > now else {
             return L10n.screenAccountRecoveryBannerMessageNow
         }
-        return L10n.screenAccountRecoveryBannerMessageLater(completableAt.formatted(date: .abbreviated, time: .shortened))
+        return L10n.screenAccountRecoveryBannerMessageLater(completableAt.formatted(date: .long, time: .shortened))
     }
 }
 
