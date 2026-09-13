@@ -106,6 +106,68 @@ class TwoStepVerificationScreenViewModelTests: XCTestCase {
         XCTAssertNil(identityService.pinChangeStarts.last?.stepUpID)
     }
 
+    func testAStepUpTheServerWillNotStartFallsBackToTheCurrentPin() async throws {
+        makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: true))
+        identityService.stepUpError = IdentityServiceError.passkeyStepUpUnavailable
+
+        try await submitNumberForChange()
+        try await waitForPhase(.enteringCurrent)
+
+        XCTAssertEqual(context.viewState.errorMessage, L10n.screenChangePhonePasskeyFallback)
+        XCTAssertEqual(passkeyPresenter.callCount, 0)
+        XCTAssertTrue(identityService.pinChangeStarts.isEmpty)
+    }
+
+    /// No connection says nothing about the passkey, so it is not reported as one that was refused,
+    /// and the PIN is not offered as though it would fare any better.
+    func testAConnectionFailureIsShownAsItIsAndNotAsARefusedPasskey() async throws {
+        makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: true))
+        identityService.passkeyPinChangeError = IdentityServiceError.transport(URLError(.notConnectedToInternet))
+
+        try await submitNumberForChange()
+        try await waitForPhase(.enteringPhone)
+
+        XCTAssertNotNil(context.viewState.errorMessage)
+        XCTAssertNotEqual(context.viewState.errorMessage, L10n.screenChangePhonePasskeyFallback)
+    }
+
+    func testCancellingWhileThePasskeySheetIsUpSendsNothing() async throws {
+        makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: true))
+        passkeyPresenter.beforeReturning = { [weak self] in
+            self?.context.send(viewAction: .cancelEntry)
+        }
+
+        try await submitNumberForChange()
+        try await waitForPhase(.overview)
+        await Task.yield()
+
+        XCTAssertEqual(passkeyPresenter.callCount, 1)
+        XCTAssertTrue(identityService.pinChangeStarts.isEmpty, "No code may be sent for a change that was cancelled")
+        XCTAssertEqual(context.viewState.phase, .overview)
+    }
+
+    /// The person was never asked for their current PIN on the passkey path, so a failure finishing the
+    /// change must not start asking for it.
+    func testAFailureAfterThePasskeyWasAcceptedReturnsToTheNewPin() async throws {
+        makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: true))
+        identityService.completePinChangeError = IdentityServiceError.server(status: 500, message: nil)
+
+        try await submitNumberForChange()
+        try await waitForPhase(.enteringOtp)
+        context.pin = "123456"
+        context.send(viewAction: .pinChanged)
+        try await waitForPhase(.enteringNew)
+        context.pin = "482915"
+        context.send(viewAction: .pinChanged)
+        try await waitForPhase(.confirmingNew)
+        context.pin = "482915"
+        context.send(viewAction: .pinChanged)
+        try await waitForPhase(.enteringNew)
+
+        XCTAssertEqual(identityService.completePinChangeCalls, 1)
+        XCTAssertNotNil(context.viewState.errorMessage)
+    }
+
     func testPinOnlyAccountIsAskedForTheCurrentPinAndNeverRunsTheCeremony() async throws {
         makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: false))
 
@@ -235,8 +297,11 @@ private final class TwoStepVerificationIdentityServiceStub: IdentityServiceClien
 
     private(set) var pinChangeStarts: [PinChangeStart] = []
     private(set) var stepUpStarts = 0
+    private(set) var completePinChangeCalls = 0
     /// Thrown by a start that carries a passkey assertion. A start with the PIN always succeeds.
     var passkeyPinChangeError: Error?
+    var stepUpError: Error?
+    var completePinChangeError: Error?
 
     func startPinChange(accessToken: String,
                         phone: String,
@@ -250,9 +315,18 @@ private final class TwoStepVerificationIdentityServiceStub: IdentityServiceClien
         return "challenge-id"
     }
 
-    func completePinChange(accessToken: String, challengeId: String, otpCode: String, newPin: String) async throws { }
+    func completePinChange(accessToken: String, challengeId: String, otpCode: String, newPin: String) async throws {
+        completePinChangeCalls += 1
+        if let completePinChangeError {
+            throw completePinChangeError
+        }
+    }
+
     func startPasskeyStepUp(accessToken: String) async throws -> PasskeyStepUpOptions {
         stepUpStarts += 1
+        if let stepUpError {
+            throw stepUpError
+        }
         return PasskeyStepUpOptions(stepUpID: "step-up-id", relyingPartyID: "example.com", challenge: Data([1]), allowedCredentialIDs: [])
     }
 
@@ -275,6 +349,8 @@ private final class TwoStepVerificationIdentityServiceStub: IdentityServiceClien
 private final class TwoStepPasskeyPresenterStub: PasskeyStepUpPresenting {
     private let result: Result<PasskeyAssertion, Error>
     private(set) var callCount = 0
+    /// Runs while the sheet would be up, before the result is handed back.
+    var beforeReturning: (@MainActor () -> Void)?
 
     init(result: Result<PasskeyAssertion, Error>) {
         self.result = result
@@ -282,6 +358,9 @@ private final class TwoStepPasskeyPresenterStub: PasskeyStepUpPresenting {
 
     func assertion(for options: PasskeyStepUpOptions) async throws -> PasskeyAssertion {
         callCount += 1
+        if let beforeReturning {
+            await beforeReturning()
+        }
         return try result.get()
     }
 }
