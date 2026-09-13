@@ -10,33 +10,67 @@ import Foundation
 // GUA FORK: Change-phone-number flow. Mirrors the multi-step structure of the
 // TwoStepVerificationScreen (PIN/OTP bubble fields, country-aware phone entry).
 //
-// Backend contract is PIN-step-up-first, gated on PIN status. On intro Continue we first
-// `GET /security/pin/status`:
-//   • no PIN → ``needsPinSetup`` interstitial (route to the 2SV PIN-setup flow; do not proceed).
-//   • PIN present but `changePhoneCooldownRemainingSeconds > 0` → ``cooldown`` interstitial
-//     (fresh-2FA cooldown; do not proceed).
-//   • otherwise → ``pin`` as below.
+// The contract is the identity service's account endpoints. On intro Continue the screen reads
+// `GET /security/pin/status`, which reports what the account HAS REGISTERED and which factors a
+// phone change accepts, and that report is what decides the route:
+//   • the account can offer none of the accepted factors → ``stepUpRequired``, a hard block that
+//     offers a choice between setting up a passkey and setting up a PIN. Deliberately first, so an
+//     account that cannot finish the flow is never texted anything at all.
+//   • the only factor it can offer is the PIN and that PIN is still inside the fresh-2FA hold
+//     (`changePhoneCooldownRemainingSeconds`) → ``cooldown``. The hold is about the PIN, so an
+//     account that can offer a passkey is not held by it.
+//   • otherwise → ``reauth`` and onward.
 // Flow:
-//   ``intro`` → ``pin`` (6-digit account PIN; `POST /security/pin/reauth` → reauthToken, no SMS)
-//   → ``newPhone`` (country-aware entry of the new number; `POST /otp/change-number/request` sends
-//      the OTP to that number — the SMS only fires once a valid reauth token exists)
-//   → ``otp`` (6-digit code from the new number; `POST /otp/change-number` consumes the reauth token
-//      and atomically re-binds) → ``done``.
+//   ``intro`` → ``reauth`` (`POST /account/reauth/start` texts the CURRENT number, then
+//      `/account/reauth/verify` scoped to PHONE_CHANGE mints a single-use token)
+//   → ``newPhone`` (country-aware entry of the new number)
+//   → the step-up, strongest factor first: a user-verifying passkey assertion from
+//      `POST /security/passkey/stepup/options` when this device can produce one, otherwise the
+//      account PIN at ``pin``
+//   → `POST /account/phone/change/start`, which spends the reauth token and the step-up together
+//      and only then texts the NEW number
+//   → ``otp`` (the code that arrived there; `POST /account/phone/change/complete` re-binds
+//      atomically) → ``done``.
+//
+// Two orderings are load-bearing and must survive any edit here. Nothing is sent to the new number
+// until a step-up has actually been accepted, which is the server's own sequencing inside
+// `/start`. And the hard block is hard: `403 step_up_required` ends the operation rather than
+// falling back to the reauth token, which only ever proved an SMS to a number a SIM-swap attacker
+// may already hold.
 
 enum ChangePhoneScreenViewModelAction {
     case close
-    /// The user has no PIN; route to the existing 2SV PIN-setup flow.
-    case setUpPin
+    /// The account can produce no accepted step-up factor and the user chose how to fix that.
+    /// Carries the factor they picked, because a passkey is the preferred one and this is not a
+    /// funnel into PIN setup.
+    case setUpStepUpFactor(AuthFactor)
+}
+
+/// Why the flow stopped at ``ChangePhoneScreenPhase/stepUpRequired``. Both are about what can be
+/// produced, and neither is ever reported to the server.
+enum ChangePhoneStepUpBlockReason: Equatable {
+    /// The account holds no factor a phone change accepts.
+    case noFactorRegistered
+    /// The account holds a passkey, this device could not produce an assertion from it, and there
+    /// is no PIN underneath to fall back to.
+    case passkeyUnusableHere
 }
 
 enum ChangePhoneScreenPhase: Equatable {
     case intro
-    /// User has no PIN — interstitial telling them to set one up before they can change their number.
-    case needsPinSetup
-    /// PIN exists but was set/changed too recently (fresh-2FA cooldown) — change-phone is blocked for now.
+    /// Hard block: two-step verification has to exist before the number can move. Offers both ways
+    /// to create it rather than only the PIN.
+    case stepUpRequired
+    /// The factor the account would spend is too new to spend yet (fresh-2FA hold), or the account
+    /// changed its number too recently (per-account cooldown). Both land here; both expire on
+    /// their own.
     case cooldown
-    case pin
+    /// Six-digit code from the OTP sent to the CURRENT number, exchanged for the reauth token.
+    case reauth
     case newPhone
+    /// The account PIN as the step-up factor, reached when no passkey assertion was produced.
+    case pin
+    /// Six-digit code from the OTP sent to the NEW number.
     case otp
     case submitting
     case done
@@ -50,11 +84,24 @@ struct ChangePhoneScreenViewState: BindableState {
     var selectedCountry: Country = .deviceDefault
     /// The confirmed new number in E.164 form (e.g. "+15551234567").
     var newPhoneE164 = ""
-    /// Short-lived PIN step-up token minted on the `.pin` step. Authorizes the OTP request and the
-    /// final re-bind; the PIN itself is never replayed.
+    /// Single-use PHONE_CHANGE-scoped reauth token from `/account/reauth/verify`. Spent by
+    /// `/account/phone/change/start`; when it expires the flow restarts at ``reauth``.
     var reauthToken = ""
-    /// Remaining fresh-2FA cooldown in seconds; populated when entering the `.cooldown` phase.
+    /// Challenge id from `/account/phone/change/start`, redeemed with the new-number OTP.
+    var challengeID = ""
+    /// The step-up factors this account can be offered, strongest first, as published by the
+    /// server for this operation and filtered to the ones the account holds.
+    var stepUpFactors: [AuthFactor] = []
+    /// Set when the SERVER refused this flow's passkey leg, as opposed to this device failing to
+    /// produce an assertion. The credential is registered and the ceremony did run, so repeating it
+    /// would walk into the identical refusal and the PIN underneath would never get its turn; the
+    /// rest of this flow therefore asks for the PIN. It lives and dies with one flow, it only ever
+    /// steers which factor the UI asks for, and it is never reported to the server: the fallback is
+    /// reachable because the account holds a PIN, not because the client said anything about it.
+    var passkeyRefusedByServer = false
+    /// Remaining cooldown in seconds; populated when entering the `.cooldown` phase.
     var cooldownRemainingSeconds = 0
+    var stepUpBlockReason: ChangePhoneStepUpBlockReason = .noFactorRegistered
     var errorMessage: String?
     var bindings = ChangePhoneScreenViewStateBindings()
 
@@ -66,12 +113,23 @@ struct ChangePhoneScreenViewState: BindableState {
         return L10n.screenChangePhoneCooldownMessage(IdentityServiceError.humanReadableDuration(seconds: cooldownRemainingSeconds))
     }
 
+    /// The body of the hard-block screen. It explains what is missing without ever suggesting the
+    /// block can be talked out of.
+    var stepUpBlockMessage: String {
+        switch stepUpBlockReason {
+        case .noFactorRegistered: L10n.screenChangePhoneStepUpMessage
+        case .passkeyUnusableHere: L10n.screenChangePhoneStepUpPasskeyUnusableMessage
+        }
+    }
+
     var titleKey: String {
         switch phase {
-        case .intro, .submitting, .done, .needsPinSetup, .cooldown:
+        case .intro, .submitting, .done, .stepUpRequired, .cooldown:
             return L10n.screenChangePhoneTitle
         case .newPhone:
             return L10n.screenChangePhoneNewHeader
+        case .reauth:
+            return L10n.screenChangePhoneReauthHeader
         case .pin:
             return L10n.screenChangePhonePinHeader
         case .otp:
@@ -83,6 +141,8 @@ struct ChangePhoneScreenViewState: BindableState {
         switch phase {
         case .newPhone:
             return L10n.screenChangePhoneNewFooter
+        case .reauth:
+            return L10n.screenChangePhoneReauthFooter
         case .pin:
             return L10n.screenChangePhonePinFooter
         case .otp:
@@ -98,7 +158,7 @@ struct ChangePhoneScreenViewState: BindableState {
             return Self.isValid(phone: e164PhoneNumber) && !isWorking
         case .pin:
             return Self.isValid(pin: bindings.code) && !isWorking
-        case .otp:
+        case .reauth, .otp:
             return Self.isValid(otp: bindings.code) && !isWorking
         default:
             return false
@@ -136,7 +196,7 @@ struct ChangePhoneScreenViewState: BindableState {
 }
 
 struct ChangePhoneScreenViewStateBindings {
-    /// Used for both 6-digit fields (account PIN, new-number OTP).
+    /// Used for all three 6-digit fields (reauth OTP, account PIN, new-number OTP).
     var code = ""
     /// Country-formatted local phone digits for the new number (dial code excluded).
     var localPhoneNumber = ""
@@ -151,6 +211,6 @@ enum ChangePhoneScreenViewAction {
     case continueTapped
     case cancel
     case done
-    /// Tapped the "Set up PIN" button on the `.needsPinSetup` interstitial.
-    case setUpPin
+    /// Tapped one of the two buttons on the `.stepUpRequired` block screen.
+    case setUpStepUpFactor(AuthFactor)
 }

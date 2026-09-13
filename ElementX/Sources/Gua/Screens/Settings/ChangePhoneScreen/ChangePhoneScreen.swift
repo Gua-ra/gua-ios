@@ -31,20 +31,21 @@ struct ChangePhoneScreen: View {
             }
     }
 
-    /// The message phases (intro/needsPinSetup/cooldown/done) render as polished centered cards on a
-    /// plain background. The entry phases (phone/PIN/OTP) keep the Compound list/`Form` styling.
+    /// The message phases (intro/stepUpRequired/cooldown/done) render as polished centered cards on
+    /// a plain background. The entry phases (reauth code/phone/PIN/OTP) keep the Compound
+    /// list/`Form` styling.
     @ViewBuilder
     private var screenContent: some View {
         switch context.viewState.phase {
         case .intro:
             introSection
-        case .needsPinSetup:
-            needsPinSetupSection
+        case .stepUpRequired:
+            stepUpRequiredSection
         case .cooldown:
             cooldownSection
         case .done:
             doneSection
-        case .newPhone, .pin, .otp, .submitting:
+        case .reauth, .newPhone, .pin, .otp, .submitting:
             Form {
                 switch context.viewState.phase {
                 case .newPhone:
@@ -59,7 +60,7 @@ struct ChangePhoneScreen: View {
 
     private var isEnteringFlow: Bool {
         switch context.viewState.phase {
-        case .newPhone, .pin, .otp, .submitting:
+        case .reauth, .newPhone, .pin, .otp, .submitting:
             return true
         default:
             return false
@@ -73,21 +74,27 @@ struct ChangePhoneScreen: View {
                                  iconTint: .compound.iconPrimary,
                                  title: L10n.screenChangePhoneIntroHeader,
                                  message: L10n.screenChangePhoneIntroMessage,
-                                 actionTitle: L10n.actionContinue) {
-            context.send(viewAction: .start)
-        }
+                                 primary: ChangePhoneMessageButton(title: L10n.actionContinue) {
+                                     context.send(viewAction: .start)
+                                 })
     }
 
-    // MARK: - Needs PIN setup interstitial
+    // MARK: - Step-up required interstitial
 
-    private var needsPinSetupSection: some View {
+    /// The hard block. It offers both ways to get a factor, strongest first, instead of the old
+    /// single funnel into PIN setup: an account that wants a passkey should not have to create a
+    /// PIN to be allowed to change its number.
+    private var stepUpRequiredSection: some View {
         ChangePhoneMessageScreen(icon: \.lock,
                                  iconTint: .compound.iconPrimary,
-                                 title: L10n.screenChangePhonePinSetupRequiredHeader,
-                                 message: L10n.screenChangePhonePinSetupRequiredMessage,
-                                 actionTitle: L10n.screenChangePhonePinSetupRequiredAction) {
-            context.send(viewAction: .setUpPin)
-        }
+                                 title: L10n.screenChangePhoneStepUpHeader,
+                                 message: context.viewState.stepUpBlockMessage,
+                                 primary: ChangePhoneMessageButton(title: L10n.screenChangePhoneStepUpPasskeyAction) {
+                                     context.send(viewAction: .setUpStepUpFactor(.passkey))
+                                 },
+                                 secondary: ChangePhoneMessageButton(title: L10n.screenChangePhoneStepUpPinAction) {
+                                     context.send(viewAction: .setUpStepUpFactor(.pin))
+                                 })
     }
 
     // MARK: - Cooldown interstitial
@@ -96,9 +103,7 @@ struct ChangePhoneScreen: View {
         ChangePhoneMessageScreen(icon: \.time,
                                  iconTint: .compound.iconCriticalPrimary,
                                  title: L10n.screenChangePhoneCooldownHeader,
-                                 message: context.viewState.cooldownMessage,
-                                 actionTitle: nil,
-                                 action: nil)
+                                 message: context.viewState.cooldownMessage)
     }
 
     // MARK: - New phone entry
@@ -213,9 +218,9 @@ struct ChangePhoneScreen: View {
                                  iconTint: .compound.iconSuccessPrimary,
                                  title: L10n.screenChangePhoneDoneHeader,
                                  message: L10n.screenChangePhoneDoneMessage,
-                                 actionTitle: L10n.actionDone) {
-            context.send(viewAction: .done)
-        }
+                                 primary: ChangePhoneMessageButton(title: L10n.actionDone) {
+                                     context.send(viewAction: .done)
+                                 })
     }
 
     // MARK: - Shared
@@ -236,35 +241,53 @@ struct ChangePhoneScreen: View {
 /// A polished, centered "hero" message screen used by the intro / needs-PIN / cooldown / done phases.
 /// Mirrors the Android `MessageCard`: a tinted card near the top holding an icon tile, a bold title and
 /// a muted body, with an optional full-width primary CTA below the card (outside it).
+/// One button on a message phase: its title and its handler travel together.
+///
+/// They are bundled rather than passed as a title plus a bare closure because the screen offers two
+/// buttons. With two closure parameters an unlabelled trailing closure binds to the LAST of them,
+/// so a call site that meant to pass the primary handler silently filled in the secondary one and
+/// left `action` nil, and the primary button was then nil-guarded out of the layout entirely. One
+/// closure per initialiser makes that misbinding impossible to write.
+private struct ChangePhoneMessageButton {
+    let title: String
+    let action: () -> Void
+}
+
 private struct ChangePhoneMessageScreen: View {
     let icon: KeyPath<CompoundIcons, Image>
     let iconTint: Color
     let title: String
     let message: String
-    let actionTitle: String?
-    let action: (() -> Void)?
+    let primary: ChangePhoneMessageButton?
+    let secondary: ChangePhoneMessageButton?
 
     init(icon: KeyPath<CompoundIcons, Image>,
          iconTint: Color,
          title: String,
          message: String,
-         actionTitle: String? = nil,
-         action: (() -> Void)? = nil) {
+         primary: ChangePhoneMessageButton? = nil,
+         secondary: ChangePhoneMessageButton? = nil) {
         self.icon = icon
         self.iconTint = iconTint
         self.title = title
         self.message = message
-        self.actionTitle = actionTitle
-        self.action = action
+        self.primary = primary
+        self.secondary = secondary
     }
 
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 16) {
             ChangePhoneMessageCard(icon: icon, iconTint: iconTint, title: title, message: message)
+                .padding(.bottom, 8)
 
-            if let actionTitle, let action {
-                Button(actionTitle, action: action)
+            if let primary {
+                Button(primary.title, action: primary.action)
                     .buttonStyle(.compound(.primary))
+            }
+
+            if let secondary {
+                Button(secondary.title, action: secondary.action)
+                    .buttonStyle(.compound(.secondary))
             }
         }
         .padding(.horizontal, 16)
@@ -323,7 +346,7 @@ struct ChangePhoneScreen_Previews: PreviewProvider {
     }
 
     static let introViewModel = makeViewModel(phase: .intro)
-    static let needsPinSetupViewModel = makeViewModel(phase: .needsPinSetup)
+    static let stepUpRequiredViewModel = makeViewModel(phase: .stepUpRequired)
     static let cooldownViewModel = makeViewModel(phase: .cooldown, cooldownRemainingSeconds: 3 * 86400 + 4 * 3600)
     static let doneViewModel = makeViewModel(phase: .done)
 
@@ -334,9 +357,9 @@ struct ChangePhoneScreen_Previews: PreviewProvider {
         .previewDisplayName("Intro")
 
         NavigationStack {
-            ChangePhoneScreen(context: needsPinSetupViewModel.context)
+            ChangePhoneScreen(context: stepUpRequiredViewModel.context)
         }
-        .previewDisplayName("Needs PIN setup")
+        .previewDisplayName("Step-up required")
 
         NavigationStack {
             ChangePhoneScreen(context: cooldownViewModel.context)

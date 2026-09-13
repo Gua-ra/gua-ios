@@ -77,7 +77,12 @@ class EncryptionResetPasswordScreenViewModel: EncryptionResetPasswordScreenViewM
         guard !code.isEmpty else { return }
         state.reauthPhase = .verifyingCode
         do {
-            let token = try await identityServiceClient.verifyAccountReauth(accessToken: accessToken, code: code)
+            // Scoped to the operation this token is about to be spent on. The server binds the
+            // token to one operation and refuses it anywhere else, so a token minted for a
+            // deactivation cannot pay for an identity reset.
+            let token = try await identityServiceClient.verifyAccountReauth(accessToken: accessToken,
+                                                                            code: code,
+                                                                            operation: .identityReset)
             reauthToken = token
             state.reauthPhase = .resolving
             let credentials = try await identityServiceClient.resetIdentityCredentials(accessToken: accessToken,

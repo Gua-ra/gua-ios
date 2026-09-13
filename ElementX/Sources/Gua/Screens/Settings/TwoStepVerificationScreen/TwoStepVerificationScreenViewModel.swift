@@ -14,23 +14,47 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
     private let clientProxy: ClientProxyProtocol
     private let identityServiceClient: IdentityServiceClientProtocol
     private let userIndicatorController: UserIndicatorControllerProtocol
+    /// Runs the passkey assertion that authorizes a PIN change. `nil` means this context cannot
+    /// present one, which reads exactly like a device that cannot produce an assertion: the current
+    /// PIN is asked for instead. It is never turned into a claim to the server.
+    private let passkeyStepUpPresenter: PasskeyStepUpPresenting?
+    /// Identifies the change in progress. Cancelling starts a new one, so work still running for the
+    /// cancelled change (a passkey sheet, a request in flight) can tell that its answer is no longer
+    /// wanted and must not send a code or move the screen.
+    private var flowID = UUID()
 
     private let actionsSubject: PassthroughSubject<TwoStepVerificationScreenViewModelAction, Never> = .init()
     var actionsPublisher: AnyPublisher<TwoStepVerificationScreenViewModelAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
 
-    private var userHasPin = false
+    /// A factor the caller asked this screen to set up on arrival, from the change-phone block
+    /// screen. It decides which setup opens, which is the whole point of carrying it: the block
+    /// screen offers a choice and this honours it instead of always opening PIN setup.
+    private let initialSetup: AuthFactor?
+    /// One shot. The screen honours the arriving request once; a later reload must not reopen a
+    /// ceremony the user has already dealt with.
+    private var appliedInitialSetup = false
 
     private let indicatorID = "TwoStepVerificationScreen-Submit"
     private let successIndicatorID = "TwoStepVerificationScreen-Success"
 
+    /// What the account holds. Read from the server rather than assembled here, so this screen, the
+    /// change-phone step-up and the home-screen nudge all answer "which factor" the same way.
+    private var userHasPin: Bool {
+        state.factors?.hasPin ?? false
+    }
+
     init(clientProxy: ClientProxyProtocol,
          identityServiceClient: IdentityServiceClientProtocol,
-         userIndicatorController: UserIndicatorControllerProtocol) {
+         userIndicatorController: UserIndicatorControllerProtocol,
+         passkeyStepUpPresenter: PasskeyStepUpPresenting? = nil,
+         initialSetup: AuthFactor? = nil) {
         self.clientProxy = clientProxy
         self.identityServiceClient = identityServiceClient
         self.userIndicatorController = userIndicatorController
+        self.passkeyStepUpPresenter = passkeyStepUpPresenter
+        self.initialSetup = initialSetup
 
         super.init(initialViewState: TwoStepVerificationScreenViewState())
 
@@ -74,9 +98,11 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
             } else {
                 handleSubmittedCode(state.bindings.pin)
             }
+        case .retryStatus:
+            Task { await loadStatus() }
         case .cancelEntry:
             resetFlowState()
-            state.phase = userHasPin ? .overviewHasPin : .overviewNoPin
+            state.phase = .overview
         case .setUpPasskey:
             // The view model can't present a web sheet; the coordinator does.
             actionsSubject.send(.setUpPasskey)
@@ -86,6 +112,7 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
     // MARK: - Flow control
 
     private func resetFlowState() {
+        flowID = UUID()
         state.errorMessage = nil
         state.currentPin = ""
         state.stagedNewPin = ""
@@ -138,6 +165,12 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
         }
         state.phone = trimmed
         state.bindings.pin = ""
+        // Strongest factor first: an account holding a passkey is asked for it before its PIN, and
+        // the PIN stays underneath for whenever the assertion is not produced or not accepted.
+        if state.factors?.passkeyRegistered == true, let passkeyStepUpPresenter {
+            Task { await authorizeWithPasskeyAndRequestOtp(presenter: passkeyStepUpPresenter) }
+            return
+        }
         state.phase = .enteringCurrent
     }
 
@@ -182,21 +215,148 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
 
     private func loadStatus() async {
         guard let accessToken = clientProxy.accessToken else {
-            state.phase = .overviewNoPin
+            state.factors = nil
+            state.phase = .overview
             state.errorMessage = L10n.errorUnknown
             return
         }
         state.phase = .loading
         do {
-            let hasPin = try await identityServiceClient.pinStatus(accessToken: accessToken).hasPin
-            userHasPin = hasPin
-            state.phase = hasPin ? .overviewHasPin : .overviewNoPin
+            state.factors = try await identityServiceClient.securityStatus(accessToken: accessToken)
+            state.errorMessage = nil
+            state.phase = .overview
+            applyInitialSetup()
         } catch {
-            MXLog.error("Failed to fetch PIN status: \(error)")
-            userHasPin = false
-            state.phase = .overviewNoPin
+            // A report that could not be read leaves `factors` nil. It must not collapse into "no
+            // PIN": that read is what told a passkey holder their account had nothing, and it would
+            // be worse now that the same screen speaks about passkeys too. The overview says the
+            // status is unavailable and offers a retry.
+            MXLog.error("Failed to fetch the account's factor status: \(error)")
+            state.factors = nil
+            state.phase = .overview
             state.errorMessage = (error as? LocalizedError)?.errorDescription ?? L10n.errorUnknown
         }
+    }
+
+    /// Opens the setup the caller asked for, once the report says it is still needed. A factor the
+    /// account already holds opens nothing, so arriving here twice cannot start a ceremony that is
+    /// certain to fail.
+    private func applyInitialSetup() {
+        guard !appliedInitialSetup else { return }
+        appliedInitialSetup = true
+        switch initialSetup {
+        case .passkey where !(state.factors?.passkeyRegistered ?? true):
+            actionsSubject.send(.setUpPasskey)
+        case .pin where !userHasPin:
+            resetFlowState()
+            state.phase = .enteringNew
+        default:
+            break
+        }
+    }
+
+    /// Authorizes the change with a passkey assertion and, once the server accepts it, goes straight to
+    /// the code it texted. The current PIN is never asked for on this path.
+    ///
+    /// A refusal of the passkey lands on the current-PIN step, which is the path every PIN holder had
+    /// before. The server is told nothing about why: "my passkey is unavailable" costs nothing to
+    /// claim, so it could only ever ask for something weaker. A failure that says nothing about the
+    /// passkey (no connection, a server error) is shown as it is and leaves the number step to retry.
+    private func authorizeWithPasskeyAndRequestOtp(presenter: PasskeyStepUpPresenting) async {
+        guard let accessToken = clientProxy.accessToken else {
+            state.errorMessage = L10n.errorUnknown
+            return
+        }
+        let phone = state.phone
+        let flow = flowID
+        state.phase = .submitting
+        userIndicatorController.submitIndicator(UserIndicator(id: indicatorID,
+                                                              type: .modal,
+                                                              title: L10n.commonLoading,
+                                                              persistent: true))
+        let options: PasskeyStepUpOptions
+        do {
+            options = try await identityServiceClient.startPasskeyStepUp(accessToken: accessToken)
+        } catch {
+            userIndicatorController.retractIndicatorWithId(indicatorID)
+            guard flow == flowID else { return }
+            handlePasskeyFailure(error)
+            return
+        }
+        userIndicatorController.retractIndicatorWithId(indicatorID)
+        guard flow == flowID else { return }
+
+        let assertion: PasskeyAssertion
+        do {
+            assertion = try await presenter.assertion(for: options)
+        } catch {
+            guard flow == flowID else { return }
+            // Device side: nothing reached the server, so the passkey stays available to a later try.
+            if let stepUpError = error as? PasskeyStepUpError, case .cancelled = stepUpError {
+                fallBackToCurrentPin(message: nil)
+            } else {
+                fallBackToCurrentPin(message: L10n.screenChangePhonePasskeyFallback)
+            }
+            return
+        }
+        // Cancelled while the sheet was up: nothing is sent, so no code goes out for a change the
+        // person has already abandoned.
+        guard flow == flowID else { return }
+
+        state.phase = .submitting
+        userIndicatorController.submitIndicator(UserIndicator(id: indicatorID,
+                                                              type: .modal,
+                                                              title: L10n.commonLoading,
+                                                              persistent: true))
+        defer { userIndicatorController.retractIndicatorWithId(indicatorID) }
+        do {
+            let challengeId = try await identityServiceClient.startPinChange(accessToken: accessToken,
+                                                                             phone: phone,
+                                                                             currentPin: nil,
+                                                                             passkeyStepUpID: options.stepUpID,
+                                                                             passkeyAssertion: assertion)
+            guard flow == flowID else { return }
+            state.challengeId = challengeId
+            state.bindings.pin = ""
+            state.errorMessage = nil
+            state.phase = .enteringOtp
+        } catch {
+            guard flow == flowID else { return }
+            handlePasskeyFailure(error)
+        }
+    }
+
+    /// Sorts a failure on the passkey path into the three places it can go.
+    private func handlePasskeyFailure(_ error: Error) {
+        switch error {
+        case IdentityServiceError.pinLocked:
+            state.errorMessage = L10n.screenTwoStepVerificationLocked
+            state.phase = .overview
+        case let IdentityServiceError.pinChangeCooldown(retry):
+            state.errorMessage = IdentityServiceError.pinChangeCooldown(retryAfterSeconds: retry).errorDescription
+            state.phase = .overview
+        case IdentityServiceError.invalidPin, // another account's passkey arrives as invalid_pin
+             IdentityServiceError.twoFactorCooldown, // registered too recently to authorize this
+             IdentityServiceError.passkeyUserVerificationRequired,
+             IdentityServiceError.passkeyStepUpUnavailable:
+            MXLog.info("The server refused the passkey for this PIN change; asking for the current PIN: \(error)")
+            fallBackToCurrentPin(message: L10n.screenChangePhonePasskeyFallback)
+        case let IdentityServiceError.server(status, _) where (400..<500).contains(status):
+            MXLog.info("The server refused the passkey for this PIN change; asking for the current PIN: \(error)")
+            fallBackToCurrentPin(message: L10n.screenChangePhonePasskeyFallback)
+        default:
+            // Rate limited, offline, or the server failed: nothing was decided about the passkey, so
+            // say what happened and let the number step try again.
+            MXLog.error("Failed to start a passkey-authorized PIN change: \(error)")
+            state.errorMessage = (error as? LocalizedError)?.errorDescription ?? L10n.errorUnknown
+            state.phase = .enteringPhone
+        }
+    }
+
+    private func fallBackToCurrentPin(message: String?) {
+        state.bindings.pin = ""
+        state.errorMessage = message
+        state.phase = .enteringCurrent
     }
 
     private func verifyCurrentPinAndRequestOtp(_ currentPin: String) async {
@@ -220,7 +380,9 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
         do {
             let challengeId = try await identityServiceClient.startPinChange(accessToken: accessToken,
                                                                              phone: phone,
-                                                                             currentPin: currentPin)
+                                                                             currentPin: currentPin,
+                                                                             passkeyStepUpID: nil,
+                                                                             passkeyAssertion: nil)
             state.currentPin = currentPin
             state.challengeId = challengeId
             state.bindings.pin = ""
@@ -232,10 +394,10 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
             state.phase = .enteringCurrent
         } catch IdentityServiceError.pinLocked {
             state.errorMessage = L10n.screenTwoStepVerificationLocked
-            state.phase = .overviewHasPin
+            state.phase = .overview
         } catch let IdentityServiceError.pinChangeCooldown(retry) {
             state.errorMessage = IdentityServiceError.pinChangeCooldown(retryAfterSeconds: retry).errorDescription
-            state.phase = .overviewHasPin
+            state.phase = .overview
         } catch IdentityServiceError.rateLimited {
             state.errorMessage = IdentityServiceError.rateLimited.errorDescription
             state.phase = previousPhase
@@ -245,6 +407,14 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
             state.bindings.pin = ""
             state.phase = .enteringCurrent
         }
+    }
+
+    /// Where a failed PIN submission returns to. A change authorized by the passkey never asked for
+    /// the current PIN, so it goes back to the new PIN with its challenge intact rather than asking
+    /// for a PIN the person was told they did not need.
+    private var retryPhaseAfterFailedSubmission: TwoStepVerificationScreenPhase {
+        guard userHasPin else { return .enteringNew }
+        return state.challengeId != nil && state.currentPin.isEmpty ? .enteringNew : .enteringCurrent
     }
 
     private func submitNewPin(_ pin: String) async {
@@ -262,7 +432,7 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
             if userHasPin {
                 guard let challengeId = state.challengeId else {
                     state.errorMessage = L10n.errorUnknown
-                    state.phase = .overviewHasPin
+                    state.phase = .overview
                     return
                 }
                 try await identityServiceClient.completePinChange(accessToken: accessToken,
@@ -274,9 +444,11 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
                                                               userId: clientProxy.userID,
                                                               newPin: pin)
             }
-            userHasPin = true
+            // The PIN now exists. Re-read the report rather than patching a local copy of it, so
+            // this screen keeps saying what the server says.
             resetFlowState()
-            state.phase = .overviewHasPin
+            state.phase = .overview
+            Task { await loadStatus() }
             userIndicatorController.submitIndicator(UserIndicator(id: successIndicatorID,
                                                                   type: .toast(progress: .none),
                                                                   title: L10n.screenTwoStepVerificationUpdated,
@@ -286,24 +458,26 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
             state.bindings.pin = ""
             state.phase = .enteringOtp
         } catch IdentityServiceError.pinChangeChallengeInvalid {
-            state.errorMessage = IdentityServiceError.pinChangeChallengeInvalid.errorDescription
             resetFlowState()
-            state.phase = .overviewHasPin
+            // After the reset, which clears the message: the change is over and this is why.
+            state.errorMessage = IdentityServiceError.pinChangeChallengeInvalid.errorDescription
+            state.phase = .overview
         } catch IdentityServiceError.invalidPin {
-            state.errorMessage = L10n.screenTwoStepVerificationCurrentIncorrect
+            let phase = retryPhaseAfterFailedSubmission
+            state.errorMessage = phase == .enteringCurrent ? L10n.screenTwoStepVerificationCurrentIncorrect : L10n.errorUnknown
             state.bindings.pin = ""
-            state.phase = userHasPin ? .enteringCurrent : .enteringNew
+            state.phase = phase
         } catch IdentityServiceError.pinLocked {
             state.errorMessage = L10n.screenTwoStepVerificationLocked
-            state.phase = userHasPin ? .overviewHasPin : .overviewNoPin
+            state.phase = .overview
         } catch let IdentityServiceError.pinChangeCooldown(retry) {
             state.errorMessage = IdentityServiceError.pinChangeCooldown(retryAfterSeconds: retry).errorDescription
-            state.phase = .overviewHasPin
+            state.phase = .overview
         } catch {
             MXLog.error("Failed to set or update PIN: \(error)")
             state.errorMessage = (error as? LocalizedError)?.errorDescription ?? L10n.errorUnknown
             state.bindings.pin = ""
-            state.phase = userHasPin ? .enteringCurrent : .enteringNew
+            state.phase = retryPhaseAfterFailedSubmission
         }
     }
 

@@ -12,12 +12,14 @@ struct ChangePhoneScreenCoordinatorParameters {
     let clientProxy: ClientProxyProtocol
     let identityServiceClient: IdentityServiceClientProtocol
     let userIndicatorController: UserIndicatorControllerProtocol
+    let windowManager: WindowManagerProtocol
 }
 
 enum ChangePhoneScreenCoordinatorAction {
     case close
-    /// The user has no PIN; the Settings flow should route to the 2SV PIN-setup flow.
-    case setUpPin
+    /// The account can produce no step-up factor and the user picked one to set up. The Settings
+    /// flow opens that one, rather than assuming the PIN.
+    case setUpStepUpFactor(AuthFactor)
 }
 
 final class ChangePhoneScreenCoordinator: CoordinatorProtocol {
@@ -33,9 +35,12 @@ final class ChangePhoneScreenCoordinator: CoordinatorProtocol {
 
     init(parameters: ChangePhoneScreenCoordinatorParameters) {
         self.parameters = parameters
+        // The assertion is run natively here rather than in a web view: the step-up ceremony hands
+        // back WebAuthn options, not a page, and the assertion has to come back as JSON.
         viewModel = ChangePhoneScreenViewModel(clientProxy: parameters.clientProxy,
                                                identityServiceClient: parameters.identityServiceClient,
-                                               userIndicatorController: parameters.userIndicatorController)
+                                               userIndicatorController: parameters.userIndicatorController,
+                                               passkeyStepUpPresenter: PasskeyStepUpPresenter(presentationAnchor: parameters.windowManager.mainWindow))
     }
 
     func start() {
@@ -45,8 +50,8 @@ final class ChangePhoneScreenCoordinator: CoordinatorProtocol {
             switch action {
             case .close:
                 actionsSubject.send(.close)
-            case .setUpPin:
-                actionsSubject.send(.setUpPin)
+            case .setUpStepUpFactor(let factor):
+                actionsSubject.send(.setUpStepUpFactor(factor))
             }
         }
         .store(in: &cancellables)
