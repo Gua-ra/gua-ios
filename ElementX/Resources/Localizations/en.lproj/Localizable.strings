@@ -731,10 +731,10 @@
 "screen_account_recovery_banner_message_now" = "It can be finished now. If this was you, you can ignore this.";
 "screen_account_recovery_banner_message_generic" = "If this was you, you can ignore this.";
 "screen_account_recovery_banner_action" = "Cancel recovery";
-"screen_account_recovery_cancel_confirm_title" = "Cancel account recovery?";
-"screen_account_recovery_cancel_confirm_message" = "Whoever started it won't be able to finish it.";
+"screen_account_recovery_cancel_confirm_title" = "Cancel recovery?";
+"screen_account_recovery_cancel_confirm_message" = "Cancel it if you didn't start it. If you did, you will have to start again.";
 "screen_account_recovery_cancelled" = "Recovery cancelled";
-"screen_account_recovery_cancel_failed" = "We couldn't cancel the recovery. Please try again.";
+"screen_account_recovery_cancel_failed" = "Couldn't cancel the recovery. Try again.";
 "screen_account_provider_form_hint" = "Homeserver address";
 "screen_account_provider_form_notice" = "Enter a search term or a domain address.";
 "screen_account_provider_form_subtitle" = "Search for a company, community, or private server.";
