@@ -572,6 +572,108 @@ class HomeScreenViewModelTests: XCTestCase {
                        L10n.screenAccountRecoveryBannerMessageGeneric)
     }
     
+    func testAccountRecoveryReadDelayFollowsTheNextMomentOfTheRecovery() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let interval = Duration.seconds(15 * 60)
+        
+        // Nothing live, or nothing dated: the regular interval.
+        XCTAssertEqual(HomeScreenViewModel.accountRecoveryReadDelay(for: nil, now: now), interval)
+        XCTAssertEqual(HomeScreenViewModel.accountRecoveryReadDelay(for: .init(completableAt: nil, expiresAt: nil), now: now), interval)
+        
+        // Finishable before the next tick: read a second after that moment.
+        XCTAssertEqual(HomeScreenViewModel.accountRecoveryReadDelay(for: .init(completableAt: now.addingTimeInterval(180),
+                                                                               expiresAt: now.addingTimeInterval(360)),
+                                                                    now: now),
+                       .seconds(181))
+        
+        // Finishable already and running out before the next tick: read a second after it runs out.
+        XCTAssertEqual(HomeScreenViewModel.accountRecoveryReadDelay(for: .init(completableAt: now.addingTimeInterval(-60),
+                                                                               expiresAt: now.addingTimeInterval(120)),
+                                                                    now: now),
+                       .seconds(121))
+        
+        // Both moments further away than the next tick: the regular interval.
+        XCTAssertEqual(HomeScreenViewModel.accountRecoveryReadDelay(for: .init(completableAt: now.addingTimeInterval(3 * 24 * 60 * 60),
+                                                                               expiresAt: now.addingTimeInterval(10 * 24 * 60 * 60)),
+                                                                    now: now),
+                       interval)
+        
+        // Both moments passed, or arriving right now, while the server still reports it: the regular interval.
+        XCTAssertEqual(HomeScreenViewModel.accountRecoveryReadDelay(for: .init(completableAt: now.addingTimeInterval(-120),
+                                                                               expiresAt: now.addingTimeInterval(-60)),
+                                                                    now: now),
+                       interval)
+        XCTAssertEqual(HomeScreenViewModel.accountRecoveryReadDelay(for: .init(completableAt: nil, expiresAt: now), now: now), interval)
+    }
+    
+    func testTheBannerComesDownWhenTheRecoveryRunsOutBeforeTheNextTick() async throws {
+        // Given a recovery that runs out well before the next regular read, reported by a session start
+        // read that comes back only after the timer has started waiting with no banner up.
+        let recovery = PendingAccountRecovery(completableAt: nil, expiresAt: Date.now.addingTimeInterval(1))
+        setupViewModel(identityServiceStatus: Self.status(pendingAccountRecovery: recovery))
+        identityService.holdsStatusReads = true
+        try await waitUntil { self.identityService.securityStatusCalls == 1 }
+        try await Task.sleep(for: .milliseconds(50))
+        identityService.holdsStatusReads = false
+        let bannerShown = deferFulfillment(context.$viewState) { $0.accountRecoveryBanner != nil }
+        identityService.releaseHeldStatusReads()
+        try await bannerShown.fulfill()
+        XCTAssertEqual(identityService.securityStatusCalls, 1)
+        
+        // When it runs out on the server.
+        identityService.status = Self.status(pendingAccountRecovery: nil)
+        
+        // Then the report is read again just after that moment and the banner comes down.
+        try await deferFulfillment(context.$viewState, timeout: 5) { $0.accountRecoveryBanner == nil }.fulfill()
+        XCTAssertEqual(identityService.securityStatusCalls, 2)
+    }
+    
+    func testAFailedReadIsFollowedByAnEarlyReRead() async throws {
+        // Given a report that cannot be read at session start, like a 401 for an expired access token.
+        setupViewModel(identityServiceStatus: nil, securityStatusRetryDelay: .milliseconds(50))
+        try await waitUntil { self.identityService.securityStatusCalls == 1 }
+        
+        // When the report can be read again.
+        let recovery = PendingAccountRecovery(completableAt: nil, expiresAt: nil)
+        identityService.status = Self.status(pendingAccountRecovery: recovery)
+        
+        // Then it is read again soon, not at the next tick, and the banner appears.
+        try await deferFulfillment(context.$viewState, timeout: 5) { $0.accountRecoveryBanner != nil }.fulfill()
+        XCTAssertEqual(identityService.securityStatusCalls, 2)
+        XCTAssertEqual(context.viewState.accountRecoveryBanner, recovery)
+    }
+    
+    func testFailedReadsScheduleOneReRead() async throws {
+        // Given a report that cannot be read at session start.
+        setupViewModel(identityServiceStatus: nil, securityStatusRetryDelay: .milliseconds(200))
+        try await waitUntil { self.identityService.securityStatusCalls == 1 }
+        
+        // When two foreground reads fail too before the re-read is due.
+        notificationCenter.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+        notificationCenter.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+        try await waitUntil { self.identityService.securityStatusCalls == 3 }
+        
+        // Then only one re-read follows, and when it fails as well it is not retried again.
+        try await waitUntil { self.identityService.securityStatusCalls == 4 }
+        try await Task.sleep(for: .milliseconds(600))
+        XCTAssertEqual(identityService.securityStatusCalls, 4)
+    }
+    
+    func testASuccessfulReadDropsThePendingReRead() async throws {
+        // Given a report that could not be read at session start.
+        setupViewModel(identityServiceStatus: nil, securityStatusRetryDelay: .milliseconds(200))
+        try await waitUntil { self.identityService.securityStatusCalls == 1 }
+        
+        // When a foreground read succeeds before the re-read is due.
+        identityService.status = Self.status(pendingAccountRecovery: nil)
+        notificationCenter.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+        try await waitUntil { self.identityService.securityStatusCalls == 2 }
+        
+        // Then there is nothing left to re-read.
+        try await Task.sleep(for: .milliseconds(500))
+        XCTAssertEqual(identityService.securityStatusCalls, 2)
+    }
+    
     // MARK: - Helpers
     
     private static func status(pendingAccountRecovery: PendingAccountRecovery?) -> AccountSecurityStatus {
@@ -598,7 +700,8 @@ class HomeScreenViewModelTests: XCTestCase {
                                                                                                       passkeyRegistered: false,
                                                                                                       preferredFactor: .pin,
                                                                                                       phoneChangeStepUpFactors: [],
-                                                                                                      pinStepUpHoldRemainingSeconds: nil)) {
+                                                                                                      pinStepUpHoldRemainingSeconds: nil),
+                                securityStatusRetryDelay: Duration = .seconds(30)) {
         var rooms: [RoomSummary] = .mockRooms
         if withInvites {
             rooms += .mockInvites
@@ -632,7 +735,8 @@ class HomeScreenViewModelTests: XCTestCase {
                                         notificationManager: notificationManager,
                                         userIndicatorController: userIndicatorController,
                                         identityServiceClient: identityService,
-                                        notificationCenter: notificationCenter)
+                                        notificationCenter: notificationCenter,
+                                        securityStatusRetryDelay: securityStatusRetryDelay)
     }
 }
 
