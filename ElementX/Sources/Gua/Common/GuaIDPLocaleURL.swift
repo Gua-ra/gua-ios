@@ -22,11 +22,29 @@ extension URLComponents {
     mutating func appendUILocalesPreservingEncoding(languageCode: String? = Locale.current.language.languageCode?.identifier) {
         guard let languageCode, !languageCode.isEmpty else { return }
 
-        // Encode the locale as a query-value: never emit a bare `+`, `&`, or `=` that would be
-        // misread. Language codes are ASCII letters, so this is effectively a passthrough, but we
-        // encode defensively.
-        let encodedLocale = languageCode.addingPercentEncoding(withAllowedCharacters: .guaURLQueryValueAllowed) ?? languageCode
-        let param = "ui_locales=\(encodedLocale)"
+        // Language codes are ASCII letters, so the encoding is effectively a passthrough, but it is
+        // applied defensively.
+        appendQueryItemPreservingEncoding(name: "ui_locales", value: languageCode)
+    }
+
+    /// Names the signed-in account to MAS with `org.matrix.msc4198.login_hint=mxid:<userID>`, for the
+    /// same reason as above appended to the raw query rather than through `queryItems`.
+    ///
+    /// Account management opens in a sheet that shares cookies with the system browser, so without
+    /// it the page can open under whichever account last signed in there. With it, MAS compares the
+    /// hint with its browser session and asks for a sign-in as this account on a mismatch.
+    mutating func appendAccountLoginHintPreservingEncoding(userID: String) {
+        guard !userID.isEmpty else { return }
+        appendQueryItemPreservingEncoding(name: "org.matrix.msc4198.login_hint", value: "mxid:\(userID)")
+    }
+
+    /// Appends one `name=value` pair to the percent-encoded query, leaving every existing escape as
+    /// it is. Both halves are encoded as a query value: never a bare `+`, `&`, `=` that would be
+    /// misread.
+    mutating func appendQueryItemPreservingEncoding(name: String, value: String) {
+        let encodedName = name.addingPercentEncoding(withAllowedCharacters: .guaURLQueryValueAllowed) ?? name
+        let encodedValue = value.addingPercentEncoding(withAllowedCharacters: .guaURLQueryValueAllowed) ?? value
+        let param = "\(encodedName)=\(encodedValue)"
 
         if let existing = percentEncodedQuery, !existing.isEmpty {
             percentEncodedQuery = existing + "&" + param

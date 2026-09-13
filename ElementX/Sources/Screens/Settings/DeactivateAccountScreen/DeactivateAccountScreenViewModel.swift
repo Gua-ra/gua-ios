@@ -72,7 +72,9 @@ class DeactivateAccountScreenViewModel: DeactivateAccountScreenViewModelType, De
         guard !code.isEmpty else { return }
         state.reauthPhase = .verifyingCode
         do {
-            reauthToken = try await identityServiceClient.verifyAccountReauth(accessToken: accessToken, code: code)
+            reauthToken = try await identityServiceClient.verifyAccountReauth(accessToken: accessToken,
+                                                                              code: code,
+                                                                              operation: .deactivate)
             state.reauthPhase = .verified
         } catch IdentityServiceError.invalidOTP {
             state.reauthPhase = .error(L10n.screenOtpInvalidCode)
