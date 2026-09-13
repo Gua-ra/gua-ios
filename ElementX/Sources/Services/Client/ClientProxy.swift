@@ -431,6 +431,9 @@ class ClientProxy: ClientProxyProtocol {
         // GUA FORK: append without re-serializing the query so any existing percent-encoding
         // (e.g. a `%2B`-escaped value) survives untouched. See appendUILocalesPreservingEncoding.
         components.appendUILocalesPreservingEncoding()
+        // GUA FORK: bind the sheet to the account this app is signed in as. The account-management
+        // pages opened from Settings all take their URL from here, so this is the one place it is added.
+        components.appendAccountLoginHintPreservingEncoding(userID: userID)
         return components.url
     }
     
