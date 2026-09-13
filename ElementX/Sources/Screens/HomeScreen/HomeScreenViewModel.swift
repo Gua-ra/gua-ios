@@ -24,6 +24,11 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
     /// recovery started while this device sits open still reaches its owner.
     private var accountRecoveryRefreshTask: Task<Void, Never>?
     private static let accountRecoveryRefreshInterval: Duration = .seconds(15 * 60)
+    /// GUA FORK: reads of the security report overlap (session start, foreground, timer, cancel), and
+    /// a slow one can come back after a newer one or after a cancel. Each read is numbered when it
+    /// starts, and its result is dropped once a later read or a cancel has already set the banner.
+    private var securityStatusReadsStarted = 0
+    private var securityStatusReadsSuperseded = 0
     
     private let roomSummaryProvider: RoomSummaryProviderProtocol?
     
@@ -593,6 +598,8 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
               let accessToken = userSession.clientProxy.accessToken else {
             return
         }
+        securityStatusReadsStarted += 1
+        let read = securityStatusReadsStarted
         let status: AccountSecurityStatus
         do {
             status = try await identityServiceClient.securityStatus(accessToken: accessToken)
@@ -601,7 +608,10 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             return
         }
 
-        state.accountRecoveryBanner = status.pendingAccountRecovery
+        if read > securityStatusReadsSuperseded {
+            securityStatusReadsSuperseded = read
+            state.accountRecoveryBanner = status.pendingAccountRecovery
+        }
 
         guard updatingPinReminder else { return }
         if let snoozedUntil = appSettings.pinSetupReminderSnoozedUntil, snoozedUntil > Date() {
@@ -648,8 +658,11 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
     /// GUA FORK: the owner cancels a recovery from a signed-in device.
     ///
     /// The server answers 204 whether or not anything was pending, so after a success the banner is
-    /// cleared and the report read again: if a recovery is somehow still live, the read puts the
-    /// banner straight back rather than letting a toast claim otherwise.
+    /// cleared and the report read again. Reads that started before the cancel are ignored when they
+    /// come back, since they describe the account as it was. If the fresh read still shows a live
+    /// recovery, the banner comes straight back and the owner is told the cancel did not take,
+    /// rather than shown a toast that claims otherwise. A fresh read that fails leaves the banner
+    /// cleared, trusting the server's answer to the cancel.
     private func cancelAccountRecovery() async {
         guard let identityServiceClient,
               let accessToken = userSession.clientProxy.accessToken else {
@@ -670,9 +683,16 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             return
         }
 
+        securityStatusReadsSuperseded = securityStatusReadsStarted
         state.accountRecoveryBanner = nil
         await refreshSecurityStatus(updatingPinReminder: false)
         userIndicatorController.retractIndicatorWithId(Self.cancelAccountRecoveryLoadingID)
+
+        guard state.accountRecoveryBanner == nil else {
+            MXLog.warning("The account recovery is still live after a successful cancel")
+            displayError(message: L10n.screenAccountRecoveryCancelFailed)
+            return
+        }
         userIndicatorController.submitIndicator(UserIndicator(id: UUID().uuidString,
                                                               type: .toast,
                                                               title: L10n.screenAccountRecoveryCancelled,
