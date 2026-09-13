@@ -1490,6 +1490,7 @@
 "screen_change_phone_step_up_passkey_action" = "Configurer une clé d'accès";
 "screen_change_phone_step_up_pin_action" = "Configurer un code PIN";
 "screen_change_phone_passkey_fallback" = "Nous n'avons pas pu utiliser votre clé d'accès. Saisissez votre code PIN.";
+"screen_change_phone_passkey_refused_restart" = "Nous n'avons pas pu utiliser votre clé d'accès. Saisissez le nouveau code que nous venons d'envoyer à votre numéro actuel, puis confirmez avec votre code PIN.";
 "screen_change_phone_cooldown_header" = "Pas tout de suite";
 "screen_change_phone_cooldown_message" = "Pour des raisons de sécurité, vous pourrez modifier votre numéro dans %1$@.";
 "screen_change_phone_cooldown_message_generic" = "Pour des raisons de sécurité, vous ne pouvez pas encore modifier votre numéro. Veuillez réessayer plus tard.";

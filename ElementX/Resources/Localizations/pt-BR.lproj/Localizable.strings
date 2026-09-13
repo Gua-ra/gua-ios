@@ -1490,6 +1490,7 @@
 "screen_change_phone_step_up_passkey_action" = "Configurar uma chave de acesso";
 "screen_change_phone_step_up_pin_action" = "Configurar um PIN";
 "screen_change_phone_passkey_fallback" = "Não conseguimos usar sua chave de acesso. Digite seu PIN.";
+"screen_change_phone_passkey_refused_restart" = "Não conseguimos usar sua chave de acesso. Digite o novo código que acabamos de enviar para o seu número atual e confirme com o seu PIN.";
 "screen_change_phone_cooldown_header" = "Ainda não";
 "screen_change_phone_cooldown_message" = "Por segurança, você poderá alterar seu número em %1$@.";
 "screen_change_phone_cooldown_message_generic" = "Por segurança, você ainda não pode alterar seu número. Tente novamente mais tarde.";
