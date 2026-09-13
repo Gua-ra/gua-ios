@@ -1470,8 +1470,8 @@
 "screen_account_recovery_banner_message_now" = "Ela já pode ser concluída. Se foi você, pode ignorar este aviso.";
 "screen_account_recovery_banner_message_generic" = "Se foi você, pode ignorar este aviso.";
 "screen_account_recovery_banner_action" = "Cancelar recuperação";
-"screen_account_recovery_cancel_confirm_title" = "Cancelar a recuperação da conta?";
-"screen_account_recovery_cancel_confirm_message" = "Quem a iniciou não poderá concluí-la.";
+"screen_account_recovery_cancel_confirm_title" = "Cancelar a recuperação?";
+"screen_account_recovery_cancel_confirm_message" = "Cancele se não foi você que iniciou. Se foi você, será preciso começar de novo.";
 "screen_account_recovery_cancelled" = "Recuperação cancelada";
 "screen_account_recovery_cancel_failed" = "Não foi possível cancelar a recuperação. Tente novamente.";
 

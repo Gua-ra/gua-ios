@@ -1445,10 +1445,10 @@
 "screen_account_recovery_banner_message_now" = "Ya se puede completar. Si fuiste tú, puedes ignorar este aviso.";
 "screen_account_recovery_banner_message_generic" = "Si fuiste tú, puedes ignorar este aviso.";
 "screen_account_recovery_banner_action" = "Cancelar la recuperación";
-"screen_account_recovery_cancel_confirm_title" = "¿Cancelar la recuperación de la cuenta?";
-"screen_account_recovery_cancel_confirm_message" = "Quien la inició no podrá completarla.";
+"screen_account_recovery_cancel_confirm_title" = "¿Cancelar la recuperación?";
+"screen_account_recovery_cancel_confirm_message" = "Cancélala si no la iniciaste tú. Si fuiste tú, tendrás que empezar de nuevo.";
 "screen_account_recovery_cancelled" = "Recuperación cancelada";
-"screen_account_recovery_cancel_failed" = "No pudimos cancelar la recuperación. Inténtalo de nuevo.";
+"screen_account_recovery_cancel_failed" = "No se pudo cancelar la recuperación. Inténtalo de nuevo.";
 
 /* GUA FORK - Change phone number */
 "screen_change_phone_title" = "Cambiar número de teléfono";

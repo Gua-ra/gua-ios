@@ -1164,11 +1164,11 @@ internal enum L10n {
   internal static var screenAccountRecoveryBannerMessageNow: String { return L10n.tr("Localizable", "screen_account_recovery_banner_message_now") }
   /// Someone started recovering your account
   internal static var screenAccountRecoveryBannerTitle: String { return L10n.tr("Localizable", "screen_account_recovery_banner_title") }
-  /// Whoever started it won't be able to finish it.
+  /// Cancel it if you didn't start it. If you did, you will have to start again.
   internal static var screenAccountRecoveryCancelConfirmMessage: String { return L10n.tr("Localizable", "screen_account_recovery_cancel_confirm_message") }
-  /// Cancel account recovery?
+  /// Cancel recovery?
   internal static var screenAccountRecoveryCancelConfirmTitle: String { return L10n.tr("Localizable", "screen_account_recovery_cancel_confirm_title") }
-  /// We couldn't cancel the recovery. Please try again.
+  /// Couldn't cancel the recovery. Try again.
   internal static var screenAccountRecoveryCancelFailed: String { return L10n.tr("Localizable", "screen_account_recovery_cancel_failed") }
   /// Recovery cancelled
   internal static var screenAccountRecoveryCancelled: String { return L10n.tr("Localizable", "screen_account_recovery_cancelled") }
