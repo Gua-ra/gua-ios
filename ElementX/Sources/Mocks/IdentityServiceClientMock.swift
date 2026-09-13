@@ -38,7 +38,11 @@ final class IdentityServiceClientMock: IdentityServiceClientProtocol {
     }
 
     func setInitialPin(accessToken: String, userId: String, newPin: String) async throws { }
-    func startPinChange(accessToken: String, phone: String, currentPin: String) async throws -> String {
+    func startPinChange(accessToken: String,
+                        phone: String,
+                        currentPin: String?,
+                        passkeyStepUpID: String?,
+                        passkeyAssertion: PasskeyAssertion?) async throws -> String {
         ""
     }
 

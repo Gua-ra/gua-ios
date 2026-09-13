@@ -130,7 +130,14 @@ protocol IdentityServiceClientProtocol {
     // need" decision reads.
     func securityStatus(accessToken: String) async throws -> AccountSecurityStatus
     func setInitialPin(accessToken: String, userId: String, newPin: String) async throws
-    func startPinChange(accessToken: String, phone: String, currentPin: String) async throws -> String
+    /// Starts a PIN change and texts a code to `phone`. Authorized by a step-up passkey assertion when
+    /// `passkeyStepUpID` and `passkeyAssertion` are supplied, in which case `currentPin` is not consulted,
+    /// otherwise by `currentPin`.
+    func startPinChange(accessToken: String,
+                        phone: String,
+                        currentPin: String?,
+                        passkeyStepUpID: String?,
+                        passkeyAssertion: PasskeyAssertion?) async throws -> String
     func completePinChange(accessToken: String, challengeId: String, otpCode: String, newPin: String) async throws
     // GUA FORK: change phone number. Reauth by OTP to the CURRENT number first
     // (`/account/reauth/start` + `/account/reauth/verify` scoped to PHONE_CHANGE), then
@@ -345,10 +352,16 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
                                     expectsBody: false)
     }
 
-    func startPinChange(accessToken: String, phone: String, currentPin: String) async throws -> String {
+    func startPinChange(accessToken: String,
+                        phone: String,
+                        currentPin: String?,
+                        passkeyStepUpID: String?,
+                        passkeyAssertion: PasskeyAssertion?) async throws -> String {
         struct Body: Encodable {
             let phone: String
-            let currentPin: String
+            let currentPin: String?
+            let passkeyStepUpId: String?
+            let passkeyCredential: PasskeyAssertion?
         }
         struct Response: Decodable {
             let challengeId: String
@@ -356,7 +369,10 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         }
         let (data, _) = try await sendAuthenticated(path: "/security/pin/change/start",
                                                     accessToken: accessToken,
-                                                    body: Body(phone: phone, currentPin: currentPin),
+                                                    body: Body(phone: phone,
+                                                               currentPin: currentPin,
+                                                               passkeyStepUpId: passkeyStepUpID,
+                                                               passkeyCredential: passkeyAssertion),
                                                     language: nil,
                                                     expectsBody: true)
         do {

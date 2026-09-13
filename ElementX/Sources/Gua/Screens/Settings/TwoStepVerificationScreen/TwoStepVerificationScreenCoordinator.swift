@@ -43,6 +43,7 @@ final class TwoStepVerificationScreenCoordinator: CoordinatorProtocol {
         viewModel = TwoStepVerificationScreenViewModel(clientProxy: parameters.clientProxy,
                                                        identityServiceClient: parameters.identityServiceClient,
                                                        userIndicatorController: parameters.userIndicatorController,
+                                                       passkeyStepUpPresenter: PasskeyStepUpPresenter(presentationAnchor: parameters.windowManager.mainWindow),
                                                        initialSetup: parameters.initialSetup)
     }
 
