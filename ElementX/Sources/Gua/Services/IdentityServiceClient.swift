@@ -139,6 +139,10 @@ protocol IdentityServiceClientProtocol {
                         passkeyStepUpID: String?,
                         passkeyAssertion: PasskeyAssertion?) async throws -> String
     func completePinChange(accessToken: String, challengeId: String, otpCode: String, newPin: String) async throws
+    /// Cancels a delayed account recovery on the signed-in account (`POST /security/recovery/cancel`).
+    /// The server answers 204 whether or not one was pending, so success says nothing about what was
+    /// there; read `securityStatus` again for that.
+    func cancelAccountRecovery(accessToken: String) async throws
     // GUA FORK: change phone number. Reauth by OTP to the CURRENT number first
     // (`/account/reauth/start` + `/account/reauth/verify` scoped to PHONE_CHANGE), then
     // `/account/phone/change/start`, which spends that token together with a step-up factor and
@@ -302,6 +306,9 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
             let passkeyRegistered: Bool?
             let preferredFactor: String?
             let phoneChangeStepUpFactors: [String]?
+            let accountRecoveryPending: Bool?
+            let accountRecoveryCompletableAtEpochSeconds: Int64?
+            let accountRecoveryExpiresAtEpochSeconds: Int64?
         }
         guard let url = URL(string: "/security/pin/status", relativeTo: baseURL) else {
             throw IdentityServiceError.invalidURL
@@ -334,10 +341,21 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
                                          passkeyRegistered: response.passkeyRegistered ?? false,
                                          preferredFactor: response.preferredFactor.map(AuthFactor.init(wireValue:)),
                                          phoneChangeStepUpFactors: (response.phoneChangeStepUpFactors ?? []).map(AuthFactor.init(wireValue:)),
-                                         pinStepUpHoldRemainingSeconds: response.changePhoneCooldownRemainingSeconds.map { max(0, $0) })
+                                         pinStepUpHoldRemainingSeconds: response.changePhoneCooldownRemainingSeconds.map { max(0, $0) },
+                                         pendingAccountRecovery: Self.pendingAccountRecovery(pending: response.accountRecoveryPending,
+                                                                                             completableAt: response.accountRecoveryCompletableAtEpochSeconds,
+                                                                                             expiresAt: response.accountRecoveryExpiresAtEpochSeconds))
         } catch {
             throw IdentityServiceError.decoding(error)
         }
+    }
+
+    /// An older deployment sends none of the recovery fields, which reads as nothing pending. The
+    /// dates only mean something while a recovery is live, so they are dropped when it is not.
+    private static func pendingAccountRecovery(pending: Bool?, completableAt: Int64?, expiresAt: Int64?) -> PendingAccountRecovery? {
+        guard pending == true else { return nil }
+        return PendingAccountRecovery(completableAt: completableAt.map { Date(timeIntervalSince1970: TimeInterval($0)) },
+                                      expiresAt: expiresAt.map { Date(timeIntervalSince1970: TimeInterval($0)) })
     }
 
     func setInitialPin(accessToken: String, userId: String, newPin: String) async throws {
@@ -391,6 +409,17 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         try await sendAuthenticated(path: "/security/pin/change/complete",
                                     accessToken: accessToken,
                                     body: Body(challengeId: challengeId, otpCode: otpCode, newPin: newPin),
+                                    language: nil,
+                                    expectsBody: false)
+    }
+
+    // MARK: - Account recovery
+
+    func cancelAccountRecovery(accessToken: String) async throws {
+        struct EmptyBody: Encodable { }
+        try await sendAuthenticated(path: "/security/recovery/cancel",
+                                    accessToken: accessToken,
+                                    body: EmptyBody(),
                                     language: nil,
                                     expectsBody: false)
     }

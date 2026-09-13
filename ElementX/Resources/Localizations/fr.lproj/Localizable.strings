@@ -1465,6 +1465,15 @@
 "screen_two_step_verification_otp_footer" = "Saisissez le code à 6 chiffres que nous venons d'envoyer sur votre téléphone.";
 "screen_two_step_verification_otp_invalid" = "Ce code est invalide ou a expiré. Veuillez réessayer.";
 "screen_two_step_verification_cooldown" = "Pour des raisons de sécurité, vous ne pouvez modifier votre code PIN qu'une fois par jour. Veuillez réessayer plus tard.";
+"screen_account_recovery_banner_title" = "Quelqu'un a lancé la récupération de votre compte";
+"screen_account_recovery_banner_message_later" = "Elle pourra être finalisée après le %1$@. Si c'était vous, vous pouvez ignorer ce message.";
+"screen_account_recovery_banner_message_now" = "Elle peut déjà être finalisée. Si c'était vous, vous pouvez ignorer ce message.";
+"screen_account_recovery_banner_message_generic" = "Si c'était vous, vous pouvez ignorer ce message.";
+"screen_account_recovery_banner_action" = "Annuler la récupération";
+"screen_account_recovery_cancel_confirm_title" = "Annuler la récupération du compte ?";
+"screen_account_recovery_cancel_confirm_message" = "La personne qui l'a lancée ne pourra pas la finaliser.";
+"screen_account_recovery_cancelled" = "Récupération annulée";
+"screen_account_recovery_cancel_failed" = "Impossible d'annuler la récupération. Veuillez réessayer.";
 
 /* GUA FORK - Change phone number */
 "screen_change_phone_title" = "Modifier le numéro de téléphone";

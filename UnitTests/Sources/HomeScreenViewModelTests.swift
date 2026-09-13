@@ -20,6 +20,9 @@ class HomeScreenViewModelTests: XCTestCase {
     var roomSummaryProvider: RoomSummaryProviderMock!
     var appSettings: AppSettings!
     var notificationManager: NotificationManagerMock!
+    private var identityService: HomeScreenIdentityServiceStub!
+    private var notificationCenter: NotificationCenter!
+    private var userIndicatorController: UserIndicatorControllerMock!
     
     var cancellables = Set<AnyCancellable>()
     
@@ -399,9 +402,152 @@ class HomeScreenViewModelTests: XCTestCase {
         try await deferredAction.fulfill()
     }
     
+    // MARK: - Account recovery banner
+    
+    func testAccountRecoveryBannerShowsWhilePendingEvenWhenThePinReminderIsSnoozed() async throws {
+        // Given an account with no factor and a live recovery, and a PIN reminder the user snoozed.
+        appSettings.pinSetupReminderSnoozedUntil = Date().addingTimeInterval(24 * 60 * 60)
+        let recovery = PendingAccountRecovery(completableAt: Date(timeIntervalSince1970: 2_000_000_000),
+                                              expiresAt: Date(timeIntervalSince1970: 2_000_600_000))
+        
+        // When the home screen reads the report at session start.
+        setupViewModel(identityServiceStatus: Self.status(pendingAccountRecovery: recovery))
+        try await deferFulfillment(context.$viewState) { $0.accountRecoveryBanner != nil }.fulfill()
+        
+        // Then the recovery banner is up and the snooze only kept the nudge away.
+        XCTAssertEqual(context.viewState.accountRecoveryBanner, recovery)
+        XCTAssertFalse(context.viewState.pinSetupReminderVisible)
+    }
+    
+    func testNoAccountRecoveryBannerWhenNothingIsPending() async throws {
+        // Given an account with no factor and nothing pending.
+        setupViewModel(identityServiceStatus: Self.status(pendingAccountRecovery: nil))
+        try await deferFulfillment(context.$viewState) { $0.pinSetupReminderVisible }.fulfill()
+        
+        // Then only the nudge shows.
+        XCTAssertNil(context.viewState.accountRecoveryBanner)
+    }
+    
+    func testForegroundRefetchesTheAccountRecoveryStatus() async throws {
+        // Given a home screen that read a report with nothing pending.
+        setupViewModel(identityServiceStatus: Self.status(pendingAccountRecovery: nil))
+        try await waitUntil { self.identityService.securityStatusCalls == 1 }
+        XCTAssertNil(context.viewState.accountRecoveryBanner)
+        
+        // When someone starts a recovery while the app is in the background and it comes back.
+        let recovery = PendingAccountRecovery(completableAt: nil, expiresAt: nil)
+        identityService.status = Self.status(pendingAccountRecovery: recovery)
+        let deferred = deferFulfillment(context.$viewState) { $0.accountRecoveryBanner != nil }
+        notificationCenter.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+        try await deferred.fulfill()
+        
+        // Then the report is read again and the banner appears.
+        XCTAssertEqual(identityService.securityStatusCalls, 2)
+        XCTAssertEqual(context.viewState.accountRecoveryBanner, recovery)
+    }
+    
+    func testAFailedRefetchKeepsTheAccountRecoveryBanner() async throws {
+        // Given a banner for a live recovery.
+        let recovery = PendingAccountRecovery(completableAt: nil, expiresAt: nil)
+        setupViewModel(identityServiceStatus: Self.status(pendingAccountRecovery: recovery))
+        try await deferFulfillment(context.$viewState) { $0.accountRecoveryBanner != nil }.fulfill()
+        
+        // When the report cannot be read on the next foreground.
+        identityService.status = nil
+        notificationCenter.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+        try await waitUntil { self.identityService.securityStatusCalls == 2 }
+        
+        // Then the banner stays: a bad network is no reason to hide it.
+        XCTAssertEqual(context.viewState.accountRecoveryBanner, recovery)
+    }
+    
+    func testCancelAccountRecoveryAsksFirstThenCancelsRefetchesAndConfirms() async throws {
+        // Given a banner for a live recovery.
+        setupViewModel(identityServiceStatus: Self.status(pendingAccountRecovery: PendingAccountRecovery(completableAt: nil, expiresAt: nil)))
+        try await deferFulfillment(context.$viewState) { $0.accountRecoveryBanner != nil }.fulfill()
+        
+        // When the owner taps Cancel recovery.
+        let alertShown = deferFulfillment(context.$viewState) { $0.bindings.alertInfo != nil }
+        context.send(viewAction: .cancelAccountRecovery)
+        try await alertShown.fulfill()
+        
+        // Then nothing is cancelled until they confirm.
+        XCTAssertEqual(context.alertInfo?.title, L10n.screenAccountRecoveryCancelConfirmTitle)
+        XCTAssertEqual(identityService.cancelCalls, 0)
+        
+        // When they confirm.
+        let callsBeforeCancel = identityService.securityStatusCalls
+        let bannerGone = deferFulfillment(context.$viewState) { $0.accountRecoveryBanner == nil }
+        context.alertInfo?.secondaryButton?.action?()
+        try await bannerGone.fulfill()
+        try await waitUntil { self.userIndicatorController.submitIndicatorDelayReceivedArguments?.indicator.title == L10n.screenAccountRecoveryCancelled }
+        
+        // Then the server is asked once, the report is read again, and the owner is told.
+        XCTAssertEqual(identityService.cancelCalls, 1)
+        XCTAssertEqual(identityService.securityStatusCalls, callsBeforeCancel + 1)
+        XCTAssertNil(context.viewState.accountRecoveryBanner)
+    }
+    
+    func testCancelAccountRecoveryFailureKeepsTheBannerAndSaysSo() async throws {
+        // Given a banner for a live recovery and a server that refuses the cancel.
+        let recovery = PendingAccountRecovery(completableAt: nil, expiresAt: nil)
+        setupViewModel(identityServiceStatus: Self.status(pendingAccountRecovery: recovery))
+        identityService.cancelError = IdentityServiceError.server(status: 500, message: nil)
+        try await deferFulfillment(context.$viewState) { $0.accountRecoveryBanner != nil }.fulfill()
+        
+        let alertShown = deferFulfillment(context.$viewState) { $0.bindings.alertInfo != nil }
+        context.send(viewAction: .cancelAccountRecovery)
+        try await alertShown.fulfill()
+        
+        // When the owner confirms.
+        let errorShown = deferFulfillment(context.$viewState) { $0.bindings.alertInfo?.message == L10n.screenAccountRecoveryCancelFailed }
+        context.alertInfo?.secondaryButton?.action?()
+        try await errorShown.fulfill()
+        
+        // Then the banner is still there.
+        XCTAssertEqual(identityService.cancelCalls, 1)
+        XCTAssertEqual(context.viewState.accountRecoveryBanner, recovery)
+    }
+    
+    func testAccountRecoveryBannerMessageSaysWhenItCanBeFinished() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let later = now.addingTimeInterval(3 * 24 * 60 * 60)
+        
+        XCTAssertEqual(HomeScreenAccountRecoveryBanner.message(for: .init(completableAt: later, expiresAt: nil), now: now),
+                       L10n.screenAccountRecoveryBannerMessageLater(later.formatted(date: .abbreviated, time: .shortened)))
+        XCTAssertEqual(HomeScreenAccountRecoveryBanner.message(for: .init(completableAt: now, expiresAt: nil), now: now),
+                       L10n.screenAccountRecoveryBannerMessageNow)
+        XCTAssertEqual(HomeScreenAccountRecoveryBanner.message(for: .init(completableAt: nil, expiresAt: nil), now: now),
+                       L10n.screenAccountRecoveryBannerMessageGeneric)
+    }
+    
     // MARK: - Helpers
     
-    private func setupViewModel(securityStatePublisher: CurrentValuePublisher<SessionSecurityState, Never>? = nil, withInvites: Bool = false) {
+    private static func status(pendingAccountRecovery: PendingAccountRecovery?) -> AccountSecurityStatus {
+        AccountSecurityStatus(hasPin: false,
+                              passkeyRegistered: false,
+                              preferredFactor: nil,
+                              phoneChangeStepUpFactors: [],
+                              pinStepUpHoldRemainingSeconds: nil,
+                              pendingAccountRecovery: pendingAccountRecovery)
+    }
+    
+    /// For state that is not published: polls until `condition` holds or a second has passed.
+    private func waitUntil(file: StaticString = #filePath, line: UInt = #line, _ condition: () -> Bool) async throws {
+        for _ in 0..<100 {
+            if condition() { return }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        XCTFail("Timed out waiting for the condition", file: file, line: line)
+    }
+    
+    private func setupViewModel(securityStatePublisher: CurrentValuePublisher<SessionSecurityState, Never>? = nil,
+                                withInvites: Bool = false,
+                                identityServiceStatus: AccountSecurityStatus? = AccountSecurityStatus(hasPin: true,
+                                                                                                      passkeyRegistered: false,
+                                                                                                      preferredFactor: .pin,
+                                                                                                      phoneChangeStepUpFactors: [],
+                                                                                                      pinStepUpHoldRemainingSeconds: nil)) {
         var rooms: [RoomSummary] = .mockRooms
         if withInvites {
             rooms += .mockInvites
@@ -411,6 +557,7 @@ class HomeScreenViewModelTests: XCTestCase {
         
         clientProxy = ClientProxyMock(.init(userID: "@mock:client.com",
                                             roomSummaryProvider: roomSummaryProvider))
+        clientProxy.accessToken = "access-token"
         if withInvites {
             clientProxy.joinRoomViaReturnValue = .success(())
             clientProxy.joinRoomAliasReturnValue = .success(())
@@ -423,13 +570,92 @@ class HomeScreenViewModelTests: XCTestCase {
         }
         
         notificationManager = NotificationManagerMock()
+        identityService = HomeScreenIdentityServiceStub(status: identityServiceStatus)
+        notificationCenter = NotificationCenter()
+        userIndicatorController = UserIndicatorControllerMock()
         
         viewModel = HomeScreenViewModel(userSession: userSession,
                                         selectedRoomPublisher: CurrentValueSubject<String?, Never>(nil).asCurrentValuePublisher(),
                                         appSettings: appSettings,
                                         analyticsService: ServiceLocator.shared.analytics,
                                         notificationManager: notificationManager,
-                                        userIndicatorController: ServiceLocator.shared.userIndicatorController)
+                                        userIndicatorController: userIndicatorController,
+                                        identityServiceClient: identityService,
+                                        notificationCenter: notificationCenter)
+    }
+}
+
+// MARK: - Stub
+
+/// GUA FORK: the identity service as the home screen sees it: a security report to read and a
+/// recovery to cancel. Cancelling clears the pending recovery, as the server does.
+@MainActor
+private final class HomeScreenIdentityServiceStub: IdentityServiceClientProtocol {
+    /// `nil` stands for a report that could not be read.
+    var status: AccountSecurityStatus?
+    var cancelError: Error?
+    private(set) var securityStatusCalls = 0
+    private(set) var cancelCalls = 0
+
+    init(status: AccountSecurityStatus?) {
+        self.status = status
+    }
+
+    func securityStatus(accessToken: String) async throws -> AccountSecurityStatus {
+        securityStatusCalls += 1
+        guard let status else { throw IdentityServiceError.server(status: 500, message: nil) }
+        return status
+    }
+
+    func cancelAccountRecovery(accessToken: String) async throws {
+        cancelCalls += 1
+        if let cancelError {
+            throw cancelError
+        }
+        status?.pendingAccountRecovery = nil
+    }
+
+    func lookupContacts(accessToken: String, phones: [String]) async throws -> [ContactMatch] {
+        []
+    }
+
+    func startAccountReauth(accessToken: String, language: String?) async throws { }
+    func verifyAccountReauth(accessToken: String, code: String, operation: ReauthOperation) async throws -> String {
+        ""
+    }
+
+    func deactivateAccount(accessToken: String, reauthToken: String, eraseData: Bool) async throws { }
+    func resetIdentityCredentials(accessToken: String, reauthToken: String) async throws -> IdentityResetCredentials {
+        IdentityResetCredentials(userId: "", password: "")
+    }
+
+    func setInitialPin(accessToken: String, userId: String, newPin: String) async throws { }
+    func startPinChange(accessToken: String,
+                        phone: String,
+                        currentPin: String?,
+                        passkeyStepUpID: String?,
+                        passkeyAssertion: PasskeyAssertion?) async throws -> String {
+        ""
+    }
+
+    func completePinChange(accessToken: String, challengeId: String, otpCode: String, newPin: String) async throws { }
+    func startPasskeyStepUp(accessToken: String) async throws -> PasskeyStepUpOptions {
+        throw IdentityServiceError.passkeyStepUpUnavailable
+    }
+
+    func startPhoneChange(accessToken: String,
+                          reauthToken: String,
+                          newPhone: String,
+                          pin: String?,
+                          passkeyStepUpID: String?,
+                          passkeyAssertion: PasskeyAssertion?,
+                          language: String?) async throws -> PhoneChangeChallenge {
+        PhoneChangeChallenge(challengeID: "", otpExpiresInSeconds: 0)
+    }
+
+    func completePhoneChange(accessToken: String, challengeId: String, code: String) async throws { }
+    func startPasskeyEnrollment(accessToken: String) async throws -> URL {
+        URL(string: "https://example.invalid")!
     }
 }
 

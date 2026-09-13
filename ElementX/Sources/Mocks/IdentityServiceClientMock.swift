@@ -47,6 +47,10 @@ final class IdentityServiceClientMock: IdentityServiceClientProtocol {
     }
 
     func completePinChange(accessToken: String, challengeId: String, otpCode: String, newPin: String) async throws { }
+    func cancelAccountRecovery(accessToken: String) async throws {
+        status.pendingAccountRecovery = nil
+    }
+
     func startPasskeyStepUp(accessToken: String) async throws -> PasskeyStepUpOptions {
         throw IdentityServiceError.passkeyStepUpUnavailable
     }

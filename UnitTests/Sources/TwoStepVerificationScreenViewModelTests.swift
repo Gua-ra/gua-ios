@@ -322,6 +322,8 @@ private final class TwoStepVerificationIdentityServiceStub: IdentityServiceClien
         }
     }
 
+    func cancelAccountRecovery(accessToken: String) async throws { }
+
     func startPasskeyStepUp(accessToken: String) async throws -> PasskeyStepUpOptions {
         stepUpStarts += 1
         if let stepUpError {
