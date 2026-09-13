@@ -122,10 +122,15 @@ struct HomeScreenContent: View {
     @ViewBuilder
     private var topSection: some View {
         // An empty VStack causes glitches within the room list
-        if context.viewState.shouldShowFilters || context.viewState.securityBannerMode.isShown || context.viewState.pinSetupReminderVisible {
+        if context.viewState.shouldShowFilters || context.viewState.securityBannerMode.isShown || context.viewState.pinSetupReminderVisible || context.viewState.accountRecoveryBanner != nil {
             VStack(spacing: 0) {
                 if context.viewState.shouldShowFilters {
                     RoomListFiltersView(state: $context.filtersState)
+                }
+
+                // GUA FORK: a live account recovery comes first. It cannot be dismissed.
+                if let recovery = context.viewState.accountRecoveryBanner {
+                    HomeScreenAccountRecoveryBanner(recovery: recovery, context: context)
                 }
 
                 if case let .show(state) = context.viewState.securityBannerMode {

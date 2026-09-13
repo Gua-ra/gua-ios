@@ -76,6 +76,10 @@ struct AccountSecurityStatus: Equatable {
     /// freshly registered passkey carries, so read it when about to offer the PIN rather than as
     /// "can this account change its number now".
     let pinStepUpHoldRemainingSeconds: Int?
+    /// A delayed account recovery that is live on the account right now, or `nil` when there is
+    /// none. Also `nil` from a deployment that does not report recovery at all, which is the same
+    /// answer an account with nothing pending gets: there is nothing for the owner to cancel.
+    var pendingAccountRecovery: PendingAccountRecovery?
 
     /// Whether the account holds this factor. Registration is the only question the server answers;
     /// `phoneOTP` and anything unrecognized are counted as not held, so neither can stand in for a
@@ -104,6 +108,20 @@ struct AccountSecurityStatus: Equatable {
     var holdsStrongFactor: Bool {
         hasPin || passkeyRegistered
     }
+}
+
+/// GUA FORK: a delayed account recovery someone has started and nobody has cancelled yet.
+///
+/// Recovery is how a person who cannot present the passkey or PIN an account holds gets back in:
+/// they start it at sign-in, wait, and finishing it sets a new PIN and signs out every other device.
+/// That makes it exactly what an attacker holding only the phone number would try, so every
+/// signed-in device shows it with a way to cancel. Both dates come from the server and either may be
+/// missing; neither is a reason to hide the recovery.
+struct PendingAccountRecovery: Equatable {
+    /// When whoever started it may finish it. At or before now means it can be finished already.
+    let completableAt: Date?
+    /// When it runs out on its own if nobody finishes it.
+    let expiresAt: Date?
 }
 
 /// GUA FORK: a step-up ceremony minted by `POST /security/passkey/stepup/options`, pinned to the

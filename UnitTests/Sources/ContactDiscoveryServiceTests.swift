@@ -94,6 +94,10 @@ private final class IdentityServiceClientStub: IdentityServiceClientProtocol {
         fatalError("Not implemented")
     }
 
+    func cancelAccountRecovery(accessToken: String) async throws {
+        fatalError("Not implemented")
+    }
+
     func startPasskeyStepUp(accessToken: String) async throws -> PasskeyStepUpOptions {
         fatalError("Not implemented")
     }

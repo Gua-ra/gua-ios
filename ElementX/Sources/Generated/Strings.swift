@@ -1152,6 +1152,26 @@ internal enum L10n {
   internal static var screenAccountReauthSendCode: String { return L10n.tr("Localizable", "screen_account_reauth_send_code") }
   /// Verified
   internal static var screenAccountReauthVerified: String { return L10n.tr("Localizable", "screen_account_reauth_verified") }
+  /// Cancel recovery
+  internal static var screenAccountRecoveryBannerAction: String { return L10n.tr("Localizable", "screen_account_recovery_banner_action") }
+  /// If this was you, you can ignore this.
+  internal static var screenAccountRecoveryBannerMessageGeneric: String { return L10n.tr("Localizable", "screen_account_recovery_banner_message_generic") }
+  /// It can be finished after %1$@. If this was you, you can ignore this.
+  internal static func screenAccountRecoveryBannerMessageLater(_ p1: Any) -> String {
+    return L10n.tr("Localizable", "screen_account_recovery_banner_message_later", String(describing: p1))
+  }
+  /// It can be finished now. If this was you, you can ignore this.
+  internal static var screenAccountRecoveryBannerMessageNow: String { return L10n.tr("Localizable", "screen_account_recovery_banner_message_now") }
+  /// Someone started recovering your account
+  internal static var screenAccountRecoveryBannerTitle: String { return L10n.tr("Localizable", "screen_account_recovery_banner_title") }
+  /// Whoever started it won't be able to finish it.
+  internal static var screenAccountRecoveryCancelConfirmMessage: String { return L10n.tr("Localizable", "screen_account_recovery_cancel_confirm_message") }
+  /// Cancel account recovery?
+  internal static var screenAccountRecoveryCancelConfirmTitle: String { return L10n.tr("Localizable", "screen_account_recovery_cancel_confirm_title") }
+  /// We couldn't cancel the recovery. Please try again.
+  internal static var screenAccountRecoveryCancelFailed: String { return L10n.tr("Localizable", "screen_account_recovery_cancel_failed") }
+  /// Recovery cancelled
+  internal static var screenAccountRecoveryCancelled: String { return L10n.tr("Localizable", "screen_account_recovery_cancelled") }
   /// Developer mode
   internal static var screenAdvancedSettingsDeveloperMode: String { return L10n.tr("Localizable", "screen_advanced_settings_developer_mode") }
   /// Enable to have access to features and functionality for developers.
