@@ -488,6 +488,57 @@ class HomeScreenViewModelTests: XCTestCase {
         XCTAssertNil(context.viewState.accountRecoveryBanner)
     }
     
+    func testAStatusReadThatStartedBeforeACancelDoesNotBringTheBannerBack() async throws {
+        // Given a banner for a live recovery, and a foreground read that is still waiting on a slow network.
+        setupViewModel(identityServiceStatus: Self.status(pendingAccountRecovery: PendingAccountRecovery(completableAt: nil, expiresAt: nil)))
+        try await deferFulfillment(context.$viewState) { $0.accountRecoveryBanner != nil }.fulfill()
+        identityService.holdsStatusReads = true
+        notificationCenter.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+        try await waitUntil { self.identityService.securityStatusCalls == 2 }
+        identityService.holdsStatusReads = false
+        
+        // When the owner cancels before that read comes back.
+        let alertShown = deferFulfillment(context.$viewState) { $0.bindings.alertInfo != nil }
+        context.send(viewAction: .cancelAccountRecovery)
+        try await alertShown.fulfill()
+        context.alertInfo?.secondaryButton?.action?()
+        try await waitUntil { self.userIndicatorController.submitIndicatorDelayReceivedArguments?.indicator.title == L10n.screenAccountRecoveryCancelled }
+        XCTAssertNil(context.viewState.accountRecoveryBanner)
+        
+        // And the old read, which still saw the recovery as pending, finally returns.
+        identityService.releaseHeldStatusReads()
+        try await waitUntil { self.identityService.securityStatusReturns == 3 }
+        try await Task.sleep(for: .milliseconds(100))
+        
+        // Then it describes the account as it was before the cancel and is ignored.
+        XCTAssertEqual(identityService.cancelCalls, 1)
+        XCTAssertNil(context.viewState.accountRecoveryBanner)
+    }
+    
+    func testCancelThatLeavesTheRecoveryLiveKeepsTheBannerAndSaysSo() async throws {
+        // Given a banner for a live recovery, and a server that accepts the cancel but still reports it live.
+        let recovery = PendingAccountRecovery(completableAt: nil, expiresAt: nil)
+        setupViewModel(identityServiceStatus: Self.status(pendingAccountRecovery: recovery))
+        identityService.cancelClearsRecovery = false
+        try await deferFulfillment(context.$viewState) { $0.accountRecoveryBanner != nil }.fulfill()
+        
+        let alertShown = deferFulfillment(context.$viewState) { $0.bindings.alertInfo != nil }
+        context.send(viewAction: .cancelAccountRecovery)
+        try await alertShown.fulfill()
+        
+        // When the owner confirms.
+        let callsBeforeCancel = identityService.securityStatusCalls
+        let errorShown = deferFulfillment(context.$viewState) { $0.bindings.alertInfo?.message == L10n.screenAccountRecoveryCancelFailed }
+        context.alertInfo?.secondaryButton?.action?()
+        try await errorShown.fulfill()
+        
+        // Then the fresh read puts the banner back and no toast claims the recovery was cancelled.
+        XCTAssertEqual(identityService.cancelCalls, 1)
+        XCTAssertEqual(identityService.securityStatusCalls, callsBeforeCancel + 1)
+        XCTAssertEqual(context.viewState.accountRecoveryBanner, recovery)
+        XCTAssertNotEqual(userIndicatorController.submitIndicatorDelayReceivedArguments?.indicator.title, L10n.screenAccountRecoveryCancelled)
+    }
+    
     func testCancelAccountRecoveryFailureKeepsTheBannerAndSaysSo() async throws {
         // Given a banner for a live recovery and a server that refuses the cancel.
         let recovery = PendingAccountRecovery(completableAt: nil, expiresAt: nil)
@@ -514,7 +565,7 @@ class HomeScreenViewModelTests: XCTestCase {
         let later = now.addingTimeInterval(3 * 24 * 60 * 60)
         
         XCTAssertEqual(HomeScreenAccountRecoveryBanner.message(for: .init(completableAt: later, expiresAt: nil), now: now),
-                       L10n.screenAccountRecoveryBannerMessageLater(later.formatted(date: .abbreviated, time: .shortened)))
+                       L10n.screenAccountRecoveryBannerMessageLater(later.formatted(date: .long, time: .shortened)))
         XCTAssertEqual(HomeScreenAccountRecoveryBanner.message(for: .init(completableAt: now, expiresAt: nil), now: now),
                        L10n.screenAccountRecoveryBannerMessageNow)
         XCTAssertEqual(HomeScreenAccountRecoveryBanner.message(for: .init(completableAt: nil, expiresAt: nil), now: now),
@@ -588,13 +639,19 @@ class HomeScreenViewModelTests: XCTestCase {
 // MARK: - Stub
 
 /// GUA FORK: the identity service as the home screen sees it: a security report to read and a
-/// recovery to cancel. Cancelling clears the pending recovery, as the server does.
+/// recovery to cancel. Cancelling clears the pending recovery, as the server does, unless a test
+/// says otherwise.
 @MainActor
 private final class HomeScreenIdentityServiceStub: IdentityServiceClientProtocol {
     /// `nil` stands for a report that could not be read.
     var status: AccountSecurityStatus?
     var cancelError: Error?
+    var cancelClearsRecovery = true
+    /// While set, reads wait for `releaseHeldStatusReads()`, like reads on a slow network.
+    var holdsStatusReads = false
+    private var heldStatusReads: [CheckedContinuation<Void, Never>] = []
     private(set) var securityStatusCalls = 0
+    private(set) var securityStatusReturns = 0
     private(set) var cancelCalls = 0
 
     init(status: AccountSecurityStatus?) {
@@ -603,8 +660,20 @@ private final class HomeScreenIdentityServiceStub: IdentityServiceClientProtocol
 
     func securityStatus(accessToken: String) async throws -> AccountSecurityStatus {
         securityStatusCalls += 1
+        // A read reports the account as it was when the request reached the server.
+        let status = status
+        if holdsStatusReads {
+            await withCheckedContinuation { heldStatusReads.append($0) }
+        }
+        securityStatusReturns += 1
         guard let status else { throw IdentityServiceError.server(status: 500, message: nil) }
         return status
+    }
+
+    func releaseHeldStatusReads() {
+        let reads = heldStatusReads
+        heldStatusReads = []
+        reads.forEach { $0.resume() }
     }
 
     func cancelAccountRecovery(accessToken: String) async throws {
@@ -612,7 +681,9 @@ private final class HomeScreenIdentityServiceStub: IdentityServiceClientProtocol
         if let cancelError {
             throw cancelError
         }
-        status?.pendingAccountRecovery = nil
+        if cancelClearsRecovery {
+            status?.pendingAccountRecovery = nil
+        }
     }
 
     func lookupContacts(accessToken: String, phones: [String]) async throws -> [ContactMatch] {
