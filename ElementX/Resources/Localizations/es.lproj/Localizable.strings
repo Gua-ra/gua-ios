@@ -1465,6 +1465,7 @@
 "screen_change_phone_step_up_passkey_action" = "Configurar una clave de acceso";
 "screen_change_phone_step_up_pin_action" = "Configurar un PIN";
 "screen_change_phone_passkey_fallback" = "No pudimos usar tu clave de acceso. Introduce tu PIN.";
+"screen_change_phone_passkey_refused_restart" = "No pudimos usar tu clave de acceso. Introduce el nuevo código que acabamos de enviar a tu número actual y luego confirma con tu PIN.";
 "screen_change_phone_cooldown_header" = "Todavía no";
 "screen_change_phone_cooldown_message" = "Por seguridad, podrás cambiar tu número en %1$@.";
 "screen_change_phone_cooldown_message_generic" = "Por seguridad, todavía no puedes cambiar tu número. Inténtalo de nuevo más tarde.";
