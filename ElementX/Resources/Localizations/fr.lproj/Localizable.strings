@@ -1447,6 +1447,8 @@
 "screen_two_step_verification_passkey_status_off" = "Aucune clé d'accès";
 "screen_two_step_verification_pin_backup_footer" = "Le code PIN prend le relais lorsque votre clé d'accès n'est pas disponible sur l'appareil que vous avez avec vous.";
 "screen_two_step_verification_pin_already_set" = "Votre compte a déjà un code PIN.";
+"screen_two_step_verification_passkey_already_set" = "Votre compte a déjà une clé d'accès.";
+"screen_two_step_verification_step_up_unavailable" = "Les clés d'accès ne sont pas disponibles ici pour le moment, ce compte ne peut donc pas confirmer que c'est bien vous. Si vous ne pouvez pas utiliser votre clé d'accès, lancez la récupération du compte au moment de la connexion.";
 "screen_two_step_verification_status_unavailable" = "Nous n'avons pas pu charger vos paramètres de sécurité.";
 "screen_two_step_verification_current_header" = "Saisissez votre code PIN actuel";
 "screen_two_step_verification_current_footer" = "Confirmez votre code PIN actuel pour autoriser la modification.";

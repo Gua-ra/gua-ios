@@ -3088,6 +3088,8 @@ internal enum L10n {
   internal static var screenTwoStepVerificationOverviewFooterPasskey: String { return L10n.tr("Localizable", "screen_two_step_verification_overview_footer_passkey") }
   /// Status
   internal static var screenTwoStepVerificationOverviewHeader: String { return L10n.tr("Localizable", "screen_two_step_verification_overview_header") }
+  /// Your account already has a passkey.
+  internal static var screenTwoStepVerificationPasskeyAlreadySet: String { return L10n.tr("Localizable", "screen_two_step_verification_passkey_already_set") }
   /// Set up a passkey
   internal static var screenTwoStepVerificationPasskeyButton: String { return L10n.tr("Localizable", "screen_two_step_verification_passkey_button") }
   /// Use Face ID, Touch ID, or a security key to sign in without a password.
@@ -3122,6 +3124,8 @@ internal enum L10n {
   internal static var screenTwoStepVerificationStatusOn: String { return L10n.tr("Localizable", "screen_two_step_verification_status_on") }
   /// We couldn't load your security settings.
   internal static var screenTwoStepVerificationStatusUnavailable: String { return L10n.tr("Localizable", "screen_two_step_verification_status_unavailable") }
+  /// Passkeys aren't available here right now, so this account can't confirm it's you. If you can't use your passkey, start account recovery when you sign in.
+  internal static var screenTwoStepVerificationStepUpUnavailable: String { return L10n.tr("Localizable", "screen_two_step_verification_step_up_unavailable") }
   /// Two-step verification
   internal static var screenTwoStepVerificationTitle: String { return L10n.tr("Localizable", "screen_two_step_verification_title") }
   /// PIN updated

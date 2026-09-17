@@ -49,6 +49,14 @@ enum IdentityServiceError: Error, LocalizedError {
     /// 409 `pin_already_set`: the account gained a PIN since this screen read its factor report, so
     /// there is nothing to enroll.
     case pinAlreadySet
+    /// 409 `passkey_already_registered`: the same thing for a passkey. Kept apart from the PIN so
+    /// the sentence can name the factor the account turns out to hold.
+    case passkeyAlreadyRegistered
+    /// 409 `step_up_unavailable`: the account can only prove itself with a passkey and this
+    /// deployment has passkeys turned off, so there is no proof it can produce and no factor it can
+    /// add here. The only way back into the account is the delayed recovery, which is why this is
+    /// the one enrollment refusal whose copy sends the reader somewhere else entirely.
+    case stepUpUnavailable
     /// `POST /account/genesis` answered 503: this deployment does not do account genesis. Callers treat
     /// it as "not supported here" and carry on with the existing signup, never as a failure.
     case genesisUnavailable
@@ -93,6 +101,8 @@ enum IdentityServiceError: Error, LocalizedError {
         case .reauthPhoneMismatch: L10n.screenAccountReauthPhoneMismatch
         case .invalidPhoneNumber: L10n.screenPhoneLoginInvalidNumber
         case .pinAlreadySet: L10n.screenTwoStepVerificationPinAlreadySet
+        case .passkeyAlreadyRegistered: L10n.screenTwoStepVerificationPasskeyAlreadySet
+        case .stepUpUnavailable: L10n.screenTwoStepVerificationStepUpUnavailable
         case .genesisUnavailable: "Account genesis is not enabled on this deployment."
         case .genesisIssuanceNotPermitted: "Account genesis issuance is not permitted on this deployment."
         case let .server(status, message): message ?? "Server error (\(status))."
@@ -745,6 +755,8 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         case "reauth_phone_mismatch": .reauthPhoneMismatch
         case "invalid_phone_number": .invalidPhoneNumber
         case "pin_already_set": .pinAlreadySet
+        case "passkey_already_registered": .passkeyAlreadyRegistered
+        case "step_up_unavailable": .stepUpUnavailable
         default: nil
         }
     }

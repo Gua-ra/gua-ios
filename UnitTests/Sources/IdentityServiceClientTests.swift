@@ -188,6 +188,41 @@ final class IdentityServiceClientTests: XCTestCase {
         }
     }
 
+    /// The same conflict for the other factor. The server's sentence is English whoever reads it,
+    /// so the screen corrects the row from the local string instead.
+    func testStartingPasskeyEnrollmentOnAnAccountThatAlreadyHasOneSaysWhich() async throws {
+        IdentityServiceStub.respond(status: 409, body: #"{ "code": "passkey_already_registered", "message": "This account already has a passkey." }"#)
+
+        do {
+            _ = try await client.startPasskeyEnrollment(accessToken: "access-token")
+            XCTFail("Expected the conflict to throw")
+        } catch let error as IdentityServiceError {
+            guard case .passkeyAlreadyRegistered = error else {
+                XCTFail("Expected the conflict, got \(error)")
+                return
+            }
+            XCTAssertEqual(error.errorDescription, L10n.screenTwoStepVerificationPasskeyAlreadySet)
+        }
+    }
+
+    /// A passkey-only account on a deployment with passkeys turned off holds nothing it can prove
+    /// here, so no factor can be added at all. That is the one enrollment refusal with somewhere
+    /// else to send the reader: the delayed recovery.
+    func testAnAccountWithNoProofItCanRunIsPointedAtRecovery() async throws {
+        IdentityServiceStub.respond(status: 409, body: #"{ "code": "step_up_unavailable" }"#)
+
+        do {
+            _ = try await client.startPinEnrollment(accessToken: "access-token")
+            XCTFail("Expected the conflict to throw")
+        } catch let error as IdentityServiceError {
+            guard case .stepUpUnavailable = error else {
+                XCTFail("Expected the conflict, got \(error)")
+                return
+            }
+            XCTAssertEqual(error.errorDescription, L10n.screenTwoStepVerificationStepUpUnavailable)
+        }
+    }
+
     // MARK: - Cancel
 
     func testCancelAccountRecoveryPostsWithTheBearerToken() async throws {

@@ -709,6 +709,8 @@
 "screen_two_step_verification_pin_backup_footer" = "A PIN is the backup for when your passkey isn't available on the device you have with you.";
 "screen_two_step_verification_status_unavailable" = "We couldn't load your security settings.";
 "screen_two_step_verification_pin_already_set" = "Your account already has a PIN.";
+"screen_two_step_verification_passkey_already_set" = "Your account already has a passkey.";
+"screen_two_step_verification_step_up_unavailable" = "Passkeys aren't available here right now, so this account can't confirm it's you. If you can't use your passkey, start account recovery when you sign in.";
 "screen_two_step_verification_current_header" = "Enter your current PIN";
 "screen_two_step_verification_current_footer" = "Confirm your current PIN to authorize the change.";
 "screen_two_step_verification_new_header" = "Choose a new PIN";

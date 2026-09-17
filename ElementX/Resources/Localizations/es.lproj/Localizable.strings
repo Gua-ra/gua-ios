@@ -1420,6 +1420,8 @@
 "screen_two_step_verification_passkey_status_off" = "Sin clave de acceso";
 "screen_two_step_verification_pin_backup_footer" = "El PIN es el respaldo para cuando tu clave de acceso no está disponible en el dispositivo que llevas contigo.";
 "screen_two_step_verification_pin_already_set" = "Tu cuenta ya tiene un PIN.";
+"screen_two_step_verification_passkey_already_set" = "Tu cuenta ya tiene una clave de acceso.";
+"screen_two_step_verification_step_up_unavailable" = "Las claves de acceso no están disponibles aquí ahora mismo, así que esta cuenta no puede comprobar que eres tú. Si no puedes usar tu clave de acceso, inicia la recuperación de la cuenta al iniciar sesión.";
 "screen_two_step_verification_status_unavailable" = "No pudimos cargar tus ajustes de seguridad.";
 "screen_two_step_verification_current_header" = "Introduce tu PIN actual";
 "screen_two_step_verification_current_footer" = "Confirma tu PIN actual para autorizar el cambio.";
