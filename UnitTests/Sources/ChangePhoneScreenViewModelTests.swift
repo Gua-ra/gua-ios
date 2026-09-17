@@ -58,21 +58,39 @@ class ChangePhoneScreenViewModelTests: XCTestCase {
         try await deferred.fulfill()
     }
 
+    /// A refusal on the number step leaves the phase where it was, so these wait on the message
+    /// rather than on a transition that never happens.
+    private func waitForRefusal() async throws {
+        let deferred = deferFulfillment(context.observe(\.viewState.errorMessage)) { $0 != nil }
+        try await deferred.fulfill()
+    }
+
     private func enterCode(_ code: String) {
         context.code = code
         context.send(viewAction: .codeChanged)
     }
 
-    private func enterNewNumber() throws {
+    private func enterNumber(_ digits: String) throws {
         try context.send(viewAction: .countrySelected(XCTUnwrap(Country.find(isoCode: "US"))))
-        context.localPhoneNumber = "5551234567"
+        context.localPhoneNumber = digits
         context.send(viewAction: .phoneChanged)
         context.send(viewAction: .continueTapped)
+    }
+
+    private func enterNewNumber() throws {
+        try enterNumber("5551234567")
+    }
+
+    /// Confirms the number the account is on, which is what makes the server send a code at all.
+    private func confirmCurrentNumber() throws {
+        try enterNumber("4155550143")
     }
 
     /// Drives the flow as far as the new-number step, which is where the step-up begins.
     private func advanceToNewPhone() async throws {
         context.send(viewAction: .start)
+        try await waitForPhase(.currentPhone)
+        try confirmCurrentNumber()
         try await waitForPhase(.reauth)
         enterCode("123456")
         try await waitForPhase(.newPhone)
@@ -94,7 +112,7 @@ class ChangePhoneScreenViewModelTests: XCTestCase {
         makeViewModel(status: Self.status(hasPin: false, passkeyRegistered: true))
 
         context.send(viewAction: .start)
-        try await waitForPhase(.reauth)
+        try await waitForPhase(.currentPhone)
 
         XCTAssertEqual(context.viewState.stepUpFactors, [.passkey])
     }
@@ -115,7 +133,7 @@ class ChangePhoneScreenViewModelTests: XCTestCase {
         makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: true, pinHold: 3600))
 
         context.send(viewAction: .start)
-        try await waitForPhase(.reauth)
+        try await waitForPhase(.currentPhone)
     }
 
     /// A deployment that does not report the hold must not be read as "no hold" nor as a block. The
@@ -124,7 +142,101 @@ class ChangePhoneScreenViewModelTests: XCTestCase {
         makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: false, pinHold: nil))
 
         context.send(viewAction: .start)
+        try await waitForPhase(.currentPhone)
+    }
+
+    // MARK: - Confirming the number the account is on
+
+    /// The server publishes nothing about which number an account uses; it compares what is
+    /// submitted with the account's own binding. So the number is asked for, and no SMS exists
+    /// until it matches.
+    func testNoCodeIsSentUntilTheCurrentNumberIsConfirmed() async throws {
+        makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: false))
+
+        context.send(viewAction: .start)
+        try await waitForPhase(.currentPhone)
+        XCTAssertEqual(identityService.startReauthCallCount, 0)
+
+        try confirmCurrentNumber()
         try await waitForPhase(.reauth)
+
+        XCTAssertEqual(identityService.startReauthPhones, ["+14155550143"])
+    }
+
+    /// Both calls carry the number, because the server keeps nothing between them and re-derives
+    /// the comparison from what is submitted each time.
+    func testBothReauthCallsCarryTheConfirmedNumber() async throws {
+        makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: false))
+        try await advanceToNewPhone()
+
+        XCTAssertEqual(identityService.startReauthPhones, ["+14155550143"])
+        XCTAssertEqual(identityService.verifyReauthPhones, ["+14155550143"])
+    }
+
+    /// The refusal is written by the server to read the same way whether the number is unknown,
+    /// somebody else's, or simply not this account's. It is shown as it is, and nothing is sent.
+    func testAWrongNumberIsRefusedInTheServersWordsAndSendsNoCode() async throws {
+        makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: false))
+        let refusal = "That is not the number on your account."
+        identityService.startReauthError = IdentityServiceError.reauthPhoneMismatch(message: refusal)
+
+        context.send(viewAction: .start)
+        try await waitForPhase(.currentPhone)
+        try confirmCurrentNumber()
+        try await waitForRefusal()
+
+        XCTAssertEqual(context.viewState.phase, .currentPhone)
+        XCTAssertEqual(context.viewState.errorMessage, refusal)
+        XCTAssertTrue(context.viewState.reauthToken.isEmpty)
+    }
+
+    /// A number the normalizer cannot read says nothing about who owns anything, and it must not be
+    /// dressed up as though it did.
+    func testAnUnreadableNumberStaysOnTheNumberStep() async throws {
+        makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: false))
+        identityService.startReauthError = IdentityServiceError.invalidPhoneNumber
+
+        context.send(viewAction: .start)
+        try await waitForPhase(.currentPhone)
+        try confirmCurrentNumber()
+        try await waitForRefusal()
+
+        XCTAssertEqual(context.viewState.phase, .currentPhone)
+        XCTAssertEqual(context.viewState.errorMessage, L10n.screenPhoneLoginInvalidNumber)
+    }
+
+    /// The cap on wrong numbers is per account, so it can be reached by someone holding a stolen
+    /// session. It lands next to the field rather than ending the flow with a toast.
+    func testTheAttemptCapIsShownOnTheNumberStep() async throws {
+        makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: false))
+        identityService.startReauthError = IdentityServiceError.rateLimited
+
+        context.send(viewAction: .start)
+        try await waitForPhase(.currentPhone)
+        try confirmCurrentNumber()
+        try await waitForRefusal()
+
+        XCTAssertEqual(context.viewState.phase, .currentPhone)
+        XCTAssertEqual(context.viewState.errorMessage, IdentityServiceError.rateLimited.errorDescription)
+    }
+
+    /// A number that stops matching between the two calls invalidates the code in hand, so the flow
+    /// goes back to the field that has to change.
+    func testAMismatchAtVerifyReturnsToTheNumberStep() async throws {
+        makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: false))
+        let refusal = "That is not the number on your account."
+        identityService.verifyReauthError = IdentityServiceError.reauthPhoneMismatch(message: refusal)
+
+        context.send(viewAction: .start)
+        try await waitForPhase(.currentPhone)
+        try confirmCurrentNumber()
+        try await waitForPhase(.reauth)
+        enterCode("123456")
+        try await waitForRefusal()
+
+        XCTAssertEqual(context.viewState.phase, .currentPhone)
+        XCTAssertEqual(context.viewState.errorMessage, refusal)
+        XCTAssertTrue(context.viewState.reauthToken.isEmpty)
     }
 
     // MARK: - Producing the step-up
@@ -376,7 +488,13 @@ private final class ChangePhoneIdentityServiceStub: IdentityServiceClientProtoco
     /// then accepts. Once it runs dry `startPhoneChangeResult` answers everything, so the
     /// single-answer tests below read exactly as they did.
     var startPhoneChangeResults: [Result<PhoneChangeChallenge, Error>] = []
+    /// Thrown by `/account/reauth/start`, for the flows where the submitted number is refused.
+    var startReauthError: Error?
+    /// Thrown by `/account/reauth/verify`, for the same reason.
+    var verifyReauthError: Error?
     private(set) var startReauthCallCount = 0
+    private(set) var startReauthPhones: [String] = []
+    private(set) var verifyReauthPhones: [String] = []
     private(set) var startPhoneChangeCalls: [StartPhoneChangeCall] = []
     private(set) var completeCalls: [CompleteCall] = []
 
@@ -388,12 +506,20 @@ private final class ChangePhoneIdentityServiceStub: IdentityServiceClientProtoco
         status
     }
 
-    func startAccountReauth(accessToken: String, language: String?) async throws {
+    func startAccountReauth(accessToken: String, phone: String, language: String?) async throws {
         startReauthCallCount += 1
+        startReauthPhones.append(phone)
+        if let startReauthError {
+            throw startReauthError
+        }
     }
 
-    func verifyAccountReauth(accessToken: String, code: String, operation: ReauthOperation) async throws -> String {
+    func verifyAccountReauth(accessToken: String, phone: String, code: String, operation: ReauthOperation) async throws -> String {
         XCTAssertEqual(operation, .phoneChange, "A phone change must not spend a token scoped to another operation")
+        verifyReauthPhones.append(phone)
+        if let verifyReauthError {
+            throw verifyReauthError
+        }
         return "reauth-token"
     }
 
@@ -428,7 +554,6 @@ private final class ChangePhoneIdentityServiceStub: IdentityServiceClientProtoco
         IdentityResetCredentials(userId: "", password: "")
     }
 
-    func setInitialPin(accessToken: String, userId: String, newPin: String) async throws { }
     func startPinChange(accessToken: String,
                         phone: String,
                         currentPin: String?,
@@ -440,6 +565,10 @@ private final class ChangePhoneIdentityServiceStub: IdentityServiceClientProtoco
     func completePinChange(accessToken: String, challengeId: String, otpCode: String, newPin: String) async throws { }
     func cancelAccountRecovery(accessToken: String) async throws { }
     func startPasskeyEnrollment(accessToken: String) async throws -> URL {
+        URL(string: "https://example.invalid")!
+    }
+
+    func startPinEnrollment(accessToken: String) async throws -> URL {
         URL(string: "https://example.invalid")!
     }
 }

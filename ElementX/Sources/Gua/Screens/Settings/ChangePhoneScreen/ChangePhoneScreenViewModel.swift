@@ -43,6 +43,8 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         switch viewAction {
         case .start:
             state.selectedCountry = .deviceDefault
+            state.bindings.localPhoneNumber = ""
+            state.currentPhoneE164 = ""
             state.reauthToken = ""
             state.challengeID = ""
             state.stepUpFactors = []
@@ -71,9 +73,12 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             }
         case .continueTapped:
             guard state.canContinue else { return }
-            if state.phase == .newPhone {
+            switch state.phase {
+            case .currentPhone:
+                handleSubmittedCurrentPhone(state.e164PhoneNumber)
+            case .newPhone:
                 handleSubmittedPhone(state.e164PhoneNumber)
-            } else {
+            default:
                 handleSubmittedCode(state.bindings.code)
             }
         case .cancel:
@@ -102,6 +107,19 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         state.newPhoneE164 = trimmed
         state.errorMessage = nil
         Task { await stepUp() }
+    }
+
+    /// The current number, which is what `/account/reauth/start` weighs before it sends anything.
+    /// It is kept for the verify call as well, because the server remembers nothing between the two.
+    private func handleSubmittedCurrentPhone(_ phone: String) {
+        let trimmed = phone.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard ChangePhoneScreenViewState.isValid(phone: trimmed) else {
+            state.errorMessage = L10n.screenPhoneLoginInvalidNumber
+            return
+        }
+        state.currentPhoneE164 = trimmed
+        state.errorMessage = nil
+        Task { await sendReauthCode() }
     }
 
     private func handleSubmittedCode(_ code: String) {
@@ -183,7 +201,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
                 state.phase = .cooldown
                 return
             }
-            await startReauth(accessToken: accessToken)
+            askForCurrentPhone()
         } catch IdentityServiceError.stepUpRequired {
             block(reason: .noFactorRegistered)
         } catch let IdentityServiceError.twoFactorCooldown(retry) {
@@ -197,15 +215,61 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         }
     }
 
-    /// Sends the reauth OTP to the CURRENT number. Nothing reaches the new number here, and nothing
-    /// reaches this number either until the account is known to hold a factor that can finish.
-    private func startReauth(accessToken: String) async {
+    /// Refusals that point at the number in the field rather than at the code or the operation: the
+    /// digest comparison said no, the normalizer could not read the number, or the per-account cap
+    /// on wrong numbers has been reached.
+    private static func isAboutTheSubmittedNumber(_ error: IdentityServiceError) -> Bool {
+        switch error {
+        case .reauthPhoneMismatch, .invalidPhoneNumber, .rateLimited: true
+        default: false
+        }
+    }
+
+    /// Asks for the number the account is on today. It comes before any SMS because it is what the
+    /// server weighs to decide whether to send one at all.
+    private func askForCurrentPhone(message: String? = nil) {
+        state.bindings.code = ""
+        state.bindings.localPhoneNumber = ""
+        state.errorMessage = message
+        state.phase = .currentPhone
+    }
+
+    /// Sends the reauth OTP to the CURRENT number, once the server agrees that is what it is.
+    /// Nothing reaches the new number here, and nothing reaches this one either until the account is
+    /// known to hold a factor that can finish.
+    private func sendReauthCode() async {
+        guard let accessToken = clientProxy.accessToken else {
+            state.errorMessage = L10n.errorUnknown
+            state.phase = .intro
+            return
+        }
+        // A resend from the middle of the flow has the NEW number in the field, so a refusal there
+        // has to clear it before asking for the current one again.
+        let isConfirmingNumber = state.phase == .currentPhone
+        state.phase = .submitting
+        userIndicatorController.submitIndicator(UserIndicator(id: indicatorID,
+                                                              type: .modal,
+                                                              title: L10n.commonLoading,
+                                                              persistent: true))
+        defer { userIndicatorController.retractIndicatorWithId(indicatorID) }
         do {
             try await identityServiceClient.startAccountReauth(accessToken: accessToken,
+                                                               phone: state.currentPhoneE164,
                                                                language: Locale.current.identifier)
             state.bindings.code = ""
             state.errorMessage = nil
             state.phase = .reauth
+        } catch let error as IdentityServiceError where Self.isAboutTheSubmittedNumber(error) {
+            // All of these are about the number that was just typed, so they belong next to the
+            // field, with what was typed still in it so a wrong digit can be fixed. The mismatch is
+            // shown in the server's words: it says only that this is not the number on the account,
+            // and saying more would be saying whose it is.
+            if isConfirmingNumber {
+                state.errorMessage = error.errorDescription
+                state.phase = .currentPhone
+            } else {
+                askForCurrentPhone(message: error.errorDescription)
+            }
         } catch {
             MXLog.error("Failed to start account reauth for change-phone: \(error)")
             userIndicatorController.submitIndicator(UserIndicator(title: (error as? LocalizedError)?.errorDescription ?? L10n.errorUnknown,
@@ -228,9 +292,12 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         defer { userIndicatorController.retractIndicatorWithId(indicatorID) }
         do {
             state.reauthToken = try await identityServiceClient.verifyAccountReauth(accessToken: accessToken,
+                                                                                    phone: state.currentPhoneE164,
                                                                                     code: code,
                                                                                     operation: .phoneChange)
             state.bindings.code = ""
+            // The field the current number was typed into is the one the new number goes into next.
+            state.bindings.localPhoneNumber = ""
             state.errorMessage = nil
             state.phase = .newPhone
         } catch IdentityServiceError.invalidOTP {
@@ -241,6 +308,11 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             state.errorMessage = IdentityServiceError.rateLimited.errorDescription
             state.bindings.code = ""
             state.phase = .reauth
+        } catch let error as IdentityServiceError where Self.isAboutTheSubmittedNumber(error) {
+            // The number stopped matching between the two calls, or was never a number the server
+            // could read. Either way the code in hand is worthless, so this goes back to the field
+            // that has to change rather than asking for the code again.
+            askForCurrentPhone(message: error.errorDescription)
         } catch {
             MXLog.error("Failed to verify the reauth code: \(error)")
             state.errorMessage = (error as? LocalizedError)?.errorDescription ?? L10n.errorUnknown
@@ -483,15 +555,16 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
     /// an answer the server already gave: re-offering the refused ceremony here is what would strand
     /// the flow in a loop the PIN could never break out of.
     private func restartAtReauth(message: String?) async {
-        guard let accessToken = clientProxy.accessToken else {
-            state.errorMessage = L10n.errorUnknown
-            state.phase = .intro
-            return
-        }
         state.reauthToken = ""
         state.challengeID = ""
         state.bindings.code = ""
-        await startReauth(accessToken: accessToken)
+        guard !state.currentPhoneE164.isEmpty else {
+            // Nothing to send to, which can only happen if the attempt never got past the number
+            // step. Ask for it again rather than posting a blank one.
+            askForCurrentPhone(message: message)
+            return
+        }
+        await sendReauthCode()
         if state.phase == .reauth {
             state.errorMessage = message
         }

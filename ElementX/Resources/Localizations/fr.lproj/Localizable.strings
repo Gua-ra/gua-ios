@@ -1412,7 +1412,9 @@
 // onboarding, two-step verification, PIN, profile-setup and re-auth flows render
 // in French instead of falling back to English.
 "screen_account_reauth_code_label" = "Code de vérification";
-"screen_account_reauth_section_footer" = "Nous enverrons un code de vérification par SMS au téléphone associé à votre compte.";
+"screen_account_reauth_section_footer" = "Saisissez le numéro de votre compte. Nous y enverrons un code de vérification par SMS.";
+"screen_account_reauth_phone_label" = "Confirmez votre numéro actuel";
+"screen_account_reauth_phone_mismatch" = "Ce n'est pas le numéro de votre compte.";
 "screen_account_reauth_section_title" = "Vérifiez votre identité";
 "screen_account_reauth_send_code" = "Envoyer le code de vérification";
 "screen_account_reauth_verified" = "Vérifié";
@@ -1444,6 +1446,7 @@
 "screen_two_step_verification_passkey_status_on" = "Clé d'accès configurée";
 "screen_two_step_verification_passkey_status_off" = "Aucune clé d'accès";
 "screen_two_step_verification_pin_backup_footer" = "Le code PIN prend le relais lorsque votre clé d'accès n'est pas disponible sur l'appareil que vous avez avec vous.";
+"screen_two_step_verification_pin_already_set" = "Votre compte a déjà un code PIN.";
 "screen_two_step_verification_status_unavailable" = "Nous n'avons pas pu charger vos paramètres de sécurité.";
 "screen_two_step_verification_current_header" = "Saisissez votre code PIN actuel";
 "screen_two_step_verification_current_footer" = "Confirmez votre code PIN actuel pour autoriser la modification.";
@@ -1482,6 +1485,8 @@
 "screen_change_phone_already_linked" = "Ce numéro de téléphone est déjà associé à un autre compte.";
 "screen_change_phone_new_header" = "Nouveau numéro de téléphone";
 "screen_change_phone_new_footer" = "Saisissez le numéro que vous souhaitez utiliser à partir de maintenant.";
+"screen_change_phone_current_header" = "Confirmez votre numéro actuel";
+"screen_change_phone_current_footer" = "Saisissez le numéro que votre compte utilise aujourd'hui. Nous y enverrons un code par SMS.";
 "screen_change_phone_reauth_header" = "Vérifions que c'est bien vous";
 "screen_change_phone_reauth_footer" = "Saisissez le code à 6 chiffres que nous avons envoyé à votre numéro actuel.";
 "screen_change_phone_step_up_header" = "Ajoutez d'abord une deuxième étape";

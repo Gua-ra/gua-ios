@@ -57,12 +57,17 @@ class EncryptionResetPasswordScreenViewModel: EncryptionResetPasswordScreenViewM
             state.reauthPhase = .error(L10n.errorUnknown)
             return
         }
+        let phone = state.bindings.phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !phone.isEmpty else { return }
         state.reauthPhase = .sendingCode
         do {
             try await identityServiceClient.startAccountReauth(accessToken: accessToken,
+                                                               phone: phone,
                                                                language: Locale.current.identifier)
             state.reauthPhase = .awaitingCode
         } catch {
+            // A number that is not this account's arrives as the server's own refusal, which says
+            // only that. It is shown as it is rather than reworded into something about ownership.
             MXLog.error("Failed to start account reauth: \(error)")
             state.reauthPhase = .error((error as? LocalizedError)?.errorDescription ?? L10n.errorUnknown)
         }
@@ -74,13 +79,15 @@ class EncryptionResetPasswordScreenViewModel: EncryptionResetPasswordScreenViewM
             return
         }
         let code = state.bindings.otpCode.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !code.isEmpty else { return }
+        let phone = state.bindings.phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !code.isEmpty, !phone.isEmpty else { return }
         state.reauthPhase = .verifyingCode
         do {
             // Scoped to the operation this token is about to be spent on. The server binds the
             // token to one operation and refuses it anywhere else, so a token minted for a
             // deactivation cannot pay for an identity reset.
             let token = try await identityServiceClient.verifyAccountReauth(accessToken: accessToken,
+                                                                            phone: phone,
                                                                             code: code,
                                                                             operation: .identityReset)
             reauthToken = token

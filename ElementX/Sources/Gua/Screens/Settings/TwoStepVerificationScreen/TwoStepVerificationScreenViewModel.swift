@@ -64,8 +64,9 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
     override func process(viewAction: TwoStepVerificationScreenViewAction) {
         switch viewAction {
         case .startSetup:
-            resetFlowState()
-            state.phase = .enteringNew
+            // A first PIN is enrolled in the web session, like a passkey. The view model can't
+            // present it, and nothing is typed here that the session would not ask for again.
+            actionsSubject.send(.setUpPin)
         case .startChange:
             resetFlowState()
             state.selectedCountry = .deviceDefault
@@ -248,8 +249,7 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
         case .passkey where !(state.factors?.passkeyRegistered ?? true):
             actionsSubject.send(.setUpPasskey)
         case .pin where !userHasPin:
-            resetFlowState()
-            state.phase = .enteringNew
+            actionsSubject.send(.setUpPin)
         default:
             break
         }
@@ -413,8 +413,7 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
     /// the current PIN, so it goes back to the new PIN with its challenge intact rather than asking
     /// for a PIN the person was told they did not need.
     private var retryPhaseAfterFailedSubmission: TwoStepVerificationScreenPhase {
-        guard userHasPin else { return .enteringNew }
-        return state.challengeId != nil && state.currentPin.isEmpty ? .enteringNew : .enteringCurrent
+        state.challengeId != nil && state.currentPin.isEmpty ? .enteringNew : .enteringCurrent
     }
 
     private func submitNewPin(_ pin: String) async {
@@ -429,21 +428,17 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
                                                               persistent: true))
         defer { userIndicatorController.retractIndicatorWithId(indicatorID) }
         do {
-            if userHasPin {
-                guard let challengeId = state.challengeId else {
-                    state.errorMessage = L10n.errorUnknown
-                    state.phase = .overview
-                    return
-                }
-                try await identityServiceClient.completePinChange(accessToken: accessToken,
-                                                                  challengeId: challengeId,
-                                                                  otpCode: state.otpCode,
-                                                                  newPin: pin)
-            } else {
-                try await identityServiceClient.setInitialPin(accessToken: accessToken,
-                                                              userId: clientProxy.userID,
-                                                              newPin: pin)
+            // Only a change reaches this point: a first PIN is set inside the enrollment web
+            // session, which is the only place a bearer session is not the whole of the proof.
+            guard let challengeId = state.challengeId else {
+                state.errorMessage = L10n.errorUnknown
+                state.phase = .overview
+                return
             }
+            try await identityServiceClient.completePinChange(accessToken: accessToken,
+                                                              challengeId: challengeId,
+                                                              otpCode: state.otpCode,
+                                                              newPin: pin)
             // The PIN now exists. Re-read the report rather than patching a local copy of it, so
             // this screen keeps saying what the server says.
             resetFlowState()

@@ -10,13 +10,18 @@ import Foundation
 enum TwoStepVerificationScreenViewModelAction {
     case close
     /// The user asked to set up a passkey. The coordinator presents the authenticated
-    /// web session — the view model can't present a sheet itself.
+    /// web session; the view model can't present a sheet itself.
     case setUpPasskey
+    /// The user asked to set up their first PIN, which goes through the same authenticated web
+    /// session. A bearer token alone must not add a durable factor, so there is no native path
+    /// here any more: the web session confirms the account before the PIN is stored.
+    case setUpPin
 }
 
-/// Drives the screen between the overview state and the multi-step PIN flows.
+/// Drives the screen between the overview state and the multi-step PIN flow.
 ///
-/// Setup flow (no existing PIN):  ``enteringNew`` → ``confirmingNew`` → ``submitting``.
+/// Setting the FIRST PIN is not here: it runs in the enrollment web session the coordinator opens,
+/// exactly as a passkey does.
 ///
 /// Change flow (existing PIN, OTP-protected):
 /// ``enteringPhone`` → ``enteringCurrent`` (verified live with the backend) →
@@ -149,9 +154,10 @@ struct TwoStepVerificationScreenViewStateBindings {
 }
 
 enum TwoStepVerificationScreenViewAction {
+    /// Add a first PIN, which opens the enrollment web session.
     case startSetup
     case startChange
-    /// Re-read the factor report after it failed to load.
+    /// Re-read the factor report, after it failed to load or after an enrollment finished.
     case retryStatus
     case pinChanged
     case phoneChanged

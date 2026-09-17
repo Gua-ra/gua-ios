@@ -670,6 +670,8 @@
 "screen_change_phone_already_linked" = "That phone number is already linked to another account.";
 "screen_change_phone_new_header" = "New phone number";
 "screen_change_phone_new_footer" = "Enter the number you'd like to use from now on.";
+"screen_change_phone_current_header" = "Confirm your current number";
+"screen_change_phone_current_footer" = "Enter the number your account uses today. We'll text a code to it.";
 "screen_change_phone_reauth_header" = "Check it's you";
 "screen_change_phone_reauth_footer" = "Enter the 6-digit code we sent to your current number.";
 "screen_change_phone_step_up_header" = "Add a second step first";
@@ -706,6 +708,7 @@
 "screen_two_step_verification_passkey_status_off" = "No passkey set up";
 "screen_two_step_verification_pin_backup_footer" = "A PIN is the backup for when your passkey isn't available on the device you have with you.";
 "screen_two_step_verification_status_unavailable" = "We couldn't load your security settings.";
+"screen_two_step_verification_pin_already_set" = "Your account already has a PIN.";
 "screen_two_step_verification_current_header" = "Enter your current PIN";
 "screen_two_step_verification_current_footer" = "Confirm your current PIN to authorize the change.";
 "screen_two_step_verification_new_header" = "Choose a new PIN";
@@ -1425,7 +1428,9 @@
 "screen_create_room_title" = "Create a room";
 "screen_deactivate_account_title" = "Deactivate account";
 "screen_account_reauth_section_title" = "Verify it's you";
-"screen_account_reauth_section_footer" = "We'll send a verification code by SMS to the phone linked to your account.";
+"screen_account_reauth_section_footer" = "Enter the number on your account. We'll text a verification code to it.";
+"screen_account_reauth_phone_label" = "Confirm your current number";
+"screen_account_reauth_phone_mismatch" = "That is not the number on your account.";
 "screen_account_reauth_send_code" = "Send verification code";
 "screen_account_reauth_code_label" = "Verification code";
 "screen_account_reauth_verified" = "Verified";

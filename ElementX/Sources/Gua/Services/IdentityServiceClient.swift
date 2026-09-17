@@ -37,6 +37,17 @@ enum IdentityServiceError: Error, LocalizedError {
     case phoneChangeCooldown(retryAfterSeconds: Int?)
     case invalidReauthToken
     case phoneAlreadyLinked
+    /// 403 `reauth_phone_mismatch`: the number typed at a reauthentication step is not the one on
+    /// the signed-in account. The server answers the same way whether the number is unknown or
+    /// belongs to somebody else, so the message it sends is carried through as it is: rewording it
+    /// here is how a client would start hinting at who else owns a number.
+    case reauthPhoneMismatch(message: String?)
+    /// 400 `invalid_phone_number`: the normalizer could not read the number at all. It says nothing
+    /// about which account the number belongs to, and it must not be shown as though it did.
+    case invalidPhoneNumber
+    /// 409 `pin_already_set`: the account gained a PIN since this screen read its factor report, so
+    /// there is nothing to enroll.
+    case pinAlreadySet
     /// `POST /account/genesis` answered 503: this deployment does not do account genesis. Callers treat
     /// it as "not supported here" and carry on with the existing signup, never as a failure.
     case genesisUnavailable
@@ -78,6 +89,9 @@ enum IdentityServiceError: Error, LocalizedError {
             } else { "For your security, you can't change your number again just yet. Please try again later." }
         case .invalidReauthToken: "Your verification expired. Please request a new code."
         case .phoneAlreadyLinked: "That phone number is already linked to another account."
+        case let .reauthPhoneMismatch(message): message ?? L10n.screenAccountReauthPhoneMismatch
+        case .invalidPhoneNumber: L10n.screenPhoneLoginInvalidNumber
+        case .pinAlreadySet: L10n.screenTwoStepVerificationPinAlreadySet
         case .genesisUnavailable: "Account genesis is not enabled on this deployment."
         case .genesisIssuanceNotPermitted: "Account genesis issuance is not permitted on this deployment."
         case let .server(status, message): message ?? "Server error (\(status))."
@@ -118,18 +132,22 @@ protocol IdentityServiceClientProtocol {
     /// accounts. The numbers are sent over TLS and digested server-side; only the contacts
     /// that are on Gua and discoverable come back.
     func lookupContacts(accessToken: String, phones: [String]) async throws -> [ContactMatch]
-    func startAccountReauth(accessToken: String, language: String?) async throws
-    /// Exchanges the reauth OTP for a single-use token scoped to `operation`. The scope is not
+    /// Sends the reauth OTP, but only once `phone` turns out to be the number on the caller's own
+    /// account. The server digests what is submitted and compares it with that account's directory
+    /// binding, so the number is a proof rather than a routing hint: nothing is stored, and a
+    /// number that is not this account's is refused identically whoever it belongs to.
+    func startAccountReauth(accessToken: String, phone: String, language: String?) async throws
+    /// Exchanges the reauth OTP for a single-use token scoped to `operation`. The number is
+    /// submitted again because nothing was kept between the two calls, and the scope is not
     /// cosmetic: the server refuses a token presented for any other operation, so every caller
     /// names the one it is about to perform.
-    func verifyAccountReauth(accessToken: String, code: String, operation: ReauthOperation) async throws -> String
+    func verifyAccountReauth(accessToken: String, phone: String, code: String, operation: ReauthOperation) async throws -> String
     func deactivateAccount(accessToken: String, reauthToken: String, eraseData: Bool) async throws
     func resetIdentityCredentials(accessToken: String, reauthToken: String) async throws -> IdentityResetCredentials
-    // GUA FORK: two-step verification. `GET /security/pin/status` reports the whole factor
-    // inventory, not just the PIN, and it is the signal every "which factor does this account
-    // need" decision reads.
+    /// GUA FORK: two-step verification. `GET /security/pin/status` reports the whole factor
+    /// inventory, not just the PIN, and it is the signal every "which factor does this account
+    /// need" decision reads.
     func securityStatus(accessToken: String) async throws -> AccountSecurityStatus
-    func setInitialPin(accessToken: String, userId: String, newPin: String) async throws
     /// Starts a PIN change and texts a code to `phone`. Authorized by a step-up passkey assertion when
     /// `passkeyStepUpID` and `passkeyAssertion` are supplied, in which case `currentPin` is not consulted,
     /// otherwise by `currentPin`.
@@ -161,6 +179,11 @@ protocol IdentityServiceClientProtocol {
     /// authenticated web session. The flow finishes when that page redirects to
     /// the app's OIDC redirect URL.
     func startPasskeyEnrollment(accessToken: String) async throws -> URL
+    /// Begins PIN enrollment the same way, and for the same reason: a bearer session on its own
+    /// must not add a durable factor, so the first PIN is set inside a web session that confirms
+    /// the account first (a passkey, an existing PIN, or the account's own number and a code sent
+    /// to it). Changing a PIN that already exists is a different flow and stays native.
+    func startPinEnrollment(accessToken: String) async throws -> URL
 }
 
 /// GUA FORK: the slice of identity-service that account genesis needs, kept separate from
@@ -248,21 +271,21 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
 
     // MARK: - Account reauthentication
 
-    func startAccountReauth(accessToken: String, language: String?) async throws {
-        struct EmptyBody: Encodable { }
+    func startAccountReauth(accessToken: String, phone: String, language: String?) async throws {
+        struct Body: Encodable { let phone: String }
         try await sendAuthenticated(path: "/account/reauth/start",
                                     accessToken: accessToken,
-                                    body: EmptyBody(),
+                                    body: Body(phone: phone),
                                     language: language,
                                     expectsBody: false)
     }
 
-    func verifyAccountReauth(accessToken: String, code: String, operation: ReauthOperation) async throws -> String {
-        struct Body: Encodable { let code: String; let operation: String }
+    func verifyAccountReauth(accessToken: String, phone: String, code: String, operation: ReauthOperation) async throws -> String {
+        struct Body: Encodable { let phone: String; let code: String; let operation: String }
         struct Response: Decodable { let reauthToken: String; let expiresInSeconds: Int }
         let (data, _) = try await sendAuthenticated(path: "/account/reauth/verify",
                                                     accessToken: accessToken,
-                                                    body: Body(code: code, operation: operation.rawValue),
+                                                    body: Body(phone: phone, code: code, operation: operation.rawValue),
                                                     language: nil,
                                                     expectsBody: true)
         do {
@@ -356,18 +379,6 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         guard pending == true else { return nil }
         return PendingAccountRecovery(completableAt: completableAt.map { Date(timeIntervalSince1970: TimeInterval($0)) },
                                       expiresAt: expiresAt.map { Date(timeIntervalSince1970: TimeInterval($0)) })
-    }
-
-    func setInitialPin(accessToken: String, userId: String, newPin: String) async throws {
-        struct Body: Encodable {
-            let userId: String
-            let newPin: String
-        }
-        try await sendAuthenticated(path: "/security/pin",
-                                    accessToken: accessToken,
-                                    body: Body(userId: userId, newPin: newPin),
-                                    language: nil,
-                                    expectsBody: false)
     }
 
     func startPinChange(accessToken: String,
@@ -535,12 +546,22 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
                                     expectsBody: false)
     }
 
-    // MARK: - Passkey enrollment
+    // MARK: - Factor enrollment
 
     func startPasskeyEnrollment(accessToken: String) async throws -> URL {
+        try await startFactorEnrollment(path: "/security/passkey/enroll/start", accessToken: accessToken)
+    }
+
+    func startPinEnrollment(accessToken: String) async throws -> URL {
+        try await startFactorEnrollment(path: "/security/pin/enroll/start", accessToken: accessToken)
+    }
+
+    /// Both enrollments answer the same way: a one-time URL on the sign-in origin, opened in an
+    /// authenticated web view, which is where the account is confirmed before anything is stored.
+    private func startFactorEnrollment(path: String, accessToken: String) async throws -> URL {
         struct EmptyBody: Encodable { }
         struct Response: Decodable { let enrollUrl: String }
-        let (data, _) = try await sendAuthenticated(path: "/security/passkey/enroll/start",
+        let (data, _) = try await sendAuthenticated(path: path,
                                                     accessToken: accessToken,
                                                     body: EmptyBody(),
                                                     language: Locale.current.language.languageCode?.identifier,
@@ -670,7 +691,7 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         let retry = body?.retryAfterSeconds ?? retryAfterHeader.flatMap(Int.init)
         if let mapped = passkeyError(code: body?.code, status: status, path: path)
             ?? waitError(code: body?.code, retryAfterSeconds: retry)
-            ?? credentialError(code: body?.code) {
+            ?? credentialError(code: body?.code, message: body?.message) {
             return mapped
         }
         if status == 429 {
@@ -707,7 +728,11 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
     }
 
     /// Wrong, missing or spent proofs, and the one refusal that ends the operation outright.
-    private static func credentialError(code: String?) -> IdentityServiceError? {
+    ///
+    /// The mismatch keeps the server's own wording. It is written to be identical for a number
+    /// nobody has, a number somebody else has, and a number that is simply not this account's, and
+    /// that property only survives if the client shows it rather than composing its own.
+    private static func credentialError(code: String?, message: String?) -> IdentityServiceError? {
         switch code {
         case "invalid_otp": .invalidOTP
         case "invalid_pin": .invalidPin
@@ -716,6 +741,9 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         case "phone_change_challenge_invalid": .phoneChangeChallengeInvalid
         case "phone_already_linked": .phoneAlreadyLinked
         case "step_up_required": .stepUpRequired
+        case "reauth_phone_mismatch": .reauthPhoneMismatch(message: message)
+        case "invalid_phone_number": .invalidPhoneNumber
+        case "pin_already_set": .pinAlreadySet
         default: nil
         }
     }

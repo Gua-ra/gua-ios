@@ -14,6 +14,9 @@ enum EncryptionResetPasswordScreenViewModelAction {
 /// Reauth phases for the OTP-based UIA path used by the Gua app. When the identity-service
 /// client is unavailable (e.g. dev builds without backend) we fall back to the legacy password
 /// entry path so existing behaviour is preserved.
+///
+/// GUA FORK: the number is typed rather than looked up, and it is part of the proof: the server
+/// compares its digest with the account's own directory binding and sends no code unless it matches.
 enum EncryptionResetReauthPhase: Equatable {
     case idle
     case sendingCode
@@ -31,6 +34,8 @@ struct EncryptionResetPasswordScreenViewState: BindableState {
 
 struct EncryptionResetPasswordScreenViewStateBindings {
     var password: String
+    /// The number the account is on, as the user types it. Both reauth calls carry it.
+    var phoneNumber = ""
     var otpCode = ""
     var alertInfo: AlertInfo<UUID>?
 }

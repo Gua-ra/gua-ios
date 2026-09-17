@@ -58,11 +58,11 @@ private final class IdentityServiceClientStub: IdentityServiceClientProtocol {
         return phones.compactMap { matchesByPhone[$0] }
     }
 
-    func startAccountReauth(accessToken: String, language: String?) async throws {
+    func startAccountReauth(accessToken: String, phone: String, language: String?) async throws {
         fatalError("Not implemented")
     }
 
-    func verifyAccountReauth(accessToken: String, code: String, operation: ReauthOperation) async throws -> String {
+    func verifyAccountReauth(accessToken: String, phone: String, code: String, operation: ReauthOperation) async throws -> String {
         fatalError("Not implemented")
     }
 
@@ -75,10 +75,6 @@ private final class IdentityServiceClientStub: IdentityServiceClientProtocol {
     }
 
     func securityStatus(accessToken: String) async throws -> AccountSecurityStatus {
-        fatalError("Not implemented")
-    }
-
-    func setInitialPin(accessToken: String, userId: String, newPin: String) async throws {
         fatalError("Not implemented")
     }
 
@@ -117,6 +113,10 @@ private final class IdentityServiceClientStub: IdentityServiceClientProtocol {
     }
 
     func startPasskeyEnrollment(accessToken: String) async throws -> URL {
+        fatalError("Not implemented")
+    }
+
+    func startPinEnrollment(accessToken: String) async throws -> URL {
         fatalError("Not implemented")
     }
 }

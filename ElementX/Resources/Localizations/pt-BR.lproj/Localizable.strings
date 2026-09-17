@@ -1345,7 +1345,9 @@
 "screen_create_room_title" = "Criar uma sala";
 "screen_deactivate_account_title" = "Desativar conta";
 "screen_account_reauth_section_title" = "Verifique que é você";
-"screen_account_reauth_section_footer" = "Enviaremos um código por SMS ao número de telefone vinculado à sua conta.";
+"screen_account_reauth_section_footer" = "Digite o número da sua conta. Vamos enviar um código de verificação por SMS para ele.";
+"screen_account_reauth_phone_label" = "Confirme seu número atual";
+"screen_account_reauth_phone_mismatch" = "Esse não é o número da sua conta.";
 "screen_account_reauth_send_code" = "Enviar código de verificação";
 "screen_account_reauth_code_label" = "Código de verificação";
 "screen_account_reauth_verified" = "Verificado";
@@ -1444,6 +1446,7 @@
 "screen_two_step_verification_passkey_status_on" = "Chave de acesso configurada";
 "screen_two_step_verification_passkey_status_off" = "Sem chave de acesso";
 "screen_two_step_verification_pin_backup_footer" = "O PIN é a alternativa para quando sua chave de acesso não está disponível no dispositivo que você tem em mãos.";
+"screen_two_step_verification_pin_already_set" = "Sua conta já tem um PIN.";
 "screen_two_step_verification_status_unavailable" = "Não conseguimos carregar suas configurações de segurança.";
 "screen_two_step_verification_current_header" = "Digite seu PIN atual";
 "screen_two_step_verification_current_footer" = "Confirme seu PIN atual para autorizar a alteração.";
@@ -1482,6 +1485,8 @@
 "screen_change_phone_already_linked" = "Esse número de telefone já está vinculado a outra conta.";
 "screen_change_phone_new_header" = "Novo número de telefone";
 "screen_change_phone_new_footer" = "Digite o número que você quer usar a partir de agora.";
+"screen_change_phone_current_header" = "Confirme seu número atual";
+"screen_change_phone_current_footer" = "Digite o número que sua conta usa hoje. Vamos enviar um código por SMS para ele.";
 "screen_change_phone_reauth_header" = "Confirme que é você";
 "screen_change_phone_reauth_footer" = "Digite o código de 6 dígitos que enviamos para o seu número atual.";
 "screen_change_phone_step_up_header" = "Antes, adicione uma segunda etapa";

@@ -52,12 +52,18 @@ class DeactivateAccountScreenViewModel: DeactivateAccountScreenViewModelType, De
             state.reauthPhase = .error(L10n.errorUnknown)
             return
         }
+        let phone = state.bindings.phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !phone.isEmpty else { return }
         state.reauthPhase = .sendingCode
         do {
             try await identityServiceClient.startAccountReauth(accessToken: accessToken,
+                                                               phone: phone,
                                                                language: Locale.current.identifier)
             state.reauthPhase = .awaitingCode
         } catch {
+            // A number that is not this account's arrives here as the server's own refusal, which
+            // says only that. It is shown as it is: rewording it is how a client starts hinting at
+            // who else a number belongs to.
             MXLog.error("Failed to start account reauth: \(error)")
             state.reauthPhase = .error((error as? LocalizedError)?.errorDescription ?? L10n.errorUnknown)
         }
@@ -69,10 +75,12 @@ class DeactivateAccountScreenViewModel: DeactivateAccountScreenViewModelType, De
             return
         }
         let code = state.bindings.otpCode.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !code.isEmpty else { return }
+        let phone = state.bindings.phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !code.isEmpty, !phone.isEmpty else { return }
         state.reauthPhase = .verifyingCode
         do {
             reauthToken = try await identityServiceClient.verifyAccountReauth(accessToken: accessToken,
+                                                                              phone: phone,
                                                                               code: code,
                                                                               operation: .deactivate)
             state.reauthPhase = .verified

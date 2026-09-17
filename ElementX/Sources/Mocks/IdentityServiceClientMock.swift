@@ -27,8 +27,8 @@ final class IdentityServiceClientMock: IdentityServiceClientProtocol {
         []
     }
 
-    func startAccountReauth(accessToken: String, language: String?) async throws { }
-    func verifyAccountReauth(accessToken: String, code: String, operation: ReauthOperation) async throws -> String {
+    func startAccountReauth(accessToken: String, phone: String, language: String?) async throws { }
+    func verifyAccountReauth(accessToken: String, phone: String, code: String, operation: ReauthOperation) async throws -> String {
         ""
     }
 
@@ -37,7 +37,6 @@ final class IdentityServiceClientMock: IdentityServiceClientProtocol {
         IdentityResetCredentials(userId: "", password: "")
     }
 
-    func setInitialPin(accessToken: String, userId: String, newPin: String) async throws { }
     func startPinChange(accessToken: String,
                         phone: String,
                         currentPin: String?,
@@ -67,6 +66,10 @@ final class IdentityServiceClientMock: IdentityServiceClientProtocol {
 
     func completePhoneChange(accessToken: String, challengeId: String, code: String) async throws { }
     func startPasskeyEnrollment(accessToken: String) async throws -> URL {
+        URL(string: "https://example.invalid")!
+    }
+
+    func startPinEnrollment(accessToken: String) async throws -> URL {
         URL(string: "https://example.invalid")!
     }
 }

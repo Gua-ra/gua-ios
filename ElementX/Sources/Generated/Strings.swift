@@ -1144,7 +1144,11 @@ internal enum L10n {
   }
   /// Verification code
   internal static var screenAccountReauthCodeLabel: String { return L10n.tr("Localizable", "screen_account_reauth_code_label") }
-  /// We'll send a verification code by SMS to the phone linked to your account.
+  /// Confirm your current number
+  internal static var screenAccountReauthPhoneLabel: String { return L10n.tr("Localizable", "screen_account_reauth_phone_label") }
+  /// That is not the number on your account.
+  internal static var screenAccountReauthPhoneMismatch: String { return L10n.tr("Localizable", "screen_account_reauth_phone_mismatch") }
+  /// Enter the number on your account. We'll text a verification code to it.
   internal static var screenAccountReauthSectionFooter: String { return L10n.tr("Localizable", "screen_account_reauth_section_footer") }
   /// Verify it's you
   internal static var screenAccountReauthSectionTitle: String { return L10n.tr("Localizable", "screen_account_reauth_section_title") }
@@ -1444,6 +1448,10 @@ internal enum L10n {
   }
   /// For your security, you can't change your number just yet. Please try again later.
   internal static var screenChangePhoneCooldownMessageGeneric: String { return L10n.tr("Localizable", "screen_change_phone_cooldown_message_generic") }
+  /// Enter the number your account uses today. We'll text a code to it.
+  internal static var screenChangePhoneCurrentFooter: String { return L10n.tr("Localizable", "screen_change_phone_current_footer") }
+  /// Confirm your current number
+  internal static var screenChangePhoneCurrentHeader: String { return L10n.tr("Localizable", "screen_change_phone_current_header") }
   /// All set
   internal static var screenChangePhoneDoneHeader: String { return L10n.tr("Localizable", "screen_change_phone_done_header") }
   /// Your phone number has been updated. You'll use your new number to sign in from now on.
@@ -3092,6 +3100,8 @@ internal enum L10n {
   internal static var screenTwoStepVerificationPhoneFooter: String { return L10n.tr("Localizable", "screen_two_step_verification_phone_footer") }
   /// Confirm your phone number
   internal static var screenTwoStepVerificationPhoneHeader: String { return L10n.tr("Localizable", "screen_two_step_verification_phone_header") }
+  /// Your account already has a PIN.
+  internal static var screenTwoStepVerificationPinAlreadySet: String { return L10n.tr("Localizable", "screen_two_step_verification_pin_already_set") }
   /// A PIN is the backup for when your passkey isn't available on the device you have with you.
   internal static var screenTwoStepVerificationPinBackupFooter: String { return L10n.tr("Localizable", "screen_two_step_verification_pin_backup_footer") }
   /// Set it up

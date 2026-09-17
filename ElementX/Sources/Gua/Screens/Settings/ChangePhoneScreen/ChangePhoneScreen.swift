@@ -32,8 +32,8 @@ struct ChangePhoneScreen: View {
     }
 
     /// The message phases (intro/stepUpRequired/cooldown/done) render as polished centered cards on
-    /// a plain background. The entry phases (reauth code/phone/PIN/OTP) keep the Compound
-    /// list/`Form` styling.
+    /// a plain background. The entry phases (current number/reauth code/new number/PIN/OTP) keep
+    /// the Compound list/`Form` styling.
     @ViewBuilder
     private var screenContent: some View {
         switch context.viewState.phase {
@@ -45,10 +45,10 @@ struct ChangePhoneScreen: View {
             cooldownSection
         case .done:
             doneSection
-        case .reauth, .newPhone, .pin, .otp, .submitting:
+        case .currentPhone, .reauth, .newPhone, .pin, .otp, .submitting:
             Form {
                 switch context.viewState.phase {
-                case .newPhone:
+                case .currentPhone, .newPhone:
                     phoneEntrySection
                 default:
                     codeEntrySection
@@ -60,7 +60,7 @@ struct ChangePhoneScreen: View {
 
     private var isEnteringFlow: Bool {
         switch context.viewState.phase {
-        case .reauth, .newPhone, .pin, .otp, .submitting:
+        case .currentPhone, .reauth, .newPhone, .pin, .otp, .submitting:
             return true
         default:
             return false

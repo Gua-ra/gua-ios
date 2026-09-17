@@ -34,7 +34,8 @@ class TwoStepVerificationScreenViewModelTests: XCTestCase {
 
     private func makeViewModel(status: AccountSecurityStatus?,
                                passkeyResult: Result<PasskeyAssertion, Error> = .success(TwoStepVerificationScreenViewModelTests.assertion),
-                               presentsPasskeys: Bool = true) {
+                               presentsPasskeys: Bool = true,
+                               initialSetup: AuthFactor? = nil) {
         identityService = TwoStepVerificationIdentityServiceStub(status: status)
         passkeyPresenter = TwoStepPasskeyPresenterStub(result: passkeyResult)
         let clientProxy = ClientProxyMock(.init())
@@ -42,7 +43,8 @@ class TwoStepVerificationScreenViewModelTests: XCTestCase {
         viewModel = TwoStepVerificationScreenViewModel(clientProxy: clientProxy,
                                                        identityServiceClient: identityService,
                                                        userIndicatorController: UserIndicatorControllerMock(),
-                                                       passkeyStepUpPresenter: presentsPasskeys ? passkeyPresenter : nil)
+                                                       passkeyStepUpPresenter: presentsPasskeys ? passkeyPresenter : nil,
+                                                       initialSetup: initialSetup)
     }
 
     private func waitForPhase(_ phase: TwoStepVerificationScreenPhase) async throws {
@@ -187,6 +189,39 @@ class TwoStepVerificationScreenViewModelTests: XCTestCase {
         XCTAssertEqual(identityService.stepUpStarts, 0)
     }
 
+    // MARK: - GUA FORK: the first PIN is enrolled in the web session
+
+    /// A bearer session alone must not add a durable factor. Adding a first PIN therefore leaves
+    /// this screen for the enrollment session, and nothing is typed here on the way out.
+    func testSettingTheFirstPinHandsOverToTheEnrollmentSession() async throws {
+        makeViewModel(status: Self.status(hasPin: false, passkeyRegistered: false))
+        try await waitForPhase(.overview)
+
+        let deferred = deferFulfillment(viewModel.actionsPublisher) { $0 == .setUpPin }
+        context.send(viewAction: .startSetup)
+        try await deferred.fulfill()
+
+        XCTAssertEqual(context.viewState.phase, .overview, "No PIN is entered on this screen any more")
+    }
+
+    /// The change-phone block screen can send someone here asking for a PIN. That request takes the
+    /// same route: it is still a first factor.
+    func testAnArrivingPinSetupRequestOpensTheEnrollmentSession() async throws {
+        makeViewModel(status: Self.status(hasPin: false, passkeyRegistered: false), initialSetup: .pin)
+
+        let deferred = deferFulfillment(viewModel.actionsPublisher) { $0 == .setUpPin }
+        try await deferred.fulfill()
+    }
+
+    /// An account that already holds a PIN is offered the change, which is a different flow with a
+    /// different proof and stays native.
+    func testAPinHolderStillChangesItHere() async throws {
+        makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: false))
+
+        try await submitNumberForChange()
+        try await waitForPhase(.enteringCurrent)
+    }
+
     private static func status(hasPin: Bool, passkeyRegistered: Bool) -> AccountSecurityStatus {
         AccountSecurityStatus(hasPin: hasPin,
                               passkeyRegistered: passkeyRegistered,
@@ -273,8 +308,8 @@ private final class TwoStepVerificationIdentityServiceStub: IdentityServiceClien
         []
     }
 
-    func startAccountReauth(accessToken: String, language: String?) async throws { }
-    func verifyAccountReauth(accessToken: String, code: String, operation: ReauthOperation) async throws -> String {
+    func startAccountReauth(accessToken: String, phone: String, language: String?) async throws { }
+    func verifyAccountReauth(accessToken: String, phone: String, code: String, operation: ReauthOperation) async throws -> String {
         ""
     }
 
@@ -288,7 +323,6 @@ private final class TwoStepVerificationIdentityServiceStub: IdentityServiceClien
         return status
     }
 
-    func setInitialPin(accessToken: String, userId: String, newPin: String) async throws { }
     struct PinChangeStart {
         let currentPin: String?
         let stepUpID: String?
@@ -344,6 +378,10 @@ private final class TwoStepVerificationIdentityServiceStub: IdentityServiceClien
 
     func completePhoneChange(accessToken: String, challengeId: String, code: String) async throws { }
     func startPasskeyEnrollment(accessToken: String) async throws -> URL {
+        URL(string: "https://example.com")!
+    }
+
+    func startPinEnrollment(accessToken: String) async throws -> URL {
         URL(string: "https://example.com")!
     }
 }

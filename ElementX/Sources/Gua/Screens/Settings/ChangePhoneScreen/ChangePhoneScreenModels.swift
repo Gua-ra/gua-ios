@@ -19,10 +19,12 @@ import Foundation
 //   • the only factor it can offer is the PIN and that PIN is still inside the fresh-2FA hold
 //     (`changePhoneCooldownRemainingSeconds`) → ``cooldown``. The hold is about the PIN, so an
 //     account that can offer a passkey is not held by it.
-//   • otherwise → ``reauth`` and onward.
+//   • otherwise → ``currentPhone`` and onward.
 // Flow:
-//   ``intro`` → ``reauth`` (`POST /account/reauth/start` texts the CURRENT number, then
-//      `/account/reauth/verify` scoped to PHONE_CHANGE mints a single-use token)
+//   ``intro`` → ``currentPhone`` (the number the account is on today, typed rather than looked up)
+//   → ``reauth`` (`POST /account/reauth/start` checks that number against the account's own
+//      directory binding and only then texts it, then `/account/reauth/verify` takes the number
+//      again with the code and mints a single-use token scoped to PHONE_CHANGE)
 //   → ``newPhone`` (country-aware entry of the new number)
 //   → the step-up, strongest factor first: a user-verifying passkey assertion from
 //      `POST /security/passkey/stepup/options` when this device can produce one, otherwise the
@@ -65,6 +67,10 @@ enum ChangePhoneScreenPhase: Equatable {
     /// changed its number too recently (per-account cooldown). Both land here; both expire on
     /// their own.
     case cooldown
+    /// The number the account is on today. It is a proof, not a convenience: the server compares
+    /// its digest with the account's own directory binding and refuses anything else, so no code is
+    /// sent until the person can say which number they are on.
+    case currentPhone
     /// Six-digit code from the OTP sent to the CURRENT number, exchanged for the reauth token.
     case reauth
     case newPhone
@@ -84,6 +90,9 @@ struct ChangePhoneScreenViewState: BindableState {
     var selectedCountry: Country = .deviceDefault
     /// The confirmed new number in E.164 form (e.g. "+15551234567").
     var newPhoneE164 = ""
+    /// The current number the user typed, kept for the whole attempt because both reauth calls take
+    /// it: the server stores nothing between them and re-derives the digest from what is submitted.
+    var currentPhoneE164 = ""
     /// Single-use PHONE_CHANGE-scoped reauth token from `/account/reauth/verify`. Spent by
     /// `/account/phone/change/start`; when it expires the flow restarts at ``reauth``.
     var reauthToken = ""
@@ -128,6 +137,8 @@ struct ChangePhoneScreenViewState: BindableState {
             return L10n.screenChangePhoneTitle
         case .newPhone:
             return L10n.screenChangePhoneNewHeader
+        case .currentPhone:
+            return L10n.screenChangePhoneCurrentHeader
         case .reauth:
             return L10n.screenChangePhoneReauthHeader
         case .pin:
@@ -141,6 +152,8 @@ struct ChangePhoneScreenViewState: BindableState {
         switch phase {
         case .newPhone:
             return L10n.screenChangePhoneNewFooter
+        case .currentPhone:
+            return L10n.screenChangePhoneCurrentFooter
         case .reauth:
             return L10n.screenChangePhoneReauthFooter
         case .pin:
@@ -154,7 +167,7 @@ struct ChangePhoneScreenViewState: BindableState {
 
     var canContinue: Bool {
         switch phase {
-        case .newPhone:
+        case .newPhone, .currentPhone:
             return Self.isValid(phone: e164PhoneNumber) && !isWorking
         case .pin:
             return Self.isValid(pin: bindings.code) && !isWorking
@@ -198,7 +211,8 @@ struct ChangePhoneScreenViewState: BindableState {
 struct ChangePhoneScreenViewStateBindings {
     /// Used for all three 6-digit fields (reauth OTP, account PIN, new-number OTP).
     var code = ""
-    /// Country-formatted local phone digits for the new number (dial code excluded).
+    /// Country-formatted local phone digits (dial code excluded), used by both phone steps: the
+    /// current number first, then the new one.
     var localPhoneNumber = ""
     var isCountryPickerPresented = false
 }

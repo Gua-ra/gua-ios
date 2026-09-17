@@ -9,7 +9,7 @@ import AuthenticationServices
 /// GUA FORK: runs the user-verifying passkey assertion that a privileged operation accepts as its
 /// step-up factor, currently the phone-number change.
 ///
-/// Native rather than web, unlike ``PasskeyEnrollmentPresenter``: `POST
+/// Native rather than web, unlike ``FactorEnrollmentPresenter``: `POST
 /// /security/passkey/stepup/options` hands back WebAuthn request options rather than a page, and
 /// the assertion has to come back as JSON so it can travel in the body of the operation being
 /// stepped up.
