@@ -57,12 +57,14 @@ class EncryptionResetPasswordScreenViewModel: EncryptionResetPasswordScreenViewM
             state.reauthPhase = .error(L10n.errorUnknown)
             return
         }
-        let phone = state.bindings.phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !phone.isEmpty else { return }
+        let typed = state.bindings.phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !typed.isEmpty else { return }
         // Refused here rather than at the server: a number without a country code still parses
         // against the server's default region, and the neutral refusal it earns cannot say the
-        // format was wrong while it spends one of the account's five attempts an hour.
-        guard GuaPhoneNumber.isE164(phone) else {
+        // format was wrong while it spends one of the account's five attempts an hour. The
+        // punctuation AutoFill brings with it is not a reason to refuse anything, so what travels
+        // is the resolved number rather than what was typed.
+        guard let phone = GuaPhoneNumber.e164(from: typed) else {
             state.reauthPhase = .error(L10n.screenPhoneLoginInvalidNumber)
             return
         }
@@ -86,8 +88,13 @@ class EncryptionResetPasswordScreenViewModel: EncryptionResetPasswordScreenViewM
             return
         }
         let code = state.bindings.otpCode.trimmingCharacters(in: .whitespacesAndNewlines)
-        let phone = state.bindings.phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !code.isEmpty, !phone.isEmpty else { return }
+        guard !code.isEmpty else { return }
+        // Resolved the same way it was at the start call: the server holds nothing between them, so
+        // the digits that earned the code have to be the digits that spend it.
+        guard let phone = GuaPhoneNumber.e164(from: state.bindings.phoneNumber) else {
+            state.reauthPhase = .error(L10n.screenPhoneLoginInvalidNumber)
+            return
+        }
         state.reauthPhase = .verifyingCode
         do {
             // Scoped to the operation this token is about to be spent on. The server binds the

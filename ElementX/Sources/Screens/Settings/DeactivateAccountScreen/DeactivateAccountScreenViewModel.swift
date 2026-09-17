@@ -52,14 +52,15 @@ class DeactivateAccountScreenViewModel: DeactivateAccountScreenViewModelType, De
             state.reauthPhase = .error(L10n.errorUnknown)
             return
         }
-        let phone = state.bindings.phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !phone.isEmpty else { return }
+        let typed = state.bindings.phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !typed.isEmpty else { return }
         // A number the server cannot read costs one of the five reauthentication attempts the
         // account gets in an hour, and a number missing its country code is worse: it parses
         // against the server's default region and comes back as the same refusal a stranger's
         // number gets, which by design cannot say the format was the problem. This screen has no
-        // country picker, so the check is what stands in for one.
-        guard GuaPhoneNumber.isE164(phone) else {
+        // country picker, so the check is what stands in for one. What AutoFill fills the field
+        // with is punctuated, so what travels is the resolved number rather than what was typed.
+        guard let phone = GuaPhoneNumber.e164(from: typed) else {
             state.reauthPhase = .error(L10n.screenPhoneLoginInvalidNumber)
             return
         }
@@ -84,8 +85,13 @@ class DeactivateAccountScreenViewModel: DeactivateAccountScreenViewModelType, De
             return
         }
         let code = state.bindings.otpCode.trimmingCharacters(in: .whitespacesAndNewlines)
-        let phone = state.bindings.phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !code.isEmpty, !phone.isEmpty else { return }
+        guard !code.isEmpty else { return }
+        // The same resolution as the start call: the server keeps nothing between the two, so the
+        // digits that earned the code have to be the digits that spend it.
+        guard let phone = GuaPhoneNumber.e164(from: state.bindings.phoneNumber) else {
+            state.reauthPhase = .error(L10n.screenPhoneLoginInvalidNumber)
+            return
+        }
         state.reauthPhase = .verifyingCode
         do {
             reauthToken = try await identityServiceClient.verifyAccountReauth(accessToken: accessToken,

@@ -90,6 +90,28 @@ final class IdentityServiceClientTests: XCTestCase {
         XCTAssertEqual(Locale.guaLanguageTag(for: Locale(identifier: "pt_BR@calendar=buddhist")), "pt-BR")
     }
 
+    // MARK: - The number the screens resolve before they spend an attempt
+
+    /// The resolver the three reauth screens share. Its job is to refuse what the server cannot
+    /// read while accepting everything it can, and the shape that matters most is the punctuated
+    /// one: the reauth fields declare `.textContentType(.telephoneNumber)`, so AutoFill hands them
+    /// the number exactly as Contacts stores it. A guard that refused that would dead-end
+    /// deactivation and identity reset for a number the account really is on.
+    func testAPunctuatedNumberResolvesToTheDigitsAndTheRestIsRefused() {
+        XCTAssertEqual(GuaPhoneNumber.e164(from: "+1 (415) 555-0143"), "+14155550143")
+        XCTAssertEqual(GuaPhoneNumber.e164(from: "+55 11 98888-7777"), "+5511988887777")
+        XCTAssertEqual(GuaPhoneNumber.e164(from: " +1-415-555-0143 "), "+14155550143")
+        XCTAssertEqual(GuaPhoneNumber.e164(from: "+14155550143"), "+14155550143")
+
+        // No country code, letters, and a number too short or too long to be one: still refused,
+        // because each of those costs an attempt and earns a refusal that cannot name the reason.
+        XCTAssertNil(GuaPhoneNumber.e164(from: "4155550143"))
+        XCTAssertNil(GuaPhoneNumber.e164(from: "+1 (415) CALL-NOW"))
+        XCTAssertNil(GuaPhoneNumber.e164(from: "+1234567"))
+        XCTAssertNil(GuaPhoneNumber.e164(from: "+1234567890123456"))
+        XCTAssertNil(GuaPhoneNumber.e164(from: ""))
+    }
+
     // MARK: - Reauthentication by phone digest
 
     func testStartingReauthSubmitsTheNumberAndAcceptsA202() async throws {

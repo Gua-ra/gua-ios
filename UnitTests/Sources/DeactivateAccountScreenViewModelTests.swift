@@ -130,6 +130,29 @@ class DeactivateAccountScreenViewModelTests: XCTestCase {
         XCTAssertTrue(identityService.startPhones.isEmpty)
     }
 
+    /// The field declares `.textContentType(.telephoneNumber)`, so one tap on the AutoFill
+    /// suggestion fills it with the number exactly as Contacts stores it, brackets and dashes
+    /// included. That is the account's own number and the server reads it, so refusing it here
+    /// would dead-end the only screen that can deactivate the account. What travels is the resolved
+    /// E.164 on both calls, never the punctuation.
+    func testTheNumberAutoFillPutsInTheFieldIsSentAsE164() async throws {
+        let identityService = DeactivateIdentityServiceStub()
+        makeViewModel(identityService: identityService)
+        context.phoneNumber = "+1 (415) 555-0143"
+
+        var deferred = deferFulfillment(context.observe(\.viewState.reauthPhase)) { $0 == .awaitingCode }
+        context.send(viewAction: .sendReauthCode)
+        try await deferred.fulfill()
+
+        context.otpCode = "123456"
+        deferred = deferFulfillment(context.observe(\.viewState.reauthPhase)) { $0 == .verified }
+        context.send(viewAction: .verifyReauthCode)
+        try await deferred.fulfill()
+
+        XCTAssertEqual(identityService.startPhones, ["+14155550143"])
+        XCTAssertEqual(identityService.verifyCalls.map(\.phone), ["+14155550143"])
+    }
+
     /// The refusal says only that this is not the number on the account, in the user's language.
     func testAWrongNumberShowsTheNeutralRefusalAndNothingAboutOtherAccounts() async throws {
         let identityService = DeactivateIdentityServiceStub()

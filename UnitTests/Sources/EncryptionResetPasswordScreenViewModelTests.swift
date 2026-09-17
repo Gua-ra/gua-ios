@@ -80,6 +80,27 @@ class EncryptionResetPasswordScreenViewModelTests: XCTestCase {
         XCTAssertTrue(identityService.startPhones.isEmpty)
     }
 
+    /// The field declares `.textContentType(.telephoneNumber)`, so one tap on the AutoFill
+    /// suggestion fills it with the number exactly as Contacts stores it. That number is the
+    /// account's, and the server reads it, so it must reach the server rather than being refused
+    /// for the brackets around its area code. What travels is the resolved E.164, not what was
+    /// typed, on both calls.
+    func testTheNumberAutoFillPutsInTheFieldIsSentAsE164() async throws {
+        context.phoneNumber = "+1 (415) 555-0143"
+
+        let deferredSend = deferFulfillment(context.observe(\.viewState.reauthPhase)) { $0 == .awaitingCode }
+        context.send(viewAction: .sendReauthCode)
+        try await deferredSend.fulfill()
+
+        context.otpCode = "123456"
+        let deferredAction = deferFulfillment(viewModel.actionsPublisher) { $0 == .passwordEntered }
+        context.send(viewAction: .verifyReauthCode)
+        try await deferredAction.fulfill()
+
+        XCTAssertEqual(identityService.startPhones, ["+14155550143"])
+        XCTAssertEqual(identityService.verifyCalls.map(\.phone), ["+14155550143"])
+    }
+
     /// The refusal says only that this is not the number on the account, in the user's language.
     func testAWrongNumberShowsTheNeutralRefusalAndNothingAboutOtherAccounts() async throws {
         identityService.startError = IdentityServiceError.reauthPhoneMismatch
