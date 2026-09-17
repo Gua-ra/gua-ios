@@ -274,7 +274,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         do {
             try await identityServiceClient.startAccountReauth(accessToken: accessToken,
                                                                phone: state.currentPhoneE164,
-                                                               language: Locale.current.identifier)
+                                                               language: Locale.guaLanguageTag())
             state.bindings.code = ""
             state.errorMessage = nil
             state.phase = .reauth
@@ -431,7 +431,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
                                                                              pin: pin,
                                                                              passkeyStepUpID: passkey?.stepUpID,
                                                                              passkeyAssertion: passkey?.assertion,
-                                                                             language: Locale.current.identifier)
+                                                                             language: Locale.guaLanguageTag())
             state.challengeID = challenge.challengeID
             state.errorMessage = nil
             state.phase = .otp

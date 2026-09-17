@@ -76,17 +76,34 @@ final class IdentityServiceClientTests: XCTestCase {
         XCTAssertEqual(status.pendingAccountRecovery, PendingAccountRecovery(completableAt: nil, expiresAt: nil))
     }
 
+    // MARK: - The language the code is written in
+
+    /// The tag the call sites send, from the locale a Brazilian device actually reports. It is the
+    /// helper's own output that is pinned here: a hand-written tag would only prove the header is
+    /// forwarded, which it always was, and not that what the device produces matches a template.
+    func testTheDeviceLanguageIsAskedForAsABCP47Tag() {
+        XCTAssertEqual(Locale.guaLanguageTag(for: Locale(identifier: "pt_BR")), "pt-BR")
+        XCTAssertEqual(Locale.guaLanguageTag(for: Locale(identifier: "en_US")), "en-US")
+        // A locale that names no region, and one that carries a calendar: neither shape may reach
+        // the server with anything the first '-' does not leave as a language it knows.
+        XCTAssertEqual(Locale.guaLanguageTag(for: Locale(identifier: "fr")), "fr")
+        XCTAssertEqual(Locale.guaLanguageTag(for: Locale(identifier: "pt_BR@calendar=buddhist")), "pt-BR")
+    }
+
     // MARK: - Reauthentication by phone digest
 
     func testStartingReauthSubmitsTheNumberAndAcceptsA202() async throws {
         IdentityServiceStub.respond(status: 202, body: "")
 
-        try await client.startAccountReauth(accessToken: "access-token", phone: "+14155550143", language: "en-US")
+        try await client.startAccountReauth(accessToken: "access-token",
+                                            phone: "+14155550143",
+                                            language: Locale.guaLanguageTag(for: Locale(identifier: "pt_BR")))
 
         let request = try XCTUnwrap(IdentityServiceStub.lastRequest)
         XCTAssertEqual(request.httpMethod, "POST")
         XCTAssertEqual(request.url?.path, "/account/reauth/start")
         XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer access-token")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Accept-Language"), "pt-BR")
         XCTAssertEqual(try IdentityServiceStub.lastBodyObject()["phone"] as? String, "+14155550143")
     }
 
@@ -155,6 +172,9 @@ final class IdentityServiceClientTests: XCTestCase {
         XCTAssertEqual(request.httpMethod, "POST")
         XCTAssertEqual(request.url?.path, "/security/pin/enroll/start")
         XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer access-token")
+        // The enrollment page is the one call site that reads the language itself, so it is checked
+        // here rather than at a caller.
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Accept-Language"), Locale.guaLanguageTag())
     }
 
     func testStartingPinEnrollmentOnAnAccountThatAlreadyHasOneSaysSo() async throws {

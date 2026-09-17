@@ -339,6 +339,7 @@
 		36C7C507998EBC91AAD6CC8C /* RoomChangePermissionsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = D901610B5524F3FE27ABA092 /* RoomChangePermissionsScreen.swift */; };
 		36FB8EE4B0990548A6603B5B /* ComposerToolbarViewModelProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 178028A7CE9BEAF7CC951D28 /* ComposerToolbarViewModelProtocol.swift */; };
 		371B9A3978A34F1ED63527DA /* FactorEnrollmentPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3325D91EA52EADD157BD7DCB /* FactorEnrollmentPresenter.swift */; };
+		371BCAE82B469B27E4BE7526 /* GuaLanguageTag.swift in Sources */ = {isa = PBXBuildFile; fileRef = C979261D77219F21BC014072 /* GuaLanguageTag.swift */; };
 		37B57CD05A562A2C3089E00A /* UITestsSignalling.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9EEDD8767BBD9EEE32B4B4 /* UITestsSignalling.swift */; };
 		37C34359515F03275BEE826E /* target.yml in Resources */ = {isa = PBXBuildFile; fileRef = 054C3A783CCB7A849DFCF023 /* target.yml */; };
 		380A728F4BA4A4942F77B70D /* TimelineModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2EBBB7FD648996D6C91A14B /* TimelineModels.swift */; };
@@ -2657,6 +2658,7 @@
 		C8A6B6C2AA62E681F143AD7F /* TimelineStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineStyle.swift; sourceTree = "<group>"; };
 		C91E4B1F8B599570F7BBD0A0 /* PlaceholderAvatarImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceholderAvatarImage.swift; sourceTree = "<group>"; };
 		C937F52B0924FC30B0FEBA1B /* en-US */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "en-US"; path = "en-US.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		C979261D77219F21BC014072 /* GuaLanguageTag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuaLanguageTag.swift; sourceTree = "<group>"; };
 		C995D3CA54ED56D70F0C6936 /* SecureBackupLogoutConfirmationScreenViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureBackupLogoutConfirmationScreenViewModel.swift; sourceTree = "<group>"; };
 		C9C541ED171391BABB5F18FE /* NotificationSettingsScreenViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSettingsScreenViewModel.swift; sourceTree = "<group>"; };
 		C9FEEBD5FB6C2555AE94FE2E /* RestorationToken.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestorationToken.swift; sourceTree = "<group>"; };
@@ -3159,6 +3161,7 @@
 			children = (
 				3325D91EA52EADD157BD7DCB /* FactorEnrollmentPresenter.swift */,
 				0537010E8E892D432522327D /* GuaIDPLocaleURL.swift */,
+				C979261D77219F21BC014072 /* GuaLanguageTag.swift */,
 				A226FAA776D24DAF77198141 /* GuaUserLink.swift */,
 				090DB54C3770F18D3F4F9CB3 /* GuaWelcomeLogo.swift */,
 				3104EA2401B11550023BDAE7 /* PasskeyStepUpPresenter.swift */,
@@ -7852,6 +7855,7 @@
 				214CCC5EAD7360DD69161748 /* GlobalSearchScreenViewModelProtocol.swift in Sources */,
 				EBC86B3460CBE83FFD9C2A01 /* GuaDeployment.swift in Sources */,
 				04E411EE378A4F5B909D28A6 /* GuaIDPLocaleURL.swift in Sources */,
+				371BCAE82B469B27E4BE7526 /* GuaLanguageTag.swift in Sources */,
 				061DE6519952CA0E992189BD /* GuaUserLink.swift in Sources */,
 				4C7BB1DB40B3F332435E1C4D /* GuaWelcomeLogo.swift in Sources */,
 				4BC2F5C81530E3570917578A /* HTMLFixtures.swift in Sources */,

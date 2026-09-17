@@ -565,7 +565,7 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         let (data, _) = try await sendAuthenticated(path: path,
                                                     accessToken: accessToken,
                                                     body: EmptyBody(),
-                                                    language: Locale.current.language.languageCode?.identifier,
+                                                    language: Locale.guaLanguageTag(),
                                                     expectsBody: true)
         do {
             let response = try decoder.decode(Response.self, from: data)
