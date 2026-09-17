@@ -113,12 +113,21 @@ final class TwoStepVerificationScreenCoordinator: CoordinatorProtocol {
         viewModel.context.send(viewAction: .retryStatus)
     }
 
+    /// The redirect asked for is this build's own, taken from the same setting the sheet waits on
+    /// below (`FactorEnrollmentPresenter` closes when the page redirects to it). The release, QA and
+    /// debug builds answer to different schemes, so a deployment that only knows one of them returns
+    /// every enrollment to whichever build that is. Asking for it is all the client does: the
+    /// server keeps the allowlist, and a value it does not hold costs nothing because the client
+    /// asks again without one.
     private func enrollmentURL(for factor: EnrollableFactor, accessToken: String) async throws -> URL {
+        let redirectURI = parameters.appSettings.oidcRedirectURL.absoluteString
         switch factor {
         case .passkey:
-            try await parameters.identityServiceClient.startPasskeyEnrollment(accessToken: accessToken)
+            return try await parameters.identityServiceClient.startPasskeyEnrollment(accessToken: accessToken,
+                                                                                     redirectURI: redirectURI)
         case .pin:
-            try await parameters.identityServiceClient.startPinEnrollment(accessToken: accessToken)
+            return try await parameters.identityServiceClient.startPinEnrollment(accessToken: accessToken,
+                                                                                 redirectURI: redirectURI)
         }
     }
 

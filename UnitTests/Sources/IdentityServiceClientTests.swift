@@ -187,7 +187,7 @@ final class IdentityServiceClientTests: XCTestCase {
     func testStartingPinEnrollmentReturnsTheOneTimeURL() async throws {
         IdentityServiceStub.respond(status: 200, body: #"{ "enrollUrl": "https://identity.example/login/enroll/token" }"#)
 
-        let url = try await client.startPinEnrollment(accessToken: "access-token")
+        let url = try await client.startPinEnrollment(accessToken: "access-token", redirectURI: nil)
 
         XCTAssertEqual(url, URL(string: "https://identity.example/login/enroll/token"))
         let request = try XCTUnwrap(IdentityServiceStub.lastRequest)
@@ -203,7 +203,7 @@ final class IdentityServiceClientTests: XCTestCase {
         IdentityServiceStub.respond(status: 409, body: #"{ "code": "pin_already_set", "message": "This account already has a PIN." }"#)
 
         do {
-            _ = try await client.startPinEnrollment(accessToken: "access-token")
+            _ = try await client.startPinEnrollment(accessToken: "access-token", redirectURI: nil)
             XCTFail("Expected the conflict to throw")
         } catch IdentityServiceError.pinAlreadySet {
             // The expected refusal.
@@ -216,7 +216,7 @@ final class IdentityServiceClientTests: XCTestCase {
         IdentityServiceStub.respond(status: 409, body: #"{ "code": "passkey_already_registered", "message": "This account already has a passkey." }"#)
 
         do {
-            _ = try await client.startPasskeyEnrollment(accessToken: "access-token")
+            _ = try await client.startPasskeyEnrollment(accessToken: "access-token", redirectURI: nil)
             XCTFail("Expected the conflict to throw")
         } catch let error as IdentityServiceError {
             guard case .passkeyAlreadyRegistered = error else {
@@ -234,7 +234,7 @@ final class IdentityServiceClientTests: XCTestCase {
         IdentityServiceStub.respond(status: 409, body: #"{ "code": "step_up_unavailable" }"#)
 
         do {
-            _ = try await client.startPinEnrollment(accessToken: "access-token")
+            _ = try await client.startPinEnrollment(accessToken: "access-token", redirectURI: nil)
             XCTFail("Expected the conflict to throw")
         } catch let error as IdentityServiceError {
             guard case .stepUpUnavailable = error else {
@@ -243,6 +243,61 @@ final class IdentityServiceClientTests: XCTestCase {
             }
             XCTAssertEqual(error.errorDescription, L10n.screenTwoStepVerificationStepUpUnavailable)
         }
+    }
+
+    // MARK: - The enrollment redirect
+
+    /// A named redirect is what sends the sheet back to the build it was opened from. The QA and
+    /// debug builds answer to schemes the release build does not, so without it every enrollment
+    /// returns to whichever one the deployment happens to have configured.
+    func testEnrollmentAsksToReturnToThisBuildsRedirect() async throws {
+        IdentityServiceStub.respond(status: 200, body: #"{ "enrollUrl": "https://identity.example/login/enroll/token" }"#)
+
+        _ = try await client.startPasskeyEnrollment(accessToken: "access-token", redirectURI: "global.gua.dev:/oidc")
+
+        XCTAssertEqual(try IdentityServiceStub.lastBodyObject()["redirectUri"] as? String, "global.gua.dev:/oidc")
+    }
+
+    /// Naming nothing keeps the field off the wire entirely, which is what a server too old to know
+    /// it needs to see.
+    func testEnrollmentWithNoRedirectNamesNone() async throws {
+        IdentityServiceStub.respond(status: 200, body: #"{ "enrollUrl": "https://identity.example/login/enroll/token" }"#)
+
+        _ = try await client.startPinEnrollment(accessToken: "access-token", redirectURI: nil)
+
+        XCTAssertNil(try IdentityServiceStub.lastBodyObject()["redirectUri"])
+    }
+
+    /// The deployment keeps the allowlist, so a build can always be holding a scheme this server
+    /// has not been told about (an older server, or one whose config has not caught up). That must
+    /// never be where enrollment ends: the call goes out once more with nothing named, which is
+    /// what every build did before the field existed, and the factor still gets added.
+    func testARefusedRedirectIsAskedAgainWithoutOneRatherThanFailing() async throws {
+        IdentityServiceStub.respond(inOrder: [(400, #"{ "code": "invalid_redirect_uri", "message": "Not allowed." }"#),
+                                              (200, #"{ "enrollUrl": "https://identity.example/login/enroll/token" }"#)])
+
+        let url = try await client.startPinEnrollment(accessToken: "access-token", redirectURI: "global.gua.debug:/oidc")
+
+        XCTAssertEqual(url, URL(string: "https://identity.example/login/enroll/token"))
+        XCTAssertEqual(IdentityServiceStub.sentBodies.count, 2)
+        XCTAssertEqual(try IdentityServiceStub.bodyObject(at: 0)["redirectUri"] as? String, "global.gua.debug:/oidc")
+        XCTAssertNil(try IdentityServiceStub.bodyObject(at: 1)["redirectUri"])
+    }
+
+    /// Once, and only once. A server that refuses the call with no redirect in it is refusing
+    /// something other than the redirect, and asking a third time would only spend the account's
+    /// allowance on the same answer.
+    func testARefusedRedirectIsNotAskedAgainMoreThanOnce() async throws {
+        IdentityServiceStub.respond(status: 400, body: #"{ "code": "invalid_redirect_uri" }"#)
+
+        do {
+            _ = try await client.startPinEnrollment(accessToken: "access-token", redirectURI: "global.gua.debug:/oidc")
+            XCTFail("Expected the second refusal to throw")
+        } catch IdentityServiceError.invalidRedirectURI {
+            // The expected refusal, and the reader never sees the deployment's English for it.
+        }
+
+        XCTAssertEqual(IdentityServiceStub.sentBodies.count, 2)
     }
 
     // MARK: - Cancel
@@ -283,9 +338,19 @@ private enum IdentityServiceStub {
     /// `URLProtocol` hands the body over as a stream and leaves `httpBody` nil, so it is read once
     /// on the way through and kept here.
     static var lastBody = Data()
+    /// Answers for a call that makes more than one request, taken in order. Empty means every
+    /// request gets the single canned response above.
+    static var queuedResponses: [(status: Int, body: Data)] = []
+    /// Every body that went out, so a test can say what the second attempt asked for.
+    static var sentBodies: [Data] = []
 
     static func lastBodyObject() throws -> [String: Any] {
         try XCTUnwrap(JSONSerialization.jsonObject(with: lastBody) as? [String: Any])
+    }
+
+    static func bodyObject(at index: Int) throws -> [String: Any] {
+        let body = try XCTUnwrap(sentBodies[safe: index])
+        return try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
     }
 
     static func respond(status: Int, body: String) {
@@ -293,11 +358,23 @@ private enum IdentityServiceStub {
         responseBody = Data(body.utf8)
     }
 
+    static func respond(inOrder responses: [(status: Int, body: String)]) {
+        queuedResponses = responses.map { ($0.status, Data($0.body.utf8)) }
+    }
+
     static func reset() {
         statusCode = 200
         responseBody = Data()
         lastRequest = nil
         lastBody = Data()
+        queuedResponses = []
+        sentBodies = []
+    }
+}
+
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        indices.contains(index) ? self[index] : nil
     }
 }
 
@@ -314,13 +391,18 @@ private class IdentityServiceStubURLProtocol: URLProtocol {
         guard let url = request.url else { return }
         IdentityServiceStub.lastRequest = request
         IdentityServiceStub.lastBody = request.httpBody ?? Self.readBody(of: request)
+        IdentityServiceStub.sentBodies.append(IdentityServiceStub.lastBody)
+
+        let answer = IdentityServiceStub.queuedResponses.isEmpty
+            ? (status: IdentityServiceStub.statusCode, body: IdentityServiceStub.responseBody)
+            : IdentityServiceStub.queuedResponses.removeFirst()
 
         guard let response = HTTPURLResponse(url: url,
-                                             statusCode: IdentityServiceStub.statusCode,
+                                             statusCode: answer.status,
                                              httpVersion: nil,
                                              headerFields: ["Content-Type": "application/json"]) else { return }
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-        client?.urlProtocol(self, didLoad: IdentityServiceStub.responseBody)
+        client?.urlProtocol(self, didLoad: answer.body)
         client?.urlProtocolDidFinishLoading(self)
     }
 

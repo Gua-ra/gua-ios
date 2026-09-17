@@ -582,11 +582,11 @@ private final class ChangePhoneIdentityServiceStub: IdentityServiceClientProtoco
 
     func completePinChange(accessToken: String, challengeId: String, otpCode: String, newPin: String) async throws { }
     func cancelAccountRecovery(accessToken: String) async throws { }
-    func startPasskeyEnrollment(accessToken: String) async throws -> URL {
+    func startPasskeyEnrollment(accessToken: String, redirectURI: String?) async throws -> URL {
         URL(string: "https://example.invalid")!
     }
 
-    func startPinEnrollment(accessToken: String) async throws -> URL {
+    func startPinEnrollment(accessToken: String, redirectURI: String?) async throws -> URL {
         URL(string: "https://example.invalid")!
     }
 }

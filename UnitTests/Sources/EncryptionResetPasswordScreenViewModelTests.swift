@@ -187,11 +187,11 @@ private final class EncryptionResetIdentityServiceStub: IdentityServiceClientPro
     }
 
     func completePhoneChange(accessToken: String, challengeId: String, code: String) async throws { }
-    func startPasskeyEnrollment(accessToken: String) async throws -> URL {
+    func startPasskeyEnrollment(accessToken: String, redirectURI: String?) async throws -> URL {
         URL(string: "https://example.invalid")!
     }
 
-    func startPinEnrollment(accessToken: String) async throws -> URL {
+    func startPinEnrollment(accessToken: String, redirectURI: String?) async throws -> URL {
         URL(string: "https://example.invalid")!
     }
 }

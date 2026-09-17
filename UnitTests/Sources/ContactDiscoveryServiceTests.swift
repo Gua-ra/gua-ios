@@ -112,11 +112,11 @@ private final class IdentityServiceClientStub: IdentityServiceClientProtocol {
         fatalError("Not implemented")
     }
 
-    func startPasskeyEnrollment(accessToken: String) async throws -> URL {
+    func startPasskeyEnrollment(accessToken: String, redirectURI: String?) async throws -> URL {
         fatalError("Not implemented")
     }
 
-    func startPinEnrollment(accessToken: String) async throws -> URL {
+    func startPinEnrollment(accessToken: String, redirectURI: String?) async throws -> URL {
         fatalError("Not implemented")
     }
 }

@@ -57,6 +57,12 @@ enum IdentityServiceError: Error, LocalizedError {
     /// add here. The only way back into the account is the delayed recovery, which is why this is
     /// the one enrollment refusal whose copy sends the reader somewhere else entirely.
     case stepUpUnavailable
+    /// 400 `invalid_redirect_uri`: the deployment does not permit the redirect this build asked the
+    /// enrollment sheet to return to. It is a deployment's allowlist talking to a build, not
+    /// anything the reader did or can fix, which is why the client answers it by asking again
+    /// without a redirect rather than by showing it. A reader only ever sees this if that second
+    /// attempt fails too, and then there is nothing truer to say than that something went wrong.
+    case invalidRedirectURI
     /// `POST /account/genesis` answered 503: this deployment does not do account genesis. Callers treat
     /// it as "not supported here" and carry on with the existing signup, never as a failure.
     case genesisUnavailable
@@ -103,6 +109,7 @@ enum IdentityServiceError: Error, LocalizedError {
         case .pinAlreadySet: L10n.screenTwoStepVerificationPinAlreadySet
         case .passkeyAlreadyRegistered: L10n.screenTwoStepVerificationPasskeyAlreadySet
         case .stepUpUnavailable: L10n.screenTwoStepVerificationStepUpUnavailable
+        case .invalidRedirectURI: L10n.errorUnknown
         case .genesisUnavailable: "Account genesis is not enabled on this deployment."
         case .genesisIssuanceNotPermitted: "Account genesis issuance is not permitted on this deployment."
         case let .server(status, message): message ?? "Server error (\(status))."
@@ -189,12 +196,18 @@ protocol IdentityServiceClientProtocol {
     /// Begins passkey enrollment and returns the IdP-hosted URL to load in an
     /// authenticated web session. The flow finishes when that page redirects to
     /// the app's OIDC redirect URL.
-    func startPasskeyEnrollment(accessToken: String) async throws -> URL
+    ///
+    /// `redirectURI` is this build's own redirect, which is how the sheet finds its way back to the
+    /// variant it was opened from: the QA and debug builds answer to different schemes from the
+    /// release build, and a deployment that only knows one of them would otherwise return every
+    /// enrollment to the release app. It is a request, not a decision: the server keeps the
+    /// allowlist and the client falls back to the deployment's own default when it refuses.
+    func startPasskeyEnrollment(accessToken: String, redirectURI: String?) async throws -> URL
     /// Begins PIN enrollment the same way, and for the same reason: a bearer session on its own
     /// must not add a durable factor, so the first PIN is set inside a web session that confirms
     /// the account first (a passkey, an existing PIN, or the account's own number and a code sent
     /// to it). Changing a PIN that already exists is a different flow and stays native.
-    func startPinEnrollment(accessToken: String) async throws -> URL
+    func startPinEnrollment(accessToken: String, redirectURI: String?) async throws -> URL
 }
 
 /// GUA FORK: the slice of identity-service that account genesis needs, kept separate from
@@ -559,22 +572,44 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
 
     // MARK: - Factor enrollment
 
-    func startPasskeyEnrollment(accessToken: String) async throws -> URL {
-        try await startFactorEnrollment(path: "/security/passkey/enroll/start", accessToken: accessToken)
+    func startPasskeyEnrollment(accessToken: String, redirectURI: String?) async throws -> URL {
+        try await startFactorEnrollment(path: "/security/passkey/enroll/start",
+                                        accessToken: accessToken,
+                                        redirectURI: redirectURI)
     }
 
-    func startPinEnrollment(accessToken: String) async throws -> URL {
-        try await startFactorEnrollment(path: "/security/pin/enroll/start", accessToken: accessToken)
+    func startPinEnrollment(accessToken: String, redirectURI: String?) async throws -> URL {
+        try await startFactorEnrollment(path: "/security/pin/enroll/start",
+                                        accessToken: accessToken,
+                                        redirectURI: redirectURI)
     }
 
     /// Both enrollments answer the same way: a one-time URL on the sign-in origin, opened in an
     /// authenticated web view, which is where the account is confirmed before anything is stored.
-    private func startFactorEnrollment(path: String, accessToken: String) async throws -> URL {
-        struct EmptyBody: Encodable { }
+    ///
+    /// The named redirect is asked for once and never insisted on. A deployment that has not
+    /// allowlisted this build's scheme, or a server too old to know the field, refuses with
+    /// `invalid_redirect_uri`; the same call then goes out with nothing named, which is what every
+    /// build did before this. The enrollment still runs, and the sheet returns to the deployment's
+    /// configured app instead of this one, which is a worse ending than the right scheme and a far
+    /// better one than a QA build that cannot enroll a factor at all.
+    private func startFactorEnrollment(path: String, accessToken: String, redirectURI: String?) async throws -> URL {
+        do {
+            return try await requestEnrollmentURL(path: path, accessToken: accessToken, redirectURI: redirectURI)
+        } catch IdentityServiceError.invalidRedirectURI where redirectURI != nil {
+            // Never logged in full: the value is this build's own scheme, and the refusal is about
+            // the deployment's allowlist rather than about anything in it.
+            MXLog.warning("Enrollment redirect refused by the deployment, asking again for its default")
+            return try await requestEnrollmentURL(path: path, accessToken: accessToken, redirectURI: nil)
+        }
+    }
+
+    private func requestEnrollmentURL(path: String, accessToken: String, redirectURI: String?) async throws -> URL {
+        struct Body: Encodable { let redirectUri: String? }
         struct Response: Decodable { let enrollUrl: String }
         let (data, _) = try await sendAuthenticated(path: path,
                                                     accessToken: accessToken,
-                                                    body: EmptyBody(),
+                                                    body: Body(redirectUri: redirectURI),
                                                     language: Locale.guaLanguageTag(),
                                                     expectsBody: true)
         do {
@@ -757,6 +792,7 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         case "pin_already_set": .pinAlreadySet
         case "passkey_already_registered": .passkeyAlreadyRegistered
         case "step_up_unavailable": .stepUpUnavailable
+        case "invalid_redirect_uri": .invalidRedirectURI
         default: nil
         }
     }
