@@ -54,6 +54,15 @@ class DeactivateAccountScreenViewModel: DeactivateAccountScreenViewModelType, De
         }
         let phone = state.bindings.phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !phone.isEmpty else { return }
+        // A number the server cannot read costs one of the five reauthentication attempts the
+        // account gets in an hour, and a number missing its country code is worse: it parses
+        // against the server's default region and comes back as the same refusal a stranger's
+        // number gets, which by design cannot say the format was the problem. This screen has no
+        // country picker, so the check is what stands in for one.
+        guard GuaPhoneNumber.isE164(phone) else {
+            state.reauthPhase = .error(L10n.screenPhoneLoginInvalidNumber)
+            return
+        }
         state.reauthPhase = .sendingCode
         do {
             try await identityServiceClient.startAccountReauth(accessToken: accessToken,

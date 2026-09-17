@@ -43,6 +43,7 @@
 		027DC73E8E0C700DB7136D44 /* AccountAuthorityKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBC66ADA30354842FF58EFD3 /* AccountAuthorityKeyStore.swift */; };
 		02B0B25182A04CAE835AFCFD /* TimelineItemMenuActionProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACE3FD4880362FC60CEB2814 /* TimelineItemMenuActionProvider.swift */; };
 		0364D45AB1C789394021B571 /* AnalyticsSettingsScreenModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7738C587D9920C18E3ED7391 /* AnalyticsSettingsScreenModels.swift */; };
+		0365897A0A5AF6A6FF41CF03 /* GuaPhoneNumber.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E921325A2F1FC4E587389A6 /* GuaPhoneNumber.swift */; };
 		036C45A9092C964493E4A0DD /* SeparatorMediaEventsTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F1E6558FD5932D054846EA4 /* SeparatorMediaEventsTimelineView.swift */; };
 		03718824A9C8D6475DD562EA /* AppLockSetupBiometricsScreenViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01CD89B56C2B3B24E705F753 /* AppLockSetupBiometricsScreenViewModelTests.swift */; };
 		037F16A7008062439E54A974 /* DSWaveformImageViews in Frameworks */ = {isa = PBXBuildFile; productRef = 42F11DDDDE1C1B5C56CD646D /* DSWaveformImageViews */; };
@@ -1775,6 +1776,7 @@
 		2E7836B40C8E7E0336540C05 /* TimelineSenderAvatarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineSenderAvatarView.swift; sourceTree = "<group>"; };
 		2E7FEDEDB8B67787744E6784 /* CallScreenCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallScreenCoordinator.swift; sourceTree = "<group>"; };
 		2E8783C2A2C2C286E14A9689 /* JoinRoomScreenViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoinRoomScreenViewModel.swift; sourceTree = "<group>"; };
+		2E921325A2F1FC4E587389A6 /* GuaPhoneNumber.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuaPhoneNumber.swift; sourceTree = "<group>"; };
 		2EBE3967C43EC32661A5F03F /* ImageRoomTimelineItemContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageRoomTimelineItemContent.swift; sourceTree = "<group>"; };
 		2F173E548666DB390A94D5FC /* ElementCallWidgetDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ElementCallWidgetDriver.swift; sourceTree = "<group>"; };
 		2F3147BF8D3B8D87BCF4071A /* CallScreenViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallScreenViewModel.swift; sourceTree = "<group>"; };
@@ -3162,6 +3164,7 @@
 				3325D91EA52EADD157BD7DCB /* FactorEnrollmentPresenter.swift */,
 				0537010E8E892D432522327D /* GuaIDPLocaleURL.swift */,
 				C979261D77219F21BC014072 /* GuaLanguageTag.swift */,
+				2E921325A2F1FC4E587389A6 /* GuaPhoneNumber.swift */,
 				A226FAA776D24DAF77198141 /* GuaUserLink.swift */,
 				090DB54C3770F18D3F4F9CB3 /* GuaWelcomeLogo.swift */,
 				3104EA2401B11550023BDAE7 /* PasskeyStepUpPresenter.swift */,
@@ -7856,6 +7859,7 @@
 				EBC86B3460CBE83FFD9C2A01 /* GuaDeployment.swift in Sources */,
 				04E411EE378A4F5B909D28A6 /* GuaIDPLocaleURL.swift in Sources */,
 				371BCAE82B469B27E4BE7526 /* GuaLanguageTag.swift in Sources */,
+				0365897A0A5AF6A6FF41CF03 /* GuaPhoneNumber.swift in Sources */,
 				061DE6519952CA0E992189BD /* GuaUserLink.swift in Sources */,
 				4C7BB1DB40B3F332435E1C4D /* GuaWelcomeLogo.swift in Sources */,
 				4BC2F5C81530E3570917578A /* HTMLFixtures.swift in Sources */,

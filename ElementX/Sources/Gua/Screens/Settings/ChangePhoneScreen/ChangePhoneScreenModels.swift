@@ -200,11 +200,10 @@ struct ChangePhoneScreenViewState: BindableState {
         otp.count == otpLength && otp.allSatisfy(\.isNumber)
     }
 
+    /// Shared with the other two screens that submit a number for a reauthentication, so all three
+    /// refuse the same shapes before anything is spent on them.
     static func isValid(phone: String) -> Bool {
-        let trimmed = phone.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.hasPrefix("+") else { return false }
-        let digits = trimmed.dropFirst()
-        return digits.count >= 8 && digits.count <= 15 && digits.allSatisfy(\.isNumber)
+        GuaPhoneNumber.isE164(phone)
     }
 }
 

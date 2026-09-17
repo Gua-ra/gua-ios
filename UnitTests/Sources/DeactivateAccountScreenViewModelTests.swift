@@ -113,6 +113,23 @@ class DeactivateAccountScreenViewModelTests: XCTestCase {
         XCTAssertEqual(identityService.verifyCalls.map(\.operation), [.deactivate])
     }
     
+    /// This screen has no country picker, so a number without its country code would go out as
+    /// typed. The server would read it against its own default region and refuse it with the same
+    /// neutral sentence a stranger's number earns, having already spent one of the five attempts
+    /// the account gets in an hour. It is refused here instead, where the reason can be named.
+    func testANumberThatIsNotE164NeverCostsAnAttempt() async throws {
+        let identityService = DeactivateIdentityServiceStub()
+        makeViewModel(identityService: identityService)
+        context.phoneNumber = "4155550143"
+
+        let refusal = L10n.screenPhoneLoginInvalidNumber
+        let deferred = deferFulfillment(context.observe(\.viewState.reauthPhase)) { $0 == .error(refusal) }
+        context.send(viewAction: .sendReauthCode)
+        try await deferred.fulfill()
+
+        XCTAssertTrue(identityService.startPhones.isEmpty)
+    }
+
     /// The refusal says only that this is not the number on the account, in the user's language.
     func testAWrongNumberShowsTheNeutralRefusalAndNothingAboutOtherAccounts() async throws {
         let identityService = DeactivateIdentityServiceStub()

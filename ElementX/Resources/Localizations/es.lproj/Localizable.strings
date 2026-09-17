@@ -1467,6 +1467,8 @@
 "screen_account_reauth_send_code" = "Enviar código de verificación";
 "screen_account_reauth_code_label" = "Código de verificación";
 "screen_account_reauth_verified" = "Verificado";
+/* Shown when a number is refused before it is sent anywhere, on the three screens that ask for one. */
+"screen_phone_login_invalid_number" = "Introduce un número de teléfono válido, incluido el código de país.";
 "screen_change_phone_reauth_header" = "Comprueba que eres tú";
 "screen_change_phone_reauth_footer" = "Introduce el código de 6 dígitos que enviamos a tu número actual.";
 "screen_change_phone_step_up_header" = "Añade primero un segundo paso";

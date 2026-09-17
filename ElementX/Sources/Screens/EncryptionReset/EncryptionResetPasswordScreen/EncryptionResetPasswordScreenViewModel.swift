@@ -59,6 +59,13 @@ class EncryptionResetPasswordScreenViewModel: EncryptionResetPasswordScreenViewM
         }
         let phone = state.bindings.phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !phone.isEmpty else { return }
+        // Refused here rather than at the server: a number without a country code still parses
+        // against the server's default region, and the neutral refusal it earns cannot say the
+        // format was wrong while it spends one of the account's five attempts an hour.
+        guard GuaPhoneNumber.isE164(phone) else {
+            state.reauthPhase = .error(L10n.screenPhoneLoginInvalidNumber)
+            return
+        }
         state.reauthPhase = .sendingCode
         do {
             try await identityServiceClient.startAccountReauth(accessToken: accessToken,
