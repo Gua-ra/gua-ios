@@ -1345,7 +1345,7 @@
 "screen_create_room_title" = "Criar uma sala";
 "screen_deactivate_account_title" = "Desativar conta";
 "screen_account_reauth_section_title" = "Verifique que é você";
-"screen_account_reauth_section_footer" = "Digite o número da sua conta. Vamos enviar um código de verificação por SMS para ele.";
+"screen_account_reauth_section_footer" = "Digite o número da sua conta, com o código do país. Vamos enviar um código de verificação por SMS para ele.";
 "screen_account_reauth_phone_label" = "Confirme seu número atual";
 "screen_account_reauth_phone_mismatch" = "Esse não é o número da sua conta.";
 "screen_account_reauth_send_code" = "Enviar código de verificação";
@@ -1469,9 +1469,9 @@
 "screen_two_step_verification_otp_invalid" = "Esse código é inválido ou expirou. Tente novamente.";
 "screen_two_step_verification_cooldown" = "Por segurança, você só pode alterar seu PIN uma vez por dia. Tente novamente mais tarde.";
 "screen_account_recovery_banner_title" = "Alguém iniciou a recuperação da sua conta";
-"screen_account_recovery_banner_message_later" = "Ela poderá ser concluída a partir de %1$@. Se foi você, pode ignorar este aviso. Se não foi, cancele aqui enquanto você ainda está conectado.";
-"screen_account_recovery_banner_message_now" = "Ela já pode ser concluída. Se foi você, pode ignorar este aviso. Se não foi, cancele aqui enquanto você ainda está conectado.";
-"screen_account_recovery_banner_message_generic" = "Se foi você, pode ignorar este aviso. Se não foi, cancele aqui enquanto você ainda está conectado.";
+"screen_account_recovery_banner_message_later" = "Ela poderá ser concluída a partir de %1$@. Se foi você, pode ignorar este aviso. Se não foi, cancele em um dispositivo onde você ainda está conectado.";
+"screen_account_recovery_banner_message_now" = "Ela já pode ser concluída. Se foi você, pode ignorar este aviso. Se não foi, cancele em um dispositivo onde você ainda está conectado.";
+"screen_account_recovery_banner_message_generic" = "Se foi você, pode ignorar este aviso. Se não foi, cancele em um dispositivo onde você ainda está conectado.";
 "screen_account_recovery_banner_action" = "Cancelar recuperação";
 "screen_account_recovery_cancel_confirm_title" = "Cancelar a recuperação?";
 "screen_account_recovery_cancel_confirm_message" = "Cancele se não foi você que iniciou. Se foi você, será preciso começar de novo.";

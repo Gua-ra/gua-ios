@@ -113,14 +113,14 @@ class DeactivateAccountScreenViewModelTests: XCTestCase {
         XCTAssertEqual(identityService.verifyCalls.map(\.operation), [.deactivate])
     }
     
-    /// The refusal is the server's, and it says only that this is not the number on the account.
-    func testAWrongNumberShowsTheServersRefusalAndNothingAboutOtherAccounts() async throws {
+    /// The refusal says only that this is not the number on the account, in the user's language.
+    func testAWrongNumberShowsTheNeutralRefusalAndNothingAboutOtherAccounts() async throws {
         let identityService = DeactivateIdentityServiceStub()
-        let refusal = "That is not the number on your account."
-        identityService.startError = IdentityServiceError.reauthPhoneMismatch(message: refusal)
+        identityService.startError = IdentityServiceError.reauthPhoneMismatch
         makeViewModel(identityService: identityService)
         context.phoneNumber = "+14155550199"
         
+        let refusal = L10n.screenAccountReauthPhoneMismatch
         let deferred = deferFulfillment(context.observe(\.viewState.reauthPhase)) { $0 == .error(refusal) }
         context.send(viewAction: .sendReauthCode)
         try await deferred.fulfill()

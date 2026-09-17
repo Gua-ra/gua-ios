@@ -39,9 +39,10 @@ enum IdentityServiceError: Error, LocalizedError {
     case phoneAlreadyLinked
     /// 403 `reauth_phone_mismatch`: the number typed at a reauthentication step is not the one on
     /// the signed-in account. The server answers the same way whether the number is unknown or
-    /// belongs to somebody else, so the message it sends is carried through as it is: rewording it
-    /// here is how a client would start hinting at who else owns a number.
-    case reauthPhoneMismatch(message: String?)
+    /// belongs to somebody else, and it says so in one fixed English sentence. The wording shown is
+    /// this fork's own translated constant, which is a single string for every reason the number is
+    /// wrong, so the neutrality holds in each language rather than only in the server's.
+    case reauthPhoneMismatch
     /// 400 `invalid_phone_number`: the normalizer could not read the number at all. It says nothing
     /// about which account the number belongs to, and it must not be shown as though it did.
     case invalidPhoneNumber
@@ -89,7 +90,7 @@ enum IdentityServiceError: Error, LocalizedError {
             } else { "For your security, you can't change your number again just yet. Please try again later." }
         case .invalidReauthToken: "Your verification expired. Please request a new code."
         case .phoneAlreadyLinked: "That phone number is already linked to another account."
-        case let .reauthPhoneMismatch(message): message ?? L10n.screenAccountReauthPhoneMismatch
+        case .reauthPhoneMismatch: L10n.screenAccountReauthPhoneMismatch
         case .invalidPhoneNumber: L10n.screenPhoneLoginInvalidNumber
         case .pinAlreadySet: L10n.screenTwoStepVerificationPinAlreadySet
         case .genesisUnavailable: "Account genesis is not enabled on this deployment."
@@ -691,7 +692,7 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         let retry = body?.retryAfterSeconds ?? retryAfterHeader.flatMap(Int.init)
         if let mapped = passkeyError(code: body?.code, status: status, path: path)
             ?? waitError(code: body?.code, retryAfterSeconds: retry)
-            ?? credentialError(code: body?.code, message: body?.message) {
+            ?? credentialError(code: body?.code) {
             return mapped
         }
         if status == 429 {
@@ -729,10 +730,10 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
 
     /// Wrong, missing or spent proofs, and the one refusal that ends the operation outright.
     ///
-    /// The mismatch keeps the server's own wording. It is written to be identical for a number
-    /// nobody has, a number somebody else has, and a number that is simply not this account's, and
-    /// that property only survives if the client shows it rather than composing its own.
-    private static func credentialError(code: String?, message: String?) -> IdentityServiceError? {
+    /// The mismatch drops the server's message. That message is one fixed English sentence, so
+    /// carrying it through would show English to everybody; the local string says exactly the same
+    /// thing and is, like the server's, a single constant for every reason the number is wrong.
+    private static func credentialError(code: String?) -> IdentityServiceError? {
         switch code {
         case "invalid_otp": .invalidOTP
         case "invalid_pin": .invalidPin
@@ -741,7 +742,7 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         case "phone_change_challenge_invalid": .phoneChangeChallengeInvalid
         case "phone_already_linked": .phoneAlreadyLinked
         case "step_up_required": .stepUpRequired
-        case "reauth_phone_mismatch": .reauthPhoneMismatch(message: message)
+        case "reauth_phone_mismatch": .reauthPhoneMismatch
         case "invalid_phone_number": .invalidPhoneNumber
         case "pin_already_set": .pinAlreadySet
         default: nil

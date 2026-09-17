@@ -107,30 +107,28 @@ final class IdentityServiceClientTests: XCTestCase {
         XCTAssertEqual(body["operation"] as? String, "PHONE_CHANGE")
     }
 
-    /// The refusal carries the server's wording, which is identical for a number nobody has, a
-    /// number somebody else has, and a number that is simply not this account's. Composing our own
-    /// here is how that property would be lost.
-    func testAWrongNumberSurfacesTheServersOwnRefusal() async throws {
-        IdentityServiceStub.respond(status: 403, body: #"{ "code": "reauth_phone_mismatch", "message": "That is not the number on your account." }"#)
+    /// The refusal is one sentence whatever the body says. The server's own message is a single
+    /// English constant, so carrying it through would show English to everybody; the local string
+    /// is the same single constant per language, which is what keeps the refusal identical for a
+    /// number nobody has, a number somebody else has, and a number that is simply not this
+    /// account's.
+    func testAWrongNumberSurfacesTheLocalNeutralRefusal() async throws {
+        let bodies = [#"{ "code": "reauth_phone_mismatch", "message": "That is not the number on your account." }"#,
+                      #"{ "code": "reauth_phone_mismatch" }"#]
 
-        do {
-            try await client.startAccountReauth(accessToken: "access-token", phone: "+14155550199", language: nil)
-            XCTFail("Expected the mismatch to throw")
-        } catch let IdentityServiceError.reauthPhoneMismatch(message) {
-            XCTAssertEqual(message, "That is not the number on your account.")
-        }
-    }
+        for body in bodies {
+            IdentityServiceStub.respond(status: 403, body: body)
 
-    /// A deployment that sends no message still must not leave the screen blank, and the fallback
-    /// says no more than the server's own wording does.
-    func testAMismatchWithoutAMessageFallsBackToTheNeutralOne() async throws {
-        IdentityServiceStub.respond(status: 403, body: #"{ "code": "reauth_phone_mismatch" }"#)
-
-        do {
-            try await client.startAccountReauth(accessToken: "access-token", phone: "+14155550199", language: nil)
-            XCTFail("Expected the mismatch to throw")
-        } catch let error as IdentityServiceError {
-            XCTAssertEqual(error.errorDescription, L10n.screenAccountReauthPhoneMismatch)
+            do {
+                try await client.startAccountReauth(accessToken: "access-token", phone: "+14155550199", language: nil)
+                XCTFail("Expected the mismatch to throw")
+            } catch let error as IdentityServiceError {
+                guard case .reauthPhoneMismatch = error else {
+                    XCTFail("Expected the mismatch, got \(error)")
+                    return
+                }
+                XCTAssertEqual(error.errorDescription, L10n.screenAccountReauthPhoneMismatch)
+            }
         }
     }
 

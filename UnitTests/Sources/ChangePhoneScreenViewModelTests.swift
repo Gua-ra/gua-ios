@@ -173,12 +173,11 @@ class ChangePhoneScreenViewModelTests: XCTestCase {
         XCTAssertEqual(identityService.verifyReauthPhones, ["+14155550143"])
     }
 
-    /// The refusal is written by the server to read the same way whether the number is unknown,
-    /// somebody else's, or simply not this account's. It is shown as it is, and nothing is sent.
-    func testAWrongNumberIsRefusedInTheServersWordsAndSendsNoCode() async throws {
+    /// The refusal reads the same way whether the number is unknown, somebody else's, or simply not
+    /// this account's. It is one translated sentence, and nothing is sent.
+    func testAWrongNumberIsRefusedNeutrallyAndSendsNoCode() async throws {
         makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: false))
-        let refusal = "That is not the number on your account."
-        identityService.startReauthError = IdentityServiceError.reauthPhoneMismatch(message: refusal)
+        identityService.startReauthError = IdentityServiceError.reauthPhoneMismatch
 
         context.send(viewAction: .start)
         try await waitForPhase(.currentPhone)
@@ -186,7 +185,7 @@ class ChangePhoneScreenViewModelTests: XCTestCase {
         try await waitForRefusal()
 
         XCTAssertEqual(context.viewState.phase, .currentPhone)
-        XCTAssertEqual(context.viewState.errorMessage, refusal)
+        XCTAssertEqual(context.viewState.errorMessage, L10n.screenAccountReauthPhoneMismatch)
         XCTAssertTrue(context.viewState.reauthToken.isEmpty)
     }
 
@@ -205,9 +204,10 @@ class ChangePhoneScreenViewModelTests: XCTestCase {
         XCTAssertEqual(context.viewState.errorMessage, L10n.screenPhoneLoginInvalidNumber)
     }
 
-    /// The cap on wrong numbers is per account, so it can be reached by someone holding a stolen
-    /// session. It lands next to the field rather than ending the flow with a toast.
-    func testTheAttemptCapIsShownOnTheNumberStep() async throws {
+    /// The server answers 429 both for the per-account cap on wrong numbers and for the ordinary
+    /// send quotas, so it is shown as the wait it is, next to the field rather than as a toast that
+    /// ends the flow, and never as a verdict on what was typed.
+    func testARefusedSendIsShownOnTheNumberStep() async throws {
         makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: false))
         identityService.startReauthError = IdentityServiceError.rateLimited
 
@@ -221,11 +221,10 @@ class ChangePhoneScreenViewModelTests: XCTestCase {
     }
 
     /// A number that stops matching between the two calls invalidates the code in hand, so the flow
-    /// goes back to the field that has to change.
+    /// goes back to the field that has to change, and empties it: that number was the problem.
     func testAMismatchAtVerifyReturnsToTheNumberStep() async throws {
         makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: false))
-        let refusal = "That is not the number on your account."
-        identityService.verifyReauthError = IdentityServiceError.reauthPhoneMismatch(message: refusal)
+        identityService.verifyReauthError = IdentityServiceError.reauthPhoneMismatch
 
         context.send(viewAction: .start)
         try await waitForPhase(.currentPhone)
@@ -235,8 +234,27 @@ class ChangePhoneScreenViewModelTests: XCTestCase {
         try await waitForRefusal()
 
         XCTAssertEqual(context.viewState.phase, .currentPhone)
-        XCTAssertEqual(context.viewState.errorMessage, refusal)
+        XCTAssertEqual(context.viewState.errorMessage, L10n.screenAccountReauthPhoneMismatch)
+        XCTAssertTrue(context.viewState.localDigits.isEmpty, "A number the server refused is not offered back")
         XCTAssertTrue(context.viewState.reauthToken.isEmpty)
+    }
+
+    /// A mid-flow restart sends to the number the server already accepted. When that send is
+    /// refused for a reason that is not about the number, the number comes back with it: nothing
+    /// about it was wrong, and retyping it proves nothing.
+    func testASendQuotaOnARestartKeepsTheConfirmedNumber() async throws {
+        makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: false))
+        identityService.startPhoneChangeResults = [.failure(IdentityServiceError.invalidReauthToken)]
+        try await advanceToNewPhone()
+
+        identityService.startReauthError = IdentityServiceError.rateLimited
+        try enterNewNumber()
+        try await waitForPhase(.pin)
+        enterCode("654321")
+        try await waitForPhase(.currentPhone)
+
+        XCTAssertEqual(context.viewState.e164PhoneNumber, "+14155550143")
+        XCTAssertEqual(context.viewState.errorMessage, IdentityServiceError.rateLimited.errorDescription)
     }
 
     // MARK: - Producing the step-up

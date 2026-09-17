@@ -1442,9 +1442,9 @@
 "screen_two_step_verification_otp_invalid" = "Ese código no es válido o ha caducado. Inténtalo de nuevo.";
 "screen_two_step_verification_cooldown" = "Por seguridad, solo puedes cambiar tu PIN una vez al día. Inténtalo de nuevo más tarde.";
 "screen_account_recovery_banner_title" = "Alguien empezó a recuperar tu cuenta";
-"screen_account_recovery_banner_message_later" = "Podrá completarse a partir del %1$@. Si fuiste tú, puedes ignorar este aviso. Si no fuiste tú, cancélala aquí mientras sigas con la sesión iniciada.";
-"screen_account_recovery_banner_message_now" = "Ya se puede completar. Si fuiste tú, puedes ignorar este aviso. Si no fuiste tú, cancélala aquí mientras sigas con la sesión iniciada.";
-"screen_account_recovery_banner_message_generic" = "Si fuiste tú, puedes ignorar este aviso. Si no fuiste tú, cancélala aquí mientras sigas con la sesión iniciada.";
+"screen_account_recovery_banner_message_later" = "Podrá completarse a partir del %1$@. Si fuiste tú, puedes ignorar este aviso. Si no fuiste tú, cancélala desde un dispositivo en el que sigas con la sesión iniciada.";
+"screen_account_recovery_banner_message_now" = "Ya se puede completar. Si fuiste tú, puedes ignorar este aviso. Si no fuiste tú, cancélala desde un dispositivo en el que sigas con la sesión iniciada.";
+"screen_account_recovery_banner_message_generic" = "Si fuiste tú, puedes ignorar este aviso. Si no fuiste tú, cancélala desde un dispositivo en el que sigas con la sesión iniciada.";
 "screen_account_recovery_banner_action" = "Cancelar la recuperación";
 "screen_account_recovery_cancel_confirm_title" = "¿Cancelar la recuperación?";
 "screen_account_recovery_cancel_confirm_message" = "Cancélala si no la iniciaste tú. Si fuiste tú, tendrás que empezar de nuevo.";
@@ -1460,8 +1460,13 @@
 "screen_change_phone_new_footer" = "Introduce el número que quieres usar a partir de ahora.";
 "screen_change_phone_current_header" = "Confirma tu número actual";
 "screen_change_phone_current_footer" = "Introduce el número que usa tu cuenta ahora. Te enviaremos un código por SMS.";
+"screen_account_reauth_section_title" = "Comprueba que eres tú";
+"screen_account_reauth_section_footer" = "Introduce el número de tu cuenta, con su código de país. Te enviaremos un código de verificación por SMS.";
 "screen_account_reauth_phone_label" = "Confirma tu número actual";
 "screen_account_reauth_phone_mismatch" = "Ese no es el número de tu cuenta.";
+"screen_account_reauth_send_code" = "Enviar código de verificación";
+"screen_account_reauth_code_label" = "Código de verificación";
+"screen_account_reauth_verified" = "Verificado";
 "screen_change_phone_reauth_header" = "Comprueba que eres tú";
 "screen_change_phone_reauth_footer" = "Introduce el código de 6 dígitos que enviamos a tu número actual.";
 "screen_change_phone_step_up_header" = "Añade primero un segundo paso";

@@ -215,21 +215,40 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         }
     }
 
-    /// Refusals that point at the number in the field rather than at the code or the operation: the
-    /// digest comparison said no, the normalizer could not read the number, or the per-account cap
-    /// on wrong numbers has been reached.
-    private static func isAboutTheSubmittedNumber(_ error: IdentityServiceError) -> Bool {
+    /// Refusals the number step has to answer rather than the code step: the digest comparison said
+    /// no, the normalizer could not read the number, or nothing can be sent for the moment.
+    private static func belongsOnTheNumberStep(_ error: IdentityServiceError) -> Bool {
         switch error {
         case .reauthPhoneMismatch, .invalidPhoneNumber, .rateLimited: true
         default: false
         }
     }
 
+    /// Of those, the ones that say the number itself is wrong. A 429 is not one of them: the server
+    /// spends the same `rate_limited` on the per-account cap for wrong numbers and on the ordinary
+    /// OTP per-phone and per-address quotas, so it is never read as a verdict on what was typed.
+    private static func isAboutTheSubmittedNumber(_ error: IdentityServiceError) -> Bool {
+        switch error {
+        case .reauthPhoneMismatch, .invalidPhoneNumber: true
+        default: false
+        }
+    }
+
     /// Asks for the number the account is on today. It comes before any SMS because it is what the
     /// server weighs to decide whether to send one at all.
-    private func askForCurrentPhone(message: String? = nil) {
+    ///
+    /// The field is emptied by default, because arriving here it holds either the new number or one
+    /// the server has just refused. A number the server already accepted is put back instead:
+    /// retyping it proves nothing, and it is not what stopped the flow.
+    private func askForCurrentPhone(message: String? = nil, keepingConfirmedNumber: Bool = false) {
         state.bindings.code = ""
-        state.bindings.localPhoneNumber = ""
+        if keepingConfirmedNumber, !state.currentPhoneE164.isEmpty {
+            let (country, localDigits) = Country.normalize(rawInput: state.currentPhoneE164, current: state.selectedCountry)
+            state.selectedCountry = country
+            state.bindings.localPhoneNumber = country.formatNational(digits: localDigits)
+        } else {
+            state.bindings.localPhoneNumber = ""
+        }
         state.errorMessage = message
         state.phase = .currentPhone
     }
@@ -259,16 +278,20 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             state.bindings.code = ""
             state.errorMessage = nil
             state.phase = .reauth
-        } catch let error as IdentityServiceError where Self.isAboutTheSubmittedNumber(error) {
-            // All of these are about the number that was just typed, so they belong next to the
-            // field, with what was typed still in it so a wrong digit can be fixed. The mismatch is
-            // shown in the server's words: it says only that this is not the number on the account,
-            // and saying more would be saying whose it is.
+        } catch let error as IdentityServiceError where Self.belongsOnTheNumberStep(error) {
+            // All of these belong next to the field rather than on a code step there is no code
+            // for. What was just typed stays in it so a wrong digit can be fixed. The mismatch is
+            // the one refusal that says the number is wrong, and it says only that: this is not the
+            // number on the account, never whose it is.
             if isConfirmingNumber {
                 state.errorMessage = error.errorDescription
                 state.phase = .currentPhone
             } else {
-                askForCurrentPhone(message: error.errorDescription)
+                // Mid-flow the field holds the new number, so it has to go. A refusal that is not
+                // about the number, a send quota being the usual one, puts back the number the
+                // server already accepted rather than making the user find it again.
+                askForCurrentPhone(message: error.errorDescription,
+                                   keepingConfirmedNumber: !Self.isAboutTheSubmittedNumber(error))
             }
         } catch {
             MXLog.error("Failed to start account reauth for change-phone: \(error)")

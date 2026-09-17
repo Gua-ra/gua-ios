@@ -730,9 +730,9 @@
 "screen_two_step_verification_otp_invalid" = "That code is invalid or has expired. Please try again.";
 "screen_two_step_verification_cooldown" = "For security, you can only change your PIN once per day. Please try again later.";
 "screen_account_recovery_banner_title" = "Someone started recovering your account";
-"screen_account_recovery_banner_message_later" = "It can be finished after %1$@. If this was you, you can ignore this. If it wasn't, cancel it here while you are still signed in.";
-"screen_account_recovery_banner_message_now" = "It can be finished now. If this was you, you can ignore this. If it wasn't, cancel it here while you are still signed in.";
-"screen_account_recovery_banner_message_generic" = "If this was you, you can ignore this. If it wasn't, cancel it here while you are still signed in.";
+"screen_account_recovery_banner_message_later" = "It can be finished after %1$@. If this was you, you can ignore this. If it wasn't, cancel it from a device where you are still signed in.";
+"screen_account_recovery_banner_message_now" = "It can be finished now. If this was you, you can ignore this. If it wasn't, cancel it from a device where you are still signed in.";
+"screen_account_recovery_banner_message_generic" = "If this was you, you can ignore this. If it wasn't, cancel it from a device where you are still signed in.";
 "screen_account_recovery_banner_action" = "Cancel recovery";
 "screen_account_recovery_cancel_confirm_title" = "Cancel recovery?";
 "screen_account_recovery_cancel_confirm_message" = "Cancel it if you didn't start it. If you did, you will have to start again.";
@@ -1428,7 +1428,7 @@
 "screen_create_room_title" = "Create a room";
 "screen_deactivate_account_title" = "Deactivate account";
 "screen_account_reauth_section_title" = "Verify it's you";
-"screen_account_reauth_section_footer" = "Enter the number on your account. We'll text a verification code to it.";
+"screen_account_reauth_section_footer" = "Enter the number on your account, including its country code. We'll text a verification code to it.";
 "screen_account_reauth_phone_label" = "Confirm your current number";
 "screen_account_reauth_phone_mismatch" = "That is not the number on your account.";
 "screen_account_reauth_send_code" = "Send verification code";
