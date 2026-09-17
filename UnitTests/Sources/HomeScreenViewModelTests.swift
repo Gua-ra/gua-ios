@@ -564,8 +564,12 @@ class HomeScreenViewModelTests: XCTestCase {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         let later = now.addingTimeInterval(3 * 24 * 60 * 60)
         
+        // A date, never a clock time: an exact minute would read as a deadline to sit through, and
+        // it would publish when the account was last used.
         XCTAssertEqual(HomeScreenAccountRecoveryBanner.message(for: .init(completableAt: later, expiresAt: nil), now: now),
-                       L10n.screenAccountRecoveryBannerMessageLater(later.formatted(date: .long, time: .shortened)))
+                       L10n.screenAccountRecoveryBannerMessageLater(later.formatted(date: .long, time: .omitted)))
+        XCTAssertFalse(HomeScreenAccountRecoveryBanner.message(for: .init(completableAt: later, expiresAt: nil), now: now)
+            .contains(later.formatted(date: .omitted, time: .shortened)))
         XCTAssertEqual(HomeScreenAccountRecoveryBanner.message(for: .init(completableAt: now, expiresAt: nil), now: now),
                        L10n.screenAccountRecoveryBannerMessageNow)
         XCTAssertEqual(HomeScreenAccountRecoveryBanner.message(for: .init(completableAt: nil, expiresAt: nil), now: now),

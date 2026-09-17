@@ -53,8 +53,11 @@ struct HomeScreenAccountRecoveryBanner: View {
         .padding(.horizontal, 16)
     }
 
-    /// When it can be finished, in the device's locale and time zone, or that it can be finished
+    /// When it can be finished, as a date in the device's locale, or that it can be finished
     /// already. A report without the date still says what to do about it.
+    ///
+    /// The date is deliberately coarse. A clock time would be read as a deadline to sit through,
+    /// and it would also publish, to the minute, when the account was last used.
     static func message(for recovery: PendingAccountRecovery, now: Date) -> String {
         guard let completableAt = recovery.completableAt else {
             return L10n.screenAccountRecoveryBannerMessageGeneric
@@ -62,7 +65,7 @@ struct HomeScreenAccountRecoveryBanner: View {
         guard completableAt > now else {
             return L10n.screenAccountRecoveryBannerMessageNow
         }
-        return L10n.screenAccountRecoveryBannerMessageLater(completableAt.formatted(date: .long, time: .shortened))
+        return L10n.screenAccountRecoveryBannerMessageLater(completableAt.formatted(date: .long, time: .omitted))
     }
 }
 

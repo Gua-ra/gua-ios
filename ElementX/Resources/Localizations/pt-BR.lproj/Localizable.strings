@@ -1469,9 +1469,9 @@
 "screen_two_step_verification_otp_invalid" = "Esse código é inválido ou expirou. Tente novamente.";
 "screen_two_step_verification_cooldown" = "Por segurança, você só pode alterar seu PIN uma vez por dia. Tente novamente mais tarde.";
 "screen_account_recovery_banner_title" = "Alguém iniciou a recuperação da sua conta";
-"screen_account_recovery_banner_message_later" = "Ela poderá ser concluída a partir de %1$@. Se foi você, pode ignorar este aviso.";
-"screen_account_recovery_banner_message_now" = "Ela já pode ser concluída. Se foi você, pode ignorar este aviso.";
-"screen_account_recovery_banner_message_generic" = "Se foi você, pode ignorar este aviso.";
+"screen_account_recovery_banner_message_later" = "Ela poderá ser concluída a partir de %1$@. Se foi você, pode ignorar este aviso. Se não foi, cancele aqui enquanto você ainda está conectado.";
+"screen_account_recovery_banner_message_now" = "Ela já pode ser concluída. Se foi você, pode ignorar este aviso. Se não foi, cancele aqui enquanto você ainda está conectado.";
+"screen_account_recovery_banner_message_generic" = "Se foi você, pode ignorar este aviso. Se não foi, cancele aqui enquanto você ainda está conectado.";
 "screen_account_recovery_banner_action" = "Cancelar recuperação";
 "screen_account_recovery_cancel_confirm_title" = "Cancelar a recuperação?";
 "screen_account_recovery_cancel_confirm_message" = "Cancele se não foi você que iniciou. Se foi você, será preciso começar de novo.";

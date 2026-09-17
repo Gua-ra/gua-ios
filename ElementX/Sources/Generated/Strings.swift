@@ -1158,13 +1158,13 @@ internal enum L10n {
   internal static var screenAccountReauthVerified: String { return L10n.tr("Localizable", "screen_account_reauth_verified") }
   /// Cancel recovery
   internal static var screenAccountRecoveryBannerAction: String { return L10n.tr("Localizable", "screen_account_recovery_banner_action") }
-  /// If this was you, you can ignore this.
+  /// If this was you, you can ignore this. If it wasn't, cancel it here while you are still signed in.
   internal static var screenAccountRecoveryBannerMessageGeneric: String { return L10n.tr("Localizable", "screen_account_recovery_banner_message_generic") }
-  /// It can be finished after %1$@. If this was you, you can ignore this.
+  /// It can be finished after %1$@. If this was you, you can ignore this. If it wasn't, cancel it here while you are still signed in.
   internal static func screenAccountRecoveryBannerMessageLater(_ p1: Any) -> String {
     return L10n.tr("Localizable", "screen_account_recovery_banner_message_later", String(describing: p1))
   }
-  /// It can be finished now. If this was you, you can ignore this.
+  /// It can be finished now. If this was you, you can ignore this. If it wasn't, cancel it here while you are still signed in.
   internal static var screenAccountRecoveryBannerMessageNow: String { return L10n.tr("Localizable", "screen_account_recovery_banner_message_now") }
   /// Someone started recovering your account
   internal static var screenAccountRecoveryBannerTitle: String { return L10n.tr("Localizable", "screen_account_recovery_banner_title") }
