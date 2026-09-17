@@ -570,6 +570,14 @@ class HomeScreenViewModelTests: XCTestCase {
                        L10n.screenAccountRecoveryBannerMessageLater(later.formatted(date: .long, time: .omitted)))
         XCTAssertFalse(HomeScreenAccountRecoveryBanner.message(for: .init(completableAt: later, expiresAt: nil), now: now)
             .contains(later.formatted(date: .omitted, time: .shortened)))
+
+        // The day it names is the day it can be finished, not the day after. The server sends an
+        // exact instant and only its date is shown, so "after <date>" would hand the owner a day
+        // they do not have on the one surface whose job is to get them to cancel in time. The year
+        // stays with it: both apps print the same shape for the same recovery.
+        let laterMessage = HomeScreenAccountRecoveryBanner.message(for: .init(completableAt: later, expiresAt: nil), now: now)
+        XCTAssertTrue(laterMessage.contains(later.formatted(.dateTime.year())))
+        XCTAssertFalse(laterMessage.lowercased().contains("after"))
         XCTAssertEqual(HomeScreenAccountRecoveryBanner.message(for: .init(completableAt: now, expiresAt: nil), now: now),
                        L10n.screenAccountRecoveryBannerMessageNow)
         XCTAssertEqual(HomeScreenAccountRecoveryBanner.message(for: .init(completableAt: nil, expiresAt: nil), now: now),

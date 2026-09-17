@@ -1160,7 +1160,7 @@ internal enum L10n {
   internal static var screenAccountRecoveryBannerAction: String { return L10n.tr("Localizable", "screen_account_recovery_banner_action") }
   /// If this was you, you can ignore this. If it wasn't, cancel it from a device where you are still signed in.
   internal static var screenAccountRecoveryBannerMessageGeneric: String { return L10n.tr("Localizable", "screen_account_recovery_banner_message_generic") }
-  /// It can be finished after %1$@. If this was you, you can ignore this. If it wasn't, cancel it from a device where you are still signed in.
+  /// It can be finished from %1$@. If this was you, you can ignore this. If it wasn't, cancel it from a device where you are still signed in.
   internal static func screenAccountRecoveryBannerMessageLater(_ p1: Any) -> String {
     return L10n.tr("Localizable", "screen_account_recovery_banner_message_later", String(describing: p1))
   }
