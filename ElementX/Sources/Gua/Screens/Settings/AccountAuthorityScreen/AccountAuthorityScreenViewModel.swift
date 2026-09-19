@@ -119,7 +119,10 @@ class AccountAuthorityScreenViewModel: AccountAuthorityScreenViewModelType, Acco
     /// is not consulted. Whatever happens inside the ceremony stays on this device and turns into "ask for
     /// the next factor", never into a claim sent to the server that a passkey was unavailable.
     private func startAdoption() async {
-        guard state.canAdopt, let accessToken = clientProxy.accessToken else { return }
+        // One adoption at a time, and the phase is what says so. Two of them would mint two challenges
+        // and two key pairs, and the second pair would overwrite the first in the keychain, leaving the
+        // record that was already signed committing a key this device no longer holds.
+        guard state.phase == .overview, state.canAdopt, let accessToken = clientProxy.accessToken else { return }
         state.errorMessage = nil
 
         if factors == nil {
