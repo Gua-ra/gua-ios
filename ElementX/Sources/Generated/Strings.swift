@@ -1120,6 +1120,80 @@ internal enum L10n {
   internal static var richTextEditorUnindent: String { return L10n.tr("Localizable", "rich_text_editor_unindent") }
   /// Link
   internal static var richTextEditorUrlPlaceholder: String { return L10n.tr("Localizable", "rich_text_editor_url_placeholder") }
+  /// I've saved this key
+  internal static var screenAccountAuthorityArtifactConfirm: String { return L10n.tr("Localizable", "screen_account_authority_artifact_confirm") }
+  /// Copied
+  internal static var screenAccountAuthorityArtifactCopied: String { return L10n.tr("Localizable", "screen_account_authority_artifact_copied") }
+  /// This is the only time this key is shown. Write it down and keep it somewhere safe and private.
+  /// 
+  /// If you lose every trusted device, this key is the only way to set one up again. Anyone who has both this key and a way into your account can take it over after a wait.
+  internal static var screenAccountAuthorityArtifactMessage: String { return L10n.tr("Localizable", "screen_account_authority_artifact_message") }
+  /// Save your recovery key
+  internal static var screenAccountAuthorityArtifactTitle: String { return L10n.tr("Localizable", "screen_account_authority_artifact_title") }
+  /// Trusted
+  internal static var screenAccountAuthorityDeviceActive: String { return L10n.tr("Localizable", "screen_account_authority_device_active") }
+  /// Limited until %1$@
+  internal static func screenAccountAuthorityDeviceQuarantined(_ p1: Any) -> String {
+    return L10n.tr("Localizable", "screen_account_authority_device_quarantined", String(describing: p1))
+  }
+  /// A device that was just added waits a while before it can approve anything.
+  internal static var screenAccountAuthorityDeviceQuarantinedFooter: String { return L10n.tr("Localizable", "screen_account_authority_device_quarantined_footer") }
+  /// Limited for now
+  internal static var screenAccountAuthorityDeviceQuarantinedUnknown: String { return L10n.tr("Localizable", "screen_account_authority_device_quarantined_unknown") }
+  /// Removed
+  internal static var screenAccountAuthorityDeviceRevoked: String { return L10n.tr("Localizable", "screen_account_authority_device_revoked") }
+  /// This phone
+  internal static var screenAccountAuthorityDeviceThis: String { return L10n.tr("Localizable", "screen_account_authority_device_this") }
+  /// This app can't read this device's status
+  internal static var screenAccountAuthorityDeviceUnknownState: String { return L10n.tr("Localizable", "screen_account_authority_device_unknown_state") }
+  /// Another device
+  internal static var screenAccountAuthorityDeviceUnnamed: String { return L10n.tr("Localizable", "screen_account_authority_device_unnamed") }
+  /// Something changed while you were setting this up. Please try again.
+  internal static var screenAccountAuthorityErrorConflict: String { return L10n.tr("Localizable", "screen_account_authority_error_conflict") }
+  /// This took too long and expired. Please start again.
+  internal static var screenAccountAuthorityErrorExpired: String { return L10n.tr("Localizable", "screen_account_authority_error_expired") }
+  /// This account can't use trusted devices.
+  internal static var screenAccountAuthorityErrorNoAccount: String { return L10n.tr("Localizable", "screen_account_authority_error_no_account") }
+  /// Trusted devices aren't available on this account yet.
+  internal static var screenAccountAuthorityErrorNotPermitted: String { return L10n.tr("Localizable", "screen_account_authority_error_not_permitted") }
+  /// Something is already waiting on this account. Wait for it to finish, or stop it first.
+  internal static var screenAccountAuthorityErrorPending: String { return L10n.tr("Localizable", "screen_account_authority_error_pending") }
+  /// This account already has a trusted device.
+  internal static var screenAccountAuthorityErrorPosition: String { return L10n.tr("Localizable", "screen_account_authority_error_position") }
+  /// You'll need two-step verification set up before you can do this.
+  internal static var screenAccountAuthorityErrorStepUp: String { return L10n.tr("Localizable", "screen_account_authority_error_step_up") }
+  /// For your security, you can't do this just yet. Please try again later.
+  internal static var screenAccountAuthorityErrorTooRecent: String { return L10n.tr("Localizable", "screen_account_authority_error_too_recent") }
+  /// For your security, you can do this in %1$@.
+  internal static func screenAccountAuthorityErrorTooRecentIn(_ p1: Any) -> String {
+    return L10n.tr("Localizable", "screen_account_authority_error_too_recent_in", String(describing: p1))
+  }
+  /// Set up this phone
+  internal static var screenAccountAuthoritySetupButton: String { return L10n.tr("Localizable", "screen_account_authority_setup_button") }
+  /// Set up this phone as a trusted device. After that, changes to your account can only be approved from a device you trust.
+  internal static var screenAccountAuthorityStateBootstrapMessage: String { return L10n.tr("Localizable", "screen_account_authority_state_bootstrap_message") }
+  /// No trusted device yet
+  internal static var screenAccountAuthorityStateBootstrapTitle: String { return L10n.tr("Localizable", "screen_account_authority_state_bootstrap_title") }
+  /// Every trusted device and the recovery key are gone. Your account, your chats and your number are not affected and you can keep using Gua, but trusted devices can't be set up again.
+  internal static var screenAccountAuthorityStateLostMessage: String { return L10n.tr("Localizable", "screen_account_authority_state_lost_message") }
+  /// No trusted device left
+  internal static var screenAccountAuthorityStateLostTitle: String { return L10n.tr("Localizable", "screen_account_authority_state_lost_title") }
+  /// This finishes on %1$@. Until then, anyone signed in to your account can stop it.
+  internal static func screenAccountAuthorityStatePendingMessage(_ p1: Any) -> String {
+    return L10n.tr("Localizable", "screen_account_authority_state_pending_message", String(describing: p1))
+  }
+  /// Waiting
+  internal static var screenAccountAuthorityStatePendingTitle: String { return L10n.tr("Localizable", "screen_account_authority_state_pending_title") }
+  /// Your trusted devices
+  internal static var screenAccountAuthorityStateRootedHeader: String { return L10n.tr("Localizable", "screen_account_authority_state_rooted_header") }
+  /// Your PIN confirms it's you before this phone becomes a trusted device.
+  internal static var screenAccountAuthorityStepUpPinFooter: String { return L10n.tr("Localizable", "screen_account_authority_step_up_pin_footer") }
+  /// Enter your PIN
+  internal static var screenAccountAuthorityStepUpPinHeader: String { return L10n.tr("Localizable", "screen_account_authority_step_up_pin_header") }
+  /// Trusted devices
+  internal static var screenAccountAuthorityTitle: String { return L10n.tr("Localizable", "screen_account_authority_title") }
+  /// We couldn't read your trusted devices.
+  internal static var screenAccountAuthorityUnavailable: String { return L10n.tr("Localizable", "screen_account_authority_unavailable") }
   /// Change account provider
   internal static var screenAccountProviderChange: String { return L10n.tr("Localizable", "screen_account_provider_change") }
   /// Homeserver address
@@ -1330,6 +1404,30 @@ internal enum L10n {
   internal static func screenAppLockUnlockWithBiometricsIos(_ p1: Any) -> String {
     return L10n.tr("Localizable", "screen_app_lock_unlock_with_biometrics_ios", String(describing: p1))
   }
+  /// Add a new device to your account
+  internal static var screenAuthorityApprovalActionAddDevice: String { return L10n.tr("Localizable", "screen_authority_approval_action_add_device") }
+  /// What you're approving
+  internal static var screenAuthorityApprovalActionHeader: String { return L10n.tr("Localizable", "screen_authority_approval_action_header") }
+  /// Remove a device from your account
+  internal static var screenAuthorityApprovalActionRemoveDevice: String { return L10n.tr("Localizable", "screen_authority_approval_action_remove_device") }
+  /// Check this matches the code on the other screen
+  internal static var screenAuthorityApprovalCodeHeader: String { return L10n.tr("Localizable", "screen_authority_approval_code_header") }
+  /// Nothing is waiting for your approval.
+  internal static var screenAuthorityApprovalEmpty: String { return L10n.tr("Localizable", "screen_authority_approval_empty") }
+  /// More than one request is waiting, so none of them are shown. Close whatever started them and ask again.
+  internal static var screenAuthorityApprovalMultiple: String { return L10n.tr("Localizable", "screen_authority_approval_multiple") }
+  /// This phone can't approve requests for your account.
+  internal static var screenAuthorityApprovalNotAnAuthorityDevice: String { return L10n.tr("Localizable", "screen_authority_approval_not_an_authority_device") }
+  /// That approval didn't go through. Ask for it again on the other screen.
+  internal static var screenAuthorityApprovalRefused: String { return L10n.tr("Localizable", "screen_authority_approval_refused") }
+  /// Approve
+  internal static var screenAuthorityApprovalSignButton: String { return L10n.tr("Localizable", "screen_authority_approval_sign_button") }
+  /// Approved
+  internal static var screenAuthorityApprovalSigned: String { return L10n.tr("Localizable", "screen_authority_approval_signed") }
+  /// Approve a request
+  internal static var screenAuthorityApprovalTitle: String { return L10n.tr("Localizable", "screen_authority_approval_title") }
+  /// This request doesn't say what it would change, so it can't be approved from this phone.
+  internal static var screenAuthorityApprovalUnknownAction: String { return L10n.tr("Localizable", "screen_authority_approval_unknown_action") }
   /// You have no blocked users
   internal static var screenBlockedUsersEmpty: String { return L10n.tr("Localizable", "screen_blocked_users_empty") }
   /// Unblock

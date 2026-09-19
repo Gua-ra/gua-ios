@@ -1513,3 +1513,50 @@
 
 /* GUA FORK - App lock */
 "screen_app_lock_unlock_with_biometrics_ios" = "Déverrouiller avec %1$@";
+
+/* GUA FORK - Appareils de confiance (ADM-009) */
+"screen_account_authority_title" = "Appareils de confiance";
+"screen_account_authority_state_bootstrap_title" = "Aucun appareil de confiance pour l'instant";
+"screen_account_authority_state_bootstrap_message" = "Configurez ce téléphone comme appareil de confiance. Ensuite, les modifications de votre compte ne pourront être approuvées que depuis un appareil de confiance.";
+"screen_account_authority_setup_button" = "Configurer ce téléphone";
+"screen_account_authority_state_pending_title" = "En attente";
+"screen_account_authority_state_pending_message" = "Cela se termine le %1$@. D'ici là, toute personne connectée à votre compte peut l'arrêter.";
+"screen_account_authority_state_rooted_header" = "Vos appareils de confiance";
+"screen_account_authority_state_lost_title" = "Plus aucun appareil de confiance";
+"screen_account_authority_state_lost_message" = "Tous les appareils de confiance et la clé de récupération sont perdus. Votre compte, vos conversations et votre numéro ne sont pas touchés et vous pouvez continuer à utiliser Gua, mais il n'est plus possible de configurer un appareil de confiance.";
+"screen_account_authority_device_this" = "Ce téléphone";
+"screen_account_authority_device_unnamed" = "Un autre appareil";
+"screen_account_authority_device_active" = "De confiance";
+"screen_account_authority_device_quarantined" = "Limité jusqu'au %1$@";
+"screen_account_authority_device_quarantined_unknown" = "Limité pour le moment";
+"screen_account_authority_device_quarantined_footer" = "Un appareil qui vient d'être ajouté attend un moment avant de pouvoir approuver quoi que ce soit.";
+"screen_account_authority_device_revoked" = "Retiré";
+"screen_account_authority_device_unknown_state" = "Cette app ne peut pas lire l'état de cet appareil";
+"screen_account_authority_unavailable" = "Nous n'avons pas pu lire vos appareils de confiance.";
+"screen_account_authority_step_up_pin_header" = "Saisissez votre code PIN";
+"screen_account_authority_step_up_pin_footer" = "Votre code PIN confirme que c'est bien vous avant que ce téléphone devienne un appareil de confiance.";
+"screen_account_authority_artifact_title" = "Enregistrez votre clé de récupération";
+"screen_account_authority_artifact_message" = "Cette clé n'est affichée qu'une seule fois. Notez-la et gardez-la dans un endroit sûr et privé.\n\nSi vous perdez tous vos appareils de confiance, cette clé est le seul moyen d'en configurer un nouveau. Toute personne qui a cette clé et un moyen d'accéder à votre compte peut le prendre après un délai.";
+"screen_account_authority_artifact_copied" = "Copié";
+"screen_account_authority_artifact_confirm" = "J'ai enregistré cette clé";
+"screen_account_authority_error_step_up" = "Vous devez avoir configuré la vérification en deux étapes pour faire cela.";
+"screen_account_authority_error_too_recent" = "Pour votre sécurité, vous ne pouvez pas encore faire cela. Réessayez plus tard.";
+"screen_account_authority_error_too_recent_in" = "Pour votre sécurité, vous pourrez faire cela dans %1$@.";
+"screen_account_authority_error_not_permitted" = "Les appareils de confiance ne sont pas encore disponibles sur ce compte.";
+"screen_account_authority_error_position" = "Ce compte a déjà un appareil de confiance.";
+"screen_account_authority_error_pending" = "Quelque chose est déjà en attente sur ce compte. Attendez la fin ou arrêtez-le d'abord.";
+"screen_account_authority_error_conflict" = "Quelque chose a changé pendant la configuration. Réessayez.";
+"screen_account_authority_error_expired" = "Cela a pris trop de temps et a expiré. Recommencez.";
+"screen_account_authority_error_no_account" = "Ce compte ne peut pas utiliser les appareils de confiance.";
+"screen_authority_approval_title" = "Approuver une demande";
+"screen_authority_approval_empty" = "Rien n'attend votre approbation.";
+"screen_authority_approval_code_header" = "Vérifiez que cela correspond au code affiché sur l'autre écran";
+"screen_authority_approval_action_header" = "Ce que vous approuvez";
+"screen_authority_approval_sign_button" = "Approuver";
+"screen_authority_approval_signed" = "Approuvé";
+"screen_authority_approval_refused" = "L'approbation n'a pas abouti. Redemandez-la sur l'autre écran.";
+"screen_authority_approval_multiple" = "Plusieurs demandes sont en attente, donc aucune n'est affichée. Fermez ce qui les a lancées et redemandez.";
+"screen_authority_approval_unknown_action" = "Cette demande n'indique pas ce qu'elle changerait, elle ne peut donc pas être approuvée depuis ce téléphone.";
+"screen_authority_approval_not_an_authority_device" = "Ce téléphone ne peut pas approuver les demandes de votre compte.";
+"screen_authority_approval_action_add_device" = "Ajouter un nouvel appareil à votre compte";
+"screen_authority_approval_action_remove_device" = "Retirer un appareil de votre compte";
