@@ -12,10 +12,16 @@ enum DeactivateAccountScreenViewModelAction {
 }
 
 /// Reauthentication phase used to gate deactivation. Mirrors the Matrix
-/// `m.login.msisdn` UIA stage — we must prove possession of the linked phone
+/// `m.login.msisdn` UIA stage: we must prove possession of the linked phone
 /// before honouring the destructive request.
+///
+/// GUA FORK: the number is typed rather than looked up. Identity-service never publishes which
+/// number an account is on; it digests what is submitted and compares it with that account's own
+/// directory binding, so confirming the number is itself part of the proof and no code is sent
+/// until it matches.
 enum DeactivateAccountReauthPhase: Equatable {
-    /// Ready to send the OTP. Initial state and after a failed/cancelled attempt.
+    /// Ready to send the OTP, once the account's own number has been typed. Initial state and after
+    /// a failed/cancelled attempt.
     case idle
     /// OTP is being sent to the linked phone.
     case sendingCode
@@ -64,6 +70,9 @@ struct DeactivateAccountScreenViewState: BindableState {
 struct DeactivateAccountScreenViewStateBindings {
     var password = ""
     var eraseData = false
+    /// The number the account is on, as the user types it. Both reauth calls carry it: the server
+    /// keeps nothing between them and re-derives the comparison from what is submitted.
+    var phoneNumber = ""
     var otpCode = ""
     var alertInfo: AlertInfo<DeactivateAccountScreenAlert>?
 }

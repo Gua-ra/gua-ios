@@ -6,15 +6,18 @@
 
 import AuthenticationServices
 
-/// Presents a web authentication session that drives passkey enrollment on the
+/// Presents a web authentication session that drives factor enrollment, passkey or PIN, on the
 /// IdP-hosted page returned by identity-service.
+///
+/// Both factors go through it for the same reason: a bearer session alone must never add a durable
+/// factor, and the page is where the account is confirmed first.
 ///
 /// A web authentication session is used (rather than `SFSafariViewController`) so
 /// that the existing login session is available and the user doesn't have to sign
 /// in again. The session finishes when the page redirects to the app's OIDC
 /// redirect URL. Mirrors ``OIDCAccountSettingsPresenter``.
 @MainActor
-class PasskeyEnrollmentPresenter: NSObject {
+class FactorEnrollmentPresenter: NSObject {
     private let enrollURL: URL
     private let presentationAnchor: UIWindow
     private let oidcRedirectURL: URL
@@ -60,7 +63,7 @@ class PasskeyEnrollmentPresenter: NSObject {
                     // IDP redirected back with an OIDC error (e.g. access_denied).
                     let description = components.queryItems?.first(where: { $0.name == "error_description" })?.value
                     let message = description ?? errorCode
-                    continuation.resume(throwing: NSError(domain: "PasskeyEnrollment",
+                    continuation.resume(throwing: NSError(domain: "FactorEnrollment",
                                                           code: -1,
                                                           userInfo: [NSLocalizedDescriptionKey: message]))
                 } else {
@@ -80,7 +83,7 @@ class PasskeyEnrollmentPresenter: NSObject {
 
 // MARK: ASWebAuthenticationPresentationContextProviding
 
-extension PasskeyEnrollmentPresenter: ASWebAuthenticationPresentationContextProviding {
+extension FactorEnrollmentPresenter: ASWebAuthenticationPresentationContextProviding {
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
         presentationAnchor
     }

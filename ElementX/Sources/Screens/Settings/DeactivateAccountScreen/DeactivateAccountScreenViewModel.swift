@@ -52,12 +52,28 @@ class DeactivateAccountScreenViewModel: DeactivateAccountScreenViewModelType, De
             state.reauthPhase = .error(L10n.errorUnknown)
             return
         }
+        let typed = state.bindings.phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !typed.isEmpty else { return }
+        // A number the server cannot read costs one of the five reauthentication attempts the
+        // account gets in an hour, and a number missing its country code is worse: it parses
+        // against the server's default region and comes back as the same refusal a stranger's
+        // number gets, which by design cannot say the format was the problem. This screen has no
+        // country picker, so the check is what stands in for one. What AutoFill fills the field
+        // with is punctuated, so what travels is the resolved number rather than what was typed.
+        guard let phone = GuaPhoneNumber.e164(from: typed) else {
+            state.reauthPhase = .error(L10n.screenPhoneLoginInvalidNumber)
+            return
+        }
         state.reauthPhase = .sendingCode
         do {
             try await identityServiceClient.startAccountReauth(accessToken: accessToken,
-                                                               language: Locale.current.identifier)
+                                                               phone: phone,
+                                                               language: Locale.guaLanguageTag())
             state.reauthPhase = .awaitingCode
         } catch {
+            // A number that is not this account's arrives here as the server's own refusal, which
+            // says only that. It is shown as it is: rewording it is how a client starts hinting at
+            // who else a number belongs to.
             MXLog.error("Failed to start account reauth: \(error)")
             state.reauthPhase = .error((error as? LocalizedError)?.errorDescription ?? L10n.errorUnknown)
         }
@@ -70,9 +86,18 @@ class DeactivateAccountScreenViewModel: DeactivateAccountScreenViewModelType, De
         }
         let code = state.bindings.otpCode.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !code.isEmpty else { return }
+        // The same resolution as the start call: the server keeps nothing between the two, so the
+        // digits that earned the code have to be the digits that spend it.
+        guard let phone = GuaPhoneNumber.e164(from: state.bindings.phoneNumber) else {
+            state.reauthPhase = .error(L10n.screenPhoneLoginInvalidNumber)
+            return
+        }
         state.reauthPhase = .verifyingCode
         do {
-            reauthToken = try await identityServiceClient.verifyAccountReauth(accessToken: accessToken, code: code)
+            reauthToken = try await identityServiceClient.verifyAccountReauth(accessToken: accessToken,
+                                                                              phone: phone,
+                                                                              code: code,
+                                                                              operation: .deactivate)
             state.reauthPhase = .verified
         } catch IdentityServiceError.invalidOTP {
             state.reauthPhase = .error(L10n.screenOtpInvalidCode)
