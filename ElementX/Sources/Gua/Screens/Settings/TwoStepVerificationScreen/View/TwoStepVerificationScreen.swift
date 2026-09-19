@@ -17,10 +17,8 @@ struct TwoStepVerificationScreen: View {
             switch context.viewState.phase {
             case .loading:
                 loadingSection
-            case .overviewNoPin:
-                overviewSection(hasPin: false)
-            case .overviewHasPin:
-                overviewSection(hasPin: true)
+            case .overview:
+                overviewSection
             case .enteringPhone:
                 phoneEntrySection
             case .enteringCurrent, .enteringOtp, .enteringNew, .confirmingNew, .submitting:
@@ -64,36 +62,88 @@ struct TwoStepVerificationScreen: View {
         }
     }
 
+    /// GUA FORK: the overview renders the account's factors as the server reports them, instead of
+    /// branching on a single `hasPin`. A passkey holder sees a passkey, and a report that could not
+    /// be read says so rather than claiming the account has nothing.
     @ViewBuilder
-    private func overviewSection(hasPin: Bool) -> some View {
-        Section {
-            ListRow(label: .default(title: hasPin ? L10n.screenTwoStepVerificationStatusOn : L10n.screenTwoStepVerificationStatusOff,
-                                    icon: \.lock),
-                    kind: .label)
-        } header: {
-            Text(L10n.screenTwoStepVerificationOverviewHeader)
-        } footer: {
-            Text(hasPin ? L10n.screenTwoStepVerificationOverviewFooterOn : L10n.screenTwoStepVerificationOverviewFooterOff)
-        }
+    private var overviewSection: some View {
+        if context.viewState.factors == nil {
+            statusUnavailableSection
+        } else {
+            let hasPin = context.viewState.hasPin
+            let hasPasskey = context.viewState.passkeyRegistered
 
-        Section {
-            if hasPin {
-                ListRow(label: .centeredAction(title: L10n.screenTwoStepVerificationChangeButton,
-                                               icon: \.edit),
-                        kind: .button { context.send(viewAction: .startChange) })
-            } else {
-                ListRow(label: .centeredAction(title: L10n.screenTwoStepVerificationSetButton,
-                                               icon: \.lock),
-                        kind: .button { context.send(viewAction: .startSetup) })
+            Section {
+                ListRow(label: .default(title: hasPasskey ? L10n.screenTwoStepVerificationPasskeyStatusOn : L10n.screenTwoStepVerificationPasskeyStatusOff,
+                                        icon: \.key),
+                        kind: .label)
+                ListRow(label: .default(title: hasPin ? L10n.screenTwoStepVerificationStatusOn : L10n.screenTwoStepVerificationStatusOff,
+                                        icon: \.lock),
+                        kind: .label)
+            } header: {
+                Text(L10n.screenTwoStepVerificationOverviewHeader)
+            } footer: {
+                Text(overviewFooter(hasPin: hasPin, hasPasskey: hasPasskey))
+            }
+
+            Section {
+                if hasPin {
+                    ListRow(label: .centeredAction(title: L10n.screenTwoStepVerificationChangeButton,
+                                                   icon: \.edit),
+                            kind: .button { context.send(viewAction: .startChange) })
+                } else {
+                    ListRow(label: .centeredAction(title: L10n.screenTwoStepVerificationSetButton,
+                                                   icon: \.lock),
+                            kind: .button { context.send(viewAction: .startSetup) })
+                }
+            } footer: {
+                if let errorMessage = context.viewState.errorMessage {
+                    // A change that ended here was refused (the PIN-change cooldown, a locked PIN),
+                    // and the refusal is the one thing the person needs to read. Without this the
+                    // flow just closed with no reason given.
+                    Text(errorMessage)
+                        .foregroundStyle(.compound.textCriticalPrimary)
+                } else {
+                    // The PIN stays on offer to a passkey holder, and it is worth saying why: a
+                    // credential that stops working on the device in hand is only a locked account
+                    // if there is nothing underneath it.
+                    Text(hasPasskey && !hasPin ? L10n.screenTwoStepVerificationPinBackupFooter : "")
+                }
+            }
+
+            if !hasPasskey {
+                Section {
+                    ListRow(label: .default(title: L10n.screenTwoStepVerificationPasskeyButton,
+                                            icon: \.key),
+                            kind: .button { context.send(viewAction: .setUpPasskey) })
+                } footer: {
+                    Text(L10n.screenTwoStepVerificationPasskeyFooter)
+                }
             }
         }
+    }
 
+    private func overviewFooter(hasPin: Bool, hasPasskey: Bool) -> String {
+        if hasPin {
+            return L10n.screenTwoStepVerificationOverviewFooterOn
+        }
+        if hasPasskey {
+            return L10n.screenTwoStepVerificationOverviewFooterPasskey
+        }
+        return L10n.screenTwoStepVerificationOverviewFooterOff
+    }
+
+    /// Shown when the factor report could not be read. It offers a retry and nothing else: this
+    /// screen has no way to know what the account holds, so it invites no setup.
+    private var statusUnavailableSection: some View {
         Section {
-            ListRow(label: .default(title: L10n.screenTwoStepVerificationPasskeyButton,
-                                    icon: \.key),
-                    kind: .button { context.send(viewAction: .setUpPasskey) })
-        } footer: {
-            Text(L10n.screenTwoStepVerificationPasskeyFooter)
+            ListRow(label: .default(title: L10n.screenTwoStepVerificationStatusUnavailable,
+                                    icon: \.errorSolid),
+                    kind: .label)
+            ListRow(label: .centeredAction(title: L10n.actionRetry, icon: \.restart),
+                    kind: .button { context.send(viewAction: .retryStatus) })
+        } header: {
+            Text(L10n.screenTwoStepVerificationOverviewHeader)
         }
     }
 
@@ -214,8 +264,15 @@ struct TwoStepVerificationScreen: View {
 struct TwoStepVerificationScreen_Previews: PreviewProvider, TestablePreview {
     static let viewModel: TwoStepVerificationScreenViewModel = {
         let clientProxy = ClientProxyMock(.init())
+        clientProxy.accessToken = "preview-token"
         let userIndicatorController = UserIndicatorControllerMock()
-        let identityServiceClient = IdentityServiceClient(baseURL: URL(string: "https://example.com")!)
+        // A fixed factor report, so the preview renders the overview rather than the "we could not
+        // read your settings" state a session-less preview would otherwise land in.
+        let identityServiceClient = IdentityServiceClientMock(status: .init(hasPin: false,
+                                                                            passkeyRegistered: true,
+                                                                            preferredFactor: .passkey,
+                                                                            phoneChangeStepUpFactors: [.passkey, .pin],
+                                                                            pinStepUpHoldRemainingSeconds: 0))
         return TwoStepVerificationScreenViewModel(clientProxy: clientProxy,
                                                   identityServiceClient: identityServiceClient,
                                                   userIndicatorController: userIndicatorController)
@@ -225,6 +282,6 @@ struct TwoStepVerificationScreen_Previews: PreviewProvider, TestablePreview {
         NavigationStack {
             TwoStepVerificationScreen(context: viewModel.context)
         }
-        .snapshotPreferences(expect: viewModel.context.observe(\.viewState.phase).map { $0 == .overviewNoPin }.eraseToStream())
+        .snapshotPreferences(expect: viewModel.context.observe(\.viewState.phase).map { $0 == .overview }.eraseToStream())
     }
 }

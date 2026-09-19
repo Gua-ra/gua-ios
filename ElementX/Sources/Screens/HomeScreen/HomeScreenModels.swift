@@ -41,6 +41,7 @@ enum HomeScreenViewAction: Equatable {
     case skipRecoveryKeyConfirmation
     case setUpPinReminder
     case dismissPinReminder
+    case cancelAccountRecovery
     case updateVisibleItemRange(Range<Int>)
     case globalSearch
     case markRoomAsUnread(roomIdentifier: String)
@@ -105,6 +106,12 @@ struct HomeScreenViewState: BindableState {
     /// Set to true when the identity service reports the user has not yet
     /// configured their two-step verification PIN AND the reminder is not snoozed.
     var pinSetupReminderVisible = false
+
+    /// GUA FORK: a delayed account recovery that is live on this account, shown until it is
+    /// cancelled, finished or runs out. Deliberately separate from the PIN reminder: that one is a
+    /// nudge the user may snooze, and this one is the owner's only warning that someone may be about
+    /// to take the account over, so nothing hides it but the server.
+    var accountRecoveryBanner: PendingAccountRecovery?
 
     var rooms: [HomeScreenRoom] = []
     var roomListMode: HomeScreenRoomListMode = .skeletons

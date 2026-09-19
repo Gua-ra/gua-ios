@@ -15,7 +15,7 @@ Actions UI. No local Xcode, no Match repo, no manual certificate juggling.
    (usually another 5-15 min).
 
 Each run uses `github.run_number` as the build number, so every upload is unique
-and monotonically increasing — TestFlight never rejects a duplicate.
+and monotonically increasing: TestFlight never rejects a duplicate.
 
 ## Signing approach: cloud-managed automatic signing
 
@@ -32,7 +32,7 @@ Xcode then fetches or creates, on the fly:
   group and keychain-access-group entitlements).
 
 That is why there is **no** `.p12`, `.mobileprovision`, keychain import, or
-Fastlane Match in this pipeline — the single API key replaces all of it. The same
+Fastlane Match in this pipeline: the single API key replaces all of it. The same
 key is reused by `xcrun altool` for the TestFlight upload.
 
 ## Required GitHub secrets
@@ -48,7 +48,7 @@ feedback bot.
 | `ASC_PRIVATE_KEY` | The full contents of the `AuthKey_<KEY_ID>.p8` file | Downloaded once when the key was created. Paste the whole PEM block, `-----BEGIN PRIVATE KEY-----` through `-----END PRIVATE KEY-----`, including newlines. |
 | `ASC_APP_ID_DEV` | The **dev** app record's numeric Apple ID (only needed for `environment=dev`) | Same place, on the `Gua Dev` app record. |
 | `ASC_APP_ID` | The app's **numeric Apple ID** | App Store Connect -> Apps -> (the Gua app) -> App Information -> "Apple ID". The upload pins this so the build can't be routed to the wrong app record on a multi-app account. |
-| `GUA_DEV_RESOLVER_BASE_URL` | **HTTPS** base URL of the dev **resolver** (phone → homeserver routing) | The dev cluster's resolver ingress, e.g. `https://resolver.dev.gua.<dev-zone>` |
+| `GUA_DEV_RESOLVER_BASE_URL` | **HTTPS** base URL of the dev **resolver** (resolver routing) | The dev cluster's resolver ingress, e.g. `https://resolver.dev.gua.<dev-zone>` |
 | `GUA_DEV_IDENTITY_SERVICE_BASE_URL` | **HTTPS** base URL of the dev **identity-service** (phone/OTP IdP) | The dev cluster's identity ingress, e.g. `https://identity.dev.gua.<dev-zone>` |
 | `GUA_DEV_ACCOUNT_PROVIDER` | The dev **homeserver server-name** offered at login (host, no scheme) | The `serverName` the resolver returns, e.g. `dev.gua.<dev-zone>` |
 
@@ -81,7 +81,7 @@ record for the dev app (see the identifier caveats below, which apply equally).
 
 The `GUA_DEV_*` secrets point the **TestFlight build** at the network-reachable
 **dev backend** instead of the committed `localhost` placeholders in
-`Secrets/Secrets.swift`. `localhost` only resolves on the simulator — on a real
+`Secrets/Secrets.swift`. `localhost` only resolves on the simulator. On a real
 device it's the phone itself, so a build without these is dead at phone entry. The
 resolver and identity-service URLs **must be `https://`** (App Transport Security
 blocks cleartext on device). The "Inject dev backend endpoints" step writes them
@@ -132,7 +132,7 @@ Key build facts the workflow relies on:
   from `project.yml` + `app.yml` + the per-target `target.yml` files, so the
   workflow regenerates it rather than trusting the committed copy.
 - **Scheme:** `Gua`. **Configuration:** `Release` (which compiles with the
-  `GUA_DEVELOPMENT` flag — TestFlight currently points at the dev backend; see the
+  `GUA_DEVELOPMENT` flag: TestFlight currently points at the dev backend; see the
   note in `ElementX/SupportingFiles/target.yml`).
 - **Secrets file:** the committed placeholder `Secrets/Secrets.swift` compiles
   fine for an archive. The workflow deliberately does **not** run the
@@ -143,12 +143,12 @@ Key build facts the workflow relies on:
 
 - **macOS minutes:** iOS archiving requires a macOS runner (`macos-15`). GitHub
   bills macOS minutes at 10x the Linux rate, and private repos have a monthly free
-  allowance — a full archive run can use a meaningful chunk of it. Budget
+  allowance: a full archive run can use a meaningful chunk of it. Budget
   accordingly or use a self-hosted Mac runner. **If you use a self-hosted runner,**
   note that `$HOME`/`$RUNNER_TEMP` can persist across jobs, so the App Store Connect
   `.p8` key must not be left on disk. The workflow writes the key under
   `$RUNNER_TEMP/private_keys` and an always-run "Clean up API key" step shreds it at
-  the end of every run (including on failure) — keep that step intact.
+  the end of every run (including on failure). Keep that step intact.
 - **Xcode version:** the project requires Xcode 16+. The workflow selects
   `Xcode_16.4` if present, else the newest `Xcode_16*`. If no `Xcode_16*` is found
   it **fails fast** (rather than silently picking an incompatible toolchain), and it
@@ -185,5 +185,5 @@ secrets:
 4. Flip `CODE_SIGN_STYLE` to `Manual` (and set `CODE_SIGN_IDENTITY` /
    `PROVISIONING_PROFILE_SPECIFIER`) for the three targets.
 
-This is intentionally not wired up — keep the single-API-key path unless you have
+This is intentionally not wired up. Keep the single-API-key path unless you have
 to.

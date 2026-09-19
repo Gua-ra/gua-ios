@@ -141,6 +141,14 @@ struct PhoneEntryScreen: View {
             .buttonStyle(.compound(.primary))
             .disabled(!context.viewState.canContinue)
 
+            Button {
+                context.send(viewAction: .signInWithPasskeyTapped)
+            } label: {
+                Label(UntranslatedL10n.guaSignInWithPasskey, icon: \.lock)
+            }
+            .buttonStyle(.compound(.tertiary))
+            .disabled(context.viewState.isSubmitting)
+
             if context.viewState.isLegacyAuthEnabled {
                 Button {
                     context.send(viewAction: .useLegacyAuthTapped)

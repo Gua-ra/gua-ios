@@ -25,16 +25,23 @@ struct HomeScreenContent: View {
             ScrollView {
                 switch context.viewState.roomListMode {
                 case .skeletons:
-                    LazyVStack(spacing: 0) {
-                        ForEach(context.viewState.visibleRooms) { room in
-                            HomeScreenRoomCell(room: room, isSelected: false, mediaProvider: context.mediaProvider, action: context.send)
-                                .redacted(reason: .placeholder)
-                                .shimmer() // Putting this directly on the LazyVStack creates an accordion animation on iOS 16.
+                    VStack(spacing: 0) {
+                        // GUA FORK: a live account recovery is not held back until the rooms have loaded.
+                        if let recovery = context.viewState.accountRecoveryBanner {
+                            HomeScreenAccountRecoveryBanner(recovery: recovery, context: context)
                         }
-                    }
-                    .disabled(true)
-                    .accessibilityRepresentation {
-                        Text(L10n.commonLoading)
+                        
+                        LazyVStack(spacing: 0) {
+                            ForEach(context.viewState.visibleRooms) { room in
+                                HomeScreenRoomCell(room: room, isSelected: false, mediaProvider: context.mediaProvider, action: context.send)
+                                    .redacted(reason: .placeholder)
+                                    .shimmer() // Putting this directly on the LazyVStack creates an accordion animation on iOS 16.
+                            }
+                        }
+                        .disabled(true)
+                        .accessibilityRepresentation {
+                            Text(L10n.commonLoading)
+                        }
                     }
                 case .empty:
                     HomeScreenEmptyStateLayout(minHeight: geometry.size.height) {
@@ -122,10 +129,15 @@ struct HomeScreenContent: View {
     @ViewBuilder
     private var topSection: some View {
         // An empty VStack causes glitches within the room list
-        if context.viewState.shouldShowFilters || context.viewState.securityBannerMode.isShown || context.viewState.pinSetupReminderVisible {
+        if context.viewState.shouldShowFilters || context.viewState.securityBannerMode.isShown || context.viewState.pinSetupReminderVisible || context.viewState.accountRecoveryBanner != nil {
             VStack(spacing: 0) {
                 if context.viewState.shouldShowFilters {
                     RoomListFiltersView(state: $context.filtersState)
+                }
+
+                // GUA FORK: a live account recovery comes first. It cannot be dismissed.
+                if let recovery = context.viewState.accountRecoveryBanner {
+                    HomeScreenAccountRecoveryBanner(recovery: recovery, context: context)
                 }
 
                 if case let .show(state) = context.viewState.securityBannerMode {

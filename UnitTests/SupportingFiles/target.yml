@@ -48,6 +48,7 @@ targets:
 
     sources:
     - path: ../Sources
+    - path: ../Resources
     - path: ../SupportingFiles
     - path: ../../DevelopmentAssets
     - path: ../../ElementX/Sources/Other/Extensions/Publisher.swift

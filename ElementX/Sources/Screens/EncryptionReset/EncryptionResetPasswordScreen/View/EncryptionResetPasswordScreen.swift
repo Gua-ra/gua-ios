@@ -86,10 +86,24 @@ struct EncryptionResetPasswordScreen: View {
             
             switch context.viewState.reauthPhase {
             case .idle, .error:
+                // The number is asked for first and is part of the proof: the server compares it
+                // with the account's own binding and sends nothing when it does not match.
+                Text(L10n.screenAccountReauthPhoneLabel)
+                    .foregroundColor(.compound.textPrimary)
+                    .font(.compound.bodySMSemibold)
+                TextField(L10n.screenPhoneLoginPhonePlaceholder, text: $context.phoneNumber)
+                    .keyboardType(.phonePad)
+                    .textContentType(.telephoneNumber)
+                    .tint(.compound.iconAccentTertiary)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.compound.bgSubtleSecondaryLevel0)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
                 Button(L10n.screenAccountReauthSendCode) {
                     context.send(viewAction: .sendReauthCode)
                 }
                 .buttonStyle(.compound(.primary))
+                .disabled(context.phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 if case let .error(message) = context.viewState.reauthPhase {
                     Text(message)
                         .foregroundStyle(.compound.textCriticalPrimary)

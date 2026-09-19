@@ -18,6 +18,22 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
     private let appSettings: AppSettings
     private let notificationManager: NotificationManagerProtocol
     private let userIndicatorController: UserIndicatorControllerProtocol
+    private let identityServiceClient: IdentityServiceClientProtocol?
+    
+    /// GUA FORK: re-reads the account's security report while the app stays in the foreground, so a
+    /// recovery started while this device sits open still reaches its owner.
+    private var accountRecoveryRefreshTask: Task<Void, Never>?
+    private static let accountRecoveryRefreshInterval: Duration = .seconds(15 * 60)
+    /// Reads a moment after the recovery's own times, so the server has passed them too.
+    private static let accountRecoveryMomentSlack: Duration = .seconds(1)
+    /// GUA FORK: the one early re-read that follows a failed read while the app is in the foreground.
+    private var securityStatusRetryTask: Task<Void, Never>?
+    private let securityStatusRetryDelay: Duration
+    /// GUA FORK: reads of the security report overlap (session start, foreground, timer, cancel), and
+    /// a slow one can come back after a newer one or after a cancel. Each read is numbered when it
+    /// starts, and its result is dropped once a later read or a cancel has already set the banner.
+    private var securityStatusReadsStarted = 0
+    private var securityStatusReadsSuperseded = 0
     
     private let roomSummaryProvider: RoomSummaryProviderProtocol?
     
@@ -31,12 +47,17 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
          appSettings: AppSettings,
          analyticsService: AnalyticsService,
          notificationManager: NotificationManagerProtocol,
-         userIndicatorController: UserIndicatorControllerProtocol) {
+         userIndicatorController: UserIndicatorControllerProtocol,
+         identityServiceClient: IdentityServiceClientProtocol? = nil,
+         notificationCenter: NotificationCenter = .default,
+         securityStatusRetryDelay: Duration = .seconds(30)) {
         self.userSession = userSession
         self.analyticsService = analyticsService
         self.appSettings = appSettings
         self.notificationManager = notificationManager
         self.userIndicatorController = userIndicatorController
+        self.identityServiceClient = identityServiceClient ?? IdentityServiceClient()
+        self.securityStatusRetryDelay = securityStatusRetryDelay
         
         roomSummaryProvider = userSession.clientProxy.roomSummaryProvider
         
@@ -157,7 +178,7 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
 
         updateRooms()
 
-        Task { await refreshPinSetupReminder() }
+        setupSecurityStatusRefresh(notificationCenter: notificationCenter)
     }
 
     // MARK: - Public
@@ -201,6 +222,14 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             state.pinSetupReminderVisible = false
             // Snooze for a week so we don't badger the user.
             appSettings.pinSetupReminderSnoozedUntil = Date().addingTimeInterval(7 * 24 * 60 * 60)
+        case .cancelAccountRecovery:
+            state.bindings.alertInfo = AlertInfo(id: UUID(),
+                                                 title: L10n.screenAccountRecoveryCancelConfirmTitle,
+                                                 message: L10n.screenAccountRecoveryCancelConfirmMessage,
+                                                 primaryButton: .init(title: L10n.actionGoBack, role: .cancel, action: nil),
+                                                 secondaryButton: .init(title: L10n.screenAccountRecoveryBannerAction, role: .destructive) { [weak self] in
+                                                     Task { await self?.cancelAccountRecovery() }
+                                                 })
         case .updateVisibleItemRange(let range):
             roomSummaryProvider?.updateVisibleRange(range)
         case .startChat:
@@ -560,21 +589,175 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
                                          message: message ?? L10n.errorUnknown)
     }
 
-    /// GUA FORK: One-shot check at session start. If the identity service reports no PIN
-    /// configured and the reminder isn't snoozed, surface the home-screen banner.
-    private func refreshPinSetupReminder() async {
-        guard let identityServiceClient = IdentityServiceClient(),
-              let accessToken = userSession.clientProxy.accessToken else {
+    /// GUA FORK: reads the account's security report and applies it to the banners built from it.
+    ///
+    /// The PIN reminder is a one-shot at session start. It asks for two-step verification, so it is
+    /// shown when the account holds neither factor that counts as one, not when it merely has no
+    /// PIN: somebody who signs in with a passkey has already done what the banner is asking for.
+    ///
+    /// The account recovery banner is refreshed on every read and ignores the reminder's snooze,
+    /// because it is a warning rather than a nudge.
+    ///
+    /// A report that cannot be read changes nothing. Nudging an account that may already be
+    /// protected is the wrong way to be wrong, and so is hiding a recovery because of a bad network.
+    /// It is read once more shortly after, rather than at the next tick of the timer.
+    private func refreshSecurityStatus(updatingPinReminder: Bool) async {
+        guard let identityServiceClient else { return }
+        guard let accessToken = userSession.clientProxy.accessToken else {
+            scheduleSecurityStatusRetry()
             return
         }
+        securityStatusReadsStarted += 1
+        let read = securityStatusReadsStarted
+        let status: AccountSecurityStatus
+        do {
+            status = try await identityServiceClient.securityStatus(accessToken: accessToken)
+        } catch {
+            MXLog.warning("Could not fetch the account's security status for the home screen: \(error)")
+            // A read cut short by its own timer or retry being cancelled did not fail.
+            if !Task.isCancelled {
+                scheduleSecurityStatusRetry()
+            }
+            return
+        }
+        cancelSecurityStatusRetry()
+
+        if read > securityStatusReadsSuperseded {
+            securityStatusReadsSuperseded = read
+            let previousBanner = state.accountRecoveryBanner
+            state.accountRecoveryBanner = status.pendingAccountRecovery
+            // The timer's wait was worked out from the banner it saw; a different one may need a sooner read.
+            if state.accountRecoveryBanner != previousBanner, accountRecoveryRefreshTask != nil {
+                startAccountRecoveryRefreshTimer()
+            }
+        }
+
+        guard updatingPinReminder else { return }
         if let snoozedUntil = appSettings.pinSetupReminderSnoozedUntil, snoozedUntil > Date() {
             return
         }
-        do {
-            let pinStatus = try await identityServiceClient.pinStatus(accessToken: accessToken)
-            state.pinSetupReminderVisible = !pinStatus.hasPin
-        } catch {
-            MXLog.warning("Could not fetch PIN status for home screen reminder: \(error)")
+        state.pinSetupReminderVisible = !status.holdsStrongFactor
+    }
+
+    /// GUA FORK: the security report is read at session start, again whenever the app comes back to
+    /// the foreground, and on a timer while it stays there.
+    private func setupSecurityStatusRefresh(notificationCenter: NotificationCenter) {
+        notificationCenter.publisher(for: UIApplication.didBecomeActiveNotification)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                Task { await self.refreshSecurityStatus(updatingPinReminder: false) }
+                startAccountRecoveryRefreshTimer()
+            }
+            .store(in: &cancellables)
+
+        notificationCenter.publisher(for: UIApplication.willResignActiveNotification)
+            .sink { [weak self] _ in
+                self?.accountRecoveryRefreshTask?.cancel()
+                self?.accountRecoveryRefreshTask = nil
+                self?.cancelSecurityStatusRetry()
+            }
+            .store(in: &cancellables)
+
+        Task { await refreshSecurityStatus(updatingPinReminder: true) }
+        startAccountRecoveryRefreshTimer()
+    }
+
+    /// Restarting the timer replaces the wait in progress with one worked out from the banner shown now.
+    private func startAccountRecoveryRefreshTimer() {
+        accountRecoveryRefreshTask?.cancel()
+        accountRecoveryRefreshTask = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let delay = self?.nextAccountRecoveryReadDelay() else { return }
+                try? await Task.sleep(for: delay)
+                guard !Task.isCancelled, let self else { return }
+                await refreshSecurityStatus(updatingPinReminder: false)
+            }
         }
+    }
+
+    private func nextAccountRecoveryReadDelay() -> Duration {
+        Self.accountRecoveryReadDelay(for: state.accountRecoveryBanner, now: .now)
+    }
+
+    /// GUA FORK: how long the timer waits before the next read: the regular interval, or less when the
+    /// recovery on the banner becomes finishable or runs out before then, so the banner switches to
+    /// "can be finished now" and comes down on time. Moments already past are ignored, so a server that
+    /// still reports the recovery after its expiry on this device's clock falls back to the interval.
+    /// Matches the Android client.
+    static func accountRecoveryReadDelay(for recovery: PendingAccountRecovery?, now: Date) -> Duration {
+        let nextMoment = [recovery?.completableAt, recovery?.expiresAt]
+            .compactMap { $0 }
+            .filter { $0 > now }
+            .min()
+        guard let nextMoment else { return accountRecoveryRefreshInterval }
+        return min(accountRecoveryRefreshInterval, .seconds(nextMoment.timeIntervalSince(now)) + accountRecoveryMomentSlack)
+    }
+
+    /// GUA FORK: a failed read, such as a 401 for an access token that expired while the app was in
+    /// the background and is refreshed on return, is followed by one early re-read. Failures while one
+    /// is waiting or running do not add another, so retries neither stack nor chain: when the re-read
+    /// fails too, the timer takes over again.
+    private func scheduleSecurityStatusRetry() {
+        // Only while in the foreground, where the timer runs: coming back reads the report anyway.
+        guard securityStatusRetryTask == nil, accountRecoveryRefreshTask != nil else { return }
+        securityStatusRetryTask = Task { [weak self, securityStatusRetryDelay] in
+            try? await Task.sleep(for: securityStatusRetryDelay)
+            guard !Task.isCancelled, let self else { return }
+            await refreshSecurityStatus(updatingPinReminder: false)
+            if !Task.isCancelled {
+                securityStatusRetryTask = nil
+            }
+        }
+    }
+
+    private func cancelSecurityStatusRetry() {
+        securityStatusRetryTask?.cancel()
+        securityStatusRetryTask = nil
+    }
+
+    private static let cancelAccountRecoveryLoadingID = "CancelAccountRecoveryLoading"
+
+    /// GUA FORK: the owner cancels a recovery from a signed-in device.
+    ///
+    /// The server answers 204 whether or not anything was pending, so after a success the banner is
+    /// cleared and the report read again. Reads that started before the cancel are ignored when they
+    /// come back, since they describe the account as it was. If the fresh read still shows a live
+    /// recovery, the banner comes straight back and the owner is told the cancel did not take,
+    /// rather than shown a toast that claims otherwise. A fresh read that fails leaves the banner
+    /// cleared, trusting the server's answer to the cancel.
+    private func cancelAccountRecovery() async {
+        guard let identityServiceClient,
+              let accessToken = userSession.clientProxy.accessToken else {
+            displayError(message: L10n.screenAccountRecoveryCancelFailed)
+            return
+        }
+
+        userIndicatorController.submitIndicator(UserIndicator(id: Self.cancelAccountRecoveryLoadingID,
+                                                              type: .modal,
+                                                              title: L10n.commonLoading,
+                                                              persistent: true))
+        do {
+            try await identityServiceClient.cancelAccountRecovery(accessToken: accessToken)
+        } catch {
+            MXLog.error("Could not cancel the account recovery: \(error)")
+            userIndicatorController.retractIndicatorWithId(Self.cancelAccountRecoveryLoadingID)
+            displayError(message: L10n.screenAccountRecoveryCancelFailed)
+            return
+        }
+
+        securityStatusReadsSuperseded = securityStatusReadsStarted
+        state.accountRecoveryBanner = nil
+        await refreshSecurityStatus(updatingPinReminder: false)
+        userIndicatorController.retractIndicatorWithId(Self.cancelAccountRecoveryLoadingID)
+
+        guard state.accountRecoveryBanner == nil else {
+            MXLog.warning("The account recovery is still live after a successful cancel")
+            displayError(message: L10n.screenAccountRecoveryCancelFailed)
+            return
+        }
+        userIndicatorController.submitIndicator(UserIndicator(id: UUID().uuidString,
+                                                              type: .toast,
+                                                              title: L10n.screenAccountRecoveryCancelled,
+                                                              iconName: "checkmark"))
     }
 }

@@ -42,6 +42,9 @@ class PhoneEntryScreenViewModel: PhoneEntryScreenViewModelType, PhoneEntryScreen
             guard state.canContinue else { return }
             state.isSubmitting = true
             actionsSubject.send(.continue(phoneNumber: state.e164PhoneNumber))
+        case .signInWithPasskeyTapped:
+            state.isSubmitting = true
+            actionsSubject.send(.signInWithPasskey)
         case .useLegacyAuthTapped:
             actionsSubject.send(.useLegacyAuth)
         case .countrySelected(let country):

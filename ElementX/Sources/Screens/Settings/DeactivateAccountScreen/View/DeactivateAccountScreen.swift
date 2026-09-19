@@ -87,11 +87,18 @@ struct DeactivateAccountScreen: View {
         Section {
             switch context.viewState.reauthPhase {
             case .idle, .error:
+                // The number comes first and is part of the proof: the server compares it with the
+                // account's own binding and sends nothing when it does not match.
+                ListRow(label: .plain(title: L10n.screenAccountReauthPhoneLabel),
+                        kind: .textField(text: $context.phoneNumber))
+                    .keyboardType(.phonePad)
+                    .textContentType(.telephoneNumber)
                 ListRow(label: .action(title: L10n.screenAccountReauthSendCode,
                                        icon: \.lockSolid),
                         kind: .button {
                             context.send(viewAction: .sendReauthCode)
                         })
+                        .disabled(!canSendReauthCode)
                 if case let .error(message) = context.viewState.reauthPhase {
                     ListRow(kind: .custom {
                         Text(message)
@@ -134,6 +141,10 @@ struct DeactivateAccountScreen: View {
             Text(L10n.screenAccountReauthSectionFooter)
                 .compoundListSectionFooter()
         }
+    }
+
+    private var canSendReauthCode: Bool {
+        !context.phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 }
 
