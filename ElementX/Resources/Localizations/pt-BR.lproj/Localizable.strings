@@ -1513,3 +1513,50 @@
 
 /* GUA FORK - App lock */
 "screen_app_lock_unlock_with_biometrics_ios" = "Desbloquear com %1$@";
+
+/* GUA FORK - Dispositivos confiáveis (ADM-009) */
+"screen_account_authority_title" = "Dispositivos confiáveis";
+"screen_account_authority_state_bootstrap_title" = "Nenhum dispositivo confiável ainda";
+"screen_account_authority_state_bootstrap_message" = "Configure este celular como um dispositivo confiável. Depois disso, mudanças na sua conta só podem ser aprovadas por um dispositivo em que você confia.";
+"screen_account_authority_setup_button" = "Configurar este celular";
+"screen_account_authority_state_pending_title" = "Aguardando";
+"screen_account_authority_state_pending_message" = "Isso termina em %1$@. Até lá, qualquer pessoa conectada à sua conta pode cancelar.";
+"screen_account_authority_state_rooted_header" = "Seus dispositivos confiáveis";
+"screen_account_authority_state_lost_title" = "Nenhum dispositivo confiável restante";
+"screen_account_authority_state_lost_message" = "Todos os dispositivos confiáveis e a chave de recuperação foram perdidos. Sua conta, suas conversas e seu número não são afetados e você pode continuar usando o Gua, mas não dá para configurar dispositivos confiáveis de novo.";
+"screen_account_authority_device_this" = "Este celular";
+"screen_account_authority_device_unnamed" = "Outro dispositivo";
+"screen_account_authority_device_active" = "Confiável";
+"screen_account_authority_device_quarantined" = "Limitado até %1$@";
+"screen_account_authority_device_quarantined_unknown" = "Limitado por enquanto";
+"screen_account_authority_device_quarantined_footer" = "Um dispositivo recém-adicionado espera um tempo antes de poder aprovar qualquer coisa.";
+"screen_account_authority_device_revoked" = "Removido";
+"screen_account_authority_device_unknown_state" = "Este app não consegue ler o status deste dispositivo";
+"screen_account_authority_unavailable" = "Não foi possível ler seus dispositivos confiáveis.";
+"screen_account_authority_step_up_pin_header" = "Digite seu PIN";
+"screen_account_authority_step_up_pin_footer" = "Seu PIN confirma que é você antes que este celular vire um dispositivo confiável.";
+"screen_account_authority_artifact_title" = "Guarde sua chave de recuperação";
+"screen_account_authority_artifact_message" = "Esta é a única vez que esta chave aparece. Anote e guarde em um lugar seguro e privado.\n\nSe você perder todos os dispositivos confiáveis, esta chave é a única forma de configurar um novo. Quem tiver esta chave e um jeito de entrar na sua conta pode assumir a conta depois de uma espera.";
+"screen_account_authority_artifact_copied" = "Copiado";
+"screen_account_authority_artifact_confirm" = "Guardei esta chave";
+"screen_account_authority_error_step_up" = "Você precisa ter a verificação em duas etapas configurada para fazer isso.";
+"screen_account_authority_error_too_recent" = "Por segurança, você ainda não pode fazer isso. Tente novamente mais tarde.";
+"screen_account_authority_error_too_recent_in" = "Por segurança, você pode fazer isso em %1$@.";
+"screen_account_authority_error_not_permitted" = "Dispositivos confiáveis ainda não estão disponíveis nesta conta.";
+"screen_account_authority_error_position" = "Esta conta já tem um dispositivo confiável.";
+"screen_account_authority_error_pending" = "Já existe algo aguardando nesta conta. Espere terminar ou cancele antes.";
+"screen_account_authority_error_conflict" = "Algo mudou enquanto você configurava. Tente novamente.";
+"screen_account_authority_error_expired" = "Isso demorou demais e expirou. Comece de novo.";
+"screen_account_authority_error_no_account" = "Esta conta não pode usar dispositivos confiáveis.";
+"screen_authority_approval_title" = "Aprovar uma solicitação";
+"screen_authority_approval_empty" = "Nada está aguardando sua aprovação.";
+"screen_authority_approval_code_header" = "Confira se isto é igual ao código na outra tela";
+"screen_authority_approval_action_header" = "O que você está aprovando";
+"screen_authority_approval_sign_button" = "Aprovar";
+"screen_authority_approval_signed" = "Aprovado";
+"screen_authority_approval_refused" = "A aprovação não foi concluída. Peça de novo na outra tela.";
+"screen_authority_approval_multiple" = "Mais de uma solicitação está aguardando, então nenhuma aparece aqui. Feche o que iniciou as solicitações e peça de novo.";
+"screen_authority_approval_unknown_action" = "Esta solicitação não diz o que mudaria, então não pode ser aprovada neste celular.";
+"screen_authority_approval_not_an_authority_device" = "Este celular não pode aprovar solicitações da sua conta.";
+"screen_authority_approval_action_add_device" = "Adicionar um novo dispositivo à sua conta";
+"screen_authority_approval_action_remove_device" = "Remover um dispositivo da sua conta";

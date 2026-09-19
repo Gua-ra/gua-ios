@@ -1516,3 +1516,51 @@
 
 /* GUA FORK - App lock */
 "screen_app_lock_unlock_with_biometrics_ios" = "Unlock with %1$@";
+
+/* GUA FORK - Trusted devices (ADM-009 account authority). The words "authority", "chain" and "record"
+   are deliberately absent: what a reader needs is which devices can approve changes to their account. */
+"screen_account_authority_title" = "Trusted devices";
+"screen_account_authority_state_bootstrap_title" = "No trusted device yet";
+"screen_account_authority_state_bootstrap_message" = "Set up this phone as a trusted device. After that, changes to your account can only be approved from a device you trust.";
+"screen_account_authority_setup_button" = "Set up this phone";
+"screen_account_authority_state_pending_title" = "Waiting";
+"screen_account_authority_state_pending_message" = "This finishes on %1$@. Until then, anyone signed in to your account can stop it.";
+"screen_account_authority_state_rooted_header" = "Your trusted devices";
+"screen_account_authority_state_lost_title" = "No trusted device left";
+"screen_account_authority_state_lost_message" = "Every trusted device and the recovery key are gone. Your account, your chats and your number are not affected and you can keep using Gua, but trusted devices can't be set up again.";
+"screen_account_authority_device_this" = "This phone";
+"screen_account_authority_device_unnamed" = "Another device";
+"screen_account_authority_device_active" = "Trusted";
+"screen_account_authority_device_quarantined" = "Limited until %1$@";
+"screen_account_authority_device_quarantined_unknown" = "Limited for now";
+"screen_account_authority_device_quarantined_footer" = "A device that was just added waits a while before it can approve anything.";
+"screen_account_authority_device_revoked" = "Removed";
+"screen_account_authority_device_unknown_state" = "This app can't read this device's status";
+"screen_account_authority_unavailable" = "We couldn't read your trusted devices.";
+"screen_account_authority_step_up_pin_header" = "Enter your PIN";
+"screen_account_authority_step_up_pin_footer" = "Your PIN confirms it's you before this phone becomes a trusted device.";
+"screen_account_authority_artifact_title" = "Save your recovery key";
+"screen_account_authority_artifact_message" = "This is the only time this key is shown. Write it down and keep it somewhere safe and private.\n\nIf you lose every trusted device, this key is the only way to set one up again. Anyone who has both this key and a way into your account can take it over after a wait.";
+"screen_account_authority_artifact_copied" = "Copied";
+"screen_account_authority_artifact_confirm" = "I've saved this key";
+"screen_account_authority_error_step_up" = "You'll need two-step verification set up before you can do this.";
+"screen_account_authority_error_too_recent" = "For your security, you can't do this just yet. Please try again later.";
+"screen_account_authority_error_too_recent_in" = "For your security, you can do this in %1$@.";
+"screen_account_authority_error_not_permitted" = "Trusted devices aren't available on this account yet.";
+"screen_account_authority_error_position" = "This account already has a trusted device.";
+"screen_account_authority_error_pending" = "Something is already waiting on this account. Wait for it to finish, or stop it first.";
+"screen_account_authority_error_conflict" = "Something changed while you were setting this up. Please try again.";
+"screen_account_authority_error_expired" = "This took too long and expired. Please start again.";
+"screen_account_authority_error_no_account" = "This account can't use trusted devices.";
+"screen_authority_approval_title" = "Approve a request";
+"screen_authority_approval_empty" = "Nothing is waiting for your approval.";
+"screen_authority_approval_code_header" = "Check this matches the code on the other screen";
+"screen_authority_approval_action_header" = "What you're approving";
+"screen_authority_approval_sign_button" = "Approve";
+"screen_authority_approval_signed" = "Approved";
+"screen_authority_approval_refused" = "That approval didn't go through. Ask for it again on the other screen.";
+"screen_authority_approval_multiple" = "More than one request is waiting, so none of them are shown. Close whatever started them and ask again.";
+"screen_authority_approval_unknown_action" = "This request doesn't say what it would change, so it can't be approved from this phone.";
+"screen_authority_approval_not_an_authority_device" = "This phone can't approve requests for your account.";
+"screen_authority_approval_action_add_device" = "Add a new device to your account";
+"screen_authority_approval_action_remove_device" = "Remove a device from your account";
