@@ -411,7 +411,15 @@ final class AccountAuthorityService: AccountAuthorityServiceProtocol {
         // Stored before the submission, exactly as the genesis registration does it: an adoption that
         // is accepted while its reply is lost still has its key on this device. A definite refusal drops
         // them again in `submitAdoption`.
-        try? keyStore.persist(keyPair, forAccountID: accountID.value)
+        //
+        // A store that refuses ends the adoption here. Carrying on would submit a record committing a key
+        // this device cannot read back, which is an account rooted on nothing and, by decision 7, rooted
+        // on nothing permanently.
+        do {
+            try keyStore.persist(keyPair, forAccountID: accountID.value)
+        } catch {
+            throw AccountAuthorityServiceError.keyUnavailable
+        }
 
         return PreparedAdoption(accountID: accountID,
                                 record: GuaBase64URL.encode(canonicalBytes),
