@@ -158,6 +158,21 @@ final class AccountAuthorityServiceTests: XCTestCase {
                         "A lost reply may well have been accepted, so its keys stay.")
     }
 
+    func testAKeyStoreThatRefusesEndsTheAdoption() async throws {
+        appSettings.guaAccountAuthorityEnabled = true
+        keyStore.refusesToPersist = true
+
+        do {
+            _ = try await service.prepareAdoption(accessToken: "token", accountID: accountID, stepUp: .pin("123456"))
+            XCTFail("An adoption whose key could not be stored must not go on to be submitted.")
+        } catch {
+            // Carrying on would commit a key this device cannot read back, which is an account rooted on
+            // nothing, permanently.
+            XCTAssertEqual(error as? AccountAuthorityServiceError, .keyUnavailable)
+        }
+        XCTAssertEqual(client.adoptions.count, 0)
+    }
+
     // MARK: - Granting another device
 
     func testAGrantChainsOntoTheHeadAndNamesThisDeviceAsTheAuthorizingKey() async throws {
@@ -367,6 +382,7 @@ private final class AuthorityRequesterStub: AccountAuthorityRequesting, @uncheck
 @MainActor
 private final class AuthorityKeyStoreStub: AccountAuthorityKeyStoreProtocol {
     var stored: [String: AccountAuthorityKeyPair] = [:]
+    var refusesToPersist = false
 
     func generateKeyPair() -> AccountAuthorityKeyPair {
         AccountAuthorityKeyPair(authority: Curve25519.Signing.PrivateKey(),
@@ -374,6 +390,7 @@ private final class AuthorityKeyStoreStub: AccountAuthorityKeyStoreProtocol {
     }
 
     func persist(_ keyPair: AccountAuthorityKeyPair, forAccountID accountID: String) throws {
+        if refusesToPersist { throw AccountAuthorityKeyStoreError.keychain("refused") }
         stored[accountID] = keyPair
     }
 
