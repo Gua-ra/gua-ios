@@ -164,6 +164,22 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
         XCTAssertTrue(authorityService.preparedStepUps.isEmpty)
     }
 
+    func testTwoTapsStartOneAdoption() async throws {
+        makeViewModel(chain: bootstrapChain(), status: Self.status(hasPin: true, passkeyRegistered: false))
+        try await waitForPhase(.overview)
+
+        context.send(viewAction: .startAdoption)
+        context.send(viewAction: .startAdoption)
+        try await waitForPhase(.enteringPin)
+        context.pin = "123456"
+        context.send(viewAction: .pinChanged)
+        try await waitForPhase(.artifact)
+
+        // A second pair would overwrite the first in the keychain, leaving the signed record committing a
+        // key this device no longer holds.
+        XCTAssertEqual(authorityService.preparedStepUps.count, 1)
+    }
+
     // MARK: - The recovery artifact
 
     func testAdoptionIsUnreachableUntilTheArtifactIsConfirmed() async throws {
