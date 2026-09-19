@@ -14,9 +14,14 @@ import Foundation
 @MainActor
 final class IdentityServiceClientMock: IdentityServiceClientProtocol {
     var status: AccountSecurityStatus
+    /// A ceremony to hand back from ``startPasskeyStepUp(accessToken:)``. `nil`, the default, keeps the
+    /// original behaviour of a deployment that will not mint one, which is what every caller of this mock
+    /// relied on before the field existed.
+    var passkeyStepUpOptions: PasskeyStepUpOptions?
 
-    init(status: AccountSecurityStatus) {
+    init(status: AccountSecurityStatus, passkeyStepUpOptions: PasskeyStepUpOptions? = nil) {
         self.status = status
+        self.passkeyStepUpOptions = passkeyStepUpOptions
     }
 
     func securityStatus(accessToken: String) async throws -> AccountSecurityStatus {
@@ -51,7 +56,8 @@ final class IdentityServiceClientMock: IdentityServiceClientProtocol {
     }
 
     func startPasskeyStepUp(accessToken: String) async throws -> PasskeyStepUpOptions {
-        throw IdentityServiceError.passkeyStepUpUnavailable
+        guard let passkeyStepUpOptions else { throw IdentityServiceError.passkeyStepUpUnavailable }
+        return passkeyStepUpOptions
     }
 
     func startPhoneChange(accessToken: String,

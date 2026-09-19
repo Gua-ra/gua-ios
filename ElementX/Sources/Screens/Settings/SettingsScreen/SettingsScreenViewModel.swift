@@ -27,6 +27,7 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
                                            showAccountDeactivation: userSession.clientProxy.canDeactivateAccount,
                                            showDeveloperOptions: appSettings.developerOptionsEnabled,
                                            hidesAdvancedEncryption: appSettings.guaHidesAdvancedEncryption,
+                                           showAccountAuthority: appSettings.guaAccountAuthorityEnabled,
                                            showAnalyticsSettings: appSettings.canPromptForAnalytics,
                                            isBugReportServiceEnabled: isBugReportServiceEnabled),
                    mediaProvider: userSession.mediaProvider)
@@ -118,6 +119,8 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
             actionsSubject.send(.changePhoneNumber)
         case .findFriends:
             actionsSubject.send(.findFriends)
+        case .accountAuthority:
+            actionsSubject.send(.accountAuthority)
         }
     }
 }
