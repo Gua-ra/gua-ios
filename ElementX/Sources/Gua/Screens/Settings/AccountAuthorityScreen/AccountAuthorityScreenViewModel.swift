@@ -7,6 +7,7 @@
 import Combine
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 
 typealias AccountAuthorityScreenViewModelType = StateStoreViewModelV2<AccountAuthorityScreenViewState, AccountAuthorityScreenViewAction>
 
@@ -232,7 +233,12 @@ class AccountAuthorityScreenViewModel: AccountAuthorityScreenViewModelType, Acco
 
     private func copyRecoveryArtifact() {
         guard let artifact = state.recoveryArtifact else { return }
-        UIPasteboard.general.string = artifact
+        // Local to this device and short lived. The key is generated non-synced and never rides iCloud
+        // Keychain, so handing it to Universal Clipboard would undo that in one tap, and a key material
+        // pasteboard that never expires is one an app opened hours later can still read.
+        UIPasteboard.general.setItems([[UTType.utf8PlainText.identifier: artifact]],
+                                      options: [.localOnly: true,
+                                                .expirationDate: Date().addingTimeInterval(120)])
         userIndicatorController.submitIndicator(UserIndicator(id: copyIndicatorID,
                                                               title: L10n.screenAccountAuthorityArtifactCopied,
                                                               iconName: "checkmark"))
