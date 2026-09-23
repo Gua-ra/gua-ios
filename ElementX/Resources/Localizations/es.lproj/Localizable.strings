@@ -1574,6 +1574,7 @@
 "screen_account_authority_error_unknown_candidate" = "Ese dispositivo ya no está esperando a ser añadido. Pídele que lo intente de nuevo.";
 "screen_account_authority_error_no_channel" = "Activa antes los avisos de seguridad en este teléfono, para que te enteres cuando algo empiece.";
 "screen_account_authority_error_notification_refused" = "No hemos podido cambiar tus avisos de seguridad. Inténtalo de nuevo.";
+"screen_account_authority_error_alerts_device_required" = "Solo el dispositivo al que pertenece este aviso puede desactivarlo desde otro sitio. Desactívalo en ese dispositivo, o quítalo antes de tus dispositivos de confianza.";
 "screen_account_authority_error_passkey_incomplete" = "Tu clave de acceso no se ha confirmado. Inténtalo de nuevo.";
 "screen_authority_approval_title" = "Aprobar una solicitud";
 "screen_authority_approval_empty" = "No hay nada esperando tu aprobación.";

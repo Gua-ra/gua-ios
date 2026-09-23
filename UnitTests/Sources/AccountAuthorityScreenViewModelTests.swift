@@ -489,6 +489,55 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
                      "The person holding this phone is the person the channel serves.")
     }
 
+    func testRemovingARowBoundToAnotherDeviceSaysWhoCanDoIt() async throws {
+        makeViewModel(chain: rootedChain(pending: nil))
+        authorityService.installationID = "this-install"
+        authorityService.alerts = [SecurityNotificationSummary(installationID: "another-install",
+                                                               platform: "APNS",
+                                                               deviceLabel: "Old phone",
+                                                               tokenFingerprint: "fingerprint",
+                                                               isBoundToAnAuthorityDevice: true,
+                                                               lastSeenAt: Date())]
+        // The server verifies the removal under the key the row itself names, not under one the request
+        // chooses, which is what stops a fresh post-recovery session stripping the channel. "Try again"
+        // would be the wrong thing to tell the owner, because trying again cannot work.
+        authorityService.removeAlertsError = IdentityServiceError.authority(.notificationDeviceRequired)
+        try await waitForPhase(.overview)
+
+        let other = try XCTUnwrap(context.viewState.alerts.first)
+        context.send(viewAction: .removeAlerts(other))
+        try await waitForPhase(.enteringPin)
+        context.pin = "123456"
+        context.send(viewAction: .pinChanged)
+        let deferred = deferFulfillment(context.observe(\.viewState.errorMessage)) { $0 != nil }
+        try await deferred.fulfill()
+
+        XCTAssertEqual(context.viewState.errorMessage, L10n.screenAccountAuthorityErrorAlertsDeviceRequired)
+    }
+
+    func testADeploymentWithNoChannelIsNotOfferedOne() async throws {
+        makeViewModel(chain: rootedChain(pending: nil))
+        authorityService.installationID = "this-install"
+        // The channel has its own off-by-default flag on the server, so a deployment can have the chain and
+        // not the channel. Offering to turn on something that is not there would be a promise the next
+        // window breaks.
+        authorityService.securityAlertsError = IdentityServiceError.authority(.notificationsDisabled)
+        try await waitForPhase(.overview)
+
+        XCTAssertFalse(context.viewState.isAlertChannelAvailable)
+        XCTAssertTrue(context.viewState.alerts.isEmpty)
+    }
+
+    func testAChannelThatFailedToAnswerIsNotReadAsAbsent() async throws {
+        makeViewModel(chain: rootedChain(pending: nil))
+        authorityService.installationID = "this-install"
+        // "Went wrong" is a different answer from "not here", and only the second one hides the section.
+        authorityService.securityAlertsError = IdentityServiceError.authority(.noAccount)
+        try await waitForPhase(.overview)
+
+        XCTAssertTrue(context.viewState.isAlertChannelAvailable)
+    }
+
     func testRemovingAnotherInstallsAlertsAsksForAFactorFirst() async throws {
         makeViewModel(chain: rootedChain(pending: nil))
         authorityService.installationID = "this-install"
@@ -577,6 +626,8 @@ final class AuthorityServiceStub: AccountAuthorityServiceProtocol {
     var offerError: Error?
     var opposeError: Error?
     var registerAlertsError: Error?
+    var securityAlertsError: Error?
+    var removeAlertsError: Error?
 
     private(set) var preparedStepUps: [AuthorityStepUp] = []
     private(set) var submissions = 0
@@ -632,7 +683,7 @@ final class AuthorityServiceStub: AccountAuthorityServiceProtocol {
         return AuthoritySubmission(seq: 1, isPending: true, effectiveAt: Date().addingTimeInterval(259_200), recordHash: "hash")
     }
 
-    func offerThisDevice(accessToken: String, accountID: AccountID) async throws -> AuthorityCandidate {
+    func offerThisDevice(accessToken: String, state: AuthorityChainState) async throws -> AuthorityCandidate {
         if let offerError { throw offerError }
         offers += 1
         return AuthorityCandidate(deviceKeyB64: "offered-key",
@@ -689,7 +740,8 @@ final class AuthorityServiceStub: AccountAuthorityServiceProtocol {
     }
 
     func securityAlerts(accessToken: String) async throws -> [SecurityNotificationSummary] {
-        alerts
+        if let securityAlertsError { throw securityAlertsError }
+        return alerts
     }
 
     func removeSecurityAlerts(accessToken: String,
@@ -697,6 +749,7 @@ final class AuthorityServiceStub: AccountAuthorityServiceProtocol {
                               installationID: String,
                               stepUp: AuthorityStepUp?) async throws {
         removedAlerts.append((installationID, stepUp))
+        if let removeAlertsError { throw removeAlertsError }
         alerts.removeAll { $0.installationID == installationID }
     }
 

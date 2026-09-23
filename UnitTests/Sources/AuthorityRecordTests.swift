@@ -414,7 +414,7 @@ final class AuthorityRecordTests: XCTestCase {
         // actually leaves out, whatever its own comment claims, and a client that dropped one more would
         // compute a different fingerprint from the same key.
         XCTAssertEqual(String(AuthorityFingerprint.alphabet), "ABCDEFGHJKLMNPQRSTUVWXYZ2346789")
-        XCTAssertFalse(AuthorityFingerprint.alphabet.contains(where: { "IO015".contains($0) }))
+        XCTAssertFalse(AuthorityFingerprint.alphabet.contains { "IO015".contains($0) })
         XCTAssertEqual(AuthorityFingerprint.alphabet.count, 31)
         XCTAssertEqual(AuthorityFingerprint.grouped(fingerprint).count, AuthorityFingerprint.length + 1)
     }

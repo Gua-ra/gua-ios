@@ -1596,6 +1596,7 @@
 "screen_account_authority_error_unknown_candidate" = "That device isn't waiting to be added any more. Ask it to try again.";
 "screen_account_authority_error_no_channel" = "Turn on security alerts for this phone first, so you're told when something starts.";
 "screen_account_authority_error_notification_refused" = "We couldn't change your security alerts. Please try again.";
+"screen_account_authority_error_alerts_device_required" = "Only the device this alert belongs to can turn it off from somewhere else. Turn it off on that device, or remove that device from your trusted devices first.";
 "screen_account_authority_error_passkey_incomplete" = "Your passkey didn't go through. Please try again.";
 "screen_authority_approval_title" = "Approve a request";
 "screen_authority_approval_empty" = "Nothing is waiting for your approval.";

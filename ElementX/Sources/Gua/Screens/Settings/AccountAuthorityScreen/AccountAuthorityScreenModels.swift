@@ -72,6 +72,10 @@ struct AccountAuthorityScreenViewState: BindableState {
     /// The security-notification registrations of this account, and which one is this install.
     var alerts: [SecurityNotificationSummary] = []
     var thisInstallationID: String?
+    /// Whether this deployment has the channel at all. It has its own off-by-default flag on the server, so
+    /// an empty list and a channel that is not there are different answers and only one of them is worth
+    /// offering to turn on.
+    var isAlertChannelAvailable = false
     /// The recovery key, only while ``AccountAuthorityScreenPhase/artifact`` is on screen.
     var recoveryArtifact: String?
     /// Which record the artifact on screen belongs to, so the copy can say what happens next.
