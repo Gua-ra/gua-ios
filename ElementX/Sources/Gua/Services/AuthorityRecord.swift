@@ -29,19 +29,31 @@ enum AuthorityRecordError: String, Error, Equatable {
     case invalidAuthorizingKey = "invalid_authorizing_key"
     case duplicateKeys = "duplicate_keys"
     case nonCanonicalLabel = "non_canonical_label"
+    case unknownRevocationReason = "unknown_revocation_reason"
+    case unknownAuthorization = "unknown_authorization"
+    /// `authorization = 0x01` names no key. The committed-recovery path is authorized by a key, so a
+    /// record claiming it and naming none is refused rather than read as the other path.
+    case authorizingKeyRequired = "authorizing_key_required"
+    /// `authorization = 0x02` names one. The pairing is enforced in both directions, so a record cannot
+    /// claim the account-recovery path and carry a key whose signature a verifier might reach for.
+    case authorizingKeyNotPermitted = "authorizing_key_not_permitted"
+    case zeroOpposedRecord = "zero_opposed_record"
 
     var reason: String {
         rawValue
     }
 }
 
-/// The four record types of ADM-009 decision 2. The magic is the signature domain as well as the type
+/// The five record types of ADM-009 decision 2. The magic is the signature domain as well as the type
 /// tag, which is what stops a record of one type being replayed as another.
 enum AuthorityRecordType: String, Equatable, CaseIterable {
     case adoptRoot = "GUAA"
     case deviceGrant = "GUAD"
     case deviceRevoke = "GUAX"
     case authorityRecovery = "GUAR"
+    /// Objects to the record it names. Revision 4 added it because revisions 1 to 3 asked an active
+    /// device to oppose and gave it nothing to sign, so the server could only refuse the claim.
+    case oppose = "GUAO"
 
     var magic: [UInt8] {
         Array(rawValue.utf8)
@@ -54,6 +66,7 @@ enum AuthorityRecordType: String, Equatable, CaseIterable {
         case .deviceGrant: 161
         case .deviceRevoke: 145
         case .authorityRecovery: 209
+        case .oppose: 144
         }
     }
 }
@@ -74,10 +87,9 @@ enum AuthorityRecordType: String, Equatable, CaseIterable {
 /// Fixed layout, big-endian, no delimiters, canonical under ADM-001 L4. Nothing here is optional and
 /// nothing is length-prefixed, so no field can be shifted into another.
 ///
-/// **Only `AdoptRoot` and `DeviceGrant` are built here**, because they are the only two records this app
-/// can honestly produce today: a revocation and an authority recovery have no surface in this build
-/// (see the ADM-009 notes in ``AccountAuthorityService``). The envelope and the validator are written
-/// for all four so the missing halves are a missing screen rather than a missing codec.
+/// All five types are built and validated here. The envelope is one builder for every type rather than
+/// five, because a field offset that is written out per type is a field offset that drifts on the type
+/// nobody looked at.
 enum AuthorityRecord {
     static let version: UInt8 = 0x01
     /// Ed25519 authority keys, SHA-256 hashing.
@@ -98,6 +110,22 @@ enum AuthorityRecord {
     /// No grant flag is defined. A decoder refuses a reserved bit rather than ignoring it.
     static let flagsNone: UInt8 = 0x00
 
+    /// Why a device was revoked. The reason is inside the signed bytes, so it is what a notification and
+    /// a later log leaf can name, and an unknown value is refused rather than shown as "unspecified".
+    static let reasonUnspecified: UInt8 = 0x01
+    static let reasonLost: UInt8 = 0x02
+    static let reasonReplaced: UInt8 = 0x03
+    static let reasonCompromised: UInt8 = 0x04
+
+    /// Authorized by the committed recovery authority key. Rank 2 of ADM-009 decision 3: the one record
+    /// the owner can always land, and the one an intruder holding every device cannot cancel.
+    static let authorizationRecoveryKey: UInt8 = 0x01
+    /// Authorized through a completed account recovery. Rank 0, and vetoable by any active device.
+    static let authorizationAccountRecovery: UInt8 = 0x02
+
+    /// The 32 zero bytes the account-recovery path carries in place of an authorizing key.
+    static let zeroKey = [UInt8](repeating: 0, count: keyLength)
+
     private static let offsetVersion = 4
     private static let offsetSuite = 5
     private static let offsetAccount = 6
@@ -117,6 +145,24 @@ enum AuthorityRecord {
     private static let grantFlags = 112
     private static let grantLabel = 113
     private static let grantAuthorizingKey = 129
+
+    // DeviceRevoke body: deviceKey 32, reason 1, authorizingKey 32.
+    private static let revokeDeviceKey = offsetBody
+    private static let revokeReason = 112
+    private static let revokeAuthorizingKey = 113
+
+    // AuthorityRecovery body: deviceKey 32, recoveryAuthorityKey 32, label 16, entropy 16,
+    // authorization 1, authorizingKey 32.
+    private static let recoveryDeviceKey = offsetBody
+    private static let recoveryRecoveryKey = 112
+    private static let recoveryLabel = 144
+    private static let recoveryEntropy = 160
+    private static let recoveryAuthorization = 176
+    private static let recoveryAuthorizingKey = 177
+
+    // Oppose body: opposedRecordHash 32, authorizingKey 32.
+    private static let opposeRecordHash = offsetBody
+    private static let opposeAuthorizingKey = 112
 
     /// 32 zero bytes: the `prevHash` of a chain's first record.
     static let emptyPrevHash = [UInt8](repeating: 0, count: hashLength)
@@ -179,6 +225,105 @@ enum AuthorityRecord {
                             body: body)
     }
 
+    /// Canonical bytes of a `DeviceRevoke`.
+    ///
+    /// - Parameters:
+    ///   - deviceKey: the key being removed. It may be this device's own, which takes effect at once
+    ///     because a device giving up its own authority reduces what an attacker holding it could do.
+    ///   - reason: one of the four ``reasonUnspecified`` through ``reasonCompromised``. It is inside the
+    ///     signed bytes, so it is what a notification to the account's other devices may name.
+    static func deviceRevoke(accountID: AccountID,
+                             deviceKey: [UInt8],
+                             reason: UInt8,
+                             authorizingKey: [UInt8],
+                             prevHash: [UInt8],
+                             seq: UInt64) throws -> [UInt8] {
+        guard deviceKey.count == keyLength, authorizingKey.count == keyLength else {
+            throw AuthorityRecordError.wrongLength
+        }
+        var body = [UInt8]()
+        body.append(contentsOf: deviceKey)
+        body.append(reason)
+        body.append(contentsOf: authorizingKey)
+        return try envelope(type: .deviceRevoke,
+                            accountID: accountID,
+                            prevHash: prevHash,
+                            seq: seq,
+                            body: body)
+    }
+
+    /// Canonical bytes of an `AuthorityRecovery`, which replaces the device set with one device and
+    /// installs a new recovery authority key in the same record.
+    ///
+    /// - Parameters:
+    ///   - authorization: ``authorizationRecoveryKey`` or ``authorizationAccountRecovery``. The two are
+    ///     not equal and the pairing with `authorizingKey` is a rule rather than a convention: under the
+    ///     account-recovery path the field is all zero, and a decoder enforces that in both directions.
+    ///   - authorizingKey: the committed recovery authority key under ``authorizationRecoveryKey``, and
+    ///     ignored under ``authorizationAccountRecovery``, where 32 zero bytes are written instead.
+    static func authorityRecovery(accountID: AccountID,
+                                  deviceKey: [UInt8],
+                                  recoveryKey: [UInt8],
+                                  label: String,
+                                  entropy: [UInt8],
+                                  authorization: UInt8,
+                                  authorizingKey: [UInt8],
+                                  prevHash: [UInt8],
+                                  seq: UInt64) throws -> [UInt8] {
+        guard deviceKey.count == keyLength, recoveryKey.count == keyLength,
+              entropy.count == entropyLength else {
+            throw AuthorityRecordError.wrongLength
+        }
+        let named: [UInt8]
+        switch authorization {
+        case authorizationRecoveryKey:
+            guard authorizingKey.count == keyLength else { throw AuthorityRecordError.wrongLength }
+            named = authorizingKey
+        case authorizationAccountRecovery:
+            named = zeroKey
+        default:
+            throw AuthorityRecordError.unknownAuthorization
+        }
+        var body = [UInt8]()
+        body.append(contentsOf: deviceKey)
+        body.append(contentsOf: recoveryKey)
+        body.append(contentsOf: AuthorityLabel.encode(label))
+        body.append(contentsOf: entropy)
+        body.append(authorization)
+        body.append(contentsOf: named)
+        return try envelope(type: .authorityRecovery,
+                            accountID: accountID,
+                            prevHash: prevHash,
+                            seq: seq,
+                            body: body)
+    }
+
+    /// Canonical bytes of an `Oppose`.
+    ///
+    /// It takes no slot and starts no window, so it carries the `seq` and `prevHash` of the record it
+    /// cancels rather than the position after it: the chain never gets an `Oppose` appended to it.
+    ///
+    /// - Parameters:
+    ///   - opposedRecordHash: the 32 raw bytes of the opposed record's hash, which the state response
+    ///     reports as hex
+    static func oppose(accountID: AccountID,
+                       opposedRecordHash: [UInt8],
+                       authorizingKey: [UInt8],
+                       prevHash: [UInt8],
+                       seq: UInt64) throws -> [UInt8] {
+        guard opposedRecordHash.count == hashLength, authorizingKey.count == keyLength else {
+            throw AuthorityRecordError.wrongLength
+        }
+        var body = [UInt8]()
+        body.append(contentsOf: opposedRecordHash)
+        body.append(contentsOf: authorizingKey)
+        return try envelope(type: .oppose,
+                            accountID: accountID,
+                            prevHash: prevHash,
+                            seq: seq,
+                            body: body)
+    }
+
     /// The envelope around one body.
     static func envelope(type: AuthorityRecordType,
                          accountID: AccountID,
@@ -206,14 +351,22 @@ enum AuthorityRecord {
         return out
     }
 
-    /// Applies every rule identity-service's decoder applies to the two record types this client
-    /// builds, and refuses with the same token.
+    /// Applies every rule identity-service's decoder applies, and refuses with the same token.
     ///
     /// The client checks its own bytes for the reason the genesis client does: the record is the
     /// authority, so bytes this app would refuse to read are bytes it must not ask a server to write.
     /// A record that fails here never leaves the device, and the failure names the rule rather than
     /// saying the request went wrong.
     static func validate(_ bytes: [UInt8]) throws {
+        _ = try decode(bytes)
+    }
+
+    /// Validates `bytes` and reports what they say, keeping the bytes verbatim.
+    ///
+    /// Nothing re-encodes: the record hash is what the next record's `prevHash` must equal and what the
+    /// log leaf of ADM-009 decision 12 will commit, so the bytes that are hashed have to be the bytes
+    /// that crossed the wire.
+    static func decode(_ bytes: [UInt8]) throws -> Decoded {
         guard bytes.count >= magicLength else { throw AuthorityRecordError.wrongLength }
         let magic = Array(bytes[0..<magicLength])
         guard let type = AuthorityRecordType.allCases.first(where: { $0.magic == magic }) else {
@@ -231,6 +384,9 @@ enum AuthorityRecord {
         // defect, which is why the top bit is refused here rather than only the zero.
         guard seq >= 1, seq <= UInt64(Int64.max) else { throw AuthorityRecordError.badSeq }
 
+        let accountReference = Array(bytes[offsetAccount..<offsetPrevHash])
+        let prevHash = Array(bytes[offsetPrevHash..<offsetSeq])
+
         switch type {
         case .adoptRoot:
             let deviceKey = try key(bytes, adoptDeviceKey, zero: .zeroDeviceKey, invalid: .invalidDeviceKey)
@@ -240,17 +396,83 @@ enum AuthorityRecord {
             let recoveryKey = try key(bytes, adoptRecoveryKey, zero: .zeroRecoveryKey, invalid: .invalidRecoveryKey)
             guard deviceKey != recoveryKey else { throw AuthorityRecordError.duplicateKeys }
             try AuthorityLabel.validate(Array(bytes[adoptLabel..<adoptEntropy]))
+            // The device key signs its own AdoptRoot: at seq 1 there is no other key the chain has.
+            return Decoded(type: type, seq: seq, accountReference: accountReference, prevHash: prevHash,
+                           deviceKey: deviceKey, verifyingKey: deviceKey, canonicalBytes: bytes)
         case .deviceGrant:
-            _ = try key(bytes, grantDeviceKey, zero: .zeroDeviceKey, invalid: .invalidDeviceKey)
+            let deviceKey = try key(bytes, grantDeviceKey, zero: .zeroDeviceKey, invalid: .invalidDeviceKey)
             guard bytes[grantFlags] == flagsNone else { throw AuthorityRecordError.unknownFlags }
             try AuthorityLabel.validate(Array(bytes[grantLabel..<grantAuthorizingKey]))
-            _ = try key(bytes, grantAuthorizingKey, zero: .zeroAuthorizingKey, invalid: .invalidAuthorizingKey)
-        case .deviceRevoke, .authorityRecovery:
-            // This build writes neither, so there is nothing here whose rules it could claim to hold.
-            // Validating them loosely would be worse than not validating them: it would read as
-            // coverage that is not there.
-            throw AuthorityRecordError.badMagic
+            let authorizingKey = try key(bytes, grantAuthorizingKey, zero: .zeroAuthorizingKey,
+                                         invalid: .invalidAuthorizingKey)
+            return Decoded(type: type, seq: seq, accountReference: accountReference, prevHash: prevHash,
+                           deviceKey: deviceKey, verifyingKey: authorizingKey, canonicalBytes: bytes)
+        case .deviceRevoke:
+            let deviceKey = try key(bytes, revokeDeviceKey, zero: .zeroDeviceKey, invalid: .invalidDeviceKey)
+            switch bytes[revokeReason] {
+            case reasonUnspecified, reasonLost, reasonReplaced, reasonCompromised: break
+            default: throw AuthorityRecordError.unknownRevocationReason
+            }
+            let authorizingKey = try key(bytes, revokeAuthorizingKey, zero: .zeroAuthorizingKey,
+                                         invalid: .invalidAuthorizingKey)
+            return Decoded(type: type, seq: seq, accountReference: accountReference, prevHash: prevHash,
+                           deviceKey: deviceKey, verifyingKey: authorizingKey, canonicalBytes: bytes)
+        case .authorityRecovery:
+            let deviceKey = try key(bytes, recoveryDeviceKey, zero: .zeroDeviceKey, invalid: .invalidDeviceKey)
+            let recoveryKey = try key(bytes, recoveryRecoveryKey, zero: .zeroRecoveryKey,
+                                      invalid: .invalidRecoveryKey)
+            guard deviceKey != recoveryKey else { throw AuthorityRecordError.duplicateKeys }
+            try AuthorityLabel.validate(Array(bytes[recoveryLabel..<recoveryEntropy]))
+            let named = Array(bytes[recoveryAuthorizingKey..<(recoveryAuthorizingKey + keyLength)])
+            switch bytes[recoveryAuthorization] {
+            case authorizationRecoveryKey:
+                guard named.contains(where: { $0 != 0 }) else {
+                    throw AuthorityRecordError.authorizingKeyRequired
+                }
+                let authorizingKey = try key(bytes, recoveryAuthorizingKey, zero: .zeroAuthorizingKey,
+                                             invalid: .invalidAuthorizingKey)
+                return Decoded(type: type, seq: seq, accountReference: accountReference, prevHash: prevHash,
+                               deviceKey: deviceKey, verifyingKey: authorizingKey, canonicalBytes: bytes)
+            case authorizationAccountRecovery:
+                // The pairing is enforced the other way too. A record claiming the weaker path while
+                // naming a key would give a verifier two keys to choose between, and the point of the
+                // field is that a log leaf commits which one authorized the transition.
+                guard !named.contains(where: { $0 != 0 }) else {
+                    throw AuthorityRecordError.authorizingKeyNotPermitted
+                }
+                // Under this path the record is signed by the device key it installs: the account has no
+                // other key left, which is the situation the path exists for.
+                return Decoded(type: type, seq: seq, accountReference: accountReference, prevHash: prevHash,
+                               deviceKey: deviceKey, verifyingKey: deviceKey, canonicalBytes: bytes)
+            default:
+                throw AuthorityRecordError.unknownAuthorization
+            }
+        case .oppose:
+            let opposed = Array(bytes[opposeRecordHash..<(opposeRecordHash + hashLength)])
+            guard opposed.contains(where: { $0 != 0 }) else {
+                throw AuthorityRecordError.zeroOpposedRecord
+            }
+            let authorizingKey = try key(bytes, opposeAuthorizingKey, zero: .zeroAuthorizingKey,
+                                         invalid: .invalidAuthorizingKey)
+            return Decoded(type: type, seq: seq, accountReference: accountReference, prevHash: prevHash,
+                           deviceKey: nil, verifyingKey: authorizingKey, canonicalBytes: bytes)
         }
+    }
+
+    /// What one record says, as this client reads it back.
+    ///
+    /// `verifyingKey` is the key the type names as its signer, which is not one field: an `AdoptRoot` is
+    /// signed by the device key it carries, a grant, a revocation and an `Oppose` by their
+    /// `authorizingKey`, and an `AuthorityRecovery` by its `authorizingKey` except on the account-recovery
+    /// path, where that field is zero by rule and the signer is the device key being installed.
+    struct Decoded: Equatable {
+        let type: AuthorityRecordType
+        let seq: UInt64
+        let accountReference: [UInt8]
+        let prevHash: [UInt8]
+        let deviceKey: [UInt8]?
+        let verifyingKey: [UInt8]
+        let canonicalBytes: [UInt8]
     }
 
     /// SHA-256 over canonical bytes, lowercase hex, which is how identity-service names a record.
@@ -326,6 +548,51 @@ enum AuthorityLabel {
     }
 }
 
+/// The short human fingerprint of a device authority key (ADM-009 decision 5, revision 4).
+///
+/// It is the only thing crossing between two phones that a person has to compare, so the alphabet and the
+/// length are stated here rather than left to whichever screen shows it. Eight characters, from the
+/// 31-character alphabet `ABCDEFGHJKLMNPQRSTUVWXYZ2346789`, which leaves out I, O, 0, 1 and 5: a
+/// fingerprint two people read aloud across a room fails at exactly the characters that look alike. The
+/// alphabet is copied from identity-service character for character rather than from its prose, which
+/// says S is left out as well while the constant keeps it.
+///
+/// **Derived, never issued.** Both devices compute the same eight characters from the same 32 public
+/// bytes, so the comparison means the two phones are looking at one key. A server-issued nonce would mean
+/// only that both had spoken to the same server, which is the property already assumed and not the one
+/// being checked. That also makes this the check: the granting phone recomputes the fingerprint from the
+/// candidate's key rather than trusting the string the server sent beside it.
+enum AuthorityFingerprint {
+    /// No I, O, 0, 1, 5 or S. A fingerprint gets read aloud.
+    static let alphabet = Array("ABCDEFGHJKLMNPQRSTUVWXYZ2346789")
+
+    /// Eight characters, shown in two groups of four.
+    static let length = 8
+
+    private static let domain = "gua-authority-candidate.v1"
+
+    /// The fingerprint of one raw Ed25519 device key, or `nil` when the key is not 32 bytes.
+    ///
+    /// Domain-separated, so the same bytes used for something else never produce the same string, and
+    /// taken from the front of the digest rather than from the key itself: a fingerprint that showed key
+    /// bytes would make two keys with a shared prefix look identical.
+    static func of(_ rawDeviceKey: [UInt8]) -> String? {
+        guard rawDeviceKey.count == AuthorityRecord.keyLength else { return nil }
+        var digest = SHA256()
+        digest.update(data: Data(domain.utf8))
+        digest.update(data: Data(rawDeviceKey))
+        let bytes = [UInt8](digest.finalize())
+        return String(bytes.prefix(length).map { alphabet[Int($0) % alphabet.count] })
+    }
+
+    /// The same eight characters in the two groups of four the screens show.
+    static func grouped(_ fingerprint: String) -> String {
+        guard fingerprint.count == length else { return fingerprint }
+        let middle = fingerprint.index(fingerprint.startIndex, offsetBy: length / 2)
+        return "\(fingerprint[fingerprint.startIndex..<middle]) \(fingerprint[middle...])"
+    }
+}
+
 /// The one preimage rule of the authority chain, and the browser-approval preimage beside it (ADM-009
 /// decisions 2 and 6).
 ///
@@ -362,6 +629,41 @@ enum AuthorityProofs {
             throw AuthorityRecordError.wrongLength
         }
         return type.magic + challenge + canonicalBytes
+    }
+
+    /// The domain an install signs to bind its security-notification registration to a device key.
+    static let notificationDomain = "gua-authority-notification.v1"
+
+    /// 29 + 34 + 32 + 32 + 32.
+    static let notificationPreimageLength = notificationDomain.utf8.count
+        + AuthorityRecord.accountReferenceLength
+        + AuthorityRecord.hashLength
+        + AuthorityRecord.keyLength
+        + AuthorityRecord.challengeLength
+
+    /// The preimage an install signs to bind its security-notification registration to a device authority
+    /// key (ADM-009 gate 2, the removal tiers).
+    ///
+    /// Why it has to be signed rather than asserted. A registration that carries a device key needs a
+    /// signature by that key before it may be removed from another install, so the key on the row is the
+    /// thing standing between an attacker with a fresh post-recovery session and a silent channel. If the
+    /// field could simply be claimed, an attacker would name the owner's key on their own row, and, worse,
+    /// a row could be planted that the owner's own device can never remove.
+    ///
+    /// The installation id is hashed rather than carried, so every element is fixed length and no field
+    /// can be shifted into another. ADM-009 does not define this preimage: it is the wire addition gate
+    /// 2's own removal tiers need, and identity-service states it in `AuthorityProofs` so both clients
+    /// sign the same bytes.
+    static func notificationPreimage(accountID: AccountID,
+                                     installationID: String,
+                                     deviceKey: [UInt8],
+                                     challenge: [UInt8]) throws -> [UInt8] {
+        guard deviceKey.count == AuthorityRecord.keyLength,
+              challenge.count == AuthorityRecord.challengeLength else {
+            throw AuthorityRecordError.wrongLength
+        }
+        let installationIDHash = [UInt8](SHA256.hash(data: Data(installationID.utf8)))
+        return Array(notificationDomain.utf8) + accountID.rawBytes + installationIDHash + deviceKey + challenge
     }
 
     /// The preimage an authority device signs to approve an action reached from a browser: the domain,

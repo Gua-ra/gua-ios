@@ -17,6 +17,7 @@ final class AuthorityRecordTests: XCTestCase {
     private var deviceKey: [UInt8]!
     private var recoveryKey: [UInt8]!
     private let entropy = [UInt8](repeating: 0x2A, count: AuthorityRecord.entropyLength)
+    private let challenge = [UInt8](repeating: 0x07, count: AuthorityRecord.challengeLength)
 
     override func setUpWithError() throws {
         accountID = try AccountID.derive(rootClass: AccountID.classBootstrap,
@@ -308,6 +309,158 @@ final class AuthorityRecordTests: XCTestCase {
         XCTAssertEqual(AuthorityRecord.hashBytes(fromHex: String(repeating: "0", count: 64)),
                        AuthorityRecord.emptyPrevHash,
                        "The 64 zeros an empty chain reports are the prevHash of its first record.")
+    }
+
+    // MARK: - The three types revision 4 and the lifecycle added
+
+    func testARevocationCarriesItsReasonAndRefusesAnUnknownOne() throws {
+        var bytes = try AuthorityRecord.deviceRevoke(accountID: accountID,
+                                                     deviceKey: recoveryKey,
+                                                     reason: AuthorityRecord.reasonLost,
+                                                     authorizingKey: deviceKey,
+                                                     prevHash: AuthorityRecord.emptyPrevHash,
+                                                     seq: 3)
+        XCTAssertEqual(bytes.count, 145)
+        let decoded = try AuthorityRecord.decode(bytes)
+        XCTAssertEqual(decoded.type, .deviceRevoke)
+        // A revocation is signed by the key that authorizes it, never by the key it removes: the device
+        // named in one may not veto its own removal, so it cannot be the signer either.
+        XCTAssertEqual(decoded.verifyingKey, deviceKey)
+        XCTAssertEqual(decoded.deviceKey, recoveryKey)
+
+        bytes[112] = 0x05
+        assertRefused(bytes, with: .unknownRevocationReason)
+    }
+
+    func testARecoveryEnforcesTheAuthorizationPairingInBothDirections() throws {
+        let underTheRecoveryKey = try AuthorityRecord.authorityRecovery(accountID: accountID,
+                                                                        deviceKey: deviceKey,
+                                                                        recoveryKey: recoveryKey,
+                                                                        label: "iPad",
+                                                                        entropy: entropy,
+                                                                        authorization: AuthorityRecord.authorizationRecoveryKey,
+                                                                        authorizingKey: recoveryKey,
+                                                                        prevHash: AuthorityRecord.emptyPrevHash,
+                                                                        seq: 2)
+        XCTAssertEqual(underTheRecoveryKey.count, 209)
+        XCTAssertEqual(try AuthorityRecord.decode(underTheRecoveryKey).verifyingKey, recoveryKey)
+
+        // Rank 0: the field is all zero by rule, and the signer is the device key being installed,
+        // because the account has no other key left.
+        let throughAccountRecovery = try AuthorityRecord.authorityRecovery(accountID: accountID,
+                                                                           deviceKey: deviceKey,
+                                                                           recoveryKey: recoveryKey,
+                                                                           label: "iPad",
+                                                                           entropy: entropy,
+                                                                           authorization: AuthorityRecord.authorizationAccountRecovery,
+                                                                           authorizingKey: recoveryKey,
+                                                                           prevHash: AuthorityRecord.emptyPrevHash,
+                                                                           seq: 2)
+        XCTAssertEqual(Array(throughAccountRecovery[177..<209]), AuthorityRecord.zeroKey)
+        XCTAssertEqual(try AuthorityRecord.decode(throughAccountRecovery).verifyingKey, deviceKey)
+
+        var claimsTheKeyPathWithNoKey = underTheRecoveryKey
+        claimsTheKeyPathWithNoKey.replaceSubrange(177..<209, with: AuthorityRecord.zeroKey)
+        assertRefused(claimsTheKeyPathWithNoKey, with: .authorizingKeyRequired)
+
+        var claimsRecoveryWithAKey = throughAccountRecovery
+        claimsRecoveryWithAKey.replaceSubrange(177..<209, with: recoveryKey)
+        assertRefused(claimsRecoveryWithAKey, with: .authorizingKeyNotPermitted)
+
+        var unknownAuthorization = underTheRecoveryKey
+        unknownAuthorization[176] = 0x03
+        assertRefused(unknownAuthorization, with: .unknownAuthorization)
+
+        XCTAssertThrowsError(try AuthorityRecord.authorityRecovery(accountID: accountID,
+                                                                   deviceKey: deviceKey,
+                                                                   recoveryKey: recoveryKey,
+                                                                   label: "iPad",
+                                                                   entropy: entropy,
+                                                                   authorization: 0x03,
+                                                                   authorizingKey: recoveryKey,
+                                                                   prevHash: AuthorityRecord.emptyPrevHash,
+                                                                   seq: 2)) { error in
+            XCTAssertEqual(error as? AuthorityRecordError, .unknownAuthorization)
+        }
+    }
+
+    func testAnOppositionNamesARecordAndRefusesNamingNone() throws {
+        let opposed = [UInt8](repeating: 0x2B, count: 32)
+        var bytes = try AuthorityRecord.oppose(accountID: accountID,
+                                               opposedRecordHash: opposed,
+                                               authorizingKey: deviceKey,
+                                               prevHash: AuthorityRecord.emptyPrevHash,
+                                               seq: 3)
+        XCTAssertEqual(bytes.count, 144)
+        let decoded = try AuthorityRecord.decode(bytes)
+        XCTAssertEqual(decoded.type, .oppose)
+        XCTAssertEqual(decoded.verifyingKey, deviceKey)
+        // An Oppose names no device: it names a record.
+        XCTAssertNil(decoded.deviceKey)
+
+        bytes.replaceSubrange(80..<112, with: [UInt8](repeating: 0, count: 32))
+        assertRefused(bytes, with: .zeroOpposedRecord)
+    }
+
+    // MARK: - The candidate fingerprint
+
+    func testAFingerprintIsEightCharactersOfTheStatedAlphabet() throws {
+        let fingerprint = try XCTUnwrap(AuthorityFingerprint.of(deviceKey))
+
+        XCTAssertEqual(fingerprint.count, AuthorityFingerprint.length)
+        XCTAssertTrue(fingerprint.allSatisfy { AuthorityFingerprint.alphabet.contains($0) })
+        // The characters that look alike are what a fingerprint read aloud fails at. Asserted against the
+        // alphabet identity-service publishes, character for character: I, O, 0, 1 and 5 are the ones it
+        // actually leaves out, whatever its own comment claims, and a client that dropped one more would
+        // compute a different fingerprint from the same key.
+        XCTAssertEqual(String(AuthorityFingerprint.alphabet), "ABCDEFGHJKLMNPQRSTUVWXYZ2346789")
+        XCTAssertFalse(AuthorityFingerprint.alphabet.contains(where: { "IO015".contains($0) }))
+        XCTAssertEqual(AuthorityFingerprint.alphabet.count, 31)
+        XCTAssertEqual(AuthorityFingerprint.grouped(fingerprint).count, AuthorityFingerprint.length + 1)
+    }
+
+    func testAFingerprintIsDerivedFromTheKeyAndNotFromItsBytes() {
+        // Derived, never issued: both phones compute the same eight characters from the same 32 bytes,
+        // which is what makes the human comparison mean the two are looking at one key.
+        XCTAssertEqual(AuthorityFingerprint.of(deviceKey), AuthorityFingerprint.of(deviceKey))
+        XCTAssertNotEqual(AuthorityFingerprint.of(deviceKey), AuthorityFingerprint.of(recoveryKey))
+        // Taken from a digest rather than from the key's own leading bytes, so two keys that agree on
+        // their first 31 bytes still read differently across a room.
+        var sharesEveryByteButTheLast: [UInt8] = deviceKey
+        sharesEveryByteButTheLast[31] ^= 0x01
+        XCTAssertNotEqual(AuthorityFingerprint.of(deviceKey), AuthorityFingerprint.of(sharesEveryByteButTheLast))
+        XCTAssertNotEqual(AuthorityFingerprint.of(deviceKey),
+                          String(deviceKey.prefix(AuthorityFingerprint.length)
+                              .map { AuthorityFingerprint.alphabet[Int($0) % AuthorityFingerprint.alphabet.count] }))
+        XCTAssertNil(AuthorityFingerprint.of(Array(deviceKey.prefix(31))))
+    }
+
+    // MARK: - The notification binding
+
+    func testTheNotificationPreimageIsTheDomainTheAccountTheInstallTheKeyAndTheChallenge() throws {
+        let preimage = try AuthorityProofs.notificationPreimage(accountID: accountID,
+                                                                installationID: "an-install",
+                                                                deviceKey: deviceKey,
+                                                                challenge: challenge)
+
+        XCTAssertEqual(preimage.count, AuthorityProofs.notificationPreimageLength)
+        XCTAssertEqual(Array(preimage.prefix(AuthorityProofs.notificationDomain.utf8.count)),
+                       Array(AuthorityProofs.notificationDomain.utf8))
+        // The installation id is hashed rather than carried, so every element is fixed length and no
+        // field can be shifted into another.
+        let domain = AuthorityProofs.notificationDomain.utf8.count
+        let installOffset = domain + AccountID.rawLength
+        XCTAssertEqual(Array(preimage[installOffset..<(installOffset + 32)]),
+                       [UInt8](SHA256.hash(data: Data("an-install".utf8))))
+        XCTAssertEqual(Array(preimage.suffix(32)), challenge)
+
+        // A registration for another install is a different preimage, which is what stops one row's
+        // signature being replayed onto another row.
+        let other = try AuthorityProofs.notificationPreimage(accountID: accountID,
+                                                             installationID: "another-install",
+                                                             deviceKey: deviceKey,
+                                                             challenge: challenge)
+        XCTAssertNotEqual(preimage, other)
     }
 
     private func assertRefused(_ bytes: [UInt8],
