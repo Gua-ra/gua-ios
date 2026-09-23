@@ -99,10 +99,7 @@ class AccountAuthorityScreenViewModel: AccountAuthorityScreenViewModelType, Acco
         case .offerThisDevice:
             Task { await offerThisDevice() }
         case let .compareCandidate(candidate):
-            state.comparingCandidate = candidate
-            state.bindings.hasComparedFingerprint = false
-            state.errorMessage = nil
-            state.phase = .comparingCandidate
+            startComparing(candidate)
         case .signGrant:
             guard state.canSignGrant, let candidate = state.comparingCandidate else { return }
             Task { await requestStepUp(for: .grant(candidate)) }
@@ -126,14 +123,25 @@ class AccountAuthorityScreenViewModel: AccountAuthorityScreenViewModelType, Acco
         case .enableAlerts:
             Task { await enableAlerts() }
         case let .removeAlerts(alert):
-            if state.isThisInstall(alert) {
-                // Tier 1: this install removing its own row needs no factor at all, because the person
-                // holding this phone is the person the channel serves.
-                Task { await perform(operation: .removeAlerts(installationID: alert.installationID), stepUp: nil) }
-            } else {
-                Task { await requestStepUp(for: .removeAlerts(installationID: alert.installationID)) }
-            }
+            removeAlerts(alert)
         }
+    }
+
+    private func startComparing(_ candidate: AuthorityCandidate) {
+        state.comparingCandidate = candidate
+        state.bindings.hasComparedFingerprint = false
+        state.errorMessage = nil
+        state.phase = .comparingCandidate
+    }
+
+    private func removeAlerts(_ alert: SecurityNotificationSummary) {
+        guard state.isThisInstall(alert) else {
+            Task { await requestStepUp(for: .removeAlerts(installationID: alert.installationID)) }
+            return
+        }
+        // Tier 1: this install removing its own row needs no factor at all, because the person holding this
+        // phone is the person the channel serves.
+        Task { await perform(operation: .removeAlerts(installationID: alert.installationID), stepUp: nil) }
     }
 
     // MARK: - Reading the chain
@@ -161,7 +169,19 @@ class AccountAuthorityScreenViewModel: AccountAuthorityScreenViewModelType, Acco
         // refuses one still has to show the other. A failure here leaves the list empty and says nothing
         // false about it.
         state.candidates = await (try? authorityService.candidates(accessToken: accessToken)) ?? []
-        state.alerts = await (try? authorityService.securityAlerts(accessToken: accessToken)) ?? []
+        do {
+            state.alerts = try await authorityService.securityAlerts(accessToken: accessToken)
+            state.isAlertChannelAvailable = true
+        } catch {
+            state.alerts = []
+            // "Not here" and "went wrong" are different answers and are kept apart. The channel has its own
+            // off-by-default flag on the server, so a deployment can have the chain and not the channel, and
+            // offering to turn on something that does not exist would be a promise the next window breaks.
+            state.isAlertChannelAvailable = !Self.isTheChannelAbsent(error)
+            if !state.isAlertChannelAvailable {
+                MXLog.info("This deployment has the authority chain but not the security notification channel.")
+            }
+        }
     }
 
     // MARK: - The step-up, once, for every transition
@@ -390,8 +410,7 @@ class AccountAuthorityScreenViewModel: AccountAuthorityScreenViewModelType, Acco
         do {
             // No factor: offering a public key grants nothing. What the offer is worth is decided on the
             // other phone, where a person compares the fingerprint before signing a grant over it.
-            let offer = try await authorityService.offerThisDevice(accessToken: accessToken,
-                                                                   accountID: chain.accountID)
+            let offer = try await authorityService.offerThisDevice(accessToken: accessToken, state: chain)
             state.ownOffer = offer
             state.phase = .offeringThisDevice
         } catch {
@@ -447,6 +466,12 @@ class AccountAuthorityScreenViewModel: AccountAuthorityScreenViewModelType, Acco
         state.bindings.hasComparedFingerprint = false
         state.errorMessage = nil
         state.phase = state.chain == nil ? .unavailable : .overview
+    }
+
+    /// Whether this deployment simply does not have the channel, rather than having failed to answer.
+    private static func isTheChannelAbsent(_ error: Error) -> Bool {
+        guard case let IdentityServiceError.authority(refusal) = error else { return false }
+        return refusal.isFeatureAbsent
     }
 
     private func message(for error: Error) -> String {

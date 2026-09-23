@@ -60,7 +60,7 @@ struct AccountAuthorityScreen: View {
 
     private var loadingSection: some View {
         Section {
-            HStack {
+            HStack(spacing: 0) {
                 Spacer()
                 ProgressView()
                 Spacer()
@@ -107,7 +107,9 @@ struct AccountAuthorityScreen: View {
             recoverySection
         }
 
-        alertsSection
+        if context.viewState.isAlertChannelAvailable {
+            alertsSection
+        }
         approvalsSection
 
         if let errorMessage = context.viewState.errorMessage {

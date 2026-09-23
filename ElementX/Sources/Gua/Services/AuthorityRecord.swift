@@ -361,6 +361,10 @@ enum AuthorityRecord {
         _ = try decode(bytes)
     }
 
+    // One function rather than five, and its length is the point: every branch is a rule the server's
+    // decoder also applies, and splitting them per type is how one type ends up missing one.
+    // swiftlint:disable cyclomatic_complexity
+
     /// Validates `bytes` and reports what they say, keeping the bytes verbatim.
     ///
     /// Nothing re-encodes: the record hash is what the next record's `prevHash` must equal and what the
@@ -458,6 +462,8 @@ enum AuthorityRecord {
                            deviceKey: nil, verifyingKey: authorizingKey, canonicalBytes: bytes)
         }
     }
+
+    // swiftlint:enable cyclomatic_complexity
 
     /// What one record says, as this client reads it back.
     ///

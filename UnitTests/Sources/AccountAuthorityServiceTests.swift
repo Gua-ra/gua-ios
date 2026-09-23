@@ -57,7 +57,10 @@ final class AccountAuthorityServiceTests: XCTestCase {
         // Every surface the lifecycle added, not only the two that existed before it: a deployment with the
         // flag down has to behave exactly as it did, and one method that forgot the gate is the whole
         // difference between that and a feature that is half on.
-        await assertThrowsDisabled { try await self.service.offerThisDevice(accessToken: "token", accountID: self.accountID) }
+        await assertThrowsDisabled {
+            try await self.service.offerThisDevice(accessToken: "token",
+                                                   state: self.chainState(headSeq: 1, headHash: String(repeating: "0", count: 64)))
+        }
         await assertThrowsDisabled { try await self.service.candidates(accessToken: "token") }
         await assertThrowsDisabled {
             try await self.service.prepareRecovery(accessToken: "token",
@@ -277,7 +280,8 @@ final class AccountAuthorityServiceTests: XCTestCase {
         // the room mean "both spoke to the same server", which is already assumed.
         client.fingerprintToReturn = "ZZZZZZZZ"
 
-        let offer = try await service.offerThisDevice(accessToken: "token", accountID: accountID)
+        let offer = try await service.offerThisDevice(accessToken: "token",
+                                                      state: chainState(headSeq: 1, headHash: String(repeating: "0", count: 64)))
 
         let offered = try XCTUnwrap(client.offeredCandidates.first)
         let key = try XCTUnwrap(GuaBase64URL.decode(offered))
@@ -291,12 +295,41 @@ final class AccountAuthorityServiceTests: XCTestCase {
     func testOfferingThisDeviceTwiceOffersTheSameKey() async throws {
         appSettings.guaAccountAuthorityEnabled = true
 
-        let first = try await service.offerThisDevice(accessToken: "token", accountID: accountID)
-        let second = try await service.offerThisDevice(accessToken: "token", accountID: accountID)
+        let empty = chainState(headSeq: 1, headHash: String(repeating: "0", count: 64))
+        let first = try await service.offerThisDevice(accessToken: "token", state: empty)
+        let second = try await service.offerThisDevice(accessToken: "token", state: empty)
 
         // A second key pair would leave the phone with two answers to "which key is mine" and would orphan
         // whichever the chain ends up naming.
         XCTAssertEqual(first.deviceKeyB64, second.deviceKeyB64)
+    }
+
+    func testAKeyTheChainAlreadyNamesIsNotOfferedBackButReplaced() async throws {
+        appSettings.guaAccountAuthorityEnabled = true
+        let revoked = Curve25519.Signing.PrivateKey()
+        keyStore.stored[accountID.value] = AccountAuthorityKeyPair(authority: revoked,
+                                                                   recovery: Curve25519.Signing.PrivateKey())
+        let revokedKeyB64 = GuaBase64URL.encode([UInt8](revoked.publicKey.rawRepresentation))
+        let state = AuthorityChainState(accountID: accountID,
+                                        accountClass: .bootstrap,
+                                        state: .rooted,
+                                        headSeq: 3,
+                                        headHash: String(repeating: "ab", count: 32),
+                                        devices: [AuthorityDeviceSummary(deviceKey: revokedKeyB64,
+                                                                         label: "This phone",
+                                                                         state: .revoked,
+                                                                         quarantineUntil: nil,
+                                                                         grantedSeq: 2)],
+                                        pending: nil)
+
+        let offer = try await service.offerThisDevice(accessToken: "token", state: state)
+
+        // Offering a revoked key back is a revocation with no effect, and the chain cannot say whether the
+        // device was removed because it was lost or because it was in someone else's hands. A fresh pair
+        // leaves that question to the owner instead of answering it for them.
+        XCTAssertNotEqual(offer.deviceKeyB64, revokedKeyB64)
+        XCTAssertEqual(offer.deviceKeyB64,
+                       try GuaBase64URL.encode([UInt8](keyStore.authorityKey(forAccountID: accountID.value).publicKey.rawRepresentation)))
     }
 
     func testAGrantIsRefusedWhenTheComparisonWasNotMadeOrTheFingerprintDisagrees() async throws {

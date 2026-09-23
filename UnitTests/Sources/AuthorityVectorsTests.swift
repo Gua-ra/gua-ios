@@ -152,7 +152,7 @@ final class AuthorityVectorsTests: XCTestCase {
                                                      recoveryKey: test2,
                                                      label: "iPhone",
                                                      entropy: entropy)
-        XCTAssertEqual(AuthorityHex.string(adoption), vector(named: "GUAA").canonicalHex)
+        XCTAssertEqual(AuthorityHex.string(adoption), try vector(named: "GUAA").canonicalHex)
 
         let adoptionHash = try XCTUnwrap(AuthorityRecord.hashBytes(fromHex: AuthorityRecord.hash(adoption)))
         let grant = try AuthorityRecord.deviceGrant(accountID: accountID,
@@ -161,7 +161,7 @@ final class AuthorityVectorsTests: XCTestCase {
                                                     authorizingKey: test1,
                                                     prevHash: adoptionHash,
                                                     seq: 2)
-        XCTAssertEqual(AuthorityHex.string(grant), vector(named: "GUAD").canonicalHex)
+        XCTAssertEqual(AuthorityHex.string(grant), try vector(named: "GUAD").canonicalHex)
 
         let grantHash = try XCTUnwrap(AuthorityRecord.hashBytes(fromHex: AuthorityRecord.hash(grant)))
         let revocation = try AuthorityRecord.deviceRevoke(accountID: accountID,
@@ -170,7 +170,7 @@ final class AuthorityVectorsTests: XCTestCase {
                                                           authorizingKey: test1,
                                                           prevHash: grantHash,
                                                           seq: 3)
-        XCTAssertEqual(AuthorityHex.string(revocation), vector(named: "GUAX").canonicalHex)
+        XCTAssertEqual(AuthorityHex.string(revocation), try vector(named: "GUAX").canonicalHex)
 
         let recovery = try AuthorityRecord.authorityRecovery(accountID: accountID,
                                                              deviceKey: test3,
@@ -181,9 +181,7 @@ final class AuthorityVectorsTests: XCTestCase {
                                                              authorizingKey: test2,
                                                              prevHash: adoptionHash,
                                                              seq: 2)
-        XCTAssertEqual(AuthorityHex.string(recovery), vectors.records
-            .first { $0.magic == "GUAR" && $0.verifyingKeyHex == vectors.keys["rfc8032-test2"]!.publicKeyHex }?
-            .canonicalHex)
+        XCTAssertEqual(AuthorityHex.string(recovery), try recoveryVector(signedBy: "rfc8032-test2").canonicalHex)
 
         // Under the account-recovery path the authorizing key is 32 zero bytes by rule, whatever the
         // caller passes, which is why the builder writes them rather than trusting the argument.
@@ -196,9 +194,8 @@ final class AuthorityVectorsTests: XCTestCase {
                                                                     authorizingKey: test2,
                                                                     prevHash: adoptionHash,
                                                                     seq: 2)
-        XCTAssertEqual(AuthorityHex.string(throughRecovery), vectors.records
-            .first { $0.magic == "GUAR" && $0.verifyingKeyHex == vectors.keys["rfc8032-test3"]!.publicKeyHex }?
-            .canonicalHex)
+        XCTAssertEqual(AuthorityHex.string(throughRecovery),
+                       try recoveryVector(signedBy: "rfc8032-test3").canonicalHex)
 
         // The Oppose carries the seq and prevHash of the record it cancels, because it takes no slot and
         // is never appended to the chain.
@@ -208,7 +205,7 @@ final class AuthorityVectorsTests: XCTestCase {
                                                     authorizingKey: test1,
                                                     prevHash: grantHash,
                                                     seq: 3)
-        XCTAssertEqual(AuthorityHex.string(opposition), vector(named: "GUAO").canonicalHex)
+        XCTAssertEqual(AuthorityHex.string(opposition), try vector(named: "GUAO").canonicalHex)
     }
 
     // MARK: - Every rejection
@@ -226,8 +223,19 @@ final class AuthorityVectorsTests: XCTestCase {
         }
     }
 
-    private func vector(named magic: String) -> AuthorityVectors.Record {
-        vectors.records.first { $0.magic == magic }!
+    private func vector(named magic: String) throws -> AuthorityVectors.Record {
+        try XCTUnwrap(vectors.records.first { $0.magic == magic }, magic)
+    }
+
+    /// The one `GUAR` vector whose signer is `key`. There are two, and the pair is the point: the
+    /// authorization byte decides which key signs, so a test that took the first one would pass either way.
+    private func recoveryVector(signedBy key: String) throws -> AuthorityVectors.Record {
+        let publicKeyHex = try publicKey(named: key)
+        return try XCTUnwrap(vectors.records.first { $0.magic == "GUAR" && $0.verifyingKeyHex == publicKeyHex }, key)
+    }
+
+    private func publicKey(named key: String) throws -> String {
+        try XCTUnwrap(vectors.keys[key], key).publicKeyHex
     }
 }
 

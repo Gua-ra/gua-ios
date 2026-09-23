@@ -196,8 +196,11 @@ enum AuthorityRefusal: Equatable {
     /// The channel itself is switched off on this deployment. Like ``disabled``, this is "not here"
     /// rather than "went wrong".
     case notificationsDisabled
-    /// The registration or the removal was malformed, named a row this account does not hold, or carried
-    /// a signature that did not verify under the key on the row.
+    /// Removing this row from somewhere else needs a signature by the device key the row itself names, and
+    /// this phone does not hold it. The server verifies under the key on the row rather than under one the
+    /// request chooses, which is what stops a fresh post-recovery session stripping the owner's channel.
+    case notificationDeviceRequired
+    /// The registration or the removal was malformed, or named a row this account does not hold.
     case notificationRefused(code: String)
     case approvalInvalid
     case approvalLimit
@@ -229,6 +232,8 @@ enum AuthorityRefusal: Equatable {
         case "authority_unknown_candidate": self = .unknownCandidate
         case "authority_no_notification_channel": self = .noNotificationChannel
         case "authority_notifications_disabled": self = .notificationsDisabled
+        case "authority_notification_invalid_signature", "authority_notification_unknown_device":
+            self = .notificationDeviceRequired
         case let code? where code.hasPrefix("authority_notification_"):
             self = .notificationRefused(code: code)
         case "authority_approval_invalid": self = .approvalInvalid
@@ -266,6 +271,8 @@ enum AuthorityRefusal: Equatable {
             L10n.screenAccountAuthorityErrorUnknownCandidate
         case .noNotificationChannel:
             L10n.screenAccountAuthorityErrorNoChannel
+        case .notificationDeviceRequired:
+            L10n.screenAccountAuthorityErrorAlertsDeviceRequired
         case .notificationRefused:
             L10n.screenAccountAuthorityErrorNotificationRefused
         case .stepUpRequired:

@@ -525,7 +525,7 @@ protocol AccountAuthorityServiceProtocol {
 
     /// Offers this device's own public key as a candidate for a grant, and returns the fingerprint the
     /// other phone has to match. Only the public half leaves this device, ever.
-    func offerThisDevice(accessToken: String, accountID: AccountID) async throws -> AuthorityCandidate
+    func offerThisDevice(accessToken: String, state: AuthorityChainState) async throws -> AuthorityCandidate
 
     /// The keys other devices of this account have offered. What a grant may name, and nothing else.
     func candidates(accessToken: String) async throws -> [AuthorityCandidate]
@@ -848,15 +848,27 @@ final class AccountAuthorityService: AccountAuthorityServiceProtocol {
                                        recoveryArtifact: AuthorityRecoveryArtifact.render(keyPair.recovery))
     }
 
-    func offerThisDevice(accessToken: String, accountID: AccountID) async throws -> AuthorityCandidate {
+    func offerThisDevice(accessToken: String, state: AuthorityChainState) async throws -> AuthorityCandidate {
         guard isEnabled else { throw AccountAuthorityServiceError.disabled }
+        let accountID = state.accountID
 
-        // The key this device already holds for the account, when it holds one, rather than a fresh pair.
-        // Generating a second one would leave the phone with two answers to "which key is mine" and would
-        // orphan whichever the chain ends up naming.
+        // The key this device already holds for the account, when it holds one and the chain does not name
+        // it yet. Generating a second one in that case would leave the phone with two answers to "which key
+        // is mine" and would orphan whichever the chain ends up naming.
+        //
+        // A key the chain already names is a different matter and a fresh pair is generated instead. A
+        // revoked key offered back is a revocation with no effect, and the chain cannot say whether it was
+        // removed because the phone was lost or because it was in someone else's hands, so re-admitting it
+        // would be this client deciding that question on the owner's behalf.
         let authorityKey: Curve25519.Signing.PrivateKey
-        if let existing = try? keyStore.authorityKey(forAccountID: accountID.value) {
-            authorityKey = existing
+        let stored = try? keyStore.authorityKey(forAccountID: accountID.value)
+        let storedKeyIsInTheChain = stored.map { key in
+            let encoded = GuaBase64URL.encode([UInt8](key.publicKey.rawRepresentation))
+            return state.devices.contains { $0.deviceKey == encoded }
+        } ?? false
+
+        if let stored, !storedKeyIsInTheChain {
+            authorityKey = stored
         } else {
             let keyPair = keyStore.generateKeyPair()
             // The recovery half of the pair is stored and never committed: only an AdoptRoot and an
@@ -1143,8 +1155,13 @@ final class AccountAuthorityService: AccountAuthorityServiceProtocol {
         let isThisInstall = thisInstall == installationID
 
         // Tier 1: this install removing its own row, which needs nothing else, because the person holding
-        // this phone is the person the channel serves. Tier 2: another install, which needs the step-up and,
-        // where the row carries a key, a signature by this device's authority key.
+        // this phone is the person the channel serves.
+        //
+        // Tier 2: another install, which needs the step-up and, where that row carries a device key, a
+        // signature by **the key the row itself names**. The server verifies under that key rather than
+        // under one the request chooses, so this phone's signature is accepted exactly when the row names
+        // this phone's key and is refused otherwise, which is the truth and is what stops a fresh
+        // post-recovery session stripping the owner's channel with the PIN it just minted.
         var challengeValue: String?
         var signatureValue: String?
         if !isThisInstall, let authorityKey = try? keyStore.authorityKey(forAccountID: accountID.value) {
