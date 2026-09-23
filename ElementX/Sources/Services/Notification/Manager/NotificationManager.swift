@@ -78,6 +78,13 @@ final class NotificationManager: NSObject, NotificationManagerProtocol {
         guard let userSession else {
             return false
         }
+        // GUA FORK: the security-notification channel of ADM-009 gate 2 needs this same token for its own
+        // destination, and it needs it when the account holder asks for alerts rather than when this
+        // callback fires. Behind the feature flag, so a build with it down behaves exactly as before:
+        // nothing is stored and nothing reads the store.
+        if appSettings.guaAccountAuthorityEnabled {
+            await MainActor.run { AuthorityPushTokenStore.shared.store(deviceToken: deviceToken) }
+        }
         return await setPusher(with: deviceToken, clientProxy: userSession.clientProxy)
     }
 

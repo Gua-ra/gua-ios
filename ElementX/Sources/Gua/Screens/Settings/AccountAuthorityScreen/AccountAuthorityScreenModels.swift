@@ -13,11 +13,12 @@ enum AccountAuthorityScreenViewModelAction {
     case showApprovals
 }
 
-/// Where the screen is in the one flow it owns.
+/// Where the screen is in the flows it owns.
 ///
-/// ``artifact`` is the step ADM-009 decision 7 makes mandatory: the recovery authority key is shown once
-/// and adoption is refused until the user says they stored it. There is deliberately no path from
-/// ``steppingUp`` or ``enteringPin`` to ``submitting`` that skips it.
+/// ``artifact`` is the step ADM-009 decision 7 makes mandatory: a **new** recovery authority key is shown
+/// once and the record is refused until the user says they stored it. Both records that mint one, the
+/// adoption and the recovery, pass through it, and there is deliberately no path from ``steppingUp`` or
+/// ``enteringPin`` to ``submitting`` that skips it.
 enum AccountAuthorityScreenPhase: Equatable {
     case loading
     /// The chain was read. What is shown depends on the state it reported, not on this phase.
@@ -25,11 +26,32 @@ enum AccountAuthorityScreenPhase: Equatable {
     /// The chain could not be read. Not the same as "this account has nothing": the screen says so and
     /// offers a retry rather than inviting a setup it cannot see the need for.
     case unavailable
-    /// A passkey sheet is up, or the record is being built.
+    /// A passkey sheet is up, or a record is being built.
     case steppingUp
     case enteringPin
     case artifact
     case submitting
+    /// This phone's own key has been offered, and its fingerprint is on screen to be read out.
+    case offeringThisDevice
+    /// Another device's key is on screen, waiting for the human comparison before a grant is signed.
+    case comparingCandidate
+    /// The recovery key is being typed or pasted back in.
+    case enteringRecoveryArtifact
+}
+
+/// What a step-up, once obtained, is going to authorize.
+///
+/// Held as a value rather than as a flag per flow, so the factor ceremony is written once: every
+/// transition on this screen asks for the same two factors in the same order, and none of them can drift
+/// into asking for a third.
+enum AccountAuthorityScreenOperation: Equatable {
+    case adoption
+    case grant(AuthorityCandidate)
+    case revokeAnother(deviceKey: String, label: String)
+    case revokeThisDevice(deviceKey: String)
+    case recoveryWithArtifact(String)
+    case recoveryThroughAccountRecovery
+    case removeAlerts(installationID: String)
 }
 
 struct AccountAuthorityScreenViewState: BindableState {
@@ -41,8 +63,19 @@ struct AccountAuthorityScreenViewState: BindableState {
     /// This device's own authority key, base64url, when it holds one for this account. It is how the
     /// list can say which row is the phone in the reader's hand.
     var thisDeviceKey: String?
+    /// The keys other devices of this account have offered for a grant.
+    var candidates: [AuthorityCandidate] = []
+    /// This phone's own offer, while it is on screen waiting to be confirmed elsewhere.
+    var ownOffer: AuthorityCandidate?
+    /// The candidate whose fingerprint is being compared right now.
+    var comparingCandidate: AuthorityCandidate?
+    /// The security-notification registrations of this account, and which one is this install.
+    var alerts: [SecurityNotificationSummary] = []
+    var thisInstallationID: String?
     /// The recovery key, only while ``AccountAuthorityScreenPhase/artifact`` is on screen.
     var recoveryArtifact: String?
+    /// Which record the artifact on screen belongs to, so the copy can say what happens next.
+    var artifactKind: PreparedAuthorityRecord.Kind = .adoption
     var errorMessage: String?
     var bindings = AccountAuthorityScreenViewStateBindings()
 
@@ -60,6 +93,32 @@ struct AccountAuthorityScreenViewState: BindableState {
         chain?.pending
     }
 
+    /// Whether this phone can object to what is pending.
+    ///
+    /// An adoption can be opposed from any signed-in session, so the button is offered whatever this phone
+    /// holds. Everything else needs a signature from a key the chain has active, so the button is offered
+    /// only when this phone holds one and is not itself quarantined: showing it otherwise would be an offer
+    /// the server refuses, on the one screen where a refusal costs the owner the window.
+    var canOpposePending: Bool {
+        guard let pending else { return false }
+        guard pending.type.needsADeviceToOppose else { return true }
+        return thisDeviceState == .active
+    }
+
+    /// What the chain says about the phone in the reader's hand.
+    var thisDeviceState: AuthorityDeviceState? {
+        guard let thisDeviceKey else { return nil }
+        return chain?.devices.first { $0.deviceKey == thisDeviceKey }?.state
+    }
+
+    /// Whether this phone may sign a grant or a revocation today.
+    ///
+    /// A quarantined device may not, and says so rather than offering the action: its own grant is still
+    /// inside its window, and it does not count toward the device a revocation must leave behind either.
+    var canActAsAnAuthorityDevice: Bool {
+        thisDeviceState == .active && chain?.pending == nil
+    }
+
     /// Devices in the order the chain granted them, which is the only order the chain fixes. The device
     /// in the reader's hand is lifted to the top, because that is the row they are looking for.
     var devices: [AuthorityDeviceSummary] {
@@ -68,18 +127,62 @@ struct AccountAuthorityScreenViewState: BindableState {
         return devices.filter { $0.deviceKey == thisDeviceKey } + devices.filter { $0.deviceKey != thisDeviceKey }
     }
 
+    /// Devices the chain counts as this account's authority today. A quarantined one is deliberately not
+    /// among them.
+    var activeDevices: [AuthorityDeviceSummary] {
+        chain?.unquarantinedActiveDevices ?? []
+    }
+
+    /// The two-device carve-out of ADM-009 decision 5, which the screen states rather than hides.
+    ///
+    /// On an account with two active devices, removing either would leave the signer alone, so the named
+    /// device is allowed to object. A standoff between two devices is a worse outcome for nobody; an
+    /// eviction the owner is forbidden to object to is a takeover.
+    var isInTheTwoDeviceCarveOut: Bool {
+        activeDevices.count == 2
+    }
+
+    /// Whether the terminal state of ADM-009 decision 7 has been reached: rooted, no device left, no
+    /// recovery key. The screen says so plainly and offers no second adoption.
+    var isAuthorityLost: Bool {
+        chain?.state == .authorityLost
+    }
+
     func isThisDevice(_ device: AuthorityDeviceSummary) -> Bool {
         device.deviceKey == thisDeviceKey
     }
 
+    func isThisInstall(_ alert: SecurityNotificationSummary) -> Bool {
+        alert.installationID == thisInstallationID
+    }
+
+    /// Whether this install already has somewhere for a warning to arrive.
+    var isRegisteredForAlerts: Bool {
+        guard let thisInstallationID else { return false }
+        return alerts.contains { $0.installationID == thisInstallationID }
+    }
+
     /// Continue is off until the confirmation is on. The server refuses an unconfirmed adoption too, so
     /// this is the screen agreeing with the rule rather than being the only thing holding it.
-    var canSubmitAdoption: Bool {
+    var canSubmitArtifact: Bool {
         phase == .artifact && bindings.hasStoredRecoveryArtifact
+    }
+
+    /// A grant is off until the reader says the two fingerprints matched. The comparison is the only thing
+    /// binding the offered key to the person holding the other phone.
+    var canSignGrant: Bool {
+        phase == .comparingCandidate && bindings.hasComparedFingerprint
     }
 
     var canSubmitPin: Bool {
         phase == .enteringPin && bindings.pin.count == Self.pinLength && bindings.pin.allSatisfy(\.isNumber)
+    }
+
+    /// Whether what has been typed could be a recovery key at all. The service refuses malformed material
+    /// before submission; this is the button agreeing with it.
+    var canSubmitRecoveryArtifact: Bool {
+        phase == .enteringRecoveryArtifact
+            && bindings.recoveryArtifact.filter { !$0.isWhitespace }.count == AuthorityRecoveryArtifact.encodedLength
     }
 }
 
@@ -87,6 +190,9 @@ struct AccountAuthorityScreenViewStateBindings {
     var pin = ""
     /// The user's own statement that they wrote the recovery key down. Nothing else sets it.
     var hasStoredRecoveryArtifact = false
+    /// The user's own statement that the two fingerprints matched. Nothing else sets it.
+    var hasComparedFingerprint = false
+    var recoveryArtifact = ""
 }
 
 enum AccountAuthorityScreenViewAction {
@@ -99,8 +205,26 @@ enum AccountAuthorityScreenViewAction {
     /// Put the recovery key on the clipboard. It is the key itself, so this is the one copy action in
     /// the app that is worth a confirmation the user can see.
     case copyRecoveryArtifact
-    /// The artifact is stored and the adoption may go ahead.
-    case submitAdoption
+    /// The artifact is stored and the record may go ahead.
+    case submitArtifact
     case cancel
     case showApprovals
+    /// Object to what is pending, by whichever route its type permits.
+    case opposePending
+    /// Offer this phone's own key so a trusted device can add it.
+    case offerThisDevice
+    /// Look at one offered key and compare its fingerprint.
+    case compareCandidate(AuthorityCandidate)
+    /// Sign the grant for the candidate being compared.
+    case signGrant
+    case revokeDevice(AuthorityDeviceSummary)
+    case revokeThisDevice
+    /// Open the field that takes the recovery key back.
+    case startRecovery
+    case recoveryArtifactChanged
+    case submitRecoveryArtifact
+    /// The path for someone who no longer has the recovery key, after an account recovery.
+    case startRecoveryThroughAccountRecovery
+    case enableAlerts
+    case removeAlerts(SecurityNotificationSummary)
 }
