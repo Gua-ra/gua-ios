@@ -19,6 +19,13 @@ enum AuthorityPurpose: String, Equatable {
     case revoke = "REVOKE"
     case recover = "RECOVER"
     case approve = "APPROVE"
+    /// A signed `Oppose` record. It asks for no factor: the authorization is a signature by a key the
+    /// chain has active and unquarantined, and the hold gates starting a transition and never opposing
+    /// one, so an owner whose only factor is fresh can still say no.
+    case oppose = "OPPOSE"
+    /// Binding a security-notification registration to a device authority key, or removing one that
+    /// carries such a binding. The challenge is what makes the device's signature unreplayable.
+    case notify = "NOTIFY"
 }
 
 /// The step-up an authority transition is authorized by: a user-verifying passkey assertion, or the
@@ -123,9 +130,40 @@ struct AuthorityDeviceSummary: Equatable, Identifiable {
     }
 }
 
+/// Which record is holding the slot, which decides who may object to it and how.
+enum AuthorityPendingType: Equatable {
+    case adoptRoot
+    case deviceGrant
+    case deviceRevoke
+    case authorityRecovery
+    /// A type this build has not heard of. Shown as a window with no action rather than rounded to one
+    /// whose opposition rules would be guessed.
+    case unknown(String)
+
+    init(wireValue: String) {
+        switch wireValue {
+        case "ADOPT_ROOT": self = .adoptRoot
+        case "DEVICE_GRANT": self = .deviceGrant
+        case "DEVICE_REVOKE": self = .deviceRevoke
+        case "AUTHORITY_RECOVERY": self = .authorityRecovery
+        default: self = .unknown(wireValue)
+        }
+    }
+
+    /// Whether objecting to this needs a signature from a device the chain holds active.
+    ///
+    /// Only an adoption does not: at `seq = 1` the account holds no authority to weigh, so the honest veto
+    /// is that someone who can already read this account's notifications says no. For everything else a
+    /// session's word is refused, because a stolen session could otherwise veto the owner's own revocation
+    /// of the thief's device.
+    var needsADeviceToOppose: Bool {
+        self != .adoptRoot
+    }
+}
+
 /// A transition inside its window, which already holds its `seq`.
 struct AuthorityPendingTransition: Equatable {
-    let type: String
+    let type: AuthorityPendingType
     let seq: Int64
     let effectiveAt: Date
     let recordHash: String
@@ -178,6 +216,72 @@ struct AuthorityApproval: Equatable, Identifiable {
     }
 }
 
+/// A public key another device of this account has offered for a grant (ADM-009 decision 5, revision 4).
+///
+/// The new device posts only its public key under its own session. What crosses between the two phones
+/// after that is the fingerprint, and the fingerprint alone: the granting device never receives a private
+/// key and the new device never receives one either.
+struct AuthorityCandidate: Equatable, Identifiable {
+    /// The raw 32-byte Ed25519 key, base64url.
+    let deviceKeyB64: String
+    /// The eight characters the server computed. This client recomputes them from the key rather than
+    /// showing this string, because a fingerprint the server chose would only prove both phones had
+    /// spoken to the same server.
+    let fingerprint: String
+    let label: String
+    let expiresAt: Date
+
+    var id: String {
+        deviceKeyB64
+    }
+}
+
+/// What one install registers as a security-notification destination (ADM-009 gate 2).
+struct SecurityNotificationRegistration: Equatable {
+    /// Client-generated, held in the keychain, stable across sign-out. The upsert key.
+    let installationID: String
+    /// `APNS` on this platform. The enum exists on the server for both clients.
+    let platform: String
+    /// The APNs device token, hex as the pusher sends it.
+    let token: String
+    /// The same app id the Matrix pusher already sends, so the topic is picked from one constant.
+    let appID: String
+    let deviceLabel: String?
+    /// The device authority key this install holds, base64url, when it holds one. Accepted only with a
+    /// challenge and a signature by that key: the field is what makes removing this registration from
+    /// another install need a signature, so a claimed one could plant a row the owner cannot remove.
+    let authorityDeviceKeyB64: String?
+    let challenge: String?
+    let signature: String?
+}
+
+/// One registration as its own account holder is allowed to see it. Never the destination itself.
+struct SecurityNotificationSummary: Equatable, Identifiable {
+    let installationID: String
+    let platform: String
+    let deviceLabel: String
+    /// SHA-256 hex of the token, so a row can be named in a list without printing where it points.
+    let tokenFingerprint: String
+    /// Whether removing it from another install needs a device signature.
+    let isBoundToAnAuthorityDevice: Bool
+    let lastSeenAt: Date
+
+    var id: String {
+        installationID
+    }
+}
+
+/// What a removal presents. Which tier it reaches is decided by what it can produce, never by a flag it
+/// sets: naming your own install needs nothing else, naming another needs a factor past the fresh-factor
+/// hold plus a device signature where the row carries a key.
+struct SecurityNotificationRemoval: Equatable {
+    let installationID: String
+    let callerInstallationID: String?
+    let stepUp: AuthorityStepUp?
+    let challenge: String?
+    let signature: String?
+}
+
 /// The slice of identity-service the authority chain needs.
 ///
 /// Narrow rather than folded into ``IdentityServiceClientProtocol``, exactly as ``AccountGenesisRegistering``
@@ -186,9 +290,13 @@ struct AuthorityApproval: Equatable, Identifiable {
 protocol AccountAuthorityRequesting: Sendable {
     /// Mints the challenge one transition will sign, spending the step-up in the same call so the
     /// step-up can never be older than the challenge it authorizes.
+    ///
+    /// `stepUp` is `nil` for the two purposes that ask for none: an `Oppose`, whose authorization is a
+    /// signature by a key the chain already holds active, and a notification binding, which is the same.
+    /// Passing an empty factor instead would read as presenting one.
     func authorityChallenge(accessToken: String,
                             purpose: AuthorityPurpose,
-                            stepUp: AuthorityStepUp) async throws -> AuthorityChallenge
+                            stepUp: AuthorityStepUp?) async throws -> AuthorityChallenge
     func submitAuthorityAdoption(accessToken: String,
                                  record: String,
                                  signature: String,
@@ -198,6 +306,37 @@ protocol AccountAuthorityRequesting: Sendable {
                                     record: String,
                                     signature: String,
                                     challenge: String) async throws -> AuthoritySubmission
+    func submitAuthorityDeviceRevoke(accessToken: String,
+                                     record: String,
+                                     signature: String,
+                                     challenge: String) async throws -> AuthoritySubmission
+    func submitAuthorityRecovery(accessToken: String,
+                                 record: String,
+                                 signature: String,
+                                 challenge: String) async throws -> AuthoritySubmission
+    /// The session-authorized opposition of ADM-009 decision 4. It may cancel an **adoption** and nothing
+    /// else: accepting a session's word for a grant or a revocation would let a stolen session veto the
+    /// owner's own revocation of the thief's device.
+    ///
+    /// `stepUp` is `nil` for the first opposition, which needs no factor beyond the session, and carries
+    /// one from the second onward.
+    func opposeAuthorityAdoption(accessToken: String,
+                                 recordHash: String?,
+                                 stepUp: AuthorityStepUp?) async throws
+    /// The signed `Oppose` record, which is the claim a session cannot make. It takes no slot and starts
+    /// no window: it cancels the record it names, or it is refused.
+    func submitAuthorityOpposition(accessToken: String,
+                                   record: String,
+                                   signature: String,
+                                   challenge: String) async throws
+    func registerAuthorityCandidate(accessToken: String,
+                                    deviceKeyB64: String,
+                                    label: String) async throws -> AuthorityCandidate
+    func authorityCandidates(accessToken: String) async throws -> [AuthorityCandidate]
+    func registerSecurityNotification(accessToken: String,
+                                      registration: SecurityNotificationRegistration) async throws -> SecurityNotificationSummary
+    func securityNotifications(accessToken: String) async throws -> [SecurityNotificationSummary]
+    func removeSecurityNotification(accessToken: String, removal: SecurityNotificationRemoval) async throws
     func authorityState(accessToken: String) async throws -> AuthorityChainState
     func liveAuthorityApprovals(accessToken: String) async throws -> [AuthorityApproval]
     func signAuthorityApproval(accessToken: String, approvalID: String, signature: String) async throws
@@ -226,16 +365,64 @@ enum AuthorityRecoveryArtifact {
         }
         .joined(separator: " ")
     }
+
+    /// Characters the encoding produces, so a typo can be named before anything is submitted.
+    static let keyLength = AuthorityRecord.keyLength
+    /// 32 bytes of base32 come to 52 characters.
+    static let encodedLength = 52
+
+    /// Reads back what ``render(_:)`` showed.
+    ///
+    /// Whitespace and case are forgiven, because the value was read off one screen and typed into another
+    /// and the encoding has neither. Everything else is refused **here**, before any request is made: the
+    /// endpoint that would receive it starts a window and burns a challenge, so a mistyped key that reaches
+    /// it costs the owner a cooldown rather than a second try.
+    static func parse(_ typed: String) throws -> Curve25519.Signing.PrivateKey {
+        let cleaned = typed.lowercased().filter { !$0.isWhitespace }
+        guard cleaned.count == encodedLength else {
+            throw AccountAuthorityServiceError.artifactMalformed
+        }
+        let raw: [UInt8]
+        do {
+            raw = try GuaBase32.decode(cleaned)
+        } catch {
+            throw AccountAuthorityServiceError.artifactMalformed
+        }
+        guard raw.count == keyLength else { throw AccountAuthorityServiceError.artifactMalformed }
+        do {
+            return try Curve25519.Signing.PrivateKey(rawRepresentation: Data(raw))
+        } catch {
+            throw AccountAuthorityServiceError.artifactMalformed
+        }
+    }
 }
 
-/// An adoption that is built, signed and ready, waiting only on the user confirming they stored the
-/// recovery artifact.
+/// A record that mints a new recovery authority key, built, signed and ready, waiting only on the user
+/// confirming they stored the artifact.
+///
+/// Two record types reach this: `AdoptRoot`, which roots the account, and `AuthorityRecovery`, which
+/// replaces the device set. Both commit a **new** recovery authority key, so both are refused until the
+/// user says they have stored it, and for the same reason: ADM-009 decision 7's end state is permanent.
+/// One type rather than two, because the rule is the same and a second copy of it is a second place for it
+/// to go missing.
 ///
 /// A class rather than a struct so the confirmation cannot be forged by a caller assembling its own
 /// value: ``confirmArtifactStored()`` is the only way to set it, and it wipes the artifact from this
 /// object as it does, which is what "shown once" means in code.
 @MainActor
-final class PreparedAdoption {
+final class PreparedAuthorityRecord {
+    /// Which record this is, and therefore which endpoint submits it and what the copy around it says.
+    enum Kind: Equatable {
+        case adoption
+        /// `AuthorityRecovery` authorized by the committed recovery authority key: rank 2, which no
+        /// pending record blocks and no device can cancel.
+        case recoveryUnderRecoveryKey
+        /// `AuthorityRecovery` authorized through a completed account recovery: rank 0, vetoable by any
+        /// active device immediately, and refused outright on a genesis-rooted account.
+        case recoveryThroughAccountRecovery
+    }
+
+    let kind: Kind
     let accountID: AccountID
     /// base64url of the canonical `AdoptRoot` bytes.
     let record: String
@@ -249,12 +436,14 @@ final class PreparedAdoption {
     private(set) var recoveryArtifact: String?
     private(set) var isArtifactConfirmed = false
 
-    init(accountID: AccountID,
+    init(kind: Kind,
+         accountID: AccountID,
          record: String,
          signature: String,
          challenge: String,
          deviceLabel: String,
          recoveryArtifact: String) {
+        self.kind = kind
         self.accountID = accountID
         self.record = record
         self.signature = signature
@@ -283,6 +472,17 @@ enum AccountAuthorityServiceError: Error, Equatable {
     case malformedServerValue
     /// This device holds no authority key for the account, so there is nothing for it to sign with.
     case notAnAuthorityDevice
+    /// The typed or imported recovery key is not one this encoding produces. Refused before submission.
+    case artifactMalformed
+    /// The recovery key that was entered is not the one the account's chain committed. Caught here by
+    /// comparing public halves, so the owner is told they have the wrong key rather than watching a
+    /// window open and a signature fail.
+    case artifactNotThisAccount
+    /// The fingerprint the granting device recomputed from the offered key does not match the one the
+    /// server sent beside it, or the human comparison was not confirmed. Either way nothing is signed.
+    case candidateUnverified
+    /// This install has no push destination to register, so there is no channel to offer.
+    case noPushToken
 }
 
 // MARK: - The service
@@ -297,22 +497,85 @@ protocol AccountAuthorityServiceProtocol {
     /// Runs everything adoption needs before the user is asked to store the recovery key: the scoped
     /// step-up and its challenge, the two keys, the record and its signature.
     ///
-    /// Nothing reaches the chain here. A client that stops between this call and ``submitAdoption(accessToken:prepared:)``
+    /// Nothing reaches the chain here. A client that stops between this call and ``submit(accessToken:prepared:)``
     /// has produced nothing the server has seen, and its keys are garbage it replaces next time.
     func prepareAdoption(accessToken: String,
                          accountID: AccountID,
-                         stepUp: AuthorityStepUp) async throws -> PreparedAdoption
+                         stepUp: AuthorityStepUp) async throws -> PreparedAuthorityRecord
 
-    /// Submits a prepared adoption. Refuses locally while the artifact is unconfirmed.
-    func submitAdoption(accessToken: String, prepared: PreparedAdoption) async throws -> AuthoritySubmission
+    /// Builds and signs an `AuthorityRecovery` under the recovery key the user just typed back.
+    ///
+    /// The typed material is parsed and matched against the account's own chain **before** the challenge
+    /// is minted, so a wrong or mistyped key costs a message rather than a burned challenge and a cooldown.
+    func prepareRecovery(accessToken: String,
+                         state: AuthorityChainState,
+                         typedArtifact: String,
+                         stepUp: AuthorityStepUp) async throws -> PreparedAuthorityRecord
 
-    /// Signs a `DeviceGrant` over a key another device generated for itself, in the one direction
-    /// ADM-009 decision 5 permits.
+    /// Builds and signs an `AuthorityRecovery` authorized through a completed account recovery.
+    ///
+    /// The weaker of the two paths, deliberately: it is signed by the device key it installs, any active
+    /// device can veto it the moment it lands, and it is refused on a genesis-rooted account.
+    func prepareRecoveryThroughAccountRecovery(accessToken: String,
+                                               state: AuthorityChainState,
+                                               stepUp: AuthorityStepUp) async throws -> PreparedAuthorityRecord
+
+    /// Submits a prepared record. Refuses locally while the artifact is unconfirmed.
+    func submit(accessToken: String, prepared: PreparedAuthorityRecord) async throws -> AuthoritySubmission
+
+    /// Offers this device's own public key as a candidate for a grant, and returns the fingerprint the
+    /// other phone has to match. Only the public half leaves this device, ever.
+    func offerThisDevice(accessToken: String, accountID: AccountID) async throws -> AuthorityCandidate
+
+    /// The keys other devices of this account have offered. What a grant may name, and nothing else.
+    func candidates(accessToken: String) async throws -> [AuthorityCandidate]
+
+    /// Signs a `DeviceGrant` over a candidate this account offered.
+    ///
+    /// Refuses unless the fingerprint this device recomputes from the offered key equals the one the
+    /// server sent beside it, and unless the caller states the human comparison was made. The first check
+    /// is what makes the fingerprint mean the key rather than meaning the server; the second is the reason
+    /// the fingerprint exists at all.
     func signDeviceGrant(accessToken: String,
                          state: AuthorityChainState,
-                         granteeKey: [UInt8],
-                         label: String,
+                         candidate: AuthorityCandidate,
+                         comparisonConfirmed: Bool,
                          stepUp: AuthorityStepUp) async throws -> AuthoritySubmission
+
+    /// Signs a `DeviceRevoke`. Revoking another device waits out the window and is notified; revoking this
+    /// device's own key takes effect at once, which the server decides and reports.
+    func revokeDevice(accessToken: String,
+                      state: AuthorityChainState,
+                      deviceKey: String,
+                      reason: UInt8,
+                      stepUp: AuthorityStepUp) async throws -> AuthoritySubmission
+
+    /// Objects to the pending transition, by whichever route ADM-009 permits for its type.
+    ///
+    /// An adoption is opposed by the session, because at `seq = 1` there is no device yet. Everything else
+    /// is opposed by a signed `Oppose` record from a key the chain has active, because a stolen session
+    /// must not be able to veto the owner's own revocation of the thief's device.
+    func oppose(accessToken: String,
+                state: AuthorityChainState,
+                pending: AuthorityPendingTransition,
+                stepUp: AuthorityStepUp?) async throws
+
+    /// Registers this install as a security-notification destination, binding it to this device's
+    /// authority key where it holds one.
+    func registerSecurityAlerts(accessToken: String,
+                                accountID: AccountID) async throws -> SecurityNotificationSummary
+
+    func securityAlerts(accessToken: String) async throws -> [SecurityNotificationSummary]
+
+    /// Removes one registration. Naming this install needs no factor; naming another needs a step-up and,
+    /// where the row carries a device key, a signature by this device's key.
+    func removeSecurityAlerts(accessToken: String,
+                              accountID: AccountID,
+                              installationID: String,
+                              stepUp: AuthorityStepUp?) async throws
+
+    /// This install's own id, so a listing can say which row is the phone in the reader's hand.
+    func thisInstallationID() -> String?
 
     func liveApprovals(accessToken: String) async throws -> [AuthorityApproval]
 
@@ -334,6 +597,8 @@ protocol AccountAuthorityServiceProtocol {
 final class AccountAuthorityService: AccountAuthorityServiceProtocol {
     private let client: AccountAuthorityRequesting
     private let keyStore: AccountAuthorityKeyStoreProtocol
+    private let installationIDStore: AuthorityInstallationIDStoreProtocol
+    private let pushTokenStore: AuthorityPushTokenStore
     private let appSettings: AppSettings
     /// What a record's 16-byte label will say. Read once so a rename mid-flow cannot make the label in
     /// the signature differ from the one the screen showed.
@@ -341,10 +606,14 @@ final class AccountAuthorityService: AccountAuthorityServiceProtocol {
 
     init(client: AccountAuthorityRequesting,
          keyStore: AccountAuthorityKeyStoreProtocol,
+         installationIDStore: AuthorityInstallationIDStoreProtocol,
+         pushTokenStore: AuthorityPushTokenStore,
          appSettings: AppSettings,
          deviceLabel: String = UIDevice.current.name) {
         self.client = client
         self.keyStore = keyStore
+        self.installationIDStore = installationIDStore
+        self.pushTokenStore = pushTokenStore
         self.appSettings = appSettings
         self.deviceLabel = deviceLabel
     }
@@ -353,7 +622,11 @@ final class AccountAuthorityService: AccountAuthorityServiceProtocol {
     /// configured, which is the same condition under which every other Gua account screen fails closed.
     convenience init?(appSettings: AppSettings) {
         guard let client = IdentityServiceClient() else { return nil }
-        self.init(client: client, keyStore: AccountAuthorityKeyStore(), appSettings: appSettings)
+        self.init(client: client,
+                  keyStore: AccountAuthorityKeyStore(),
+                  installationIDStore: AuthorityInstallationIDStore(),
+                  pushTokenStore: .shared,
+                  appSettings: appSettings)
     }
 
     var isEnabled: Bool {
@@ -367,7 +640,7 @@ final class AccountAuthorityService: AccountAuthorityServiceProtocol {
 
     func prepareAdoption(accessToken: String,
                          accountID: AccountID,
-                         stepUp: AuthorityStepUp) async throws -> PreparedAdoption {
+                         stepUp: AuthorityStepUp) async throws -> PreparedAuthorityRecord {
         // The flag gate, ahead of anything being generated, stored or sent. Callers check `isEnabled`
         // too; this is here so the service cannot be made to act while the flag is down.
         guard isEnabled else { throw AccountAuthorityServiceError.disabled }
@@ -421,27 +694,36 @@ final class AccountAuthorityService: AccountAuthorityServiceProtocol {
             throw AccountAuthorityServiceError.keyUnavailable
         }
 
-        return PreparedAdoption(accountID: accountID,
-                                record: GuaBase64URL.encode(canonicalBytes),
-                                signature: GuaBase64URL.encode([UInt8](signature)),
-                                challenge: challenge.challenge,
-                                deviceLabel: AuthorityLabel.decode(AuthorityLabel.encode(deviceLabel)),
-                                recoveryArtifact: AuthorityRecoveryArtifact.render(keyPair.recovery))
+        return PreparedAuthorityRecord(kind: .adoption,
+                                       accountID: accountID,
+                                       record: GuaBase64URL.encode(canonicalBytes),
+                                       signature: GuaBase64URL.encode([UInt8](signature)),
+                                       challenge: challenge.challenge,
+                                       deviceLabel: AuthorityLabel.decode(AuthorityLabel.encode(deviceLabel)),
+                                       recoveryArtifact: AuthorityRecoveryArtifact.render(keyPair.recovery))
     }
 
-    func submitAdoption(accessToken: String, prepared: PreparedAdoption) async throws -> AuthoritySubmission {
+    func submit(accessToken: String, prepared: PreparedAuthorityRecord) async throws -> AuthoritySubmission {
         guard isEnabled else { throw AccountAuthorityServiceError.disabled }
-        // Adoption is unreachable without the confirmation, which is a rule rather than a prompt
-        // (ADM-009 decision 7). The server refuses an unconfirmed submission as well; this is why the
+        // Neither record is reachable without the confirmation, which is a rule rather than a prompt
+        // (ADM-009 decision 7). The server refuses an unconfirmed adoption as well; this is why the
         // request is never made.
         guard prepared.isArtifactConfirmed else { throw AccountAuthorityServiceError.artifactUnconfirmed }
 
         do {
-            return try await client.submitAuthorityAdoption(accessToken: accessToken,
-                                                            record: prepared.record,
-                                                            signature: prepared.signature,
-                                                            challenge: prepared.challenge,
-                                                            recoveryArtifactConfirmed: true)
+            switch prepared.kind {
+            case .adoption:
+                return try await client.submitAuthorityAdoption(accessToken: accessToken,
+                                                                record: prepared.record,
+                                                                signature: prepared.signature,
+                                                                challenge: prepared.challenge,
+                                                                recoveryArtifactConfirmed: true)
+            case .recoveryUnderRecoveryKey, .recoveryThroughAccountRecovery:
+                return try await client.submitAuthorityRecovery(accessToken: accessToken,
+                                                                record: prepared.record,
+                                                                signature: prepared.signature,
+                                                                challenge: prepared.challenge)
+            }
         } catch let error as IdentityServiceError {
             // A refusal the server made up its mind about: the record is not on the chain and never will
             // be under this challenge, so the keys are garbage. A transport failure is not that, and its
@@ -453,12 +735,187 @@ final class AccountAuthorityService: AccountAuthorityServiceProtocol {
         }
     }
 
+    func prepareRecovery(accessToken: String,
+                         state: AuthorityChainState,
+                         typedArtifact: String,
+                         stepUp: AuthorityStepUp) async throws -> PreparedAuthorityRecord {
+        guard isEnabled else { throw AccountAuthorityServiceError.disabled }
+
+        // Parsed and matched before anything is minted. The endpoint this would reach starts a window and
+        // burns a challenge, so a mistyped key that got that far would cost the owner a cooldown.
+        let recoveryKey = try AuthorityRecoveryArtifact.parse(typedArtifact)
+        let recoveryPublicKey = [UInt8](recoveryKey.publicKey.rawRepresentation)
+        // The chain does not publish the committed recovery key, so the mismatch that can be caught here
+        // is the one that matters in practice: a key that is not even this account's device key, and a key
+        // that is 32 valid bytes of something else. The server settles it by verifying the signature.
+        guard !state.devices.contains(where: { $0.deviceKey == GuaBase64URL.encode(recoveryPublicKey) }) else {
+            throw AccountAuthorityServiceError.artifactNotThisAccount
+        }
+
+        return try await prepareRecoveryRecord(accessToken: accessToken,
+                                               state: state,
+                                               authorization: AuthorityRecord.authorizationRecoveryKey,
+                                               signWith: recoveryKey,
+                                               authorizingKey: recoveryPublicKey,
+                                               stepUp: stepUp)
+    }
+
+    func prepareRecoveryThroughAccountRecovery(accessToken: String,
+                                               state: AuthorityChainState,
+                                               stepUp: AuthorityStepUp) async throws -> PreparedAuthorityRecord {
+        guard isEnabled else { throw AccountAuthorityServiceError.disabled }
+        // Nothing is passed for the authorizing key: under this path the field is 32 zero bytes by rule and
+        // the record is signed by the device key it installs, which is generated inside the call below.
+        return try await prepareRecoveryRecord(accessToken: accessToken,
+                                               state: state,
+                                               authorization: AuthorityRecord.authorizationAccountRecovery,
+                                               signWith: nil,
+                                               authorizingKey: AuthorityRecord.zeroKey,
+                                               stepUp: stepUp)
+    }
+
+    /// The half both recovery paths share: a new device key, a new recovery key, the record, and the
+    /// signature of whichever key the path names as its signer.
+    private func prepareRecoveryRecord(accessToken: String,
+                                       state: AuthorityChainState,
+                                       authorization: UInt8,
+                                       signWith committedRecoveryKey: Curve25519.Signing.PrivateKey?,
+                                       authorizingKey: [UInt8],
+                                       stepUp: AuthorityStepUp) async throws -> PreparedAuthorityRecord {
+        guard let prevHash = AuthorityRecord.hashBytes(fromHex: state.headHash),
+              state.headSeq >= 0, state.headSeq < Int64.max else {
+            throw AccountAuthorityServiceError.malformedServerValue
+        }
+
+        let challenge = try await client.authorityChallenge(accessToken: accessToken,
+                                                            purpose: .recover,
+                                                            stepUp: stepUp)
+        guard let challengeBytes = GuaBase64URL.decode(challenge.challenge),
+              challengeBytes.count == AuthorityRecord.challengeLength else {
+            throw AccountAuthorityServiceError.malformedServerValue
+        }
+
+        // A recovery replaces the device set with one device and installs a new recovery authority key in
+        // the same record, so both are fresh: reusing the old recovery key would mean a recovery that does
+        // not recover from the key being known.
+        let keyPair = keyStore.generateKeyPair()
+        var entropy = [UInt8](repeating: 0, count: AuthorityRecord.entropyLength)
+        guard SecRandomCopyBytes(kSecRandomDefault, entropy.count, &entropy) == errSecSuccess else {
+            throw AccountAuthorityServiceError.keyUnavailable
+        }
+
+        let canonicalBytes = try AuthorityRecord.authorityRecovery(accountID: state.accountID,
+                                                                   deviceKey: [UInt8](keyPair.authority.publicKey.rawRepresentation),
+                                                                   recoveryKey: [UInt8](keyPair.recovery.publicKey.rawRepresentation),
+                                                                   label: deviceLabel,
+                                                                   entropy: entropy,
+                                                                   authorization: authorization,
+                                                                   authorizingKey: authorizingKey,
+                                                                   prevHash: prevHash,
+                                                                   seq: UInt64(state.headSeq) + 1)
+        try AuthorityRecord.validate(canonicalBytes)
+
+        let preimage = try AuthorityProofs.recordPreimage(type: .authorityRecovery,
+                                                          challenge: challengeBytes,
+                                                          canonicalBytes: canonicalBytes)
+        let signature: Data
+        do {
+            // The signer is the path, not a choice: the committed recovery key under rank 2, and the
+            // device key being installed under rank 0, where the account has no other key left.
+            signature = try (committedRecoveryKey ?? keyPair.authority).signature(for: Data(preimage))
+        } catch {
+            throw AccountAuthorityServiceError.signingFailed
+        }
+
+        // Stored before the submission, for the reason adoption stores its pair: a recovery that is
+        // accepted while its reply is lost still has its key on this device. A store that refuses ends the
+        // recovery here rather than committing a key this phone cannot read back.
+        do {
+            try keyStore.persist(keyPair, forAccountID: state.accountID.value)
+        } catch {
+            throw AccountAuthorityServiceError.keyUnavailable
+        }
+
+        let kind: PreparedAuthorityRecord.Kind = authorization == AuthorityRecord.authorizationRecoveryKey
+            ? .recoveryUnderRecoveryKey
+            : .recoveryThroughAccountRecovery
+        return PreparedAuthorityRecord(kind: kind,
+                                       accountID: state.accountID,
+                                       record: GuaBase64URL.encode(canonicalBytes),
+                                       signature: GuaBase64URL.encode([UInt8](signature)),
+                                       challenge: challenge.challenge,
+                                       deviceLabel: AuthorityLabel.decode(AuthorityLabel.encode(deviceLabel)),
+                                       recoveryArtifact: AuthorityRecoveryArtifact.render(keyPair.recovery))
+    }
+
+    func offerThisDevice(accessToken: String, accountID: AccountID) async throws -> AuthorityCandidate {
+        guard isEnabled else { throw AccountAuthorityServiceError.disabled }
+
+        // The key this device already holds for the account, when it holds one, rather than a fresh pair.
+        // Generating a second one would leave the phone with two answers to "which key is mine" and would
+        // orphan whichever the chain ends up naming.
+        let authorityKey: Curve25519.Signing.PrivateKey
+        if let existing = try? keyStore.authorityKey(forAccountID: accountID.value) {
+            authorityKey = existing
+        } else {
+            let keyPair = keyStore.generateKeyPair()
+            // The recovery half of the pair is stored and never committed: only an AdoptRoot and an
+            // AuthorityRecovery commit a recovery authority key, and a granted device writes neither.
+            do {
+                try keyStore.persist(keyPair, forAccountID: accountID.value)
+            } catch {
+                throw AccountAuthorityServiceError.keyUnavailable
+            }
+            authorityKey = keyPair.authority
+        }
+
+        let publicKey = [UInt8](authorityKey.publicKey.rawRepresentation)
+        let candidate = try await client.registerAuthorityCandidate(accessToken: accessToken,
+                                                                    deviceKeyB64: GuaBase64URL.encode(publicKey),
+                                                                    label: deviceLabel)
+        // The fingerprint this phone shows is the one it computed, not the one it was sent. A server-issued
+        // string would make the comparison across the room mean "both spoke to the same server", which is
+        // already assumed and is not the property being checked.
+        guard let computed = AuthorityFingerprint.of(publicKey) else {
+            throw AccountAuthorityServiceError.malformedServerValue
+        }
+        return AuthorityCandidate(deviceKeyB64: candidate.deviceKeyB64,
+                                  fingerprint: computed,
+                                  label: candidate.label,
+                                  expiresAt: candidate.expiresAt)
+    }
+
+    func candidates(accessToken: String) async throws -> [AuthorityCandidate] {
+        guard isEnabled else { throw AccountAuthorityServiceError.disabled }
+        return try await client.authorityCandidates(accessToken: accessToken).compactMap { candidate in
+            // A candidate whose key this build cannot read is dropped rather than shown with the server's
+            // fingerprint beside it: a row a user could confirm without the comparison meaning anything is
+            // worse than a row that is not there.
+            guard let key = GuaBase64URL.decode(candidate.deviceKeyB64),
+                  let computed = AuthorityFingerprint.of(key) else {
+                return nil
+            }
+            return AuthorityCandidate(deviceKeyB64: candidate.deviceKeyB64,
+                                      fingerprint: computed,
+                                      label: candidate.label,
+                                      expiresAt: candidate.expiresAt)
+        }
+    }
+
     func signDeviceGrant(accessToken: String,
                          state: AuthorityChainState,
-                         granteeKey: [UInt8],
-                         label: String,
+                         candidate: AuthorityCandidate,
+                         comparisonConfirmed: Bool,
                          stepUp: AuthorityStepUp) async throws -> AuthoritySubmission {
         guard isEnabled else { throw AccountAuthorityServiceError.disabled }
+        // The fingerprint is the only thing binding the key to the person holding the other phone, so a
+        // grant signed without the comparison having been made is a grant over whatever came up the wire.
+        guard comparisonConfirmed else { throw AccountAuthorityServiceError.candidateUnverified }
+        guard let granteeKey = GuaBase64URL.decode(candidate.deviceKeyB64),
+              let computed = AuthorityFingerprint.of(granteeKey),
+              computed == candidate.fingerprint else {
+            throw AccountAuthorityServiceError.candidateUnverified
+        }
 
         let authorityKey = try signingKey(for: state.accountID)
         guard let prevHash = AuthorityRecord.hashBytes(fromHex: state.headHash) else {
@@ -478,7 +935,7 @@ final class AccountAuthorityService: AccountAuthorityServiceProtocol {
 
         let canonicalBytes = try AuthorityRecord.deviceGrant(accountID: state.accountID,
                                                              granteeKey: granteeKey,
-                                                             label: label,
+                                                             label: candidate.label,
                                                              authorizingKey: [UInt8](authorityKey.publicKey.rawRepresentation),
                                                              prevHash: prevHash,
                                                              seq: UInt64(state.headSeq) + 1)
@@ -499,6 +956,233 @@ final class AccountAuthorityService: AccountAuthorityServiceProtocol {
                                                            signature: GuaBase64URL.encode([UInt8](signature)),
                                                            challenge: challenge.challenge)
     }
+
+    func revokeDevice(accessToken: String,
+                      state: AuthorityChainState,
+                      deviceKey: String,
+                      reason: UInt8,
+                      stepUp: AuthorityStepUp) async throws -> AuthoritySubmission {
+        guard isEnabled else { throw AccountAuthorityServiceError.disabled }
+        guard let removedKey = GuaBase64URL.decode(deviceKey),
+              removedKey.count == AuthorityRecord.keyLength else {
+            throw AccountAuthorityServiceError.malformedServerValue
+        }
+
+        let authorityKey = try signingKey(for: state.accountID)
+        guard let prevHash = AuthorityRecord.hashBytes(fromHex: state.headHash),
+              state.headSeq >= 0, state.headSeq < Int64.max else {
+            throw AccountAuthorityServiceError.malformedServerValue
+        }
+
+        let challenge = try await client.authorityChallenge(accessToken: accessToken,
+                                                            purpose: .revoke,
+                                                            stepUp: stepUp)
+        guard let challengeBytes = GuaBase64URL.decode(challenge.challenge),
+              challengeBytes.count == AuthorityRecord.challengeLength else {
+            throw AccountAuthorityServiceError.malformedServerValue
+        }
+
+        let canonicalBytes = try AuthorityRecord.deviceRevoke(accountID: state.accountID,
+                                                              deviceKey: removedKey,
+                                                              reason: reason,
+                                                              authorizingKey: [UInt8](authorityKey.publicKey.rawRepresentation),
+                                                              prevHash: prevHash,
+                                                              seq: UInt64(state.headSeq) + 1)
+        try AuthorityRecord.validate(canonicalBytes)
+
+        let preimage = try AuthorityProofs.recordPreimage(type: .deviceRevoke,
+                                                          challenge: challengeBytes,
+                                                          canonicalBytes: canonicalBytes)
+        let signature: Data
+        do {
+            signature = try authorityKey.signature(for: Data(preimage))
+        } catch {
+            throw AccountAuthorityServiceError.signingFailed
+        }
+
+        let submission = try await client.submitAuthorityDeviceRevoke(accessToken: accessToken,
+                                                                      record: GuaBase64URL.encode(canonicalBytes),
+                                                                      signature: GuaBase64URL.encode([UInt8](signature)),
+                                                                      challenge: challenge.challenge)
+        // A self-revocation that took effect immediately leaves this phone with a key the chain no longer
+        // names. Dropping it here is what makes "stop trusting this phone" true on the phone as well as on
+        // the chain; a pending one keeps its key, because it can still be opposed.
+        if GuaBase64URL.encode([UInt8](authorityKey.publicKey.rawRepresentation)) == deviceKey,
+           !submission.isPending {
+            keyStore.removeKeys(forAccountID: state.accountID.value)
+        }
+        return submission
+    }
+
+    func oppose(accessToken: String,
+                state: AuthorityChainState,
+                pending: AuthorityPendingTransition,
+                stepUp: AuthorityStepUp?) async throws {
+        guard isEnabled else { throw AccountAuthorityServiceError.disabled }
+
+        guard pending.type != .adoptRoot else {
+            // The one case where no device can exist yet, so the session is the whole authorization. A
+            // first opposition needs no factor; the server asks for one from the second onward.
+            try await client.opposeAuthorityAdoption(accessToken: accessToken,
+                                                     recordHash: pending.recordHash,
+                                                     stepUp: stepUp)
+            return
+        }
+
+        // Everything else is the claim a session cannot make, so it is a signed record from a key the chain
+        // has active and unquarantined. No factor is asked for and no hold is weighed: the holds gate
+        // starting a transition and never opposing one, because an owner who has just changed their PIN to
+        // lock a thief out must not be the one disarmed by it.
+        let authorityKey = try signingKey(for: state.accountID)
+        guard let opposedHash = AuthorityRecord.hashBytes(fromHex: pending.recordHash),
+              let prevHash = AuthorityRecord.hashBytes(fromHex: state.headHash),
+              pending.seq >= 1 else {
+            throw AccountAuthorityServiceError.malformedServerValue
+        }
+
+        let challenge = try await client.authorityChallenge(accessToken: accessToken,
+                                                            purpose: .oppose,
+                                                            stepUp: nil)
+        guard let challengeBytes = GuaBase64URL.decode(challenge.challenge),
+              challengeBytes.count == AuthorityRecord.challengeLength else {
+            throw AccountAuthorityServiceError.malformedServerValue
+        }
+
+        // An Oppose takes no slot and is never appended, so it carries the seq and prevHash of the record
+        // it cancels rather than the position after it.
+        let canonicalBytes = try AuthorityRecord.oppose(accountID: state.accountID,
+                                                        opposedRecordHash: opposedHash,
+                                                        authorizingKey: [UInt8](authorityKey.publicKey.rawRepresentation),
+                                                        prevHash: prevHash,
+                                                        seq: UInt64(pending.seq))
+        try AuthorityRecord.validate(canonicalBytes)
+
+        let preimage = try AuthorityProofs.recordPreimage(type: .oppose,
+                                                          challenge: challengeBytes,
+                                                          canonicalBytes: canonicalBytes)
+        let signature: Data
+        do {
+            signature = try authorityKey.signature(for: Data(preimage))
+        } catch {
+            throw AccountAuthorityServiceError.signingFailed
+        }
+
+        try await client.submitAuthorityOpposition(accessToken: accessToken,
+                                                   record: GuaBase64URL.encode(canonicalBytes),
+                                                   signature: GuaBase64URL.encode([UInt8](signature)),
+                                                   challenge: challenge.challenge)
+    }
+
+    // MARK: - The security notification channel
+
+    func registerSecurityAlerts(accessToken: String,
+                                accountID: AccountID) async throws -> SecurityNotificationSummary {
+        guard isEnabled else { throw AccountAuthorityServiceError.disabled }
+        guard let token = pushTokenStore.token else { throw AccountAuthorityServiceError.noPushToken }
+
+        let installationID: String
+        do {
+            installationID = try installationIDStore.installationID()
+        } catch {
+            throw AccountAuthorityServiceError.keyUnavailable
+        }
+
+        // The device key is bound with a signature rather than named, because the field is what makes
+        // removing this row from another install need one. A claimed key would let an attacker name the
+        // owner's key on their own row, and would let a row be planted that the owner's device can never
+        // remove.
+        var authorityDeviceKeyB64: String?
+        var challengeValue: String?
+        var signatureValue: String?
+        if let authorityKey = try? keyStore.authorityKey(forAccountID: accountID.value) {
+            let publicKey = [UInt8](authorityKey.publicKey.rawRepresentation)
+            let challenge = try await client.authorityChallenge(accessToken: accessToken,
+                                                                purpose: .notify,
+                                                                stepUp: nil)
+            guard let challengeBytes = GuaBase64URL.decode(challenge.challenge),
+                  challengeBytes.count == AuthorityRecord.challengeLength else {
+                throw AccountAuthorityServiceError.malformedServerValue
+            }
+            let preimage = try AuthorityProofs.notificationPreimage(accountID: accountID,
+                                                                    installationID: installationID,
+                                                                    deviceKey: publicKey,
+                                                                    challenge: challengeBytes)
+            do {
+                signatureValue = try GuaBase64URL.encode([UInt8](authorityKey.signature(for: Data(preimage))))
+            } catch {
+                throw AccountAuthorityServiceError.signingFailed
+            }
+            authorityDeviceKeyB64 = GuaBase64URL.encode(publicKey)
+            challengeValue = challenge.challenge
+        }
+
+        let registration = SecurityNotificationRegistration(installationID: installationID,
+                                                            platform: Self.applePlatform,
+                                                            token: token,
+                                                            appID: appSettings.pusherAppID,
+                                                            deviceLabel: deviceLabel,
+                                                            authorityDeviceKeyB64: authorityDeviceKeyB64,
+                                                            challenge: challengeValue,
+                                                            signature: signatureValue)
+        return try await client.registerSecurityNotification(accessToken: accessToken,
+                                                             registration: registration)
+    }
+
+    func securityAlerts(accessToken: String) async throws -> [SecurityNotificationSummary] {
+        guard isEnabled else { throw AccountAuthorityServiceError.disabled }
+        return try await client.securityNotifications(accessToken: accessToken)
+    }
+
+    func removeSecurityAlerts(accessToken: String,
+                              accountID: AccountID,
+                              installationID: String,
+                              stepUp: AuthorityStepUp?) async throws {
+        guard isEnabled else { throw AccountAuthorityServiceError.disabled }
+
+        let thisInstall = try? installationIDStore.installationID()
+        let isThisInstall = thisInstall == installationID
+
+        // Tier 1: this install removing its own row, which needs nothing else, because the person holding
+        // this phone is the person the channel serves. Tier 2: another install, which needs the step-up and,
+        // where the row carries a key, a signature by this device's authority key.
+        var challengeValue: String?
+        var signatureValue: String?
+        if !isThisInstall, let authorityKey = try? keyStore.authorityKey(forAccountID: accountID.value) {
+            let challenge = try await client.authorityChallenge(accessToken: accessToken,
+                                                                purpose: .notify,
+                                                                stepUp: nil)
+            guard let challengeBytes = GuaBase64URL.decode(challenge.challenge),
+                  challengeBytes.count == AuthorityRecord.challengeLength else {
+                throw AccountAuthorityServiceError.malformedServerValue
+            }
+            // The preimage names the row being removed, so a signature for one row cannot remove another.
+            let preimage = try AuthorityProofs.notificationPreimage(accountID: accountID,
+                                                                    installationID: installationID,
+                                                                    deviceKey: [UInt8](authorityKey.publicKey.rawRepresentation),
+                                                                    challenge: challengeBytes)
+            do {
+                signatureValue = try GuaBase64URL.encode([UInt8](authorityKey.signature(for: Data(preimage))))
+            } catch {
+                throw AccountAuthorityServiceError.signingFailed
+            }
+            challengeValue = challenge.challenge
+        }
+
+        let removal = SecurityNotificationRemoval(installationID: installationID,
+                                                  callerInstallationID: thisInstall,
+                                                  stepUp: isThisInstall ? nil : stepUp,
+                                                  challenge: challengeValue,
+                                                  signature: signatureValue)
+        try await client.removeSecurityNotification(accessToken: accessToken, removal: removal)
+    }
+
+    func thisInstallationID() -> String? {
+        guard isEnabled else { return nil }
+        return try? installationIDStore.installationID()
+    }
+
+    /// The platform name the server's enum uses for this client.
+    private static let applePlatform = "APNS"
 
     func liveApprovals(accessToken: String) async throws -> [AuthorityApproval] {
         guard isEnabled else { throw AccountAuthorityServiceError.disabled }

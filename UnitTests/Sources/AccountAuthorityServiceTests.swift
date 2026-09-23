@@ -12,6 +12,8 @@ import XCTest
 final class AccountAuthorityServiceTests: XCTestCase {
     private var client: AuthorityRequesterStub!
     private var keyStore: AuthorityKeyStoreStub!
+    private var installationIDStore: AuthorityInstallationIDStoreStub!
+    private var pushTokenStore: AuthorityPushTokenStore!
     private var appSettings: AppSettings!
     private var service: AccountAuthorityService!
 
@@ -24,8 +26,12 @@ final class AccountAuthorityServiceTests: XCTestCase {
         keyStore = AuthorityKeyStoreStub()
         appSettings = AppSettings()
         appSettings.guaAccountAuthorityEnabled = false
+        installationIDStore = AuthorityInstallationIDStoreStub()
+        pushTokenStore = AuthorityPushTokenStore(token: "0011aabb")
         service = AccountAuthorityService(client: client,
                                           keyStore: keyStore,
+                                          installationIDStore: installationIDStore,
+                                          pushTokenStore: pushTokenStore,
                                           appSettings: appSettings,
                                           deviceLabel: "iPhone")
     }
@@ -48,9 +54,50 @@ final class AccountAuthorityServiceTests: XCTestCase {
             try await self.service.prepareAdoption(accessToken: "token", accountID: self.accountID, stepUp: .pin("123456"))
         }
         await assertThrowsDisabled { try await self.service.liveApprovals(accessToken: "token") }
+        // Every surface the lifecycle added, not only the two that existed before it: a deployment with the
+        // flag down has to behave exactly as it did, and one method that forgot the gate is the whole
+        // difference between that and a feature that is half on.
+        await assertThrowsDisabled { try await self.service.offerThisDevice(accessToken: "token", accountID: self.accountID) }
+        await assertThrowsDisabled { try await self.service.candidates(accessToken: "token") }
+        await assertThrowsDisabled {
+            try await self.service.prepareRecovery(accessToken: "token",
+                                                   state: self.chainState(headSeq: 1, headHash: String(repeating: "0", count: 64)),
+                                                   typedArtifact: "",
+                                                   stepUp: .pin("123456"))
+        }
+        await assertThrowsDisabled {
+            try await self.service.prepareRecoveryThroughAccountRecovery(accessToken: "token",
+                                                                         state: self.chainState(headSeq: 1, headHash: String(repeating: "0", count: 64)),
+                                                                         stepUp: .pin("123456"))
+        }
+        await assertThrowsDisabled {
+            try await self.service.revokeDevice(accessToken: "token",
+                                                state: self.chainState(headSeq: 1, headHash: String(repeating: "0", count: 64)),
+                                                deviceKey: GuaBase64URL.encode([UInt8](repeating: 0x11, count: 32)),
+                                                reason: AuthorityRecord.reasonUnspecified,
+                                                stepUp: .pin("123456"))
+        }
+        await assertThrowsDisabled {
+            try await self.service.registerSecurityAlerts(accessToken: "token", accountID: self.accountID)
+        }
+        await assertThrowsDisabled { try await self.service.securityAlerts(accessToken: "token") }
+        await assertThrowsDisabledVoid {
+            try await self.service.oppose(accessToken: "token",
+                                          state: self.chainState(headSeq: 1, headHash: String(repeating: "0", count: 64)),
+                                          pending: Self.pending(type: .deviceRevoke),
+                                          stepUp: nil)
+        }
+        await assertThrowsDisabledVoid {
+            try await self.service.removeSecurityAlerts(accessToken: "token",
+                                                        accountID: self.accountID,
+                                                        installationID: "install",
+                                                        stepUp: nil)
+        }
 
         XCTAssertEqual(client.callCount, 0, "No request may be made while the flag is off.")
         XCTAssertTrue(keyStore.stored.isEmpty, "No key may be created or stored while the flag is off.")
+        XCTAssertNil(service.thisInstallationID(), "No installation id is minted while the flag is off.")
+        XCTAssertEqual(installationIDStore.reads, 0)
     }
 
     // MARK: - Adoption
@@ -123,7 +170,7 @@ final class AccountAuthorityServiceTests: XCTestCase {
         XCTAssertFalse(prepared.isArtifactConfirmed)
 
         do {
-            _ = try await service.submitAdoption(accessToken: "token", prepared: prepared)
+            _ = try await service.submit(accessToken: "token", prepared: prepared)
             XCTFail("An unconfirmed adoption must not be submitted.")
         } catch {
             XCTAssertEqual(error as? AccountAuthorityServiceError, .artifactUnconfirmed)
@@ -131,7 +178,7 @@ final class AccountAuthorityServiceTests: XCTestCase {
         XCTAssertEqual(client.adoptions.count, 0, "The request must never be made, not merely refused by the server.")
 
         prepared.confirmArtifactStored()
-        _ = try await service.submitAdoption(accessToken: "token", prepared: prepared)
+        _ = try await service.submit(accessToken: "token", prepared: prepared)
 
         XCTAssertEqual(client.adoptions.count, 1)
         XCTAssertEqual(client.adoptions.first?.recoveryArtifactConfirmed, true)
@@ -146,14 +193,14 @@ final class AccountAuthorityServiceTests: XCTestCase {
         let refused = try await service.prepareAdoption(accessToken: "token", accountID: accountID, stepUp: .pin("123456"))
         refused.confirmArtifactStored()
         client.submissionError = IdentityServiceError.authority(.positionRefused)
-        _ = try? await service.submitAdoption(accessToken: "token", prepared: refused)
+        _ = try? await service.submit(accessToken: "token", prepared: refused)
         XCTAssertNil(keyStore.stored[accountID.value],
                      "A refusal the server made up its mind about leaves keys no record will ever name.")
 
         let lost = try await service.prepareAdoption(accessToken: "token", accountID: accountID, stepUp: .pin("123456"))
         lost.confirmArtifactStored()
         client.submissionError = IdentityServiceError.transport(URLError(.timedOut))
-        _ = try? await service.submitAdoption(accessToken: "token", prepared: lost)
+        _ = try? await service.submit(accessToken: "token", prepared: lost)
         XCTAssertNotNil(keyStore.stored[accountID.value],
                         "A lost reply may well have been accepted, so its keys stay.")
     }
@@ -185,8 +232,8 @@ final class AccountAuthorityServiceTests: XCTestCase {
 
         _ = try await service.signDeviceGrant(accessToken: "token",
                                               state: chainState(headSeq: 4, headHash: headHash),
-                                              granteeKey: granteeKey,
-                                              label: "iPad",
+                                              candidate: Self.candidate(for: granteeKey, label: "iPad"),
+                                              comparisonConfirmed: true,
                                               stepUp: .pin("123456"))
 
         let submitted = try XCTUnwrap(client.grants.first)
@@ -210,14 +257,384 @@ final class AccountAuthorityServiceTests: XCTestCase {
         do {
             _ = try await service.signDeviceGrant(accessToken: "token",
                                                   state: chainState(headSeq: 1, headHash: String(repeating: "0", count: 64)),
-                                                  granteeKey: [UInt8](Curve25519.Signing.PrivateKey().publicKey.rawRepresentation),
-                                                  label: "iPad",
+                                                  candidate: Self.candidate(for: [UInt8](Curve25519.Signing.PrivateKey().publicKey.rawRepresentation),
+                                                                            label: "iPad"),
+                                                  comparisonConfirmed: true,
                                                   stepUp: .pin("123456"))
             XCTFail("A device with no key in the chain has nothing to sign with.")
         } catch {
             XCTAssertEqual(error as? AccountAuthorityServiceError, .notAnAuthorityDevice)
         }
         XCTAssertEqual(client.challengeRequests.count, 0, "Nothing is spent before the key is known to be here.")
+    }
+
+    // MARK: - The candidate step
+
+    func testOfferingThisDeviceSendsOnlyThePublicHalfAndShowsAFingerprintItComputedItself() async throws {
+        appSettings.guaAccountAuthorityEnabled = true
+        // The server's own fingerprint is deliberately wrong here. What the screen shows has to be the one
+        // this phone derived from the key, because a server-issued string would make the comparison across
+        // the room mean "both spoke to the same server", which is already assumed.
+        client.fingerprintToReturn = "ZZZZZZZZ"
+
+        let offer = try await service.offerThisDevice(accessToken: "token", accountID: accountID)
+
+        let offered = try XCTUnwrap(client.offeredCandidates.first)
+        let key = try XCTUnwrap(GuaBase64URL.decode(offered))
+        XCTAssertEqual(key.count, 32, "Only the 32 public bytes leave this device.")
+        XCTAssertEqual(key, try [UInt8](keyStore.authorityKey(forAccountID: accountID.value).publicKey.rawRepresentation))
+        XCTAssertEqual(offer.fingerprint, AuthorityFingerprint.of(key))
+        XCTAssertNotEqual(offer.fingerprint, "ZZZZZZZZ")
+        XCTAssertEqual(client.challengeRequests.count, 0, "Offering a public key grants nothing, so it spends no factor.")
+    }
+
+    func testOfferingThisDeviceTwiceOffersTheSameKey() async throws {
+        appSettings.guaAccountAuthorityEnabled = true
+
+        let first = try await service.offerThisDevice(accessToken: "token", accountID: accountID)
+        let second = try await service.offerThisDevice(accessToken: "token", accountID: accountID)
+
+        // A second key pair would leave the phone with two answers to "which key is mine" and would orphan
+        // whichever the chain ends up naming.
+        XCTAssertEqual(first.deviceKeyB64, second.deviceKeyB64)
+    }
+
+    func testAGrantIsRefusedWhenTheComparisonWasNotMadeOrTheFingerprintDisagrees() async throws {
+        appSettings.guaAccountAuthorityEnabled = true
+        keyStore.stored[accountID.value] = AccountAuthorityKeyPair(authority: Curve25519.Signing.PrivateKey(),
+                                                                   recovery: Curve25519.Signing.PrivateKey())
+        let granteeKey = [UInt8](Curve25519.Signing.PrivateKey().publicKey.rawRepresentation)
+        let state = chainState(headSeq: 4, headHash: String(repeating: "ab", count: 32))
+
+        do {
+            _ = try await service.signDeviceGrant(accessToken: "token",
+                                                  state: state,
+                                                  candidate: Self.candidate(for: granteeKey, label: "iPad"),
+                                                  comparisonConfirmed: false,
+                                                  stepUp: .pin("123456"))
+            XCTFail("A grant with no comparison is a grant over whatever came up the wire.")
+        } catch {
+            XCTAssertEqual(error as? AccountAuthorityServiceError, .candidateUnverified)
+        }
+
+        // A candidate whose fingerprint does not belong to its key is the substitution the comparison
+        // exists to catch, so it is refused even with the confirmation on.
+        let mismatched = AuthorityCandidate(deviceKeyB64: GuaBase64URL.encode(granteeKey),
+                                            fingerprint: "ABCD2346",
+                                            label: "iPad",
+                                            expiresAt: Date().addingTimeInterval(600))
+        do {
+            _ = try await service.signDeviceGrant(accessToken: "token",
+                                                  state: state,
+                                                  candidate: mismatched,
+                                                  comparisonConfirmed: true,
+                                                  stepUp: .pin("123456"))
+            XCTFail("A fingerprint that does not belong to the key must not be signed over.")
+        } catch {
+            XCTAssertEqual(error as? AccountAuthorityServiceError, .candidateUnverified)
+        }
+
+        XCTAssertEqual(client.challengeRequests.count, 0, "Nothing is spent before the comparison holds.")
+        XCTAssertTrue(client.grants.isEmpty)
+    }
+
+    // MARK: - Revocation
+
+    func testARevocationNamesTheRemovedKeyAndIsSignedByThisDevice() async throws {
+        appSettings.guaAccountAuthorityEnabled = true
+        let deviceKey = Curve25519.Signing.PrivateKey()
+        keyStore.stored[accountID.value] = AccountAuthorityKeyPair(authority: deviceKey,
+                                                                   recovery: Curve25519.Signing.PrivateKey())
+        let removed = [UInt8](Curve25519.Signing.PrivateKey().publicKey.rawRepresentation)
+        let headHash = String(repeating: "ab", count: 32)
+
+        _ = try await service.revokeDevice(accessToken: "token",
+                                           state: chainState(headSeq: 5, headHash: headHash),
+                                           deviceKey: GuaBase64URL.encode(removed),
+                                           reason: AuthorityRecord.reasonCompromised,
+                                           stepUp: .pin("123456"))
+
+        let submitted = try XCTUnwrap(client.revocations.first)
+        let bytes = try XCTUnwrap(GuaBase64URL.decode(submitted.record))
+        XCTAssertEqual(Array(bytes[0..<4]), Array("GUAX".utf8))
+        XCTAssertEqual(Array(bytes[80..<112]), removed)
+        XCTAssertEqual(bytes[112], AuthorityRecord.reasonCompromised)
+        // The signer is the key that authorizes it, never the key it removes: the device named in a
+        // revocation may not veto its own removal, so it cannot be its signer either.
+        XCTAssertEqual(Array(bytes[113..<145]), [UInt8](deviceKey.publicKey.rawRepresentation))
+        XCTAssertEqual(client.challengeRequests.first?.purpose, .revoke)
+        XCTAssertNotNil(try? keyStore.authorityKey(forAccountID: accountID.value),
+                        "Revoking another device leaves this one's key where it is.")
+    }
+
+    func testAnImmediateSelfRevocationDropsThisDevicesOwnKey() async throws {
+        appSettings.guaAccountAuthorityEnabled = true
+        let deviceKey = Curve25519.Signing.PrivateKey()
+        keyStore.stored[accountID.value] = AccountAuthorityKeyPair(authority: deviceKey,
+                                                                   recovery: Curve25519.Signing.PrivateKey())
+        client.revocationIsPending = false
+
+        _ = try await service.revokeDevice(accessToken: "token",
+                                           state: chainState(headSeq: 5, headHash: String(repeating: "ab", count: 32)),
+                                           deviceKey: GuaBase64URL.encode([UInt8](deviceKey.publicKey.rawRepresentation)),
+                                           reason: AuthorityRecord.reasonReplaced,
+                                           stepUp: .pin("123456"))
+
+        // "Stop trusting this phone" has to be true on the phone as well as on the chain.
+        XCTAssertNil(try? keyStore.authorityKey(forAccountID: accountID.value))
+    }
+
+    func testAPendingSelfRevocationKeepsTheKeyBecauseItCanStillBeOpposed() async throws {
+        appSettings.guaAccountAuthorityEnabled = true
+        let deviceKey = Curve25519.Signing.PrivateKey()
+        keyStore.stored[accountID.value] = AccountAuthorityKeyPair(authority: deviceKey,
+                                                                   recovery: Curve25519.Signing.PrivateKey())
+        client.revocationIsPending = true
+
+        _ = try await service.revokeDevice(accessToken: "token",
+                                           state: chainState(headSeq: 5, headHash: String(repeating: "ab", count: 32)),
+                                           deviceKey: GuaBase64URL.encode([UInt8](deviceKey.publicKey.rawRepresentation)),
+                                           reason: AuthorityRecord.reasonReplaced,
+                                           stepUp: .pin("123456"))
+
+        XCTAssertNotNil(try? keyStore.authorityKey(forAccountID: accountID.value))
+    }
+
+    // MARK: - Opposition
+
+    func testOpposingAnAdoptionGoesThroughTheSessionAndPresentsNoFactor() async throws {
+        appSettings.guaAccountAuthorityEnabled = true
+        let pending = Self.pending(type: .adoptRoot)
+
+        try await service.oppose(accessToken: "token",
+                                 state: chainState(headSeq: 1, headHash: String(repeating: "0", count: 64)),
+                                 pending: pending,
+                                 stepUp: nil)
+
+        XCTAssertEqual(client.sessionOppositions, [pending.recordHash])
+        XCTAssertTrue(client.signedOppositions.isEmpty)
+        XCTAssertEqual(client.challengeRequests.count, 0,
+                       "At seq 1 the account holds no authority to weigh, so no challenge and no factor.")
+    }
+
+    func testOpposingARevocationIsASignedRecordThatTakesTheSlotItCancels() async throws {
+        appSettings.guaAccountAuthorityEnabled = true
+        let deviceKey = Curve25519.Signing.PrivateKey()
+        keyStore.stored[accountID.value] = AccountAuthorityKeyPair(authority: deviceKey,
+                                                                   recovery: Curve25519.Signing.PrivateKey())
+        let headHash = String(repeating: "ab", count: 32)
+        let pending = Self.pending(type: .deviceRevoke)
+
+        try await service.oppose(accessToken: "token",
+                                 state: chainState(headSeq: 2, headHash: headHash),
+                                 pending: pending,
+                                 stepUp: nil)
+
+        XCTAssertTrue(client.sessionOppositions.isEmpty, "A session's word is refused for anything but an adoption.")
+        let submitted = try XCTUnwrap(client.signedOppositions.first)
+        let bytes = try XCTUnwrap(GuaBase64URL.decode(submitted.record))
+        XCTAssertEqual(Array(bytes[0..<4]), Array("GUAO".utf8))
+        // It takes no slot and is never appended, so it carries the seq and prevHash of the record it
+        // cancels rather than the position after it.
+        XCTAssertEqual(Array(bytes[40..<72]), AuthorityRecord.hashBytes(fromHex: headHash))
+        XCTAssertEqual(Array(bytes[72..<80]), [0, 0, 0, 0, 0, 0, 0, 3])
+        XCTAssertEqual(Array(bytes[80..<112]), AuthorityRecord.hashBytes(fromHex: pending.recordHash))
+        XCTAssertEqual(Array(bytes[112..<144]), [UInt8](deviceKey.publicKey.rawRepresentation))
+        // No factor is asked for and no hold is weighed: the holds gate starting a transition and never
+        // opposing one, so an owner who has just changed their PIN is not the one disarmed by it.
+        XCTAssertEqual(client.challengeRequests.first?.purpose, .oppose)
+        XCTAssertNil(client.challengeRequests.first?.stepUp)
+    }
+
+    // MARK: - Recovery with the artifact
+
+    func testTheArtifactRoundTripsAndMalformedMaterialIsRefusedBeforeAnythingIsSpent() async throws {
+        appSettings.guaAccountAuthorityEnabled = true
+        let key = Curve25519.Signing.PrivateKey()
+        let rendered = AuthorityRecoveryArtifact.render(key)
+
+        // Read off one screen and typed into another: the grouping and the case are forgiven, because the
+        // encoding has neither.
+        let parsed = try AuthorityRecoveryArtifact.parse(rendered.uppercased())
+        XCTAssertEqual(parsed.rawRepresentation, key.rawRepresentation)
+        XCTAssertEqual(try AuthorityRecoveryArtifact.parse(rendered.replacingOccurrences(of: " ", with: "")).rawRepresentation,
+                       key.rawRepresentation)
+
+        for wrong in ["", "not a key", String(repeating: "a", count: 51), rendered + "a"] {
+            XCTAssertThrowsError(try AuthorityRecoveryArtifact.parse(wrong)) { error in
+                XCTAssertEqual(error as? AccountAuthorityServiceError, .artifactMalformed)
+            }
+        }
+
+        do {
+            _ = try await service.prepareRecovery(accessToken: "token",
+                                                  state: chainState(headSeq: 1, headHash: String(repeating: "0", count: 64)),
+                                                  typedArtifact: "not a key",
+                                                  stepUp: .pin("123456"))
+            XCTFail("Malformed material must be refused before a challenge is minted.")
+        } catch {
+            XCTAssertEqual(error as? AccountAuthorityServiceError, .artifactMalformed)
+        }
+        XCTAssertEqual(client.challengeRequests.count, 0)
+        XCTAssertTrue(client.recoveries.isEmpty)
+    }
+
+    func testARecoveryUnderTheTypedKeyIsSignedByItAndInstallsTwoFreshKeys() async throws {
+        appSettings.guaAccountAuthorityEnabled = true
+        let committedRecoveryKey = Curve25519.Signing.PrivateKey()
+        let headHash = String(repeating: "ab", count: 32)
+
+        let prepared = try await service.prepareRecovery(accessToken: "token",
+                                                         state: chainState(headSeq: 1, headHash: headHash),
+                                                         typedArtifact: AuthorityRecoveryArtifact.render(committedRecoveryKey),
+                                                         stepUp: .pin("123456"))
+        XCTAssertEqual(prepared.kind, .recoveryUnderRecoveryKey)
+        // A new recovery key is minted, so the same rule as adoption applies: it is shown once and the
+        // record is refused until the user says they stored it.
+        XCTAssertNotNil(prepared.recoveryArtifact)
+        prepared.confirmArtifactStored()
+        _ = try await service.submit(accessToken: "token", prepared: prepared)
+
+        let submitted = try XCTUnwrap(client.recoveries.first)
+        let bytes = try XCTUnwrap(GuaBase64URL.decode(submitted.record))
+        XCTAssertEqual(Array(bytes[0..<4]), Array("GUAR".utf8))
+        XCTAssertEqual(Array(bytes[40..<72]), AuthorityRecord.hashBytes(fromHex: headHash))
+        XCTAssertEqual(bytes[176], AuthorityRecord.authorizationRecoveryKey)
+        XCTAssertEqual(Array(bytes[177..<209]), [UInt8](committedRecoveryKey.publicKey.rawRepresentation))
+
+        let stored = try keyStore.authorityKey(forAccountID: accountID.value)
+        XCTAssertEqual(Array(bytes[80..<112]), [UInt8](stored.publicKey.rawRepresentation),
+                       "The device key in the record is the one this phone kept.")
+        XCTAssertNotEqual(Array(bytes[112..<144]), [UInt8](committedRecoveryKey.publicKey.rawRepresentation),
+                          "A recovery that reinstalled the same recovery key would not recover from it being known.")
+        XCTAssertEqual(client.challengeRequests.first?.purpose, .recover)
+
+        let challenge = try XCTUnwrap(GuaBase64URL.decode(submitted.challenge))
+        let preimage = try AuthorityProofs.recordPreimage(type: .authorityRecovery,
+                                                          challenge: challenge,
+                                                          canonicalBytes: bytes)
+        let signature = try XCTUnwrap(GuaBase64URL.decode(submitted.signature))
+        XCTAssertTrue(committedRecoveryKey.publicKey.isValidSignature(Data(signature), for: Data(preimage)),
+                      "Rank 2 is signed by the key the account committed for exactly this.")
+    }
+
+    func testTheAccountRecoveryPathNamesNoKeyAndIsSignedByTheDeviceItInstalls() async throws {
+        appSettings.guaAccountAuthorityEnabled = true
+
+        let prepared = try await service
+            .prepareRecoveryThroughAccountRecovery(accessToken: "token",
+                                                   state: chainState(headSeq: 1, headHash: String(repeating: "ab", count: 32)),
+                                                   stepUp: .pin("123456"))
+        XCTAssertEqual(prepared.kind, .recoveryThroughAccountRecovery)
+        prepared.confirmArtifactStored()
+        _ = try await service.submit(accessToken: "token", prepared: prepared)
+
+        let submitted = try XCTUnwrap(client.recoveries.first)
+        let bytes = try XCTUnwrap(GuaBase64URL.decode(submitted.record))
+        XCTAssertEqual(bytes[176], AuthorityRecord.authorizationAccountRecovery)
+        XCTAssertEqual(Array(bytes[177..<209]), AuthorityRecord.zeroKey,
+                       "Under the weaker path the field is all zero by rule, whatever the caller passed.")
+
+        let stored = try keyStore.authorityKey(forAccountID: accountID.value)
+        let challenge = try XCTUnwrap(GuaBase64URL.decode(submitted.challenge))
+        let preimage = try AuthorityProofs.recordPreimage(type: .authorityRecovery,
+                                                          challenge: challenge,
+                                                          canonicalBytes: bytes)
+        let signature = try XCTUnwrap(GuaBase64URL.decode(submitted.signature))
+        XCTAssertTrue(stored.publicKey.isValidSignature(Data(signature), for: Data(preimage)),
+                      "Here the account has no other key left, so the signer is the device being installed.")
+    }
+
+    // MARK: - The security notification channel
+
+    func testARegistrationCarriesTheInstallationIDTheTokenAndASignedBindingToThisDevicesKey() async throws {
+        appSettings.guaAccountAuthorityEnabled = true
+        let deviceKey = Curve25519.Signing.PrivateKey()
+        keyStore.stored[accountID.value] = AccountAuthorityKeyPair(authority: deviceKey,
+                                                                   recovery: Curve25519.Signing.PrivateKey())
+
+        _ = try await service.registerSecurityAlerts(accessToken: "token", accountID: accountID)
+
+        let registration = try XCTUnwrap(client.registrations.first)
+        XCTAssertEqual(registration.installationID, installationIDStore.value)
+        XCTAssertEqual(registration.token, "0011aabb")
+        XCTAssertEqual(registration.platform, "APNS")
+        XCTAssertEqual(registration.authorityDeviceKeyB64,
+                       GuaBase64URL.encode([UInt8](deviceKey.publicKey.rawRepresentation)))
+        XCTAssertEqual(client.challengeRequests.first?.purpose, .notify)
+        XCTAssertNil(client.challengeRequests.first?.stepUp, "Binding a registration asks for no factor.")
+
+        // The key on the row is proved rather than claimed. Without the signature an attacker could name
+        // the owner's key on their own row, or plant a row the owner's own device can never remove.
+        let challenge = try XCTUnwrap(try GuaBase64URL.decode(XCTUnwrap(registration.challenge)))
+        let preimage = try AuthorityProofs.notificationPreimage(accountID: accountID,
+                                                                installationID: installationIDStore.value,
+                                                                deviceKey: [UInt8](deviceKey.publicKey.rawRepresentation),
+                                                                challenge: challenge)
+        let signature = try XCTUnwrap(try GuaBase64URL.decode(XCTUnwrap(registration.signature)))
+        XCTAssertTrue(deviceKey.publicKey.isValidSignature(Data(signature), for: Data(preimage)))
+    }
+
+    func testAnInstallWithNoDeviceKeyRegistersWithoutABindingAndNotWithAnUnprovenOne() async throws {
+        appSettings.guaAccountAuthorityEnabled = true
+
+        _ = try await service.registerSecurityAlerts(accessToken: "token", accountID: accountID)
+
+        let registration = try XCTUnwrap(client.registrations.first)
+        XCTAssertNil(registration.authorityDeviceKeyB64)
+        XCTAssertNil(registration.signature)
+        XCTAssertEqual(client.challengeRequests.count, 0)
+    }
+
+    func testWithNoPushDestinationNothingIsRegistered() async throws {
+        appSettings.guaAccountAuthorityEnabled = true
+        service = AccountAuthorityService(client: client,
+                                          keyStore: keyStore,
+                                          installationIDStore: installationIDStore,
+                                          pushTokenStore: AuthorityPushTokenStore(),
+                                          appSettings: appSettings,
+                                          deviceLabel: "iPhone")
+
+        do {
+            _ = try await service.registerSecurityAlerts(accessToken: "token", accountID: accountID)
+            XCTFail("There is nothing to register a channel to.")
+        } catch {
+            XCTAssertEqual(error as? AccountAuthorityServiceError, .noPushToken)
+        }
+        XCTAssertTrue(client.registrations.isEmpty)
+    }
+
+    func testRemovingThisInstallsOwnRowNeedsNoFactorAndAnotherInstallsIsSigned() async throws {
+        appSettings.guaAccountAuthorityEnabled = true
+        let deviceKey = Curve25519.Signing.PrivateKey()
+        keyStore.stored[accountID.value] = AccountAuthorityKeyPair(authority: deviceKey,
+                                                                   recovery: Curve25519.Signing.PrivateKey())
+
+        // Tier 1: the person holding this phone is the person the channel serves.
+        try await service.removeSecurityAlerts(accessToken: "token",
+                                               accountID: accountID,
+                                               installationID: installationIDStore.value,
+                                               stepUp: .pin("123456"))
+        let own = try XCTUnwrap(client.removals.first)
+        XCTAssertEqual(own.callerInstallationID, installationIDStore.value)
+        XCTAssertNil(own.stepUp, "Removing your own row asks for nothing else.")
+        XCTAssertNil(own.signature)
+
+        // Tier 2: another install, which needs the factor and a signature naming that row.
+        try await service.removeSecurityAlerts(accessToken: "token",
+                                               accountID: accountID,
+                                               installationID: "another-install",
+                                               stepUp: .pin("123456"))
+        let other = try XCTUnwrap(client.removals.last)
+        XCTAssertEqual(other.stepUp, .pin("123456"))
+        let challenge = try XCTUnwrap(try GuaBase64URL.decode(XCTUnwrap(other.challenge)))
+        let preimage = try AuthorityProofs.notificationPreimage(accountID: accountID,
+                                                                installationID: "another-install",
+                                                                deviceKey: [UInt8](deviceKey.publicKey.rawRepresentation),
+                                                                challenge: challenge)
+        let signature = try XCTUnwrap(try GuaBase64URL.decode(XCTUnwrap(other.signature)))
+        XCTAssertTrue(deviceKey.publicKey.isValidSignature(Data(signature), for: Data(preimage)),
+                      "The preimage names the row being removed, so one row's signature cannot remove another.")
     }
 
     // MARK: - Browser approvals
@@ -287,6 +704,31 @@ final class AccountAuthorityServiceTests: XCTestCase {
                             pending: nil)
     }
 
+    private static func candidate(for key: [UInt8], label: String) -> AuthorityCandidate {
+        AuthorityCandidate(deviceKeyB64: GuaBase64URL.encode(key),
+                           fingerprint: AuthorityFingerprint.of(key) ?? "",
+                           label: label,
+                           expiresAt: Date().addingTimeInterval(600))
+    }
+
+    private static func pending(type: AuthorityPendingType) -> AuthorityPendingTransition {
+        AuthorityPendingTransition(type: type,
+                                   seq: 3,
+                                   effectiveAt: Date().addingTimeInterval(259_200),
+                                   recordHash: String(repeating: "cd", count: 32))
+    }
+
+    private func assertThrowsDisabledVoid(_ work: () async throws -> Void,
+                                          file: StaticString = #filePath,
+                                          line: UInt = #line) async {
+        do {
+            try await work()
+            XCTFail("Expected the service to refuse while the flag is off.", file: file, line: line)
+        } catch {
+            XCTAssertEqual(error as? AccountAuthorityServiceError, .disabled, file: file, line: line)
+        }
+    }
+
     private func assertThrowsDisabled(_ work: () async throws -> some Any,
                                       file: StaticString = #filePath,
                                       line: UInt = #line) async {
@@ -305,7 +747,7 @@ final class AccountAuthorityServiceTests: XCTestCase {
 private final class AuthorityRequesterStub: AccountAuthorityRequesting, @unchecked Sendable {
     struct ChallengeRequest: Equatable {
         let purpose: AuthorityPurpose
-        let stepUp: AuthorityStepUp
+        let stepUp: AuthorityStepUp?
     }
 
     struct Submission: Equatable {
@@ -325,13 +767,25 @@ private final class AuthorityRequesterStub: AccountAuthorityRequesting, @uncheck
     var approvalsToReturn: [AuthorityApproval] = []
     var submissionError: Error?
 
+    var candidatesToReturn: [AuthorityCandidate] = []
+    var notificationsToReturn: [SecurityNotificationSummary] = []
+    var fingerprintToReturn: String?
+    var revocationIsPending = true
+
     private(set) var challengeRequests: [ChallengeRequest] = []
     private(set) var adoptions: [Submission] = []
     private(set) var grants: [Submission] = []
+    private(set) var revocations: [Submission] = []
+    private(set) var recoveries: [Submission] = []
+    private(set) var sessionOppositions: [String?] = []
+    private(set) var signedOppositions: [Submission] = []
+    private(set) var offeredCandidates: [String] = []
+    private(set) var registrations: [SecurityNotificationRegistration] = []
+    private(set) var removals: [SecurityNotificationRemoval] = []
     private(set) var approvalSignatures: [ApprovalSignature] = []
     private(set) var callCount = 0
 
-    func authorityChallenge(accessToken: String, purpose: AuthorityPurpose, stepUp: AuthorityStepUp) async throws -> AuthorityChallenge {
+    func authorityChallenge(accessToken: String, purpose: AuthorityPurpose, stepUp: AuthorityStepUp?) async throws -> AuthorityChallenge {
         callCount += 1
         challengeRequests.append(ChallengeRequest(purpose: purpose, stepUp: stepUp))
         return AuthorityChallenge(challenge: challenge, expiresAt: Date().addingTimeInterval(900))
@@ -359,6 +813,80 @@ private final class AuthorityRequesterStub: AccountAuthorityRequesting, @uncheck
         grants.append(Submission(record: record, signature: signature, challenge: challenge, recoveryArtifactConfirmed: false))
         if let submissionError { throw submissionError }
         return AuthoritySubmission(seq: 5, isPending: false, effectiveAt: Date(), recordHash: "hash")
+    }
+
+    func submitAuthorityDeviceRevoke(accessToken: String,
+                                     record: String,
+                                     signature: String,
+                                     challenge: String) async throws -> AuthoritySubmission {
+        callCount += 1
+        revocations.append(Submission(record: record, signature: signature, challenge: challenge, recoveryArtifactConfirmed: false))
+        if let submissionError { throw submissionError }
+        return AuthoritySubmission(seq: 6, isPending: revocationIsPending, effectiveAt: Date(), recordHash: "hash")
+    }
+
+    func submitAuthorityRecovery(accessToken: String,
+                                 record: String,
+                                 signature: String,
+                                 challenge: String) async throws -> AuthoritySubmission {
+        callCount += 1
+        recoveries.append(Submission(record: record, signature: signature, challenge: challenge, recoveryArtifactConfirmed: false))
+        if let submissionError { throw submissionError }
+        return AuthoritySubmission(seq: 2, isPending: true, effectiveAt: Date().addingTimeInterval(604_800), recordHash: "hash")
+    }
+
+    func opposeAuthorityAdoption(accessToken: String, recordHash: String?, stepUp: AuthorityStepUp?) async throws {
+        callCount += 1
+        sessionOppositions.append(recordHash)
+        if let submissionError { throw submissionError }
+    }
+
+    func submitAuthorityOpposition(accessToken: String,
+                                   record: String,
+                                   signature: String,
+                                   challenge: String) async throws {
+        callCount += 1
+        signedOppositions.append(Submission(record: record, signature: signature, challenge: challenge, recoveryArtifactConfirmed: false))
+        if let submissionError { throw submissionError }
+    }
+
+    func registerAuthorityCandidate(accessToken: String,
+                                    deviceKeyB64: String,
+                                    label: String) async throws -> AuthorityCandidate {
+        callCount += 1
+        offeredCandidates.append(deviceKeyB64)
+        return AuthorityCandidate(deviceKeyB64: deviceKeyB64,
+                                  fingerprint: fingerprintToReturn ?? (GuaBase64URL.decode(deviceKeyB64).flatMap(AuthorityFingerprint.of) ?? ""),
+                                  label: label,
+                                  expiresAt: Date().addingTimeInterval(600))
+    }
+
+    func authorityCandidates(accessToken: String) async throws -> [AuthorityCandidate] {
+        callCount += 1
+        return candidatesToReturn
+    }
+
+    func registerSecurityNotification(accessToken: String,
+                                      registration: SecurityNotificationRegistration) async throws -> SecurityNotificationSummary {
+        callCount += 1
+        registrations.append(registration)
+        return SecurityNotificationSummary(installationID: registration.installationID,
+                                           platform: registration.platform,
+                                           deviceLabel: registration.deviceLabel ?? "",
+                                           tokenFingerprint: "fingerprint",
+                                           isBoundToAnAuthorityDevice: registration.authorityDeviceKeyB64 != nil,
+                                           lastSeenAt: Date())
+    }
+
+    func securityNotifications(accessToken: String) async throws -> [SecurityNotificationSummary] {
+        callCount += 1
+        return notificationsToReturn
+    }
+
+    func removeSecurityNotification(accessToken: String, removal: SecurityNotificationRemoval) async throws {
+        callCount += 1
+        removals.append(removal)
+        if let submissionError { throw submissionError }
     }
 
     func authorityState(accessToken: String) async throws -> AuthorityChainState {
@@ -401,5 +929,18 @@ private final class AuthorityKeyStoreStub: AccountAuthorityKeyStoreProtocol {
 
     func removeKeys(forAccountID accountID: String) {
         stored[accountID] = nil
+    }
+}
+
+@MainActor
+private final class AuthorityInstallationIDStoreStub: AuthorityInstallationIDStoreProtocol {
+    var value = "install-under-test"
+    var error: Error?
+    private(set) var reads = 0
+
+    func installationID() throws -> String {
+        reads += 1
+        if let error { throw error }
+        return value
     }
 }
