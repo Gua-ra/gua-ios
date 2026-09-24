@@ -214,6 +214,27 @@ struct AuthorityChainState: Equatable {
         accountClass == .bootstrap && state == .bootstrap && headSeq == 0 && pending == nil
     }
 
+    /// Whether the account-recovery route, `AuthorityRecovery` with authorization `0x02`, may be offered
+    /// for this chain at all.
+    ///
+    /// The three conditions the server states: the chain holds a committed authority, so this is not a
+    /// bootstrap account's first record; the accountId does **not** commit that authority, because ADM-009
+    /// decision 3 rule 3 refuses this route outright on a class `0x01` account, whose genesis-committed
+    /// authority is replaced only by the key its genesis committed; and nothing is pending, because a rank-0
+    /// record cannot take a slot an equal or higher rank already holds.
+    ///
+    /// Asked here as well as at the server for the reason ``canAdopt`` is: offering a button whose only
+    /// outcome is a refusal costs the owner a challenge and a step-up to be told no, on the one screen where
+    /// that is expensive.
+    ///
+    /// The same three conditions in the same order as gua-android's `canRecoverThroughAccountRecovery`,
+    /// deliberately, down to a class this build has not heard of not being read as genesis. Two ports
+    /// guessing separately about the edges of one server rule is how they came to disagree here in the
+    /// first place.
+    var canRecoverThroughAccountRecovery: Bool {
+        accountClass != .genesis && state != .bootstrap && pending == nil
+    }
+
     /// Devices that count as this account's authority today. A quarantined device is deliberately not
     /// one of them: it may not sign a grant, a revocation or an approval while its window runs.
     var unquarantinedActiveDevices: [AuthorityDeviceSummary] {

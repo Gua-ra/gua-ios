@@ -423,12 +423,18 @@ struct AccountAuthorityScreen: View {
             }
         }
 
-        Section {
-            ListRow(label: .default(title: L10n.screenAccountAuthorityRecoveryNoKeyButton, icon: \.help),
-                    kind: .button { context.send(viewAction: .startRecoveryThroughAccountRecovery) })
-                .disabled(context.viewState.isWorking)
-        } footer: {
-            Text(L10n.screenAccountAuthorityRecoveryNoKeyFooter)
+        // The weaker route, and only where the server would take it at all: ADM-009 decision 3 rule 3
+        // refuses authorization 0x02 on a class 0x01 account, whose genesis-committed authority is replaced
+        // only by the key its genesis committed. Not drawn rather than drawn and refused, because the
+        // refusal arrives after a challenge and a step-up have been spent on it.
+        if context.viewState.canRecoverThroughAccountRecovery {
+            Section {
+                ListRow(label: .default(title: L10n.screenAccountAuthorityRecoveryNoKeyButton, icon: \.help),
+                        kind: .button { context.send(viewAction: .startRecoveryThroughAccountRecovery) })
+                    .disabled(context.viewState.isWorking)
+            } footer: {
+                Text(L10n.screenAccountAuthorityRecoveryNoKeyFooter)
+            }
         }
     }
 
