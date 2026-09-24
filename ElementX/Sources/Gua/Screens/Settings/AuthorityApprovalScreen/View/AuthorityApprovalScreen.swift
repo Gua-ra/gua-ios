@@ -94,3 +94,74 @@ struct AuthorityApprovalScreen: View {
         }
     }
 }
+
+// MARK: - Previews
+
+struct AuthorityApprovalScreen_Previews: PreviewProvider, TestablePreview {
+    /// One approval this build has a sentence for, which is the only kind it will sign.
+    static let viewModel = makeViewModel(approvals: [approval(actionID: "authority.device.grant")])
+
+    /// An action id this build has no sentence for. ADM-009 decision 6 has the device name the action on a
+    /// screen the page does not control, so a request it cannot describe is shown as unsignable rather than
+    /// as a blank approval with a live button.
+    static let undescribableViewModel = makeViewModel(approvals: [approval(actionID: "something.this.build.cannot.name")])
+
+    /// Two live at once. The four-character code binds the two screens together only while exactly one of
+    /// them is on, so the device presents none.
+    static let tooManyViewModel = makeViewModel(approvals: [approval(actionID: "authority.device.grant"),
+                                                            approval(actionID: "authority.device.revoke", id: "second", code: "M4XQ")])
+
+    static var previews: some View {
+        NavigationStack {
+            AuthorityApprovalScreen(context: viewModel.context)
+        }
+        .snapshotPreferences(expect: viewModel.context.observe(\.viewState.phase).map { $0 == .approval }.eraseToStream())
+        .previewDisplayName("One approval")
+
+        NavigationStack {
+            AuthorityApprovalScreen(context: undescribableViewModel.context)
+        }
+        .snapshotPreferences(expect: undescribableViewModel.context.observe(\.viewState.phase).map { $0 == .approval }.eraseToStream())
+        .previewDisplayName("Unnameable action")
+
+        NavigationStack {
+            AuthorityApprovalScreen(context: tooManyViewModel.context)
+        }
+        .snapshotPreferences(expect: tooManyViewModel.context.observe(\.viewState.phase).map { $0 == .tooManyLive }.eraseToStream())
+        .previewDisplayName("More than one live")
+    }
+
+    // MARK: - Fixtures
+
+    static func approval(actionID: String, id: String = "an-approval", code: String = "AB7K") -> AuthorityApproval {
+        AuthorityApproval(approvalID: id,
+                          code: code,
+                          action: actionID,
+                          actionDigest: "a-digest",
+                          challenge: "a-challenge",
+                          expiresAt: Date(timeIntervalSince1970: 1_767_323_445))
+    }
+
+    static func makeViewModel(approvals: [AuthorityApproval]) -> AuthorityApprovalScreenViewModel {
+        let clientProxy = ClientProxyMock(.init())
+        clientProxy.accessToken = "preview-token"
+        let chain = AuthorityChainState(accountID: AccountAuthorityServiceMock.accountID,
+                                        accountClass: .bootstrap,
+                                        state: .rooted,
+                                        headSeq: 2,
+                                        headHash: String(repeating: "ab", count: 32),
+                                        devices: [AuthorityDeviceSummary(deviceKey: "this-device",
+                                                                         label: "iPhone",
+                                                                         state: .active,
+                                                                         quarantineUntil: nil,
+                                                                         grantedSeq: 1)],
+                                        pending: nil)
+        let authorityService = AccountAuthorityServiceMock(chain: chain,
+                                                           approvals: approvals,
+                                                           installationID: "this-install",
+                                                           deviceKey: "this-device")
+        return AuthorityApprovalScreenViewModel(authorityService: authorityService,
+                                                clientProxy: clientProxy,
+                                                userIndicatorController: UserIndicatorControllerMock())
+    }
+}
