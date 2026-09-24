@@ -208,8 +208,7 @@ struct AccountAuthorityScreenViewState: BindableState {
     /// Whether what has been typed could be a recovery key at all. The service refuses malformed material
     /// before submission; this is the button agreeing with it.
     var canSubmitRecoveryArtifact: Bool {
-        phase == .enteringRecoveryArtifact
-            && bindings.recoveryArtifact.filter { !$0.isWhitespace }.count == AuthorityRecoveryArtifact.encodedLength
+        phase == .enteringRecoveryArtifact && AuthorityRecoveryArtifact.looksComplete(bindings.recoveryArtifact)
     }
 }
 

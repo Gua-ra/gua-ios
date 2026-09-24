@@ -208,6 +208,45 @@ final class AuthorityVectorsTests: XCTestCase {
         XCTAssertEqual(AuthorityHex.string(opposition), try vector(named: "GUAO").canonicalHex)
     }
 
+    // MARK: - The recovery artifact
+
+    /// The one thing in this contract the server never sees, which is why it is pinned here.
+    ///
+    /// What crosses the wire for a recovery is a signature by the key the artifact carries, so nothing on
+    /// the wire can catch two clients rendering two spellings of it. The bill for that arrives in the one
+    /// case `AuthorityRecovery` exists for: a person who took the artifact on one phone and is typing it
+    /// into the replacement. This vector is the agreement, and this is the suite that holds this port to it.
+    func testTheArtifactIsTheOneSpellingEveryPortRendersAndReadsBack() throws {
+        let artifacts = vectors.recoveryArtifact
+        XCTAssertEqual(AuthorityRecoveryArtifact.prefix, artifacts.prefix)
+        XCTAssertEqual(AuthorityRecoveryArtifact.encodedLength, artifacts.encodedLength)
+        XCTAssertFalse(artifacts.vectors.isEmpty)
+
+        for vector in artifacts.vectors {
+            let seed = try AuthorityHex.bytes(publicKeySeed(named: vector.key))
+            let key = try Curve25519.Signing.PrivateKey(rawRepresentation: Data(seed))
+            XCTAssertEqual(AuthorityRecoveryArtifact.render(key), vector.artifact, vector.key)
+
+            // Every spelling of the same artifact a person could plausibly type back. The spacing is
+            // free-form on the way in, because nobody reproduces the printed groups exactly.
+            let rewrapped = vector.artifact.replacingOccurrences(of: " ", with: "  ")
+            let body = vector.artifact.dropFirst(artifacts.prefix.count).filter { !$0.isWhitespace }
+            for typed in [vector.artifact, "  \(rewrapped)\n", "\(artifacts.prefix) \(body)"] {
+                XCTAssertEqual(try AuthorityRecoveryArtifact.parse(typed).rawRepresentation, Data(seed), typed)
+                XCTAssertTrue(AuthorityRecoveryArtifact.looksComplete(typed), typed)
+            }
+        }
+
+        for rejection in artifacts.rejections {
+            // This port answers one refusal for all of them. The reason in the file names what each entry
+            // is wrong about, and refusing every one of them is what conformance is.
+            XCTAssertThrowsError(try AuthorityRecoveryArtifact.parse(rejection.artifact), rejection.name) { error in
+                XCTAssertEqual(error as? AccountAuthorityServiceError, .artifactMalformed, rejection.name)
+            }
+            XCTAssertFalse(AuthorityRecoveryArtifact.looksComplete(rejection.artifact), rejection.name)
+        }
+    }
+
     // MARK: - Every rejection
 
     func testEveryRejectionIsRefusedByTheRuleThatNamesIt() throws {
@@ -236,6 +275,10 @@ final class AuthorityVectorsTests: XCTestCase {
 
     private func publicKey(named key: String) throws -> String {
         try XCTUnwrap(vectors.keys[key], key).publicKeyHex
+    }
+
+    private func publicKeySeed(named key: String) throws -> String {
+        try XCTUnwrap(vectors.keys[key], key).seedHex
     }
 }
 
@@ -272,8 +315,29 @@ private struct AuthorityVectors: Decodable {
         let reason: String
     }
 
+    /// The artifact of ADM-009 decision 7, as a person copies it. The server holds no part of this one.
+    struct RecoveryArtifact: Decodable {
+        struct Vector: Decodable {
+            let key: String
+            let artifact: String
+        }
+
+        struct Rejection: Decodable {
+            let name: String
+            let artifact: String
+            let reason: String
+        }
+
+        let prefix: String
+        let groupSize: Int
+        let encodedLength: Int
+        let vectors: [Vector]
+        let rejections: [Rejection]
+    }
+
     let keys: [String: Key]
     let account: Account
+    let recoveryArtifact: RecoveryArtifact
     let challengeHex: String
     let records: [Record]
     let rejections: [Rejection]

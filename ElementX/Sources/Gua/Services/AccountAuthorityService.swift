@@ -384,19 +384,30 @@ protocol AccountAuthorityRequesting: Sendable {
 /// alone is the seizure O9 rejected. That is why adoption **requires** the artifact to be taken: it is
 /// shown once, the app confirms the user stored it, and adoption is refused without that confirmation.
 enum AuthorityRecoveryArtifact {
-    /// The key as the user copies it: RFC 4648 base32, lowercase, unpadded, in groups of four.
+    /// Names the framework and the version, so a future framework 0x02 artifact is not mistaken for this
+    /// one.
+    ///
+    /// It is the first whitespace-separated token of every artifact, and it is the reason this format is
+    /// the same on every platform rather than nearly the same: the artifact never crosses the wire, so a
+    /// client that rendered one shape and accepted another could only be caught by a person who had lost
+    /// their phone and was holding a key the new phone refuses. The string, the grouping and the forms a
+    /// decoder accepts are pinned for all three ports in `authority-vectors.v1.json`.
+    static let prefix = "gua-recovery-1"
+
+    /// The key as the user copies it: the prefix, then RFC 4648 base32, lowercase, unpadded, in groups
+    /// of four.
     ///
     /// Base32 rather than hex or base64 because this is read off one screen and typed into something
     /// else: the alphabet the accountId already uses has no case to get wrong and no `+` or `/` to lose
     /// to an autocorrect, and 32 bytes come to 52 characters, which is 13 groups.
     static func render(_ key: Curve25519.Signing.PrivateKey) -> String {
         let encoded = GuaBase32.encode([UInt8](key.rawRepresentation))
-        return stride(from: 0, to: encoded.count, by: 4).map { offset in
+        let groups = stride(from: 0, to: encoded.count, by: 4).map { offset in
             let start = encoded.index(encoded.startIndex, offsetBy: offset)
             let end = encoded.index(start, offsetBy: min(4, encoded.count - offset))
             return String(encoded[start..<end])
         }
-        .joined(separator: " ")
+        return ([prefix] + groups).joined(separator: " ")
     }
 
     /// Characters the encoding produces, so a typo can be named before anything is submitted.
@@ -404,20 +415,19 @@ enum AuthorityRecoveryArtifact {
     /// 32 bytes of base32 come to 52 characters.
     static let encodedLength = 52
 
-    /// Reads back what ``render(_:)`` showed.
+    /// Reads back what ``render(_:)`` showed, on this platform or on the other one.
     ///
     /// Whitespace and case are forgiven, because the value was read off one screen and typed into another
     /// and the encoding has neither. Everything else is refused **here**, before any request is made: the
     /// endpoint that would receive it starts a window and burns a challenge, so a mistyped key that reaches
     /// it costs the owner a cooldown rather than a second try.
     static func parse(_ typed: String) throws -> Curve25519.Signing.PrivateKey {
-        let cleaned = typed.lowercased().filter { !$0.isWhitespace }
-        guard cleaned.count == encodedLength else {
+        guard let body = body(of: typed), body.count == encodedLength else {
             throw AccountAuthorityServiceError.artifactMalformed
         }
         let raw: [UInt8]
         do {
-            raw = try GuaBase32.decode(cleaned)
+            raw = try GuaBase32.decode(body)
         } catch {
             throw AccountAuthorityServiceError.artifactMalformed
         }
@@ -427,6 +437,24 @@ enum AuthorityRecoveryArtifact {
         } catch {
             throw AccountAuthorityServiceError.artifactMalformed
         }
+    }
+
+    /// Whether what has been typed is as long as a whole artifact, so the button that submits it can be
+    /// offered when it is and not before. Not a validity check: ``parse(_:)`` is what refuses, and its
+    /// refusal is the one a person can read.
+    static func looksComplete(_ typed: String) -> Bool {
+        body(of: typed)?.count == encodedLength
+    }
+
+    /// The value's own characters, with the prefix taken off and the spacing collapsed, or `nil` when what
+    /// was typed is not an artifact of this framework at all.
+    ///
+    /// Spacing between groups is free-form, because nobody retypes four-character groups exactly as they
+    /// were printed.
+    private static func body(of typed: String) -> String? {
+        let tokens = typed.lowercased().split(whereSeparator: \.isWhitespace)
+        guard let first = tokens.first, String(first) == prefix else { return nil }
+        return tokens.dropFirst().joined()
     }
 }
 
