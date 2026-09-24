@@ -48,6 +48,19 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
         try await deferred.fulfill()
     }
 
+    /// Waits until the stub has been asked to object the given number of times.
+    ///
+    /// The objection flow begins and ends on the overview, so a phase is no evidence that it has run. The
+    /// stubs never suspend, so yielding the main actor is enough to let it finish.
+    private func waitForObjections(_ count: Int, file: StaticString = #filePath, line: UInt = #line) async throws {
+        var yields = 0
+        while authorityService.opposedStepUps.count < count, yields < 500 {
+            await Task.yield()
+            yields += 1
+        }
+        XCTAssertEqual(authorityService.opposedStepUps.count, count, file: file, line: line)
+    }
+
     // MARK: - Reading the chain
 
     func testABootstrapAccountIsOfferedTheSetup() async throws {
@@ -504,6 +517,65 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
         XCTAssertEqual(authorityService.opposedStepUps, [nil], "The holds gate starting a transition, never opposing one.")
     }
 
+    func testASecondObjectionAsksForTheFactorTheServerWantsAndIsThenMade() async throws {
+        // What the server does from the second objection onward, and the only thing that makes the veto of
+        // decision 4 worth having: a cancelled record gives its slot back, so whoever started the first
+        // adoption can start another one, and an owner who could object only once would lose the account to
+        // a second attempt.
+        makeViewModel(chain: rootedChain(pending: AuthorityPendingTransition(type: .adoptRoot,
+                                                                             seq: 1,
+                                                                             effectiveAt: Date().addingTimeInterval(259_200),
+                                                                             recordHash: "adoption-hash")),
+                      status: Self.status(hasPin: true, passkeyRegistered: false),
+                      webPresenter: WebStepUpPresenterStub(result: .success(.returned)))
+        authorityService.opposeNeedsAStepUp = true
+        try await waitForPhase(.overview)
+
+        context.send(viewAction: .opposePending)
+        // The refusal is not the end of it: the factor is asked for on this screen, as it is for every
+        // other transition here.
+        try await waitForPhase(.enteringPin)
+        XCTAssertNil(context.viewState.errorMessage, "A refusal that is being answered is not an error to read.")
+
+        context.pin = "123456"
+        context.send(viewAction: .pinChanged)
+        try await waitForPhase(.overview)
+
+        XCTAssertEqual(authorityService.opposedStepUps, [nil, .pin("123456")],
+                       "The first attempt presents nothing and the retry presents the factor.")
+        XCTAssertEqual(authorityService.oppositions, ["adoption-hash"])
+        XCTAssertNil(context.viewState.errorMessage)
+        // OPPOSE asks for no factor in its own right, so the deployment refuses a sheet for it and this
+        // screen never asks for one.
+        XCTAssertTrue(authorityService.webStepUpPurposes.isEmpty)
+    }
+
+    func testAPasskeyHolderIsNotToldToSetUpAFactorToObjectASecondTime() async throws {
+        // The copy this used to end on told a passkey-only account to set up two-step verification, which
+        // it holds, in order to do something it can do.
+        let presenter = PasskeyPresenterStub(result: .success(Self.assertion))
+        makeViewModel(chain: rootedChain(pending: AuthorityPendingTransition(type: .adoptRoot,
+                                                                             seq: 1,
+                                                                             effectiveAt: Date().addingTimeInterval(259_200),
+                                                                             recordHash: "adoption-hash")),
+                      status: Self.status(hasPin: false, passkeyRegistered: true),
+                      passkeyOptions: Self.passkeyOptions,
+                      passkeyPresenter: presenter)
+        authorityService.opposeNeedsAStepUp = true
+        try await waitForPhase(.overview)
+
+        context.send(viewAction: .opposePending)
+        // Both attempts, rather than a phase: this flow starts and ends on the overview, so the phase says
+        // nothing about whether it has run.
+        try await waitForObjections(2)
+
+        XCTAssertEqual(presenter.callCount, 1)
+        XCTAssertEqual(authorityService.opposedStepUps,
+                       [nil, .passkey(stepUpID: "step-up-id", assertion: Self.assertion)])
+        XCTAssertEqual(authorityService.oppositions, ["adoption-hash"])
+        XCTAssertNil(context.viewState.errorMessage)
+    }
+
     func testAPendingRevocationIsOnlyOpposableFromADeviceTheChainHoldsActive() async throws {
         let pending = AuthorityPendingTransition(type: .deviceRevoke,
                                                  seq: 3,
@@ -845,6 +917,9 @@ final class AuthorityServiceStub: AccountAuthorityServiceProtocol {
     var prepareError: Error?
     var offerError: Error?
     var opposeError: Error?
+    /// The server from the second objection onward: a factor-free objection is refused and the same
+    /// objection carrying a factor is made.
+    var opposeNeedsAStepUp = false
     var registerAlertsError: Error?
     var securityAlertsError: Error?
     var removeAlertsError: Error?
@@ -950,8 +1025,13 @@ final class AuthorityServiceStub: AccountAuthorityServiceProtocol {
                 pending: AuthorityPendingTransition,
                 stepUp: AuthorityStepUp?) async throws {
         if let opposeError { throw opposeError }
-        oppositions.append(pending.recordHash)
+        // Every attempt is recorded, refused or not, so a test can see what was presented and in which
+        // order.
         opposedStepUps.append(stepUp)
+        if opposeNeedsAStepUp, stepUp == nil {
+            throw IdentityServiceError.authority(.stepUpRequired)
+        }
+        oppositions.append(pending.recordHash)
     }
 
     func registerSecurityAlerts(accessToken: String,
