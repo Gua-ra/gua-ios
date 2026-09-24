@@ -1162,9 +1162,11 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
     }
 
     func removeSecurityNotification(accessToken: String, removal: SecurityNotificationRemoval) async throws {
+        // It names the row to remove and nothing else. There is no field for the caller to say which
+        // install it is, because the server's own request object has none: which tier a caller reaches is
+        // decided by what it can produce, and a request cannot authenticate itself.
         struct Body: Encodable {
             let installationId: String
-            let callerInstallationId: String?
             let passkeyStepUpId: String?
             let passkeyCredential: PasskeyAssertion?
             let pin: String?
@@ -1188,7 +1190,6 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         try await sendAuthenticated(path: "/account/security-notifications/remove",
                                     accessToken: accessToken,
                                     body: Body(installationId: removal.installationID,
-                                               callerInstallationId: removal.callerInstallationID,
                                                passkeyStepUpId: passkeyStepUpID,
                                                passkeyCredential: assertion,
                                                pin: pin,

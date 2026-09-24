@@ -121,7 +121,7 @@ final class AccountAuthorityServiceMock: AccountAuthorityServiceProtocol {
     func removeSecurityAlerts(accessToken: String,
                               accountID: AccountID,
                               installationID: String,
-                              stepUp: AuthorityStepUp?) async throws { }
+                              stepUp: AuthorityStepUp) async throws { }
 
     func thisInstallationID() -> String? {
         installationID

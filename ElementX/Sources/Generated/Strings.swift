@@ -1182,6 +1182,8 @@ internal enum L10n {
   internal static var screenAccountAuthorityDeviceUnnamed: String { return L10n.tr("Localizable", "screen_account_authority_device_unnamed") }
   /// Only the device this alert belongs to can turn it off from somewhere else. Turn it off on that device, or remove that device from your trusted devices first.
   internal static var screenAccountAuthorityErrorAlertsDeviceRequired: String { return L10n.tr("Localizable", "screen_account_authority_error_alerts_device_required") }
+  /// Turning off an alert has to be confirmed with your passkey, and this phone couldn't use it for this step.
+  internal static var screenAccountAuthorityErrorAlertsStepUp: String { return L10n.tr("Localizable", "screen_account_authority_error_alerts_step_up") }
   /// We couldn't confirm it was you. Please try again.
   internal static var screenAccountAuthorityErrorConfirmationIncomplete: String { return L10n.tr("Localizable", "screen_account_authority_error_confirmation_incomplete") }
   /// Something changed while you were setting this up. Please try again.

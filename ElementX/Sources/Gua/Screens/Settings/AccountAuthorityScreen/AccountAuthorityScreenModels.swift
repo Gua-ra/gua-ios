@@ -179,6 +179,9 @@ struct AccountAuthorityScreenViewState: BindableState {
         device.deviceKey == thisDeviceKey
     }
 
+    /// Whether a row is the phone in the reader's hand, which the list says so that a stranger among them
+    /// can be recognised. It decides a label and nothing else: what removing a row costs is the same for
+    /// this one as for any other.
     func isThisInstall(_ alert: SecurityNotificationSummary) -> Bool {
         alert.installationID == thisInstallationID
     }

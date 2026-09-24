@@ -804,7 +804,12 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
 
     // MARK: - Security alerts
 
-    func testThisInstallCanBeRegisteredForAlertsAndRemovedWithNoFactor() async throws {
+    /// ADM-009 decision 13: one removal tier, and this install's own row is not cheaper than any other.
+    ///
+    /// The tier that was cheaper was decided by comparing one installation id in the request body against
+    /// another, which is two values the same caller sets. The server removed it, so a button that presented
+    /// no factor had no outcome left but a refusal.
+    func testThisInstallCanBeRegisteredForAlertsAndRemovedAtTheOnePrice() async throws {
         makeViewModel(chain: rootedChain(pending: nil))
         authorityService.installationID = "this-install"
         try await waitForPhase(.overview)
@@ -819,12 +824,48 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
         XCTAssertTrue(context.viewState.isThisInstall(own))
 
         context.send(viewAction: .removeAlerts(own))
+        try await waitForPhase(.enteringPin)
+        XCTAssertTrue(authorityService.removedAlerts.isEmpty,
+                      "Nothing is asked of the server before the factor the removal costs is presented.")
+
+        context.pin = "123456"
+        context.send(viewAction: .pinChanged)
         let removed = deferFulfillment(context.observe(\.viewState.alerts)) { $0.isEmpty }
         try await removed.fulfill()
 
         XCTAssertEqual(authorityService.removedAlerts.map(\.installationID), ["this-install"])
-        XCTAssertNil(authorityService.removedAlerts.first?.stepUp,
-                     "The person holding this phone is the person the channel serves.")
+        XCTAssertEqual(authorityService.removedAlerts.first?.stepUp, .pin("123456"),
+                       "The same step-up as every other authority action on this screen, own row included.")
+    }
+
+    /// The one step with no route through the browser. The removal endpoint takes its factor in its own
+    /// request and reads no sheet proof, so an account whose passkey this phone cannot assert and which
+    /// holds no PIN is told what is missing, and is not told to add a PIN.
+    func testAnAccountThatCannotPresentAFactorForARemovalIsToldSo() async throws {
+        let web = WebStepUpPresenterStub(result: .success(.returned))
+        makeViewModel(chain: rootedChain(pending: nil),
+                      status: Self.status(hasPin: false, passkeyRegistered: true),
+                      passkeyOptions: Self.passkeyOptions,
+                      passkeyPresenter: PasskeyPresenterStub(result: .failure(PasskeyStepUpError.unavailable)),
+                      webPresenter: web)
+        authorityService.installationID = "this-install"
+        authorityService.alerts = [SecurityNotificationSummary(installationID: "this-install",
+                                                               platform: "APNS",
+                                                               deviceLabel: "iPhone",
+                                                               tokenFingerprint: "fingerprint",
+                                                               isBoundToAnAuthorityDevice: true,
+                                                               lastSeenAt: Date())]
+        try await waitForPhase(.overview)
+
+        let own = try XCTUnwrap(context.viewState.alerts.first)
+        context.send(viewAction: .removeAlerts(own))
+        let refused = deferFulfillment(context.observe(\.viewState.errorMessage)) { $0 != nil }
+        try await refused.fulfill()
+
+        XCTAssertEqual(context.viewState.errorMessage, L10n.screenAccountAuthorityErrorAlertsStepUp)
+        XCTAssertTrue(web.presentedURLs.isEmpty, "There is no sheet for this step to be sent to.")
+        XCTAssertTrue(authorityService.removedAlerts.isEmpty, "Nothing was asked of the server.")
+        XCTAssertEqual(context.viewState.phase, .overview)
     }
 
     func testRemovingARowBoundToAnotherDeviceSaysWhoCanDoIt() async throws {
@@ -995,7 +1036,7 @@ final class AuthorityServiceStub: AccountAuthorityServiceProtocol {
     private(set) var oppositions: [String] = []
     private(set) var opposedStepUps: [AuthorityStepUp?] = []
     private(set) var offers = 0
-    private(set) var removedAlerts: [(installationID: String, stepUp: AuthorityStepUp?)] = []
+    private(set) var removedAlerts: [(installationID: String, stepUp: AuthorityStepUp)] = []
 
     init(chain: AuthorityChainState?) {
         self.chain = chain
@@ -1113,7 +1154,7 @@ final class AuthorityServiceStub: AccountAuthorityServiceProtocol {
     func removeSecurityAlerts(accessToken: String,
                               accountID: AccountID,
                               installationID: String,
-                              stepUp: AuthorityStepUp?) async throws {
+                              stepUp: AuthorityStepUp) async throws {
         removedAlerts.append((installationID, stepUp))
         if let removeAlertsError { throw removeAlertsError }
         alerts.removeAll { $0.installationID == installationID }

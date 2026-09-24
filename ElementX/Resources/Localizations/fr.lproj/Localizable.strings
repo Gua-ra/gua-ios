@@ -1595,6 +1595,7 @@
 "screen_account_authority_error_alerts_device_required" = "Seul l'appareil auquel cette alerte appartient peut la désactiver depuis ailleurs. Désactivez-la sur cet appareil, ou retirez d'abord cet appareil de vos appareils de confiance.";
 "screen_account_authority_error_passkey_incomplete" = "Votre clé d'accès n'a pas abouti. Veuillez réessayer.";
 "screen_account_authority_error_confirmation_incomplete" = "Nous n'avons pas pu confirmer que c'est bien vous. Veuillez réessayer.";
+"screen_account_authority_error_alerts_step_up" = "Désactiver une alerte doit être confirmé avec votre clé d'accès, et ce téléphone n'a pas pu l'utiliser pour cette étape.";
 "screen_authority_approval_title" = "Approuver une demande";
 "screen_authority_approval_empty" = "Rien n'attend votre approbation.";
 "screen_authority_approval_code_header" = "Vérifiez que cela correspond au code affiché sur l'autre écran";
