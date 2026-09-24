@@ -439,6 +439,16 @@ class AccountAuthorityScreenViewModel: AccountAuthorityScreenViewModelType, Acco
                                                                 installationID: installationID,
                                                                 stepUp: stepUp)
                 await loadChain()
+            case let .oppose(pending):
+                // The retry of an objection the server asked a factor for. The record it names is the one
+                // the first attempt named, so a transition that settled in between is refused as stale
+                // rather than being objected to in the dark.
+                guard let stepUp else { throw AccountAuthorityServiceError.disabled }
+                try await authorityService.oppose(accessToken: accessToken,
+                                                  state: chain,
+                                                  pending: pending,
+                                                  stepUp: stepUp)
+                await loadChain()
             }
         } catch {
             MXLog.error("Failed running an authority transition: \(error)")
@@ -489,18 +499,34 @@ class AccountAuthorityScreenViewModel: AccountAuthorityScreenViewModelType, Acco
         state.errorMessage = nil
         state.phase = .submitting
         do {
-            // No factor is presented. The first opposition of an adoption needs none, and a signed Oppose
-            // needs none either: the holds gate starting a transition and never opposing one, so an owner
-            // who has just changed their PIN to lock a thief out is not the one disarmed by it.
+            // No factor is presented first. The first opposition of an adoption needs none, and a signed
+            // Oppose needs none at all: the holds gate starting a transition and never opposing one, so an
+            // owner who has just changed their PIN to lock a thief out is not the one disarmed by it.
             try await authorityService.oppose(accessToken: accessToken,
                                               state: chain,
                                               pending: pending,
                                               stepUp: nil)
         } catch {
+            if Self.needsAFactorToObject(error) {
+                // From the second objection onward the server asks for one, on any factor and at any age,
+                // so that a stolen session cannot veto the account out of ever gaining authority. It is
+                // asked for and the objection is retried, exactly as every other transition here does:
+                // stopping at the refusal would leave the owner with one veto and whoever started the
+                // first transition only has to start a second one.
+                state.phase = .overview
+                await requestStepUp(for: .oppose(pending))
+                return
+            }
             MXLog.error("Failed opposing the pending transition: \(error)")
             state.errorMessage = message(for: error)
         }
         await loadChain()
+    }
+
+    /// Whether the objection was refused for the one reason a factor answers.
+    private static func needsAFactorToObject(_ error: Error) -> Bool {
+        guard case let IdentityServiceError.authority(refusal) = error else { return false }
+        return refusal == .stepUpRequired
     }
 
     // MARK: - Devices
