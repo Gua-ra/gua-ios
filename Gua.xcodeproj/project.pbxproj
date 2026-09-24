@@ -874,6 +874,7 @@
 		93954DF2148CE46ED4216539 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = EAC87B0ECA7BF0CEAE0D09DD /* Localizable.strings */; };
 		939DC5001AD96C993032A263 /* MediaEventsTimelineScreenViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14864AAFF27907FD54423C8 /* MediaEventsTimelineScreenViewModel.swift */; };
 		93A6997F3DAB713A49731A53 /* MediaLoaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1F1B3731558487F0CCEA974 /* MediaLoaderTests.swift */; };
+		93D27C1331BE11C7BCDEC2C7 /* AccountAuthorityServiceMock.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5105F1E263B470236954C4A /* AccountAuthorityServiceMock.swift */; };
 		93D860F1FA24FF22C7B9643D /* RoomProxyProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1450C4146ED941B459BC83CA /* RoomProxyProtocol.swift */; };
 		93E48C3AB84511807D12ECDD /* AppLockSetupSettingsScreenModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB753BF857F4368DCAAAF4EE /* AppLockSetupSettingsScreenModels.swift */; };
 		93FBDDF6B45985553AE0EF07 /* SecureBackupRecoveryKeyScreenViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60F955B4E2A6F48B8A525532 /* SecureBackupRecoveryKeyScreenViewModel.swift */; };
@@ -2749,6 +2750,7 @@
 		D3B16339AB4E8DC67121C013 /* SessionVerificationScreenViewModelProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionVerificationScreenViewModelProtocol.swift; sourceTree = "<group>"; };
 		D471AC7F1855EB8954B5A708 /* MentionSuggestionItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MentionSuggestionItemView.swift; sourceTree = "<group>"; };
 		D47509A973B21B1EA85C72A4 /* NotificationSettingsEditScreenCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSettingsEditScreenCoordinator.swift; sourceTree = "<group>"; };
+		D5105F1E263B470236954C4A /* AccountAuthorityServiceMock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountAuthorityServiceMock.swift; sourceTree = "<group>"; };
 		D5387A5162C6308FBBC08856 /* BannedRoomProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BannedRoomProxy.swift; sourceTree = "<group>"; };
 		D555A36AF28E91BD996D701C /* LoginScreenViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginScreenViewModelTests.swift; sourceTree = "<group>"; };
 		D566950DD4854BCFAE259751 /* OrderedSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderedSet.swift; sourceTree = "<group>"; };
@@ -6142,6 +6144,7 @@
 		C54EDFBD403D66B101798D39 /* Mocks */ = {
 			isa = PBXGroup;
 			children = (
+				D5105F1E263B470236954C4A /* AccountAuthorityServiceMock.swift */,
 				B60FCD5BDAEE22AFDAF1D073 /* AggregatedReactionMock.swift */,
 				325A48F8FF30BBC614BA2B44 /* AppMediatorMock.swift */,
 				86D81F63B7613770E4C70E46 /* AuthenticationClientBuilderFactoryMock.swift */,
@@ -7664,6 +7667,7 @@
 				F5D766E32DCA96F655ED0C68 /* AccountAuthorityScreenViewModel.swift in Sources */,
 				1F9028F375437C6E4E98A233 /* AccountAuthorityScreenViewModelProtocol.swift in Sources */,
 				B430CEDEC4269200E9320B30 /* AccountAuthorityService.swift in Sources */,
+				93D27C1331BE11C7BCDEC2C7 /* AccountAuthorityServiceMock.swift in Sources */,
 				834ACDB5B805B889BE70AD3B /* AccountGenesis.swift in Sources */,
 				21C45A3F1804B8DA155A98EA /* AccountGenesisService.swift in Sources */,
 				7C21949D5E96D2E722A600C4 /* AdvancedSettingsScreen.swift in Sources */,

@@ -491,3 +491,143 @@ struct AccountAuthorityScreen: View {
         date.formatted(date: .abbreviated, time: .shortened)
     }
 }
+
+// MARK: - Previews
+
+struct AccountAuthorityScreen_Previews: PreviewProvider, TestablePreview {
+    /// A rooted account with everything this screen can draw on it at once: the phone in the reader's hand,
+    /// a second device inside its own grant window, a key another phone has offered, a browser approval
+    /// waiting, and the security-notification rows of gate 2.
+    static let viewModel = makeViewModel(chain: rootedChain(devices: [thisDevice, quarantinedDevice]),
+                                         candidates: [AccountAuthorityServiceMock.candidate],
+                                         approvals: [approval],
+                                         alerts: [thisInstallAlert, otherInstallAlert])
+
+    /// The security-notification channel of gate 2, listed and removable.
+    ///
+    /// No device rows and no candidates in this one, so the section is above the fold: a preview snapshot is
+    /// one device screen, and a section below it is neither visible nor evidence that it was drawn.
+    static let alertsViewModel = makeViewModel(chain: rootedChain(devices: []),
+                                               alerts: [thisInstallAlert, otherInstallAlert])
+
+    /// An account whose id commits its own authority. ADM-009 decision 3 rule 3 refuses the account-recovery
+    /// route on one outright, so the "I don't have my recovery key" row is absent here and present above.
+    static let genesisViewModel = makeViewModel(chain: rootedChain(accountClass: .genesis, devices: [thisDevice]))
+
+    /// The end state of decision 7: rooted, no device left, no recovery key. Permanent, and the screen says
+    /// so rather than offering a second adoption, which would be the seizure O9 rejected.
+    static let lostViewModel = makeViewModel(chain: AuthorityChainState(accountID: accountID,
+                                                                        accountClass: .bootstrap,
+                                                                        state: .authorityLost,
+                                                                        headSeq: 4,
+                                                                        headHash: headHash,
+                                                                        devices: [],
+                                                                        pending: nil))
+
+    static var previews: some View {
+        NavigationStack {
+            AccountAuthorityScreen(context: viewModel.context)
+        }
+        .snapshotPreferences(expect: viewModel.context.observe(\.viewState.phase).map { $0 == .overview }.eraseToStream())
+        .previewDisplayName("Rooted")
+
+        NavigationStack {
+            AccountAuthorityScreen(context: alertsViewModel.context)
+        }
+        .snapshotPreferences(expect: alertsViewModel.context.observe(\.viewState.phase).map { $0 == .overview }.eraseToStream())
+        .previewDisplayName("Security alerts")
+
+        NavigationStack {
+            AccountAuthorityScreen(context: genesisViewModel.context)
+        }
+        .snapshotPreferences(expect: genesisViewModel.context.observe(\.viewState.phase).map { $0 == .overview }.eraseToStream())
+        .previewDisplayName("Genesis account")
+
+        NavigationStack {
+            AccountAuthorityScreen(context: lostViewModel.context)
+        }
+        .snapshotPreferences(expect: lostViewModel.context.observe(\.viewState.phase).map { $0 == .overview }.eraseToStream())
+        .previewDisplayName("Authority lost")
+    }
+
+    // MARK: - Fixtures
+
+    static let accountID = AccountAuthorityServiceMock.accountID
+
+    static let headHash = String(repeating: "ab", count: 32)
+
+    static let thisDevice = AuthorityDeviceSummary(deviceKey: "this-device",
+                                                   label: "iPhone",
+                                                   state: .active,
+                                                   quarantineUntil: nil,
+                                                   grantedSeq: 1)
+
+    /// Quarantined with no end date, deliberately.
+    ///
+    /// The row with a date renders it through `DateFormatter` in the simulator's own zone, so the golden
+    /// would be a picture of the recording machine's offset and CI, which runs in UTC, would draw a
+    /// different day. This suite has nowhere to pin a clock, so the state that exercises the quarantine
+    /// branch is the one that renders no absolute time.
+    static let quarantinedDevice = AuthorityDeviceSummary(deviceKey: "other-device",
+                                                          label: "iPad",
+                                                          state: .quarantined,
+                                                          quarantineUntil: nil,
+                                                          grantedSeq: 2)
+
+    static let approval = AuthorityApproval(approvalID: "an-approval",
+                                            code: "AB7K",
+                                            action: "authority.device.grant",
+                                            actionDigest: "a-digest",
+                                            challenge: "a-challenge",
+                                            expiresAt: Date(timeIntervalSince1970: 1_767_323_445))
+
+    static let thisInstallAlert = SecurityNotificationSummary(installationID: "this-install",
+                                                              platform: "APNS",
+                                                              deviceLabel: "iPhone",
+                                                              tokenFingerprint: "9f2a",
+                                                              isBoundToAnAuthorityDevice: true,
+                                                              lastSeenAt: Date(timeIntervalSince1970: 1_767_322_845))
+
+    static let otherInstallAlert = SecurityNotificationSummary(installationID: "other-install",
+                                                               platform: "APNS",
+                                                               deviceLabel: "iPad",
+                                                               tokenFingerprint: "4c1d",
+                                                               isBoundToAnAuthorityDevice: false,
+                                                               lastSeenAt: Date(timeIntervalSince1970: 1_767_322_845))
+
+    static func rootedChain(accountClass: AuthorityAccountClass = .bootstrap,
+                            devices: [AuthorityDeviceSummary]) -> AuthorityChainState {
+        AuthorityChainState(accountID: accountID,
+                            accountClass: accountClass,
+                            state: .rooted,
+                            headSeq: 2,
+                            headHash: headHash,
+                            devices: devices,
+                            pending: nil)
+    }
+
+    static func makeViewModel(chain: AuthorityChainState,
+                              candidates: [AuthorityCandidate] = [],
+                              approvals: [AuthorityApproval] = [],
+                              alerts: [SecurityNotificationSummary] = []) -> AccountAuthorityScreenViewModel {
+        let clientProxy = ClientProxyMock(.init())
+        clientProxy.accessToken = "preview-token"
+        // Fixed answers for every read this screen makes on appear. Without them a session-less preview
+        // renders "we could not read this", which is not the screen anyone wants a picture of.
+        let authorityService = AccountAuthorityServiceMock(chain: chain,
+                                                           candidateList: candidates,
+                                                           approvals: approvals,
+                                                           alerts: alerts,
+                                                           installationID: "this-install",
+                                                           deviceKey: "this-device")
+        let identityServiceClient = IdentityServiceClientMock(status: .init(hasPin: true,
+                                                                            passkeyRegistered: false,
+                                                                            preferredFactor: .pin,
+                                                                            phoneChangeStepUpFactors: [.pin],
+                                                                            pinStepUpHoldRemainingSeconds: 0))
+        return AccountAuthorityScreenViewModel(authorityService: authorityService,
+                                               identityServiceClient: identityServiceClient,
+                                               clientProxy: clientProxy,
+                                               userIndicatorController: UserIndicatorControllerMock())
+    }
+}
