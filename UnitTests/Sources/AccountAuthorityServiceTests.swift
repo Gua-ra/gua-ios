@@ -160,8 +160,10 @@ final class AccountAuthorityServiceTests: XCTestCase {
 
         let artifact = try XCTUnwrap(prepared.recoveryArtifact)
         let stored = try XCTUnwrap(keyStore.stored[accountID.value])
-        let decoded = try GuaBase32.decode(artifact.replacingOccurrences(of: " ", with: ""))
-        XCTAssertEqual(decoded, [UInt8](stored.recovery.rawRepresentation))
+        // Read back through the decoder a person's retyped copy goes through, so the artifact on screen and
+        // the key the record commits are checked against each other in the shape the other phone accepts.
+        XCTAssertEqual(try AuthorityRecoveryArtifact.parse(artifact).rawRepresentation,
+                       stored.recovery.rawRepresentation)
 
         prepared.confirmArtifactStored()
         XCTAssertNil(prepared.recoveryArtifact, "Shown once means the object stops holding it.")
@@ -489,14 +491,24 @@ final class AccountAuthorityServiceTests: XCTestCase {
         let key = Curve25519.Signing.PrivateKey()
         let rendered = AuthorityRecoveryArtifact.render(key)
 
+        // The framework and its version, first, exactly as the other platform renders and requires it: an
+        // artifact taken on one phone is typed into whichever phone replaces it.
+        XCTAssertTrue(rendered.hasPrefix(AuthorityRecoveryArtifact.prefix + " "), rendered)
+
         // Read off one screen and typed into another: the grouping and the case are forgiven, because the
         // encoding has neither.
         let parsed = try AuthorityRecoveryArtifact.parse(rendered.uppercased())
         XCTAssertEqual(parsed.rawRepresentation, key.rawRepresentation)
-        XCTAssertEqual(try AuthorityRecoveryArtifact.parse(rendered.replacingOccurrences(of: " ", with: "")).rawRepresentation,
+        let body = rendered.dropFirst(AuthorityRecoveryArtifact.prefix.count).filter { !$0.isWhitespace }
+        XCTAssertEqual(try AuthorityRecoveryArtifact.parse("\(AuthorityRecoveryArtifact.prefix) \(body)").rawRepresentation,
+                       key.rawRepresentation)
+        XCTAssertEqual(try AuthorityRecoveryArtifact.parse("  \(rendered)\n").rawRepresentation,
                        key.rawRepresentation)
 
-        for wrong in ["", "not a key", String(repeating: "a", count: 51), rendered + "a"] {
+        // The bare body is the shape this client used to render, and it is refused now rather than being
+        // half-accepted: a key with no framework on it is not this framework's key.
+        for wrong in ["", "not a key", String(body), AuthorityRecoveryArtifact.prefix,
+                      "gua-recovery-2 \(body)", String(repeating: "a", count: 51), rendered + "a"] {
             XCTAssertThrowsError(try AuthorityRecoveryArtifact.parse(wrong)) { error in
                 XCTAssertEqual(error as? AccountAuthorityServiceError, .artifactMalformed)
             }

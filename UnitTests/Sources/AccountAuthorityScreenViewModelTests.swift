@@ -703,7 +703,13 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
         context.send(viewAction: .submitRecoveryArtifact)
         XCTAssertTrue(authorityService.typedArtifacts.isEmpty)
 
+        // The body on its own is not an artifact of this framework, and the button says so rather than
+        // sending it: the length is right and the thing is not one.
         context.recoveryArtifact = String(repeating: "a", count: AuthorityRecoveryArtifact.encodedLength)
+        XCTAssertFalse(context.viewState.canSubmitRecoveryArtifact)
+
+        context.recoveryArtifact = AuthorityRecoveryArtifact
+            .render(Curve25519.Signing.PrivateKey())
         XCTAssertTrue(context.viewState.canSubmitRecoveryArtifact)
         context.send(viewAction: .submitRecoveryArtifact)
         try await waitForPhase(.enteringPin)
