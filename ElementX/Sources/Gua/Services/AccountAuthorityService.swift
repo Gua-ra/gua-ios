@@ -315,12 +315,16 @@ struct SecurityNotificationSummary: Equatable, Identifiable {
     }
 }
 
-/// What a removal presents. Which tier it reaches is decided by what it can produce, never by a flag it
-/// sets: naming your own install needs nothing else, naming another needs a factor past the fresh-factor
-/// hold plus a device signature where the row carries a key.
+/// What a removal presents. There is exactly one tier (ADM-009 decision 13): a factor past the
+/// fresh-factor hold, plus a device signature where the row carries a key.
+///
+/// That is the price for whichever row is named, this install's own included. There is deliberately no
+/// cheaper path for "my own install", and so no field here for the caller to name itself with: a
+/// self-asserted installation id is a request-body field, and one of a caller's values cannot authenticate
+/// another of the same caller's values. The server's own request object dropped that field for the same
+/// reason.
 struct SecurityNotificationRemoval: Equatable {
     let installationID: String
-    let callerInstallationID: String?
     let stepUp: AuthorityStepUp?
     let challenge: String?
     let signature: String?
@@ -677,12 +681,12 @@ protocol AccountAuthorityServiceProtocol {
 
     func securityAlerts(accessToken: String) async throws -> [SecurityNotificationSummary]
 
-    /// Removes one registration. Naming this install needs no factor; naming another needs a step-up and,
-    /// where the row carries a device key, a signature by this device's key.
+    /// Removes one registration, at the one price every removal pays: a step-up and, where the row carries
+    /// a device key, a signature by this device's key. Naming this install's own row costs the same.
     func removeSecurityAlerts(accessToken: String,
                               accountID: AccountID,
                               installationID: String,
-                              stepUp: AuthorityStepUp?) async throws
+                              stepUp: AuthorityStepUp) async throws
 
     /// This install's own id, so a listing can say which row is the phone in the reader's hand.
     func thisInstallationID() -> String?
@@ -1273,23 +1277,23 @@ final class AccountAuthorityService: AccountAuthorityServiceProtocol {
     func removeSecurityAlerts(accessToken: String,
                               accountID: AccountID,
                               installationID: String,
-                              stepUp: AuthorityStepUp?) async throws {
+                              stepUp: AuthorityStepUp) async throws {
         guard isEnabled else { throw AccountAuthorityServiceError.disabled }
 
-        let thisInstall = try? installationIDStore.installationID()
-        let isThisInstall = thisInstall == installationID
-
-        // Tier 1: this install removing its own row, which needs nothing else, because the person holding
-        // this phone is the person the channel serves.
+        // One tier, for whichever row is named, this install's own included (ADM-009 decision 13): the
+        // step-up, and where that row carries a device key a signature by **the key the row itself names**.
+        // The server verifies under that key rather than under one the request chooses, so this phone's
+        // signature is accepted exactly when the row names this phone's key and is refused otherwise, which
+        // is the truth and is what stops a fresh post-recovery session stripping the owner's channel with
+        // the PIN it just minted.
         //
-        // Tier 2: another install, which needs the step-up and, where that row carries a device key, a
-        // signature by **the key the row itself names**. The server verifies under that key rather than
-        // under one the request chooses, so this phone's signature is accepted exactly when the row names
-        // this phone's key and is refused otherwise, which is the truth and is what stops a fresh
-        // post-recovery session stripping the owner's channel with the PIN it just minted.
+        // There used to be a cheaper tier for "my own install", selected by comparing one installation id
+        // in the request body against another. Two values one caller sets cannot authenticate each other,
+        // and the account's own listing hands every installation id to any bearer of the account, so that
+        // tier was the whole channel for the asking. It is gone from the server and from here.
         var challengeValue: String?
         var signatureValue: String?
-        if !isThisInstall, let authorityKey = try? keyStore.authorityKey(forAccountID: accountID.value) {
+        if let authorityKey = try? keyStore.authorityKey(forAccountID: accountID.value) {
             let challenge = try await client.authorityChallenge(accessToken: accessToken,
                                                                 purpose: .notify,
                                                                 stepUp: nil)
@@ -1311,8 +1315,7 @@ final class AccountAuthorityService: AccountAuthorityServiceProtocol {
         }
 
         let removal = SecurityNotificationRemoval(installationID: installationID,
-                                                  callerInstallationID: thisInstall,
-                                                  stepUp: isThisInstall ? nil : stepUp,
+                                                  stepUp: stepUp,
                                                   challenge: challengeValue,
                                                   signature: signatureValue)
         try await client.removeSecurityNotification(accessToken: accessToken, removal: removal)

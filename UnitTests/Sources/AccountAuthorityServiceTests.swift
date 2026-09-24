@@ -94,7 +94,7 @@ final class AccountAuthorityServiceTests: XCTestCase {
             try await self.service.removeSecurityAlerts(accessToken: "token",
                                                         accountID: self.accountID,
                                                         installationID: "install",
-                                                        stepUp: nil)
+                                                        stepUp: .pin("123456"))
         }
         await assertThrowsDisabled {
             try await self.service.webStepUpURL(accessToken: "token", purpose: .adopt)
@@ -652,37 +652,32 @@ final class AccountAuthorityServiceTests: XCTestCase {
         XCTAssertTrue(client.registrations.isEmpty)
     }
 
-    func testRemovingThisInstallsOwnRowNeedsNoFactorAndAnotherInstallsIsSigned() async throws {
+    /// One tier, whichever row is named (ADM-009 decision 13). The own row pays the same price as any
+    /// other, and the request carries no field for the caller to name itself with, because that field was
+    /// what selected the cheaper tier the server has removed.
+    func testEveryRemovalCarriesTheFactorAndSignsTheRowItNames() async throws {
         appSettings.guaAccountAuthorityEnabled = true
         let deviceKey = Curve25519.Signing.PrivateKey()
         keyStore.stored[accountID.value] = AccountAuthorityKeyPair(authority: deviceKey,
                                                                    recovery: Curve25519.Signing.PrivateKey())
 
-        // Tier 1: the person holding this phone is the person the channel serves.
-        try await service.removeSecurityAlerts(accessToken: "token",
-                                               accountID: accountID,
-                                               installationID: installationIDStore.value,
-                                               stepUp: .pin("123456"))
-        let own = try XCTUnwrap(client.removals.first)
-        XCTAssertEqual(own.callerInstallationID, installationIDStore.value)
-        XCTAssertNil(own.stepUp, "Removing your own row asks for nothing else.")
-        XCTAssertNil(own.signature)
-
-        // Tier 2: another install, which needs the factor and a signature naming that row.
-        try await service.removeSecurityAlerts(accessToken: "token",
-                                               accountID: accountID,
-                                               installationID: "another-install",
-                                               stepUp: .pin("123456"))
-        let other = try XCTUnwrap(client.removals.last)
-        XCTAssertEqual(other.stepUp, .pin("123456"))
-        let challenge = try XCTUnwrap(try GuaBase64URL.decode(XCTUnwrap(other.challenge)))
-        let preimage = try AuthorityProofs.notificationPreimage(accountID: accountID,
-                                                                installationID: "another-install",
-                                                                deviceKey: [UInt8](deviceKey.publicKey.rawRepresentation),
-                                                                challenge: challenge)
-        let signature = try XCTUnwrap(try GuaBase64URL.decode(XCTUnwrap(other.signature)))
-        XCTAssertTrue(deviceKey.publicKey.isValidSignature(Data(signature), for: Data(preimage)),
-                      "The preimage names the row being removed, so one row's signature cannot remove another.")
+        for installationID in [installationIDStore.value, "another-install"] {
+            try await service.removeSecurityAlerts(accessToken: "token",
+                                                   accountID: accountID,
+                                                   installationID: installationID,
+                                                   stepUp: .pin("123456"))
+            let removal = try XCTUnwrap(client.removals.last)
+            XCTAssertEqual(removal.installationID, installationID)
+            XCTAssertEqual(removal.stepUp, .pin("123456"))
+            let challenge = try XCTUnwrap(try GuaBase64URL.decode(XCTUnwrap(removal.challenge)))
+            let preimage = try AuthorityProofs.notificationPreimage(accountID: accountID,
+                                                                    installationID: installationID,
+                                                                    deviceKey: [UInt8](deviceKey.publicKey.rawRepresentation),
+                                                                    challenge: challenge)
+            let signature = try XCTUnwrap(try GuaBase64URL.decode(XCTUnwrap(removal.signature)))
+            XCTAssertTrue(deviceKey.publicKey.isValidSignature(Data(signature), for: Data(preimage)),
+                          "The preimage names the row being removed, so one row's signature cannot remove another.")
+        }
     }
 
     // MARK: - Browser approvals

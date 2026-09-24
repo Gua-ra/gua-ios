@@ -131,7 +131,12 @@ class AccountAuthorityScreenViewModel: AccountAuthorityScreenViewModelType, Acco
         case .enableAlerts:
             Task { await enableAlerts() }
         case let .removeAlerts(alert):
-            removeAlerts(alert)
+            // One tier, and this install's own row is not cheaper than any other (ADM-009 decision 13). The
+            // cheaper tier this button used to take was selected by a self-asserted installation id, which
+            // is a request-body field: one of a caller's values cannot authenticate another of the same
+            // caller's values, so any session could empty the channel every window here rests on. The server
+            // removed it, which left the factor-free button with no outcome but a refusal.
+            Task { await requestStepUp(for: .removeAlerts(installationID: alert.installationID)) }
         }
     }
 
@@ -140,16 +145,6 @@ class AccountAuthorityScreenViewModel: AccountAuthorityScreenViewModelType, Acco
         state.bindings.hasComparedFingerprint = false
         state.errorMessage = nil
         state.phase = .comparingCandidate
-    }
-
-    private func removeAlerts(_ alert: SecurityNotificationSummary) {
-        guard state.isThisInstall(alert) else {
-            Task { await requestStepUp(for: .removeAlerts(installationID: alert.installationID)) }
-            return
-        }
-        // Tier 1: this install removing its own row needs no factor at all, because the person holding this
-        // phone is the person the channel serves.
-        Task { await perform(operation: .removeAlerts(installationID: alert.installationID), stepUp: nil) }
     }
 
     // MARK: - Reading the chain
@@ -295,7 +290,15 @@ class AccountAuthorityScreenViewModel: AccountAuthorityScreenViewModelType, Acco
                                      accessToken: String,
                                      holdsPin: Bool) async {
         guard let webStepUpPresenter, let purpose = operation.webStepUpPurpose else {
-            await askForPin(holdsPin: holdsPin, otherwise: .passkeyDidNotComplete)
+            // No sheet for this transition. Turning off an alert has two proofs and no third: an assertion
+            // run natively, which did not happen or this branch would not have been reached, and the
+            // account's PIN. An account that holds neither is told what is missing rather than being told
+            // its passkey failed, which it did not, and it is not sent off to add a factor.
+            let deadEnd: StepUpDeadEnd = switch operation {
+            case .removeAlerts: .alertsCannotBeConfirmedHere
+            default: .passkeyDidNotComplete
+            }
+            await askForPin(holdsPin: holdsPin, otherwise: deadEnd)
             return
         }
 
@@ -342,19 +345,27 @@ class AccountAuthorityScreenViewModel: AccountAuthorityScreenViewModelType, Acco
         case passkeyDidNotComplete
         /// Neither ceremony could be completed. Said as what it is, without naming a factor to add.
         case couldNotConfirm
+        /// Turning off an alert, on an account whose passkey this phone could not assert and which holds no
+        /// PIN. The endpoint takes its factor in its own request and reads no sheet proof, so unlike every
+        /// transition there is no browser route to fall back to either. The copy says what is missing and
+        /// stops there: decision 13 has one removal tier and nothing weaker to offer, and telling a passkey
+        /// holder to add a PIN is what C4 forbids.
+        case alertsCannotBeConfirmedHere
     }
 
     private func askForPin(holdsPin: Bool, otherwise deadEnd: StepUpDeadEnd) async {
         guard holdsPin else {
             state.phase = state.chain == nil ? .unavailable : .overview
-            // Three situations, said differently. An account that holds neither factor is told it needs
+            // Four situations, said differently. An account that holds neither factor is told it needs
             // one, which is true of it and of nothing else; a passkey that did not go through is reported
-            // as exactly that; and a confirmation that could not be run anywhere says so without telling a
+            // as exactly that; a confirmation that could not be run anywhere says so; and turning off an
+            // alert, the one step with no browser route at all, names what is missing. None of them tells a
             // passkey-only account to add a weaker factor in order to gain authority, which C4 forbids.
             state.errorMessage = switch deadEnd {
             case .noFactorAtAll: L10n.screenAccountAuthorityErrorStepUp
             case .passkeyDidNotComplete: L10n.screenAccountAuthorityErrorPasskeyIncomplete
             case .couldNotConfirm: L10n.screenAccountAuthorityErrorConfirmationIncomplete
+            case .alertsCannotBeConfirmedHere: L10n.screenAccountAuthorityErrorAlertsStepUp
             }
             operation = nil
             return
@@ -437,6 +448,7 @@ class AccountAuthorityScreenViewModel: AccountAuthorityScreenViewModelType, Acco
                                                             stepUp: stepUp)
                 await loadChain()
             case let .removeAlerts(installationID):
+                guard let stepUp else { throw AccountAuthorityServiceError.disabled }
                 try await authorityService.removeSecurityAlerts(accessToken: accessToken,
                                                                 accountID: chain.accountID,
                                                                 installationID: installationID,
