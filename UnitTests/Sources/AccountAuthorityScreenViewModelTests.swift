@@ -28,7 +28,8 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
     private func makeViewModel(chain: AuthorityChainState?,
                                status: AccountSecurityStatus? = nil,
                                passkeyOptions: PasskeyStepUpOptions? = nil,
-                               passkeyPresenter: PasskeyStepUpPresenting? = nil) {
+                               passkeyPresenter: PasskeyStepUpPresenting? = nil,
+                               webPresenter: AuthorityWebStepUpPresenting? = nil) {
         authorityService = AuthorityServiceStub(chain: chain)
         let status = status ?? Self.status(hasPin: true, passkeyRegistered: false)
         let clientProxy = ClientProxyMock(.init())
@@ -38,7 +39,8 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
                                                                                                      passkeyStepUpOptions: passkeyOptions),
                                                     clientProxy: clientProxy,
                                                     userIndicatorController: UserIndicatorControllerMock(),
-                                                    passkeyStepUpPresenter: passkeyPresenter)
+                                                    passkeyStepUpPresenter: passkeyPresenter,
+                                                    webStepUpPresenter: webPresenter)
     }
 
     private func waitForPhase(_ phase: AccountAuthorityScreenPhase) async throws {
@@ -248,7 +250,8 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
     }
 
     func testAPasskeyOnlyAccountWithNoCeremonyAvailableIsToldTheSameThing() async throws {
-        // No presenter at all, which is what a context that cannot run the system sheet looks like.
+        // No presenter at all, which is what a context that cannot run the system sheet looks like, and no
+        // web sheet either, which is the one fallback left after it.
         makeViewModel(chain: bootstrapChain(),
                       status: Self.status(hasPin: false, passkeyRegistered: true),
                       passkeyOptions: Self.passkeyOptions,
@@ -261,6 +264,202 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
 
         XCTAssertEqual(context.viewState.errorMessage, L10n.screenAccountAuthorityErrorPasskeyIncomplete)
         XCTAssertEqual(context.viewState.phase, .overview)
+    }
+
+    // MARK: - The web step-up
+
+    /// The point of the whole fallback: a device that cannot produce the assertion runs the same ceremony
+    /// on the sign-in origin, and the PIN is not what it falls back to. This is the simulator, and every
+    /// build whose associated domains do not name the deployment it is talking to.
+    func testAPasskeyThatCannotRunHereIsRunInTheWebSheetRatherThanAskingForThePin() async throws {
+        let presenter = PasskeyPresenterStub(result: .failure(PasskeyStepUpError.unavailable))
+        let web = WebStepUpPresenterStub(result: .success(.returned))
+        makeViewModel(chain: bootstrapChain(),
+                      status: Self.status(hasPin: true, passkeyRegistered: true),
+                      passkeyOptions: Self.passkeyOptions,
+                      passkeyPresenter: presenter,
+                      webPresenter: web)
+        try await waitForPhase(.overview)
+
+        context.send(viewAction: .startAdoption)
+        try await waitForPhase(.artifact)
+
+        XCTAssertEqual(presenter.callCount, 1, "The native ceremony is still tried first.")
+        XCTAssertEqual(authorityService.webStepUpPurposes, [.adopt])
+        XCTAssertEqual(web.presentedURLs.count, 1)
+        // What is spent carries no factor of its own: the proof is a row the server wrote against this
+        // account, this session and this purpose.
+        XCTAssertEqual(authorityService.preparedStepUps, [.webSheet])
+        XCTAssertTrue(context.viewState.bindings.pin.isEmpty)
+    }
+
+    /// The account C4 is about. It holds no PIN and cannot be asked for one, and before the sheet existed
+    /// this ended in a message on every device that cannot run the ceremony.
+    func testAPasskeyOnlyAccountGainsAuthorityThroughTheSheet() async throws {
+        let web = WebStepUpPresenterStub(result: .success(.returned))
+        makeViewModel(chain: bootstrapChain(),
+                      status: Self.status(hasPin: false, passkeyRegistered: true),
+                      passkeyOptions: Self.passkeyOptions,
+                      passkeyPresenter: nil,
+                      webPresenter: web)
+        try await waitForPhase(.overview)
+
+        context.send(viewAction: .startAdoption)
+        try await waitForPhase(.artifact)
+
+        XCTAssertEqual(authorityService.preparedStepUps, [.webSheet])
+        XCTAssertNil(context.viewState.errorMessage)
+    }
+
+    /// Dismissing the system sheet is an answer, not a device that cannot run the ceremony, so no browser
+    /// opens over the top of it.
+    func testClosingTheSystemSheetDoesNotOpenABrowser() async throws {
+        let presenter = PasskeyPresenterStub(result: .failure(PasskeyStepUpError.cancelled))
+        let web = WebStepUpPresenterStub(result: .success(.returned))
+        makeViewModel(chain: bootstrapChain(),
+                      status: Self.status(hasPin: true, passkeyRegistered: true),
+                      passkeyOptions: Self.passkeyOptions,
+                      passkeyPresenter: presenter,
+                      webPresenter: web)
+        try await waitForPhase(.overview)
+
+        context.send(viewAction: .startAdoption)
+        try await waitForPhase(.enteringPin)
+
+        XCTAssertTrue(web.presentedURLs.isEmpty)
+        XCTAssertTrue(authorityService.webStepUpPurposes.isEmpty)
+    }
+
+    /// Closing the page proves nothing and spends nothing, and is reported as neither a success nor a
+    /// failure of the person's: they said no.
+    func testAClosedSheetSpendsNothingAndClaimsNothing() async throws {
+        let web = WebStepUpPresenterStub(result: .success(.dismissed))
+        makeViewModel(chain: bootstrapChain(),
+                      status: Self.status(hasPin: false, passkeyRegistered: true),
+                      passkeyOptions: Self.passkeyOptions,
+                      passkeyPresenter: nil,
+                      webPresenter: web)
+        try await waitForPhase(.overview)
+
+        context.send(viewAction: .startAdoption)
+        try await waitForPhase(.overview)
+
+        XCTAssertEqual(web.presentedURLs.count, 1)
+        XCTAssertTrue(authorityService.preparedStepUps.isEmpty)
+        XCTAssertNil(context.viewState.errorMessage)
+    }
+
+    /// A sheet this deployment will not open, on an account that holds a PIN. The PIN is the last resort
+    /// rather than the first, which is the whole ordering this change is about.
+    func testASheetThisDeploymentWillNotOpenLeavesThePinAsTheLastResort() async throws {
+        let web = WebStepUpPresenterStub(result: .success(.returned))
+        makeViewModel(chain: bootstrapChain(),
+                      status: Self.status(hasPin: true, passkeyRegistered: true),
+                      passkeyOptions: Self.passkeyOptions,
+                      passkeyPresenter: PasskeyPresenterStub(result: .failure(PasskeyStepUpError.unavailable)),
+                      webPresenter: web)
+        authorityService.webStepUpResult = .failure(IdentityServiceError.authority(.disabled))
+        try await waitForPhase(.overview)
+
+        context.send(viewAction: .startAdoption)
+        try await waitForPhase(.enteringPin)
+
+        XCTAssertTrue(web.presentedURLs.isEmpty, "Nothing was opened, so nothing was shown.")
+        context.pin = "123456"
+        context.send(viewAction: .pinChanged)
+        try await waitForPhase(.artifact)
+        XCTAssertEqual(authorityService.preparedStepUps, [.pin("123456")])
+    }
+
+    /// The same refusal on a passkey-only account. It is told what happened, and it is never told to add a
+    /// PIN in order to gain authority.
+    func testAPasskeyOnlyAccountIsNeverSentToThePinWhenTheSheetFails() async throws {
+        makeViewModel(chain: bootstrapChain(),
+                      status: Self.status(hasPin: false, passkeyRegistered: true),
+                      passkeyOptions: Self.passkeyOptions,
+                      passkeyPresenter: PasskeyPresenterStub(result: .failure(PasskeyStepUpError.unavailable)),
+                      webPresenter: WebStepUpPresenterStub(result: .success(.returned)))
+        authorityService.webStepUpResult = .failure(IdentityServiceError.authority(.disabled))
+        try await waitForPhase(.overview)
+
+        context.send(viewAction: .startAdoption)
+        let deferred = deferFulfillment(context.observe(\.viewState.errorMessage)) { $0 != nil }
+        try await deferred.fulfill()
+
+        XCTAssertEqual(context.viewState.errorMessage, L10n.screenAccountAuthorityErrorConfirmationIncomplete)
+        XCTAssertEqual(context.viewState.phase, .overview, "The PIN screen is never reached.")
+        XCTAssertTrue(authorityService.preparedStepUps.isEmpty)
+    }
+
+    /// The one refusal that is not worth retrying: the deployment saying this account holds nothing it can
+    /// check. That is the same thing it says to an account with no factor at all, so it gets that sentence.
+    func testAnAccountTheDeploymentCannotCheckIsToldSoRatherThanAskedToRetry() async throws {
+        makeViewModel(chain: bootstrapChain(),
+                      status: Self.status(hasPin: false, passkeyRegistered: true),
+                      passkeyOptions: Self.passkeyOptions,
+                      passkeyPresenter: PasskeyPresenterStub(result: .failure(PasskeyStepUpError.unavailable)),
+                      webPresenter: WebStepUpPresenterStub(result: .success(.returned)))
+        authorityService.webStepUpResult = .failure(IdentityServiceError.authority(.stepUpSheetUnavailable))
+        try await waitForPhase(.overview)
+
+        context.send(viewAction: .startAdoption)
+        let deferred = deferFulfillment(context.observe(\.viewState.errorMessage)) { $0 != nil }
+        try await deferred.fulfill()
+
+        XCTAssertEqual(context.viewState.errorMessage, L10n.screenAccountAuthorityErrorStepUp)
+        XCTAssertEqual(context.viewState.phase, .overview)
+    }
+
+    /// One sheet per transition, scoped to that transition. A proof taken to root this account is not a
+    /// proof for removing a device, and the purpose is where that binding starts.
+    func testEachTransitionOpensASheetScopedToItsOwnPurpose() async throws {
+        let revoking = device(key: "other-device", state: .active, quarantineUntil: nil, grantedSeq: 2)
+        makeViewModel(chain: rootedChain(pending: nil,
+                                         devices: [device(key: "this-device", state: .active, quarantineUntil: nil, grantedSeq: 1),
+                                                   revoking]),
+                      status: Self.status(hasPin: false, passkeyRegistered: true),
+                      passkeyOptions: Self.passkeyOptions,
+                      passkeyPresenter: nil,
+                      webPresenter: WebStepUpPresenterStub(result: .success(.returned)))
+        authorityService.deviceKey = "this-device"
+        try await waitForPhase(.overview)
+
+        context.send(viewAction: .revokeDevice(revoking))
+        try await waitForPhase(.overview)
+        XCTAssertEqual(authorityService.webStepUpPurposes, [.revoke])
+        XCTAssertEqual(authorityService.revocations.map(\.deviceKey), ["other-device"])
+
+        context.send(viewAction: .startRecoveryThroughAccountRecovery)
+        try await waitForPhase(.artifact)
+        XCTAssertEqual(authorityService.webStepUpPurposes, [.revoke, .recover])
+        XCTAssertEqual(authorityService.preparedStepUps, [.webSheet, .webSheet])
+    }
+
+    /// Turning off another install's security alerts is not one of the four transitions the sheet can
+    /// confirm, so it does not open one. Its own rule is stricter than a factor anyway: a signature by the
+    /// key the row itself names.
+    func testTurningOffAnotherInstallsAlertsNeverOpensASheet() async throws {
+        let web = WebStepUpPresenterStub(result: .success(.returned))
+        makeViewModel(chain: rootedChain(pending: nil),
+                      status: Self.status(hasPin: true, passkeyRegistered: true),
+                      passkeyOptions: Self.passkeyOptions,
+                      passkeyPresenter: PasskeyPresenterStub(result: .failure(PasskeyStepUpError.unavailable)),
+                      webPresenter: web)
+        authorityService.installationID = "this-install"
+        authorityService.alerts = [SecurityNotificationSummary(installationID: "other-install",
+                                                               platform: "APNS",
+                                                               deviceLabel: "iPad",
+                                                               tokenFingerprint: "fingerprint",
+                                                               isBoundToAnAuthorityDevice: true,
+                                                               lastSeenAt: Date())]
+        try await waitForPhase(.overview)
+
+        let row = try XCTUnwrap(context.viewState.alerts.first)
+        context.send(viewAction: .removeAlerts(row))
+        try await waitForPhase(.enteringPin)
+
+        XCTAssertTrue(web.presentedURLs.isEmpty)
+        XCTAssertTrue(authorityService.webStepUpPurposes.isEmpty)
     }
 
     // MARK: - Opposition
@@ -628,8 +827,11 @@ final class AuthorityServiceStub: AccountAuthorityServiceProtocol {
     var registerAlertsError: Error?
     var securityAlertsError: Error?
     var removeAlertsError: Error?
+    /// The URL the web step-up is minted at, or an error the deployment answers with instead.
+    var webStepUpResult: Result<URL, Error> = .success(URL(string: "https://auth.gua.test/login/enroll/token")!)
 
     private(set) var preparedStepUps: [AuthorityStepUp] = []
+    private(set) var webStepUpPurposes: [AuthorityPurpose] = []
     private(set) var submissions = 0
     private(set) var submittedKinds: [PreparedAuthorityRecord.Kind] = []
     private(set) var signedApprovals: [String] = []
@@ -648,6 +850,11 @@ final class AuthorityServiceStub: AccountAuthorityServiceProtocol {
     func state(accessToken: String) async throws -> AuthorityChainState {
         guard let chain else { throw IdentityServiceError.authority(.noAccount) }
         return chain
+    }
+
+    func webStepUpURL(accessToken: String, purpose: AuthorityPurpose) async throws -> URL {
+        webStepUpPurposes.append(purpose)
+        return try webStepUpResult.get()
     }
 
     func prepareAdoption(accessToken: String,
@@ -779,6 +986,23 @@ final class AuthorityServiceStub: AccountAuthorityServiceProtocol {
 
     func thisDeviceKey(accountID: AccountID) -> String? {
         deviceKey
+    }
+}
+
+/// A web sheet that is never really presented: what the view model needs from it is the URL it was asked
+/// to open, and how the page ended.
+@MainActor
+final class WebStepUpPresenterStub: AuthorityWebStepUpPresenting {
+    private let result: Result<WebHandoffOutcome, Error>
+    private(set) var presentedURLs: [URL] = []
+
+    init(result: Result<WebHandoffOutcome, Error>) {
+        self.result = result
+    }
+
+    func present(_ url: URL) async throws -> WebHandoffOutcome {
+        presentedURLs.append(url)
+        return try result.get()
     }
 }
 

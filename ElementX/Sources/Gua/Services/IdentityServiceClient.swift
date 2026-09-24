@@ -155,6 +155,13 @@ enum AuthorityRefusal: Equatable {
     case stepUpRequired
     /// The factor presented, or the account's last completed recovery, is inside the fresh-factor hold.
     case tooRecent(retryAfterSeconds: Int?)
+    /// The web step-up would open a page with nothing to ask: the account holds neither a passkey this
+    /// deployment can assert nor a PIN. Said at the entry point rather than on a page whose every button
+    /// is already refused, and never answered with a code to the account's number.
+    case stepUpSheetUnavailable
+    /// A web step-up was asked for a purpose that asks for no factor, or the page's session carries a
+    /// purpose this deployment cannot read back. Only a client bug reaches it.
+    case stepUpSheetPurposeRefused
     /// A session that is not the native app. The browser holds no authority, ever.
     case nativeSessionRequired
     case artifactUnconfirmed
@@ -215,6 +222,8 @@ enum AuthorityRefusal: Equatable {
         case "authority_factor_too_fresh", "authority_recovery_too_recent":
             self = .tooRecent(retryAfterSeconds: retryAfterSeconds)
         case "authority_native_session_required": self = .nativeSessionRequired
+        case "authority_step_up_unavailable": self = .stepUpSheetUnavailable
+        case "authority_step_up_purpose_refused": self = .stepUpSheetPurposeRefused
         case "authority_artifact_unconfirmed": self = .artifactUnconfirmed
         case "authority_adoption_not_permitted": self = .adoptionNotPermitted
         case "authority_challenge_invalid": self = .challengeInvalid
@@ -255,8 +264,12 @@ enum AuthorityRefusal: Equatable {
     var message: String {
         switch self {
         case .disabled, .notificationsDisabled, .nativeSessionRequired, .artifactUnconfirmed,
-             .invalidRecord, .unrecognised:
+             .invalidRecord, .stepUpSheetPurposeRefused, .unrecognised:
             L10n.errorUnknown
+        case .stepUpSheetUnavailable:
+            // The same sentence the account gets when it holds no factor at all, because that is what this
+            // refusal says about it: there is no proof it can produce for a transition.
+            L10n.screenAccountAuthorityErrorStepUp
         case .signerRefused:
             L10n.screenAccountAuthorityErrorNotThisDevice
         case .deviceQuarantined:
@@ -759,21 +772,31 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
 
     /// Both enrollments answer the same way: a one-time URL on the sign-in origin, opened in an
     /// authenticated web view, which is where the account is confirmed before anything is stored.
-    ///
-    /// The named redirect is asked for once and never insisted on. A deployment that has not
-    /// allowlisted this build's scheme, or a server too old to know the field, refuses with
-    /// `invalid_redirect_uri`; the same call then goes out with nothing named, which is what every
-    /// build did before this. The enrollment still runs, and the sheet returns to the deployment's
-    /// configured app instead of this one, which is a worse ending than the right scheme and a far
-    /// better one than a QA build that cannot enroll a factor at all.
     private func startFactorEnrollment(path: String, accessToken: String, redirectURI: String?) async throws -> URL {
+        try await namedRedirectThenTheDeploymentsOwn(redirectURI) { redirectURI in
+            try await self.requestEnrollmentURL(path: path, accessToken: accessToken, redirectURI: redirectURI)
+        }
+    }
+
+    /// Asks for a handoff URL naming this build's own redirect, once, and never insists on it.
+    ///
+    /// A deployment that has not allowlisted this build's scheme, or a server too old to know the field,
+    /// refuses with `invalid_redirect_uri`; the same call then goes out with nothing named, which is what
+    /// every build did before the field existed. The handoff still runs, and the sheet returns to the
+    /// deployment's configured app instead of this one, which is a worse ending than the right scheme and
+    /// a far better one than a QA build that cannot take a step-up at all.
+    ///
+    /// Shared by the two handoffs rather than written twice, which is the same reason the server builds
+    /// both their sessions in one place: a second copy is a second place for the allowlist rule to drift.
+    private func namedRedirectThenTheDeploymentsOwn(_ redirectURI: String?,
+                                                    _ request: (String?) async throws -> URL) async throws -> URL {
         do {
-            return try await requestEnrollmentURL(path: path, accessToken: accessToken, redirectURI: redirectURI)
+            return try await request(redirectURI)
         } catch IdentityServiceError.invalidRedirectURI where redirectURI != nil {
             // Never logged in full: the value is this build's own scheme, and the refusal is about
             // the deployment's allowlist rather than about anything in it.
-            MXLog.warning("Enrollment redirect refused by the deployment, asking again for its default")
-            return try await requestEnrollmentURL(path: path, accessToken: accessToken, redirectURI: nil)
+            MXLog.warning("Handoff redirect refused by the deployment, asking again for its default")
+            return try await request(nil)
         }
     }
 
@@ -880,9 +903,12 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
             Body(purpose: purpose.rawValue, passkeyStepUpId: stepUpID, passkeyCredential: assertion, pin: nil)
         case let .pin(pin):
             Body(purpose: purpose.rawValue, passkeyStepUpId: nil, passkeyCredential: nil, pin: pin)
-        case nil:
-            // The purposes that ask for no factor. An empty string in the PIN field would read as one being
-            // presented and refused, which is a different thing from none being asked for.
+        case .webSheet, nil:
+            // Two situations, one body, and that is the contract rather than a shortcut: the purposes that
+            // ask for no factor, and a request whose proof was taken in the sheet, which the server finds
+            // by this account, this session and this purpose precisely because the request carries none.
+            // An empty string in the PIN field would read as one being presented and refused, which is a
+            // different thing from none being presented.
             Body(purpose: purpose.rawValue, passkeyStepUpId: nil, passkeyCredential: nil, pin: nil)
         }
         let (data, _) = try await sendAuthenticated(path: "/account/authority/challenge",
@@ -894,6 +920,46 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
             let response = try decoder.decode(Response.self, from: data)
             return AuthorityChallenge(challenge: response.challenge,
                                       expiresAt: Date().addingTimeInterval(TimeInterval(max(0, response.expiresInSeconds))))
+        } catch {
+            throw IdentityServiceError.decoding(error)
+        }
+    }
+
+    func startAuthorityWebStepUp(accessToken: String,
+                                 purpose: AuthorityPurpose,
+                                 redirectURI: String?) async throws -> URL {
+        try await namedRedirectThenTheDeploymentsOwn(redirectURI) { redirectURI in
+            try await self.requestAuthorityStepUpURL(accessToken: accessToken,
+                                                     purpose: purpose,
+                                                     redirectURI: redirectURI)
+        }
+    }
+
+    /// The body carries the purpose and at most this build's redirect, and there is nothing else it can
+    /// carry: no phone number, because no arm of that page sends a code, and no statement about which
+    /// factor this device can produce, because that claim costs an attacker nothing and could only ever
+    /// ask for something weaker.
+    private func requestAuthorityStepUpURL(accessToken: String,
+                                           purpose: AuthorityPurpose,
+                                           redirectURI: String?) async throws -> URL {
+        struct Body: Encodable {
+            let purpose: String
+            let redirectUri: String?
+        }
+        struct Response: Decodable { let stepUpUrl: String }
+        let (data, _) = try await sendAuthenticated(path: "/security/authority/step-up/start",
+                                                    accessToken: accessToken,
+                                                    body: Body(purpose: purpose.rawValue, redirectUri: redirectURI),
+                                                    language: Locale.guaLanguageTag(),
+                                                    expectsBody: true)
+        do {
+            let response = try decoder.decode(Response.self, from: data)
+            guard let url = URL(string: response.stepUpUrl) else {
+                throw IdentityServiceError.invalidURL
+            }
+            return url
+        } catch let error as IdentityServiceError {
+            throw error
         } catch {
             throw IdentityServiceError.decoding(error)
         }
@@ -971,7 +1037,9 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
             Body(recordHash: recordHash, passkeyStepUpId: stepUpID, passkeyCredential: assertion, pin: nil)
         case let .pin(pin):
             Body(recordHash: recordHash, passkeyStepUpId: nil, passkeyCredential: nil, pin: pin)
-        case nil:
+        case .webSheet, nil:
+            // An opposition takes no sheet: the purposes that open one are the four that move authority,
+            // and this app never asks for one here. Sending nothing is what the server reads as nothing.
             Body(recordHash: recordHash, passkeyStepUpId: nil, passkeyCredential: nil, pin: nil)
         }
         try await sendAuthenticated(path: "/account/authority/oppose",
@@ -1112,7 +1180,9 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
             assertion = presented
         case let .pin(presented):
             pin = presented
-        case nil:
+        case .webSheet, nil:
+            // A notification binding is not one of the four purposes the sheet can confirm, so nothing
+            // presents a sheet proof here and nothing is put in the body either way.
             break
         }
         try await sendAuthenticated(path: "/account/security-notifications/remove",
@@ -1380,8 +1450,11 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
     private static func authorityError(code: String?, status: Int, path: String, retryAfterSeconds: Int?) -> IdentityServiceError? {
         // The security-notification channel is part of the same feature and answers with the same code
         // vocabulary, so it is mapped here too. Its path is separate because it is not a chain endpoint:
-        // nothing it does appends a record.
-        guard path.hasPrefix("/account/authority") || path.hasPrefix("/account/security-notifications") else {
+        // nothing it does appends a record. `/security/authority/**` is here for the same reason: the web
+        // step-up is started next to factor enrollment and refuses in the chain's own vocabulary.
+        guard path.hasPrefix("/account/authority")
+            || path.hasPrefix("/account/security-notifications")
+            || path.hasPrefix("/security/authority") else {
             return nil
         }
         if let refusal = AuthorityRefusal(code: code, retryAfterSeconds: retryAfterSeconds) {

@@ -973,6 +973,7 @@
 		A72000F8D79BCCEDDE48DC55 /* SwiftSoup in Frameworks */ = {isa = PBXBuildFile; productRef = 88322ECC0F4A88E0740E052F /* SwiftSoup */; };
 		A77D8CE54321A5D251A19FB3 /* Collections in Frameworks */ = {isa = PBXBuildFile; productRef = 641A14F44CD08E1DA6D3A5D5 /* Collections */; };
 		A7AB623701E8BCF962A781ED /* EmoteRoomTimelineItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9B65ED0BE7517AF9578AD04 /* EmoteRoomTimelineItem.swift */; };
+		A7FD883ED0D25FFA0D7737C8 /* AuthorityWebStepUpPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A813E828CAF2C3F9A93E2E /* AuthorityWebStepUpPresenter.swift */; };
 		A8114377F54496A428A2A7E4 /* LAContextMock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E72977DB8DB65BC6B5F72D5 /* LAContextMock.swift */; };
 		A819EFB03D06525F3425D1FE /* NotificationSettingsScreenViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC0114908765B155387B442C /* NotificationSettingsScreenViewModelTests.swift */; };
 		A8A15E10A76BCFB3B7640328 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = FA727D708A43B05C71BABA20 /* InfoPlist.strings */; };
@@ -1615,6 +1616,7 @@
 		086A56B0C59D26A6A8C4E832 /* ResolverClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResolverClient.swift; sourceTree = "<group>"; };
 		08747053A83224123D14520C /* nl */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = nl; path = nl.lproj/Untranslated.strings; sourceTree = "<group>"; };
 		0899295491A70DB9867DE272 /* SessionVerificationControllerProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionVerificationControllerProxy.swift; sourceTree = "<group>"; };
+		08A813E828CAF2C3F9A93E2E /* AuthorityWebStepUpPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthorityWebStepUpPresenter.swift; sourceTree = "<group>"; };
 		08DBD0F5C87C6D7ADF78A4B4 /* DeveloperOptionsScreenViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeveloperOptionsScreenViewModel.swift; sourceTree = "<group>"; };
 		090DB54C3770F18D3F4F9CB3 /* GuaWelcomeLogo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuaWelcomeLogo.swift; sourceTree = "<group>"; };
 		0985305B69117680601ACD17 /* ClientBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientBuilder.swift; sourceTree = "<group>"; };
@@ -3201,6 +3203,7 @@
 		081808AF2CD0EBF6C47FF94A /* Common */ = {
 			isa = PBXGroup;
 			children = (
+				08A813E828CAF2C3F9A93E2E /* AuthorityWebStepUpPresenter.swift */,
 				3325D91EA52EADD157BD7DCB /* FactorEnrollmentPresenter.swift */,
 				0537010E8E892D432522327D /* GuaIDPLocaleURL.swift */,
 				C979261D77219F21BC014072 /* GuaLanguageTag.swift */,
@@ -7770,6 +7773,7 @@
 				F64EAC0E21EE7F48874FBA12 /* AuthorityInstallationIDStore.swift in Sources */,
 				A9A467F49A2202E394D83C50 /* AuthorityPushTokenStore.swift in Sources */,
 				6D95494174E231D60430DDA3 /* AuthorityRecord.swift in Sources */,
+				A7FD883ED0D25FFA0D7737C8 /* AuthorityWebStepUpPresenter.swift in Sources */,
 				CB9D4D1984D92CCC5B828456 /* AvatarHeaderView.swift in Sources */,
 				2B66DC22B7BF094D5FE03CBB /* Avatars.swift in Sources */,
 				A62D8C5DC37646024D33CD55 /* BadgeLabel.swift in Sources */,
