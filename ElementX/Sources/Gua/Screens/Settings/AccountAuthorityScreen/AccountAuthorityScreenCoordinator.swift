@@ -13,6 +13,8 @@ struct AccountAuthorityScreenCoordinatorParameters {
     let clientProxy: ClientProxyProtocol
     let userIndicatorController: UserIndicatorControllerProtocol
     let windowManager: WindowManagerProtocol
+    /// Read for this build's own OIDC redirect, which is what the web step-up sheet closes back into.
+    let appSettings: AppSettings
 }
 
 enum AccountAuthorityScreenCoordinatorAction {
@@ -35,7 +37,9 @@ final class AccountAuthorityScreenCoordinator: CoordinatorProtocol {
                                                     identityServiceClient: parameters.identityServiceClient,
                                                     clientProxy: parameters.clientProxy,
                                                     userIndicatorController: parameters.userIndicatorController,
-                                                    passkeyStepUpPresenter: PasskeyStepUpPresenter(presentationAnchor: parameters.windowManager.mainWindow))
+                                                    passkeyStepUpPresenter: PasskeyStepUpPresenter(presentationAnchor: parameters.windowManager.mainWindow),
+                                                    webStepUpPresenter: AuthorityWebStepUpPresenter(presentationAnchor: parameters.windowManager.mainWindow,
+                                                                                                    appSettings: parameters.appSettings))
     }
 
     func start() {

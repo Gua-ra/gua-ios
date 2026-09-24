@@ -26,6 +26,19 @@ enum AuthorityPurpose: String, Equatable {
     /// Binding a security-notification registration to a device authority key, or removing one that
     /// carries such a binding. The challenge is what makes the device's signature unreplayable.
     case notify = "NOTIFY"
+
+    /// Whether a transition of this purpose may take its step-up in the web sheet.
+    ///
+    /// Exactly the four purposes that ask for a factor, which is the same rule the server derives from
+    /// its own step-up policy (`AuthorityPolicy.canOpenStepUpSheet`). A purpose that asks for no factor
+    /// would open a page with nothing to ask and record a proof of nothing, so this client refuses it
+    /// here rather than spending a request to be told so.
+    var canTakeAWebStepUp: Bool {
+        switch self {
+        case .adopt, .grant, .revoke, .recover: true
+        case .approve, .oppose, .notify: false
+        }
+    }
 }
 
 /// The step-up an authority transition is authorized by: a user-verifying passkey assertion, or the
@@ -39,6 +52,16 @@ enum AuthorityPurpose: String, Equatable {
 enum AuthorityStepUp: Equatable {
     case passkey(stepUpID: String, assertion: PasskeyAssertion)
     case pin(String)
+    /// The same two factors, run in the web sheet `POST /security/authority/step-up/start` opened, because
+    /// the assertion cannot be produced natively on every device: a simulator, and a build with no
+    /// associated domain for the deployment it is talking to, can run the ceremony on the sign-in origin
+    /// and nowhere else.
+    ///
+    /// It carries nothing. The proof is a row the server wrote against this account, this session and this
+    /// purpose, so the request that spends it presents no factor of its own and there is no token here a
+    /// client could be talked into handing somewhere else. It is not a third factor and in particular not
+    /// a weaker one: the page has the passkey arm and the PIN arm, and no arm that sends a code.
+    case webSheet
 }
 
 /// The 32 server bytes one transition will sign, and when they stop being spendable.
@@ -297,6 +320,16 @@ protocol AccountAuthorityRequesting: Sendable {
     func authorityChallenge(accessToken: String,
                             purpose: AuthorityPurpose,
                             stepUp: AuthorityStepUp?) async throws -> AuthorityChallenge
+    /// Mints the one-time URL of the web step-up one transition is scoped to
+    /// (`POST /security/authority/step-up/start`).
+    ///
+    /// The same handoff factor enrollment already uses, carrying a purpose instead of a factor to add. The
+    /// page runs the assertion or asks for the PIN and records the proof itself, so nothing comes back
+    /// here except the URL to open: the challenge is then asked for in the ordinary way, with no factor in
+    /// the request, from the session that opened the sheet.
+    func startAuthorityWebStepUp(accessToken: String,
+                                 purpose: AuthorityPurpose,
+                                 redirectURI: String?) async throws -> URL
     func submitAuthorityAdoption(accessToken: String,
                                  record: String,
                                  signature: String,
@@ -494,6 +527,18 @@ protocol AccountAuthorityServiceProtocol {
 
     func state(accessToken: String) async throws -> AuthorityChainState
 
+    /// The URL of the web sheet a transition of this purpose can take its step-up in, for a device that
+    /// cannot run the native ceremony.
+    ///
+    /// The fallback the native assertion falls back to, and deliberately not the PIN: a passkey-only
+    /// account must never be told to add a weaker factor in order to gain authority (C4). What the sheet
+    /// leaves behind is a proof the server recorded, spent by passing ``AuthorityStepUp/webSheet`` to the
+    /// transition, from the same session that opened it.
+    ///
+    /// Refused locally for a purpose that asks for no factor, so no request goes out for a page that
+    /// would have nothing to ask.
+    func webStepUpURL(accessToken: String, purpose: AuthorityPurpose) async throws -> URL
+
     /// Runs everything adoption needs before the user is asked to store the recovery key: the scoped
     /// step-up and its challenge, the two keys, the record and its signature.
     ///
@@ -636,6 +681,21 @@ final class AccountAuthorityService: AccountAuthorityServiceProtocol {
     func state(accessToken: String) async throws -> AuthorityChainState {
         guard isEnabled else { throw AccountAuthorityServiceError.disabled }
         return try await client.authorityState(accessToken: accessToken)
+    }
+
+    func webStepUpURL(accessToken: String, purpose: AuthorityPurpose) async throws -> URL {
+        guard isEnabled else { throw AccountAuthorityServiceError.disabled }
+        // The purposes that ask for no factor never open a sheet. The server refuses them too, in the same
+        // words; refusing here as well keeps a request from being spent on a page with nothing to ask.
+        guard purpose.canTakeAWebStepUp else {
+            throw IdentityServiceError.authority(.stepUpSheetPurposeRefused)
+        }
+        // This build's own redirect, which is how the sheet finds its way back to the variant it was
+        // opened from. Asking for it is all the client does: the deployment keeps the allowlist, and the
+        // client asks again without one when it is refused, exactly as factor enrollment does.
+        return try await client.startAuthorityWebStepUp(accessToken: accessToken,
+                                                        purpose: purpose,
+                                                        redirectURI: appSettings.oidcRedirectURL.absoluteString)
     }
 
     func prepareAdoption(accessToken: String,

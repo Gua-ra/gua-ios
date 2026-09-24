@@ -1598,6 +1598,7 @@
 "screen_account_authority_error_notification_refused" = "We couldn't change your security alerts. Please try again.";
 "screen_account_authority_error_alerts_device_required" = "Only the device this alert belongs to can turn it off from somewhere else. Turn it off on that device, or remove that device from your trusted devices first.";
 "screen_account_authority_error_passkey_incomplete" = "Your passkey didn't go through. Please try again.";
+"screen_account_authority_error_confirmation_incomplete" = "We couldn't confirm it was you. Please try again.";
 "screen_authority_approval_title" = "Approve a request";
 "screen_authority_approval_empty" = "Nothing is waiting for your approval.";
 "screen_authority_approval_code_header" = "Check this matches the code on the other screen";

@@ -52,6 +52,23 @@ enum AccountAuthorityScreenOperation: Equatable {
     case recoveryWithArtifact(String)
     case recoveryThroughAccountRecovery
     case removeAlerts(installationID: String)
+
+    /// The purpose a web step-up for this transition is scoped to, or `nil` when the sheet cannot confirm
+    /// it at all.
+    ///
+    /// It is the purpose the challenge is minted for, stated once here so the sheet a person is sent to and
+    /// the transition it authorizes cannot name different things. Turning off security alerts is the one
+    /// operation on this screen with no purpose here: its factor is not one the chain's sheet records, and
+    /// what it really turns on is a signature by the key the row itself names.
+    var webStepUpPurpose: AuthorityPurpose? {
+        switch self {
+        case .adoption: .adopt
+        case .grant: .grant
+        case .revokeAnother, .revokeThisDevice: .revoke
+        case .recoveryWithArtifact, .recoveryThroughAccountRecovery: .recover
+        case .removeAlerts: nil
+        }
+    }
 }
 
 struct AccountAuthorityScreenViewState: BindableState {

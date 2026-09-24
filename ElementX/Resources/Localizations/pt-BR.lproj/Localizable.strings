@@ -1594,6 +1594,7 @@
 "screen_account_authority_error_notification_refused" = "Não conseguimos mudar seus alertas de segurança. Tente de novo.";
 "screen_account_authority_error_alerts_device_required" = "Só o dispositivo a que este alerta pertence pode desligá-lo de outro lugar. Desligue nele, ou remova esse dispositivo dos seus dispositivos confiáveis primeiro.";
 "screen_account_authority_error_passkey_incomplete" = "Sua chave de acesso não foi confirmada. Tente de novo.";
+"screen_account_authority_error_confirmation_incomplete" = "Não conseguimos confirmar que é você. Tente de novo.";
 "screen_authority_approval_title" = "Aprovar uma solicitação";
 "screen_authority_approval_empty" = "Nada está aguardando sua aprovação.";
 "screen_authority_approval_code_header" = "Confira se isto é igual ao código na outra tela";

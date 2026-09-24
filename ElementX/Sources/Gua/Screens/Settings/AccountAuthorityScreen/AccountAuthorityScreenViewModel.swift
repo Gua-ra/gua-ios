@@ -29,6 +29,9 @@ class AccountAuthorityScreenViewModel: AccountAuthorityScreenViewModelType, Acco
     /// one, which is reported as what it is rather than turned into a demand for a PIN the account may not
     /// hold.
     private let passkeyStepUpPresenter: PasskeyStepUpPresenting?
+    /// Runs the same step-up on the sign-in origin, for a device where the native ceremony cannot run at
+    /// all. `nil` means this context has no sheet to offer either.
+    private let webStepUpPresenter: AuthorityWebStepUpPresenting?
 
     /// The record that is built and signed, waiting on the artifact confirmation. Dropped whenever the
     /// flow is left, because its challenge is single use and its keys are unreferenced until submission.
@@ -51,12 +54,14 @@ class AccountAuthorityScreenViewModel: AccountAuthorityScreenViewModelType, Acco
          identityServiceClient: IdentityServiceClientProtocol,
          clientProxy: ClientProxyProtocol,
          userIndicatorController: UserIndicatorControllerProtocol,
-         passkeyStepUpPresenter: PasskeyStepUpPresenting? = nil) {
+         passkeyStepUpPresenter: PasskeyStepUpPresenting? = nil,
+         webStepUpPresenter: AuthorityWebStepUpPresenting? = nil) {
         self.authorityService = authorityService
         self.identityServiceClient = identityServiceClient
         self.clientProxy = clientProxy
         self.userIndicatorController = userIndicatorController
         self.passkeyStepUpPresenter = passkeyStepUpPresenter
+        self.webStepUpPresenter = webStepUpPresenter
 
         super.init(initialViewState: AccountAuthorityScreenViewState())
 
@@ -188,11 +193,16 @@ class AccountAuthorityScreenViewModel: AccountAuthorityScreenViewModelType, Acco
 
     /// Asks for the step-up the transition is scoped to, strongest factor first, and then runs it.
     ///
-    /// The order is the server's published one: a user-verifying passkey assertion settles it and the PIN is
-    /// not consulted. **A passkey-only account is never told to add a PIN**: when the ceremony does not
-    /// produce an assertion and the account holds no PIN, what is reported is that the passkey did not
-    /// complete, which is what happened. There is no third factor to reach here and in particular no code
-    /// sent to the account's number, which ADM-009 decision 9 forbids at every step of this feature.
+    /// The order is the server's published one, with one addition that changes nothing where the first step
+    /// works: a user-verifying passkey assertion settles it, **and where this device cannot produce one at
+    /// all the same assertion is run in the web sheet on the sign-in origin**, which is where a simulator
+    /// and a build with no associated domain for this deployment can run it. Only after both of those does
+    /// the PIN come up, and only for an account that holds one.
+    ///
+    /// **A passkey-only account is never told to add a PIN.** That is what the sheet is for: the fallback
+    /// from "the ceremony cannot run here" used to be a factor the account may not hold, and on one client
+    /// platform the whole policy collapsed to PIN-only. There is no third factor anywhere in here and in
+    /// particular no code sent to the account's number, which ADM-009 decision 9 forbids at every step.
     private func requestStepUp(for operation: AccountAuthorityScreenOperation) async {
         // One transition at a time, and the phase is what says so. Two would mint two challenges and, on the
         // two records that generate keys, two key pairs, the second overwriting the first in the keychain
@@ -211,16 +221,34 @@ class AccountAuthorityScreenViewModel: AccountAuthorityScreenViewModelType, Acco
         let holdsPin = factors?.hasPin ?? true
 
         guard holdsPasskey else {
-            await askForPin(holdsPin: holdsPin, afterAPasskeyAttempt: false)
+            await askForPin(holdsPin: holdsPin, otherwise: .noFactorAtAll)
             return
         }
 
+        switch await nativeAssertion(accessToken: accessToken) {
+        case let .produced(stepUp):
+            await perform(stepUp: stepUp)
+        case .refusedByTheUser:
+            // The person closed the system sheet, which is an answer rather than a device that cannot run
+            // the ceremony. No browser is opened over the top of it.
+            await askForPin(holdsPin: holdsPin, otherwise: .passkeyDidNotComplete)
+        case .cannotRunHere:
+            await stepUpInTheWebSheet(for: operation, accessToken: accessToken, holdsPin: holdsPin)
+        }
+    }
+
+    /// What this device could make of the native ceremony. Nothing in it is ever sent anywhere: a claim
+    /// that a factor is unavailable costs an attacker nothing and could only ever ask for something weaker.
+    private enum NativeAssertionOutcome {
+        case produced(AuthorityStepUp)
+        case refusedByTheUser
+        case cannotRunHere
+    }
+
+    private func nativeAssertion(accessToken: String) async -> NativeAssertionOutcome {
         guard let passkeyStepUpPresenter else {
-            // The account holds a passkey and this context cannot present one. Saying so is the honest
-            // answer; asking a passkey-only account for a PIN it does not have would be an instruction to
-            // add a weaker factor in order to gain authority, which C4 forbids outright.
-            await askForPin(holdsPin: holdsPin, afterAPasskeyAttempt: true)
-            return
+            // This context cannot present the system sheet.
+            return .cannotRunHere
         }
 
         state.phase = .steppingUp
@@ -234,35 +262,109 @@ class AccountAuthorityScreenViewModel: AccountAuthorityScreenViewModelType, Acco
         } catch {
             userIndicatorController.retractIndicatorWithId(indicatorID)
             MXLog.info("The deployment would not mint a passkey ceremony for this account.")
-            await askForPin(holdsPin: holdsPin, afterAPasskeyAttempt: true)
-            return
+            return .cannotRunHere
         }
         userIndicatorController.retractIndicatorWithId(indicatorID)
 
         do {
             let assertion = try await passkeyStepUpPresenter.assertion(for: options)
-            await perform(stepUp: .passkey(stepUpID: options.stepUpID, assertion: assertion))
+            return .produced(.passkey(stepUpID: options.stepUpID, assertion: assertion))
+        } catch PasskeyStepUpError.cancelled {
+            MXLog.info("The passkey sheet was dismissed.")
+            return .refusedByTheUser
         } catch {
             // Device side: nothing reached the server, so no challenge was minted and no key was
-            // generated. The passkey stays available to a later attempt.
-            MXLog.info("The passkey ceremony did not produce an assertion.")
-            await askForPin(holdsPin: holdsPin, afterAPasskeyAttempt: true)
+            // generated. The passkey stays available to a later attempt, including in the sheet, which is
+            // where the same credential can be asserted when this build has no associated domain for the
+            // deployment it is talking to.
+            MXLog.info("The passkey ceremony could not run on this device.")
+            return .cannotRunHere
         }
     }
 
-    private func askForPin(holdsPin: Bool, afterAPasskeyAttempt: Bool) async {
+    /// Runs the step-up on the sign-in origin, in the sheet factor enrollment already uses.
+    ///
+    /// Scoped to the transition's own purpose, so a proof taken to root this account is not a proof for
+    /// removing a device, and the server compares the stamp again when the challenge spends it. The proof
+    /// itself never reaches this app: what is passed to the transition is ``AuthorityStepUp/webSheet``,
+    /// which carries nothing and is read by the server off a row of its own.
+    private func stepUpInTheWebSheet(for operation: AccountAuthorityScreenOperation,
+                                     accessToken: String,
+                                     holdsPin: Bool) async {
+        guard let webStepUpPresenter, let purpose = operation.webStepUpPurpose else {
+            await askForPin(holdsPin: holdsPin, otherwise: .passkeyDidNotComplete)
+            return
+        }
+
+        state.phase = .steppingUp
+        userIndicatorController.submitIndicator(UserIndicator(id: indicatorID,
+                                                              type: .modal,
+                                                              title: L10n.commonLoading,
+                                                              persistent: true))
+        let url: URL
+        do {
+            url = try await authorityService.webStepUpURL(accessToken: accessToken, purpose: purpose)
+        } catch {
+            userIndicatorController.retractIndicatorWithId(indicatorID)
+            MXLog.info("This deployment would not open a web step-up for this transition: \(error)")
+            // One exception to the honest "we could not confirm it was you": the deployment saying the
+            // account holds nothing it can check is the same thing it says to an account with no factor at
+            // all, so it gets that sentence rather than an invitation to retry forever.
+            let deadEnd: StepUpDeadEnd = Self.holdsNoFactorThisDeploymentCanCheck(error) ? .noFactorAtAll : .couldNotConfirm
+            await askForPin(holdsPin: holdsPin, otherwise: deadEnd)
+            return
+        }
+        userIndicatorController.retractIndicatorWithId(indicatorID)
+
+        do {
+            switch try await webStepUpPresenter.present(url) {
+            case .returned:
+                await perform(stepUp: .webSheet)
+            case .dismissed:
+                // Closed rather than completed. Nothing was proved, nothing was spent, and it is not
+                // reported as either a success or a failure of the person's: they said no.
+                leaveTheStepUp()
+            }
+        } catch {
+            MXLog.info("The web step-up did not complete: \(error)")
+            await askForPin(holdsPin: holdsPin, otherwise: .couldNotConfirm)
+        }
+    }
+
+    /// Where a step-up that produced nothing leaves the reader, and what it says to them.
+    private enum StepUpDeadEnd {
+        /// The account holds no factor a transition can be confirmed with.
+        case noFactorAtAll
+        /// The passkey was there and did not go through.
+        case passkeyDidNotComplete
+        /// Neither ceremony could be completed. Said as what it is, without naming a factor to add.
+        case couldNotConfirm
+    }
+
+    private func askForPin(holdsPin: Bool, otherwise deadEnd: StepUpDeadEnd) async {
         guard holdsPin else {
-            state.phase = .overview
-            // Two different situations, said differently. An account that holds a passkey is told its
-            // passkey did not go through and can try again; an account that holds neither factor is told it
-            // needs one, which is true of it and of nothing else.
-            state.errorMessage = afterAPasskeyAttempt
-                ? L10n.screenAccountAuthorityErrorPasskeyIncomplete
-                : L10n.screenAccountAuthorityErrorStepUp
+            state.phase = state.chain == nil ? .unavailable : .overview
+            // Three situations, said differently. An account that holds neither factor is told it needs
+            // one, which is true of it and of nothing else; a passkey that did not go through is reported
+            // as exactly that; and a confirmation that could not be run anywhere says so without telling a
+            // passkey-only account to add a weaker factor in order to gain authority, which C4 forbids.
+            state.errorMessage = switch deadEnd {
+            case .noFactorAtAll: L10n.screenAccountAuthorityErrorStepUp
+            case .passkeyDidNotComplete: L10n.screenAccountAuthorityErrorPasskeyIncomplete
+            case .couldNotConfirm: L10n.screenAccountAuthorityErrorConfirmationIncomplete
+            }
+            operation = nil
             return
         }
         state.bindings.pin = ""
         state.phase = .enteringPin
+    }
+
+    /// Leaves a step-up that ended without a proof, saying nothing about it. Its challenge was never
+    /// minted, so there is nothing to drop but the flow itself.
+    private func leaveTheStepUp() {
+        operation = nil
+        state.phase = state.chain == nil ? .unavailable : .overview
     }
 
     private func perform(stepUp: AuthorityStepUp) async {
@@ -466,6 +568,13 @@ class AccountAuthorityScreenViewModel: AccountAuthorityScreenViewModelType, Acco
         state.bindings.hasComparedFingerprint = false
         state.errorMessage = nil
         state.phase = state.chain == nil ? .unavailable : .overview
+    }
+
+    /// Whether the sheet was refused because the account holds nothing this deployment can check, rather
+    /// than for any of the reasons a retry could survive.
+    private static func holdsNoFactorThisDeploymentCanCheck(_ error: Error) -> Bool {
+        guard case let IdentityServiceError.authority(refusal) = error else { return false }
+        return refusal == .stepUpSheetUnavailable
     }
 
     /// Whether this deployment simply does not have the channel, rather than having failed to answer.

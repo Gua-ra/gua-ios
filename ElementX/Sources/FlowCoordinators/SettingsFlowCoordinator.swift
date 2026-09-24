@@ -275,7 +275,8 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                                                                      identityServiceClient: identityServiceClient,
                                                                      clientProxy: flowParameters.userSession.clientProxy,
                                                                      userIndicatorController: flowParameters.userIndicatorController,
-                                                                     windowManager: flowParameters.windowManager)
+                                                                     windowManager: flowParameters.windowManager,
+                                                                     appSettings: flowParameters.appSettings)
         let coordinator = AccountAuthorityScreenCoordinator(parameters: parameters)
 
         coordinator.actionsPublisher

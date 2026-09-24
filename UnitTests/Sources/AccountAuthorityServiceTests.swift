@@ -96,6 +96,9 @@ final class AccountAuthorityServiceTests: XCTestCase {
                                                         installationID: "install",
                                                         stepUp: nil)
         }
+        await assertThrowsDisabled {
+            try await self.service.webStepUpURL(accessToken: "token", purpose: .adopt)
+        }
 
         XCTAssertEqual(client.callCount, 0, "No request may be made while the flag is off.")
         XCTAssertTrue(keyStore.stored.isEmpty, "No key may be created or stored while the flag is off.")
@@ -725,6 +728,43 @@ final class AccountAuthorityServiceTests: XCTestCase {
         XCTAssertTrue(client.approvalSignatures.isEmpty)
     }
 
+    // MARK: - The web step-up
+
+    /// The fallback for a device that cannot run the assertion natively: the same handoff factor
+    /// enrollment uses, scoped to one transition and pointed back at this build's own scheme.
+    func testTheWebStepUpIsScopedToThePurposeAndReturnsToThisBuild() async throws {
+        appSettings.guaAccountAuthorityEnabled = true
+        let minted = try XCTUnwrap(URL(string: "https://auth.example/login/enroll/step-up"))
+        client.stepUpURLToReturn = minted
+
+        let url = try await service.webStepUpURL(accessToken: "token", purpose: .recover)
+
+        XCTAssertEqual(url, minted)
+        XCTAssertEqual(client.stepUpRequests,
+                       [.init(purpose: .recover, redirectURI: appSettings.oidcRedirectURL.absoluteString)])
+    }
+
+    /// The four purposes that ask for a factor, and no others. A purpose that asks for none would open a
+    /// page with nothing to ask and record a proof of nothing, so no request is spent finding that out.
+    func testOnlyATransitionThatAsksForAFactorCanOpenASheet() async throws {
+        appSettings.guaAccountAuthorityEnabled = true
+
+        for purpose in [AuthorityPurpose.adopt, .grant, .revoke, .recover] {
+            _ = try await service.webStepUpURL(accessToken: "token", purpose: purpose)
+        }
+        XCTAssertEqual(client.stepUpRequests.map(\.purpose), [.adopt, .grant, .revoke, .recover])
+
+        for purpose in [AuthorityPurpose.approve, .oppose, .notify] {
+            do {
+                _ = try await service.webStepUpURL(accessToken: "token", purpose: purpose)
+                XCTFail("\(purpose) must not open a step-up sheet.")
+            } catch IdentityServiceError.authority(.stepUpSheetPurposeRefused) {
+                // The server's own refusal, in the server's own words.
+            }
+        }
+        XCTAssertEqual(client.stepUpRequests.count, 4, "A refused purpose costs no request.")
+    }
+
     // MARK: - Helpers
 
     private func chainState(headSeq: Int64, headHash: String) -> AuthorityChainState {
@@ -800,12 +840,19 @@ private final class AuthorityRequesterStub: AccountAuthorityRequesting, @uncheck
     var approvalsToReturn: [AuthorityApproval] = []
     var submissionError: Error?
 
+    struct StepUpRequest: Equatable {
+        let purpose: AuthorityPurpose
+        let redirectURI: String?
+    }
+
+    var stepUpURLToReturn = URL(fileURLWithPath: "/step-up")
     var candidatesToReturn: [AuthorityCandidate] = []
     var notificationsToReturn: [SecurityNotificationSummary] = []
     var fingerprintToReturn: String?
     var revocationIsPending = true
 
     private(set) var challengeRequests: [ChallengeRequest] = []
+    private(set) var stepUpRequests: [StepUpRequest] = []
     private(set) var adoptions: [Submission] = []
     private(set) var grants: [Submission] = []
     private(set) var revocations: [Submission] = []
@@ -822,6 +869,14 @@ private final class AuthorityRequesterStub: AccountAuthorityRequesting, @uncheck
         callCount += 1
         challengeRequests.append(ChallengeRequest(purpose: purpose, stepUp: stepUp))
         return AuthorityChallenge(challenge: challenge, expiresAt: Date().addingTimeInterval(900))
+    }
+
+    func startAuthorityWebStepUp(accessToken: String,
+                                 purpose: AuthorityPurpose,
+                                 redirectURI: String?) async throws -> URL {
+        callCount += 1
+        stepUpRequests.append(StepUpRequest(purpose: purpose, redirectURI: redirectURI))
+        return stepUpURLToReturn
     }
 
     func submitAuthorityAdoption(accessToken: String,
