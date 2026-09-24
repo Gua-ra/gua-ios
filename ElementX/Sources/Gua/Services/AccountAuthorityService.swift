@@ -450,11 +450,27 @@ enum AuthorityRecoveryArtifact {
     /// was typed is not an artifact of this framework at all.
     ///
     /// Spacing between groups is free-form, because nobody retypes four-character groups exactly as they
-    /// were printed.
+    /// were printed. Case is forgiven the same way, by ``foldingASCIICase(_:)``.
     private static func body(of typed: String) -> String? {
-        let tokens = typed.lowercased().split(whereSeparator: \.isWhitespace)
+        let tokens = foldingASCIICase(typed).split(whereSeparator: \.isWhitespace)
         guard let first = tokens.first, String(first) == prefix else { return nil }
         return tokens.dropFirst().joined()
+    }
+
+    /// Lowercases A through Z and leaves every other character alone.
+    ///
+    /// Not `lowercased()`, which this used to be. That applies the full Unicode mapping, so it folds scalars
+    /// nobody on this path types onto alphabet letters, the Kelvin sign onto `k` among them, and gua-android
+    /// folds neither. The alphabet is a to z with 2 to 7, so an ASCII capital names one alphabet letter and
+    /// no other: reading either case admits no byte string a lowercase spelling could not already name, which
+    /// is why case is forgiven at all. Anything wider than that is a second spelling arriving from somewhere
+    /// nobody typed, so it stops here, and the golden vectors pin both halves rather than leaving the two
+    /// ports to agree by accident.
+    private static func foldingASCIICase(_ value: String) -> String {
+        String(value.map { character in
+            // The guard is the whole of the rule: inside it `lowercased()` is ASCII and is one character.
+            character.isASCII && ("A"..."Z").contains(character) ? Character(character.lowercased()) : character
+        })
     }
 }
 

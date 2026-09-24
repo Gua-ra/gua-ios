@@ -247,6 +247,40 @@ final class AuthorityVectorsTests: XCTestCase {
         }
     }
 
+    /// The case an artifact comes back in, which is the divergence these entries were added to close.
+    ///
+    /// It is written on paper in capitals and typed back through a keyboard that capitalises, and the two
+    /// ports read it. Until these entries existed both suites passed with one port case-sensitive and the
+    /// other not, which is the interop failure the artifact exists to avoid, reached by the narrowest route
+    /// there is: the owner types their own key and one of their two phones says no.
+    func testTheArtifactReadsBackInWhateverCaseItWasTypedIn() throws {
+        let artifacts = vectors.recoveryArtifact
+        XCTAssertFalse(artifacts.spellings.isEmpty)
+        XCTAssertTrue(artifacts.spellings.contains { $0.key != nil }, "an accepted spelling")
+        XCTAssertTrue(artifacts.spellings.contains { $0.reason != nil }, "a refused spelling")
+
+        for spelling in artifacts.spellings {
+            if let key = spelling.key {
+                let seed = try AuthorityHex.bytes(publicKeySeed(named: key))
+                XCTAssertEqual(try AuthorityRecoveryArtifact.parse(spelling.artifact).rawRepresentation,
+                               Data(seed),
+                               spelling.name)
+                XCTAssertTrue(AuthorityRecoveryArtifact.looksComplete(spelling.artifact), spelling.name)
+            } else {
+                // The fold is ASCII and stops there. A scalar some Unicode mapping would turn into an
+                // alphabet letter is not the case of anything that was printed.
+                XCTAssertThrowsError(try AuthorityRecoveryArtifact.parse(spelling.artifact), spelling.name) { error in
+                    XCTAssertEqual(error as? AccountAuthorityServiceError, .artifactMalformed, spelling.name)
+                }
+            }
+        }
+
+        // And what is handed out is still lowercase. Only the reader forgives.
+        for vector in artifacts.vectors {
+            XCTAssertEqual(vector.artifact, vector.artifact.lowercased(), vector.key)
+        }
+    }
+
     // MARK: - Every rejection
 
     func testEveryRejectionIsRefusedByTheRuleThatNamesIt() throws {
@@ -328,10 +362,20 @@ private struct AuthorityVectors: Decodable {
             let reason: String
         }
 
+        /// A spelling of one of the artifacts above that a person plausibly types back and no renderer
+        /// produces. It names a key when it must read back to that key, and a reason when it must be refused.
+        struct Spelling: Decodable {
+            let name: String
+            let artifact: String
+            let key: String?
+            let reason: String?
+        }
+
         let prefix: String
         let groupSize: Int
         let encodedLength: Int
         let vectors: [Vector]
+        let spellings: [Spelling]
         let rejections: [Rejection]
     }
 
