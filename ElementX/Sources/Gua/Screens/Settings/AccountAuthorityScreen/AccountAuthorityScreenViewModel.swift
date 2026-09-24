@@ -442,7 +442,7 @@ class AccountAuthorityScreenViewModel: AccountAuthorityScreenViewModelType, Acco
             }
         } catch {
             MXLog.error("Failed running an authority transition: \(error)")
-            state.errorMessage = message(for: error)
+            state.errorMessage = message(for: error, afterASheetProof: stepUp == .webSheet)
             state.phase = state.chain == nil ? .unavailable : .overview
         }
         self.operation = nil
@@ -583,7 +583,17 @@ class AccountAuthorityScreenViewModel: AccountAuthorityScreenViewModelType, Acco
         return refusal.isFeatureAbsent
     }
 
-    private func message(for error: Error) -> String {
+    /// The sentence for a refusal, with one case that depends on where the step-up came from.
+    ///
+    /// A transition spending a sheet proof that the server will not accept for it is not an account with no
+    /// two-step verification, which is what the plain `step_up_required` copy says. It is a proof the
+    /// server declined to spend here, most likely because the session that took it is not the session
+    /// spending it any more, and "we could not confirm it was you" is the true sentence for that. The
+    /// person can open the sheet again; being told to go and set up a factor they already hold cannot help.
+    private func message(for error: Error, afterASheetProof: Bool = false) -> String {
+        if afterASheetProof, case IdentityServiceError.authority(.stepUpRequired) = error {
+            return L10n.screenAccountAuthorityErrorConfirmationIncomplete
+        }
         switch error {
         case AccountAuthorityServiceError.artifactUnconfirmed:
             return L10n.screenAccountAuthorityArtifactConfirm
