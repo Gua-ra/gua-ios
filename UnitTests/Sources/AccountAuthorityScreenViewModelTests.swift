@@ -740,6 +740,46 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
         try await waitForPhase(.artifact)
 
         XCTAssertEqual(context.viewState.artifactKind, .recoveryThroughAccountRecovery)
+        XCTAssertTrue(context.viewState.canRecoverThroughAccountRecovery)
+    }
+
+    /// ADM-009 decision 3 rule 3 refuses authorization `0x02` on a class `0x01` account outright, so the
+    /// route is not offered on one. The button whose only outcome is a refusal is the expensive kind: the
+    /// refusal arrives from the server after a challenge has been minted and a step-up spent on it.
+    func testTheAccountRecoveryPathIsNotOfferedOnAGenesisAccount() async throws {
+        makeViewModel(chain: genesisRootedChain())
+        try await waitForPhase(.overview)
+
+        XCTAssertFalse(context.viewState.canRecoverThroughAccountRecovery)
+
+        // And not merely undrawn. The action is refused where it is handled, so a row that survived a
+        // refactor, or a send from anywhere else, still spends nothing.
+        context.send(viewAction: .startRecoveryThroughAccountRecovery)
+        for _ in 0..<50 {
+            await Task.yield()
+        }
+
+        XCTAssertEqual(context.viewState.phase, .overview)
+        XCTAssertTrue(authorityService.preparedStepUps.isEmpty)
+        XCTAssertTrue(authorityService.webStepUpPurposes.isEmpty)
+        XCTAssertTrue(authorityService.submittedKinds.isEmpty)
+    }
+
+    /// The other two conditions of the same gate, so it is the whole rule that is pinned rather than the
+    /// class alone: a bootstrap account has no committed authority to replace, and a pending record already
+    /// holds the slot a rank-0 record would need.
+    func testTheAccountRecoveryPathIsWithheldWhileThereIsNothingToReplaceOrSomethingPending() async throws {
+        makeViewModel(chain: bootstrapChain())
+        try await waitForPhase(.overview)
+        XCTAssertFalse(context.viewState.canRecoverThroughAccountRecovery)
+
+        let pending = AuthorityPendingTransition(type: .authorityRecovery,
+                                                 seq: 3,
+                                                 effectiveAt: Date().addingTimeInterval(259_200),
+                                                 recordHash: "hash")
+        makeViewModel(chain: rootedChain(pending: pending))
+        try await waitForPhase(.overview)
+        XCTAssertFalse(context.viewState.canRecoverThroughAccountRecovery)
     }
 
     func testTheTerminalStateOffersNothing() async throws {
@@ -901,6 +941,18 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
                             headHash: String(repeating: "ab", count: 32),
                             devices: devices,
                             pending: pending)
+    }
+
+    /// A rooted account whose id commits its own authority, which is the class the weaker recovery route is
+    /// refused on.
+    private func genesisRootedChain() -> AuthorityChainState {
+        AuthorityChainState(accountID: accountID,
+                            accountClass: .genesis,
+                            state: .rooted,
+                            headSeq: 2,
+                            headHash: String(repeating: "ab", count: 32),
+                            devices: [],
+                            pending: nil)
     }
 
     private func device(key: String, state: AuthorityDeviceState, quarantineUntil: Date?, grantedSeq: Int64) -> AuthorityDeviceSummary {

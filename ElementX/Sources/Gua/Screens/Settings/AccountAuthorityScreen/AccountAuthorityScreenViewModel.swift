@@ -124,6 +124,9 @@ class AccountAuthorityScreenViewModel: AccountAuthorityScreenViewModelType, Acco
             guard state.canSubmitRecoveryArtifact else { return }
             Task { await requestStepUp(for: .recoveryWithArtifact(state.bindings.recoveryArtifact)) }
         case .startRecoveryThroughAccountRecovery:
+            // The gate, not a decoration on the row: an action that arrives for a class 0x01 account leaves
+            // the user where they were rather than spending a challenge and a step-up on a refusal.
+            guard state.canRecoverThroughAccountRecovery else { return }
             Task { await requestStepUp(for: .recoveryThroughAccountRecovery) }
         case .enableAlerts:
             Task { await enableAlerts() }

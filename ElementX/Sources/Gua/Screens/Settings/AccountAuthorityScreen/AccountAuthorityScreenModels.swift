@@ -205,6 +205,16 @@ struct AccountAuthorityScreenViewState: BindableState {
         phase == .enteringPin && bindings.pin.count == Self.pinLength && bindings.pin.allSatisfy(\.isNumber)
     }
 
+    /// Whether the weaker recovery route may be offered: `AuthorityRecovery` with authorization `0x02`.
+    ///
+    /// ADM-009 decision 3 rule 3 refuses it outright on a class `0x01` account, so on one the button's only
+    /// outcome is a refusal, after a challenge has been minted and a step-up spent. gua-android has withheld
+    /// the row on that condition since it was written and this is the same gate, read from the chain rather
+    /// than from a local flag so the offer follows what the server accepts.
+    var canRecoverThroughAccountRecovery: Bool {
+        chain?.canRecoverThroughAccountRecovery ?? false
+    }
+
     /// Whether what has been typed could be a recovery key at all. The service refuses malformed material
     /// before submission; this is the button agreeing with it.
     var canSubmitRecoveryArtifact: Bool {
