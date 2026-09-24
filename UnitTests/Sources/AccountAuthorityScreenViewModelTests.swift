@@ -410,6 +410,27 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
         XCTAssertEqual(context.viewState.phase, .overview)
     }
 
+    /// A sheet proof the server will not spend here is not an account with no two-step verification, which
+    /// is what the plain refusal's copy says. The likeliest cause is that the session that took the proof is
+    /// not the session spending it any more, and the reader can open the sheet again.
+    func testAProofTheServerWillNotSpendIsNotReportedAsAMissingFactor() async throws {
+        makeViewModel(chain: bootstrapChain(),
+                      status: Self.status(hasPin: false, passkeyRegistered: true),
+                      passkeyOptions: Self.passkeyOptions,
+                      passkeyPresenter: nil,
+                      webPresenter: WebStepUpPresenterStub(result: .success(.returned)))
+        authorityService.prepareError = IdentityServiceError.authority(.stepUpRequired)
+        try await waitForPhase(.overview)
+
+        context.send(viewAction: .startAdoption)
+        let deferred = deferFulfillment(context.observe(\.viewState.errorMessage)) { $0 != nil }
+        try await deferred.fulfill()
+
+        XCTAssertEqual(authorityService.preparedStepUps, [.webSheet])
+        XCTAssertEqual(context.viewState.errorMessage, L10n.screenAccountAuthorityErrorConfirmationIncomplete)
+        XCTAssertNotEqual(context.viewState.errorMessage, L10n.screenAccountAuthorityErrorStepUp)
+    }
+
     /// One sheet per transition, scoped to that transition. A proof taken to root this account is not a
     /// proof for removing a device, and the purpose is where that binding starts.
     func testEachTransitionOpensASheetScopedToItsOwnPurpose() async throws {
