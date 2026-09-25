@@ -214,6 +214,14 @@ final class NotificationManager: NSObject, NotificationManagerProtocol {
 extension NotificationManager: UNUserNotificationCenterDelegate {
     func userNotificationCenter(_ center: UNUserNotificationCenter,
                                 willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
+        // GUA FORK: an account-authority security alert is presented whatever else is set. It is not an
+        // in-app room notification, and neither gate below is about it: "show me notifications while I am
+        // in the app" is a preference about chats, and the room check has no room to look at. Both would
+        // silently drop the one alert ADM-009 gate 2 exists to deliver, in the case the owner is most able
+        // to act on it, which is while they are looking at the screen.
+        if notification.request.content.userInfo[NotificationConstants.UserInfoKey.guaAuthorityAlert] != nil {
+            return [.badge, .sound, .list, .banner]
+        }
         guard appSettings.enableInAppNotifications else {
             return []
         }

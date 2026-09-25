@@ -71,10 +71,16 @@ struct AccountAuthorityScreen: View {
 
     private var unavailableSection: some View {
         Section {
-            ListRow(label: .centeredAction(title: L10n.actionRetry, icon: \.restart),
-                    kind: .button { context.send(viewAction: .retry) })
+            // No retry where retrying cannot work. A deployment that does not run the chain, and an account
+            // with no account object, answer the same way every time.
+            if !context.viewState.isUnavailablePermanently {
+                ListRow(label: .centeredAction(title: L10n.actionRetry, icon: \.restart),
+                        kind: .button { context.send(viewAction: .retry) })
+            }
         } footer: {
-            Text(L10n.screenAccountAuthorityUnavailable)
+            Text(context.viewState.isUnavailablePermanently
+                ? L10n.screenAccountAuthorityErrorNoAccount
+                : L10n.screenAccountAuthorityUnavailable)
         }
     }
 
