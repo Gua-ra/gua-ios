@@ -162,8 +162,16 @@ class AccountAuthorityScreenViewModel: AccountAuthorityScreenViewModelType, Acco
             state.thisInstallationID = authorityService.thisInstallationID()
             state.phase = .overview
         } catch {
-            MXLog.error("Failed reading the account authority chain: \(error)")
+            // Two different answers, kept apart. A deployment with the feature off and an account with no
+            // account object are both permanent, and a retry there can never succeed; anything else is a
+            // read that failed and is worth trying again.
+            let refusal = error as? AuthorityRefusal
+            let permanent = refusal == .disabled || refusal == .noAccount
+            if !permanent {
+                MXLog.error("Failed reading the account authority chain: \(error)")
+            }
             state.chain = nil
+            state.isUnavailablePermanently = permanent
             state.phase = .unavailable
             return
         }

@@ -104,6 +104,12 @@ struct AccountAuthorityScreenViewState: BindableState {
     /// Which record the artifact on screen belongs to, so the copy can say what happens next.
     var artifactKind: PreparedAuthorityRecord.Kind = .adoption
     var errorMessage: String?
+    /// Whether ``AccountAuthorityScreenPhase/unavailable`` is a permanent answer rather than a failed read.
+    ///
+    /// "This deployment does not run the chain" and "this account has no account object" are answers, not
+    /// errors, and retrying either one can never succeed. Offering a retry there points the owner at a
+    /// button that does nothing, on the one screen the whole feature is reached from.
+    var isUnavailablePermanently = false
     var bindings = AccountAuthorityScreenViewStateBindings()
 
     var isWorking: Bool {

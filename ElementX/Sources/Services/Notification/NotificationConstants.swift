@@ -14,6 +14,9 @@ enum NotificationConstants {
         static let unreadCount = "unread_count"
         static let pusherNotificationClientIdentifier = "pusher_notification_client_identifier"
         static let receiverIdentifier = "receiver_id"
+        /// GUA FORK: the key identity-service puts beside an account-authority alert, so this app can tell
+        /// one from a room notification. Keep in step with AuthorityPushTransport.ALERT_MARKER.
+        static let guaAuthorityAlert = "gua_authority_alert"
     }
 
     enum Category {
