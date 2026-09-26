@@ -185,8 +185,14 @@ final class NotificationManagerTests: XCTestCase {
     }
 
     func test_whenWillPresentNotificationsDelegateNotSet_CorrectPresentationOptionsReturned() async throws {
-        let archiver = MockCoder(requiringSecureCoding: false)
-        let notification = try XCTUnwrap(UNNotification(coder: archiver))
+        // GUA FORK: built with the same helper every other willPresent test uses, rather than through
+        // MockCoder. That coder answers every decodeObject with "", so the notification it produces carries
+        // an empty String where its UNNotificationRequest should be, and any code that reads
+        // notification.request throws an unrecognized selector. Nothing in production can be handed such a
+        // notification: the system always passes a real one. It only ever passed here because the first
+        // statement in willPresent used to be a settings read, so it is a landmine for whatever is written
+        // first rather than a fact about the code under test.
+        let notification = try UNNotification.with(userInfo: [AnyHashable: Any]())
         let options = await notificationManager.userNotificationCenter(UNUserNotificationCenter.current(), willPresent: notification)
         XCTAssertEqual(options, [.badge, .sound, .list, .banner])
     }
@@ -207,6 +213,74 @@ final class NotificationManagerTests: XCTestCase {
         let notification = try UNNotification.with(userInfo: [AnyHashable: Any]())
         let options = await notificationManager.userNotificationCenter(UNUserNotificationCenter.current(), willPresent: notification)
         XCTAssertEqual(options, [.badge, .sound, .list, .banner])
+    }
+
+    /// GUA FORK: an account-authority alert is presented with every gate hostile, because the chat
+    /// preference is not a preference about a security alert.
+    func test_whenWillPresentAuthorityAlertAndEveryGateHostile_CorrectPresentationOptionsReturned() async throws {
+        appSettings.enableInAppNotifications = false
+        shouldDisplayInAppNotificationReturnValue = false
+        notificationManager.delegate = self
+
+        let notification = try UNNotification.with(userInfo: [NotificationConstants.UserInfoKey.guaAuthorityAlert: "1"])
+        let options = await notificationManager.userNotificationCenter(UNUserNotificationCenter.current(), willPresent: notification)
+        XCTAssertEqual(options, [.badge, .sound, .list, .banner])
+    }
+
+    /// GUA FORK: the other half of the differential above. It is insensitive on its own, and would pass
+    /// with the carve-out deleted; what it establishes is that the settings the test above defeats really
+    /// do drop a notification, so the pair together say the marker is what made the difference.
+    func test_whenWillPresentWithoutAuthorityAlertAndEveryGateHostile_CorrectPresentationOptionsReturned() async throws {
+        appSettings.enableInAppNotifications = false
+        shouldDisplayInAppNotificationReturnValue = false
+        notificationManager.delegate = self
+
+        let notification = try UNNotification.with(userInfo: [AnyHashable: Any]())
+        let options = await notificationManager.userNotificationCenter(UNUserNotificationCenter.current(), willPresent: notification)
+        XCTAssertEqual(options, [])
+    }
+
+    /// GUA FORK: the value has to be the one identity-service sends. This is what stops the exact-value
+    /// check being reverted to a presence check without a test noticing; a marker carrying anything else is
+    /// an accident or a stale build, and the chat preference still decides.
+    func test_whenWillPresentAuthorityAlertWithAnotherMarkerValue_CorrectPresentationOptionsReturned() async throws {
+        appSettings.enableInAppNotifications = false
+        shouldDisplayInAppNotificationReturnValue = false
+        notificationManager.delegate = self
+
+        for value in ["0", "", "true", "yes"] {
+            let notification = try UNNotification.with(userInfo: [NotificationConstants.UserInfoKey.guaAuthorityAlert: value])
+            let options = await notificationManager.userNotificationCenter(UNUserNotificationCenter.current(), willPresent: notification)
+            XCTAssertEqual(options, [], "a marker of \(value) should not present")
+        }
+    }
+
+    /// GUA FORK: and the alert is presented whatever the account-authority feature flag says. That flag is a
+    /// local preference the server cannot observe: a device enrolled from another platform, or one where it
+    /// was turned off after enrolment, is still a destination the server sends to, and a rollout switch has
+    /// no business deciding whether a warning the account holder was sent is shown to them.
+    func test_whenWillPresentAuthorityAlertAndFeatureFlagOff_alertIsStillPresented() async throws {
+        appSettings.guaAccountAuthorityEnabled = false
+        appSettings.enableInAppNotifications = false
+        shouldDisplayInAppNotificationReturnValue = false
+        notificationManager.delegate = self
+
+        let notification = try UNNotification.with(userInfo: [NotificationConstants.UserInfoKey.guaAuthorityAlert: "1"])
+        let options = await notificationManager.userNotificationCenter(UNUserNotificationCenter.current(), willPresent: notification)
+        XCTAssertEqual(options, [.badge, .sound, .list, .banner])
+    }
+
+    /// GUA FORK: a tap on an account-authority alert is forwarded like any other tap. `didReceive` switches
+    /// on the action identifier alone and reads neither the marker nor any flag, so this is a regression
+    /// guard on that staying true and nothing more: it does not exercise the carve-out above. What the tap
+    /// then reaches is AppCoordinator, where a notification with no room id is a no-op today.
+    func test_whenNotificationCenterReceivedResponseForAuthorityAlert_delegateIsCalled() async throws {
+        notificationTappedDelegateCalled = false
+        notificationManager.delegate = self
+        let response = try UNTextInputNotificationResponse.with(userInfo: [NotificationConstants.UserInfoKey.guaAuthorityAlert: "1"],
+                                                                actionIdentifier: UNNotificationDefaultActionIdentifier)
+        await notificationManager.userNotificationCenter(UNUserNotificationCenter.current(), didReceive: response)
+        XCTAssertTrue(notificationTappedDelegateCalled)
     }
 
     func test_whenNotificationCenterReceivedResponseInLineReply_delegateIsCalled() async throws {
