@@ -1222,6 +1222,10 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
                 let seq: Int64
                 let effectiveAtEpochSeconds: Int64
                 let recordHash: String
+                /// The hash of the record BEFORE the pending one, which an `Oppose` signs over. Optional
+                /// so a server that predates the field decodes, and an objection then refuses to be built
+                /// rather than being built wrong.
+                let prevHash: String?
             }
         }
         let data = try await getAuthenticated(path: "/account/authority", accessToken: accessToken)
@@ -1254,7 +1258,8 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
                                        AuthorityPendingTransition(type: AuthorityPendingType(wireValue: pending.type),
                                                                   seq: pending.seq,
                                                                   effectiveAt: Date(timeIntervalSince1970: TimeInterval(pending.effectiveAtEpochSeconds)),
-                                                                  recordHash: pending.recordHash)
+                                                                  recordHash: pending.recordHash,
+                                                                  prevHash: pending.prevHash)
                                    })
     }
 

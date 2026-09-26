@@ -473,8 +473,13 @@ final class AccountAuthorityServiceTests: XCTestCase {
         let bytes = try XCTUnwrap(GuaBase64URL.decode(submitted.record))
         XCTAssertEqual(Array(bytes[0..<4]), Array("GUAO".utf8))
         // It takes no slot and is never appended, so it carries the seq and prevHash of the record it
-        // cancels rather than the position after it.
-        XCTAssertEqual(Array(bytes[40..<72]), AuthorityRecord.hashBytes(fromHex: headHash))
+        // cancels rather than the position after it. That prevHash is the PENDING record's own, from the
+        // chain read, and not the head: placing a pending record makes its own hash the head, so signing
+        // over the head produced an objection the server could only answer authority_opposition_stale.
+        // This assertion used to compare against headHash and so asserted the bug.
+        XCTAssertEqual(Array(bytes[40..<72]), AuthorityRecord.hashBytes(fromHex: Self.pendingPrevHash))
+        XCTAssertNotEqual(Array(bytes[40..<72]), AuthorityRecord.hashBytes(fromHex: headHash),
+                          "The head while something is pending IS that record, so it is never its prevHash.")
         XCTAssertEqual(Array(bytes[72..<80]), [0, 0, 0, 0, 0, 0, 0, 3])
         XCTAssertEqual(Array(bytes[80..<112]), AuthorityRecord.hashBytes(fromHex: pending.recordHash))
         XCTAssertEqual(Array(bytes[112..<144]), [UInt8](deviceKey.publicKey.rawRepresentation))
@@ -482,6 +487,30 @@ final class AccountAuthorityServiceTests: XCTestCase {
         // opposing one, so an owner who has just changed their PIN is not the one disarmed by it.
         XCTAssertEqual(client.challengeRequests.first?.purpose, .oppose)
         XCTAssertNil(client.challengeRequests.first?.stepUp)
+    }
+
+    func testAnObjectionIsRefusedRatherThanBuiltWrongWhenTheServerSendsNoPrevHash() async throws {
+        appSettings.guaAccountAuthorityEnabled = true
+        keyStore.stored[accountID.value] = AccountAuthorityKeyPair(authority: Curve25519.Signing.PrivateKey(),
+                                                                   recovery: Curve25519.Signing.PrivateKey())
+        // A server that predates the field. There is no way to derive the value locally, and the head is
+        // the pending record itself, so the only honest answer is to refuse: an objection built against the
+        // wrong position is accepted by nothing and tells the owner their device said no when it did not.
+        let withoutPrevHash = AuthorityPendingTransition(type: .deviceRevoke,
+                                                         seq: 3,
+                                                         effectiveAt: Date().addingTimeInterval(259_200),
+                                                         recordHash: String(repeating: "cd", count: 32))
+
+        do {
+            try await service.oppose(accessToken: "token",
+                                     state: chainState(headSeq: 2, headHash: String(repeating: "ab", count: 32)),
+                                     pending: withoutPrevHash,
+                                     stepUp: nil)
+            XCTFail("Expected the objection to be refused rather than signed at a guessed position.")
+        } catch {
+            XCTAssertEqual(error as? AccountAuthorityServiceError, .malformedServerValue)
+        }
+        XCTAssertTrue(client.signedOppositions.isEmpty, "Nothing may be submitted.")
     }
 
     // MARK: - Recovery with the artifact
@@ -791,11 +820,19 @@ final class AccountAuthorityServiceTests: XCTestCase {
                            expiresAt: Date().addingTimeInterval(600))
     }
 
+    /// A pending step whose own `prevHash` is deliberately NOT the head hash the tests pass beside it.
+    ///
+    /// Those two being the same value is what let the objection bug hide: placing a pending record makes
+    /// its own hash the head, so a test whose head hash and pending prevHash are interchangeable cannot
+    /// tell a correct objection from one built against the wrong position.
+    private static let pendingPrevHash = String(repeating: "ef", count: 32)
+
     private static func pending(type: AuthorityPendingType) -> AuthorityPendingTransition {
         AuthorityPendingTransition(type: type,
                                    seq: 3,
                                    effectiveAt: Date().addingTimeInterval(259_200),
-                                   recordHash: String(repeating: "cd", count: 32))
+                                   recordHash: String(repeating: "cd", count: 32),
+                                   prevHash: pendingPrevHash)
     }
 
     private func assertThrowsDisabledVoid(_ work: () async throws -> Void,

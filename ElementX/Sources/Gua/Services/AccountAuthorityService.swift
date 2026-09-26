@@ -190,6 +190,22 @@ struct AuthorityPendingTransition: Equatable {
     let seq: Int64
     let effectiveAt: Date
     let recordHash: String
+    /// SHA-256 hex of the record before this one, which an `Oppose` carries and the server checks.
+    ///
+    /// Not the same as `AuthorityChainState.headHash`, and that mistake is exactly why the signed
+    /// objection never worked: placing a pending record makes its OWN hash the head, so the head while
+    /// something is pending is the pending record rather than the one before it. There is no way to
+    /// derive this locally, so a server that does not send it leaves an objection unbuildable, which is
+    /// better than one built against the wrong position and refused as stale.
+    let prevHash: String?
+
+    init(type: AuthorityPendingType, seq: Int64, effectiveAt: Date, recordHash: String, prevHash: String? = nil) {
+        self.type = type
+        self.seq = seq
+        self.effectiveAt = effectiveAt
+        self.recordHash = recordHash
+        self.prevHash = prevHash
+    }
 }
 
 /// What `GET /account/authority` reports: the chain, the device set and any pending step.
@@ -1175,8 +1191,13 @@ final class AccountAuthorityService: AccountAuthorityServiceProtocol {
         // starting a transition and never opposing one, because an owner who has just changed their PIN to
         // lock a thief out must not be the one disarmed by it.
         let authorityKey = try signingKey(for: state.accountID)
+        // The pending record's OWN prevHash, from the chain read, and deliberately not state.headHash.
+        // Placing a pending record makes its own hash the head, so while something is pending the head IS
+        // that record: signing over it produced an objection at the wrong position that the server could
+        // only answer authority_opposition_stale, which is what this path used to do every time.
         guard let opposedHash = AuthorityRecord.hashBytes(fromHex: pending.recordHash),
-              let prevHash = AuthorityRecord.hashBytes(fromHex: state.headHash),
+              let pendingPrevHash = pending.prevHash,
+              let prevHash = AuthorityRecord.hashBytes(fromHex: pendingPrevHash),
               pending.seq >= 1 else {
             throw AccountAuthorityServiceError.malformedServerValue
         }
