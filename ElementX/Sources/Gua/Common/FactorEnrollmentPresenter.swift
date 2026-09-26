@@ -6,6 +6,18 @@
 
 import AuthenticationServices
 
+/// How a web handoff ended, which the caller has no other way of knowing.
+///
+/// Told apart because they mean different things to whoever asked. A page that redirected back did what
+/// it was opened for; a sheet the person closed did nothing, and reporting that as a success is the
+/// "it worked" a reader knows is false.
+enum WebHandoffOutcome: Equatable {
+    /// The page redirected to this build's own callback, which is the only way it ends on its own.
+    case returned
+    /// The person closed the sheet. Nothing was proved and nothing was spent.
+    case dismissed
+}
+
 /// Presents a web authentication session that drives factor enrollment, passkey or PIN, on the
 /// IdP-hosted page returned by identity-service.
 ///
@@ -37,8 +49,11 @@ class FactorEnrollmentPresenter: NSObject {
     ///
     /// Throws if the IDP redirects back with an OIDC `error` parameter, or if
     /// `ASWebAuthenticationSession` fails for a reason other than user cancellation.
-    /// User cancellation is treated as success (no error thrown).
-    func start() async throws {
+    /// User cancellation is not an error: it is reported as ``WebHandoffOutcome/dismissed``, so a
+    /// caller that has something to say about it can, and enrollment, which re-reads the account's
+    /// factors either way, can go on ignoring it.
+    @discardableResult
+    func start() async throws -> WebHandoffOutcome {
         // Pass the device locale so the IDP renders in the user's language (e.g. French).
         var urlToOpen = enrollURL
         if let languageCode = Locale.current.language.languageCode?.identifier,
@@ -48,12 +63,12 @@ class FactorEnrollmentPresenter: NSObject {
             components.queryItems = queryItems
             urlToOpen = components.url ?? enrollURL
         }
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<WebHandoffOutcome, Error>) in
             let session = ASWebAuthenticationSession(url: urlToOpen, callback: .oidcRedirectURL(oidcRedirectURL)) { callbackURL, error in
                 if let error {
                     // Treat user-initiated cancellation as a normal dismissal (no error to surface).
                     if (error as? ASWebAuthenticationSessionError)?.code == .canceledLogin {
-                        continuation.resume()
+                        continuation.resume(returning: .dismissed)
                     } else {
                         continuation.resume(throwing: error)
                     }
@@ -66,8 +81,12 @@ class FactorEnrollmentPresenter: NSObject {
                     continuation.resume(throwing: NSError(domain: "FactorEnrollment",
                                                           code: -1,
                                                           userInfo: [NSLocalizedDescriptionKey: message]))
+                } else if callbackURL != nil {
+                    continuation.resume(returning: .returned)
                 } else {
-                    continuation.resume()
+                    // No callback and no error at all. Whatever that is, it is not the redirect, so it is
+                    // not reported as one: the safe direction here is the one that claims nothing.
+                    continuation.resume(returning: .dismissed)
                 }
             }
             session.prefersEphemeralWebBrowserSession = false

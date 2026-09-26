@@ -32,6 +32,8 @@ enum SettingsScreenCoordinatorAction {
     case twoStepVerification
     case changePhoneNumber
     case findFriends
+    /// GUA FORK: the account's trusted devices (ADM-009)
+    case accountAuthority
 }
 
 final class SettingsScreenCoordinator: CoordinatorProtocol {
@@ -90,6 +92,8 @@ final class SettingsScreenCoordinator: CoordinatorProtocol {
                     actionsSubject.send(.changePhoneNumber)
                 case .findFriends:
                     actionsSubject.send(.findFriends)
+                case .accountAuthority:
+                    actionsSubject.send(.accountAuthority)
                 }
             }
             .store(in: &cancellables)

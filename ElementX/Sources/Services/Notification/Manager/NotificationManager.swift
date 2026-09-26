@@ -78,6 +78,13 @@ final class NotificationManager: NSObject, NotificationManagerProtocol {
         guard let userSession else {
             return false
         }
+        // GUA FORK: the security-notification channel of ADM-009 gate 2 needs this same token for its own
+        // destination, and it needs it when the account holder asks for alerts rather than when this
+        // callback fires. Behind the feature flag, so a build with it down behaves exactly as before:
+        // nothing is stored and nothing reads the store.
+        if appSettings.guaAccountAuthorityEnabled {
+            await MainActor.run { AuthorityPushTokenStore.shared.store(deviceToken: deviceToken) }
+        }
         return await setPusher(with: deviceToken, clientProxy: userSession.clientProxy)
     }
 
@@ -207,6 +214,30 @@ final class NotificationManager: NSObject, NotificationManagerProtocol {
 extension NotificationManager: UNUserNotificationCenterDelegate {
     func userNotificationCenter(_ center: UNUserNotificationCenter,
                                 willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
+        // GUA FORK: an account-authority security alert is presented even when in-app notifications are
+        // switched off. Exactly one gate below would ever have dropped it, `enableInAppNotifications`, which
+        // is a preference about chats and not about the one alert ADM-009 gate 2 exists to deliver, in the
+        // case the owner is most able to act on it, which is while they are looking at the screen. The room
+        // check is not load-bearing here and never was: `shouldDisplayInAppNotification` returns true for
+        // content that carries no room id (AppCoordinator), so an alert with no room already passed it.
+        //
+        // The value has to be exactly the "1" identity-service sends
+        // (AuthorityPushTransport.ALERT_MARKER), which screens an accidental or stale marker rather
+        // than a hostile one: nothing here authenticates it, and a gateway that wanted to force a
+        // banner would simply send "1". What that gateway is, is the account's own push path, and
+        // the worst it buys is an unwanted banner, not a way past any decision about the account.
+        //
+        // Deliberately NOT behind guaAccountAuthorityEnabled, although an earlier revision of this
+        // put it there. That flag is a local preference the server cannot observe, it defaults to
+        // off, and gating on it re-creates the defect this whole branch exists to fix one layer up:
+        // a device enrolled from another platform, or one where the flag was turned off after
+        // enrolment, is still a registered destination, and the server still sends. With the gate
+        // in place such a device drops a real alert to [] in the foreground, withholding even .list,
+        // so it is not recoverable from Notification Center afterwards. A rollout switch has no
+        // business deciding whether a warning the account holder was sent is shown to them.
+        if notification.request.content.userInfo[NotificationConstants.UserInfoKey.guaAuthorityAlert] as? String == "1" {
+            return [.badge, .sound, .list, .banner]
+        }
         guard appSettings.enableInAppNotifications else {
             return []
         }

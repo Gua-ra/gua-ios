@@ -71,6 +71,10 @@ enum IdentityServiceError: Error, LocalizedError {
     /// no handle exists to present, so callers take the no-handle bootstrap branch decision 6 calls
     /// not a failure rather than blocking the signup.
     case genesisIssuanceNotPermitted
+    /// Anything `/account/authority/**` refused (ADM-009). One case with a typed refusal rather than
+    /// twenty, because these are read by one feature that ships disabled, and a caller that does not
+    /// know the chain has no branch to write against them.
+    case authority(AuthorityRefusal)
     case server(status: Int, message: String?)
     case transport(Error)
     case decoding(Error)
@@ -112,6 +116,7 @@ enum IdentityServiceError: Error, LocalizedError {
         case .invalidRedirectURI: L10n.errorUnknown
         case .genesisUnavailable: "Account genesis is not enabled on this deployment."
         case .genesisIssuanceNotPermitted: "Account genesis issuance is not permitted on this deployment."
+        case let .authority(refusal): refusal.message
         case let .server(status, message): message ?? "Server error (\(status))."
         case let .transport(error): error.localizedDescription
         case let .decoding(error): "Could not parse the server response: \(error.localizedDescription)"
@@ -133,6 +138,187 @@ enum IdentityServiceError: Error, LocalizedError {
         }
         let minutes = max(1, Int((Double(seconds) / Double(minute)).rounded(.up)))
         return minutes == 1 ? L10n.commonDurationOneMinute : L10n.commonDurationMinutes(minutes)
+    }
+}
+
+/// GUA FORK: why an authority transition was refused, by the stable code identity-service returns.
+///
+/// The codes are the server's, so a refusal can be read against ADM-009 rather than against a status
+/// line: 403 carries the hold, the artifact and the native-session rule, and 409 carries three different
+/// conflicts. A code this build has not heard of stays ``unrecognised`` rather than being rounded to the
+/// nearest one it knows.
+enum AuthorityRefusal: Equatable {
+    /// `identity.authority.enabled` is false here, or this deployment predates the endpoints. Per the
+    /// wire contract this is "this build does not have the feature", never an error worth showing.
+    case disabled
+    /// No accepted factor was produced. A passkey or the PIN, and never a code sent to the number.
+    case stepUpRequired
+    /// The factor presented, or the account's last completed recovery, is inside the fresh-factor hold.
+    case tooRecent(retryAfterSeconds: Int?)
+    /// The web step-up would open a page with nothing to ask: the account holds neither a passkey this
+    /// deployment can assert nor a PIN. Said at the entry point rather than on a page whose every button
+    /// is already refused, and never answered with a code to the account's number.
+    case stepUpSheetUnavailable
+    /// A web step-up was asked for a purpose that asks for no factor, or the page's session carries a
+    /// purpose this deployment cannot read back. Only a client bug reaches it.
+    case stepUpSheetPurposeRefused
+    /// A session that is not the native app. The browser holds no authority, ever.
+    case nativeSessionRequired
+    case artifactUnconfirmed
+    /// Adoption is off on this deployment: ADM-009 gate 3 keeps production adoption refused.
+    case adoptionNotPermitted
+    /// The challenge was spent, expired, or belongs to another session.
+    case challengeInvalid
+    /// The record's type is not permitted at that position or on that class of account.
+    case positionRefused
+    case pendingConflict
+    /// The head moved: another device landed a record first. Re-read and decide again.
+    case headConflict
+    /// The account holds no chain row at all.
+    case noAccount
+    /// The doubling backoff of ADM-002 D2, or the one-window cooldown.
+    case backoff(retryAfterSeconds: Int?)
+    /// This device may not sign: the chain does not have its key active, or the account holds none.
+    case signerRefused
+    /// This device's own grant is still inside its window, so it may not sign a grant, a revocation or an
+    /// approval yet, and it does not count toward the device a revocation must leave behind.
+    case deviceQuarantined
+    /// The revocation would leave the account with no unquarantined active device. An account with one
+    /// device that wants to replace it goes through recovery, which installs the replacement in the same
+    /// record.
+    case lastDevice
+    /// Opposing this is a claim only a device can make. A session may oppose an adoption and nothing
+    /// else, because a stolen session could otherwise veto the owner's own revocation of the thief's
+    /// device.
+    case oppositionDeviceRequired
+    /// The record the opposition names is not the one pending any more: it completed, or something else
+    /// cancelled it first.
+    case oppositionStale
+    /// The grant names a key that is not a live candidate of this account. A stale or wrong-account
+    /// candidate fails closed rather than being granted.
+    case unknownCandidate
+    /// The account holds no live security-notification registration, so a window would run with nobody
+    /// hearing about it. This one is actionable, and its copy says what to do.
+    case noNotificationChannel
+    /// The channel itself is switched off on this deployment. Like ``disabled``, this is "not here"
+    /// rather than "went wrong".
+    case notificationsDisabled
+    /// Removing this row from somewhere else needs a signature by the device key the row itself names, and
+    /// this phone does not hold it. The server verifies under the key on the row rather than under one the
+    /// request chooses, which is what stops a fresh post-recovery session stripping the owner's channel.
+    case notificationDeviceRequired
+    /// The registration or the removal was malformed, or named a row this account does not hold.
+    case notificationRefused(code: String)
+    case approvalInvalid
+    case approvalLimit
+    /// The record was refused by the decoder, naming the rule. A client bug, not a user's problem.
+    case invalidRecord(rule: String?)
+    case unrecognised(code: String)
+
+    init?(code: String?, retryAfterSeconds: Int?) {
+        switch code {
+        case "authority_disabled": self = .disabled
+        case "authority_step_up_required": self = .stepUpRequired
+        case "authority_factor_too_fresh", "authority_recovery_too_recent":
+            self = .tooRecent(retryAfterSeconds: retryAfterSeconds)
+        case "authority_native_session_required": self = .nativeSessionRequired
+        case "authority_step_up_unavailable": self = .stepUpSheetUnavailable
+        case "authority_step_up_purpose_refused": self = .stepUpSheetPurposeRefused
+        case "authority_artifact_unconfirmed": self = .artifactUnconfirmed
+        case "authority_adoption_not_permitted": self = .adoptionNotPermitted
+        case "authority_challenge_invalid": self = .challengeInvalid
+        case "authority_position_refused": self = .positionRefused
+        case "authority_pending_conflict": self = .pendingConflict
+        case "authority_head_conflict", "authority_account_mismatch": self = .headConflict
+        case "authority_no_account": self = .noAccount
+        case "authority_backoff", "authority_cooldown": self = .backoff(retryAfterSeconds: retryAfterSeconds)
+        case "authority_signer_refused": self = .signerRefused
+        case "authority_device_quarantined": self = .deviceQuarantined
+        case "authority_last_device": self = .lastDevice
+        case "authority_opposition_device_required", "authority_opposition_refused":
+            self = .oppositionDeviceRequired
+        case "authority_opposition_stale": self = .oppositionStale
+        case "authority_unknown_candidate": self = .unknownCandidate
+        case "authority_no_notification_channel": self = .noNotificationChannel
+        case "authority_notifications_disabled": self = .notificationsDisabled
+        case "authority_notification_invalid_signature", "authority_notification_unknown_device":
+            self = .notificationDeviceRequired
+        case let code? where code.hasPrefix("authority_notification_"):
+            self = .notificationRefused(code: code)
+        case "authority_approval_invalid": self = .approvalInvalid
+        case "authority_approval_limit": self = .approvalLimit
+        case "invalid_authority_record": self = .invalidRecord(rule: nil)
+        case let code? where code.hasPrefix("authority_"): self = .unrecognised(code: code)
+        default: return nil
+        }
+    }
+
+    /// Whether this refusal means the feature is not here, rather than that something went wrong.
+    var isFeatureAbsent: Bool {
+        self == .disabled || self == .notificationsDisabled
+    }
+
+    /// The sentence to show. Every refusal a shipped surface can reach has its own; the rest land on the
+    /// generic one, because inventing copy for a state no screen can produce would be a claim that the
+    /// state was handled.
+    var message: String {
+        switch self {
+        case .disabled, .notificationsDisabled, .nativeSessionRequired, .artifactUnconfirmed,
+             .invalidRecord, .stepUpSheetPurposeRefused, .unrecognised:
+            L10n.errorUnknown
+        case .stepUpSheetUnavailable:
+            // The same sentence the account gets when it holds no factor at all, because that is what this
+            // refusal says about it: there is no proof it can produce for a transition.
+            L10n.screenAccountAuthorityErrorStepUp
+        case .signerRefused:
+            L10n.screenAccountAuthorityErrorNotThisDevice
+        case .deviceQuarantined:
+            L10n.screenAccountAuthorityErrorQuarantined
+        case .lastDevice:
+            L10n.screenAccountAuthorityErrorLastDevice
+        case .oppositionDeviceRequired:
+            L10n.screenAccountAuthorityErrorOpposeDevice
+        case .oppositionStale:
+            L10n.screenAccountAuthorityErrorOpposeStale
+        case .unknownCandidate:
+            L10n.screenAccountAuthorityErrorUnknownCandidate
+        case .noNotificationChannel:
+            L10n.screenAccountAuthorityErrorNoChannel
+        case .notificationDeviceRequired:
+            L10n.screenAccountAuthorityErrorAlertsDeviceRequired
+        case .notificationRefused:
+            L10n.screenAccountAuthorityErrorNotificationRefused
+        case .stepUpRequired:
+            L10n.screenAccountAuthorityErrorStepUp
+        case let .tooRecent(retry):
+            if let retry, retry > 0 {
+                L10n.screenAccountAuthorityErrorTooRecentIn(IdentityServiceError.humanReadableDuration(seconds: retry))
+            } else {
+                L10n.screenAccountAuthorityErrorTooRecent
+            }
+        case .adoptionNotPermitted:
+            L10n.screenAccountAuthorityErrorNotPermitted
+        case .challengeInvalid:
+            L10n.screenAccountAuthorityErrorExpired
+        case .positionRefused:
+            L10n.screenAccountAuthorityErrorPosition
+        case .pendingConflict:
+            L10n.screenAccountAuthorityErrorPending
+        case .headConflict:
+            L10n.screenAccountAuthorityErrorConflict
+        case .noAccount:
+            L10n.screenAccountAuthorityErrorNoAccount
+        case let .backoff(retry):
+            if let retry, retry > 0 {
+                L10n.screenAccountAuthorityErrorTooRecentIn(IdentityServiceError.humanReadableDuration(seconds: retry))
+            } else {
+                L10n.screenAccountAuthorityErrorTooRecent
+            }
+        case .approvalInvalid:
+            L10n.screenAuthorityApprovalRefused
+        case .approvalLimit:
+            L10n.screenAuthorityApprovalMultiple
+        }
     }
 }
 
@@ -245,7 +431,7 @@ struct ContactMatch: Equatable, Identifiable {
     }
 }
 
-final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesisRegistering {
+final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesisRegistering, AccountAuthorityRequesting {
     private let baseURL: URL
     private let session: URLSession
     private let decoder: JSONDecoder
@@ -586,21 +772,31 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
 
     /// Both enrollments answer the same way: a one-time URL on the sign-in origin, opened in an
     /// authenticated web view, which is where the account is confirmed before anything is stored.
-    ///
-    /// The named redirect is asked for once and never insisted on. A deployment that has not
-    /// allowlisted this build's scheme, or a server too old to know the field, refuses with
-    /// `invalid_redirect_uri`; the same call then goes out with nothing named, which is what every
-    /// build did before this. The enrollment still runs, and the sheet returns to the deployment's
-    /// configured app instead of this one, which is a worse ending than the right scheme and a far
-    /// better one than a QA build that cannot enroll a factor at all.
     private func startFactorEnrollment(path: String, accessToken: String, redirectURI: String?) async throws -> URL {
+        try await namedRedirectThenTheDeploymentsOwn(redirectURI) { redirectURI in
+            try await self.requestEnrollmentURL(path: path, accessToken: accessToken, redirectURI: redirectURI)
+        }
+    }
+
+    /// Asks for a handoff URL naming this build's own redirect, once, and never insists on it.
+    ///
+    /// A deployment that has not allowlisted this build's scheme, or a server too old to know the field,
+    /// refuses with `invalid_redirect_uri`; the same call then goes out with nothing named, which is what
+    /// every build did before the field existed. The handoff still runs, and the sheet returns to the
+    /// deployment's configured app instead of this one, which is a worse ending than the right scheme and
+    /// a far better one than a QA build that cannot take a step-up at all.
+    ///
+    /// Shared by the two handoffs rather than written twice, which is the same reason the server builds
+    /// both their sessions in one place: a second copy is a second place for the allowlist rule to drift.
+    private func namedRedirectThenTheDeploymentsOwn(_ redirectURI: String?,
+                                                    _ request: (String?) async throws -> URL) async throws -> URL {
         do {
-            return try await requestEnrollmentURL(path: path, accessToken: accessToken, redirectURI: redirectURI)
+            return try await request(redirectURI)
         } catch IdentityServiceError.invalidRedirectURI where redirectURI != nil {
             // Never logged in full: the value is this build's own scheme, and the refusal is about
             // the deployment's allowlist rather than about anything in it.
-            MXLog.warning("Enrollment redirect refused by the deployment, asking again for its default")
-            return try await requestEnrollmentURL(path: path, accessToken: accessToken, redirectURI: nil)
+            MXLog.warning("Handoff redirect refused by the deployment, asking again for its default")
+            return try await request(nil)
         }
     }
 
@@ -684,6 +880,505 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         }
     }
 
+    // MARK: - Account authority
+
+    func authorityChallenge(accessToken: String,
+                            purpose: AuthorityPurpose,
+                            stepUp: AuthorityStepUp?) async throws -> AuthorityChallenge {
+        struct Body: Encodable {
+            let purpose: String
+            let passkeyStepUpId: String?
+            let passkeyCredential: PasskeyAssertion?
+            let pin: String?
+        }
+        struct Response: Decodable {
+            let challenge: String
+            let expiresInSeconds: Int
+        }
+        // Exactly one step-up per call. There is no field for "the factor this device could not use",
+        // and none is invented: that claim costs an attacker nothing and could only ever be a request
+        // for the weaker factor.
+        let body = switch stepUp {
+        case let .passkey(stepUpID, assertion):
+            Body(purpose: purpose.rawValue, passkeyStepUpId: stepUpID, passkeyCredential: assertion, pin: nil)
+        case let .pin(pin):
+            Body(purpose: purpose.rawValue, passkeyStepUpId: nil, passkeyCredential: nil, pin: pin)
+        case .webSheet, nil:
+            // Two situations, one body, and that is the contract rather than a shortcut: the purposes that
+            // ask for no factor, and a request whose proof was taken in the sheet, which the server finds
+            // by this account, this session and this purpose precisely because the request carries none.
+            // An empty string in the PIN field would read as one being presented and refused, which is a
+            // different thing from none being presented.
+            Body(purpose: purpose.rawValue, passkeyStepUpId: nil, passkeyCredential: nil, pin: nil)
+        }
+        let (data, _) = try await sendAuthenticated(path: "/account/authority/challenge",
+                                                    accessToken: accessToken,
+                                                    body: body,
+                                                    language: nil,
+                                                    expectsBody: true)
+        do {
+            let response = try decoder.decode(Response.self, from: data)
+            return AuthorityChallenge(challenge: response.challenge,
+                                      expiresAt: Date().addingTimeInterval(TimeInterval(max(0, response.expiresInSeconds))))
+        } catch {
+            throw IdentityServiceError.decoding(error)
+        }
+    }
+
+    func startAuthorityWebStepUp(accessToken: String,
+                                 purpose: AuthorityPurpose,
+                                 redirectURI: String?) async throws -> URL {
+        try await namedRedirectThenTheDeploymentsOwn(redirectURI) { redirectURI in
+            try await self.requestAuthorityStepUpURL(accessToken: accessToken,
+                                                     purpose: purpose,
+                                                     redirectURI: redirectURI)
+        }
+    }
+
+    /// The body carries the purpose and at most this build's redirect, and there is nothing else it can
+    /// carry: no phone number, because no arm of that page sends a code, and no statement about which
+    /// factor this device can produce, because that claim costs an attacker nothing and could only ever
+    /// ask for something weaker.
+    private func requestAuthorityStepUpURL(accessToken: String,
+                                           purpose: AuthorityPurpose,
+                                           redirectURI: String?) async throws -> URL {
+        struct Body: Encodable {
+            let purpose: String
+            let redirectUri: String?
+        }
+        struct Response: Decodable { let stepUpUrl: String }
+        let (data, _) = try await sendAuthenticated(path: "/security/authority/step-up/start",
+                                                    accessToken: accessToken,
+                                                    body: Body(purpose: purpose.rawValue, redirectUri: redirectURI),
+                                                    language: Locale.guaLanguageTag(),
+                                                    expectsBody: true)
+        do {
+            let response = try decoder.decode(Response.self, from: data)
+            guard let url = URL(string: response.stepUpUrl) else {
+                throw IdentityServiceError.invalidURL
+            }
+            return url
+        } catch let error as IdentityServiceError {
+            throw error
+        } catch {
+            throw IdentityServiceError.decoding(error)
+        }
+    }
+
+    func submitAuthorityAdoption(accessToken: String,
+                                 record: String,
+                                 signature: String,
+                                 challenge: String,
+                                 recoveryArtifactConfirmed: Bool) async throws -> AuthoritySubmission {
+        struct Body: Encodable {
+            let record: String
+            let signature: String
+            /// The challenge travels back with the record. The server stores only its SHA-256, so it
+            /// cannot rebuild the preimage without it, and holding the value would mean a database dump
+            /// handed an attacker something signable.
+            let challenge: String
+            let recoveryArtifactConfirmed: Bool
+        }
+        return try await submitAuthorityRecord(path: "/account/authority/adopt",
+                                               accessToken: accessToken,
+                                               body: Body(record: record,
+                                                          signature: signature,
+                                                          challenge: challenge,
+                                                          recoveryArtifactConfirmed: recoveryArtifactConfirmed))
+    }
+
+    func submitAuthorityDeviceGrant(accessToken: String,
+                                    record: String,
+                                    signature: String,
+                                    challenge: String) async throws -> AuthoritySubmission {
+        try await submitAuthorityRecord(path: "/account/authority/device/grant",
+                                        accessToken: accessToken,
+                                        body: AuthorityRecordBody(record: record,
+                                                                  signature: signature,
+                                                                  challenge: challenge))
+    }
+
+    func submitAuthorityDeviceRevoke(accessToken: String,
+                                     record: String,
+                                     signature: String,
+                                     challenge: String) async throws -> AuthoritySubmission {
+        try await submitAuthorityRecord(path: "/account/authority/device/revoke",
+                                        accessToken: accessToken,
+                                        body: AuthorityRecordBody(record: record,
+                                                                  signature: signature,
+                                                                  challenge: challenge))
+    }
+
+    func submitAuthorityRecovery(accessToken: String,
+                                 record: String,
+                                 signature: String,
+                                 challenge: String) async throws -> AuthoritySubmission {
+        try await submitAuthorityRecord(path: "/account/authority/recover",
+                                        accessToken: accessToken,
+                                        body: AuthorityRecordBody(record: record,
+                                                                  signature: signature,
+                                                                  challenge: challenge))
+    }
+
+    func opposeAuthorityAdoption(accessToken: String,
+                                 recordHash: String?,
+                                 stepUp: AuthorityStepUp?) async throws {
+        struct Body: Encodable {
+            let recordHash: String?
+            let passkeyStepUpId: String?
+            let passkeyCredential: PasskeyAssertion?
+            let pin: String?
+        }
+        // No factor the first time, because at seq 1 the account holds no authority to weigh: the honest
+        // veto is that someone who can already read this account's notifications says no. From the second
+        // onward the server asks for one, on any factor the account holds and at any age.
+        let body = switch stepUp {
+        case let .passkey(stepUpID, assertion):
+            Body(recordHash: recordHash, passkeyStepUpId: stepUpID, passkeyCredential: assertion, pin: nil)
+        case let .pin(pin):
+            Body(recordHash: recordHash, passkeyStepUpId: nil, passkeyCredential: nil, pin: pin)
+        case .webSheet, nil:
+            // An opposition takes no sheet: the purposes that open one are the four that move authority,
+            // and this app never asks for one here. Sending nothing is what the server reads as nothing.
+            Body(recordHash: recordHash, passkeyStepUpId: nil, passkeyCredential: nil, pin: nil)
+        }
+        try await sendAuthenticated(path: "/account/authority/oppose",
+                                    accessToken: accessToken,
+                                    body: body,
+                                    language: nil,
+                                    expectsBody: false)
+    }
+
+    func submitAuthorityOpposition(accessToken: String,
+                                   record: String,
+                                   signature: String,
+                                   challenge: String) async throws {
+        try await sendAuthenticated(path: "/account/authority/oppose/record",
+                                    accessToken: accessToken,
+                                    body: AuthorityRecordBody(record: record,
+                                                              signature: signature,
+                                                              challenge: challenge),
+                                    language: nil,
+                                    expectsBody: false)
+    }
+
+    func registerAuthorityCandidate(accessToken: String,
+                                    deviceKeyB64: String,
+                                    label: String) async throws -> AuthorityCandidate {
+        struct Body: Encodable {
+            let deviceKeyB64: String
+            let label: String
+        }
+        let (data, _) = try await sendAuthenticated(path: "/account/authority/device/candidate",
+                                                    accessToken: accessToken,
+                                                    body: Body(deviceKeyB64: deviceKeyB64, label: label),
+                                                    language: nil,
+                                                    expectsBody: true)
+        do {
+            return try Self.candidate(decoder.decode(AuthorityCandidateResponse.self, from: data))
+        } catch {
+            throw IdentityServiceError.decoding(error)
+        }
+    }
+
+    func authorityCandidates(accessToken: String) async throws -> [AuthorityCandidate] {
+        let data = try await getAuthenticated(path: "/account/authority/device/candidate",
+                                              accessToken: accessToken)
+        do {
+            return try decoder.decode([AuthorityCandidateResponse].self, from: data).map(Self.candidate)
+        } catch {
+            throw IdentityServiceError.decoding(error)
+        }
+    }
+
+    // MARK: - The security notification channel
+
+    func registerSecurityNotification(accessToken: String,
+                                      registration: SecurityNotificationRegistration) async throws -> SecurityNotificationSummary {
+        struct Body: Encodable {
+            let installationId: String
+            let platform: String
+            let token: String
+            let appId: String
+            let deviceLabel: String?
+            let authorityDeviceKeyB64: String?
+            let challenge: String?
+            let signature: String?
+        }
+        struct Response: Decodable {
+            let installationId: String
+            let tokenFingerprint: String
+            let bound: Bool
+        }
+        let (data, _) = try await sendAuthenticated(path: "/account/security-notifications",
+                                                    accessToken: accessToken,
+                                                    body: Body(installationId: registration.installationID,
+                                                               platform: registration.platform,
+                                                               token: registration.token,
+                                                               appId: registration.appID,
+                                                               deviceLabel: registration.deviceLabel,
+                                                               authorityDeviceKeyB64: registration.authorityDeviceKeyB64,
+                                                               challenge: registration.challenge,
+                                                               signature: registration.signature),
+                                                    language: nil,
+                                                    expectsBody: true)
+        do {
+            let response = try decoder.decode(Response.self, from: data)
+            // The register reply is narrower than the listing: it says which row was written and whether
+            // it is bound, and the label and the last-seen time come from a read.
+            return SecurityNotificationSummary(installationID: response.installationId,
+                                               platform: registration.platform,
+                                               deviceLabel: registration.deviceLabel ?? "",
+                                               tokenFingerprint: response.tokenFingerprint,
+                                               isBoundToAnAuthorityDevice: response.bound,
+                                               lastSeenAt: Date())
+        } catch {
+            throw IdentityServiceError.decoding(error)
+        }
+    }
+
+    func securityNotifications(accessToken: String) async throws -> [SecurityNotificationSummary] {
+        struct Response: Decodable {
+            let installationId: String
+            let platform: String
+            let deviceLabel: String?
+            let tokenFingerprint: String
+            let boundToAnAuthorityDevice: Bool
+            let lastSeenAtEpochSeconds: Int64
+        }
+        let data = try await getAuthenticated(path: "/account/security-notifications", accessToken: accessToken)
+        do {
+            return try decoder.decode([Response].self, from: data).map { row in
+                SecurityNotificationSummary(installationID: row.installationId,
+                                            platform: row.platform,
+                                            deviceLabel: row.deviceLabel ?? "",
+                                            tokenFingerprint: row.tokenFingerprint,
+                                            isBoundToAnAuthorityDevice: row.boundToAnAuthorityDevice,
+                                            lastSeenAt: Date(timeIntervalSince1970: TimeInterval(row.lastSeenAtEpochSeconds)))
+            }
+        } catch {
+            throw IdentityServiceError.decoding(error)
+        }
+    }
+
+    func removeSecurityNotification(accessToken: String, removal: SecurityNotificationRemoval) async throws {
+        // It names the row to remove and nothing else. There is no field for the caller to say which
+        // install it is, because the server's own request object has none: which tier a caller reaches is
+        // decided by what it can produce, and a request cannot authenticate itself.
+        struct Body: Encodable {
+            let installationId: String
+            let passkeyStepUpId: String?
+            let passkeyCredential: PasskeyAssertion?
+            let pin: String?
+            let challenge: String?
+            let signature: String?
+        }
+        var passkeyStepUpID: String?
+        var assertion: PasskeyAssertion?
+        var pin: String?
+        switch removal.stepUp {
+        case let .passkey(stepUpID, presented):
+            passkeyStepUpID = stepUpID
+            assertion = presented
+        case let .pin(presented):
+            pin = presented
+        case .webSheet, nil:
+            // A notification binding is not one of the four purposes the sheet can confirm, so nothing
+            // presents a sheet proof here and nothing is put in the body either way.
+            break
+        }
+        try await sendAuthenticated(path: "/account/security-notifications/remove",
+                                    accessToken: accessToken,
+                                    body: Body(installationId: removal.installationID,
+                                               passkeyStepUpId: passkeyStepUpID,
+                                               passkeyCredential: assertion,
+                                               pin: pin,
+                                               challenge: removal.challenge,
+                                               signature: removal.signature),
+                                    language: nil,
+                                    expectsBody: false)
+    }
+
+    func authorityState(accessToken: String) async throws -> AuthorityChainState {
+        struct Response: Decodable {
+            let accountId: String
+            let accountClass: String
+            let state: String
+            let headSeq: Int64
+            let headHash: String
+            let devices: [Device]
+            let pending: Pending?
+
+            struct Device: Decodable {
+                let deviceKey: String
+                let label: String?
+                let state: String
+                let quarantineUntilEpochSeconds: Int64?
+                let grantedSeq: Int64
+            }
+
+            struct Pending: Decodable {
+                let type: String
+                let seq: Int64
+                let effectiveAtEpochSeconds: Int64
+                let recordHash: String
+            }
+        }
+        let data = try await getAuthenticated(path: "/account/authority", accessToken: accessToken)
+        let response: Response
+        do {
+            response = try decoder.decode(Response.self, from: data)
+        } catch {
+            throw IdentityServiceError.decoding(error)
+        }
+        // The id is parsed rather than carried as a string: the client signs over its 34 raw bytes, so an
+        // id it cannot re-derive canonically is one it must not sign anything under.
+        guard let accountID = try? AccountID.parse(response.accountId) else {
+            throw IdentityServiceError.decoding(AccountGenesisError.badAccountID)
+        }
+        return AuthorityChainState(accountID: accountID,
+                                   accountClass: AuthorityAccountClass(wireValue: response.accountClass),
+                                   state: AuthorityChainStateName(wireValue: response.state),
+                                   headSeq: response.headSeq,
+                                   headHash: response.headHash,
+                                   devices: response.devices.map { device in
+                                       AuthorityDeviceSummary(deviceKey: device.deviceKey,
+                                                              label: device.label ?? "",
+                                                              state: AuthorityDeviceState(wireValue: device.state),
+                                                              quarantineUntil: device.quarantineUntilEpochSeconds.map {
+                                                                  Date(timeIntervalSince1970: TimeInterval($0))
+                                                              },
+                                                              grantedSeq: device.grantedSeq)
+                                   },
+                                   pending: response.pending.map { pending in
+                                       AuthorityPendingTransition(type: AuthorityPendingType(wireValue: pending.type),
+                                                                  seq: pending.seq,
+                                                                  effectiveAt: Date(timeIntervalSince1970: TimeInterval(pending.effectiveAtEpochSeconds)),
+                                                                  recordHash: pending.recordHash)
+                                   })
+    }
+
+    func liveAuthorityApprovals(accessToken: String) async throws -> [AuthorityApproval] {
+        struct Response: Decodable {
+            let approvalId: String
+            let code: String
+            let action: String?
+            let actionDigest: String
+            let challenge: String
+            let expiresAtEpochSeconds: Int64
+        }
+        let data = try await getAuthenticated(path: "/account/authority/approval", accessToken: accessToken)
+        do {
+            return try decoder.decode([Response].self, from: data).map { approval in
+                AuthorityApproval(approvalID: approval.approvalId,
+                                  code: approval.code,
+                                  action: approval.action?.isEmpty == true ? nil : approval.action,
+                                  actionDigest: approval.actionDigest,
+                                  challenge: approval.challenge,
+                                  expiresAt: Date(timeIntervalSince1970: TimeInterval(approval.expiresAtEpochSeconds)))
+            }
+        } catch {
+            throw IdentityServiceError.decoding(error)
+        }
+    }
+
+    func signAuthorityApproval(accessToken: String, approvalID: String, signature: String) async throws {
+        struct Body: Encodable { let signature: String }
+        // The id is percent-encoded rather than interpolated: it is base64url, so it never needs it
+        // today, but a path built by concatenation is one malformed value away from addressing something
+        // else on this service.
+        let escaped = approvalID.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? ""
+        guard !escaped.isEmpty else { throw IdentityServiceError.invalidURL }
+        try await sendAuthenticated(path: "/account/authority/approval/\(escaped)/sign",
+                                    accessToken: accessToken,
+                                    body: Body(signature: signature),
+                                    language: nil,
+                                    expectsBody: false)
+    }
+
+    /// The body every record submission and the signed opposition send. One type rather than five
+    /// identical nested ones, so a field cannot be spelled differently on the path nobody exercised.
+    private struct AuthorityRecordBody: Encodable {
+        let record: String
+        let signature: String
+        /// The challenge travels back with the record. The server stores only its SHA-256, so it cannot
+        /// rebuild the preimage without it, and holding the value would mean a database dump handed an
+        /// attacker something signable.
+        let challenge: String
+    }
+
+    private struct AuthorityCandidateResponse: Decodable {
+        let deviceKeyB64: String
+        let fingerprint: String
+        let label: String?
+        let expiresAtEpochSeconds: Int64
+    }
+
+    private static func candidate(_ response: AuthorityCandidateResponse) -> AuthorityCandidate {
+        AuthorityCandidate(deviceKeyB64: response.deviceKeyB64,
+                           fingerprint: response.fingerprint,
+                           label: response.label ?? "",
+                           expiresAt: Date(timeIntervalSince1970: TimeInterval(response.expiresAtEpochSeconds)))
+    }
+
+    /// What every record submission answers with. Declared beside the method rather than inside it,
+    /// because a generic function cannot nest a type.
+    private struct AuthoritySubmissionResponse: Decodable {
+        let seq: Int64
+        let state: String
+        let effectiveAtEpochSeconds: Int64
+        let recordHash: String
+    }
+
+    /// The four record submissions answer the same way, so they share one path through the client.
+    private func submitAuthorityRecord(path: String,
+                                       accessToken: String,
+                                       body: some Encodable) async throws -> AuthoritySubmission {
+        let (data, _) = try await sendAuthenticated(path: path,
+                                                    accessToken: accessToken,
+                                                    body: body,
+                                                    language: nil,
+                                                    expectsBody: true)
+        do {
+            let response = try decoder.decode(AuthoritySubmissionResponse.self, from: data)
+            return AuthoritySubmission(seq: response.seq,
+                                       isPending: response.state == "PENDING",
+                                       effectiveAt: Date(timeIntervalSince1970: TimeInterval(response.effectiveAtEpochSeconds)),
+                                       recordHash: response.recordHash)
+        } catch {
+            throw IdentityServiceError.decoding(error)
+        }
+    }
+
+    /// An authenticated GET. The two authority reads are the only GETs with a typed body in this client,
+    /// and they go through here rather than each assembling a request of its own.
+    private func getAuthenticated(path: String, accessToken: String) async throws -> Data {
+        guard let url = URL(string: path, relativeTo: baseURL) else {
+            throw IdentityServiceError.invalidURL
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            throw IdentityServiceError.transport(error)
+        }
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw IdentityServiceError.server(status: -1, message: "Non-HTTP response.")
+        }
+        guard httpResponse.statusCode == 200 else {
+            throw Self.mappedError(status: httpResponse.statusCode,
+                                   body: try? decoder.decode(ErrorBody.self, from: data),
+                                   retryAfterHeader: httpResponse.value(forHTTPHeaderField: "Retry-After"),
+                                   path: path)
+        }
+        return data
+    }
+
     @discardableResult
     private func sendAuthenticated(path: String,
                                    accessToken: String,
@@ -735,7 +1430,8 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
     /// being rounded to the nearest known one.
     private static func mappedError(status: Int, body: ErrorBody?, retryAfterHeader: String?, path: String) -> IdentityServiceError {
         let retry = body?.retryAfterSeconds ?? retryAfterHeader.flatMap(Int.init)
-        if let mapped = passkeyError(code: body?.code, status: status, path: path)
+        if let mapped = authorityError(code: body?.code, status: status, path: path, retryAfterSeconds: retry)
+            ?? passkeyError(code: body?.code, status: status, path: path)
             ?? waitError(code: body?.code, retryAfterSeconds: retry)
             ?? credentialError(code: body?.code) {
             return mapped
@@ -744,6 +1440,28 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
             return .rateLimited
         }
         return .server(status: status, message: body?.message ?? body?.errorDescription ?? body?.error)
+    }
+
+    /// Everything `/account/authority/**` refuses, mapped by the server's own code.
+    ///
+    /// The path check is what keeps this from claiming refusals that are not the chain's: only an
+    /// authority endpoint can answer with an authority code, and only there does a bare 503 or 404 mean
+    /// the feature is absent rather than that the service is in trouble. A deployment that predates the
+    /// endpoints answers 404, and the wire contract reads both as "this build does not have the feature".
+    private static func authorityError(code: String?, status: Int, path: String, retryAfterSeconds: Int?) -> IdentityServiceError? {
+        // The security-notification channel is part of the same feature and answers with the same code
+        // vocabulary, so it is mapped here too. Its path is separate because it is not a chain endpoint:
+        // nothing it does appends a record. `/security/authority/**` is here for the same reason: the web
+        // step-up is started next to factor enrollment and refuses in the chain's own vocabulary.
+        guard path.hasPrefix("/account/authority")
+            || path.hasPrefix("/account/security-notifications")
+            || path.hasPrefix("/security/authority") else {
+            return nil
+        }
+        if let refusal = AuthorityRefusal(code: code, retryAfterSeconds: retryAfterSeconds) {
+            return .authority(refusal)
+        }
+        return status == 503 || status == 404 ? .authority(.disabled) : nil
     }
 
     /// Everything that means "the passkey path is not available to this caller right now". All of

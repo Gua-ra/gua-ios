@@ -29,6 +29,8 @@ enum SettingsScreenViewModelAction: Equatable {
     case changePhoneNumber
     /// GUA FORK: Find which of the user's phone contacts are on Gua
     case findFriends
+    /// GUA FORK: the account's trusted devices (ADM-009), behind an off-by-default flag
+    case accountAuthority
 }
 
 enum SettingsScreenSecuritySectionMode {
@@ -49,6 +51,11 @@ struct SettingsScreenViewState: BindableState {
     /// GUA FORK: When `true`, the advanced Encryption entry point is hidden from
     /// Settings. E2EE remains fully enabled with safe defaults.
     var hidesAdvancedEncryption = true
+
+    /// GUA FORK: whether the trusted-devices entry point exists at all. It follows
+    /// `guaAccountAuthorityEnabled`, and with the flag off this Settings screen is byte-identical to
+    /// what it was before ADM-009 (`SettingsScreenViewModelTests` covers it).
+    var showAccountAuthority = false
 
     /// GUA FORK: The bare localpart (e.g. "alice") of `userID`, hiding the
     /// "@" prefix and ":homeserver" suffix for Gua's frictionless design.
@@ -94,4 +101,6 @@ enum SettingsScreenViewAction {
     case changePhoneNumber
     /// GUA FORK: Find friends from phone contacts
     case findFriends
+    /// GUA FORK: the account's trusted devices (ADM-009)
+    case accountAuthority
 }

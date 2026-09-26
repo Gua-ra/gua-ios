@@ -300,6 +300,101 @@ final class IdentityServiceClientTests: XCTestCase {
         XCTAssertEqual(IdentityServiceStub.sentBodies.count, 2)
     }
 
+    // MARK: - The authority web step-up
+
+    /// The handoff an authority transition takes when the assertion cannot be produced natively. It is
+    /// the enrollment start with a purpose in place of a factor to add, so it is checked the same way.
+    func testStartingAnAuthorityWebStepUpNamesThePurposeAndThisBuildsRedirect() async throws {
+        IdentityServiceStub.respond(status: 200, body: #"{ "stepUpUrl": "https://identity.example/login/enroll/step-up" }"#)
+
+        let url = try await client.startAuthorityWebStepUp(accessToken: "access-token",
+                                                           purpose: .adopt,
+                                                           redirectURI: "global.gua.dev:/oidc")
+
+        XCTAssertEqual(url, URL(string: "https://identity.example/login/enroll/step-up"))
+        let request = try XCTUnwrap(IdentityServiceStub.lastRequest)
+        XCTAssertEqual(request.httpMethod, "POST")
+        XCTAssertEqual(request.url?.path, "/security/authority/step-up/start")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer access-token")
+        // The page is rendered for a reader, so it is asked for in their language, exactly as the
+        // enrollment page is.
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Accept-Language"), Locale.guaLanguageTag())
+
+        let body = try IdentityServiceStub.lastBodyObject()
+        XCTAssertEqual(body["purpose"] as? String, "ADOPT")
+        XCTAssertEqual(body["redirectUri"] as? String, "global.gua.dev:/oidc")
+        // Two fields and nothing else. In particular no phone number, because no arm of that page sends a
+        // code, and nothing claiming which factor this device can produce: a claim an attacker gets for
+        // free could only ever ask for something weaker.
+        XCTAssertEqual(Set(body.keys), ["purpose", "redirectUri"])
+    }
+
+    /// The same allowlist fallback enrollment has, on the same code, because both handoffs are started
+    /// through one path. A QA build holding a scheme this deployment has not been told about still gets
+    /// its sheet.
+    func testARefusedRedirectOnTheStepUpIsAskedAgainWithoutOne() async throws {
+        IdentityServiceStub.respond(inOrder: [(400, #"{ "code": "invalid_redirect_uri" }"#),
+                                              (200, #"{ "stepUpUrl": "https://identity.example/login/enroll/step-up" }"#)])
+
+        let url = try await client.startAuthorityWebStepUp(accessToken: "access-token",
+                                                           purpose: .revoke,
+                                                           redirectURI: "global.gua.debug:/oidc")
+
+        XCTAssertEqual(url, URL(string: "https://identity.example/login/enroll/step-up"))
+        XCTAssertEqual(IdentityServiceStub.sentBodies.count, 2)
+        XCTAssertEqual(try IdentityServiceStub.bodyObject(at: 0)["redirectUri"] as? String, "global.gua.debug:/oidc")
+        XCTAssertNil(try IdentityServiceStub.bodyObject(at: 1)["redirectUri"])
+        XCTAssertEqual(try IdentityServiceStub.bodyObject(at: 1)["purpose"] as? String, "REVOKE",
+                       "The second attempt drops the redirect and nothing else: the purpose is the whole point of the call.")
+    }
+
+    /// An account that holds neither a passkey this deployment can assert nor a PIN is told at the entry
+    /// point, rather than being shown a page whose every button is already refused. The refusal reads in
+    /// the chain's own vocabulary although the path is under `/security`.
+    func testAnAccountWithNothingTheSheetCanRunIsRefusedBeforeThePage() async throws {
+        IdentityServiceStub.respond(status: 409, body: #"{ "code": "authority_step_up_unavailable" }"#)
+
+        do {
+            _ = try await client.startAuthorityWebStepUp(accessToken: "access-token", purpose: .adopt, redirectURI: nil)
+            XCTFail("Expected the conflict to throw")
+        } catch IdentityServiceError.authority(.stepUpSheetUnavailable) {
+            // The expected refusal, read as itself rather than as an unrecognised authority code.
+        }
+    }
+
+    /// A deployment with the feature off, or one that predates the endpoint, means "not here" rather than
+    /// "went wrong", which is what lets the caller fall back instead of stopping.
+    func testADeploymentWithoutTheStepUpEndpointReadsAsTheFeatureBeingAbsent() async throws {
+        IdentityServiceStub.respond(status: 404, body: "")
+
+        do {
+            _ = try await client.startAuthorityWebStepUp(accessToken: "access-token", purpose: .grant, redirectURI: nil)
+            XCTFail("Expected the missing endpoint to throw")
+        } catch let IdentityServiceError.authority(refusal) {
+            XCTAssertEqual(refusal, .disabled)
+            XCTAssertTrue(refusal.isFeatureAbsent)
+        }
+    }
+
+    /// What makes the sheet work at all: a request whose proof was taken there presents no factor of its
+    /// own, which is exactly the condition the server looks up its own recorded proof under. A PIN field
+    /// holding an empty string would read as a factor presented and refused, which is a different thing.
+    func testAChallengeSpendingASheetProofPresentsNoFactorOfItsOwn() async throws {
+        IdentityServiceStub.respond(status: 200, body: #"{ "challenge": "Y2hhbGxlbmdl", "expiresInSeconds": 900 }"#)
+
+        _ = try await client.authorityChallenge(accessToken: "access-token", purpose: .adopt, stepUp: .webSheet)
+
+        let request = try XCTUnwrap(IdentityServiceStub.lastRequest)
+        XCTAssertEqual(request.url?.path, "/account/authority/challenge")
+        let body = try IdentityServiceStub.lastBodyObject()
+        XCTAssertEqual(body["purpose"] as? String, "ADOPT")
+        XCTAssertNil(body["pin"])
+        XCTAssertNil(body["passkeyStepUpId"])
+        XCTAssertNil(body["passkeyCredential"])
+        // And nothing anywhere for a code sent to the account's number, at this step or any other.
+        XCTAssertEqual(Set(body.keys), ["purpose"])
+    }
+
     // MARK: - Cancel
 
     func testCancelAccountRecoveryPostsWithTheBearerToken() async throws {
