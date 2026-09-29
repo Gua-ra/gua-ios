@@ -2224,6 +2224,41 @@ class ClientProxyMock: ClientProxyProtocol, @unchecked Sendable {
     var underlyingMaxMediaUploadSize: Result<UInt, ClientProxyError>!
     var maxMediaUploadSizeClosure: (() async -> Result<UInt, ClientProxyError>)?
 
+    //MARK: - waitForE2EEInitialization
+
+    var waitForE2EEInitializationUnderlyingCallsCount = 0
+    var waitForE2EEInitializationCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return waitForE2EEInitializationUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = waitForE2EEInitializationUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                waitForE2EEInitializationUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    waitForE2EEInitializationUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var waitForE2EEInitializationCalled: Bool {
+        return waitForE2EEInitializationCallsCount > 0
+    }
+    var waitForE2EEInitializationClosure: (() async -> Void)?
+
+    func waitForE2EEInitialization() async {
+        waitForE2EEInitializationCallsCount += 1
+        await waitForE2EEInitializationClosure?()
+    }
     //MARK: - isOnlyDeviceLeft
 
     var isOnlyDeviceLeftUnderlyingCallsCount = 0

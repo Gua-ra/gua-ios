@@ -13,6 +13,8 @@ class SecureBackupController: SecureBackupControllerProtocol {
     private let encryption: Encryption
     /// GUA FORK: which account this controller serves, for the identity-reset-pending marker.
     private let userID: String
+    /// GUA FORK: the SDK's own end-to-end encryption initialisation. See `e2eeInitializationCompleted`.
+    private let e2eeInitialization: Task<Void, Never>
     
     private let recoveryStateSubject = CurrentValueSubject<SecureBackupRecoveryState, Never>(.unknown)
     private let keyBackupStateSubject = CurrentValueSubject<SecureBackupKeyBackupState, Never>(.unknown)
@@ -42,7 +44,8 @@ class SecureBackupController: SecureBackupControllerProtocol {
         isProvisioningKeyStorageSubject.asCurrentValuePublisher()
     }
     
-    init(encryption: Encryption, userID: String) {
+    init(encryption: Encryption, userID: String, e2eeInitialization: Task<Void, Never>) {
+        self.e2eeInitialization = e2eeInitialization
         self.encryption = encryption
         self.userID = userID
         
@@ -92,10 +95,43 @@ class SecureBackupController: SecureBackupControllerProtocol {
         
         updateBackupStateFromRemote()
     }
-    
+
+    /// GUA FORK: whether the SDK's own end-to-end encryption initialisation has finished.
+    ///
+    /// That initialisation provisions the key backup on a fresh account. Every operation here that
+    /// can create one must wait for it, because `Recovery::enable` and `Recovery::enable_backup`
+    /// each create a version unless one is already enabled locally. An account may only ever hold
+    /// one: a reset deletes the current version, and a survivor makes every later
+    /// `Recovery::enable` fail with `backupExistsOnServer`.
+    ///
+    /// The bound is a give-up, not a synchronisation primitive. Callers refuse to act when it
+    /// expires and retry later, so the ordering never rests on a timer.
+    private func e2eeInitializationCompleted(timeout: Duration = .seconds(30)) async -> Bool {
+        await withTaskGroup(of: Bool.self) { group in
+            group.addTask { [e2eeInitialization] in
+                await e2eeInitialization.value
+                return true
+            }
+
+            group.addTask {
+                try? await Task.sleep(for: timeout)
+                return false
+            }
+
+            let completed = await group.next() ?? false
+            group.cancelAll()
+            return completed
+        }
+    }
+
     func enable() async -> Result<Void, SecureBackupControllerError> {
         MXLog.info("Enabling secure backup")
         
+        guard await e2eeInitializationCompleted() else {
+            MXLog.warning("GUA-KEYSTORE: encryption initialisation did not finish, not enabling backup.")
+            return .failure(.failedEnablingBackup)
+        }
+
         do {
             try await encryption.enableBackups()
         } catch {
@@ -151,6 +187,11 @@ class SecureBackupController: SecureBackupControllerProtocol {
     }
 
     func generateRecoveryKey() async -> Result<String, SecureBackupControllerError> {
+        guard await e2eeInitializationCompleted() else {
+            MXLog.warning("GUA-KEYSTORE: encryption initialisation did not finish, not generating a recovery key.")
+            return .failure(.failedGeneratingRecoveryKey)
+        }
+
         do {
             let state = await settledRecoveryState()
 
@@ -394,23 +435,50 @@ class SecureBackupController: SecureBackupControllerProtocol {
     /// asks again. Nothing here is on a user's critical path any more, so it can afford to be
     /// patient where the foreground version could not.
     private func performProvisionAfterReset() async -> EncryptionRepairOutcome {
-        // Rotating the secret store is normally the one thing to avoid, since it invalidates any
-        // recovery key saved elsewhere for this account. Immediately after a reset there is no such
-        // key and no earlier store left to strand, so re-running it costs nothing but a round trip.
-        for (attempt, backoff) in Self.provisionBackoff.enumerated() {
-            // Re-read before spending another rotation: an earlier attempt may have landed while
-            // this one was waiting, and rotating over a store that already works would undo it.
-            if recoveryState.value == .enabled {
+        await Self.provisionLoop(backoff: Self.provisionBackoff,
+                                 isEnabled: { [weak self] in self?.recoveryState.value == .enabled },
+                                 enableRecovery: { [weak self] in
+                                     guard let self else { throw SecureBackupControllerError.failedEnablingBackup }
+                                     _ = try await enableRecoveryReturningKey()
+                                 },
+                                 waitForEnabled: { [weak self] timeout in
+                                     guard let self else { return false }
+                                     return await waitForRecoveryEnabled(timeout: timeout)
+                                 })
+    }
+
+    /// The post-reset provisioning loop, as a pure function so its two important properties can be tested:
+    /// that a structural refusal returns at once, and that nothing here ever deletes a backup.
+    ///
+    /// Rotating the secret store is normally the one thing to avoid, since it invalidates any recovery key
+    /// saved elsewhere for this account. Immediately after a reset there is no such key and no earlier store
+    /// left to strand, so re-running it costs nothing but a round trip.
+    static func provisionLoop(backoff: [Duration],
+                              isEnabled: () -> Bool,
+                              enableRecovery: () async throws -> Void,
+                              waitForEnabled: (Duration) async -> Bool) async -> EncryptionRepairOutcome {
+        for (attempt, delay) in backoff.enumerated() {
+            // Re-read before spending another rotation: an earlier attempt may have landed while this one
+            // was waiting, and rotating over a store that already works would undo it.
+            if isEnabled() {
                 return .repaired
             }
 
             do {
-                _ = try await enableRecoveryReturningKey()
+                try await enableRecovery()
+            } catch RecoveryError.BackupExistsOnServer {
+                // A backup the reset did not delete. Recovery cannot be enabled while one exists, and no
+                // amount of waiting changes that, so the remaining backoff would only delay the answer.
+                //
+                // The backup is left alone. It may hold the only copy of this account's room keys, and
+                // this code cannot tell, so deleting it is never this method's decision.
+                MXLog.error("GUA-KEYSTORE: a key backup already exists on the server, so recovery cannot be enabled. Leaving it untouched.")
+                return .resetRequired
             } catch {
                 MXLog.warning("GUA-KEYSTORE: post-reset provision attempt \(attempt + 1) threw: \(error)")
             }
 
-            if await waitForRecoveryEnabled(timeout: backoff) {
+            if await waitForEnabled(delay) {
                 MXLog.info("GUA-KEYSTORE: key storage provisioned on attempt \(attempt + 1).")
                 return .repaired
             }
@@ -480,6 +548,11 @@ class SecureBackupController: SecureBackupControllerProtocol {
     /// In the one case it would fire, it blanks the `m.cross_signing.*` account data, destroying
     /// the last server-side copy of the private cross-signing keys.
     private func provisionKeyStorage() async -> EncryptionRepairOutcome {
+        guard await e2eeInitializationCompleted() else {
+            MXLog.warning("GUA-KEYSTORE: encryption initialisation did not finish, leaving key storage alone.")
+            return .notYet
+        }
+
         // A post-reset provision may already be running behind the chat list. Join it rather than
         // starting a second one: two enableRecovery calls each mint a secret store, and the loser's
         // is the one that ends up in account data. This is the tap that lands while the background
@@ -511,9 +584,13 @@ class SecureBackupController: SecureBackupControllerProtocol {
     }
 
     private func enableRecoveryReturningKey() async throws -> String {
-        try await encryption.enableRecovery(waitForBackupsToUpload: false,
-                                            passphrase: nil,
-                                            progressListener: SDKListener { _ in })
+        guard await e2eeInitializationCompleted() else {
+            throw SecureBackupControllerError.failedEnablingBackup
+        }
+
+        return try await encryption.enableRecovery(waitForBackupsToUpload: false,
+                                                   passphrase: nil,
+                                                   progressListener: SDKListener { _ in })
     }
 
     func waitForKeyBackupUpload(uploadStateSubject: CurrentValueSubject<SecureBackupSteadyState, Never>) async -> Result<Void, SecureBackupControllerError> {

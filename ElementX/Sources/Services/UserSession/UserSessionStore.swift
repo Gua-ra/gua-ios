@@ -112,7 +112,8 @@ class UserSessionStore: UserSessionStoreProtocol {
     ///
     /// Runs fully detached and is completely fail-safe: any error is logged and we fall through to
     /// the existing behaviour. It must never block or fail the login.
-    private func bootstrapKeyStorageIfNeeded(_ clientProxy: ClientProxyProtocol) {
+    /// Internal rather than private so the provisioning sequence can be asserted in tests.
+    func bootstrapKeyStorageIfNeeded(_ clientProxy: ClientProxyProtocol) {
         let secureBackupController = clientProxy.secureBackupController
         let userID = clientProxy.userID
 
@@ -121,6 +122,10 @@ class UserSessionStore: UserSessionStoreProtocol {
 
             do {
                 guard !appSettings.hasBootstrappedKeyStorage(forUserID: userID) else { return }
+
+                // GUA FORK: everything below can create key storage, so it may not start before the
+                // SDK's own provisioning has finished. See `waitForE2EEInitialization`.
+                await clientProxy.waitForE2EEInitialization()
 
                 // GUA FORK: wait for the SDK to report where this account actually stands.
                 // The subject starts at `.unknown`, and acting on that is what left key
@@ -152,7 +157,9 @@ class UserSessionStore: UserSessionStoreProtocol {
                     MXLog.warning("Repair from the stored recovery key failed, falling through to bootstrap.")
                 }
 
-                if secureBackupController.keyBackupState.value != .enabled {
+                // GUA FORK: a state other than `.disabled` takes the reset-the-key path below, which
+                // provisions no backup, so there it still has to be enabled separately.
+                if state != .disabled, secureBackupController.keyBackupState.value != .enabled {
                     MXLog.info("Bootstrapping key storage: enabling backup.")
                     if case .failure(let error) = await secureBackupController.enable() {
                         MXLog.error("Failed enabling backup while bootstrapping key storage: \(error)")
@@ -170,11 +177,22 @@ class UserSessionStore: UserSessionStoreProtocol {
                         return
                     }
 
-                    // GUA FORK: only latch once the state is genuinely `.enabled`. Latching on a
-                    // completed attempt is what made a half-finished bootstrap permanent, because
-                    // this block never ran again on later launches.
-                    guard await secureBackupController.settledRecoveryState() == .enabled else {
-                        MXLog.warning("Key storage did not reach .enabled; will retry on next launch.")
+                    // GUA FORK: latch only on what the client can authoritatively observe about itself:
+                    // recovery reports enabled, and key backup reports enabled. A call that returned
+                    // without error is not evidence of either, and this block never runs again once the
+                    // flag is set.
+                    //
+                    // How many backup versions the server holds is deliberately not checked here: the
+                    // client API cannot enumerate historical versions. That invariant is held by only
+                    // ever invoking one operation capable of creating the initial backup.
+                    let finalState = await secureBackupController.settledRecoveryState()
+                    guard finalState == .enabled else {
+                        MXLog.warning("Key storage did not reach .enabled (\(finalState)); will retry on next launch.")
+                        return
+                    }
+
+                    guard secureBackupController.keyBackupState.value == .enabled else {
+                        MXLog.warning("Recovery is enabled but key backup is \(secureBackupController.keyBackupState.value); will retry on next launch.")
                         return
                     }
 
@@ -202,6 +220,10 @@ class UserSessionStore: UserSessionStoreProtocol {
             guard let self else { return }
 
             do {
+                // GUA FORK: everything below can create key storage, so it may not start before the
+                // SDK's own provisioning has finished. See `waitForE2EEInitialization`.
+                await clientProxy.waitForE2EEInitialization()
+
                 // Only act when recovery isn't already fully enabled (e.g. .incomplete).
                 let state = await secureBackupController.settledRecoveryState()
                 // Same reasoning as the bootstrap path: an unsettled state is not a signal.
