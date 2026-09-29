@@ -150,11 +150,15 @@ class UserSessionStore: UserSessionStoreProtocol {
                 // generated, repair in place instead of rotating, which would orphan the backup.
                 if state == .incomplete, let storedKey = keychainController.recoveryKey(forUsername: userID) {
                     MXLog.info("Key storage incomplete, repairing from the stored recovery key.")
-                    if case .success = await secureBackupController.repairRecovery(with: storedKey) {
+                    // GUA FORK: using the key returns without error even when the secrets it was
+                    // meant to supply are absent from the store, so only the SDK's recomputed state
+                    // can say whether the account is recoverable.
+                    if case .success = await secureBackupController.repairRecovery(with: storedKey),
+                       secureBackupController.sdkRecoveryState() == .enabled {
                         appSettings.setHasBootstrappedKeyStorage(true, forUserID: userID)
                         return
                     }
-                    MXLog.warning("Repair from the stored recovery key failed, falling through to bootstrap.")
+                    MXLog.warning("Recovery remains incomplete after using the stored key, falling through to bootstrap.")
                 }
 
                 // GUA FORK: a state other than `.disabled` takes the reset-the-key path below, which
@@ -177,15 +181,16 @@ class UserSessionStore: UserSessionStoreProtocol {
                         return
                     }
 
-                    // GUA FORK: latch only on what the client can authoritatively observe about itself:
-                    // recovery reports enabled, and key backup reports enabled. A call that returned
-                    // without error is not evidence of either, and this block never runs again once the
-                    // flag is set.
+                    // GUA FORK: latch only on what the SDK reports after recomputing, plus key
+                    // backup reporting enabled. A call that returned without error is not evidence of
+                    // either, and the published recovery state is not either: enabling recovery
+                    // announces `.enabled` from its own progress listener. This block never runs
+                    // again once the flag is set.
                     //
                     // How many backup versions the server holds is deliberately not checked here: the
                     // client API cannot enumerate historical versions. That invariant is held by only
                     // ever invoking one operation capable of creating the initial backup.
-                    let finalState = await secureBackupController.settledRecoveryState()
+                    let finalState = secureBackupController.sdkRecoveryState()
                     guard finalState == .enabled else {
                         MXLog.warning("Key storage did not reach .enabled (\(finalState)); will retry on next launch.")
                         return
@@ -279,13 +284,15 @@ class UserSessionStore: UserSessionStoreProtocol {
                         ? await secureBackupController.repairRecovery(with: storedKey)
                         : await secureBackupController.confirmRecoveryKey(storedKey)
 
+                    // GUA FORK: as above, the call returning is not the signal and the published
+                    // state can still be the pre-operation one. Ask the SDK.
                     if case .success = result,
-                       await secureBackupController.settledRecoveryState() == .enabled {
+                       secureBackupController.sdkRecoveryState() == .enabled {
                         MXLog.info("GUA-KEYSTORE: repaired using the stored key.")
                         return
                     }
 
-                    MXLog.warning("GUA-KEYSTORE: stored key did not restore storage, discarding it and falling through.")
+                    MXLog.warning("GUA-KEYSTORE: recovery remains incomplete after using the stored key, discarding it and falling through.")
                     keychainController.removeRecoveryKey(forUsername: userID)
                 }
 

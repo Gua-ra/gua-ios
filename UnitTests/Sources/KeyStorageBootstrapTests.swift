@@ -165,6 +165,54 @@ class KeyStorageBootstrapTests: XCTestCase {
         XCTAssertEqual(secureBackup.enableCallsCount, 1)
     }
 
+    // MARK: - only the SDK's recomputed state can close out an operation
+
+    /// Using the stored key returns without error even when the secrets it was meant to supply are
+    /// absent from the store, so the call alone must not latch the account as bootstrapped.
+    func testAStoredKeyRepairThatLeavesRecoveryIncompleteDoesNotLatch() async {
+        givenAFreshAccount()
+        secureBackup.settledRecoveryStateTimeoutReturnValue = .incomplete
+        secureBackup.repairRecoveryWithReturnValue = .success(())
+        secureBackup.sdkRecoveryStateReturnValue = .incomplete
+        keychain.recoveryKeyForUsernameReturnValue = "a-stored-key"
+
+        await whenBootstrapping()
+
+        XCTAssertFalse(appSettings.hasBootstrappedKeyStorage(forUserID: Self.userID),
+                       "a repair that leaves recovery incomplete is not a completed bootstrap")
+    }
+
+    /// The physical-device case. Enabling recovery publishes `.enabled` about itself and genuinely
+    /// enables the backup, so neither of those can close out the bootstrap on a device that cannot
+    /// complete secret storage.
+    func testTheBootstrapLatchIgnoresTheStateEnablingPublishedAboutItself() async {
+        givenAFreshAccount()
+        givenRecoveryBecomesEnabledAfterProvisioning() // what enabling recovery published
+        secureBackup.underlyingKeyBackupState = CurrentValuePublisher<SecureBackupKeyBackupState, Never>(SecureBackupKeyBackupState.enabled)
+        secureBackup.sdkRecoveryStateReturnValue = .incomplete // what the account is actually in
+
+        await whenBootstrapping()
+
+        XCTAssertFalse(appSettings.hasBootstrappedKeyStorage(forUserID: Self.userID),
+                       "the backup being enabled says nothing about the cross-signing secrets")
+    }
+
+    /// The published state can still be the pre-operation one, so a repair that did reach `.enabled`
+    /// must be accepted rather than treated as a failure.
+    func testAStoredKeyRepairThatReachedEnabledIsAcceptedWhenThePublishedStateLags() async {
+        givenAFreshAccount()
+        secureBackup.settledRecoveryStateTimeoutReturnValue = .incomplete // stale publication
+        secureBackup.repairRecoveryWithReturnValue = .success(())
+        secureBackup.sdkRecoveryStateReturnValue = .enabled
+        keychain.recoveryKeyForUsernameReturnValue = "a-stored-key"
+
+        await whenRestoring()
+
+        XCTAssertEqual(keychain.removeRecoveryKeyForUsernameCallsCount, 0,
+                       "a key that just restored the account must not be discarded")
+        XCTAssertEqual(secureBackup.repairWithoutResetCallsCount, 0)
+    }
+
     // MARK: - the restore path only records a provisioning that finished
 
     /// A device holding the private cross-signing keys reaches `.enabled`, which is the success
@@ -299,6 +347,11 @@ class KeyStorageBootstrapTests: XCTestCase {
         secureBackup.generateRecoveryKeyReturnValue = .success("a-recovery-key")
         secureBackup.confirmRecoveryKeyReturnValue = .success(())
         secureBackup.enableReturnValue = .success(())
+        // A healthy account: the SDK agrees that recovery finished. Tests that model a device which
+        // cannot complete secret storage override this.
+        secureBackup.sdkRecoveryStateReturnValue = .enabled
+        secureBackup.repairRecoveryWithReturnValue = .success(())
+        secureBackup.repairWithoutResetReturnValue = .notYet
         keychain.recoveryKeyForUsernameReturnValue = nil
     }
 
