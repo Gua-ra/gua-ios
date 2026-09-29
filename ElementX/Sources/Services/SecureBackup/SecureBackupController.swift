@@ -156,6 +156,15 @@ class SecureBackupController: SecureBackupControllerProtocol {
         return .success(())
     }
     
+    func sdkRecoveryState() -> SecureBackupRecoveryState {
+        switch encryption.recoveryState() {
+        case .unknown: .unknown
+        case .enabled: .enabled
+        case .disabled: .disabled
+        case .incomplete: .incomplete
+        }
+    }
+
     /// GUA FORK: waits for `recoveryState` to report something other than `.unknown`.
     ///
     /// The subject starts at `.unknown` and only settles once the SDK has told us where the

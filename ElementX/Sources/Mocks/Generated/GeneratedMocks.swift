@@ -15858,6 +15858,70 @@ class SecureBackupControllerMock: SecureBackupControllerProtocol, @unchecked Sen
             return settledRecoveryStateTimeoutReturnValue
         }
     }
+    //MARK: - sdkRecoveryState
+
+    var sdkRecoveryStateUnderlyingCallsCount = 0
+    var sdkRecoveryStateCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return sdkRecoveryStateUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = sdkRecoveryStateUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                sdkRecoveryStateUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    sdkRecoveryStateUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var sdkRecoveryStateCalled: Bool {
+        return sdkRecoveryStateCallsCount > 0
+    }
+
+    var sdkRecoveryStateUnderlyingReturnValue: SecureBackupRecoveryState!
+    var sdkRecoveryStateReturnValue: SecureBackupRecoveryState! {
+        get {
+            if Thread.isMainThread {
+                return sdkRecoveryStateUnderlyingReturnValue
+            } else {
+                var returnValue: SecureBackupRecoveryState? = nil
+                DispatchQueue.main.sync {
+                    returnValue = sdkRecoveryStateUnderlyingReturnValue
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                sdkRecoveryStateUnderlyingReturnValue = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    sdkRecoveryStateUnderlyingReturnValue = newValue
+                }
+            }
+        }
+    }
+    var sdkRecoveryStateClosure: (() -> SecureBackupRecoveryState)?
+
+    func sdkRecoveryState() -> SecureBackupRecoveryState {
+        sdkRecoveryStateCallsCount += 1
+        if let sdkRecoveryStateClosure = sdkRecoveryStateClosure {
+            return sdkRecoveryStateClosure()
+        } else {
+            return sdkRecoveryStateReturnValue
+        }
+    }
     //MARK: - waitForKeyBackupUpload
 
     var waitForKeyBackupUploadUploadStateSubjectUnderlyingCallsCount = 0

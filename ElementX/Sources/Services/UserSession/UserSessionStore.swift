@@ -212,7 +212,7 @@ class UserSessionStore: UserSessionStoreProtocol {
     ///
     /// Runs fully detached and is completely fail-safe: any error is logged and we fall through to
     /// the existing behaviour.
-    private func restoreKeyStorageIfNeeded(_ clientProxy: ClientProxyProtocol) {
+    func restoreKeyStorageIfNeeded(_ clientProxy: ClientProxyProtocol) {
         let secureBackupController = clientProxy.secureBackupController
         let userID = clientProxy.userID
 
@@ -238,7 +238,21 @@ class UserSessionStore: UserSessionStoreProtocol {
                     MXLog.info("GUA-KEYSTORE: recovery disabled, provisioning it silently.")
                     switch await secureBackupController.generateRecoveryKey() {
                     case .success(let key):
+                        // GUA FORK: a successful call is not enough, recovery has to actually reach
+                        // `.enabled`. Keep the returned key even when recovery stays incomplete: it
+                        // still opens the store that was just created and may be useful for a later
+                        // recovery. Anything short of `.enabled` is left to the banner.
                         keychainController.setRecoveryKey(key, forUsername: userID)
+
+                        // The published state cannot answer this: enabling recovery reports `.enabled`
+                        // from its own progress listener. Ask the SDK, which recomputes before the call
+                        // returns.
+                        let finalState = secureBackupController.sdkRecoveryState()
+                        guard finalState == .enabled else {
+                            MXLog.warning("GUA-KEYSTORE: provisioning left recovery \(finalState), not recording success.")
+                            return
+                        }
+
                         MXLog.info("GUA-KEYSTORE: provisioned recovery and stored the key.")
                     case .failure(let error):
                         MXLog.warning("GUA-KEYSTORE: could not provision recovery: \(error)")

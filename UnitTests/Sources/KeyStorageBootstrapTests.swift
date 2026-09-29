@@ -165,6 +165,64 @@ class KeyStorageBootstrapTests: XCTestCase {
         XCTAssertEqual(secureBackup.enableCallsCount, 1)
     }
 
+    // MARK: - the restore path only records a provisioning that finished
+
+    /// A device holding the private cross-signing keys reaches `.enabled`, which is the success
+    /// condition for this flow.
+    func testRestoringADisabledAccountThatReachesEnabledKeepsTheKey() async {
+        givenAFreshAccount()
+        secureBackup.sdkRecoveryStateReturnValue = .enabled
+
+        await whenRestoring()
+
+        XCTAssertEqual(secureBackup.generateRecoveryKeyCallsCount, 1)
+        XCTAssertEqual(keychain.setRecoveryKeyForUsernameReceivedArguments?.key, "a-recovery-key")
+    }
+
+    /// A device without the private cross-signing keys cannot finish, and the call still returns
+    /// successfully. The key is kept because it opens the store that was just created, and nothing
+    /// destructive runs.
+    func testRestoringADisabledAccountThatStaysIncompleteStillKeepsTheKey() async {
+        givenAFreshAccount()
+        secureBackup.sdkRecoveryStateReturnValue = .incomplete
+
+        await whenRestoring()
+
+        XCTAssertEqual(keychain.setRecoveryKeyForUsernameReceivedArguments?.key, "a-recovery-key",
+                       "the key is the only credential for the store that was just created")
+        XCTAssertEqual(keychain.removeRecoveryKeyForUsernameCallsCount, 0)
+        XCTAssertEqual(secureBackup.disableCallsCount, 0)
+        XCTAssertEqual(secureBackup.provisionRecoveryWithoutKeyCallsCount, 0)
+    }
+
+    /// The regression this branch exists for. Enabling recovery publishes `.enabled` from its own
+    /// progress listener, so the published state agrees with the call that just made it. Only the
+    /// SDK recomputes, so only the SDK can say whether provisioning finished.
+    func testTheOutcomeIsJudgedBySDKStateNotTheStateTheClientPublished() async {
+        givenAFreshAccount()
+        // What enabling recovery optimistically published about itself.
+        secureBackup.settledRecoveryStateTimeoutClosure = { [weak secureBackup] _ in
+            secureBackup?.settledRecoveryStateTimeoutCallsCount == 1 ? .disabled : .enabled
+        }
+        // What the account is actually in.
+        secureBackup.sdkRecoveryStateReturnValue = .incomplete
+
+        await whenRestoring()
+
+        XCTAssertEqual(secureBackup.sdkRecoveryStateCallsCount, 1,
+                       "the outcome must be read from the SDK, not from the published state")
+    }
+
+    /// The restore path provisions, it never latches: the bootstrap flag belongs to the login path.
+    func testTheRestorePathNeverLatchesTheBootstrapFlag() async {
+        givenAFreshAccount()
+        secureBackup.sdkRecoveryStateReturnValue = .enabled
+
+        await whenRestoring()
+
+        XCTAssertFalse(appSettings.hasBootstrappedKeyStorage(forUserID: Self.userID))
+    }
+
     // MARK: - post-reset provisioning
 
     /// `backupExistsOnServer` is a structural refusal, not a state that settles, so spending the backoff
@@ -250,6 +308,12 @@ class KeyStorageBootstrapTests: XCTestCase {
         secureBackup.settledRecoveryStateTimeoutClosure = { [weak secureBackup] _ in
             secureBackup?.settledRecoveryStateTimeoutCallsCount == 1 ? .disabled : .enabled
         }
+    }
+
+    private func whenRestoring() async {
+        store.restoreKeyStorageIfNeeded(clientProxy)
+        // The restore runs detached, so give it a moment to finish.
+        try? await Task.sleep(for: .milliseconds(400))
     }
 
     private func whenBootstrapping() async {
