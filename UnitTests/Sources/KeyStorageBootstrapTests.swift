@@ -165,6 +165,54 @@ class KeyStorageBootstrapTests: XCTestCase {
         XCTAssertEqual(secureBackup.enableCallsCount, 1)
     }
 
+    // MARK: - a stored recovery key is only discarded when it is proven useless
+
+    /// A thrown error does not prove the key cannot open the store: the SDK reports a wrong key and
+    /// a network failure through the same case.
+    func testAFailedStoredKeyRecoveryKeepsTheKey() async {
+        givenAFreshAccount()
+        secureBackup.settledRecoveryStateTimeoutReturnValue = .incomplete
+        secureBackup.repairRecoveryWithReturnValue = .failure(.failedConfirmingRecoveryKey)
+        secureBackup.sdkRecoveryStateReturnValue = .incomplete
+        keychain.recoveryKeyForUsernameReturnValue = "a-stored-key"
+
+        await whenRestoring()
+
+        XCTAssertEqual(keychain.removeRecoveryKeyForUsernameCallsCount, 0)
+        XCTAssertEqual(secureBackup.repairWithoutResetCallsCount, 1, "the existing fallback still runs")
+    }
+
+    /// Using a key that did open the store returns without error whenever the secrets it was meant
+    /// to supply are absent, so an incomplete outcome says nothing about the key.
+    func testAStoredKeyRecoveryThatRemainsIncompleteKeepsTheKey() async {
+        givenAFreshAccount()
+        secureBackup.settledRecoveryStateTimeoutReturnValue = .incomplete
+        secureBackup.repairRecoveryWithReturnValue = .success(())
+        secureBackup.sdkRecoveryStateReturnValue = .incomplete
+        keychain.recoveryKeyForUsernameReturnValue = "a-stored-key"
+
+        await whenRestoring()
+
+        XCTAssertEqual(keychain.removeRecoveryKeyForUsernameCallsCount, 0)
+        XCTAssertEqual(secureBackup.repairWithoutResetCallsCount, 1, "the existing fallback still runs")
+    }
+
+    /// Nothing on this path may destroy anything: no backup deleted, no recovery disabled, no
+    /// storage rotated.
+    func testTheStoredKeyPathCallsNoDestructiveAPI() async {
+        givenAFreshAccount()
+        secureBackup.settledRecoveryStateTimeoutReturnValue = .incomplete
+        secureBackup.repairRecoveryWithReturnValue = .failure(.failedConfirmingRecoveryKey)
+        secureBackup.sdkRecoveryStateReturnValue = .incomplete
+        keychain.recoveryKeyForUsernameReturnValue = "a-stored-key"
+
+        await whenRestoring()
+
+        XCTAssertEqual(secureBackup.disableCallsCount, 0)
+        XCTAssertEqual(secureBackup.provisionRecoveryWithoutKeyCallsCount, 0)
+        XCTAssertEqual(secureBackup.generateRecoveryKeyCallsCount, 0)
+    }
+
     // MARK: - only the SDK's recomputed state can close out an operation
 
     /// Using the stored key returns without error even when the secrets it was meant to supply are

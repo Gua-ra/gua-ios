@@ -265,19 +265,17 @@ class UserSessionStore: UserSessionStoreProtocol {
                     return
                 }
 
-                // GUA FORK: every account damaged by the old silent bootstrap is sitting at
-                // .incomplete with no stored key, and this is the only path those users ever
-                // reach, because bootstrap runs on login and they are already signed in. It used
-                // to give up right here when the keychain was empty, which meant an app update
-                // could never fix an existing account. That is the whole population in
-                // production, so it now repairs without a key too.
-                // If we hold a key, try it first: it is the only path that keeps the existing
-                // key backup. But a stored key is NOT proof it still opens anything. The old
-                // bootstrap saved the key it got from rotating storage and then left that
-                // storage incomplete, so on damaged accounts the saved key is stale and
-                // `recover` fails with it. Treating that failure as the end of the road is why
-                // the banner survived: the account had a key, so it never reached the repair
-                // written for accounts without one.
+                // GUA FORK: an account can be `.incomplete` with no stored key at all, so this
+                // path has to work without one. Where a key is held, try it first: it is the only
+                // route that keeps the existing key backup.
+                //
+                // A key that does not finish the job is still kept. Neither a thrown error nor a
+                // state short of `.enabled` proves it cannot open the store: the SDK reports a
+                // wrong key and a network failure through the same case, and using a key that did
+                // open the store returns without error whenever the secrets it was meant to supply
+                // are simply absent. Retrying a stale key costs two reads and writes nothing, while
+                // this keychain is synchronised, so discarding takes the credential off the
+                // account's other devices too.
                 if let storedKey = keychainController.recoveryKey(forUsername: userID) {
                     MXLog.info("GUA-KEYSTORE: state=\(state), stored key present, trying it.")
                     let result = state == .incomplete
@@ -292,8 +290,7 @@ class UserSessionStore: UserSessionStoreProtocol {
                         return
                     }
 
-                    MXLog.warning("GUA-KEYSTORE: recovery remains incomplete after using the stored key, discarding it and falling through.")
-                    keychainController.removeRecoveryKey(forUsername: userID)
+                    MXLog.warning("GUA-KEYSTORE: recovery remains incomplete after using the stored key, keeping it and falling through.")
                 }
 
                 guard await secureBackupController.settledRecoveryState() == .incomplete else { return }
