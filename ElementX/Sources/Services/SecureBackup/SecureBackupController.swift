@@ -165,6 +165,17 @@ class SecureBackupController: SecureBackupControllerProtocol {
         }
     }
 
+    /// GUA FORK: replaces a transient `.settingUp` with the SDK's current recovery state.
+    ///
+    /// `.settingUp` is published only by the enable progress listener, so if an operation ends
+    /// without the SDK's listener delivering a terminal value, nothing else would ever clear it.
+    /// This is not a success signal: after a failed call the SDK still holds the pre-call state,
+    /// and that is what gets published. A terminal value already delivered is left alone.
+    private func publishSDKRecoveryStateIfStillSettingUp() {
+        guard recoveryStateSubject.value == .settingUp else { return }
+        recoveryStateSubject.send(sdkRecoveryState())
+    }
+
     /// GUA FORK: waits for `recoveryState` to report something other than `.unknown`.
     ///
     /// The subject starts at `.unknown` and only settles once the SDK has told us where the
@@ -221,22 +232,29 @@ class SecureBackupController: SecureBackupControllerProtocol {
             }
             
             MXLog.info("Enabling recovery")
-            
+
+            // GUA FORK: the progress listener owns only the transient `.settingUp`. Terminal values
+            // are the SDK's: it recomputes recovery state before `enableRecovery` returns and
+            // reports it through its own listener. Whether the call returns or throws, a
+            // `.settingUp` still standing afterwards is replaced with the SDK's current answer.
+            defer { publishSDKRecoveryStateIfStillSettingUp() }
+
             var keyUploadErrored = false
             let recoveryKey = try await encryption.enableRecovery(waitForBackupsToUpload: false, passphrase: nil, progressListener: SDKListener { [weak self] state in
                 guard let self else { return }
-                
+
                 switch state {
                 case .starting, .creatingBackup, .creatingRecoveryKey, .backingUp:
                     recoveryStateSubject.send(.settingUp)
                 case .done:
-                    recoveryStateSubject.send(.enabled)
+                    // Progress, not a verdict: `.enabled` is published only once the SDK reports it.
+                    break
                 case .roomKeyUploadError:
                     MXLog.error("Failed enabling recovery: room key upload error")
                     keyUploadErrored = true
                 }
             })
-            
+
             return keyUploadErrored ? .failure(.failedGeneratingRecoveryKey) : .success(recoveryKey)
         } catch {
             MXLog.error("Failed generating recovery key with error: \(error)")
