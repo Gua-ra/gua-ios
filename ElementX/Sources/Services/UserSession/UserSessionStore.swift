@@ -112,7 +112,8 @@ class UserSessionStore: UserSessionStoreProtocol {
     ///
     /// Runs fully detached and is completely fail-safe: any error is logged and we fall through to
     /// the existing behaviour. It must never block or fail the login.
-    private func bootstrapKeyStorageIfNeeded(_ clientProxy: ClientProxyProtocol) {
+    /// Internal rather than private so the provisioning sequence can be asserted in tests.
+    func bootstrapKeyStorageIfNeeded(_ clientProxy: ClientProxyProtocol) {
         let secureBackupController = clientProxy.secureBackupController
         let userID = clientProxy.userID
 
@@ -122,22 +123,37 @@ class UserSessionStore: UserSessionStoreProtocol {
             do {
                 guard !appSettings.hasBootstrappedKeyStorage(forUserID: userID) else { return }
 
+                // GUA FORK: everything below can create key storage, so it may not start before the
+                // SDK's own provisioning has finished. See `waitForE2EEInitialization`.
+                await clientProxy.waitForE2EEInitialization()
+
                 // GUA FORK: wait for the SDK to report where this account actually stands.
                 // The subject starts at `.unknown`, and acting on that is what left key
                 // storage half-built for every account created so far.
-                let state = await secureBackupController.settledRecoveryState()
+                var state = await secureBackupController.settledRecoveryState()
+
+                // GUA FORK: the published state picks the branch; the flag is persistent, and only
+                // the SDK's own answer may set it. Where the two disagree, the account is treated as
+                // the SDK reports it. Backup state is deliberately not a condition: `.enabled` is
+                // satisfiable with backups marked disabled at the account level, and this latch
+                // must not undo that.
+                if state == .enabled {
+                    let sdkState = secureBackupController.sdkRecoveryState()
+                    if sdkState == .enabled {
+                        MXLog.info("Recovery already enabled, marking key storage as bootstrapped.")
+                        appSettings.setHasBootstrappedKeyStorage(true, forUserID: userID)
+                        return
+                    }
+                    MXLog.warning("Published recovery state is enabled but the SDK reports \(sdkState), continuing with that.")
+                    state = sdkState
+                }
 
                 // GUA FORK: never act on an unsettled state. Everything below either enables or
                 // repairs key storage, and doing that without knowing where the account stands
-                // is what broke it in the first place. Leaving the flag unset retries next launch.
+                // is what broke it in the first place. This runs only on a fresh login; a relaunch
+                // takes `restoreKeyStorageIfNeeded`, which does not consult the flag.
                 guard state != .unknown else {
-                    MXLog.warning("Recovery state never settled, deferring key storage bootstrap.")
-                    return
-                }
-
-                if state == .enabled {
-                    MXLog.info("Recovery already enabled, marking key storage as bootstrapped.")
-                    appSettings.setHasBootstrappedKeyStorage(true, forUserID: userID)
+                    MXLog.warning("Recovery state unknown, not bootstrapping key storage.")
                     return
                 }
 
@@ -145,14 +161,20 @@ class UserSessionStore: UserSessionStoreProtocol {
                 // generated, repair in place instead of rotating, which would orphan the backup.
                 if state == .incomplete, let storedKey = keychainController.recoveryKey(forUsername: userID) {
                     MXLog.info("Key storage incomplete, repairing from the stored recovery key.")
-                    if case .success = await secureBackupController.repairRecovery(with: storedKey) {
+                    // GUA FORK: using the key returns without error even when the secrets it was
+                    // meant to supply are absent from the store, so only the SDK's recomputed state
+                    // can say whether the account is recoverable.
+                    if case .success = await secureBackupController.repairRecovery(with: storedKey),
+                       secureBackupController.sdkRecoveryState() == .enabled {
                         appSettings.setHasBootstrappedKeyStorage(true, forUserID: userID)
                         return
                     }
-                    MXLog.warning("Repair from the stored recovery key failed, falling through to bootstrap.")
+                    MXLog.warning("Recovery remains incomplete after using the stored key, falling through to bootstrap.")
                 }
 
-                if secureBackupController.keyBackupState.value != .enabled {
+                // GUA FORK: a state other than `.disabled` takes the reset-the-key path below, which
+                // provisions no backup, so there it still has to be enabled separately.
+                if state != .disabled, secureBackupController.keyBackupState.value != .enabled {
                     MXLog.info("Bootstrapping key storage: enabling backup.")
                     if case .failure(let error) = await secureBackupController.enable() {
                         MXLog.error("Failed enabling backup while bootstrapping key storage: \(error)")
@@ -170,11 +192,22 @@ class UserSessionStore: UserSessionStoreProtocol {
                         return
                     }
 
-                    // GUA FORK: only latch once the state is genuinely `.enabled`. Latching on a
-                    // completed attempt is what made a half-finished bootstrap permanent, because
-                    // this block never ran again on later launches.
-                    guard await secureBackupController.settledRecoveryState() == .enabled else {
-                        MXLog.warning("Key storage did not reach .enabled; will retry on next launch.")
+                    // GUA FORK: latch only on what the SDK reports after recomputing, plus key
+                    // backup reporting enabled. A call that returned without error is not evidence of
+                    // either, and the published recovery state can still trail the SDK's answer.
+                    // This block never runs again once the flag is set.
+                    //
+                    // How many backup versions the server holds is deliberately not checked here: the
+                    // client API cannot enumerate historical versions. That invariant is held by only
+                    // ever invoking one operation capable of creating the initial backup.
+                    let finalState = secureBackupController.sdkRecoveryState()
+                    guard finalState == .enabled else {
+                        MXLog.warning("Key storage did not reach .enabled (\(finalState)); leaving the flag unset.")
+                        return
+                    }
+
+                    guard secureBackupController.keyBackupState.value == .enabled else {
+                        MXLog.warning("Recovery is enabled but key backup is \(secureBackupController.keyBackupState.value); leaving the flag unset.")
                         return
                     }
 
@@ -194,7 +227,7 @@ class UserSessionStore: UserSessionStoreProtocol {
     ///
     /// Runs fully detached and is completely fail-safe: any error is logged and we fall through to
     /// the existing behaviour.
-    private func restoreKeyStorageIfNeeded(_ clientProxy: ClientProxyProtocol) {
+    func restoreKeyStorageIfNeeded(_ clientProxy: ClientProxyProtocol) {
         let secureBackupController = clientProxy.secureBackupController
         let userID = clientProxy.userID
 
@@ -202,6 +235,10 @@ class UserSessionStore: UserSessionStoreProtocol {
             guard let self else { return }
 
             do {
+                // GUA FORK: everything below can create key storage, so it may not start before the
+                // SDK's own provisioning has finished. See `waitForE2EEInitialization`.
+                await clientProxy.waitForE2EEInitialization()
+
                 // Only act when recovery isn't already fully enabled (e.g. .incomplete).
                 let state = await secureBackupController.settledRecoveryState()
                 // Same reasoning as the bootstrap path: an unsettled state is not a signal.
@@ -216,7 +253,21 @@ class UserSessionStore: UserSessionStoreProtocol {
                     MXLog.info("GUA-KEYSTORE: recovery disabled, provisioning it silently.")
                     switch await secureBackupController.generateRecoveryKey() {
                     case .success(let key):
+                        // GUA FORK: a successful call is not enough, recovery has to actually reach
+                        // `.enabled`. Keep the returned key even when recovery stays incomplete: it
+                        // still opens the store that was just created and may be useful for a later
+                        // recovery. Anything short of `.enabled` is left to the banner.
                         keychainController.setRecoveryKey(key, forUsername: userID)
+
+                        // The published state cannot answer this: enabling recovery reports `.enabled`
+                        // from its own progress listener. Ask the SDK, which recomputes before the call
+                        // returns.
+                        let finalState = secureBackupController.sdkRecoveryState()
+                        guard finalState == .enabled else {
+                            MXLog.warning("GUA-KEYSTORE: provisioning left recovery \(finalState), not recording success.")
+                            return
+                        }
+
                         MXLog.info("GUA-KEYSTORE: provisioned recovery and stored the key.")
                     case .failure(let error):
                         MXLog.warning("GUA-KEYSTORE: could not provision recovery: \(error)")
@@ -224,33 +275,32 @@ class UserSessionStore: UserSessionStoreProtocol {
                     return
                 }
 
-                // GUA FORK: every account damaged by the old silent bootstrap is sitting at
-                // .incomplete with no stored key, and this is the only path those users ever
-                // reach, because bootstrap runs on login and they are already signed in. It used
-                // to give up right here when the keychain was empty, which meant an app update
-                // could never fix an existing account. That is the whole population in
-                // production, so it now repairs without a key too.
-                // If we hold a key, try it first: it is the only path that keeps the existing
-                // key backup. But a stored key is NOT proof it still opens anything. The old
-                // bootstrap saved the key it got from rotating storage and then left that
-                // storage incomplete, so on damaged accounts the saved key is stale and
-                // `recover` fails with it. Treating that failure as the end of the road is why
-                // the banner survived: the account had a key, so it never reached the repair
-                // written for accounts without one.
+                // GUA FORK: an account can be `.incomplete` with no stored key at all, so this
+                // path has to work without one. Where a key is held, try it first: it is the only
+                // route that keeps the existing key backup.
+                //
+                // A key that does not finish the job is still kept. Neither a thrown error nor a
+                // state short of `.enabled` proves it cannot open the store: the SDK reports a
+                // wrong key and a network failure through the same case, and using a key that did
+                // open the store returns without error whenever the secrets it was meant to supply
+                // are simply absent. Retrying a stale key costs two reads and writes nothing, while
+                // this keychain is synchronised, so discarding takes the credential off the
+                // account's other devices too.
                 if let storedKey = keychainController.recoveryKey(forUsername: userID) {
                     MXLog.info("GUA-KEYSTORE: state=\(state), stored key present, trying it.")
                     let result = state == .incomplete
                         ? await secureBackupController.repairRecovery(with: storedKey)
                         : await secureBackupController.confirmRecoveryKey(storedKey)
 
+                    // GUA FORK: as above, the call returning is not the signal and the published
+                    // state can still be the pre-operation one. Ask the SDK.
                     if case .success = result,
-                       await secureBackupController.settledRecoveryState() == .enabled {
+                       secureBackupController.sdkRecoveryState() == .enabled {
                         MXLog.info("GUA-KEYSTORE: repaired using the stored key.")
                         return
                     }
 
-                    MXLog.warning("GUA-KEYSTORE: stored key did not restore storage, discarding it and falling through.")
-                    keychainController.removeRecoveryKey(forUsername: userID)
+                    MXLog.warning("GUA-KEYSTORE: recovery remains incomplete after using the stored key, keeping it and falling through.")
                 }
 
                 guard await secureBackupController.settledRecoveryState() == .incomplete else { return }
@@ -337,9 +387,15 @@ class UserSessionStore: UserSessionStoreProtocol {
     
     private func setupProxyForClient(_ client: ClientProtocol) async throws -> ClientProxyProtocol {
         do {
+            // GUA FORK: a recovery key minted by the secure backup controller replaces this
+            // account's stored one at once. The keychain itself stays here.
+            let userID = try client.userId()
             return try await ClientProxy(client: client,
                                          networkMonitor: networkMonitor,
-                                         appSettings: appSettings)
+                                         appSettings: appSettings,
+                                         persistRecoveryKey: { [keychainController] key in
+                                             keychainController.setRecoveryKey(key, forUsername: userID)
+                                         })
         } catch {
             throw UserSessionStoreError.failedSettingUpClientProxy(error)
         }

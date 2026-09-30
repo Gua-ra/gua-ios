@@ -154,13 +154,21 @@ class ClientProxy: ClientProxyProtocol {
     var roomsToAwait: Set<String> = []
     
     private let sendQueueStatusSubject = CurrentValueSubject<Bool, Never>(false)
+
+    /// GUA FORK: the SDK hands out the initialisation task's handle exactly once, so a second
+    /// caller of `waitForE2eeInitializationTasks` returns immediately without waiting. Taking it
+    /// here, once, lets every caller await the same completion.
+    private let e2eeInitialization: Task<Void, Never>
     
     init(client: ClientProtocol,
          networkMonitor: NetworkMonitorProtocol,
-         appSettings: AppSettings) async throws {
+         appSettings: AppSettings,
+         persistRecoveryKey: @escaping (String) -> Void) async throws {
         self.client = client
         self.networkMonitor = networkMonitor
         self.appSettings = appSettings
+
+        e2eeInitialization = Task { await client.encryption().waitForE2eeInitializationTasks() }
         
         clientQueue = .init(label: "ClientProxyQueue", attributes: .concurrent)
         
@@ -168,7 +176,12 @@ class ClientProxy: ClientProxyProtocol {
         
         notificationSettings = await NotificationSettingsProxy(notificationSettings: client.getNotificationSettings())
         
-        secureBackupController = SecureBackupController(encryption: client.encryption(), userID: (try? client.userId()) ?? "")
+        // GUA FORK: the keychain stays with `UserSessionStore`; the controller only gets a way to
+        // store the recovery keys it mints.
+        secureBackupController = SecureBackupController(encryption: client.encryption(),
+                                                        userID: (try? client.userId()) ?? "",
+                                                        e2eeInitialization: e2eeInitialization,
+                                                        persistRecoveryKey: persistRecoveryKey)
         
         spaceService = await SpaceServiceProxy(spaceService: client.spaceService())
         
@@ -1134,6 +1147,10 @@ class ClientProxy: ClientProxyProtocol {
         }
     }
     
+    func waitForE2EEInitialization() async {
+        await e2eeInitialization.value
+    }
+
     func resetIdentity() async -> Result<IdentityResetHandle?, ClientProxyError> {
         do {
             return try await .success(client.encryption().resetIdentity())
