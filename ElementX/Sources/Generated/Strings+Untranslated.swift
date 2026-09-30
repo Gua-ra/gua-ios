@@ -42,6 +42,8 @@ internal enum UntranslatedL10n {
   internal static var guaEncryptionResetRequiredMessage: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_required_message") }
   /// Some previous messages can’t be recovered
   internal static var guaEncryptionResetRequiredTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_required_title") }
+  /// Setup is taking longer than expected. It continues in the background; you can wait here or come back later.
+  internal static var guaEncryptionResetStillFinishing: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_still_finishing") }
   /// %1$@’s security details changed. This can happen when they reinstall Gua or get a new phone. %2$@
   internal static func guaIdentityChangeBannerDescription(_ p1: Any, _ p2: Any) -> String {
     return UntranslatedL10n.tr("Untranslated", "gua_identity_change_banner_description", String(describing: p1), String(describing: p2))

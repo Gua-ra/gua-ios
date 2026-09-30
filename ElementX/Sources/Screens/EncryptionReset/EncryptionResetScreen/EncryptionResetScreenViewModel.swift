@@ -27,10 +27,23 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
     /// handle. Each reset deletes the key backup and secret storage again, so a concurrent call is
     /// destructive, not just noisy.
     private var isResetInFlight = false
+    /// GUA FORK: the guard acquired for the reset in progress. The guard releases itself once the
+    /// reset call has returned; this screen releases it only while nothing is in flight.
+    private var resetGuard: IdentityResetGuardProtocol?
+    private var hasReportedLanding = false
+    private let approveReset: (URL, String) async -> Bool
+    /// How long this screen waits for the upload before reporting that finishing is taking long.
+    /// The upload itself is not bounded by it.
+    private let resetCallCeiling: Duration
 
-    init(clientProxy: ClientProxyProtocol, userIndicatorController: UserIndicatorControllerProtocol) {
+    init(clientProxy: ClientProxyProtocol,
+         userIndicatorController: UserIndicatorControllerProtocol,
+         approveReset: ((URL, String) async -> Bool)? = nil,
+         resetCallCeiling: Duration = .seconds(20)) {
         self.clientProxy = clientProxy
         self.userIndicatorController = userIndicatorController
+        self.approveReset = approveReset ?? { url, accessToken in await Self.approveFromApp(approvalURL: url, accessToken: accessToken) }
+        self.resetCallCeiling = resetCallCeiling
 
         super.init(initialViewState: EncryptionResetScreenViewState(bindings: .init()))
 
@@ -78,6 +91,7 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
     func stop() {
         Task {
             await identityResetHandle?.cancel()
+            await resetGuard?.releaseIfIdle()
         }
     }
 
@@ -90,11 +104,24 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
             hideLoadingIndicator()
         }
 
+        // GUA FORK: the guard stops the encryption sync and keeps every start away until the reset
+        // has settled, so no own-user key query can clear the identity about to be created. When a
+        // previous attempt's upload is still running, this press waits for it instead of starting a
+        // second reset on top of it.
+        let resetGuard = await clientProxy.acquireIdentityResetGuard()
+        self.resetGuard = resetGuard
+        if let inFlight = resetGuard.inFlightReset {
+            hideLoadingIndicator()
+            await awaitReset(inFlight)
+            return
+        }
+
         switch await clientProxy.resetIdentity() {
         case let .success(handle):
             // If the handle is missing then interactive authentication wasn't
             // necessary and the reset proceeded as normal
             guard let handle else {
+                await resetGuard.releaseIfIdle()
                 actionsSubject.send(.resetFinished)
                 return
             }
@@ -127,10 +154,10 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
                 // with the system browser, which on most phones holds no session at all (sign-in
                 // uses an ephemeral browser context), so the page would demand a whole new
                 // phone-number login; on a phone whose browser holds another account it would
-                // approve the reset for that account. The server now accepts the access token the
-                // app already uses, for this user only, and the upload can follow at once.
+                // approve the reset for that account. The server accepts the access token the app
+                // already uses, for this user only, and the upload can follow at once.
                 showFinishingIndicator()
-                if await approveFromApp(approvalURL: url) {
+                if let accessToken = clientProxy.accessToken, await approveReset(url, accessToken) {
                     await finishApprovedReset()
                     return
                 }
@@ -150,32 +177,23 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
             }
         case let .failure(error):
             MXLog.error("Failed resetting encryption with error \(error)")
+            await resetGuard.releaseIfIdle()
             state.isResetting = false
             showErrorToast()
         }
     }
 
     func resetWith(password: String) async {
-        guard let identityResetHandle else {
+        guard let identityResetHandle, let resetGuard else {
             fatalError("Requested reset flow continuation without a stored handle")
         }
 
-        showLoadingIndicator()
-
-        defer {
-            hideLoadingIndicator()
-        }
-
-        do {
-            try await identityResetHandle.reset(auth: .password(passwordDetails: .init(identifier: clientProxy.userID, password: password)))
-            actionsSubject.send(.resetFinished)
-        } catch {
-            MXLog.error("Failed resetting encryption with error \(error)")
-            // Without this the button stays disabled and the screen cannot be escaped except by
-            // Cancel, with the key backup already destroyed.
-            state.isResetting = false
-            showErrorToast()
-        }
+        // The guard owns the call from here and releases itself when it returns. A wrong password
+        // ends this attempt; a retry starts a fresh reset.
+        let operation = resetGuard.runReset(identityResetHandle,
+                                            auth: .password(passwordDetails: .init(identifier: clientProxy.userID, password: password)))
+        self.identityResetHandle = nil
+        await awaitReset(operation)
     }
 
     // MARK: Approval from the app's own session
@@ -183,9 +201,8 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
     /// Asks the server to open the reset window for this account, authenticated with the
     /// session's own access token. Returns false when the server does not offer this (an
     /// older deployment) or refuses, in which case the web sheet is the fallback.
-    private func approveFromApp(approvalURL: URL) async -> Bool {
-        guard let accessToken = clientProxy.accessToken,
-              var components = URLComponents(url: approvalURL, resolvingAgainstBaseURL: false) else {
+    private static func approveFromApp(approvalURL: URL, accessToken: String) async -> Bool {
+        guard var components = URLComponents(url: approvalURL, resolvingAgainstBaseURL: false) else {
             return false
         }
         components.path = "/api/gua/identity-reset/allow"
@@ -228,64 +245,79 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
         }
     }
 
-    /// Uploads the new identity now that the approval page has handed control back.
+    /// Uploads the new identity now that the approval has landed.
     ///
-    /// The SDK call is the verdict. It returns normally only after the server has accepted both
-    /// uploads, and `cancel()` is never called on a handle whose result is still being trusted:
-    /// a cancelled call returns success without uploading anything, which is exactly the false
-    /// success this flow must never produce.
-    ///
-    /// The call cannot be interrupted from Swift, so the wait on it is bounded separately. If it
-    /// has not returned by then the attempt is given up on, the user is told plainly, and the
-    /// destructive button comes back. Once approved, a good network settles in a second or two.
+    /// The call runs under the guard, which alone owns its lifetime: the bindings cannot cancel it,
+    /// and a cancelled handle still lets an upload already in flight land, so the guard is released
+    /// only when the call returns. This screen waits with a presentation ceiling and, past it, says
+    /// that finishing is taking long while the call keeps running.
     private func finishApprovedReset() async {
-        guard let identityResetHandle, !isResetInFlight else { return }
+        guard let identityResetHandle, let resetGuard, !isResetInFlight else { return }
 
         isResetInFlight = true
+        defer { isResetInFlight = false }
+
+        let operation = resetGuard.runReset(identityResetHandle, auth: nil)
+        // Nothing may act on the handle again; the guard owns the call.
+        self.identityResetHandle = nil
+        actionsSubject.send(.dismissOIDCPresentation)
+
+        await awaitReset(operation)
+    }
+
+    /// Waits for a reset call up to the presentation ceiling and reports the outcome.
+    private func awaitReset(_ operation: Task<Result<Void, Error>, Never>) async {
         showFinishingIndicator()
-        defer {
-            isResetInFlight = false
-            hideFinishingIndicator()
-        }
-
-        clientProxy.startSync()
-
-        let outcome = await Self.awaitReset(on: identityResetHandle, ceiling: Self.resetCallCeiling)
+        let outcome = await Self.race(operation, ceiling: resetCallCeiling)
+        hideFinishingIndicator()
 
         switch outcome {
         case .landed:
-            MXLog.info("GUA-KEYSTORE: the new identity is on the server; handing over to provisioning.")
-            // Drop the handle BEFORE dismissing: the send is synchronous through Combine and reaches
-            // the presenter, whose dismissal fires the completion publisher, and with the handle
-            // still populated that used to re-enter here.
-            self.identityResetHandle = nil
-            // Deliberately NOT clearing isResetting. .resetFinished does not dismiss this screen;
-            // the flow coordinator holds the user on a visible wait while key storage is
-            // provisioned, shows the verdict, and only then sends .resetComplete.
-            actionsSubject.send(.dismissOIDCPresentation)
-            actionsSubject.send(.resetFinished)
+            reportLanded()
         case let .failed(error):
-            MXLog.error("GUA-KEYSTORE: reset(auth:) threw after the approval came back: \(error)")
-            await abandonAttempt()
+            MXLog.error("GUA-KEYSTORE: reset(auth:) failed: \(error)")
+            state.isResetting = false
             userIndicatorController.submitIndicator(UserIndicator(title: UntranslatedL10n.guaEncryptionResetFailed))
         case .timedOut:
-            MXLog.warning("GUA-KEYSTORE: reset(auth:) has not returned within \(Self.resetCallCeiling); giving up on this attempt.")
-            await abandonAttempt()
-            userIndicatorController.submitIndicator(UserIndicator(title: UntranslatedL10n.guaEncryptionResetFailed))
+            MXLog.warning("GUA-KEYSTORE: reset(auth:) has not returned within \(resetCallCeiling); it keeps running under the guard.")
+            state.isResetting = false
+            userIndicatorController.submitIndicator(UserIndicator(title: UntranslatedL10n.guaEncryptionResetStillFinishing))
+
+            Task { [weak self] in
+                let result = await operation.value
+                guard let self else { return }
+                switch result {
+                case .success:
+                    reportLanded()
+                case let .failure(error):
+                    MXLog.error("GUA-KEYSTORE: reset(auth:) failed after the ceiling: \(error)")
+                    userIndicatorController.submitIndicator(UserIndicator(title: UntranslatedL10n.guaEncryptionResetFailed))
+                }
+            }
         }
     }
 
-    /// Stops trusting the current handle and returns the screen to a retryable state.
+    /// `.resetFinished` is sent once per landing, however many waits observed it.
+    private func reportLanded() {
+        guard !hasReportedLanding else { return }
+        hasReportedLanding = true
+        MXLog.info("GUA-KEYSTORE: the new identity is on the server; handing over to provisioning.")
+        // isResetting stays set: .resetFinished does not dismiss this screen; the flow coordinator
+        // holds the user on a visible wait while key storage is provisioned.
+        actionsSubject.send(.resetFinished)
+    }
+
+    /// Ends an attempt whose reset call never started and returns the screen to a retryable state.
     ///
-    /// `cancel()` is only ever called here, after the attempt's result has been discarded, so its
-    /// habit of making `reset()` return success can no longer mislead anyone. A retry starts a
-    /// fresh reset, which is safe: the server side is idempotent and the approval window is long.
+    /// `cancel()` is only ever called on a handle whose call did not start; a call that did start
+    /// is the guard's to finish. A retry starts a fresh reset.
     private func abandonAttempt() async {
         actionsSubject.send(.dismissOIDCPresentation)
         if let identityResetHandle {
             await identityResetHandle.cancel()
         }
         identityResetHandle = nil
+        await resetGuard?.releaseIfIdle()
         state.isResetting = false
     }
 
@@ -295,21 +327,17 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
         case timedOut
     }
 
-    /// Runs `reset(auth: nil)` and resolves with whichever comes first: its result, or the ceiling.
-    ///
-    /// The SDK call keeps running past the ceiling because the bindings cannot cancel it; its
-    /// late result is simply dropped. That is why the caller must never act on the handle again
-    /// except to cancel it.
-    private static func awaitReset(on handle: IdentityResetHandle, ceiling: Duration) async -> ResetCallOutcome {
+    /// Resolves with the call's result or the ceiling, whichever comes first. The ceiling does not
+    /// cancel the call: it belongs to the guard and keeps running. A task group cannot express this,
+    /// because it waits for every child, and the child awaiting the call cannot be interrupted.
+    private static func race(_ operation: Task<Result<Void, Error>, Never>, ceiling: Duration) async -> ResetCallOutcome {
         let gate = ResetOutcomeGate()
 
         return await withCheckedContinuation { (continuation: CheckedContinuation<ResetCallOutcome, Never>) in
             Task {
-                do {
-                    try await handle.reset(auth: nil)
-                    gate.resume(continuation, with: .landed)
-                } catch {
-                    gate.resume(continuation, with: .failed(error))
+                switch await operation.value {
+                case .success: gate.resume(continuation, with: .landed)
+                case let .failure(error): gate.resume(continuation, with: .failed(error))
                 }
             }
             Task {
@@ -332,12 +360,6 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
             continuation.resume(returning: outcome)
         }
     }
-
-    /// How long the upload may take once the approval page has handed control back.
-    ///
-    /// Generous for the happy path, which settles in a second or two, and short enough that a
-    /// refused upload cannot turn into minutes of spinner.
-    private static let resetCallCeiling: Duration = .seconds(20)
 
     // MARK: Toasts and loading indicators
 
