@@ -130,19 +130,30 @@ class UserSessionStore: UserSessionStoreProtocol {
                 // GUA FORK: wait for the SDK to report where this account actually stands.
                 // The subject starts at `.unknown`, and acting on that is what left key
                 // storage half-built for every account created so far.
-                let state = await secureBackupController.settledRecoveryState()
+                var state = await secureBackupController.settledRecoveryState()
+
+                // GUA FORK: the published state picks the branch; the flag is persistent, and only
+                // the SDK's own answer may set it. Where the two disagree, the account is treated as
+                // the SDK reports it. Backup state is deliberately not a condition: `.enabled` is
+                // satisfiable with backups marked disabled at the account level, and this latch
+                // must not undo that.
+                if state == .enabled {
+                    let sdkState = secureBackupController.sdkRecoveryState()
+                    if sdkState == .enabled {
+                        MXLog.info("Recovery already enabled, marking key storage as bootstrapped.")
+                        appSettings.setHasBootstrappedKeyStorage(true, forUserID: userID)
+                        return
+                    }
+                    MXLog.warning("Published recovery state is enabled but the SDK reports \(sdkState), continuing with that.")
+                    state = sdkState
+                }
 
                 // GUA FORK: never act on an unsettled state. Everything below either enables or
                 // repairs key storage, and doing that without knowing where the account stands
-                // is what broke it in the first place. Leaving the flag unset retries next launch.
+                // is what broke it in the first place. This runs only on a fresh login; a relaunch
+                // takes `restoreKeyStorageIfNeeded`, which does not consult the flag.
                 guard state != .unknown else {
-                    MXLog.warning("Recovery state never settled, deferring key storage bootstrap.")
-                    return
-                }
-
-                if state == .enabled {
-                    MXLog.info("Recovery already enabled, marking key storage as bootstrapped.")
-                    appSettings.setHasBootstrappedKeyStorage(true, forUserID: userID)
+                    MXLog.warning("Recovery state unknown, not bootstrapping key storage.")
                     return
                 }
 
@@ -183,21 +194,20 @@ class UserSessionStore: UserSessionStoreProtocol {
 
                     // GUA FORK: latch only on what the SDK reports after recomputing, plus key
                     // backup reporting enabled. A call that returned without error is not evidence of
-                    // either, and the published recovery state is not either: enabling recovery
-                    // announces `.enabled` from its own progress listener. This block never runs
-                    // again once the flag is set.
+                    // either, and the published recovery state can still trail the SDK's answer.
+                    // This block never runs again once the flag is set.
                     //
                     // How many backup versions the server holds is deliberately not checked here: the
                     // client API cannot enumerate historical versions. That invariant is held by only
                     // ever invoking one operation capable of creating the initial backup.
                     let finalState = secureBackupController.sdkRecoveryState()
                     guard finalState == .enabled else {
-                        MXLog.warning("Key storage did not reach .enabled (\(finalState)); will retry on next launch.")
+                        MXLog.warning("Key storage did not reach .enabled (\(finalState)); leaving the flag unset.")
                         return
                     }
 
                     guard secureBackupController.keyBackupState.value == .enabled else {
-                        MXLog.warning("Recovery is enabled but key backup is \(secureBackupController.keyBackupState.value); will retry on next launch.")
+                        MXLog.warning("Recovery is enabled but key backup is \(secureBackupController.keyBackupState.value); leaving the flag unset.")
                         return
                     }
 

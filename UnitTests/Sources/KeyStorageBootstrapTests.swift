@@ -148,7 +148,7 @@ class KeyStorageBootstrapTests: XCTestCase {
         await whenBootstrapping()
 
         XCTAssertFalse(appSettings.hasBootstrappedKeyStorage(forUserID: Self.userID),
-                       "an unfinished bootstrap must be retried on the next launch, not latched")
+                       "an unfinished bootstrap must not be latched")
     }
 
     /// An account that is not fresh takes the reset-the-key path, which provisions no backup, so there
@@ -165,6 +165,70 @@ class KeyStorageBootstrapTests: XCTestCase {
         XCTAssertEqual(secureBackup.enableCallsCount, 1)
     }
 
+    // MARK: - the early latch trusts only the SDK
+
+    /// The published state may pick the branch, but the flag is persistent: only the SDK's own answer
+    /// may set it. A disagreement is not a finished account, so the bootstrap goes on.
+    func testAPublishedEnabledWithAnIncompleteSDKStateDoesNotLatchAndContinues() async {
+        givenAFreshAccount()
+        secureBackup.settledRecoveryStateTimeoutReturnValue = .enabled
+        givenTheSDKReports(.incomplete)
+
+        await whenBootstrapping()
+
+        XCTAssertFalse(appSettings.hasBootstrappedKeyStorage(forUserID: Self.userID))
+        XCTAssertEqual(secureBackup.generateRecoveryKeyCallsCount, 1,
+                       "the account is treated as the SDK reports it, not left untreated")
+    }
+
+    /// An account the SDK confirms as `.enabled` needs nothing from the bootstrap.
+    func testAPublishedEnabledConfirmedByTheSDKLatchesWithoutProvisioning() async {
+        givenAFreshAccount()
+        secureBackup.settledRecoveryStateTimeoutReturnValue = .enabled
+        givenTheSDKReports(.enabled)
+
+        await whenBootstrapping()
+
+        XCTAssertTrue(appSettings.hasBootstrappedKeyStorage(forUserID: Self.userID))
+        XCTAssertEqual(secureBackup.generateRecoveryKeyCallsCount, 0)
+        XCTAssertEqual(secureBackup.enableCallsCount, 0)
+        XCTAssertEqual(secureBackup.repairRecoveryWithCallsCount, 0)
+    }
+
+    /// `.enabled` is satisfiable with backups marked disabled at the account level. The early latch
+    /// neither requires backup to report enabled nor re-enables it.
+    func testTheEarlyLatchDoesNotRequireOrReenableKeyBackup() async {
+        givenAFreshAccount()
+        secureBackup.settledRecoveryStateTimeoutReturnValue = .enabled
+        givenTheSDKReports(.enabled)
+        secureBackup.underlyingKeyBackupState = CurrentValuePublisher<SecureBackupKeyBackupState, Never>(SecureBackupKeyBackupState.unknown)
+
+        await whenBootstrapping()
+
+        XCTAssertTrue(appSettings.hasBootstrappedKeyStorage(forUserID: Self.userID))
+        XCTAssertEqual(secureBackup.enableCallsCount, 0,
+                       "an account-level choice is not reversed to satisfy the latch")
+    }
+
+    /// On a fresh account the SDK is consulted only as the postcondition, after provisioning, so the
+    /// early latch is never what makes the fresh-account tests pass.
+    func testAFreshAccountProvisionsBeforeTheSDKStateIsConsulted() async {
+        givenAFreshAccount()
+        var order: [String] = []
+        secureBackup.sdkRecoveryStateClosure = {
+            order.append("sdk-read")
+            return .enabled
+        }
+        secureBackup.generateRecoveryKeyClosure = {
+            order.append("generate")
+            return .success("a-recovery-key")
+        }
+
+        await whenBootstrapping()
+
+        XCTAssertEqual(order, ["generate", "sdk-read"])
+    }
+
     // MARK: - a stored recovery key is only discarded when it is proven useless
 
     /// A thrown error does not prove the key cannot open the store: the SDK reports a wrong key and
@@ -173,7 +237,7 @@ class KeyStorageBootstrapTests: XCTestCase {
         givenAFreshAccount()
         secureBackup.settledRecoveryStateTimeoutReturnValue = .incomplete
         secureBackup.repairRecoveryWithReturnValue = .failure(.failedConfirmingRecoveryKey)
-        secureBackup.sdkRecoveryStateReturnValue = .incomplete
+        givenTheSDKReports(.incomplete)
         keychain.recoveryKeyForUsernameReturnValue = "a-stored-key"
 
         await whenRestoring()
@@ -188,7 +252,7 @@ class KeyStorageBootstrapTests: XCTestCase {
         givenAFreshAccount()
         secureBackup.settledRecoveryStateTimeoutReturnValue = .incomplete
         secureBackup.repairRecoveryWithReturnValue = .success(())
-        secureBackup.sdkRecoveryStateReturnValue = .incomplete
+        givenTheSDKReports(.incomplete)
         keychain.recoveryKeyForUsernameReturnValue = "a-stored-key"
 
         await whenRestoring()
@@ -203,7 +267,7 @@ class KeyStorageBootstrapTests: XCTestCase {
         givenAFreshAccount()
         secureBackup.settledRecoveryStateTimeoutReturnValue = .incomplete
         secureBackup.repairRecoveryWithReturnValue = .failure(.failedConfirmingRecoveryKey)
-        secureBackup.sdkRecoveryStateReturnValue = .incomplete
+        givenTheSDKReports(.incomplete)
         keychain.recoveryKeyForUsernameReturnValue = "a-stored-key"
 
         await whenRestoring()
@@ -221,7 +285,7 @@ class KeyStorageBootstrapTests: XCTestCase {
         givenAFreshAccount()
         secureBackup.settledRecoveryStateTimeoutReturnValue = .incomplete
         secureBackup.repairRecoveryWithReturnValue = .success(())
-        secureBackup.sdkRecoveryStateReturnValue = .incomplete
+        givenTheSDKReports(.incomplete)
         keychain.recoveryKeyForUsernameReturnValue = "a-stored-key"
 
         await whenBootstrapping()
@@ -237,7 +301,7 @@ class KeyStorageBootstrapTests: XCTestCase {
         givenAFreshAccount()
         givenRecoveryBecomesEnabledAfterProvisioning() // what enabling recovery published
         secureBackup.underlyingKeyBackupState = CurrentValuePublisher<SecureBackupKeyBackupState, Never>(SecureBackupKeyBackupState.enabled)
-        secureBackup.sdkRecoveryStateReturnValue = .incomplete // what the account is actually in
+        givenTheSDKReports(.incomplete) // what the account is actually in
 
         await whenBootstrapping()
 
@@ -251,7 +315,7 @@ class KeyStorageBootstrapTests: XCTestCase {
         givenAFreshAccount()
         secureBackup.settledRecoveryStateTimeoutReturnValue = .incomplete // stale publication
         secureBackup.repairRecoveryWithReturnValue = .success(())
-        secureBackup.sdkRecoveryStateReturnValue = .enabled
+        givenTheSDKReports(.enabled)
         keychain.recoveryKeyForUsernameReturnValue = "a-stored-key"
 
         await whenRestoring()
@@ -267,7 +331,7 @@ class KeyStorageBootstrapTests: XCTestCase {
     /// condition for this flow.
     func testRestoringADisabledAccountThatReachesEnabledKeepsTheKey() async {
         givenAFreshAccount()
-        secureBackup.sdkRecoveryStateReturnValue = .enabled
+        givenTheSDKReports(.enabled)
 
         await whenRestoring()
 
@@ -280,7 +344,7 @@ class KeyStorageBootstrapTests: XCTestCase {
     /// destructive runs.
     func testRestoringADisabledAccountThatStaysIncompleteStillKeepsTheKey() async {
         givenAFreshAccount()
-        secureBackup.sdkRecoveryStateReturnValue = .incomplete
+        givenTheSDKReports(.incomplete)
 
         await whenRestoring()
 
@@ -301,7 +365,7 @@ class KeyStorageBootstrapTests: XCTestCase {
             secureBackup?.settledRecoveryStateTimeoutCallsCount == 1 ? .disabled : .enabled
         }
         // What the account is actually in.
-        secureBackup.sdkRecoveryStateReturnValue = .incomplete
+        givenTheSDKReports(.incomplete)
 
         await whenRestoring()
 
@@ -312,7 +376,7 @@ class KeyStorageBootstrapTests: XCTestCase {
     /// The restore path provisions, it never latches: the bootstrap flag belongs to the login path.
     func testTheRestorePathNeverLatchesTheBootstrapFlag() async {
         givenAFreshAccount()
-        secureBackup.sdkRecoveryStateReturnValue = .enabled
+        givenTheSDKReports(.enabled)
 
         await whenRestoring()
 
@@ -395,9 +459,15 @@ class KeyStorageBootstrapTests: XCTestCase {
         secureBackup.generateRecoveryKeyReturnValue = .success("a-recovery-key")
         secureBackup.confirmRecoveryKeyReturnValue = .success(())
         secureBackup.enableReturnValue = .success(())
-        // A healthy account: the SDK agrees that recovery finished. Tests that model a device which
-        // cannot complete secret storage override this.
-        secureBackup.sdkRecoveryStateReturnValue = .enabled
+        // The SDK's own answer follows the account: `.disabled` until recovery has been provisioned
+        // or repaired, `.enabled` afterwards. It is a closure, so a plain `sdkRecoveryStateReturnValue`
+        // assignment is ignored; pin a fixed answer with `givenTheSDKReports`.
+        secureBackup.sdkRecoveryStateClosure = { [weak secureBackup] in
+            guard let secureBackup else { return .unknown }
+            let provisioned = secureBackup.generateRecoveryKeyCallsCount > 0
+                || secureBackup.repairRecoveryWithCallsCount > 0
+            return provisioned ? .enabled : .disabled
+        }
         secureBackup.repairRecoveryWithReturnValue = .success(())
         secureBackup.repairWithoutResetReturnValue = .notYet
         keychain.recoveryKeyForUsernameReturnValue = nil
@@ -409,6 +479,11 @@ class KeyStorageBootstrapTests: XCTestCase {
         secureBackup.settledRecoveryStateTimeoutClosure = { [weak secureBackup] _ in
             secureBackup?.settledRecoveryStateTimeoutCallsCount == 1 ? .disabled : .enabled
         }
+    }
+
+    /// Pins the SDK's own answer, overriding the fixture's transition.
+    private func givenTheSDKReports(_ state: SecureBackupRecoveryState) {
+        secureBackup.sdkRecoveryStateClosure = { state }
     }
 
     private func whenRestoring() async {
