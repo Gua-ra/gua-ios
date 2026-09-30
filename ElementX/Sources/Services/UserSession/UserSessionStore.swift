@@ -387,9 +387,15 @@ class UserSessionStore: UserSessionStoreProtocol {
     
     private func setupProxyForClient(_ client: ClientProtocol) async throws -> ClientProxyProtocol {
         do {
+            // GUA FORK: a recovery key minted by the secure backup controller replaces this
+            // account's stored one at once. The keychain itself stays here.
+            let userID = try client.userId()
             return try await ClientProxy(client: client,
                                          networkMonitor: networkMonitor,
-                                         appSettings: appSettings)
+                                         appSettings: appSettings,
+                                         persistRecoveryKey: { [keychainController] key in
+                                             keychainController.setRecoveryKey(key, forUsername: userID)
+                                         })
         } catch {
             throw UserSessionStoreError.failedSettingUpClientProxy(error)
         }

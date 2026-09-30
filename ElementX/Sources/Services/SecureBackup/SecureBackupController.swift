@@ -13,6 +13,9 @@ class SecureBackupController: SecureBackupControllerProtocol {
     private let encryption: Encryption
     /// GUA FORK: which account this controller serves, for the identity-reset-pending marker.
     private let userID: String
+    /// GUA FORK: stores a recovery key this controller minted, replacing the account's previous
+    /// one. The keychain stays with `UserSessionStore`; this is the one capability it lends out.
+    private let persistRecoveryKey: (String) -> Void
     /// GUA FORK: the SDK's own end-to-end encryption initialisation. See `e2eeInitializationCompleted`.
     private let e2eeInitialization: Task<Void, Never>
     
@@ -44,10 +47,14 @@ class SecureBackupController: SecureBackupControllerProtocol {
         isProvisioningKeyStorageSubject.asCurrentValuePublisher()
     }
     
-    init(encryption: Encryption, userID: String, e2eeInitialization: Task<Void, Never>) {
+    init(encryption: Encryption,
+         userID: String,
+         e2eeInitialization: Task<Void, Never>,
+         persistRecoveryKey: @escaping (String) -> Void) {
         self.e2eeInitialization = e2eeInitialization
         self.encryption = encryption
         self.userID = userID
+        self.persistRecoveryKey = persistRecoveryKey
         
         backupStateListenerTaskHandle = encryption.backupStateListener(listener: SDKListener { [weak self] state in
             guard let self else { return }
@@ -610,14 +617,22 @@ class SecureBackupController: SecureBackupControllerProtocol {
         return .resetRequired
     }
 
-    private func enableRecoveryReturningKey() async throws -> String {
+    /// GUA FORK: enables recovery and persists the recovery key it minted before returning it.
+    ///
+    /// The key is the only credential for the secret store that was just created, so it is stored
+    /// as soon as it exists: before any state is read, waited on or judged, and whether or not the
+    /// account goes on to reach `.enabled`. Persisting it is not success. Internal rather than
+    /// private so that order can be asserted in tests.
+    func enableRecoveryReturningKey() async throws -> String {
         guard await e2eeInitializationCompleted() else {
             throw SecureBackupControllerError.failedEnablingBackup
         }
 
-        return try await encryption.enableRecovery(waitForBackupsToUpload: false,
-                                                   passphrase: nil,
-                                                   progressListener: SDKListener { _ in })
+        let key = try await encryption.enableRecovery(waitForBackupsToUpload: false,
+                                                      passphrase: nil,
+                                                      progressListener: SDKListener { _ in })
+        persistRecoveryKey(key)
+        return key
     }
 
     func waitForKeyBackupUpload(uploadStateSubject: CurrentValueSubject<SecureBackupSteadyState, Never>) async -> Result<Void, SecureBackupControllerError> {

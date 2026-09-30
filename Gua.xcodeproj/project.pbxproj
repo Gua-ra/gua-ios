@@ -82,6 +82,7 @@
 		0A1F117386F90DCAF440B575 /* LoggingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4183470EBD520976F23A895 /* LoggingTests.swift */; };
 		0A3C2B1AEE1FD181962EA49A /* MediaFileHandleProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AD9A30DE7CEBDD573C16702 /* MediaFileHandleProxy.swift */; };
 		0A6922EF98E58D229DCDF395 /* SecurityAndPrivacyScreenModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64FBA49C8478220CB662573B /* SecurityAndPrivacyScreenModels.swift */; };
+		0AB51E1C911C0D6EF991DD6F /* SecureBackupControllerKeyPersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0F04F9180A0857F982CCA45 /* SecureBackupControllerKeyPersistenceTests.swift */; };
 		0AE4ED3BF5B81181CE1A75A8 /* RoomMemberDetailsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E36F33CC2D9BCE80CCB0F9 /* RoomMemberDetailsScreen.swift */; };
 		0BAB36F007ABA4EE806E167B /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDF3A10A2E4AE9CB2FA182BA /* NetworkMonitor.swift */; };
 		0BC22DFF1B111AAF0AC3B3A2 /* DeclineAndBlockScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1CBC9FCC40551458B4FBEB5 /* DeclineAndBlockScreen.swift */; };
@@ -2774,6 +2775,7 @@
 		E04E56C28888B12C0D1F5967 /* UnitTests.xctestplan */ = {isa = PBXFileReference; path = UnitTests.xctestplan; sourceTree = "<group>"; };
 		E083367E97587F0F6E021172 /* LoginScreenCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginScreenCoordinator.swift; sourceTree = "<group>"; };
 		E08BE0339A2F1BD2082C31F7 /* ImageRoomTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageRoomTimelineView.swift; sourceTree = "<group>"; };
+		E0F04F9180A0857F982CCA45 /* SecureBackupControllerKeyPersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureBackupControllerKeyPersistenceTests.swift; sourceTree = "<group>"; };
 		E192511135D7E5F357DB6E10 /* RoomScreenViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomScreenViewModelTests.swift; sourceTree = "<group>"; };
 		E1B61F51DBF168C0115AEB8A /* nl */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = nl; path = nl.lproj/Localizable.strings; sourceTree = "<group>"; };
 		E1BF884F947CC75E0A84DB11 /* GlobalSearchScreenViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalSearchScreenViewModelTests.swift; sourceTree = "<group>"; };
@@ -5293,6 +5295,7 @@
 				C04251E96EE29AB446916978 /* RoomSummaryProviderTests.swift */,
 				C4A82D0F091B7FE92BD5DF62 /* RoomSummaryTests.swift */,
 				CB8E93B0F2BCD47CF81B2A2D /* RoomTests.swift */,
+				E0F04F9180A0857F982CCA45 /* SecureBackupControllerKeyPersistenceTests.swift */,
 				15D097173C133125EE3408D1 /* SecureBackupControllerStateTests.swift */,
 				5EAA6CFBF5C324689347F520 /* SecureBackupKeyBackupScreenViewModelTests.swift */,
 				4E7AE9512A1A70E1A99CC1F1 /* SecureBackupLogoutConfirmationScreenViewModelTests.swift */,
@@ -8706,6 +8709,7 @@
 				47388E39D777ACFE5453C6FB /* RoomSummaryProviderTests.swift in Sources */,
 				BD5E2432251ABF075DD86A16 /* RoomSummaryTests.swift in Sources */,
 				66795F33E021407525CEC14F /* RoomTests.swift in Sources */,
+				0AB51E1C911C0D6EF991DD6F /* SecureBackupControllerKeyPersistenceTests.swift in Sources */,
 				BA35CE3DA6A50AE2E47D2871 /* SecureBackupControllerStateTests.swift in Sources */,
 				3684350D065695818AAA7280 /* SecureBackupKeyBackupScreenViewModelTests.swift in Sources */,
 				D293E139D3C6EC2C2F8C7F03 /* SecureBackupLogoutConfirmationScreenViewModelTests.swift in Sources */,
