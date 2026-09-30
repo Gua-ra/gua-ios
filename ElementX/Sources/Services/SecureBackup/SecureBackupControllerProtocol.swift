@@ -100,4 +100,8 @@ enum EncryptionRepairOutcome: Equatable {
     case notYet
     /// Everything non-destructive has been tried. Only a reset can finish this device.
     case resetRequired
+    /// The identity reset landed, but the SDK holds too little private cross-signing material to
+    /// establish recovery. Nothing further is attempted automatically; the banner stays and a
+    /// user-initiated reset is the next step.
+    case identityIncompleteAfterReset
 }

@@ -470,11 +470,12 @@ class SecureBackupController: SecureBackupControllerProtocol {
     /// patient where the foreground version could not.
     private func performProvisionAfterReset() async -> EncryptionRepairOutcome {
         await Self.provisionLoop(backoff: Self.provisionBackoff,
-                                 isEnabled: { [weak self] in self?.recoveryState.value == .enabled },
+                                 isEnabled: { [weak self] in self?.sdkRecoveryState() == .enabled },
                                  enableRecovery: { [weak self] in
                                      guard let self else { throw SecureBackupControllerError.failedEnablingBackup }
                                      _ = try await enableRecoveryReturningKey()
                                  },
+                                 authoritativeState: { [weak self] in self?.sdkRecoveryState() ?? .unknown },
                                  waitForEnabled: { [weak self] timeout in
                                      guard let self else { return false }
                                      return await waitForRecoveryEnabled(timeout: timeout)
@@ -487,9 +488,15 @@ class SecureBackupController: SecureBackupControllerProtocol {
     /// Rotating the secret store is normally the one thing to avoid, since it invalidates any recovery key
     /// saved elsewhere for this account. Immediately after a reset there is no such key and no earlier store
     /// left to strand, so re-running it costs nothing but a round trip.
+    ///
+    /// The first successful `enableRecovery` is decisive. It mints and persists a key, and the SDK
+    /// recomputes recovery state before it returns; that state is read once. `.incomplete` means the
+    /// device holds too little private cross-signing material, which another mint cannot change, so
+    /// the loop stops with an explicit outcome. Only a thrown attempt, which minted nothing, is retried.
     static func provisionLoop(backoff: [Duration],
                               isEnabled: () -> Bool,
                               enableRecovery: () async throws -> Void,
+                              authoritativeState: () -> SecureBackupRecoveryState,
                               waitForEnabled: (Duration) async -> Bool) async -> EncryptionRepairOutcome {
         for (attempt, delay) in backoff.enumerated() {
             // Re-read before spending another rotation: an earlier attempt may have landed while this one
@@ -510,14 +517,32 @@ class SecureBackupController: SecureBackupControllerProtocol {
                 return .resetRequired
             } catch {
                 MXLog.warning("GUA-KEYSTORE: post-reset provision attempt \(attempt + 1) threw: \(error)")
+
+                if await waitForEnabled(delay) {
+                    MXLog.info("GUA-KEYSTORE: key storage provisioned on attempt \(attempt + 1).")
+                    return .repaired
+                }
+                continue
             }
 
-            if await waitForEnabled(delay) {
+            switch authoritativeState() {
+            case .enabled:
                 MXLog.info("GUA-KEYSTORE: key storage provisioned on attempt \(attempt + 1).")
                 return .repaired
+            case .unknown:
+                if await waitForEnabled(delay), authoritativeState() == .enabled {
+                    MXLog.info("GUA-KEYSTORE: key storage provisioned on attempt \(attempt + 1).")
+                    return .repaired
+                }
+                MXLog.error("GUA-KEYSTORE: recovery state unknown after the post-reset mint; not minting again.")
+                return .identityIncompleteAfterReset
+            case .disabled:
+                MXLog.error("GUA-KEYSTORE: recovery reads disabled after a successful post-reset mint; not minting again.")
+                return .identityIncompleteAfterReset
+            case .incomplete, .settingUp:
+                MXLog.error("GUA-KEYSTORE: the account is incomplete after the post-reset mint; the private cross-signing keys are missing.")
+                return .identityIncompleteAfterReset
             }
-
-            MXLog.warning("GUA-KEYSTORE: post-reset attempt \(attempt + 1) left the account incomplete.")
         }
 
         MXLog.error("GUA-KEYSTORE: could not provision key storage after the reset.")

@@ -96,22 +96,40 @@ class SecureBackupControllerKeyPersistenceTests: XCTestCase {
 
     // MARK: - repeated attempts
 
-    /// Each successful attempt creates a new store and invalidates the previous key, so each one
-    /// replaces the retained credential. A failed attempt mints nothing and replaces nothing. This is
-    /// the loop `provisionAfterReset` runs, driven with the same closure it supplies.
-    func testEachSuccessfulAttemptReplacesTheRetainedCredential() async {
-        givenEnableAttempts([.success("key-1"), .failure(TransientError()), .success("key-3")])
+    /// After a reset the first successful mint is decisive. A store the device cannot complete is not
+    /// improved by another store, so the loop stops with the one key it minted, which opens that store.
+    /// This is the loop `provisionAfterReset` runs, driven with the same closure it supplies.
+    func testTheFirstSuccessfulMintAfterAResetIsDecisive() async {
+        givenEnableAttempts([.success("key-1"), .success("key-2")])
 
         let outcome = await SecureBackupController.provisionLoop(backoff: [.milliseconds(1), .milliseconds(1), .milliseconds(1)],
                                                                  isEnabled: { false },
                                                                  enableRecovery: { [controller] in
                                                                      _ = try await controller!.enableRecoveryReturningKey()
                                                                  },
+                                                                 authoritativeState: { .incomplete },
                                                                  waitForEnabled: { _ in false })
 
-        XCTAssertEqual(persisted, ["key-1", "key-3"])
-        XCTAssertEqual(persisted.last, "key-3", "the retained credential is the latest successful mint")
-        XCTAssertEqual(outcome, .resetRequired)
+        XCTAssertEqual(persisted, ["key-1"], "exactly one store is minted")
+        XCTAssertEqual(outcome, .identityIncompleteAfterReset)
+        XCTAssertEqual(encryption.enableRecoveryWaitForBackupsToUploadPassphraseProgressListenerCallsCount, 1)
+    }
+
+    /// A thrown attempt minted nothing, so it is still retried; the key retained is the one from the
+    /// attempt that finally minted.
+    func testAThrownAttemptIsRetriedAndTheMintedKeyIsRetained() async {
+        givenEnableAttempts([.failure(TransientError()), .success("key-2")])
+
+        let outcome = await SecureBackupController.provisionLoop(backoff: [.milliseconds(1), .milliseconds(1)],
+                                                                 isEnabled: { false },
+                                                                 enableRecovery: { [controller] in
+                                                                     _ = try await controller!.enableRecoveryReturningKey()
+                                                                 },
+                                                                 authoritativeState: { [weak self] in self?.persisted.isEmpty == false ? .enabled : .disabled },
+                                                                 waitForEnabled: { _ in false })
+
+        XCTAssertEqual(persisted, ["key-2"])
+        XCTAssertEqual(outcome, .repaired)
     }
 
     // MARK: - helpers
