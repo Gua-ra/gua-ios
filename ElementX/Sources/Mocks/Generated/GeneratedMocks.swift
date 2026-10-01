@@ -2224,6 +2224,41 @@ class ClientProxyMock: ClientProxyProtocol, @unchecked Sendable {
     var underlyingMaxMediaUploadSize: Result<UInt, ClientProxyError>!
     var maxMediaUploadSizeClosure: (() async -> Result<UInt, ClientProxyError>)?
 
+    //MARK: - waitForE2EEInitialization
+
+    var waitForE2EEInitializationUnderlyingCallsCount = 0
+    var waitForE2EEInitializationCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return waitForE2EEInitializationUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = waitForE2EEInitializationUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                waitForE2EEInitializationUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    waitForE2EEInitializationUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var waitForE2EEInitializationCalled: Bool {
+        return waitForE2EEInitializationCallsCount > 0
+    }
+    var waitForE2EEInitializationClosure: (() async -> Void)?
+
+    func waitForE2EEInitialization() async {
+        waitForE2EEInitializationCallsCount += 1
+        await waitForE2EEInitializationClosure?()
+    }
     //MARK: - isOnlyDeviceLeft
 
     var isOnlyDeviceLeftUnderlyingCallsCount = 0
@@ -2357,6 +2392,70 @@ class ClientProxyMock: ClientProxyProtocol, @unchecked Sendable {
     func stopSync() {
         stopSyncCallsCount += 1
         stopSyncClosure?()
+    }
+    //MARK: - acquireIdentityResetGuard
+
+    var acquireIdentityResetGuardUnderlyingCallsCount = 0
+    var acquireIdentityResetGuardCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return acquireIdentityResetGuardUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = acquireIdentityResetGuardUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                acquireIdentityResetGuardUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    acquireIdentityResetGuardUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var acquireIdentityResetGuardCalled: Bool {
+        return acquireIdentityResetGuardCallsCount > 0
+    }
+
+    var acquireIdentityResetGuardUnderlyingReturnValue: IdentityResetGuardProtocol!
+    var acquireIdentityResetGuardReturnValue: IdentityResetGuardProtocol! {
+        get {
+            if Thread.isMainThread {
+                return acquireIdentityResetGuardUnderlyingReturnValue
+            } else {
+                var returnValue: IdentityResetGuardProtocol? = nil
+                DispatchQueue.main.sync {
+                    returnValue = acquireIdentityResetGuardUnderlyingReturnValue
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                acquireIdentityResetGuardUnderlyingReturnValue = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    acquireIdentityResetGuardUnderlyingReturnValue = newValue
+                }
+            }
+        }
+    }
+    var acquireIdentityResetGuardClosure: (() async -> IdentityResetGuardProtocol)?
+
+    func acquireIdentityResetGuard() async -> IdentityResetGuardProtocol {
+        acquireIdentityResetGuardCallsCount += 1
+        if let acquireIdentityResetGuardClosure = acquireIdentityResetGuardClosure {
+            return await acquireIdentityResetGuardClosure()
+        } else {
+            return acquireIdentityResetGuardReturnValue
+        }
     }
     //MARK: - stopSync
 
@@ -6209,6 +6308,115 @@ class ElementCallWidgetDriverMock: ElementCallWidgetDriverProtocol, @unchecked S
         } else {
             return handleMessageReturnValue
         }
+    }
+}
+class IdentityResetGuardMock: IdentityResetGuardProtocol, @unchecked Sendable {
+    var inFlightReset: Task<Result<Void, Error>, Never>?
+
+    //MARK: - runReset
+
+    var runResetAuthUnderlyingCallsCount = 0
+    var runResetAuthCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return runResetAuthUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = runResetAuthUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                runResetAuthUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    runResetAuthUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var runResetAuthCalled: Bool {
+        return runResetAuthCallsCount > 0
+    }
+    var runResetAuthReceivedArguments: (handle: IdentityResetHandle, auth: AuthData?)?
+    var runResetAuthReceivedInvocations: [(handle: IdentityResetHandle, auth: AuthData?)] = []
+
+    var runResetAuthUnderlyingReturnValue: Task<Result<Void, Error>, Never>!
+    var runResetAuthReturnValue: Task<Result<Void, Error>, Never>! {
+        get {
+            if Thread.isMainThread {
+                return runResetAuthUnderlyingReturnValue
+            } else {
+                var returnValue: Task<Result<Void, Error>, Never>? = nil
+                DispatchQueue.main.sync {
+                    returnValue = runResetAuthUnderlyingReturnValue
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                runResetAuthUnderlyingReturnValue = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    runResetAuthUnderlyingReturnValue = newValue
+                }
+            }
+        }
+    }
+    var runResetAuthClosure: ((IdentityResetHandle, AuthData?) -> Task<Result<Void, Error>, Never>)?
+
+    func runReset(_ handle: IdentityResetHandle, auth: AuthData?) -> Task<Result<Void, Error>, Never> {
+        runResetAuthCallsCount += 1
+        runResetAuthReceivedArguments = (handle: handle, auth: auth)
+        DispatchQueue.main.async {
+            self.runResetAuthReceivedInvocations.append((handle: handle, auth: auth))
+        }
+        if let runResetAuthClosure = runResetAuthClosure {
+            return runResetAuthClosure(handle, auth)
+        } else {
+            return runResetAuthReturnValue
+        }
+    }
+    //MARK: - releaseIfIdle
+
+    var releaseIfIdleUnderlyingCallsCount = 0
+    var releaseIfIdleCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return releaseIfIdleUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = releaseIfIdleUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                releaseIfIdleUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    releaseIfIdleUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var releaseIfIdleCalled: Bool {
+        return releaseIfIdleCallsCount > 0
+    }
+    var releaseIfIdleClosure: (() async -> Void)?
+
+    func releaseIfIdle() async {
+        releaseIfIdleCallsCount += 1
+        await releaseIfIdleClosure?()
     }
 }
 class InvitedRoomProxyMock: InvitedRoomProxyProtocol, @unchecked Sendable {
@@ -15821,6 +16029,70 @@ class SecureBackupControllerMock: SecureBackupControllerProtocol, @unchecked Sen
             return await settledRecoveryStateTimeoutClosure(timeout)
         } else {
             return settledRecoveryStateTimeoutReturnValue
+        }
+    }
+    //MARK: - sdkRecoveryState
+
+    var sdkRecoveryStateUnderlyingCallsCount = 0
+    var sdkRecoveryStateCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return sdkRecoveryStateUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = sdkRecoveryStateUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                sdkRecoveryStateUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    sdkRecoveryStateUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var sdkRecoveryStateCalled: Bool {
+        return sdkRecoveryStateCallsCount > 0
+    }
+
+    var sdkRecoveryStateUnderlyingReturnValue: SecureBackupRecoveryState!
+    var sdkRecoveryStateReturnValue: SecureBackupRecoveryState! {
+        get {
+            if Thread.isMainThread {
+                return sdkRecoveryStateUnderlyingReturnValue
+            } else {
+                var returnValue: SecureBackupRecoveryState? = nil
+                DispatchQueue.main.sync {
+                    returnValue = sdkRecoveryStateUnderlyingReturnValue
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                sdkRecoveryStateUnderlyingReturnValue = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    sdkRecoveryStateUnderlyingReturnValue = newValue
+                }
+            }
+        }
+    }
+    var sdkRecoveryStateClosure: (() -> SecureBackupRecoveryState)?
+
+    func sdkRecoveryState() -> SecureBackupRecoveryState {
+        sdkRecoveryStateCallsCount += 1
+        if let sdkRecoveryStateClosure = sdkRecoveryStateClosure {
+            return sdkRecoveryStateClosure()
+        } else {
+            return sdkRecoveryStateReturnValue
         }
     }
     //MARK: - waitForKeyBackupUpload

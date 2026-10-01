@@ -22,6 +22,8 @@ protocol CommonSettingsProtocol {
     var enableKeyShareOnInvite: Bool { get }
     var threadsEnabled: Bool { get }
     var hideQuietNotificationAlerts: Bool { get }
+
+    func identityResetStartedAt(forUserID userID: String) -> Date?
 }
 
 /// Store Element specific app settings.
@@ -38,6 +40,7 @@ final class AppSettings {
         case hasRunNotificationPermissionsOnboarding
         case hasRunIdentityConfirmationOnboarding
         case hasBootstrappedKeyStorage
+        case identityResetStartedAt
 
         case frequentlyUsedSystemEmojis
         
@@ -104,7 +107,8 @@ final class AppSettings {
         // GUA FORK: the bootstrap flag is now per account, so clear every account's copy along
         // with the pre-migration global one.
         let bootstrapPrefix = UserDefaultsKeys.hasBootstrappedKeyStorage.rawValue
-        for key in store.dictionaryRepresentation().keys where key.hasPrefix(bootstrapPrefix) {
+        let resetPrefix = UserDefaultsKeys.identityResetStartedAt.rawValue
+        for key in store.dictionaryRepresentation().keys where key.hasPrefix(bootstrapPrefix) || key.hasPrefix(resetPrefix) {
             store.removeObject(forKey: key)
         }
     }
@@ -360,6 +364,23 @@ final class AppSettings {
 
     private static func bootstrappedKeyStorageKey(forUserID userID: String) -> String {
         "\(UserDefaultsKeys.hasBootstrappedKeyStorage.rawValue).\(userID)"
+    }
+
+    /// GUA FORK: read by the notification extension, so it must stay in the App Group store.
+    func identityResetStartedAt(forUserID userID: String) -> Date? {
+        Self.store.object(forKey: Self.identityResetKey(forUserID: userID)) as? Date
+    }
+
+    func setIdentityResetStartedAt(_ date: Date?, forUserID userID: String) {
+        if let date {
+            Self.store.set(date, forKey: Self.identityResetKey(forUserID: userID))
+        } else {
+            Self.store.removeObject(forKey: Self.identityResetKey(forUserID: userID))
+        }
+    }
+
+    private static func identityResetKey(forUserID userID: String) -> String {
+        "\(UserDefaultsKeys.identityResetStartedAt.rawValue).\(userID)"
     }
 
     @UserPreference(key: UserDefaultsKeys.frequentlyUsedSystemEmojis, defaultValue: [FrequentlyUsedEmoji](), storageType: .userDefaults(store))

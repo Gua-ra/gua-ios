@@ -126,6 +126,16 @@ protocol ClientProxyProtocol: AnyObject {
     var notificationSettings: NotificationSettingsProxyProtocol { get }
     
     var secureBackupController: SecureBackupControllerProtocol { get }
+
+    /// GUA FORK: awaits the SDK's own end-to-end encryption initialisation, which provisions key
+    /// backup on a fresh account.
+    ///
+    /// Anything that can reach `Recovery::enable` must await this first. That call creates a backup
+    /// of its own unless one is already enabled locally, so concurrently with the SDK's own
+    /// provisioning both create a version. An account may only ever hold one: a reset deletes the
+    /// current version, and a survivor makes every later `Recovery::enable` fail with
+    /// `backupExistsOnServer`.
+    func waitForE2EEInitialization() async
     
     var sessionVerificationController: SessionVerificationControllerProxyProtocol? { get }
     
@@ -142,6 +152,10 @@ protocol ClientProxyProtocol: AnyObject {
     func startSync()
 
     func stopSync()
+
+    /// GUA FORK: returns once the sync has stopped; sync starts are suppressed until the guard is
+    /// released. A call while a guard is held returns that guard.
+    func acquireIdentityResetGuard() async -> IdentityResetGuardProtocol
     
     func stopSync(completion: (() -> Void)?) // Hopefully this will become async once we get SE-0371.
     

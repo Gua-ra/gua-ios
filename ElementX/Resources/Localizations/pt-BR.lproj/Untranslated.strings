@@ -12,6 +12,7 @@
 "gua_signout_last_device_message" = "Este é o seu único dispositivo. As mensagens guardadas apenas aqui não estarão disponíveis quando você entrar novamente.";
 "gua_encryption_reset_finishing" = "Concluindo a configuração…";
 "gua_encryption_reset_failed" = "Não foi possível concluir a configuração. Toque em Redefinir e concluir para tentar novamente.";
+"gua_encryption_reset_still_finishing" = "A configuração está demorando mais que o esperado. Ela continua em segundo plano; você pode aguardar aqui ou voltar mais tarde.";
 "gua_encryption_recover_from_other_device_title" = "Recupere suas mensagens anteriores";
 "gua_encryption_recover_from_other_device_message" = "Use seu outro dispositivo para recuperar as mensagens que ainda não estão disponíveis aqui.\n\nSe você não tiver acesso a ele, pode redefinir e concluir a configuração, mas as mensagens guardadas apenas no seu backup serão perdidas para sempre.";
 "gua_encryption_recover_from_other_device_action" = "Usar meu outro dispositivo";

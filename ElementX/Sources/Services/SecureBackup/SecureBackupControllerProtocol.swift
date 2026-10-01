@@ -76,6 +76,10 @@ protocol SecureBackupControllerProtocol {
     /// GUA FORK: `recoveryState` once it is no longer `.unknown`, so callers never branch on the
     /// initial value. Falls back to `.unknown` if the SDK stays silent past `timeout`.
     func settledRecoveryState(timeout: Duration) async -> SecureBackupRecoveryState
+    /// GUA FORK: the SDK's own recovery state, which this client never writes to. The published
+    /// `recoveryState` is optimistic: enabling recovery reports `.enabled` from its progress
+    /// listener before the SDK has recomputed. Judge a provisioning by this one.
+    func sdkRecoveryState() -> SecureBackupRecoveryState
     
     func waitForKeyBackupUpload(uploadStateSubject: CurrentValueSubject<SecureBackupSteadyState, Never>) async -> Result<Void, SecureBackupControllerError>
 }
@@ -96,4 +100,7 @@ enum EncryptionRepairOutcome: Equatable {
     case notYet
     /// Everything non-destructive has been tried. Only a reset can finish this device.
     case resetRequired
+    /// The reset landed, but this device lacks the private cross-signing keys to enable recovery.
+    /// Not retried automatically.
+    case identityIncompleteAfterReset
 }
