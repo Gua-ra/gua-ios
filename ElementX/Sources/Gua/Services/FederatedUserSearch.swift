@@ -8,7 +8,7 @@
 import Foundation
 
 /// How a federation homeserver lets its users be found by bare-handle search from other servers.
-/// Absent means `global` — the default for roster entries that predate the policy. Values this
+/// Absent means `global`, the default for roster entries that predate the policy. Values this
 /// client doesn't recognize are treated as **not** discoverable, so a stricter policy introduced
 /// server-side is never widened by an older client.
 enum RosterSearchVisibility: Equatable {
@@ -37,8 +37,8 @@ enum RosterSearchVisibility: Equatable {
 /// servers from the resolver roster, honouring each server's discoverability policy.
 enum FederatedUserSearch {
     /// Normalizes a search query into a bare handle, or `nil` when the query isn't one.
-    /// A bare handle is an optional leading `@` followed by at least 3 localpart characters —
-    /// and crucially no `:`, otherwise the user is already typing a full address.
+    /// A bare handle is an optional leading `@` followed by at least 3 localpart characters and
+    /// no `:`; with a `:` the user is already typing a full address.
     static func bareHandle(from query: String) -> String? {
         var handle = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !handle.contains(":") else { return nil }
@@ -52,13 +52,9 @@ enum FederatedUserSearch {
     /// The full user IDs to look up for a bare handle: the searcher's own server first, then one
     /// per ACTIVE roster server that allows discovery from it, in roster order.
     ///
-    /// The searcher's own server used to be skipped here, on the assumption that the local
-    /// directory already covered it. It does not. Synapse's user directory only returns people
-    /// you already share a room with unless `search_all_users` is on, so a bare handle found
-    /// nobody on your own server while the full `@handle:server` worked, because that path is an
-    /// exact profile lookup instead. Looking our own server up by the same exact-match route
-    /// makes a bare handle behave the same way everywhere, whatever the directory is configured
-    /// to do. Duplicates are dropped downstream, so a local hit costs nothing.
+    /// Includes the searcher's own server: Synapse's directory only returns people you already share
+    /// a room with unless `search_all_users` is on, so a bare handle is looked up there by exact
+    /// match like everywhere else. Duplicates are dropped downstream.
     static func candidates(forHandle handle: String, roster: FederationRoster, ownServerName: String) -> [String] {
         let ownGroups = Set(roster.entries.first { $0.homeserver.serverName == ownServerName }?.homeserver.searchGroups ?? [])
 

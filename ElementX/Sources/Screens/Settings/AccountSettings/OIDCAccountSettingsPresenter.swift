@@ -41,8 +41,7 @@ class OIDCAccountSettingsPresenter: NSObject {
     }
 
     /// Resolves once the sheet is gone, saying whether the page came back to the app or was
-    /// dismissed. The two used to be indistinguishable, and callers had to guess whether the
-    /// user had approved anything.
+    /// dismissed.
     func start() async -> Outcome {
         await withCheckedContinuation { (continuation: CheckedContinuation<Outcome, Never>) in
             let session = ASWebAuthenticationSession(url: accountURL, callback: .oidcRedirectURL(oidcRedirectURL)) { callbackURL, _ in

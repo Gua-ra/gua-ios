@@ -232,8 +232,7 @@ class TwoStepVerificationScreenViewModelTests: XCTestCase {
 
     // MARK: - GUA FORK: the overview reads the server's factor report
 
-    /// The overview used to be one of two PIN screens, so an account whose only factor was a
-    /// passkey was shown the one that says there is nothing.
+    /// A passkey-only account must be reported as having a factor.
     func testPasskeyHolderIsReportedAsHavingAPasskey() async throws {
         makeViewModel(status: Self.status(hasPin: false, passkeyRegistered: true))
 

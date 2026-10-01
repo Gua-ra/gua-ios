@@ -212,9 +212,9 @@ class HomeScreenViewModelTests: XCTestCase {
         securityStateStateSubject.send(.init(verificationState: .verified, recoveryState: .disabled))
         try await deferred.fulfill()
         
-        // Then the banner should be the one that finishes setup silently. GUA FORK: .disabled
-        // used to show .setUpRecovery, whose flow hands the user a recovery key to write down,
-        // and .disabled is the state an identity reset leaves behind.
+        // Then the banner should be the one that finishes setup silently. GUA FORK: an identity
+        // reset leaves recovery .disabled, and .setUpRecovery would hand the user a recovery key
+        // to write down.
         XCTAssertEqual(context.viewState.securityBannerMode, .show(.recoveryOutOfSync))
         
         // When the recovery is enabled.
