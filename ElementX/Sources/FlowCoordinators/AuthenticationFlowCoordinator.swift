@@ -24,7 +24,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     private let analytics: AnalyticsService
     private let userIndicatorController: UserIndicatorControllerProtocol
     private let resolverClient: ResolverClientProtocol? // GUA FORK: phone -> homeserver routing
-    private let accountGenesisService: AccountGenesisServiceProtocol? // GUA FORK: ADM-008 account genesis
+    private let accountGenesisService: AccountGenesisServiceProtocol? // GUA FORK: account genesis at signup (ADM-008)
     private let usesPhoneLoginHint: Bool // GUA FORK
     
     enum State: StateType {
@@ -409,16 +409,17 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                 return
             }
             
-            // GUA FORK: ADM-008 Phase 3. A flagged-on signup mints an AccountGenesis on this device
-            // and carries its attach handle in the reserved login-hint grammar. Every other case,
-            // this one included when the flag is off, sends the bare phone number as before.
+            // GUA FORK: account genesis at signup (ADM-008 Phase 3). When the flag is on, a signup
+            // creates an AccountGenesis on this device and carries its attach handle in the reserved
+            // login-hint grammar. Every other case, this one included when the flag is off, sends the
+            // bare phone number as before.
             let loginHint: String
             do {
                 loginHint = try await guaLoginHint(phoneNumber: phoneNumber, flow: flow)
             } catch {
-                // This device meant to register a genesis and could not. Failing here is the point:
-                // an account created without the genesis it intended is a silent bootstrap, which is
-                // the failure mode ADM-008 decision 6 warns about, and it cannot be told apart later.
+                // This device meant to register a genesis and could not. Fail here on purpose: an
+                // account created without its intended genesis is a silent bootstrap, which cannot be
+                // told apart later (ADM-008 decision 6).
                 MXLog.error("Failed preparing the account genesis for this signup: \(error)")
                 coordinator.displayError(UntranslatedL10n.guaAccountGenesisSetupFailed)
                 return
@@ -435,7 +436,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         }
     }
 
-    /// GUA FORK: the `login_hint` this submission should send (ADM-008 decision 6).
+    /// GUA FORK: the `login_hint` this submission should send, in the reserved grammar of ADM-008 decision 6.
     ///
     /// Returns the bare phone number, exactly as this flow has always sent it, in every case that is
     /// not a flagged-on signup: the feature flag is off, no genesis service is configured, this is an

@@ -104,9 +104,9 @@ protocol AccountGenesisServiceProtocol {
     func discard(_ pending: PendingAccountGenesis)
 }
 
-/// The client half of ADM-008 Phase 3: mint an `AccountGenesis` on device, register it, carry its
-/// handle through the OIDC `login_hint`, and prove possession of the committed key when the sign-in
-/// page asks for it.
+/// The client half of account genesis (ADM-008 Phase 3): create an `AccountGenesis` on device, register
+/// it, carry its handle through the OIDC `login_hint`, and prove possession of the committed key when
+/// the sign-in page asks for it.
 ///
 /// Nothing here changes routing or login. The accountId is not an identifier the app shows, sends
 /// anywhere else, or stores beside the account: ADM-008 decision 10 keeps it out of `preferred_username`,
@@ -201,8 +201,8 @@ final class AccountGenesisService: AccountGenesisServiceProtocol {
         } catch IdentityServiceError.genesisUnavailable, IdentityServiceError.genesisIssuanceNotPermitted {
             // 503, or 403 while the deployment declines to issue under this recovery framework. Neither
             // is an error and neither is anything the user should see: no handle exists to present, so
-            // this signup takes the bootstrap branch ADM-008 decision 6 calls not a failure. The Android
-            // client reads the two statuses the same way.
+            // this signup takes the bootstrap branch, which is not a failure (ADM-008 decision 6). The
+            // Android client reads the two statuses the same way.
             MXLog.info("This deployment issues no account genesis; continuing with the existing signup.")
             keyStore.removeKeys(forAccountID: accountID.value)
             return .notSupportedByDeployment
@@ -219,8 +219,8 @@ final class AccountGenesisService: AccountGenesisServiceProtocol {
 
     nonisolated func loginHint(phoneNumber: String, pending: PendingAccountGenesis) -> String {
         // The grammar is strict on the server: an unparsable hint, an unknown or duplicated key and a
-        // malformed handle all fail the signup rather than being quietly dropped, because dropping a
-        // handle is the silent downgrade ADM-008 decision 6 forbids. The reserved bare value `passkey`
+        // malformed handle all fail the signup rather than being quietly dropped, because a dropped
+        // handle is a silent downgrade (ADM-008 decision 6). The reserved bare value `passkey`
         // is a different hint entirely and is untouched by the `gua:` grammar.
         //
         // Both halves are known-good by construction: the handle was checked against the server's own
@@ -243,8 +243,8 @@ final class AccountGenesisService: AccountGenesisServiceProtocol {
         do {
             key = try keyStore.authorityKey(forAccountID: pending.accountID.value)
         } catch {
-            // ADM-008 decision 6: a handle that was presented and fails to attach fails the signup.
-            // Continuing here would create the silent bootstrap the decision warns about.
+            // A handle that was presented and fails to attach fails the signup (ADM-008 decision 6).
+            // Continuing here would create a silent bootstrap.
             throw AccountGenesisServiceError.keyUnavailable
         }
 

@@ -42,10 +42,10 @@ class KeychainController: KeychainControllerProtocol {
     private let mainKeychain: Keychain
     /// GUA FORK: the keychain holding the automatically generated recovery key, keyed by userID.
     ///
-    /// This one is `synchronizable`, so the key rides iCloud Keychain to the account's other
+    /// This one is `synchronizable`, so iCloud Keychain syncs the key to the account's other
     /// devices. Without it the "recovery" key is device-local and dies with the phone, which
-    /// makes the word recovery a lie. It is deliberately separate from
-    /// `restorationTokenKeychain`: session tokens must NOT leave the device.
+    /// makes the word recovery a lie. It is separate from `restorationTokenKeychain` on purpose:
+    /// session tokens must NOT leave the device.
     ///
     /// `.whenUnlocked` rather than `.afterFirstUnlock` because synchronizable items must be
     /// readable by iCloud only while the device is unlocked.

@@ -60,12 +60,7 @@ Matrix homeserver in the Gua federation
 
 ## Today versus the target
 
-Everything above describes the app as it ships today. Two parts of the target design are not shipped yet:
-
-- **Per-homeserver authentication.** Today every sign-in completes at the single Gua identity host.
-- **Verified routing.** Today the app follows the resolver's answer without verifying it against signed federation state.
-
-[Gua identity and federation](https://github.com/Gua-ra/gua-resolver/blob/main/docs/architecture/gua-identity-and-federation.md) explains the target in plain language. [ADM-001](https://github.com/Gua-ra/gua-resolver/blob/main/docs/decisions/ADM-001-identifier-binding-placement-trust.md) records the decision behind it.
+Everything above describes the app as it ships today. Two parts of the target design are not shipped yet: per-homeserver authentication (today every sign-in completes at the single Gua identity host) and verified routing (today the app follows the resolver's answer without verifying it against signed federation state). [Gua identity and federation](https://github.com/Gua-ra/gua-resolver/blob/main/docs/architecture/gua-identity-and-federation.md) explains the target; the decision record behind it is [ADM-001](https://github.com/Gua-ra/gua-resolver/blob/main/docs/decisions/ADM-001-identifier-binding-placement-trust.md) (identifier binding, placement and trust).
 
 ---
 

@@ -20,7 +20,8 @@ struct AccountAuthorityKeyPair {
 
 enum AccountAuthorityKeyStoreError: Error, Equatable {
     /// No authority key is stored for this accountId. The signup that registered the genesis must fail
-    /// rather than quietly fall back to a bootstrap account (ADM-008 decision 6).
+    /// rather than quietly fall back to a bootstrap account (ADM-008 decision 6: a presented handle that
+    /// fails to attach fails the signup).
     case keyMissing
     case keychain(String)
 }

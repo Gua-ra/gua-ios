@@ -41,8 +41,8 @@ enum AccountGenesisError: String, Error, Equatable {
 ///
 /// The decoder is strict in the three directions an ambiguity could enter: only the lowercase
 /// alphabet, only a character count an unpadded encoding can produce, and only zero trailing bits.
-/// Each of those is a way one byte string would otherwise gain several spellings, which ADM-001 L4
-/// forbids for anything a permanent identifier covers.
+/// Each of those is a way one byte string would otherwise gain several spellings, and a permanent
+/// identifier must have exactly one (ADM-001 L4).
 enum GuaBase32 {
     private static let alphabet = Array("abcdefghijklmnopqrstuvwxyz234567")
 
@@ -127,7 +127,7 @@ struct AccountID: Equatable {
     /// Root class byte: the account is rooted in an `AccountGenesis`.
     static let classGenesis: UInt8 = 0x01
 
-    /// Root class byte: the account is a bootstrap account (ADM-001 L5 path B1).
+    /// Root class byte: a bootstrap account, created without a client genesis (ADM-001 L5, path B1).
     static let classBootstrap: UInt8 = 0x00
 
     /// Bytes under the base32: format version, root class, then the 32-byte digest.
@@ -187,7 +187,7 @@ struct AccountID: Equatable {
         rawBytes[1]
     }
 
-    /// True for a genesis-rooted account, false for a bootstrap one (ADM-001 L5's audit marker).
+    /// True for a genesis-rooted account, false for a bootstrap one: the audit marker ADM-001 L5 asks for.
     var isGenesisRooted: Bool {
         rootClass == Self.classGenesis
     }
@@ -324,8 +324,8 @@ struct AccountGenesis: Equatable {
 
 // MARK: - BootstrapGenesis
 
-/// A `BootstrapGenesis` (ADM-008 suite 0x00). The client never mints one: identity-service does that
-/// for a signup that presented no handle (ADM-001 L5 path B1). The codec is here so the client can
+/// A `BootstrapGenesis` (ADM-008 suite 0x00). The client never creates one: identity-service does, for
+/// a signup that presented no handle (ADM-001 L5, path B1). The codec is here so the client can
 /// recognise and re-derive a bootstrap id, and so the golden vectors covering it are exercised.
 ///
 /// ```

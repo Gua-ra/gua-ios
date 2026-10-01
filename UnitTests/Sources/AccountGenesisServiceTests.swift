@@ -221,8 +221,8 @@ final class AccountGenesisServiceTests: XCTestCase {
 
         XCTAssertThrowsError(try service.attachProof(challenge: GuaBase64URL.encode([UInt8](repeating: 7, count: 32)),
                                                      for: pending)) { error in
-            // Failing the signup is the point: a device that registered a genesis and then creates an
-            // account without it is the silent bootstrap ADM-008 decision 6 forbids.
+            // The signup must fail: a device that registered a genesis and then creates an account
+            // without it is a silent bootstrap (ADM-008 decision 6).
             guard case AccountGenesisServiceError.keyUnavailable = error else {
                 return XCTFail("Expected keyUnavailable, got \(error).")
             }

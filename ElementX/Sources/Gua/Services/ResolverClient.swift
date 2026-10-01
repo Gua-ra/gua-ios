@@ -19,9 +19,10 @@ struct ResolvedHomeserver: Equatable {
 
 /// Outcome of resolving a phone number against the Gua resolver.
 struct HomeserverResolution: Equatable {
-    /// `true` when the resolver reports an account for this phone (→ login); `false` when it does not
-    /// (→ register). Current v1 wire contract: ADM-001 L16 schedules this explicit existence signal for
-    /// change (spike S4), see https://github.com/Gua-ra/gua-resolver/blob/main/docs/decisions/ADM-001-identifier-binding-placement-trust.md
+    /// `true` when the resolver reports an account for this phone (login); `false` when it does not
+    /// (register). `exists` is the v1 wire contract. The enumeration controls for `/resolve` (ADM-001
+    /// L16, spike S4) schedule this explicit existence signal for change:
+    /// https://github.com/Gua-ra/gua-resolver/blob/main/docs/decisions/ADM-001-identifier-binding-placement-trust.md
     let exists: Bool
     /// The homeserver to authenticate against (login) or create the account on (register).
     let homeserver: ResolvedHomeserver
@@ -46,8 +47,8 @@ struct ResolveOptions: Encodable, Equatable {
 
 /// Signed routing claims transported to the resolver as an opaque envelope (schema
 /// `gua-routing-claims.v1`). The client is a courier: it never mints or alters an envelope. No component
-/// issues these envelopes today, so this path is unexercised; how the resolver verifies them is governed
-/// by ADM-001 L8. Android counterpart: `ResolverRoutingClaimsEnvelope`.
+/// issues these envelopes today, so this path is unexercised; the identifier-proof policy (ADM-001 L8)
+/// governs how the resolver verifies them. Android counterpart: `ResolverRoutingClaimsEnvelope`.
 struct RoutingClaimsEnvelope: Codable, Equatable {
     let schemaVersion: String
     let issuer: String
@@ -82,7 +83,7 @@ struct DecisionTrace: Decodable, Equatable {
     let assignmentPolicy: String?
     let homeserverId: String?
     /// The roster version the resolver reports it decided against. Informational: the client does not verify
-    /// or pin it today (client-side verification is target architecture, ADM-001 L6).
+    /// or pin it today. Client-side verification of the roster is target architecture (ADM-001 L6).
     let rosterVersion: Int64?
 }
 
@@ -171,7 +172,8 @@ enum ResolverError: Error, LocalizedError {
 
 protocol ResolverClientProtocol: Sendable {
     /// Resolve a phone number to the homeserver it belongs to (or should be created on).
-    /// The resolver verifies nothing about the number (ADM-001 L16).
+    /// The resolver verifies nothing about the number; `/resolve` must not become a cheap
+    /// enumeration oracle (ADM-001 L16).
     func resolve(phoneNumber: String) async throws -> HomeserverResolution
 
     /// Resolve with the additive v1 contract fields (carrier and geo hints, routing claims, trace).
