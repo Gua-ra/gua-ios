@@ -28,10 +28,6 @@ class OIDCAccountSettingsPresenter: NSObject {
         super.init()
     }
 
-    /// Presents a web authentication session for the supplied data and returns once it
-    /// is dismissed, either because the page redirected to the callback URL or because
-    /// the user closed the sheet. Callers that need to act on the result of the web flow
-    /// (e.g. the identity-reset approval) must `await` this before continuing.
     /// GUA FORK: how the web sheet ended.
     enum Outcome {
         /// The page navigated to the app's own scheme: whatever it was asked to do, it finished.
@@ -40,8 +36,6 @@ class OIDCAccountSettingsPresenter: NSObject {
         case dismissed
     }
 
-    /// Resolves once the sheet is gone, saying whether the page came back to the app or was
-    /// dismissed.
     func start() async -> Outcome {
         await withCheckedContinuation { (continuation: CheckedContinuation<Outcome, Never>) in
             let session = ASWebAuthenticationSession(url: accountURL, callback: .oidcRedirectURL(oidcRedirectURL)) { callbackURL, _ in
@@ -57,11 +51,7 @@ class OIDCAccountSettingsPresenter: NSObject {
         }
     }
 
-    /// GUA FORK: closes the sheet from the app side.
-    ///
-    /// MAS's approval page never navigates to the callback URL, so the session has no reason to
-    /// dismiss itself and the user is left reading "go back to the app" with only an X to press.
-    /// Once we have established the approval landed, we close it for them.
+    /// GUA FORK: MAS's approval page never navigates to the callback URL, so the app closes the sheet itself.
     func dismiss() {
         session?.cancel()
         session = nil

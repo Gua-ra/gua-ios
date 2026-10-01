@@ -11,27 +11,13 @@ enum DeactivateAccountScreenViewModelAction {
     case accountDeactivated
 }
 
-/// Reauthentication phase used to gate deactivation. Mirrors the Matrix
-/// `m.login.msisdn` UIA stage: we must prove possession of the linked phone
-/// before honouring the destructive request.
-///
-/// GUA FORK: the number is typed rather than looked up. Identity-service never publishes which
-/// number an account is on; it digests what is submitted and compares it with that account's own
-/// directory binding, so confirming the number is itself part of the proof and no code is sent
-/// until it matches.
+/// GUA FORK: the number is typed, never looked up, and the server sends no code unless it matches the account.
 enum DeactivateAccountReauthPhase: Equatable {
-    /// Ready to send the OTP, once the account's own number has been typed. Initial state and after
-    /// a failed/cancelled attempt.
     case idle
-    /// OTP is being sent to the linked phone.
     case sendingCode
-    /// OTP has been sent; waiting for the user to enter it.
     case awaitingCode
-    /// Code is being verified.
     case verifyingCode
-    /// Reauth verified; ready to deactivate.
     case verified
-    /// Server returned an error in any of the steps.
     case error(String)
 }
 
@@ -42,8 +28,7 @@ struct DeactivateAccountScreenViewState: BindableState {
     let infoPoint3 = AttributedString(L10n.screenDeactivateAccountListItem3)
     let infoPoint4 = AttributedString(L10n.screenDeactivateAccountListItem4)
 
-    /// True only when the identity-service client is configured. When false we fall back to the
-    /// SDK's legacy password flow (preserved for development environments without a backend).
+    /// When false, the SDK's legacy password flow is used.
     let identityServiceAvailable: Bool
 
     var reauthPhase: DeactivateAccountReauthPhase = .idle
@@ -70,8 +55,6 @@ struct DeactivateAccountScreenViewState: BindableState {
 struct DeactivateAccountScreenViewStateBindings {
     var password = ""
     var eraseData = false
-    /// The number the account is on, as the user types it. Both reauth calls carry it: the server
-    /// keeps nothing between them and re-derives the comparison from what is submitted.
     var phoneNumber = ""
     var otpCode = ""
     var alertInfo: AlertInfo<DeactivateAccountScreenAlert>?

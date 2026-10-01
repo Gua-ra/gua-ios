@@ -212,9 +212,6 @@ class HomeScreenViewModelTests: XCTestCase {
         securityStateStateSubject.send(.init(verificationState: .verified, recoveryState: .disabled))
         try await deferred.fulfill()
         
-        // Then the banner should be the one that finishes setup silently. GUA FORK: an identity
-        // reset leaves recovery .disabled, and .setUpRecovery would hand the user a recovery key
-        // to write down.
         XCTAssertEqual(context.viewState.securityBannerMode, .show(.recoveryOutOfSync))
         
         // When the recovery is enabled.
@@ -227,15 +224,11 @@ class HomeScreenViewModelTests: XCTestCase {
     }
     
     func testTheBannerButtonRoutesToTheStagedRepair() {
-        // The banner is the ONLY encryption affordance a user has, so its button must go to the
-        // staged repair. If it points at .resetEncryption again, every tap skips straight to
-        // "Some previous messages can't be recovered" and the silent path becomes dead code.
         XCTAssertEqual(HomeScreenRecoveryKeyConfirmationBanner.State.recoveryOutOfSync.primaryAction,
                        .confirmRecoveryKey)
     }
 
     func testFinishSetupRepairsWithoutAskingToReset() async throws {
-        // Given a device whose key storage can still be repaired without discarding the backup.
         setupViewModel()
         let secureBackupController = try XCTUnwrap(clientProxy.secureBackupController as? SecureBackupControllerMock)
         secureBackupController.repairWithoutResetReturnValue = .repaired
@@ -243,19 +236,15 @@ class HomeScreenViewModelTests: XCTestCase {
         var receivedAction: HomeScreenViewModelAction?
         viewModel.actions.sink { receivedAction = $0 }.store(in: &cancellables)
 
-        // When the user taps the banner's button. Drive it through the banner's own primaryAction
-        // rather than naming the action: sending .confirmRecoveryKey directly is what let the
-        // banner sit on .resetEncryption for a whole release with these tests green.
+        // Uses the banner's own primaryAction, so a banner wired to the wrong action fails this test.
         context.send(viewAction: HomeScreenRecoveryKeyConfirmationBanner.State.recoveryOutOfSync.primaryAction)
         try await Task.sleep(for: .milliseconds(200))
 
-        // Then it repairs silently and never offers the destructive reset.
         XCTAssertEqual(secureBackupController.repairWithoutResetCallsCount, 1)
         XCTAssertNil(receivedAction)
     }
 
     func testFinishSetupAsksBeforeResettingWhenRepairIsImpossible() async throws {
-        // Given a device that cannot be finished without discarding the backup.
         setupViewModel()
         let secureBackupController = try XCTUnwrap(clientProxy.secureBackupController as? SecureBackupControllerMock)
         secureBackupController.repairWithoutResetReturnValue = .resetRequired
@@ -263,11 +252,9 @@ class HomeScreenViewModelTests: XCTestCase {
         var receivedAction: HomeScreenViewModelAction?
         viewModel.actions.sink { receivedAction = $0 }.store(in: &cancellables)
 
-        // When the user taps the banner's button, via the banner's own primaryAction.
         context.send(viewAction: HomeScreenRecoveryKeyConfirmationBanner.State.recoveryOutOfSync.primaryAction)
         try await Task.sleep(for: .milliseconds(200))
 
-        // Then the reset is disclosed rather than performed silently.
         XCTAssertEqual(secureBackupController.repairWithoutResetCallsCount, 1)
         XCTAssertEqual(receivedAction, .presentEncryptionResetScreen)
     }
@@ -405,91 +392,74 @@ class HomeScreenViewModelTests: XCTestCase {
     // MARK: - Account recovery banner
     
     func testAccountRecoveryBannerShowsWhilePendingEvenWhenThePinReminderIsSnoozed() async throws {
-        // Given an account with no factor and a live recovery, and a PIN reminder the user snoozed.
         appSettings.pinSetupReminderSnoozedUntil = Date().addingTimeInterval(24 * 60 * 60)
         let recovery = PendingAccountRecovery(completableAt: Date(timeIntervalSince1970: 2_000_000_000),
                                               expiresAt: Date(timeIntervalSince1970: 2_000_600_000))
         
-        // When the home screen reads the report at session start.
         setupViewModel(identityServiceStatus: Self.status(pendingAccountRecovery: recovery))
         try await deferFulfillment(context.$viewState) { $0.accountRecoveryBanner != nil }.fulfill()
         
-        // Then the recovery banner is up and the snooze only kept the nudge away.
         XCTAssertEqual(context.viewState.accountRecoveryBanner, recovery)
         XCTAssertFalse(context.viewState.pinSetupReminderVisible)
     }
     
     func testNoAccountRecoveryBannerWhenNothingIsPending() async throws {
-        // Given an account with no factor and nothing pending.
         setupViewModel(identityServiceStatus: Self.status(pendingAccountRecovery: nil))
         try await deferFulfillment(context.$viewState) { $0.pinSetupReminderVisible }.fulfill()
         
-        // Then only the nudge shows.
         XCTAssertNil(context.viewState.accountRecoveryBanner)
     }
     
     func testForegroundRefetchesTheAccountRecoveryStatus() async throws {
-        // Given a home screen that read a report with nothing pending.
         setupViewModel(identityServiceStatus: Self.status(pendingAccountRecovery: nil))
         try await waitUntil { self.identityService.securityStatusCalls == 1 }
         XCTAssertNil(context.viewState.accountRecoveryBanner)
         
-        // When someone starts a recovery while the app is in the background and it comes back.
         let recovery = PendingAccountRecovery(completableAt: nil, expiresAt: nil)
         identityService.status = Self.status(pendingAccountRecovery: recovery)
         let deferred = deferFulfillment(context.$viewState) { $0.accountRecoveryBanner != nil }
         notificationCenter.post(name: UIApplication.didBecomeActiveNotification, object: nil)
         try await deferred.fulfill()
         
-        // Then the report is read again and the banner appears.
         XCTAssertEqual(identityService.securityStatusCalls, 2)
         XCTAssertEqual(context.viewState.accountRecoveryBanner, recovery)
     }
     
     func testAFailedRefetchKeepsTheAccountRecoveryBanner() async throws {
-        // Given a banner for a live recovery.
         let recovery = PendingAccountRecovery(completableAt: nil, expiresAt: nil)
         setupViewModel(identityServiceStatus: Self.status(pendingAccountRecovery: recovery))
         try await deferFulfillment(context.$viewState) { $0.accountRecoveryBanner != nil }.fulfill()
         
-        // When the report cannot be read on the next foreground.
         identityService.status = nil
         notificationCenter.post(name: UIApplication.didBecomeActiveNotification, object: nil)
         try await waitUntil { self.identityService.securityStatusCalls == 2 }
         
-        // Then the banner stays: a bad network is no reason to hide it.
         XCTAssertEqual(context.viewState.accountRecoveryBanner, recovery)
     }
     
     func testCancelAccountRecoveryAsksFirstThenCancelsRefetchesAndConfirms() async throws {
-        // Given a banner for a live recovery.
         setupViewModel(identityServiceStatus: Self.status(pendingAccountRecovery: PendingAccountRecovery(completableAt: nil, expiresAt: nil)))
         try await deferFulfillment(context.$viewState) { $0.accountRecoveryBanner != nil }.fulfill()
         
-        // When the owner taps Cancel recovery.
         let alertShown = deferFulfillment(context.$viewState) { $0.bindings.alertInfo != nil }
         context.send(viewAction: .cancelAccountRecovery)
         try await alertShown.fulfill()
         
-        // Then nothing is cancelled until they confirm.
         XCTAssertEqual(context.alertInfo?.title, L10n.screenAccountRecoveryCancelConfirmTitle)
         XCTAssertEqual(identityService.cancelCalls, 0)
         
-        // When they confirm.
         let callsBeforeCancel = identityService.securityStatusCalls
         let bannerGone = deferFulfillment(context.$viewState) { $0.accountRecoveryBanner == nil }
         context.alertInfo?.secondaryButton?.action?()
         try await bannerGone.fulfill()
         try await waitUntil { self.userIndicatorController.submitIndicatorDelayReceivedArguments?.indicator.title == L10n.screenAccountRecoveryCancelled }
         
-        // Then the server is asked once, the report is read again, and the owner is told.
         XCTAssertEqual(identityService.cancelCalls, 1)
         XCTAssertEqual(identityService.securityStatusCalls, callsBeforeCancel + 1)
         XCTAssertNil(context.viewState.accountRecoveryBanner)
     }
     
     func testAStatusReadThatStartedBeforeACancelDoesNotBringTheBannerBack() async throws {
-        // Given a banner for a live recovery, and a foreground read that is still waiting on a slow network.
         setupViewModel(identityServiceStatus: Self.status(pendingAccountRecovery: PendingAccountRecovery(completableAt: nil, expiresAt: nil)))
         try await deferFulfillment(context.$viewState) { $0.accountRecoveryBanner != nil }.fulfill()
         identityService.holdsStatusReads = true
@@ -497,7 +467,6 @@ class HomeScreenViewModelTests: XCTestCase {
         try await waitUntil { self.identityService.securityStatusCalls == 2 }
         identityService.holdsStatusReads = false
         
-        // When the owner cancels before that read comes back.
         let alertShown = deferFulfillment(context.$viewState) { $0.bindings.alertInfo != nil }
         context.send(viewAction: .cancelAccountRecovery)
         try await alertShown.fulfill()
@@ -505,18 +474,15 @@ class HomeScreenViewModelTests: XCTestCase {
         try await waitUntil { self.userIndicatorController.submitIndicatorDelayReceivedArguments?.indicator.title == L10n.screenAccountRecoveryCancelled }
         XCTAssertNil(context.viewState.accountRecoveryBanner)
         
-        // And the old read, which still saw the recovery as pending, finally returns.
         identityService.releaseHeldStatusReads()
         try await waitUntil { self.identityService.securityStatusReturns == 3 }
         try await Task.sleep(for: .milliseconds(100))
         
-        // Then it describes the account as it was before the cancel and is ignored.
         XCTAssertEqual(identityService.cancelCalls, 1)
         XCTAssertNil(context.viewState.accountRecoveryBanner)
     }
     
     func testCancelThatLeavesTheRecoveryLiveKeepsTheBannerAndSaysSo() async throws {
-        // Given a banner for a live recovery, and a server that accepts the cancel but still reports it live.
         let recovery = PendingAccountRecovery(completableAt: nil, expiresAt: nil)
         setupViewModel(identityServiceStatus: Self.status(pendingAccountRecovery: recovery))
         identityService.cancelClearsRecovery = false
@@ -526,13 +492,11 @@ class HomeScreenViewModelTests: XCTestCase {
         context.send(viewAction: .cancelAccountRecovery)
         try await alertShown.fulfill()
         
-        // When the owner confirms.
         let callsBeforeCancel = identityService.securityStatusCalls
         let errorShown = deferFulfillment(context.$viewState) { $0.bindings.alertInfo?.message == L10n.screenAccountRecoveryCancelFailed }
         context.alertInfo?.secondaryButton?.action?()
         try await errorShown.fulfill()
         
-        // Then the fresh read puts the banner back and no toast claims the recovery was cancelled.
         XCTAssertEqual(identityService.cancelCalls, 1)
         XCTAssertEqual(identityService.securityStatusCalls, callsBeforeCancel + 1)
         XCTAssertEqual(context.viewState.accountRecoveryBanner, recovery)
@@ -540,7 +504,6 @@ class HomeScreenViewModelTests: XCTestCase {
     }
     
     func testCancelAccountRecoveryFailureKeepsTheBannerAndSaysSo() async throws {
-        // Given a banner for a live recovery and a server that refuses the cancel.
         let recovery = PendingAccountRecovery(completableAt: nil, expiresAt: nil)
         setupViewModel(identityServiceStatus: Self.status(pendingAccountRecovery: recovery))
         identityService.cancelError = IdentityServiceError.server(status: 500, message: nil)
@@ -550,12 +513,10 @@ class HomeScreenViewModelTests: XCTestCase {
         context.send(viewAction: .cancelAccountRecovery)
         try await alertShown.fulfill()
         
-        // When the owner confirms.
         let errorShown = deferFulfillment(context.$viewState) { $0.bindings.alertInfo?.message == L10n.screenAccountRecoveryCancelFailed }
         context.alertInfo?.secondaryButton?.action?()
         try await errorShown.fulfill()
         
-        // Then the banner is still there.
         XCTAssertEqual(identityService.cancelCalls, 1)
         XCTAssertEqual(context.viewState.accountRecoveryBanner, recovery)
     }
@@ -564,17 +525,11 @@ class HomeScreenViewModelTests: XCTestCase {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         let later = now.addingTimeInterval(3 * 24 * 60 * 60)
         
-        // A date, never a clock time: an exact minute would read as a deadline to sit through, and
-        // it would publish when the account was last used.
         XCTAssertEqual(HomeScreenAccountRecoveryBanner.message(for: .init(completableAt: later, expiresAt: nil), now: now),
                        L10n.screenAccountRecoveryBannerMessageLater(later.formatted(date: .long, time: .omitted)))
         XCTAssertFalse(HomeScreenAccountRecoveryBanner.message(for: .init(completableAt: later, expiresAt: nil), now: now)
             .contains(later.formatted(date: .omitted, time: .shortened)))
 
-        // The day it names is the day it can be finished, not the day after. The server sends an
-        // exact instant and only its date is shown, so "after <date>" would hand the owner a day
-        // they do not have on the one surface whose job is to get them to cancel in time. The year
-        // stays with it: both apps print the same shape for the same recovery.
         let laterMessage = HomeScreenAccountRecoveryBanner.message(for: .init(completableAt: later, expiresAt: nil), now: now)
         XCTAssertTrue(laterMessage.contains(later.formatted(.dateTime.year())))
         XCTAssertFalse(laterMessage.lowercased().contains("after"))
@@ -588,29 +543,24 @@ class HomeScreenViewModelTests: XCTestCase {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         let interval = Duration.seconds(15 * 60)
         
-        // Nothing live, or nothing dated: the regular interval.
         XCTAssertEqual(HomeScreenViewModel.accountRecoveryReadDelay(for: nil, now: now), interval)
         XCTAssertEqual(HomeScreenViewModel.accountRecoveryReadDelay(for: .init(completableAt: nil, expiresAt: nil), now: now), interval)
         
-        // Finishable before the next tick: read a second after that moment.
         XCTAssertEqual(HomeScreenViewModel.accountRecoveryReadDelay(for: .init(completableAt: now.addingTimeInterval(180),
                                                                                expiresAt: now.addingTimeInterval(360)),
                                                                     now: now),
                        .seconds(181))
         
-        // Finishable already and running out before the next tick: read a second after it runs out.
         XCTAssertEqual(HomeScreenViewModel.accountRecoveryReadDelay(for: .init(completableAt: now.addingTimeInterval(-60),
                                                                                expiresAt: now.addingTimeInterval(120)),
                                                                     now: now),
                        .seconds(121))
         
-        // Both moments further away than the next tick: the regular interval.
         XCTAssertEqual(HomeScreenViewModel.accountRecoveryReadDelay(for: .init(completableAt: now.addingTimeInterval(3 * 24 * 60 * 60),
                                                                                expiresAt: now.addingTimeInterval(10 * 24 * 60 * 60)),
                                                                     now: now),
                        interval)
         
-        // Both moments passed, or arriving right now, while the server still reports it: the regular interval.
         XCTAssertEqual(HomeScreenViewModel.accountRecoveryReadDelay(for: .init(completableAt: now.addingTimeInterval(-120),
                                                                                expiresAt: now.addingTimeInterval(-60)),
                                                                     now: now),
@@ -619,8 +569,6 @@ class HomeScreenViewModelTests: XCTestCase {
     }
     
     func testTheBannerComesDownWhenTheRecoveryRunsOutBeforeTheNextTick() async throws {
-        // Given a recovery that runs out well before the next regular read, reported by a session start
-        // read that comes back only after the timer has started waiting with no banner up.
         let recovery = PendingAccountRecovery(completableAt: nil, expiresAt: Date.now.addingTimeInterval(1))
         setupViewModel(identityServiceStatus: Self.status(pendingAccountRecovery: recovery))
         identityService.holdsStatusReads = true
@@ -632,56 +580,45 @@ class HomeScreenViewModelTests: XCTestCase {
         try await bannerShown.fulfill()
         XCTAssertEqual(identityService.securityStatusCalls, 1)
         
-        // When it runs out on the server.
         identityService.status = Self.status(pendingAccountRecovery: nil)
         
-        // Then the report is read again just after that moment and the banner comes down.
         try await deferFulfillment(context.$viewState, timeout: 5) { $0.accountRecoveryBanner == nil }.fulfill()
         XCTAssertEqual(identityService.securityStatusCalls, 2)
     }
     
     func testAFailedReadIsFollowedByAnEarlyReRead() async throws {
-        // Given a report that cannot be read at session start, like a 401 for an expired access token.
         setupViewModel(identityServiceStatus: nil, securityStatusRetryDelay: .milliseconds(50))
         try await waitUntil { self.identityService.securityStatusCalls == 1 }
         
-        // When the report can be read again.
         let recovery = PendingAccountRecovery(completableAt: nil, expiresAt: nil)
         identityService.status = Self.status(pendingAccountRecovery: recovery)
         
-        // Then it is read again soon, not at the next tick, and the banner appears.
         try await deferFulfillment(context.$viewState, timeout: 5) { $0.accountRecoveryBanner != nil }.fulfill()
         XCTAssertEqual(identityService.securityStatusCalls, 2)
         XCTAssertEqual(context.viewState.accountRecoveryBanner, recovery)
     }
     
     func testFailedReadsScheduleOneReRead() async throws {
-        // Given a report that cannot be read at session start.
         setupViewModel(identityServiceStatus: nil, securityStatusRetryDelay: .milliseconds(200))
         try await waitUntil { self.identityService.securityStatusCalls == 1 }
         
-        // When two foreground reads fail too before the re-read is due.
         notificationCenter.post(name: UIApplication.didBecomeActiveNotification, object: nil)
         notificationCenter.post(name: UIApplication.didBecomeActiveNotification, object: nil)
         try await waitUntil { self.identityService.securityStatusCalls == 3 }
         
-        // Then only one re-read follows, and when it fails as well it is not retried again.
         try await waitUntil { self.identityService.securityStatusCalls == 4 }
         try await Task.sleep(for: .milliseconds(600))
         XCTAssertEqual(identityService.securityStatusCalls, 4)
     }
     
     func testASuccessfulReadDropsThePendingReRead() async throws {
-        // Given a report that could not be read at session start.
         setupViewModel(identityServiceStatus: nil, securityStatusRetryDelay: .milliseconds(200))
         try await waitUntil { self.identityService.securityStatusCalls == 1 }
         
-        // When a foreground read succeeds before the re-read is due.
         identityService.status = Self.status(pendingAccountRecovery: nil)
         notificationCenter.post(name: UIApplication.didBecomeActiveNotification, object: nil)
         try await waitUntil { self.identityService.securityStatusCalls == 2 }
         
-        // Then there is nothing left to re-read.
         try await Task.sleep(for: .milliseconds(500))
         XCTAssertEqual(identityService.securityStatusCalls, 2)
     }
@@ -697,7 +634,6 @@ class HomeScreenViewModelTests: XCTestCase {
                               pendingAccountRecovery: pendingAccountRecovery)
     }
     
-    /// For state that is not published: polls until `condition` holds or a second has passed.
     private func waitUntil(file: StaticString = #filePath, line: UInt = #line, _ condition: () -> Bool) async throws {
         for _ in 0..<100 {
             if condition() { return }
@@ -754,16 +690,11 @@ class HomeScreenViewModelTests: XCTestCase {
 
 // MARK: - Stub
 
-/// GUA FORK: the identity service as the home screen sees it: a security report to read and a
-/// recovery to cancel. Cancelling clears the pending recovery, as the server does, unless a test
-/// says otherwise.
 @MainActor
 private final class HomeScreenIdentityServiceStub: IdentityServiceClientProtocol {
-    /// `nil` stands for a report that could not be read.
     var status: AccountSecurityStatus?
     var cancelError: Error?
     var cancelClearsRecovery = true
-    /// While set, reads wait for `releaseHeldStatusReads()`, like reads on a slow network.
     var holdsStatusReads = false
     private var heldStatusReads: [CheckedContinuation<Void, Never>] = []
     private(set) var securityStatusCalls = 0
@@ -776,7 +707,7 @@ private final class HomeScreenIdentityServiceStub: IdentityServiceClientProtocol
 
     func securityStatus(accessToken: String) async throws -> AccountSecurityStatus {
         securityStatusCalls += 1
-        // A read reports the account as it was when the request reached the server.
+        // Captured before the wait: a read reports the account as it was when the request arrived.
         let status = status
         if holdsStatusReads {
             await withCheckedContinuation { heldStatusReads.append($0) }
