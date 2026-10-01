@@ -70,6 +70,7 @@
 "gua_encryption_reset_not_approved" = "Setup wasn’t approved. Tap Reset and finish setup to try again.";
 /* Toast when the approval came back but the setup could not be confirmed in time. */
 "gua_encryption_reset_failed" = "Couldn’t finish setup. Tap Reset and finish setup to try again.";
+"gua_encryption_reset_still_finishing" = "Setup is taking longer than expected. It continues in the background; you can wait here or come back later.";
 
 // MARK: - Gua: recovering keys from another device
 

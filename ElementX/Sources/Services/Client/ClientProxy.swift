@@ -154,13 +154,21 @@ class ClientProxy: ClientProxyProtocol {
     var roomsToAwait: Set<String> = []
     
     private let sendQueueStatusSubject = CurrentValueSubject<Bool, Never>(false)
+
+    /// GUA FORK: the SDK hands out the initialisation task's handle exactly once, so a second
+    /// caller of `waitForE2eeInitializationTasks` returns immediately without waiting. Taking it
+    /// here, once, lets every caller await the same completion.
+    private let e2eeInitialization: Task<Void, Never>
     
     init(client: ClientProtocol,
          networkMonitor: NetworkMonitorProtocol,
-         appSettings: AppSettings) async throws {
+         appSettings: AppSettings,
+         persistRecoveryKey: @escaping (String) -> Void) async throws {
         self.client = client
         self.networkMonitor = networkMonitor
         self.appSettings = appSettings
+
+        e2eeInitialization = Task { await client.encryption().waitForE2eeInitializationTasks() }
         
         clientQueue = .init(label: "ClientProxyQueue", attributes: .concurrent)
         
@@ -168,7 +176,12 @@ class ClientProxy: ClientProxyProtocol {
         
         notificationSettings = await NotificationSettingsProxy(notificationSettings: client.getNotificationSettings())
         
-        secureBackupController = SecureBackupController(encryption: client.encryption(), userID: (try? client.userId()) ?? "")
+        // GUA FORK: the keychain stays with `UserSessionStore`; the controller only gets a way to
+        // store the recovery keys it mints.
+        secureBackupController = SecureBackupController(encryption: client.encryption(),
+                                                        userID: (try? client.userId()) ?? "",
+                                                        e2eeInitialization: e2eeInitialization,
+                                                        persistRecoveryKey: persistRecoveryKey)
         
         spaceService = await SpaceServiceProxy(spaceService: client.spaceService())
         
@@ -350,6 +363,11 @@ class ClientProxy: ClientProxyProtocol {
     }
 
     func startSync() {
+        guard identityResetGuard == nil else {
+            MXLog.info("Ignoring request, an identity reset holds the sync.")
+            return
+        }
+
         guard !hasEncounteredAuthError else {
             MXLog.warning("Ignoring request, this client has an unknown token.")
             return
@@ -363,6 +381,11 @@ class ClientProxy: ClientProxyProtocol {
         MXLog.info("Starting sync")
         
         Task {
+            guard identityResetGuard == nil else {
+                MXLog.info("Not starting sync, an identity reset took the hold meanwhile.")
+                return
+            }
+
             await syncService.start()
             
             // If we are using OIDC we want to cache the account management URL in volatile memory on the SDK side.
@@ -375,9 +398,49 @@ class ClientProxy: ClientProxyProtocol {
     /// it when `stopSync` is called (e.g. when signing out) to prevent an otherwise infinite
     /// loop that was triggered by trying to sync a signed out session.
     @CancellableTask private var restartTask: Task<Void, Never>?
+
+    private var identityResetGuard: IdentityResetGuard?
+    private var latestSyncServiceState: SyncServiceState = .idle
+
+    static func maySyncStart(identityResetHeld: Bool, hasEncounteredAuthError: Bool, isReachable: Bool) -> Bool {
+        !identityResetHeld && !hasEncounteredAuthError && isReachable
+    }
+
+    func acquireIdentityResetGuard() async -> IdentityResetGuardProtocol {
+        if let identityResetGuard {
+            return identityResetGuard
+        }
+
+        let guardUserID = userID
+        let newGuard = IdentityResetGuard(dependencies: .init(stopSync: { [syncService] in await syncService.stop() },
+                                                              startSync: { [weak self] in await self?.startSyncAwaitingRunning() },
+                                                              isSyncRunning: { [weak self] in self?.latestSyncServiceState == .running },
+                                                              writeMarker: { [appSettings] date in appSettings.setIdentityResetStartedAt(date, forUserID: guardUserID) },
+                                                              resetLanded: { IdentityResetPendingStore.clear(for: guardUserID) },
+                                                              provisionAfterReset: { [weak self] in _ = await self?.secureBackupController.provisionAfterReset() },
+                                                              onReleased: { [weak self] in self?.identityResetGuard = nil }))
+        await newGuard.acquire { [self] in
+            identityResetGuard = newGuard
+            restartTask = nil
+        }
+        return newGuard
+    }
+
+    private func startSyncAwaitingRunning() async {
+        guard Self.maySyncStart(identityResetHeld: identityResetGuard != nil,
+                                hasEncounteredAuthError: hasEncounteredAuthError,
+                                isReachable: networkMonitor.reachabilityPublisher.value == .reachable) else {
+            MXLog.warning("Not restarting sync after the identity reset: auth error or network unreachable.")
+            return
+        }
+
+        MXLog.info("Starting sync after the identity reset")
+        await syncService.start()
+        await cacheAccountURL()
+    }
     
     func restartSync() {
-        guard restartTask == nil else { return }
+        guard restartTask == nil, identityResetGuard == nil else { return }
         
         restartTask = Task { [weak self] in
             do {
@@ -963,6 +1026,7 @@ class ClientProxy: ClientProxyProtocol {
             guard let self else { return }
             
             MXLog.info("Received sync service update: \(state)")
+            latestSyncServiceState = state
             
             switch state {
             case .running, .terminated, .idle:
@@ -1134,6 +1198,10 @@ class ClientProxy: ClientProxyProtocol {
         }
     }
     
+    func waitForE2EEInitialization() async {
+        await e2eeInitialization.value
+    }
+
     func resetIdentity() async -> Result<IdentityResetHandle?, ClientProxyError> {
         do {
             return try await .success(client.encryption().resetIdentity())

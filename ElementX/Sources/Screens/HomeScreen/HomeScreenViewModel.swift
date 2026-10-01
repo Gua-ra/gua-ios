@@ -318,6 +318,8 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
         case .resetRequired:
             MXLog.info("GUA-KEYSTORE: setup needs a reset, asking first.")
             actionsSubject.send(.presentEncryptionResetScreen)
+        case .identityIncompleteAfterReset:
+            MXLog.info("GUA-KEYSTORE: the account is incomplete after a reset, leaving the banner.")
         }
     }
 
