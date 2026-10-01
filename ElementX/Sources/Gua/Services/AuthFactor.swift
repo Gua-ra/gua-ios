@@ -8,23 +8,23 @@ import Foundation
 
 /// GUA FORK: a factor the identity service can require, accept, or fall back to.
 ///
-/// The names and the order are the server's: strongest first, and that order is the point. A
-/// passkey is the preferred strong factor and the PIN is the fallback for whoever cannot use one,
-/// so a screen offers the first factor in this list that the account holds and walks down from
-/// there, instead of every screen re-deciding the rule from a single `hasPin` boolean.
+/// The server defines the names and the order, strongest first. A passkey is the preferred strong
+/// factor and the PIN is the fallback for whoever cannot use one, so a screen offers the first
+/// factor in this list that the account holds and walks down from there, instead of re-deciding
+/// the rule from a single `hasPin` boolean.
 ///
-/// Every case means REGISTERED ON THE SERVER. None of them means "usable on the device making this
-/// call", which only the client can know. That difference is not cosmetic: registration is
-/// something the server looks up and an attacker cannot assert, while usability is a claim, so it
-/// steers what this app offers first and is never sent anywhere as an input to a security decision.
+/// Every case means REGISTERED ON THE SERVER, never "usable on the device making this call", which
+/// only the client can know. Registration is something the server looks up and an attacker cannot
+/// assert. Usability is a client-side claim: it decides what the app offers first and is never sent
+/// to the server as an input to a security decision.
 enum AuthFactor: Equatable {
     /// A WebAuthn credential registered to the account. Strongest, because a step-up assertion also
     /// proves the authenticator verified the human.
     case passkey
     /// The account PIN. The fallback for everyone who cannot produce an assertion right now.
     case pin
-    /// An SMS code to the number on file. Enough to sign in and to re-authenticate, and
-    /// deliberately not enough on its own to re-point the number it is delivered to.
+    /// An SMS code to the number on file. Enough to sign in and to re-authenticate, never enough on
+    /// its own to change the account's number.
     case phoneOTP
     /// A factor a newer server named that this build does not know. Never counted as one this
     /// client holds or can produce, so an unrecognized value can only ever make the app ask for a
@@ -41,7 +41,7 @@ enum AuthFactor: Equatable {
     }
 }
 
-/// GUA FORK: the privileged operation a reauth token may be spent on (`/account/reauth/verify`).
+/// GUA FORK: the privileged operation a reauth token may be used for (`/account/reauth/verify`).
 ///
 /// The server binds the token it mints to one of these and refuses it anywhere else, so a token
 /// taken out to deactivate an account cannot be redirected into a phone change. Every call site
@@ -54,9 +54,8 @@ enum ReauthOperation: String {
 
 /// GUA FORK: what `GET /security/pin/status` reports about the account's factors.
 ///
-/// This is the server's factor signal, and it replaces the four places that used to decide which
-/// factor was required from `hasPin` alone. All of it is about registration. Nothing in it
-/// describes the device in front of the user.
+/// This is the server's factor signal; screens read it instead of deciding from `hasPin` alone.
+/// All of it is about registration. Nothing in it describes the device in front of the user.
 struct AccountSecurityStatus: Equatable {
     /// The account has a security PIN configured.
     let hasPin: Bool
@@ -69,12 +68,11 @@ struct AccountSecurityStatus: Equatable {
     /// The factors `POST /account/phone/change/start` accepts as its step-up, strongest first,
     /// exactly as published. Empty when the deployment did not report the list.
     let phoneChangeStepUpFactors: [AuthFactor]
-    /// Seconds still to run on the fresh-2FA hold before the account PIN may be spent as the
-    /// step-up factor on a phone change. `nil` means the server did not report it, which is not the
-    /// same as zero: a missing value used to be read as "no hold", which left the pre-check inert.
-    /// It is also silent about the separate per-account phone-change cooldown, and about the hold a
-    /// freshly registered passkey carries, so read it when about to offer the PIN rather than as
-    /// "can this account change its number now".
+    /// Seconds still to run on the fresh-2FA hold before the account PIN may be used as the step-up
+    /// factor on a phone change. `nil` is unknown, not zero; never treat it as no hold. It says
+    /// nothing about the per-account phone-change cooldown or the hold a freshly registered passkey
+    /// carries, so read it when about to offer the PIN, not as "can this account change its number
+    /// now".
     let pinStepUpHoldRemainingSeconds: Int?
     /// A delayed account recovery that is live on the account right now, or `nil` when there is
     /// none. Also `nil` from a deployment that does not report recovery at all, which is the same
@@ -95,16 +93,16 @@ struct AccountSecurityStatus: Equatable {
     /// The step-up factors this account can be offered for a phone change, strongest first.
     ///
     /// The accepted list is the server's. When a deployment does not publish one, the app falls
-    /// back to passkey-then-PIN, which is what the server enforces: that keeps an older deployment
-    /// working without inventing a weaker rule, and the server still has the last word, since it
-    /// answers `step_up_required` to anyone who produces nothing it accepts.
+    /// back to passkey-then-PIN, the rule the server enforces, so an older deployment keeps working
+    /// without a weaker rule. The server still has the last word: it answers `step_up_required` to
+    /// anyone who produces nothing it accepts.
     var offerablePhoneChangeStepUpFactors: [AuthFactor] {
         let accepted = phoneChangeStepUpFactors.isEmpty ? [AuthFactor.passkey, .pin] : phoneChangeStepUpFactors
         return accepted.filter(isRegistered)
     }
 
     /// True when the account holds a factor stronger than an SMS code, which is what the
-    /// "set up two-step verification" nudges are actually asking for. A passkey holder has one.
+    /// "set up two-step verification" nudges ask for. A passkey holder has one.
     var holdsStrongFactor: Bool {
         hasPin || passkeyRegistered
     }
@@ -124,7 +122,7 @@ struct PendingAccountRecovery: Equatable {
     let expiresAt: Date?
 }
 
-/// GUA FORK: a step-up ceremony minted by `POST /security/passkey/stepup/options`, pinned to the
+/// GUA FORK: a step-up ceremony issued by `POST /security/passkey/stepup/options`, pinned to the
 /// authenticated caller. The `stepUpID` travels back with the assertion on the operation being
 /// stepped up; the challenge is single use whether it is accepted or refused.
 struct PasskeyStepUpOptions: Equatable {

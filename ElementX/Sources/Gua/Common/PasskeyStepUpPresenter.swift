@@ -9,15 +9,13 @@ import AuthenticationServices
 /// GUA FORK: runs the user-verifying passkey assertion that a privileged operation accepts as its
 /// step-up factor, currently the phone-number change.
 ///
-/// Native rather than web, unlike ``FactorEnrollmentPresenter``: `POST
-/// /security/passkey/stepup/options` hands back WebAuthn request options rather than a page, and
-/// the assertion has to come back as JSON so it can travel in the body of the operation being
-/// stepped up.
+/// Native rather than web, unlike ``FactorEnrollmentPresenter``: `POST /security/passkey/stepup/options`
+/// returns WebAuthn request options rather than a page, and the assertion travels as JSON in the body
+/// of the operation being stepped up.
 ///
-/// Everything this type can report is about THIS DEVICE, and none of it is ever sent anywhere. A
-/// failure here makes the caller ask for the next factor down, which is the PIN; the server is not
-/// told that a passkey was unavailable, because that claim costs an attacker nothing and could only
-/// ever be a request for the weaker factor.
+/// Everything this type reports is about this device and none of it is sent anywhere. On failure the
+/// caller asks for the next factor down, the PIN. The server is not told that a passkey was
+/// unavailable: that claim costs an attacker nothing and could only be a request for the weaker factor.
 @MainActor
 protocol PasskeyStepUpPresenting {
     /// Presents the system passkey sheet for `options` and returns the assertion to redeem.

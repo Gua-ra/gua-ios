@@ -206,10 +206,9 @@ struct AccountID: Equatable {
 /// It commits the initial authority key, the algorithm identifiers, and the initial recovery authority
 /// and framework. It holds no identifier and no homeserver (ADM-001 L4).
 ///
-/// The layout is fixed and has no delimiters, which is what ADM-008 chose over ADM-007's `gua-lp.v1`
-/// framing for account objects: they carry no optional fields, no sets and no free strings, and the
-/// accountId is a permanent hash of these bytes, so the bytes that are hashed have to be the bytes that
-/// crossed the wire.
+/// The layout is fixed and has no delimiters (ADM-008 chose this over the `gua-lp.v1` framing of
+/// ADM-007): account objects carry no optional fields, no sets and no free strings, and the accountId
+/// is a permanent hash of these bytes, so the bytes hashed must be the bytes that crossed the wire.
 ///
 /// ```
 /// off len field
@@ -370,17 +369,16 @@ struct BootstrapGenesis: Equatable {
 
 /// The two possession proofs ADM-008 defines, and the fixed-length preimages they cover.
 ///
-/// **Registration proof** (decision 3). An Ed25519 signature by the authority key over the ASCII domain
+/// **Registration proof** (decision 3): an Ed25519 signature by the authority key over the ASCII domain
 /// `gua-account-genesis-proof.v1` followed by the canonical bytes. It proves the registrant holds the
 /// key and is not part of the genesis. No identifier appears in the preimage: an MXID there would put
 /// an identifier into the id.
 ///
-/// **Attach proof** (decision 6). An Ed25519 signature by the same committed authority key over the
-/// domain `gua-account-attach-proof.v1`, then the 32 server-chosen challenge bytes, then the 34 raw
-/// accountId bytes. Every element is fixed length, so no field can be shifted into another: 27 + 32 +
-/// 34. A handle alone attaches nothing, because anyone can compose an authorize URL carrying someone
-/// else's handle; only this signature shows that the party which registered the genesis held its key
-/// and was present in this login session.
+/// **Attach proof** (decision 6): an Ed25519 signature by the same authority key over the domain
+/// `gua-account-attach-proof.v1`, the 32 server-chosen challenge bytes, then the 34 raw accountId
+/// bytes. Every element is fixed length (27 + 32 + 34), so no field can shift into another. A handle
+/// alone attaches nothing, because anyone can compose an authorize URL carrying someone else's handle;
+/// only this signature proves that the registrant holds the key and is present in this login session.
 enum GenesisProofs {
     /// 28 ASCII bytes.
     static let genesisProofDomain = "gua-account-genesis-proof.v1"

@@ -10,35 +10,19 @@ import Foundation
 // GUA FORK: Change-phone-number flow. Mirrors the multi-step structure of the
 // TwoStepVerificationScreen (PIN/OTP bubble fields, country-aware phone entry).
 //
-// The contract is the identity service's account endpoints. On intro Continue the screen reads
-// `GET /security/pin/status`, which reports what the account HAS REGISTERED and which factors a
-// phone change accepts, and that report is what decides the route:
-//   • the account can offer none of the accepted factors → ``stepUpRequired``, a hard block that
-//     offers a choice between setting up a passkey and setting up a PIN. Deliberately first, so an
-//     account that cannot finish the flow is never texted anything at all.
-//   • the only factor it can offer is the PIN and that PIN is still inside the fresh-2FA hold
-//     (`changePhoneCooldownRemainingSeconds`) → ``cooldown``. The hold is about the PIN, so an
-//     account that can offer a passkey is not held by it.
-//   • otherwise → ``currentPhone`` and onward.
-// Flow:
-//   ``intro`` → ``currentPhone`` (the number the account is on today, typed rather than looked up)
-//   → ``reauth`` (`POST /account/reauth/start` checks that number against the account's own
-//      directory binding and only then texts it, then `/account/reauth/verify` takes the number
-//      again with the code and mints a single-use token scoped to PHONE_CHANGE)
-//   → ``newPhone`` (country-aware entry of the new number)
-//   → the step-up, strongest factor first: a user-verifying passkey assertion from
-//      `POST /security/passkey/stepup/options` when this device can produce one, otherwise the
-//      account PIN at ``pin``
-//   → `POST /account/phone/change/start`, which spends the reauth token and the step-up together
-//      and only then texts the NEW number
-//   → ``otp`` (the code that arrived there; `POST /account/phone/change/complete` re-binds
-//      atomically) → ``done``.
+// On intro Continue the screen reads `GET /security/pin/status` and routes on what the account has
+// registered:
+//   - none of the factors a phone change accepts -> ``stepUpRequired``, a hard block that offers
+//     passkey or PIN setup. Checked first, so an account that cannot finish is never texted.
+//   - only the PIN, and it is inside the fresh-2FA hold -> ``cooldown``. A passkey holder is not held.
+//   - otherwise -> ``currentPhone``, ``reauth``, ``newPhone``, the step-up (passkey assertion when
+//     this device can produce one, else ``pin``), ``otp``, ``done``. The endpoint behind each step is
+//     documented on the view-model method that calls it.
 //
-// Two orderings are load-bearing and must survive any edit here. Nothing is sent to the new number
-// until a step-up has actually been accepted, which is the server's own sequencing inside
-// `/start`. And the hard block is hard: `403 step_up_required` ends the operation rather than
-// falling back to the reauth token, which only ever proved an SMS to a number a SIM-swap attacker
-// may already hold.
+// Two orderings must survive any edit here. Nothing is sent to the new number until the server has
+// accepted a step-up inside `POST /account/phone/change/start`. And `403 step_up_required` ends the
+// operation: there is no fallback to the reauth token, which only proved an SMS to a number a
+// SIM-swap attacker may already hold.
 
 enum ChangePhoneScreenViewModelAction {
     case close

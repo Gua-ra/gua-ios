@@ -36,20 +36,17 @@ protocol AccountAuthorityKeyStoreProtocol {
 
 /// Device-only storage for the account authority and recovery keys.
 ///
-/// ADM-008 decision 5 requires these to stay device-only and non-synced, and its Consequences section
-/// accepts what follows: they are unescrowed, so a lost device loses authority. The store therefore
-/// keeps them in the keychain under `whenUnlockedThisDeviceOnly`, which never rides iCloud Keychain and
-/// never lands in an encrypted device backup, with `synchronizable` explicitly off. This is deliberately
-/// the opposite of `KeychainController.recoveryKeychain`, whose whole point is to sync.
+/// The keys stay device-only and non-synced, so they are unescrowed and a lost device loses authority
+/// (ADM-008 decision 5, whose Consequences section accepts this). The store keeps them in the keychain
+/// under `whenUnlockedThisDeviceOnly`, which iCloud Keychain never syncs and no device backup includes,
+/// with `synchronizable` explicitly off: the opposite of `KeychainController.recoveryKeychain`, which
+/// exists to sync.
 ///
 /// The keys are never written to disk by this app, never logged, and never leave this store: callers
-/// receive a signing key to sign one fixed-length preimage with, not raw key bytes.
+/// receive a signing key for one fixed-length preimage, not raw key bytes.
 ///
-/// On the hardware question: an Ed25519 key cannot be Secure-Enclave-resident on iOS, because the
-/// Enclave holds P-256 only. Suite 0x01 is Ed25519 (ADM-008 decision 5), and the same decision reserves
-/// the suite byte for a hardware-resident P-256 suite, which is where non-extractability arrives. Until
-/// then the guarantee this store makes is the one the keychain can actually keep: generated on device,
-/// never synced, never backed up, never written anywhere else.
+/// Ed25519 cannot live in the Secure Enclave (P-256 only). Suite 0x01 is Ed25519; the suite byte
+/// reserves a hardware-resident P-256 suite for later (ADM-008 decision 5).
 @MainActor
 final class AccountAuthorityKeyStore: AccountAuthorityKeyStoreProtocol {
     private let keychain: Keychain
