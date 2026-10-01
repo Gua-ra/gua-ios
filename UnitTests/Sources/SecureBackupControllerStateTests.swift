@@ -10,14 +10,6 @@ import Combine
 import MatrixRustSDK
 import XCTest
 
-/// Ownership of the published recovery state while recovery is being enabled.
-///
-/// Terminal values (`.enabled`, `.incomplete`, `.disabled`) belong to the SDK: they are what it
-/// recomputed, delivered through its recovery-state listener or read back from it. The progress
-/// listener owns only the transient `.settingUp`, and the controller must never leave that behind.
-///
-/// These run against the real controller, built on the generated SDK mock, so the listeners it
-/// registers at init are the ones the tests drive.
 class SecureBackupControllerStateTests: XCTestCase {
     private var encryption: EncryptionSDKMock!
     private var controller: SecureBackupController!
@@ -39,14 +31,11 @@ class SecureBackupControllerStateTests: XCTestCase {
         published = []
         cancellables = []
 
-        // The account starts `.disabled`, which is the only state that enables recovery.
         givenTheSDKReports(.disabled)
     }
 
     // MARK: - T1
 
-    /// `Done` is a progress event, not a verdict. When the SDK recomputes `.incomplete`, nothing may
-    /// have announced `.enabled` in between.
     func testDoneDoesNotPublishEnabledWhenTheSDKRecomputesIncomplete() async {
         let result = await whenEnablingRecovery(progress: [.starting, .done(recoveryKey: "k")],
                                                 returning: .success("k"),
@@ -59,8 +48,6 @@ class SecureBackupControllerStateTests: XCTestCase {
 
     // MARK: - T2
 
-    /// A structural refusal produces no SDK listener update, so the transient `.settingUp` has to
-    /// be closed out by the controller itself, with the SDK's current answer.
     func testAStructuralRefusalLeavesSettingUpAndReturnsToTheSDKState() async {
         let result = await whenEnablingRecovery(progress: [.starting],
                                                 returning: .failure(RecoveryError.BackupExistsOnServer),
@@ -74,7 +61,6 @@ class SecureBackupControllerStateTests: XCTestCase {
 
     // MARK: - T3
 
-    /// The terminal `.enabled` is read from the SDK, once, and is not also manufactured from `Done`.
     func testASuccessfulEnableReadsTheSDKStateAndPublishesEnabledOnce() async {
         let result = await whenEnablingRecovery(progress: [.starting, .done(recoveryKey: "k")],
                                                 returning: .success("k"),
@@ -88,8 +74,6 @@ class SecureBackupControllerStateTests: XCTestCase {
 
     // MARK: - T4
 
-    /// After a failed call the SDK still holds the pre-call state. That is what gets published:
-    /// the epilogue reports, it does not conclude.
     func testAFailedEnablePublishesThePreCallSDKStateNotSuccess() async {
         let result = await whenEnablingRecovery(progress: [.starting],
                                                 returning: .failure(TransientError()),
@@ -102,7 +86,6 @@ class SecureBackupControllerStateTests: XCTestCase {
 
     // MARK: - T5
 
-    /// An SDK that cannot answer is still a better final value than a transient nobody re-publishes.
     func testAFailedEnablePublishesUnknownRatherThanStayingInSettingUp() async {
         let result = await whenEnablingRecovery(progress: [.starting],
                                                 returning: .failure(TransientError()),
@@ -115,7 +98,6 @@ class SecureBackupControllerStateTests: XCTestCase {
 
     // MARK: - helpers
 
-    /// Drives the recovery-state listener the controller registered at init, as the SDK would.
     private func givenTheSDKReports(_ state: RecoveryState) {
         guard let listener = encryption.recoveryStateListenerListenerReceivedListener else {
             return XCTFail("the controller did not register a recovery-state listener")
@@ -123,9 +105,6 @@ class SecureBackupControllerStateTests: XCTestCase {
         listener.onUpdate(status: state)
     }
 
-    /// Runs `generateRecoveryKey` with a fake `enableRecovery` that emits `progress` through the
-    /// controller's own progress listener and then returns or throws, while the SDK's read-back
-    /// state is `sdkStateAfterwards`. Everything published from the call onwards is collected.
     private func whenEnablingRecovery(progress: [EnableRecoveryProgress],
                                       returning outcome: Result<String, Error>,
                                       sdkStateAfterwards: RecoveryState) async -> Result<String, SecureBackupControllerError> {

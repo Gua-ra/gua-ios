@@ -6,11 +6,6 @@
 
 import Foundation
 
-/// GUA FORK: a fixed-answer identity service for previews.
-///
-/// Screens that read the account's factor report otherwise have nothing to render in a preview: the
-/// real client needs a session, fails without one, and the screen correctly renders "we could not
-/// read your settings" instead of the thing being previewed.
 @MainActor
 final class IdentityServiceClientMock: IdentityServiceClientProtocol {
     var status: AccountSecurityStatus

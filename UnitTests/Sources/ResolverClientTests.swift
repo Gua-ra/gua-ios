@@ -8,9 +8,6 @@
 @testable import ElementX
 import XCTest
 
-/// Coverage of the resolver v1 `POST /resolve` contract, mirroring Android's
-/// `DefaultResolverClientTest`: request body assertions (including the routing-claims subject
-/// binding), decision trace parsing, and problem-code mapping.
 final class ResolverClientTests: XCTestCase {
     private var client: ResolverClient!
 
@@ -41,7 +38,6 @@ final class ResolverClientTests: XCTestCase {
         XCTAssertEqual(resolution.homeserver.masIssuer, "https://mas.gua.global")
         XCTAssertNil(resolution.trace)
 
-        // A plain resolve must keep the legacy single-field body byte for byte.
         let body = try XCTUnwrap(ResolverStub.lastRequestBody)
         XCTAssertEqual(String(data: body, encoding: .utf8), #"{"phone":"+5511999999999"}"#)
     }
@@ -130,7 +126,6 @@ final class ResolverClientTests: XCTestCase {
         XCTAssertEqual(claims["issuer"] as? String, "https://sso.example.edu")
         XCTAssertEqual(claims["audience"] as? String, "gua-resolver")
         XCTAssertEqual(claims["nonce"] as? String, "nonce-123")
-        // Subject binding: the envelope is bound to the phone being resolved.
         XCTAssertEqual(claims["subject"] as? String, body["phone"] as? String)
         let signatures = try XCTUnwrap(claims["signatures"] as? [[String: Any]])
         XCTAssertEqual(signatures.count, 1)
@@ -271,8 +266,7 @@ final class ResolverClientTests: XCTestCase {
 
 // MARK: - Stub transport
 
-/// Canned resolver responses plus capture of the outgoing request body. Tests run serially, so plain
-/// statics are safe here (same pattern as `BugReportServiceTests`).
+/// Tests run serially, so plain statics are safe.
 private enum ResolverStub {
     static var statusCode = 200
     static var responseBody = Data()

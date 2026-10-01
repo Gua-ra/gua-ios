@@ -58,23 +58,18 @@ final class AccountGenesisServiceTests: XCTestCase {
         }
         XCTAssertEqual(pending.attachHandle, registrar.handle)
 
-        // What went on the wire decodes under this client's own strict decoder, and re-derives the
-        // accountId the service reported.
         let genesisBytes = try XCTUnwrap(try GuaBase64URL.decode(XCTUnwrap(registrar.receivedGenesis)))
         let genesis = try AccountGenesis.decode(genesisBytes)
         XCTAssertEqual(try genesis.accountID().value, pending.accountID.value)
         XCTAssertEqual(genesisBytes.count, AccountGenesis.length)
         XCTAssertEqual(genesis.recoveryFrameworkID, AccountGenesis.recoveryFrameworkCommittedKey)
 
-        // The proof verifies under the key committed inside those bytes, which is exactly what
-        // identity-service checks, and the two committed keys are distinct.
         let proof = try XCTUnwrap(try GuaBase64URL.decode(XCTUnwrap(registrar.receivedProof)))
         let publicKey = try Curve25519.Signing.PublicKey(rawRepresentation: Data(genesis.authorityPublicKey))
         let preimage = GenesisProofs.genesisProofPreimage(canonicalBytes: genesisBytes)
         XCTAssertTrue(publicKey.isValidSignature(Data(proof), for: Data(preimage)))
         XCTAssertNotEqual(genesis.authorityPublicKey, genesis.recoveryAuthorityPublicKey)
 
-        // The authority key is kept, under the accountId, for the attach step.
         XCTAssertNotNil(keyStore.stored[pending.accountID.value])
     }
 
@@ -85,7 +80,6 @@ final class AccountGenesisServiceTests: XCTestCase {
         let outcome = try await service.registerGenesis()
 
         XCTAssertEqual(outcome, .notSupportedByDeployment)
-        // Nothing is left behind for a signup that will take the bootstrap path.
         XCTAssertTrue(keyStore.stored.isEmpty)
     }
 
@@ -95,10 +89,6 @@ final class AccountGenesisServiceTests: XCTestCase {
 
         let outcome = try await service.registerGenesis()
 
-        // 403 is the deployment declining to issue under this recovery framework, which is another way
-        // of saying no handle exists to present. Failing the signup here would stop account creation on
-        // every deployment that has genesis on without issuance permitted, which is the documented
-        // default. The Android client reads 403 and 503 identically for the same reason.
         XCTAssertEqual(outcome, .notSupportedByDeployment)
         XCTAssertTrue(keyStore.stored.isEmpty)
     }
@@ -182,8 +172,6 @@ final class AccountGenesisServiceTests: XCTestCase {
         let hint = service.loginHint(phoneNumber: "+5511999999999", pending: pending)
 
         XCTAssertEqual(hint, "gua:phone=+5511999999999;genesis=dGVzdC1oYW5kbGUtdGhhdC1pcy1sb25nLWVub3VnaA")
-        // The bare reserved value for passkey-first entry keeps its own meaning; the prefixed grammar
-        // must never collide with it.
         XCTAssertNotEqual(hint, AuthenticationService.passkeyLoginHint)
         XCTAssertTrue(hint.hasPrefix("gua:"))
     }
@@ -221,8 +209,6 @@ final class AccountGenesisServiceTests: XCTestCase {
 
         XCTAssertThrowsError(try service.attachProof(challenge: GuaBase64URL.encode([UInt8](repeating: 7, count: 32)),
                                                      for: pending)) { error in
-            // The signup must fail: a device that registered a genesis and then creates an account
-            // without it is a silent bootstrap (ADM-008 decision 6).
             guard case AccountGenesisServiceError.keyUnavailable = error else {
                 return XCTFail("Expected keyUnavailable, got \(error).")
             }
@@ -276,8 +262,6 @@ final class AccountGenesisServiceTests: XCTestCase {
 
 // MARK: - Stubs
 
-/// Echoes back the accountId derived from the bytes it was handed, the way identity-service does, so a
-/// test can assert on what the client actually put on the wire.
 private final class GenesisRegistrarStub: AccountGenesisRegistering, @unchecked Sendable {
     var handle = "c3R1Yi1hdHRhY2gtaGFuZGxlLWZvci10ZXN0cw"
     var expiresAt = Date().addingTimeInterval(1800)

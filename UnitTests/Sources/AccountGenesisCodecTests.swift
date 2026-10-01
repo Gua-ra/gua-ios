@@ -8,16 +8,8 @@ import CryptoKit
 @testable import ElementX
 import XCTest
 
-/// The codec against the golden vectors that ship with identity-service
-/// (`docs/specs/genesis-vectors.v1.json`). That file is the contract, not the prose around it, so the
-/// copy under `UnitTests/Resources` is byte-identical to the one in that repo and this suite walks
-/// every entry in it, the rejections included.
-///
-/// One thing these tests deliberately do not assert: that a signature this client produces equals the
-/// signature in the vectors. RFC 8032 signing is deterministic, but Apple's CryptoKit adds fresh
-/// randomness to the nonce, so two signings of one message under one key differ. What is asserted
-/// instead is the part the contract actually binds: the preimage bytes are reproduced exactly, the
-/// published signatures verify under the published keys, and a signature this client makes verifies too.
+/// Runs the golden vectors copied byte for byte from identity-service. Signatures are verified, not compared
+/// with the vectors, because CryptoKit's Ed25519 signing is randomized.
 final class AccountGenesisCodecTests: XCTestCase {
     private var vectors: GenesisVectors!
 
@@ -61,7 +53,6 @@ final class AccountGenesisCodecTests: XCTestCase {
             XCTAssertEqual(GenesisHex.string(genesis.authorityPublicKey), vector.authorityPublicKeyHex, vector.name)
             XCTAssertEqual(GenesisHex.string(genesis.recoveryAuthorityPublicKey), vector.recoveryAuthorityPublicKeyHex, vector.name)
             XCTAssertEqual(GenesisHex.string(genesis.entropy), vector.entropyHex, vector.name)
-            // The bytes are kept as received, never re-encoded before hashing.
             XCTAssertEqual(GenesisHex.string(genesis.canonicalBytes), vector.canonicalHex, vector.name)
         }
     }
@@ -126,7 +117,6 @@ final class AccountGenesisCodecTests: XCTestCase {
         XCTAssertEqual(AccountID.encodedLength, vectors.accountId.encodedLength)
         XCTAssertEqual(AccountID.length, vectors.accountId.totalLength)
 
-        // The last character holds three unused bits, so only these four can end a well-formed id.
         for vector in vectors.accountGenesis {
             let last = try XCTUnwrap(vector.accountId.last).description
             XCTAssertTrue(vectors.accountId.allowedFinalCharacters.contains(last), vector.name)
@@ -139,7 +129,6 @@ final class AccountGenesisCodecTests: XCTestCase {
             XCTAssertEqual(parsed.value, vector.accountId, vector.name)
             XCTAssertEqual(parsed.rawBytes.count, AccountID.rawLength, vector.name)
             XCTAssertEqual(parsed.rootClass, AccountID.classGenesis, vector.name)
-            // Deriving from the same bytes gives the same id, and the raw bytes agree.
             let derived = try AccountGenesis.decode(GenesisHex.bytes(vector.canonicalHex)).accountID()
             XCTAssertEqual(derived.rawBytes, parsed.rawBytes, vector.name)
         }
@@ -207,24 +196,18 @@ final class AccountGenesisCodecTests: XCTestCase {
         XCTAssertNotNil(accountID.value.range(of: AccountID.canonicalPattern, options: .regularExpression))
         XCTAssertEqual(try AccountID.parse(accountID.value), accountID)
 
-        // A proof this client makes verifies under the key the genesis commits, which is what
-        // identity-service checks on registration.
         let signature = try authority.signature(for: Data(GenesisProofs.genesisProofPreimage(canonicalBytes: canonical)))
         XCTAssertTrue(authority.publicKey.isValidSignature(signature,
                                                            for: Data(GenesisProofs.genesisProofPreimage(canonicalBytes: canonical))))
     }
 
     func testBase32RejectsNonCanonicalSpellings() {
-        // Uppercase, padding and a character outside the alphabet are all refused, because each would
-        // give one byte string a second spelling.
         XCTAssertThrowsError(try GuaBase32.decode("AAAA"))
         XCTAssertThrowsError(try GuaBase32.decode("aaaa===="))
         XCTAssertThrowsError(try GuaBase32.decode("aaa1"))
-        // 1, 3 and 6 left-over characters cannot come out of any byte string.
         XCTAssertThrowsError(try GuaBase32.decode("a"))
         XCTAssertThrowsError(try GuaBase32.decode("aaa"))
         XCTAssertThrowsError(try GuaBase32.decode("aaaaaa"))
-        // Non-zero trailing bits.
         XCTAssertThrowsError(try GuaBase32.decode("ab"))
         XCTAssertEqual(try GuaBase32.decode("aa"), [0])
     }
