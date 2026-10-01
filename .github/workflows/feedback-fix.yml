@@ -1,25 +1,7 @@
 name: Feedback fix
 
-# GUA FORK: the "approve it and it gets worked on" half of the feedback pipeline.
-#
-# feedback-bot (in gua-deploy) files every crash and every piece of tester feedback
-# as an issue here. A human reads it, and if it is worth acting on adds the
-# `feedback:approved` label. That is what this workflow waits for.
-#
-# It then runs Claude Code headlessly against this repository to investigate,
-# fix, build and QA the change on a simulator, and open a pull request that links
-# back to the issue with its evidence attached. Review happens on that pull
-# request; shipping it to QA is still the `release-qa` label, and production is
-# still gated on the `production` environment. Nothing here bypasses either.
-#
-# Claude runs on a Claude subscription token, not API credits.
-#
-# WHERE THIS RUNS: a fix is only worth as much as its verification, and verifying
-# an iOS change means an iOS simulator, which GitHub's hosted runners do not give
-# us in a form worth trusting. FIX_RUNNER selects the runner; point it at a
-# self-hosted macOS runner to get the simulator QA steps. Until one exists it
-# falls back to macos-latest, which can build and run unit tests but cannot be
-# asked to drive the app.
+# Runs Claude Code against an issue labelled `feedback:approved` and opens a pull request with the fix.
+# FIX_RUNNER selects the runner; simulator QA needs a self-hosted macOS runner.
 
 on:
   issues:
@@ -31,8 +13,7 @@ on:
         required: true
         type: string
 
-# One fix at a time per issue. Two runs on the same issue would race on the same
-# branch name and produce a confusing pull request.
+# One run per issue: two would race on the same branch name.
 concurrency:
   group: feedback-fix-${{ github.event.issue.number || inputs.issue }}
   cancel-in-progress: false
@@ -42,9 +23,7 @@ permissions:
 
 jobs:
   fix:
-    # `labeled` fires for every label, so gate on the one that means "approved".
-    # Manual dispatch skips the label check on purpose: that path is already a
-    # deliberate human action.
+    # `labeled` fires for every label, so gate on the approved one.
     if: >-
       github.event_name == 'workflow_dispatch' ||
       github.event.label.name == 'feedback:approved'
@@ -61,8 +40,6 @@ jobs:
           persist-credentials: false
           lfs: true
 
-      # Fail on the missing prerequisite rather than 20 minutes later inside the
-      # model call, where the cause would be unrecognisable.
       - name: Check the credentials this needs are present
         run: |
           missing=""
@@ -86,17 +63,14 @@ jobs:
           gh auth setup-git
           git config --global user.name "gua-feedback-bot"
           git config --global user.email "feedback-bot@users.noreply.github.com"
-          # Gua commits carry no AI attribution: no Co-Authored-By trailer and no
-          # "Generated with Claude Code" footer.
+          # Gua commits carry no AI attribution.
           mkdir -p "$HOME/.claude"
           printf '{ "includeCoAuthoredBy": false }\n' > "$HOME/.claude/settings.json"
 
       - name: Read the issue
         id: issue
         run: |
-          # The issue body quotes an unverified report. It is written to a file and
-          # handed to the model as data rather than interpolated into the prompt,
-          # so nothing inside it can terminate the prompt and start giving orders.
+          # The issue body is untrusted: it is passed as a file, never interpolated into the prompt.
           gh issue view "$ISSUE" --repo "$GITHUB_REPOSITORY" \
             --json number,title,body,labels > /tmp/issue.json
           jq -r '.title' /tmp/issue.json > /tmp/issue-title.txt
