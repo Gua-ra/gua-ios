@@ -109,7 +109,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         Task { await stepUp() }
     }
 
-    /// The current number, which is what `/account/reauth/start` weighs before it sends anything.
+    /// The current number, the value `/account/reauth/start` checks before it sends anything.
     /// It is kept for the verify call as well, because the server remembers nothing between the two.
     private func handleSubmittedCurrentPhone(_ phone: String) {
         let trimmed = phone.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -168,7 +168,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
 
     /// Reads the account's factor report (`GET /security/pin/status`) and routes on it.
     ///
-    /// This runs before anything is sent anywhere, which is the point of doing it first: an account
+    /// This runs before anything is sent anywhere, which is why it runs first: an account
     /// that could never finish the flow is stopped here rather than after an SMS. What it decides
     /// is which factor to offer, never whether the operation is allowed; the server settles that
     /// when the step-up is presented, and a refusal there is still honoured below.
@@ -225,7 +225,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
     }
 
     /// Of those, the ones that say the number itself is wrong. A 429 is not one of them: the server
-    /// spends the same `rate_limited` on the per-account cap for wrong numbers and on the ordinary
+    /// returns the same `rate_limited` for the per-account cap on wrong numbers and for the ordinary
     /// OTP per-phone and per-address quotas, so it is never read as a verdict on what was typed.
     private static func isAboutTheSubmittedNumber(_ error: IdentityServiceError) -> Bool {
         switch error {
@@ -401,7 +401,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         block(reason: state.stepUpFactors.contains(.passkey) ? .passkeyUnusableHere : .noFactorRegistered)
     }
 
-    /// Spends the reauth token together with the step-up factor. The SMS to the new number is sent
+    /// Consumes the reauth token together with the step-up factor. The SMS to the new number is sent
     /// by the server inside this call, and only after the step-up has been accepted.
     private func startChange(pin: String?, passkey: (stepUpID: String, assertion: PasskeyAssertion)?) async {
         guard let accessToken = clientProxy.accessToken else {

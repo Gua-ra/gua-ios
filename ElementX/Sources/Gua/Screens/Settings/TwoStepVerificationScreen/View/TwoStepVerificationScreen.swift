@@ -99,7 +99,7 @@ struct TwoStepVerificationScreen: View {
             } footer: {
                 if let errorMessage = context.viewState.errorMessage {
                     // A change that ended here was refused (the PIN-change cooldown, a locked PIN),
-                    // and the refusal is the one thing the person needs to read. Without this the
+                    // and the refusal is what the person needs to read. Without this the
                     // flow just closed with no reason given.
                     Text(errorMessage)
                         .foregroundStyle(.compound.textCriticalPrimary)

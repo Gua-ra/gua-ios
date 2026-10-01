@@ -29,8 +29,8 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
     }
 
     /// A factor the caller asked this screen to set up on arrival, from the change-phone block
-    /// screen. It decides which setup opens, which is the whole point of carrying it: the block
-    /// screen offers a choice and this honours it instead of always opening PIN setup.
+    /// screen. It decides which setup opens, which is why it is carried: the block screen offers a
+    /// choice and this honours it instead of always opening PIN setup.
     private let initialSetup: AuthFactor?
     /// One shot. The screen honours the arriving request once; a later reload must not reopen a
     /// ceremony the user has already dealt with.
