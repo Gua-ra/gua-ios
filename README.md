@@ -28,7 +28,7 @@ The app then connects to the homeserver the resolver named. Users never pick, ty
 Beyond sign-in, the Gua product layer adds:
 
 - **Homeserver abstraction.** Server details stay out of the product. People appear as simple usernames rather than full Matrix IDs. The homeserver behind an account never shows in the interface.
-- **Simplified onboarding.** A native welcome and sign-in flow, all inside the app: enter a phone number, confirm a one-time code, set up a profile, and secure the account. The pieces behind it are described under [Architecture](#architecture).
+- **Simplified onboarding.** A native welcome and sign-in flow, all inside the app: enter a phone number, confirm a one-time code, set up a profile, and secure the account.
 - **Two-step verification (account PIN).** A six-digit account PIN is the account's second factor. It is set during onboarding and required for sensitive operations. It can be changed or reset with verification. The client mirrors the server's PIN strength policy: no repeated, sequential, or common PINs.
 - **Private contact discovery.** Find Friends shows which of your contacts are already on Gua. It needs address-book permission to run. The app normalizes numbers on the device and sends hashed identifiers in capped batches, never the address book itself. Hashing is a privacy-hardening step. It does not make the numbers impossible to recover.
 - **Phone number changes.** The number linked to an account can be changed from Settings. The new number is verified with a one-time code, and the account PIN acts as the second factor.
@@ -53,14 +53,9 @@ Gua Identity Service
 Matrix homeserver in the Gua federation
 ```
 
-- The resolver tells the app which homeserver to use. The client stays universal and never hardcodes a server.
-- [`gua-auth-service`](https://github.com/Gua-ra/gua-auth-service) is Gua's fork of the Matrix Authentication Service. Today it delegates identity upstream to the identity service.
-- The [Gua Identity Service](https://github.com/Gua-ra/identity-service) implements verification codes, the account PIN, contact lookup, and phone number changes.
-- Every sign-in performs a fresh upstream authentication. The app uses an ephemeral web session with `prompt=login`, so a cached browser session never bypasses verification.
+Every sign-in performs a fresh upstream authentication: the app uses an ephemeral web session with `prompt=login`, so a cached browser session never bypasses verification.
 
-## Today versus the target
-
-Everything above describes the app as it ships today. Two parts of the target design are not shipped yet: per-homeserver authentication (today every sign-in completes at the single Gua identity host) and verified routing (today the app follows the resolver's answer without verifying it against signed federation state). [Gua identity and federation](https://github.com/Gua-ra/gua-resolver/blob/main/docs/architecture/gua-identity-and-federation.md) explains the target; the decision record behind it is [ADM-001](https://github.com/Gua-ra/gua-resolver/blob/main/docs/decisions/ADM-001-identifier-binding-placement-trust.md) (identifier binding, placement and trust).
+Not shipped yet: per-homeserver authentication and verified routing of the resolver's answer against signed federation state. See [Gua identity and federation](https://github.com/Gua-ra/gua-resolver/blob/main/docs/architecture/gua-identity-and-federation.md) and its [decision record](https://github.com/Gua-ra/gua-resolver/blob/main/docs/decisions/ADM-001-identifier-binding-placement-trust.md).
 
 ---
 
@@ -81,6 +76,7 @@ Things to know:
 - **Secrets.** `Secrets/Secrets.swift` is committed with placeholder values, so the project always compiles. The placeholders are localhost development endpoints and dummy analytics keys. Debug builds read their development backend endpoints from this file. Point them at your own backend locally and keep those edits out of your commits. Release builds use the production configuration instead.
 - **Project generation.** The Xcode project is generated from `project.yml` / `app.yml` with XcodeGen. If you change project configuration, run `xcodegen` and rebuild.
 - **Forking.** Bundle identifiers, app groups, team configuration, and the OIDC client requirements are covered in [docs/FORKING.md](docs/FORKING.md).
+- **Releases.** TestFlight uploads are described in [docs/TESTFLIGHT.md](docs/TESTFLIGHT.md).
 - **Everything else.** Code generation, tests, and tooling are described in the [contribution guide](CONTRIBUTING.md).
 
 ---

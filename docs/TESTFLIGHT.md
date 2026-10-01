@@ -1,8 +1,7 @@
 # TestFlight releases
 
 The [`TestFlight` workflow](../.github/workflows/testflight.yml) archives, signs and
-uploads the Gua iOS app to TestFlight. The mechanics and the reasons behind them are
-documented in the header of that file; this page is the operator's view.
+uploads the Gua iOS app to TestFlight.
 
 ## How to release
 
