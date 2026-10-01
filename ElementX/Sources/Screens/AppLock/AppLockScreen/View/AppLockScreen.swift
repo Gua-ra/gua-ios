@@ -41,9 +41,6 @@ struct AppLockScreen: View {
             }
         } bottomContent: {
             VStack(spacing: 24) {
-                // GUA FORK: Face ID/Touch ID is tried before this screen appears, so this is the
-                // way back to it after dismissing that prompt - without it the only route out of
-                // the keypad is to remember the PIN.
                 if context.viewState.canRetryBiometricUnlock {
                     Button {
                         context.send(viewAction: .unlockWithBiometrics)

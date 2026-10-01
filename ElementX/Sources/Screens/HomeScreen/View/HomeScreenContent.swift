@@ -144,7 +144,7 @@ struct HomeScreenContent: View {
                     HomeScreenRecoveryKeyConfirmationBanner(state: state, context: context, isWorking: context.viewState.isFinishingEncryptionSetup)
                 }
 
-                // GUA FORK: Two-step verification PIN setup reminder.
+                // GUA FORK
                 if context.viewState.pinSetupReminderVisible {
                     HomeScreenPinSetupReminderBanner(context: context)
                 }

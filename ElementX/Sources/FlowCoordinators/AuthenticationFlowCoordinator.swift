@@ -23,7 +23,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     private let appSettings: AppSettings
     private let analytics: AnalyticsService
     private let userIndicatorController: UserIndicatorControllerProtocol
-    private let resolverClient: ResolverClientProtocol? // GUA FORK: phone -> homeserver routing
+    private let resolverClient: ResolverClientProtocol? // GUA FORK
     private let accountGenesisService: AccountGenesisServiceProtocol? // GUA FORK
     private let usesPhoneLoginHint: Bool // GUA FORK
     
@@ -31,7 +31,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         /// The state machine hasn't started.
         case initial
         
-        /// GUA FORK: Gua phone-number entry screen (default entry point for normal users).
+        /// GUA FORK
         case phoneEntryScreen
         
         /// The initial screen shown when you first launch the app.
@@ -61,7 +61,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         case start
         /// Modify the flow using the provisioning parameters in the `userInfo`.
         case applyProvisioningParameters
-        /// GUA FORK BEGIN: Gua phone-OIDC events
+        /// GUA FORK BEGIN
         /// The Gua phone-entry flow is being started.
         case startPhoneAuth
         /// The user dropped into the legacy auth flow from the phone screen.
@@ -371,7 +371,6 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                 self.isHandlingPhoneSubmission = false
             }
             
-            // GUA FORK: the resolver's base URL is used directly, because well-known discovery fails for http and localhost homeservers.
             let resolution: HomeserverResolution
             do {
                 resolution = try await resolveHomeserver(forPhone: phoneNumber)
@@ -404,7 +403,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                 return
             }
             
-            // GUA FORK: a signup may carry an account genesis in its login hint.
+            // GUA FORK
             let loginHint: String
             do {
                 loginHint = try await guaLoginHint(phoneNumber: phoneNumber, flow: flow)
@@ -426,8 +425,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         }
     }
 
-    /// GUA FORK: returns the bare phone number unless this is a signup with account genesis enabled.
-    /// Throws when the genesis could not be registered.
+    /// GUA FORK
     private func guaLoginHint(phoneNumber: String, flow: AuthenticationFlow) async throws -> String {
         // A resubmitted number starts a new signup, so the previous genesis is abandoned.
         discardPendingAccountGenesis()
@@ -447,7 +445,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         }
     }
 
-    /// GUA FORK: every path that ends a signup without attaching must call this, or its keys stay in the keychain unreachable.
+    /// GUA FORK
     private func discardPendingAccountGenesis() {
         guard let pendingAccountGenesis else { return }
         accountGenesisService?.discard(pendingAccountGenesis)
@@ -455,7 +453,6 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     }
     
     /// GUA FORK: a passkey is a discoverable credential, so no phone number is sent and the resolver is skipped.
-    /// The sign-in uses the deployment's default account provider.
     private func handlePasskeySignIn(coordinator: PhoneEntryScreenCoordinator) {
         guard !isHandlingPhoneSubmission else { return }
         isHandlingPhoneSubmission = true

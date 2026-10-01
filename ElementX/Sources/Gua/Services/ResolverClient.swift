@@ -6,7 +6,7 @@
 
 import Foundation
 
-/// `baseURL` is used directly, without well-known discovery.
+/// `baseURL` is used directly: well-known discovery fails for http and localhost homeservers.
 struct ResolvedHomeserver: Equatable {
     let serverName: String
     let baseURL: String

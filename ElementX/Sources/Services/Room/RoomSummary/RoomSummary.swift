@@ -73,14 +73,7 @@ struct RoomSummary {
         notificationMode == .mute
     }
 
-    /// GUA FORK: a stray "Empty Room" the SDK surfaces when a chat is created but the other member
-    /// never joins (or a creation half-failed) — it has no joined members and no messages. We match
-    /// any room (direct OR not, since these orphans aren't always flagged `isDirect`) that has no
-    /// visible joined member (`heroes`), no last message, and at most the local user
-    /// (`activeMembersCount <= 1`) OR a single invited-but-never-joined peer (count 2 while `heroes`
-    /// is still empty). A genuine conversation always has either a joined hero or a `lastMessage`, so
-    /// it is never hidden. Rooms with a pending join request (an invite or knock) are never orphans:
-    /// they can look identical (no heroes/messages/members yet) but the user must see them to act.
+    /// GUA FORK: a room with no joined hero, no last message and no pending invite or knock is an orphan.
     var isEmptyOrphanRoom: Bool {
         joinRequestType == nil && heroes.isEmpty && lastMessage == nil && activeMembersCount <= 2
     }

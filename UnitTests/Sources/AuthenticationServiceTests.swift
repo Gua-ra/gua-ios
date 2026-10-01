@@ -101,7 +101,6 @@ class AuthenticationServiceTests: XCTestCase {
         case .success:
             let arguments = client.urlForOauthOauthConfigurationPromptLoginHintDeviceIdAdditionalScopesReceivedArguments
             XCTAssertEqual(client.urlForOauthOauthConfigurationPromptLoginHintDeviceIdAdditionalScopesCallsCount, 1)
-            // The literal is the wire contract with identity-service and the sign-in page.
             XCTAssertEqual(arguments?.loginHint, "passkey")
             XCTAssertEqual(arguments?.prompt, .login)
         case .failure(let error):

@@ -16,9 +16,6 @@ struct EncryptionResetScreen: View {
             mainContent
         } bottomContent: {
             VStack(spacing: 16) {
-                // GUA FORK: offered only when another device of this account holds the keys. It
-                // brings the messages here without resetting anything; otherwise the reset is
-                // the only way forward and the sole option shown.
                 if context.viewState.canRecoverFromOtherDevice {
                     Button(UntranslatedL10n.guaEncryptionRecoverFromOtherDeviceAction) {
                         context.send(viewAction: .recoverFromOtherDevice)
@@ -56,10 +53,6 @@ struct EncryptionResetScreen: View {
             BigIcon(icon: \.errorSolid, style: .alertSolid)
                 .padding(.bottom, 8)
             
-            // GUA FORK: this screen is only reached once a reset is genuinely required, so
-            // it names the loss plainly instead of leading with jargon about identities.
-            // GUA FORK: when the keys can come from another device, this screen is about
-            // getting them back, not about what is lost.
             Text(context.viewState.canRecoverFromOtherDevice
                 ? UntranslatedL10n.guaEncryptionRecoverFromOtherDeviceTitle
                 : UntranslatedL10n.guaEncryptionResetRequiredTitle)
@@ -70,8 +63,6 @@ struct EncryptionResetScreen: View {
     }
     
     private var footer: some View {
-        // GUA FORK: when the keys can be fetched from another device, saying the backup
-        // "needs to be reset" would be untrue, and the button below offers the other way out.
         Text(context.viewState.canRecoverFromOtherDevice
             ? UntranslatedL10n.guaEncryptionRecoverFromOtherDeviceMessage
             : UntranslatedL10n.guaEncryptionResetRequiredMessage)
@@ -96,8 +87,6 @@ struct EncryptionResetScreen_Previews: PreviewProvider, TestablePreview {
     static let viewModel = EncryptionResetScreenViewModel(clientProxy: ClientProxyMock(.init()),
                                                           userIndicatorController: UserIndicatorControllerMock())
     
-    /// GUA FORK: the same screen when another device of this account still holds the keys.
-    /// The offer to fetch them is conditional, so both shapes need to be seen.
     static let recoverViewModel: EncryptionResetScreenViewModel = {
         let clientProxy = ClientProxyMock(.init(recoveryState: .incomplete))
         clientProxy.hasDevicesToVerifyAgainstReturnValue = .success(true)

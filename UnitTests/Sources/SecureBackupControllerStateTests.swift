@@ -34,8 +34,6 @@ class SecureBackupControllerStateTests: XCTestCase {
         givenTheSDKReports(.disabled)
     }
 
-    // MARK: - T1
-
     func testDoneDoesNotPublishEnabledWhenTheSDKRecomputesIncomplete() async {
         let result = await whenEnablingRecovery(progress: [.starting, .done(recoveryKey: "k")],
                                                 returning: .success("k"),
@@ -45,8 +43,6 @@ class SecureBackupControllerStateTests: XCTestCase {
         XCTAssertEqual(published.last, .incomplete)
         XCTAssertEqual(try? result.get(), "k")
     }
-
-    // MARK: - T2
 
     func testAStructuralRefusalLeavesSettingUpAndReturnsToTheSDKState() async {
         let result = await whenEnablingRecovery(progress: [.starting],
@@ -59,8 +55,6 @@ class SecureBackupControllerStateTests: XCTestCase {
         XCTAssertTrue(isFailure(result))
     }
 
-    // MARK: - T3
-
     func testASuccessfulEnableReadsTheSDKStateAndPublishesEnabledOnce() async {
         let result = await whenEnablingRecovery(progress: [.starting, .done(recoveryKey: "k")],
                                                 returning: .success("k"),
@@ -72,8 +66,6 @@ class SecureBackupControllerStateTests: XCTestCase {
         XCTAssertEqual(try? result.get(), "k")
     }
 
-    // MARK: - T4
-
     func testAFailedEnablePublishesThePreCallSDKStateNotSuccess() async {
         let result = await whenEnablingRecovery(progress: [.starting],
                                                 returning: .failure(TransientError()),
@@ -83,8 +75,6 @@ class SecureBackupControllerStateTests: XCTestCase {
         XCTAssertEqual(published.last, .disabled)
         XCTAssertTrue(isFailure(result))
     }
-
-    // MARK: - T5
 
     func testAFailedEnablePublishesUnknownRatherThanStayingInSettingUp() async {
         let result = await whenEnablingRecovery(progress: [.starting],

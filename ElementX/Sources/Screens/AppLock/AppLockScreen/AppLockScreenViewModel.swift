@@ -22,9 +22,6 @@ class AppLockScreenViewModel: AppLockScreenViewModelType, AppLockScreenViewModel
     init(appLockService: AppLockServiceProtocol) {
         self.appLockService = appLockService
 
-        // GUA FORK: only offer the retry when biometrics would actually succeed - it is off when
-        // the user opted out, and untrusted until they enter their PIN once after enrolling a new
-        // face or fingerprint.
         let retryableBiometryType: LABiometryType = appLockService.biometricUnlockEnabled && appLockService.biometricUnlockTrusted
             ? appLockService.biometryType
             : .none
@@ -65,9 +62,7 @@ class AppLockScreenViewModel: AppLockScreenViewModelType, AppLockScreenViewModel
 
     // MARK: - Private
 
-    /// GUA FORK: a second run at Face ID/Touch ID from the keypad, for when the first prompt was
-    /// dismissed. A failure just leaves the user on the PIN screen - LocalAuthentication does its
-    /// own attempt counting, so it doesn't burn one of the PIN attempts.
+    /// GUA FORK: a failed biometric retry does not consume a PIN attempt.
     private func unlockWithBiometrics() async {
         switch await appLockService.unlockWithBiometrics() {
         case .unlocked:

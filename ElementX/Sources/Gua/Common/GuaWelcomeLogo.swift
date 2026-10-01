@@ -9,7 +9,6 @@ import CoreMotion
 import SwiftUI
 
 struct GuaWelcomeLogo: View {
-    /// `false` under Reduce Motion and in snapshot tests.
     let animated: Bool
     var size: CGFloat = 84
 

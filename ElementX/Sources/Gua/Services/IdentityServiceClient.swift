@@ -133,7 +133,6 @@ protocol IdentityServiceClientProtocol {
                           passkeyAssertion: PasskeyAssertion?,
                           language: String?) async throws -> PhoneChangeChallenge
     func completePhoneChange(accessToken: String, challengeId: String, code: String) async throws
-    /// Returns the sign-in page URL where enrollment runs in an authenticated web session.
     func startPasskeyEnrollment(accessToken: String, redirectURI: String?) async throws -> URL
     /// A bearer session alone must not add a factor, so the first PIN is set in a web session that confirms the account.
     func startPinEnrollment(accessToken: String, redirectURI: String?) async throws -> URL

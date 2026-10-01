@@ -68,8 +68,7 @@ struct RoomMemberDetailsScreen: View {
     private var withdrawVerificationSection: some View {
         VStack(spacing: 16) {
             if let memberDetails = context.viewState.memberDetails {
-                // GUA FORK: plain wording, and no longer styled as critical. A contact
-                // reinstalling Gua is information, not an error.
+                // GUA FORK
                 Text(UntranslatedL10n.guaIdentityChangeProfile(memberDetails.name ?? memberDetails.id.guaDisplayHandle))
                     .foregroundStyle(.compound.textSecondary)
                     .font(.compound.bodyMDSemibold)

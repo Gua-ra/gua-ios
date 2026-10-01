@@ -88,7 +88,6 @@ struct AuthenticationStartScreen: View {
         .readableFrame()
     }
 
-    /// On-brand trust signals shown under the welcome message.
     private var trustPills: some View {
         VStack(spacing: 8) {
             TrustPill(systemImage: "lock.fill", title: L10n.screenOnboardingTrustEncrypted)
@@ -130,7 +129,6 @@ struct AuthenticationStartScreen: View {
     }
 }
 
-/// A single capsule "trust" chip — icon + short claim, frosted so it reads on the launch gradient.
 private struct TrustPill: View {
     let systemImage: String
     let title: String

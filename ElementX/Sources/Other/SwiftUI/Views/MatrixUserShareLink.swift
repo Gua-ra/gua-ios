@@ -14,7 +14,7 @@ struct MatrixUserShareLink<Label: View>: View {
     
     init(userID: String, @ViewBuilder label: () -> Label) {
         self.label = label()
-        // GUA FORK: share the brand link, never matrix.to (which surfaces the homeserver).
+        // GUA FORK
         permalink = GuaUserLink.url(for: userID)
     }
     

@@ -35,26 +35,6 @@ Beyond sign-in, the Gua product layer adds:
 - **Welcome experience.** A polished, localized welcome screen (en, fr, es, pt, pt-BR) with the animated glass Gua logo.
 - **Safe defaults.** End-to-end encryption stays on with sensible defaults, and advanced encryption controls are hidden. The app-lock code is called a passcode so it is never confused with the account PIN.
 
-### Architecture
-
-```
-Gua iOS app
-    |  1. resolver lookup by phone number: which homeserver to use
-    ▼
-Gua resolver
-    |  2. OIDC authorization code + PKCE against the resolved server
-    ▼
-Matrix Authentication Service (gua-auth-service)
-    |  3. delegated sign-in (phone + one-time code + PIN today; institutional SSO planned)
-    ▼
-Gua Identity Service
-    |
-    ▼
-Matrix homeserver in the Gua federation
-```
-
-Every sign-in performs a fresh upstream authentication: the app uses an ephemeral web session with `prompt=login`, so a cached browser session never bypasses verification.
-
 Not shipped yet: per-homeserver authentication and verified routing of the resolver's answer against signed federation state. See [Gua identity and federation](https://github.com/Gua-ra/gua-resolver/blob/main/docs/architecture/gua-identity-and-federation.md) and its [decision record](https://github.com/Gua-ra/gua-resolver/blob/main/docs/decisions/ADM-001-identifier-binding-placement-trust.md).
 
 ---

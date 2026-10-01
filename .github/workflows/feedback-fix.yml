@@ -1,6 +1,5 @@
 name: Feedback fix
 
-# Runs Claude Code against an issue labelled `feedback:approved` and opens a pull request with the fix.
 # FIX_RUNNER selects the runner; simulator QA needs a self-hosted macOS runner.
 
 on:
@@ -23,7 +22,6 @@ permissions:
 
 jobs:
   fix:
-    # `labeled` fires for every label, so gate on the approved one.
     if: >-
       github.event_name == 'workflow_dispatch' ||
       github.event.label.name == 'feedback:approved'
@@ -63,7 +61,6 @@ jobs:
           gh auth setup-git
           git config --global user.name "gua-feedback-bot"
           git config --global user.email "feedback-bot@users.noreply.github.com"
-          # Gua commits carry no AI attribution.
           mkdir -p "$HOME/.claude"
           printf '{ "includeCoAuthoredBy": false }\n' > "$HOME/.claude/settings.json"
 

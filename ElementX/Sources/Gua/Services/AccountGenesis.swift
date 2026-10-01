@@ -97,7 +97,7 @@ enum GuaBase32 {
 
 // MARK: - accountId
 
-/// `"ga1" || base32(0x01 || class || SHA-256(canonical bytes))`, hashed over the exact bytes received.
+/// `"ga1" || base32(0x01 || class || SHA-256(canonical bytes))`.
 struct AccountID: Equatable {
     static let prefix = "ga1"
 

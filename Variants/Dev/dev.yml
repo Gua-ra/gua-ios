@@ -1,5 +1,3 @@
-# QA app variant, applied by `fastlane config_dev`. A separate bundle id lets both apps install side by side
-# with different URL schemes.
 settings:
   APP_GROUP_IDENTIFIER: group.global.gua.dev
   BASE_BUNDLE_IDENTIFIER: global.gua.dev

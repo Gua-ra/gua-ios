@@ -49,12 +49,7 @@ extension ClientBuilder {
                 .roomKeyRecipientStrategy(strategy: .identityBasedStrategy)
                 .decryptionSettings(decryptionSettings: .init(senderDeviceTrustRequirement: .crossSignedOrLegacy))
         } else {
-            // GUA FORK: upstream uses .errorOnVerifiedUserProblem here, which makes sending
-            // fail whenever a verified contact reinstalls or gets a new phone until the user
-            // resolves the identity change. Gua follows the WhatsApp model: an identity change
-            // informs (banner and message shields) but never obstructs sending, so keys are
-            // shared with all of the recipient's devices. The strict behaviour remains
-            // available through the developer only-signed-device isolation mode above.
+            // GUA FORK: an identity change informs but never blocks sending.
             builder = builder
                 .roomKeyRecipientStrategy(strategy: .allDevices)
                 .decryptionSettings(decryptionSettings: .init(senderDeviceTrustRequirement: .untrusted))

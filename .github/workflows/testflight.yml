@@ -1,7 +1,5 @@
 name: TestFlight
 
-# Archives, signs and uploads the Gua iOS app to TestFlight. See docs/TESTFLIGHT.md.
-
 on:
   push:
     branches: [main]
@@ -135,7 +133,6 @@ jobs:
           persist-credentials: false
 
       - name: Select Xcode
-        # No fallback to the newest Xcode: fail here if the image drops 26.x.
         run: |
           set -euo pipefail
           XCODE_APP="$(ls -d /Applications/Xcode_26.5.0.app 2>/dev/null || true)"
@@ -185,7 +182,6 @@ jobs:
 
       - name: Inject dev backend endpoints
         if: needs.gate.outputs.target == 'dev'
-        # A device cannot reach the committed localhost placeholders, so the dev endpoints are written from repo secrets.
         env:
           GUA_DEV_RESOLVER_BASE_URL: ${{ secrets.GUA_DEV_RESOLVER_BASE_URL }}
           GUA_DEV_IDENTITY_SERVICE_BASE_URL: ${{ secrets.GUA_DEV_IDENTITY_SERVICE_BASE_URL }}
@@ -196,7 +192,6 @@ jobs:
             echo "::error::Dev backend secrets are not set (GUA_DEV_RESOLVER_BASE_URL / GUA_DEV_IDENTITY_SERVICE_BASE_URL / GUA_DEV_ACCOUNT_PROVIDER). Without them the build ships localhost URLs and is dead on a real device. See docs/TESTFLIGHT.md."
             exit 1
           fi
-          # App Transport Security blocks cleartext http on device.
           for u in "$GUA_DEV_RESOLVER_BASE_URL" "$GUA_DEV_IDENTITY_SERVICE_BASE_URL"; do
             case "$u" in
               https://*) ;;
@@ -352,7 +347,6 @@ jobs:
             | plutil -extract TeamIdentifier.0 raw -)"
           echo "Team: $TEAM_ID"
 
-          # The export plist needs the profile name Apple assigned, read back from the installed profile.
           {
             echo '<?xml version="1.0" encoding="UTF-8"?>'
             echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
@@ -445,7 +439,6 @@ jobs:
             echo "::error::No App Store Connect app id for target '$TARGET_ENV' (set ASC_APP_ID for prod, ASC_APP_ID_DEV for dev). See docs/TESTFLIGHT.md"
             exit 1
           fi
-          # The target, the archive's bundle id and the app record must all agree.
           case "$TARGET_ENV:$BUNDLE_ID" in
             dev:global.gua.dev|prod:global.gua) ;;
             *) echo "::error::target/bundle mismatch: target '$TARGET_ENV' with bundle '$BUNDLE_ID'. Refusing to upload."; exit 1 ;;

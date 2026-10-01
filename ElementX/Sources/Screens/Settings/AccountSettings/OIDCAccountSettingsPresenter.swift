@@ -28,7 +28,7 @@ class OIDCAccountSettingsPresenter: NSObject {
         super.init()
     }
 
-    /// GUA FORK: how the web sheet ended.
+    /// GUA FORK
     enum Outcome {
         /// The page navigated to the app's own scheme: whatever it was asked to do, it finished.
         case returned

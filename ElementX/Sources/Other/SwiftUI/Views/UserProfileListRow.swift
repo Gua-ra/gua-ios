@@ -17,9 +17,7 @@ struct UserProfileListRow: View {
     let kind: ListRow<LoadableAvatarImage, EmptyView, EmptyView, Bool>.Kind<EmptyView, Bool>
     
     private var subtitle: String? {
-        // GUA FORK: never surface Matrix protocol details ("This Matrix ID can't be
-        // found…") to end users. Show the membership state when known, otherwise the
-        // abstracted handle (homeserver hidden) as the secondary line.
+        // GUA FORK: never show Matrix ID errors; show membership or the bare handle.
         if let membershipText = membership?.localizedDescription {
             return membershipText
         } else if user.displayName != nil {

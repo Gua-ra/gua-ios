@@ -13,8 +13,6 @@ struct RoomScreenFooterView: View {
     let mediaProvider: MediaProviderProtocol?
     let callback: (RoomScreenFooterViewAction) -> Void
     
-    /// GUA FORK: identity changes are informational, never alarming. Both the pin and the
-    /// verification variants share the calm informational styling instead of the critical one.
     private var borderColor: Color {
         switch details {
         case .pinViolation, .verificationViolation:
@@ -46,10 +44,7 @@ struct RoomScreenFooterView: View {
     
     @ViewBuilder
     private func detailsView(_ details: RoomScreenFooterViewDetails) -> some View {
-        // GUA FORK: WhatsApp-style identity change experience. One informational banner for
-        // both variants, acknowledged with a single OK tap. The tap resolves the underlying
-        // violation (pins the new identity, or withdraws the stale verification) so sending
-        // is never obstructed afterwards.
+        // GUA FORK: the OK tap resolves the violation, so sending is never blocked.
         switch details {
         case .pinViolation(let member, let learnMoreURL):
             identityChange(member: member, learnMoreURL: learnMoreURL, action: .resolvePinViolation(userID: member.userID))

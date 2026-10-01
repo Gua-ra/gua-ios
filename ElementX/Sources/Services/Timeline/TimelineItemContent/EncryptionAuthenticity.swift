@@ -57,20 +57,13 @@ enum EncryptionAuthenticity: Hashable {
     
     var icon: KeyPath<CompoundIcons, Image> {
         switch self {
-        // GUA FORK: only the two states that mean "this may not be who you think" keep the
-        // solid alarm glyph. The rest describe how a message was encrypted, which is context,
-        // not a warning, and the solid mark in the send-status slot reads as a delivery failure.
         case .verificationViolation, .mismatchedSender: \.helpSolid
         case .notGuaranteed, .unknownDevice, .unsignedDevice, .unverifiedIdentity: \.info
         case .sentInClear: \.lockOff
         }
     }
 
-    /// GUA FORK: whether this state warrants alarm colour.
-    ///
-    /// Red in the send-status slot means "did not send" in every messenger, so it is reserved
-    /// for the states where something is genuinely wrong with who sent the message. An
-    /// unsigned or unknown device is a statement about setup, and is shown in neutral text.
+    /// GUA FORK: alarm colour only for states that question who sent the message.
     var isAlarming: Bool {
         switch self {
         case .verificationViolation, .mismatchedSender, .sentInClear: true
@@ -78,10 +71,7 @@ enum EncryptionAuthenticity: Hashable {
         }
     }
 
-    /// GUA FORK: states that describe the *sender's own* setup rather than a risk to the reader.
-    ///
-    /// On your own message these say nothing you can act on and nothing you did wrong, so they
-    /// are suppressed entirely rather than decorating every message you send.
+    /// GUA FORK: states about the sender's own setup, hidden on outgoing messages.
     var describesOwnSetup: Bool {
         switch self {
         case .unsignedDevice, .unknownDevice, .notGuaranteed: true

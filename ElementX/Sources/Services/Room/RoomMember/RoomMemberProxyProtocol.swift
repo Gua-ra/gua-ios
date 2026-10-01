@@ -33,7 +33,7 @@ extension RoomMemberProxyProtocol {
     }
     
     var permalink: URL? {
-        // GUA FORK: share the brand link, never matrix.to (which surfaces the homeserver).
+        // GUA FORK
         GuaUserLink.url(for: userID)
     }
     

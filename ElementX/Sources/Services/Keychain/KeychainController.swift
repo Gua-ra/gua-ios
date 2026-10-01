@@ -21,7 +21,7 @@ enum KeychainControllerService: String {
         InfoPlistReader.main.baseBundleIdentifier + ".keychain.\(rawValue)"
     }
 
-    /// GUA FORK: a separate keychain, so the recovery key can sync without the session tokens.
+    /// GUA FORK
     var recoveryID: String {
         InfoPlistReader.main.baseBundleIdentifier + ".keychain.recovery.\(rawValue)"
     }

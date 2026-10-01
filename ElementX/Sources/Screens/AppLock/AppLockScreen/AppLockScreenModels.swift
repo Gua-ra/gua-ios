@@ -23,24 +23,19 @@ struct AppLockScreenViewState: BindableState {
     var numberOfPINAttempts = 0
     /// An overlay indicator shown when the user is being logged out.
     var forcedLogoutIndicator: UserIndicator?
-    /// GUA FORK: the biometry the user can retry with, or `.none` when biometric unlock is off,
-    /// untrusted or unavailable. Biometrics are attempted before this screen is ever shown, so
-    /// this is the way back after cancelling that prompt rather than the first thing on offer.
+    /// GUA FORK: `.none` when biometric unlock is off, untrusted or unavailable.
     var retryableBiometryType: LABiometryType = .none
 
     var bindings: AppLockScreenViewStateBindings
 
-    /// GUA FORK: whether to offer a second run at Face ID/Touch ID alongside the keypad.
     var canRetryBiometricUnlock: Bool {
         retryableBiometryType != .none
     }
 
-    /// GUA FORK: the icon for the biometric retry button.
     var biometricUnlockIcon: SFSymbol {
         retryableBiometryType.systemSymbol
     }
 
-    /// GUA FORK: the title of the biometric retry button, e.g. "Unlock with Face ID".
     var biometricUnlockTitle: String {
         L10n.screenAppLockUnlockWithBiometricsIos(retryableBiometryType.localizedString)
     }
@@ -83,6 +78,5 @@ enum AppLockScreenViewAction {
     case clearPINCode
     /// The user didn't heed the warnings and can't remember their PIN.
     case forgotPIN
-    /// GUA FORK: the user would rather unlock with Face ID/Touch ID than type their PIN.
     case unlockWithBiometrics
 }

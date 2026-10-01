@@ -84,10 +84,7 @@ struct OIDCAuthorizationDataProxy: Hashable {
         guard var components = URLComponents(string: underlyingData.loginUrl()) else {
             fatalError("OIDC login URL hasn't been validated.")
         }
-        // Pass the device locale so the IDP renders in the user's language (e.g. French).
-        // GUA FORK: preserve the existing query encoding — the SDK already percent-encoded the
-        // `login_hint` E.164 as `%2B…`, and re-serializing via `queryItems` would turn that back
-        // into a bare `+` (read as a space downstream), breaking the phone pre-fill / OTP-skip.
+        // GUA FORK
         components.appendUILocalesPreservingEncoding()
         guard let url = components.url else {
             fatalError("OIDC login URL hasn't been validated.")

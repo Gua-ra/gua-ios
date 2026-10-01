@@ -13,15 +13,10 @@ struct HomeScreenRecoveryKeyConfirmationBanner: View {
     enum State {
         case setUpRecovery, recoveryOutOfSync
 
-        /// The action the banner's button sends. Lives on the state, not the view, so a test can
-        /// assert it without standing up SwiftUI.
         var primaryAction: HomeScreenViewAction {
             switch self {
             case .setUpRecovery: .setupRecovery
-            // GUA FORK: this must stay .confirmRecoveryKey. It routes to finishEncryptionSetup(),
-            // which tries every repair that keeps the backup intact and only offers the reset when
-            // there is genuinely no other way. Pointing it at .resetEncryption sends every tap
-            // straight to the destructive screen and leaves the staged path dead code.
+            // GUA FORK: must stay `.confirmRecoveryKey`, which tries every non-destructive repair before offering a reset.
             case .recoveryOutOfSync: .confirmRecoveryKey
             }
         }
@@ -29,16 +24,11 @@ struct HomeScreenRecoveryKeyConfirmationBanner: View {
 
     let state: State
     var context: HomeScreenViewModel.Context
-    /// GUA FORK: owned by the view model, not by this view. As view-local state it was set on tap
-    /// and never cleared, so the `.notYet` outcome left the button reading "Setting up…" for good.
     let isWorking: Bool
     
     var title: String {
         switch state {
         case .setUpRecovery: L10n.bannerSetUpRecoveryTitle
-        // GUA FORK: this state means the device cannot secure messages yet, and the fix is a
-        // reset it performs itself. Nobody has a recovery key to confirm, because Gua never
-        // shows one, so asking for one is a dead end dressed up as an instruction.
         case .recoveryOutOfSync: UntranslatedL10n.guaEncryptionRepairTitle
         }
     }
@@ -114,11 +104,6 @@ struct HomeScreenRecoveryKeyConfirmationBanner: View {
             .disabled(isWorking)
             .buttonStyle(.compound(.primary, size: .medium))
             .accessibilityIdentifier(A11yIdentifiers.homeScreen.recoveryKeyConfirmationBannerContinue)
-            
-            // GUA FORK: no second button. It used to offer "Forgot your recovery key?" beside a
-            // prompt to enter one, which is two ways of asking about a secret the user has never
-            // seen. The primary action now performs the reset directly, so there is one tap and
-            // nothing to remember.
         }
     }
 }

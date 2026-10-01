@@ -7,7 +7,7 @@ uploads the Gua iOS app to TestFlight.
 
 | Path | What happens |
 | --- | --- |
-| Add the `release-qa` label to a pull request | Archives the PR's head commit and uploads it to the **Gua QA** app. Pushing more commits rebuilds it. The PR gets a comment with the build number. Only PRs from this repository qualify: fork PRs never see the signing secrets. |
+| Add the `release-qa` label to a pull request | Archives the PR's head commit and uploads it to the **Gua QA** app. Pushing more commits rebuilds it. The PR gets a comment with the build number. Only PRs from this repository qualify. |
 | Merge `develop` into `main` | Stages the **production** upload. The job runs under the `production` environment and waits for an approver from the deploy-approvers team before step one. Merging never publishes on its own. |
 | Actions -> TestFlight -> Run workflow | Either app by hand (`environment` = `prod` or `dev`), with an optional build number override and a "What to Test" note. |
 
@@ -31,18 +31,14 @@ and the dev bundle id so the two apps install side by side. The `GUA_DEV_*` valu
 
 ## Signing
 
-Signing is manual. Cloud signing (`-allowProvisioningUpdates`) is refused for this App
-Store Connect key, so the workflow:
+Signing is manual. The workflow:
 
 1. imports the Apple Distribution certificate from `GUA_DIST_CERT_P12` into a keychain
    created for the run;
 2. fetches, or creates, the App Store provisioning profiles for `global.gua[.dev]`,
    `.nse` and `.shareextension` with `sigh`, authenticated by the ASC API key;
-3. archives with `CODE_SIGNING_ALLOWED=NO` and signs at `xcodebuild -exportArchive`,
-   against those profiles, with the team id read back from a profile;
-4. runs `xcrun altool --validate-app`, then `--upload-package` pinned to the app record
-   with `--apple-id` and `--bundle-id`, and checks the output for the success marker
-   because altool can exit 0 on failure.
+3. archives unsigned and signs at `xcodebuild -exportArchive` against those profiles;
+4. runs `xcrun altool --validate-app`, then `--upload-package` pinned to the app record.
 
 The keychain, the `.p12` and every copy of the `.p8` key are removed at the end of the
 run, including on failure.
@@ -66,11 +62,8 @@ workflow fails early and names the missing one.
 
 ## Versions
 
-- Build number: UTC `YYMMDDHHMM` unless overridden on a manual run. It must be digits only
-  and at most 4294967295 (the `CFBundleVersion` limit), which the two-digit year keeps
-  until 2043.
+- Build number: UTC `YYMMDDHHMM` unless overridden on a manual run.
 - Marketing version: `MARKETING_VERSION` in `project.yml`. Bump it there for a new
   TestFlight version string.
-- Toolchain: `macos-26` runner with Xcode 26.x; the project needs the iOS 26 SDK.
-- The production `.xcarchive` is kept as a run artifact for 5 days. QA archives are not
-  uploaded, because they embed the dev hostnames as string literals.
+- Toolchain: `macos-26` runner with Xcode 26.x.
+- The production `.xcarchive` is kept as a run artifact for 5 days.

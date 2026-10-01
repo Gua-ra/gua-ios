@@ -40,7 +40,7 @@ struct JoinRoomScreen: View {
         .background()
         .backgroundStyle(.compound.bgCanvasDefault)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarRole(RoomHeaderView.toolbarRole) // Leading aligns the header on iOS 26.
+        .toolbarRole(RoomHeaderView.toolbarRole)
         .toolbar { toolbar }
         .shouldScrollOnKeyboardDidShow(focus == .knockMessage, to: Focus.knockMessage)
     }

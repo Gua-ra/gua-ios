@@ -252,7 +252,6 @@ class RoomSummaryProvider: RoomSummaryProviderProtocol {
         var attributedLastMessage: AttributedString?
         var lastMessageDate: Date?
 
-        // GUA FORK: a 1:1 chat shouldn't preview group-y membership/creation events.
         let isDirectOneToOneRoom = roomInfo.isDirect && roomInfo.activeMembersCount <= 2
 
         if let latestRoomMessage = roomDetails.latestEvent {
