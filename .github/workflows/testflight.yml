@@ -5,15 +5,14 @@ name: TestFlight
 # Archives, signs, and uploads the Gua iOS app to TestFlight.
 #
 # Signing is entirely manual, because cloud signing is refused for this App Store
-# Connect key. -allowProvisioningUpdates fails with "Cloud signing permission error"
-# for BOTH certificate and profile creation, so the archive is built unsigned and
+# Connect key: -allowProvisioningUpdates fails with "Cloud signing permission error"
+# for both certificate and profile creation. So the archive is built unsigned and
 # exportArchive does all the signing:
 #   - the distribution CERTIFICATE comes from a .p12 secret, imported into a keychain
-#     created for the run, since minting one needs Admin on the account
+#     created for the run (creating one through the API needs Admin on the account)
 #   - the PROFILES for all three signed targets are fetched (and created if absent) with
-#     sigh, through the ordinary provisioning API, which this key IS allowed to use
-#   - the archive sets CODE_SIGNING_ALLOWED=NO; signing there would mean cloud signing,
-#     which passed once and then failed on a byte-identical workflow
+#     sigh, through the ordinary provisioning API, which this key is allowed to use
+#   - the archive sets CODE_SIGNING_ALLOWED=NO; signing there would be cloud signing
 # One .p12 to manage, no .mobileprovision files in the repo, no Match repo.
 #
 # Release paths, in order of how often they are used:
@@ -28,21 +27,10 @@ name: TestFlight
 # An unlabelled PR does nothing here on purpose: an archive costs ~25 minutes of a
 # metered macOS runner, which is far too expensive to spend on every push.
 #
-# BRANCH MODEL, inherited from upstream element-x-ios and unchanged here: `develop` is
-# the integration branch that every pull request merges into, and `main` is the release
-# branch. Upstream still works this way; their default branch is develop and the tip of
-# their main reads "Prepare next release".
-#
-# Both of the things that select prod agree on main, and they are independent, so a
-# release cannot be staged from anywhere else even if one of them is widened by mistake:
-#   - the push trigger below is `branches: [main]`
-#   - the `production` environment carries a deployment branch policy of `main` only
-#
-# An earlier version of this comment said prod shipped from a merge to develop, and
-# warned that the environment would reject it. That was never what the file did. If you
-# do want prod to ship from develop, both of the above have to change together, and
-# `main` then has no purpose. Do NOT "fix" a rejection by dropping the environment: the
-# environment IS the approval gate.
+# Branch model, unchanged from upstream element-x-ios: `develop` is the integration
+# branch and `main` is the release branch. Prod is selected twice and both say `main`:
+# the push trigger below and the `production` environment's deployment branch policy.
+# Do not drop the environment: it is the approval gate.
 #
 # Required repo secrets (Settings -> Secrets and variables -> Actions):
 #   ASC_ISSUER_ID   App Store Connect API issuer id (UUID)
@@ -51,11 +39,13 @@ name: TestFlight
 #   ASC_APP_ID_DEV  The QA app record's numeric Apple ID (only for environment=dev).
 #   ASC_APP_ID      The app's numeric Apple ID (so the upload targets the right
 #                   app record on multi-app accounts)
+#   GUA_DIST_CERT_P12, GUA_DIST_CERT_PASSWORD
+#                   The Apple Distribution identity as a base64 .p12, and its password.
 #   GUA_DEV_RESOLVER_BASE_URL, GUA_DEV_IDENTITY_SERVICE_BASE_URL,
 #   GUA_DEV_ACCOUNT_PROVIDER
 #                   The dev backend endpoints baked into a QA build. Required for
 #                   every `release-qa` run; the build fails loudly without them.
-# See docs/TESTFLIGHT.md for setup details.
+# See docs/TESTFLIGHT.md for the operator's view.
 
 on:
   push:
@@ -76,7 +66,7 @@ on:
         options: [prod, dev]
         default: prod
       build_number:
-        description: "Override the build number (default: UTC YYYYMMDDHH). Must exceed the last uploaded build."
+        description: "Override the build number (default: UTC YYMMDDHHMM). Must exceed the last uploaded build."
         required: false
         type: string
       whats_new:
@@ -225,14 +215,12 @@ jobs:
           persist-credentials: false
 
       - name: Select Xcode
-        # The project needs the iOS 26 SDK, not merely "Xcode 16+". It calls
-        # ProcessInfo.isiOSAppOnVision, which is guarded by #available at runtime
-        # but must still exist in the SDK at compile time, so an older toolchain
-        # fails deep in the archive with "has no member 'isiOSAppOnVision'".
+        # The project needs the iOS 26 SDK (see runs-on above); an older toolchain fails
+        # deep in the archive with "has no member 'isiOSAppOnVision'".
         # ci_scripts/ci_common.sh pins the same version for every other workflow.
         #
-        # There is deliberately NO "newest Xcode" fallback: if the image drops 26.x
-        # we want a clear failure here rather than a confusing one 20 minutes later.
+        # No "newest Xcode" fallback on purpose: if the image drops 26.x, fail here
+        # rather than 20 minutes later.
         run: |
           set -euo pipefail
           XCODE_APP="$(ls -d /Applications/Xcode_26.5.0.app 2>/dev/null || true)"
@@ -270,31 +258,22 @@ jobs:
           key: ${{ runner.os }}-brew-xcodegen
 
       - name: Install build tools
-        # xcodegen generates the project; xcbeautify prettifies xcodebuild output.
-        # xcbeautify is usually preinstalled on macos-15 runners, so only fetch it
-        # when missing to keep runs fast.
+        # xcodegen generates the project; xcbeautify prettifies xcodebuild output and
+        # is usually preinstalled on the runner image, so it is only fetched when missing.
         run: |
           export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1
           brew install xcodegen
           command -v xcbeautify >/dev/null 2>&1 || brew install xcbeautify
 
       - name: Install gems
-        # `config_dev` below runs through `bundle exec`, and Gemfile.lock pins exact
-        # versions (fastlane 2.228.0 and ~50 others), so whatever fastlane happens to
-        # be preinstalled on the runner does not satisfy it. Without this the archive
-        # dies at the first bundle exec with Bundler::GemNotFound.
+        # Gemfile.lock pins fastlane (used by `config_dev` and `sigh` through
+        # `bundle exec`), so the runner's preinstalled fastlane does not satisfy it and
+        # `bundle install` is required. These are the two lines from ci_common.sh's
+        # setup_github_actions_environment that matter here.
         #
-        # This job selects its own Xcode and installs its own brew tools, so it
-        # cannot use ci_common.sh's setup_github_actions_environment; these are the
-        # two lines from it that matter here, kept identical to the rest of the repo.
-        #
-        # Deliberately NOT cached, unlike the test workflows. This job checks out
-        # `needs.gate.outputs.ref`, which on the QA path is a pull request's own
-        # branch, and it can also run in a privileged context from main or a
-        # dispatch. Writing a gem cache after checking out branch code gives a
-        # later privileged run something poisonable to restore, which is a poor
-        # trade for a job that signs the app and uploads it to TestFlight. A cold
-        # bundle install costs a couple of minutes against a ~25 minute archive.
+        # Not cached, unlike the test workflows: a gem cache written after checking out
+        # PR-branch code is poisonable by a later privileged run from main or a dispatch.
+        # A cold install costs a couple of minutes against a ~25 minute archive.
         run: |
           bundle config path vendor/bundle
           bundle install --jobs 4 --retry 3
@@ -320,7 +299,7 @@ jobs:
             echo "::error::Dev backend secrets are not set (GUA_DEV_RESOLVER_BASE_URL / GUA_DEV_IDENTITY_SERVICE_BASE_URL / GUA_DEV_ACCOUNT_PROVIDER). Without them the build ships localhost URLs and is dead on a real device. See docs/TESTFLIGHT.md."
             exit 1
           fi
-          # Resolver + identity-service must be https:// — App Transport Security blocks
+          # Resolver + identity-service must be https://. App Transport Security blocks
           # cleartext http on device, so an http URL would fail every request.
           for u in "$GUA_DEV_RESOLVER_BASE_URL" "$GUA_DEV_IDENTITY_SERVICE_BASE_URL"; do
             case "$u" in
@@ -372,17 +351,10 @@ jobs:
           # re-applied to every step and would shadow what is written here.
           BUILD_NUMBER="${BUILD_NUMBER_OVERRIDE:-}"
           if [ -z "$BUILD_NUMBER" ]; then
-            # Minute precision, not hourly. Two QA builds in the same UTC hour used to produce
-            # the same number, and App Store Connect rejects the second with "The bundle version
-            # must be higher than the previously uploaded version" after a full archive and
-            # upload has already run. That happens whenever more than one PR is labelled for QA
-            # in an hour, which is normal.
-            #
-            # Two-digit year, NOT four. A CFBundleVersion component must be <= 4294967295, and
-            # YYYYMMDDHHMM (202608290240) is roughly 202 billion, which every build would be
-            # rejected for. YYMMDDHHMM (2608290240) is about 2.6 billion, so it fits, and it is
-            # still larger than the YYYYMMDDHH values already uploaded (2026082902), so the
-            # sequence keeps increasing across the change. Headroom runs out in 2043.
+            # Minute precision, so two QA builds in the same UTC hour get distinct numbers
+            # (App Store Connect rejects a repeated bundle version after the upload).
+            # Two-digit year, because a CFBundleVersion component must be <= 4294967295 and
+            # YYYYMMDDHHMM would exceed it. Headroom runs out in 2043.
             BUILD_NUMBER="$(date -u +%y%m%d%H%M)"
           fi
           case "$BUILD_NUMBER" in
@@ -409,17 +381,9 @@ jobs:
             echo "::error::ASC_KEY_ID / ASC_PRIVATE_KEY secrets are not set. See docs/TESTFLIGHT.md"
             exit 1
           fi
-          # Two copies, because the two tools disagree about how to be told.
-          #
-          # xcodebuild takes an explicit -authenticationKeyPath, so it reads the copy
-          # under $RUNNER_TEMP.
-          #
-          # altool does NOT. It accepts --apiKeyPath without complaint and then ignores
-          # it, searching only a fixed list of directories and failing with "Failed to
-          # load AuthKey file (-43)" listing them. $RUNNER_TEMP is not on that list, so
-          # the key is also written to ~/.appstoreconnect/private_keys, which is.
-          #
-          # Both copies are removed by the always-run cleanup step at the end of the job.
+          # Two copies: xcodebuild takes -authenticationKeyPath; altool ignores --apiKeyPath
+          # and only searches ~/.appstoreconnect/private_keys, so the key is written there
+          # too. Both copies are shredded by the always-run cleanup step.
           KEY_DIR="$RUNNER_TEMP/private_keys"
           mkdir -p "$KEY_DIR"
           KEY_PATH="$KEY_DIR/AuthKey_${ASC_KEY_ID}.p8"
@@ -544,16 +508,11 @@ jobs:
           echo "Export options:"; plutil -p "$RUNNER_TEMP/exportOptions.plist"
 
       - name: Archive
-        # Deliberately UNSIGNED. Signing here meant CODE_SIGN_STYLE=Automatic with
-        # -allowProvisioningUpdates, which is cloud signing, and this App Store Connect
-        # key is refused on that path. It is not merely slow or occasionally refused:
-        # the identical step passed once and then failed on a byte-identical workflow,
-        # so relying on it was a coin toss rather than a build.
+        # Archive unsigned (CODE_SIGNING_ALLOWED=NO): signing here would be cloud
+        # signing, which this key is refused (see the header). exportArchive signs the
+        # app and both extensions against the profiles installed above.
         #
-        # exportArchive re-signs the app and both extensions anyway, manually, against
-        # the profiles fetched above. Letting it do all of the signing removes the
-        # gamble instead of retrying it.
-        # The unique build number is injected as a CURRENT_PROJECT_VERSION build-setting
+        # The build number is injected as a CURRENT_PROJECT_VERSION build-setting
         # override (the project doesn't use apple-generic versioning, so agvtool is not
         # reliable). MARKETING_VERSION stays as defined in project.yml.
         run: |
@@ -660,7 +619,7 @@ jobs:
           if grep -qi 'No errors uploading' altool-upload.log; then
             echo "Upload succeeded."
           else
-            echo "::error::altool upload failed (see log above) — nothing was delivered to TestFlight."
+            echo "::error::altool upload failed (see log above): nothing was delivered to TestFlight."
             exit 1
           fi
 
@@ -696,7 +655,7 @@ jobs:
       - name: Upload archive artifact
         # Prod archives only. A QA archive embeds the injected dev backend URLs as plain
         # string literals in the binary, and on a PUBLIC repo anyone can download a run's
-        # artifacts — which would republish the exact hostnames GUA_DEV_* exists to keep out
+        # artifacts, which would republish the exact hostnames GUA_DEV_* exists to keep out
         # of the repo. For a QA build the run log is the debugging surface instead.
         if: always() && needs.gate.outputs.target != 'dev'
         uses: actions/upload-artifact@v4
