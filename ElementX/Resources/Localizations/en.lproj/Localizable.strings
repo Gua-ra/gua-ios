@@ -1517,8 +1517,7 @@
 /* GUA FORK - App lock */
 "screen_app_lock_unlock_with_biometrics_ios" = "Unlock with %1$@";
 
-/* GUA FORK - Trusted devices (ADM-009 account authority). The words "authority", "chain" and "record"
-   are deliberately absent: what a reader needs is which devices can approve changes to their account. */
+/* GUA FORK - Trusted devices */
 "screen_account_authority_title" = "Trusted devices";
 "screen_account_authority_state_bootstrap_title" = "No trusted device yet";
 "screen_account_authority_state_bootstrap_message" = "Set up this phone as a trusted device. After that, changes to your account can only be approved from a device you trust.";

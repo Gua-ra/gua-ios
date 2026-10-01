@@ -1514,7 +1514,7 @@
 /* GUA FORK - App lock */
 "screen_app_lock_unlock_with_biometrics_ios" = "Déverrouiller avec %1$@";
 
-/* GUA FORK - Appareils de confiance (ADM-009) */
+/* GUA FORK - Appareils de confiance */
 "screen_account_authority_title" = "Appareils de confiance";
 "screen_account_authority_state_bootstrap_title" = "Aucun appareil de confiance pour l'instant";
 "screen_account_authority_state_bootstrap_message" = "Configurez ce téléphone comme appareil de confiance. Ensuite, les modifications de votre compte ne pourront être approuvées que depuis un appareil de confiance.";

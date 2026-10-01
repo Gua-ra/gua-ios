@@ -1514,7 +1514,7 @@
 /* GUA FORK - App lock */
 "screen_app_lock_unlock_with_biometrics_ios" = "Desbloquear com %1$@";
 
-/* GUA FORK - Dispositivos confiáveis (ADM-009) */
+/* GUA FORK - Dispositivos confiáveis */
 "screen_account_authority_title" = "Dispositivos confiáveis";
 "screen_account_authority_state_bootstrap_title" = "Nenhum dispositivo confiável ainda";
 "screen_account_authority_state_bootstrap_message" = "Configure este celular como um dispositivo confiável. Depois disso, mudanças na sua conta só podem ser aprovadas por um dispositivo em que você confia.";
