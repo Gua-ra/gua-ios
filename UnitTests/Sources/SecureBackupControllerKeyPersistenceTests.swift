@@ -96,9 +96,6 @@ class SecureBackupControllerKeyPersistenceTests: XCTestCase {
 
     // MARK: - repeated attempts
 
-    /// After a reset the first successful mint is decisive. A store the device cannot complete is not
-    /// improved by another store, so the loop stops with the one key it minted, which opens that store.
-    /// This is the loop `provisionAfterReset` runs, driven with the same closure it supplies.
     func testTheFirstSuccessfulMintAfterAResetIsDecisive() async {
         givenEnableAttempts([.success("key-1"), .success("key-2")])
 
@@ -115,8 +112,6 @@ class SecureBackupControllerKeyPersistenceTests: XCTestCase {
         XCTAssertEqual(encryption.enableRecoveryWaitForBackupsToUploadPassphraseProgressListenerCallsCount, 1)
     }
 
-    /// A thrown attempt minted nothing, so it is still retried; the key retained is the one from the
-    /// attempt that finally minted.
     func testAThrownAttemptIsRetriedAndTheMintedKeyIsRetained() async {
         givenEnableAttempts([.failure(TransientError()), .success("key-2")])
 

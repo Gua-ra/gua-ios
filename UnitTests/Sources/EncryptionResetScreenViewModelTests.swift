@@ -10,8 +10,6 @@ import Combine
 import MatrixRustSDK
 import XCTest
 
-/// The reset screen claims the sync before the reset, waits with a presentation ceiling, and never
-/// forces the guard open while a reset call can still land.
 @MainActor
 class EncryptionResetScreenViewModelTests: XCTestCase {
     private var clientProxy: ClientProxyMock!
@@ -122,8 +120,6 @@ class EncryptionResetScreenViewModelTests: XCTestCase {
         XCTAssertEqual(resetGuard.releaseIfIdleCallsCount, 0)
     }
 
-    /// A press while a previous attempt's upload is still running waits for it; it never starts a
-    /// second reset on top of it.
     func testAPressDuringARunningUploadJoinsIt() async {
         let signal = TestSignal()
         resetGuard.inFlightReset = Task {
@@ -142,7 +138,7 @@ class EncryptionResetScreenViewModelTests: XCTestCase {
         XCTAssertEqual(finishedCount, 1)
     }
 
-    // MARK: - paths with no reset call in flight release an idle guard
+    // MARK: - idle guard release
 
     func testNoHandleMeansTheResetLandedAndTheGuardIsReleased() async {
         clientProxy.resetIdentityReturnValue = .success(nil)
@@ -188,8 +184,6 @@ class EncryptionResetScreenViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.context.viewState.isResetting)
     }
 
-    /// Teardown asks the guard to release; the guard itself refuses while a call is running, which
-    /// `IdentityResetGuardTests` pins. The screen never forces it.
     func testTeardownOnlyAsksTheGuardToReleaseIfIdle() async {
         let signal = TestSignal()
         resetGuard.runResetAuthClosure = { _, _ in Task { await signal.wait(); return .success(()) } }

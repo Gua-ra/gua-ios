@@ -8,7 +8,6 @@
 @testable import ElementX
 import XCTest
 
-/// The notification extension stands down on a fresh marker and only on a fresh marker.
 class IdentityResetMarkerTests: XCTestCase {
     private let now = Date(timeIntervalSince1970: 1_800_000_000)
 
@@ -26,13 +25,11 @@ class IdentityResetMarkerTests: XCTestCase {
         XCTAssertFalse(IdentityResetMarker.isFresh(startedAt: nil, now: now))
     }
 
-    /// A clock adjustment may date a marker slightly ahead; far ahead it is not trusted.
     func testAFutureMarkerIsTrustedOnlyWithinTolerance() {
         XCTAssertTrue(IdentityResetMarker.isFresh(startedAt: now.addingTimeInterval(IdentityResetMarker.futureTolerance - 1), now: now))
         XCTAssertFalse(IdentityResetMarker.isFresh(startedAt: now.addingTimeInterval(IdentityResetMarker.futureTolerance + 1), now: now))
     }
 
-    /// Storage is per account; another account's marker is not this one's.
     func testTheMarkerIsAccountSpecific() {
         AppSettings.resetAllSettings()
         let settings = AppSettings()

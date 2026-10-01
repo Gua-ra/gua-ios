@@ -399,13 +399,9 @@ class ClientProxy: ClientProxyProtocol {
     /// loop that was triggered by trying to sync a signed out session.
     @CancellableTask private var restartTask: Task<Void, Never>?
 
-    /// GUA FORK: non-nil while an identity reset holds the encryption sync. Every start consults it.
     private var identityResetGuard: IdentityResetGuard?
     private var latestSyncServiceState: SyncServiceState = .idle
 
-    /// GUA FORK: whether a sync start may proceed. Checked when a start is requested and again
-    /// inside the task that performs it, so a start requested just before an identity reset took
-    /// the hold cannot reach the SDK after the sync was stopped for it.
     static func maySyncStart(identityResetHeld: Bool, hasEncounteredAuthError: Bool, isReachable: Bool) -> Bool {
         !identityResetHeld && !hasEncounteredAuthError && isReachable
     }
@@ -430,8 +426,6 @@ class ClientProxy: ClientProxyProtocol {
         return newGuard
     }
 
-    /// Starts the sync and returns once the SDK reports it running. Used by the identity reset
-    /// guard's release, which clears the shared marker only after this returns.
     private func startSyncAwaitingRunning() async {
         guard Self.maySyncStart(identityResetHeld: identityResetGuard != nil,
                                 hasEncounteredAuthError: hasEncounteredAuthError,

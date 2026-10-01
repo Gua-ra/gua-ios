@@ -76,9 +76,7 @@ class NotificationServiceExtension: UNNotificationServiceExtension {
             return contentHandler(request.content)
         }
         
-        // GUA FORK: while the app is resetting this account's identity, an encryption sync from
-        // this process would issue the own-user key query that clears the new private keys
-        // (matrix-rust-sdk#4728). Deliver the push as received and stay out of the crypto store.
+        // GUA FORK: stay out of the crypto store while the app resets this account's identity.
         if IdentityResetMarker.isFresh(startedAt: settings.identityResetStartedAt(forUserID: credentials.userID)) {
             MXLog.info("\(tag) Identity reset in progress for this account, delivering the notification as received.")
             return contentHandler(request.content)

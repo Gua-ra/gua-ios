@@ -482,17 +482,8 @@ class SecureBackupController: SecureBackupControllerProtocol {
                                  })
     }
 
-    /// The post-reset provisioning loop, as a pure function so its two important properties can be tested:
-    /// that a structural refusal returns at once, and that nothing here ever deletes a backup.
-    ///
-    /// Rotating the secret store is normally the one thing to avoid, since it invalidates any recovery key
-    /// saved elsewhere for this account. Immediately after a reset there is no such key and no earlier store
-    /// left to strand, so re-running it costs nothing but a round trip.
-    ///
-    /// The first successful `enableRecovery` is decisive. It mints and persists a key, and the SDK
-    /// recomputes recovery state before it returns; that state is read once. `.incomplete` means the
-    /// device holds too little private cross-signing material, which another mint cannot change, so
-    /// the loop stops with an explicit outcome. Only a thrown attempt, which minted nothing, is retried.
+    /// The post-reset provisioning loop, as a pure function so it can be tested.
+    /// Only a thrown attempt is retried: a successful mint that leaves recovery incomplete is final.
     static func provisionLoop(backoff: [Duration],
                               isEnabled: () -> Bool,
                               enableRecovery: () async throws -> Void,

@@ -9,8 +9,6 @@
 import MatrixRustSDK
 import XCTest
 
-/// The guard's lifetime: marker before stop, stop before the reset, hold until the reset call has
-/// returned whoever stopped waiting, and one terminal ordering however many times it is released.
 class IdentityResetGuardTests: XCTestCase {
     private var events: [String] = []
     private var markerWrites: [Date?] = []
@@ -50,8 +48,6 @@ class IdentityResetGuardTests: XCTestCase {
         XCTAssertFalse(guardUnderTest.isHeld)
     }
 
-    /// The core invariant. A UI that stops waiting, a teardown, a second press: none of them may
-    /// release a guard whose reset call is still running. The call's own return does.
     func testARunningResetKeepsTheGuardHeldUntilItReturns() async {
         let guardUnderTest = makeGuard()
         await guardUnderTest.acquire { }
@@ -62,19 +58,16 @@ class IdentityResetGuardTests: XCTestCase {
 
         let operation = guardUnderTest.runReset(handle, auth: nil)
 
-        // The UI's ceiling fires; nothing about the guard changes.
         try? await Task.sleep(for: .milliseconds(150))
         XCTAssertTrue(guardUnderTest.isHeld)
         XCTAssertNotNil(guardUnderTest.inFlightReset)
         XCTAssertFalse(events.contains("start"))
         XCTAssertFalse(events.contains("marker-clear"))
 
-        // Teardown asks; the guard declines while the call runs.
         await guardUnderTest.releaseIfIdle()
         XCTAssertTrue(guardUnderTest.isHeld)
         XCTAssertEqual(events, [])
 
-        // A second press joins the running call instead of starting another reset.
         let second = IdentityResetHandleSDKMock()
         _ = guardUnderTest.runReset(second, auth: nil)
         XCTAssertEqual(second.resetAuthCallsCount, 0)
@@ -107,7 +100,6 @@ class IdentityResetGuardTests: XCTestCase {
         XCTAssertFalse(guardUnderTest.isHeld)
     }
 
-    /// Sync is restored before the marker clears, so there is never a stopped sync without a marker.
     func testTheMarkerOutlivesTheStoppedSync() async throws {
         let guardUnderTest = makeGuard()
         await guardUnderTest.acquire { }
@@ -121,7 +113,7 @@ class IdentityResetGuardTests: XCTestCase {
         XCTAssertEqual(markerWrites.last ?? Date(), nil)
     }
 
-    // MARK: - deinit is an anomaly path, not a release path
+    // MARK: - deinit
 
     func testDeallocationAfterAReleaseStartsNothingTwice() async {
         var guardUnderTest: IdentityResetGuard? = makeGuard()
@@ -185,8 +177,6 @@ class IdentityResetGuardTests: XCTestCase {
     }
 }
 
-/// The gate every sync start passes through, at the request and again inside the task that reaches
-/// the SDK.
 class ClientProxySyncGateTests: XCTestCase {
     func testAHeldIdentityResetBlocksEveryStart() {
         XCTAssertFalse(ClientProxy.maySyncStart(identityResetHeld: true, hasEncounteredAuthError: false, isReachable: true))
@@ -200,7 +190,6 @@ class ClientProxySyncGateTests: XCTestCase {
     }
 }
 
-/// Lets a test hold an async call open until it decides to let it finish.
 final class TestSignal: @unchecked Sendable {
     private let lock = NSLock()
     private var fired = false

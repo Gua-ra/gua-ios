@@ -27,13 +27,10 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
     /// handle. Each reset deletes the key backup and secret storage again, so a concurrent call is
     /// destructive, not just noisy.
     private var isResetInFlight = false
-    /// GUA FORK: the guard acquired for the reset in progress. The guard releases itself once the
-    /// reset call has returned; this screen releases it only while nothing is in flight.
     private var resetGuard: IdentityResetGuardProtocol?
     private var hasReportedLanding = false
     private let approveReset: (URL, String) async -> Bool
-    /// How long this screen waits for the upload before reporting that finishing is taking long.
-    /// The upload itself is not bounded by it.
+    /// Bounds this screen's wait only; the reset call keeps running under the guard.
     private let resetCallCeiling: Duration
 
     init(clientProxy: ClientProxyProtocol,
@@ -104,10 +101,7 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
             hideLoadingIndicator()
         }
 
-        // GUA FORK: the guard stops the encryption sync and keeps every start away until the reset
-        // has settled, so no own-user key query can clear the identity about to be created. When a
-        // previous attempt's upload is still running, this press waits for it instead of starting a
-        // second reset on top of it.
+        // GUA FORK: the guard must be held before resetIdentity() runs. See IdentityResetGuard.
         let resetGuard = await clientProxy.acquireIdentityResetGuard()
         self.resetGuard = resetGuard
         if let inFlight = resetGuard.inFlightReset {
@@ -150,12 +144,8 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
 
                 hideLoadingIndicator()
 
-                // GUA FORK: approve from the app's own session first. The web sheet shares cookies
-                // with the system browser, which on most phones holds no session at all (sign-in
-                // uses an ephemeral browser context), so the page would demand a whole new
-                // phone-number login; on a phone whose browser holds another account it would
-                // approve the reset for that account. The server accepts the access token the app
-                // already uses, for this user only, and the upload can follow at once.
+                // GUA FORK: approve with the app's own access token first. The web sheet uses the
+                // system browser's cookies, which may belong to another account.
                 showFinishingIndicator()
                 if let accessToken = clientProxy.accessToken, await approveReset(url, accessToken) {
                     await finishApprovedReset()
@@ -188,8 +178,6 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
             fatalError("Requested reset flow continuation without a stored handle")
         }
 
-        // The guard owns the call from here and releases itself when it returns. A wrong password
-        // ends this attempt; a retry starts a fresh reset.
         let operation = resetGuard.runReset(identityResetHandle,
                                             auth: .password(passwordDetails: .init(identifier: clientProxy.userID, password: password)))
         self.identityResetHandle = nil
@@ -245,12 +233,6 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
         }
     }
 
-    /// Uploads the new identity now that the approval has landed.
-    ///
-    /// The call runs under the guard, which alone owns its lifetime: the bindings cannot cancel it,
-    /// and a cancelled handle still lets an upload already in flight land, so the guard is released
-    /// only when the call returns. This screen waits with a presentation ceiling and, past it, says
-    /// that finishing is taking long while the call keeps running.
     private func finishApprovedReset() async {
         guard let identityResetHandle, let resetGuard, !isResetInFlight else { return }
 
@@ -258,14 +240,13 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
         defer { isResetInFlight = false }
 
         let operation = resetGuard.runReset(identityResetHandle, auth: nil)
-        // Nothing may act on the handle again; the guard owns the call.
+        // Cleared so that nothing can cancel a call that has started.
         self.identityResetHandle = nil
         actionsSubject.send(.dismissOIDCPresentation)
 
         await awaitReset(operation)
     }
 
-    /// Waits for a reset call up to the presentation ceiling and reports the outcome.
     private func awaitReset(_ operation: Task<Result<Void, Error>, Never>) async {
         showFinishingIndicator()
         let outcome = await Self.race(operation, ceiling: resetCallCeiling)
@@ -297,20 +278,14 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
         }
     }
 
-    /// `.resetFinished` is sent once per landing, however many waits observed it.
     private func reportLanded() {
         guard !hasReportedLanding else { return }
         hasReportedLanding = true
         MXLog.info("GUA-KEYSTORE: the new identity is on the server; handing over to provisioning.")
-        // isResetting stays set: .resetFinished does not dismiss this screen; the flow coordinator
-        // holds the user on a visible wait while key storage is provisioned.
+        // isResetting stays set: the flow coordinator keeps this screen up while key storage is provisioned.
         actionsSubject.send(.resetFinished)
     }
 
-    /// Ends an attempt whose reset call never started and returns the screen to a retryable state.
-    ///
-    /// `cancel()` is only ever called on a handle whose call did not start; a call that did start
-    /// is the guard's to finish. A retry starts a fresh reset.
     private func abandonAttempt() async {
         actionsSubject.send(.dismissOIDCPresentation)
         if let identityResetHandle {
@@ -327,9 +302,7 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
         case timedOut
     }
 
-    /// Resolves with the call's result or the ceiling, whichever comes first. The ceiling does not
-    /// cancel the call: it belongs to the guard and keeps running. A task group cannot express this,
-    /// because it waits for every child, and the child awaiting the call cannot be interrupted.
+    /// Not a task group: a group waits for every child, and the child awaiting the call cannot be cancelled.
     private static func race(_ operation: Task<Result<Void, Error>, Never>, ceiling: Duration) async -> ResetCallOutcome {
         let gate = ResetOutcomeGate()
 

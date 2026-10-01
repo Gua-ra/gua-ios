@@ -153,9 +153,8 @@ protocol ClientProxyProtocol: AnyObject {
 
     func stopSync()
 
-    /// GUA FORK: claims the encryption sync for an identity reset. Returns only once the sync has
-    /// stopped; every start is suppressed until the guard is released. A second call while a guard
-    /// is held returns that guard. See `IdentityResetGuard`.
+    /// GUA FORK: returns once the sync has stopped; sync starts are suppressed until the guard is
+    /// released. A call while a guard is held returns that guard.
     func acquireIdentityResetGuard() async -> IdentityResetGuardProtocol
     
     func stopSync(completion: (() -> Void)?) // Hopefully this will become async once we get SE-0371.

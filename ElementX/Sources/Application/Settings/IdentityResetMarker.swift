@@ -7,18 +7,11 @@
 
 import Foundation
 
-/// Freshness rules for the per-account identity-reset marker the app shares with the notification
-/// extension through the App Group defaults.
-///
-/// While an identity reset holds the encryption sync, the app rewrites the marker every
-/// `refreshInterval`, so a live reset never goes stale. A marker older than `maxAge` belongs to a
-/// process that died mid-reset and must not keep the extension standing down. A value that is not
-/// a plausible timestamp counts as absent: standing down wrongly costs one generic notification,
-/// standing down forever costs every notification.
+/// Freshness of the identity-reset marker shared with the notification extension.
+/// A marker older than `maxAge` belongs to a reset that died and is ignored.
 enum IdentityResetMarker {
     static let refreshInterval: Duration = .seconds(30)
     static let maxAge: TimeInterval = 180
-    /// A clock adjustment can date a marker slightly in the future; beyond this it is not trusted.
     static let futureTolerance: TimeInterval = 60
 
     static func isFresh(startedAt: Date?, now: Date = .now) -> Bool {

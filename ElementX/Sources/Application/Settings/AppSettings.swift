@@ -23,8 +23,6 @@ protocol CommonSettingsProtocol {
     var threadsEnabled: Bool { get }
     var hideQuietNotificationAlerts: Bool { get }
 
-    /// GUA FORK: when an identity reset for this account last claimed the encryption sync, or nil.
-    /// See `IdentityResetMarker`.
     func identityResetStartedAt(forUserID userID: String) -> Date?
 }
 
@@ -367,8 +365,7 @@ final class AppSettings {
         "\(UserDefaultsKeys.hasBootstrappedKeyStorage.rawValue).\(userID)"
     }
 
-    /// GUA FORK: the identity-reset marker lives in the App Group suite so the notification
-    /// extension can read it without opening the crypto store. See `IdentityResetMarker`.
+    /// GUA FORK: read by the notification extension, so it must stay in the App Group store.
     func identityResetStartedAt(forUserID userID: String) -> Date? {
         Self.store.object(forKey: Self.identityResetKey(forUserID: userID)) as? Date
     }
