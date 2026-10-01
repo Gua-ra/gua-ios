@@ -10,14 +10,14 @@ enum FindFriendsScreenViewModelAction {
     /// A direct chat with the selected contact is ready; the room id is returned so the
     /// surrounding flow can open it.
     case startedChat(roomID: String)
-    /// The user tapped a contact's avatar — open their profile.
+    /// The user tapped a contact's avatar: open their profile.
     case showProfile(userID: String)
     case close
 }
 
 enum FindFriendsScreenPhase: Equatable {
     case loading
-    /// Contacts permission is denied or restricted — show a CTA to open Settings.
+    /// Contacts permission is denied or restricted: show a CTA to open Settings.
     case needsPermission
     /// Discovery ran but none of the user's contacts are on Gua yet.
     case empty

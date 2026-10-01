@@ -124,7 +124,7 @@ final class ContactDiscoveryService: ContactDiscoveryServiceProtocol {
 
     private func readAddressBook() -> [String: String] {
         // Use the formatter's own descriptor so every key it reads (given/middle/family,
-        // prefix/suffix, …) is fetched — otherwise CNContactFormatter throws when it touches
+        // prefix/suffix, …) is fetched; otherwise CNContactFormatter throws when it touches
         // an unfetched property.
         let keys: [CNKeyDescriptor] = [
             CNContactFormatter.descriptorForRequiredKeys(for: .fullName),

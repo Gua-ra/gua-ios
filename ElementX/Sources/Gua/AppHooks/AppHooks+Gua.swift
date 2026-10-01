@@ -13,15 +13,15 @@ private struct GuaAppSettingsHook: AppSettingsHookProtocol {
     private enum Constants {
         // Custom-scheme OIDC redirect. MAS's client-registration policy requires a
         // native redirect with NO authority (`scheme:/path`, not `scheme://host`) whose
-        // reverse-DNS scheme matches the client_uri host — `global.gua` ⇄ `gua.global`.
+        // reverse-DNS scheme matches the client_uri host: `global.gua` reverses to `gua.global`.
         static let oidcRedirectURL = "global.gua:/oidc"
         static let localMasClientID = "01JXGA7E570000000000000000"
 
         // OIDC dynamic client registration requires client_uri, logo_uri, tos_uri and
         // policy_uri to all share a single host, and (for a custom-scheme redirect) that
         // host must be the scheme's reverse-DNS. The redirect scheme is `global.gua`, so
-        // every URI below lives on `gua.global`. MAS only validates the hosts here — it
-        // never fetches these URLs — so registration succeeds even before the pages exist.
+        // every URI below lives on `gua.global`. MAS only validates the hosts here and never
+        // fetches these URLs, so registration succeeds even before the pages exist.
         static let websiteURL: URL = "https://gua.global"
         static let logoURL: URL = "https://gua.global/gua-icon.png"
         static let copyrightURL: URL = "https://gua.global/copyright"
@@ -42,7 +42,7 @@ private struct GuaAppSettingsHook: AppSettingsHookProtocol {
 
     func configure(_ appSettings: AppSettings) -> AppSettings {
         // The account provider is injected, never hardcoded: an optional Info.plist override
-        // (empty by default) wins, otherwise GuaDeployment supplies it — the production gua.global
+        // (empty by default) wins, otherwise GuaDeployment supplies it: the production gua.global
         // host, or the dev host from the per-machine Secrets pipeline. Falls back to the existing
         // providers if nothing is configured.
         let injectedProvider = string(for: Constants.infoPlistAccountProviderKey)?.trimmingCharacters(in: .whitespacesAndNewlines)

@@ -16,7 +16,7 @@ extension URLComponents {
     /// the whole query and, in doing so, decodes an already-encoded `%2B` back to a bare `+`. A
     /// bare `+` in a query value is `application/x-www-form-urlencoded` shorthand for a space, so
     /// the downstream `login_hint=%2B<E.164>` that the SDK produced would arrive at MAS / idp-web as
-    /// `login_hint=<space><digits>` — no longer a valid E.164. idp-web then fails to pre-fill and
+    /// `login_hint=<space><digits>`, no longer a valid E.164. idp-web then fails to pre-fill and
     /// re-prompts for the phone number instead of jumping straight to the OTP step. Appending to the
     /// raw `percentEncodedQuery` string leaves the existing `%2B` (and every other escape) untouched.
     mutating func appendUILocalesPreservingEncoding(languageCode: String? = Locale.current.language.languageCode?.identifier) {

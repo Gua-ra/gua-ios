@@ -77,7 +77,7 @@ extension Country {
     }
 
     /// Best-effort match by dial code. When several countries share a code (e.g. +1)
-    /// the first entry in `all` wins — typically the most populous one.
+    /// the first entry in `all` wins, typically the most populous one.
     static func find(dialCode: String) -> Country? {
         let trimmed = dialCode.trimmingCharacters(in: CharacterSet(charactersIn: "+ "))
         return all.first { $0.dialCode == trimmed }
@@ -345,7 +345,7 @@ extension Country {
     ///
     /// Rules:
     /// 1. **Longest-prefix dial code match** against `all`. Handles e.g. user typing
-    ///    "242" while on US (+1) — recognises Bahamas (+1242). Also handles users
+    ///    "242" while on US (+1), which recognises Bahamas (+1242). Also handles users
     ///    pasting their full local number starting with a country code.
     /// 2. **NANP +1 disambiguation**: when the dial code is "1" and ≥3 local digits
     ///    are entered, look up the area code in `canadianAreaCodes` to flip between

@@ -169,7 +169,7 @@ struct PhoneEntryScreen: View {
     }
 }
 
-/// A single capsule "trust" chip — icon + short claim, sitting quietly on the canvas.
+/// A single capsule "trust" chip: icon + short claim, sitting quietly on the canvas.
 private struct TrustPill: View {
     let systemImage: String
     let title: String

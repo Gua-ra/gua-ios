@@ -29,7 +29,7 @@ class OIDCAccountSettingsPresenter: NSObject {
     }
 
     /// Presents a web authentication session for the supplied data and returns once it
-    /// is dismissed — either because the page redirected to the callback URL or because
+    /// is dismissed, either because the page redirected to the callback URL or because
     /// the user closed the sheet. Callers that need to act on the result of the web flow
     /// (e.g. the identity-reset approval) must `await` this before continuing.
     /// GUA FORK: how the web sheet ended.

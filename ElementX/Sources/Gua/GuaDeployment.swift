@@ -11,7 +11,7 @@ import Foundation
 ///
 /// The active deployment is chosen at **build time**, so the same source ships to every environment:
 /// - **Release** archives use `.production`.
-/// - **Debug** builds (and any build that defines the `GUA_DEVELOPMENT` compilation condition — e.g. a
+/// - **Debug** builds (and any build that defines the `GUA_DEVELOPMENT` compilation condition, e.g. a
 ///   dev TestFlight scheme) use `.development`.
 ///
 /// Production endpoints are the project's own `gua.global` domain and are safe to commit. **Development**
@@ -72,7 +72,7 @@ enum GuaDeployment {
 
     /// Default account provider (homeserver host) offered on the login screen, or `nil` when unconfigured.
     /// Production is the committed `gua.global` brand host; development is injected via the `Secrets`
-    /// pipeline — the committed placeholder keeps the non-public dev host out of this repo, same as the
+    /// pipeline: the committed placeholder keeps the non-public dev host out of this repo, same as the
     /// service URLs above.
     var defaultAccountProvider: String? {
         switch self {

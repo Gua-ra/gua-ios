@@ -39,7 +39,7 @@ struct PhoneEntryScreenViewState: BindableState {
     }
 
     /// E.164 numbers are 7–15 digits including the country code. The resolver enforces the same
-    /// floor (`+[1-9]\d{6,14}`), so we keep the two in sync — otherwise a number that passes here
+    /// floor (`+[1-9]\d{6,14}`), so we keep the two in sync; otherwise a number that passes here
     /// would be rejected by `/resolve` and surface as a confusing error. We also require at least a
     /// 4-digit subscriber part (small island states) on top of the 7-digit total.
     static func isValid(localDigits: String, dialCode: String) -> Bool {

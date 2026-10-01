@@ -58,9 +58,9 @@ class PhoneEntryScreenViewModel: PhoneEntryScreenViewModelType, PhoneEntryScreen
         }
     }
 
-    /// Detects a country code that the user pasted/autofilled into the *local* field — either
-    /// an explicit international "+…" number or a redundant leading dial code — switching the
-    /// country and stripping the code so only the clean local number remains.
+    /// Detects a country code that the user pasted/autofilled into the *local* field (an explicit
+    /// international "+…" number or a redundant leading dial code), switches the country and strips
+    /// the code so only the clean local number remains.
     ///
     /// Runs before `autoDetectCountry()`/`reformatNumber()` so those operate on the stripped
     /// local digits. Delegates the unambiguous-strip decision to `Country.normalize`; this is a
@@ -80,7 +80,7 @@ class PhoneEntryScreenViewModel: PhoneEntryScreenViewModelType, PhoneEntryScreen
 
     /// Rewrites `bindings.localPhoneNumber` with the country-specific live-formatted version
     /// (e.g. `"51985550619"` → `"(51) 98555-0619"`). The text field's cursor jumps to the
-    /// end on each reformat — acceptable trade-off for phone entry.
+    /// end on each reformat, an acceptable trade-off for phone entry.
     private func reformatNumber() {
         let digits = state.bindings.localPhoneNumber.filter(\.isNumber)
         let formatted = state.selectedCountry.formatNational(digits: digits)
