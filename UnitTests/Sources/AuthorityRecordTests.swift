@@ -8,10 +8,6 @@ import CryptoKit
 @testable import ElementX
 import XCTest
 
-/// The codec and the preimage rule of ADM-009 decisions 2 and 6.
-///
-/// The offsets, lengths and refusal tokens here are identity-service's, so a disagreement between the two
-/// halves shows up as a failing test on this side rather than as a 400 in dev.
 final class AuthorityRecordTests: XCTestCase {
     private var accountID: AccountID!
     private var deviceKey: [UInt8]!
@@ -67,14 +63,10 @@ final class AuthorityRecordTests: XCTestCase {
         XCTAssertEqual(Array(bytes[80..<112]), granteeKey)
         XCTAssertEqual(bytes[112], AuthorityRecord.flagsNone)
         XCTAssertEqual(AuthorityLabel.decode(Array(bytes[113..<129])), "iPad")
-        // authorizingKey names the key that authorizes the record, inside the bytes that are hashed, so a
-        // log leaf commits who authorized the transition and not only that somebody did.
         XCTAssertEqual(Array(bytes[129..<161]), deviceKey)
     }
 
     func testTheKeysAGrantNamesAreTheGranteesAndTheSigners() throws {
-        // The new device generates its own key and never receives another device's: a per-device key is
-        // what gives a revocation an effect at all.
         let granteeKey = [UInt8](Curve25519.Signing.PrivateKey().publicKey.rawRepresentation)
         let bytes = try AuthorityRecord.deviceGrant(accountID: accountID,
                                                     granteeKey: granteeKey,
@@ -89,8 +81,6 @@ final class AuthorityRecordTests: XCTestCase {
     // MARK: - Refusals
 
     func testARecordWithTwoEqualKeysIsRefused() throws {
-        // The server refuses it with `duplicate_keys`, and a record this client would not read is one it
-        // must not ask a server to write.
         let bytes = try AuthorityRecord.adoptRoot(accountID: accountID,
                                                   deviceKey: deviceKey,
                                                   recoveryKey: deviceKey,
@@ -105,8 +95,6 @@ final class AuthorityRecordTests: XCTestCase {
                                                   recoveryKey: recoveryKey,
                                                   label: "iPhone",
                                                   entropy: entropy)
-        // The all-zero encoding decodes to a valid low-order point, so point decoding alone lets it
-        // through. That is why the rule is its own.
         bytes.replaceSubrange(80..<112, with: [UInt8](repeating: 0, count: 32))
         assertRefused(bytes, with: .zeroDeviceKey)
     }
@@ -117,7 +105,7 @@ final class AuthorityRecordTests: XCTestCase {
                                                   recoveryKey: recoveryKey,
                                                   label: "iPhone",
                                                   entropy: entropy)
-        // y = p - 1 with every other bit set: above the field prime, so no point decodes from it.
+        // All 0xFF is above the field prime, so no point decodes from it.
         bytes.replaceSubrange(80..<112, with: [UInt8](repeating: 0xFF, count: 32))
         assertRefused(bytes, with: .invalidDeviceKey)
     }
@@ -128,8 +116,6 @@ final class AuthorityRecordTests: XCTestCase {
                                                   recoveryKey: recoveryKey,
                                                   label: "iPhone",
                                                   entropy: entropy)
-        // One label, one encoding: otherwise a notification can be made to name something the padding
-        // hid.
         bytes[160] = 0x41
         assertRefused(bytes, with: .nonCanonicalLabel)
     }
@@ -162,8 +148,6 @@ final class AuthorityRecordTests: XCTestCase {
                                                     authorizingKey: deviceKey,
                                                     prevHash: AuthorityRecord.emptyPrevHash,
                                                     seq: 2)
-        // A reserved bit is refused rather than ignored: a decoder that drops a bit it does not
-        // understand accepts a record whose meaning it cannot state.
         grant[112] = 0x01
         assertRefused(grant, with: .unknownFlags)
     }
@@ -193,13 +177,10 @@ final class AuthorityRecordTests: XCTestCase {
         XCTAssertEqual(AuthorityLabel.encode("iPhone").count, 16)
         XCTAssertEqual(AuthorityLabel.decode(AuthorityLabel.encode("iPhone")), "iPhone")
 
-        // 16 bytes exactly, and the next character would not fit whole.
         let long = AuthorityLabel.encode("Sarah's iPhone 17 Pro Max")
         XCTAssertEqual(long.count, 16)
         XCTAssertNoThrow(try AuthorityLabel.validate(long))
 
-        // An emoji is four bytes: the label stops before it rather than half way through it, which would
-        // reach the server as a replacement character.
         let emoji = AuthorityLabel.encode("abcdefghijklmn🙂")
         XCTAssertEqual(AuthorityLabel.decode(emoji), "abcdefghijklmn")
         XCTAssertNoThrow(try AuthorityLabel.validate(emoji))
@@ -224,7 +205,6 @@ final class AuthorityRecordTests: XCTestCase {
     }
 
     func testTheSameBytesUnderAnotherMagicProduceAnotherPreimage() throws {
-        // The magic is the signature domain, which is what stops a record being replayed as another type.
         let challenge = [UInt8](repeating: 0x07, count: 32)
         let grant = try AuthorityRecord.deviceGrant(accountID: accountID,
                                                     granteeKey: recoveryKey,
@@ -272,8 +252,6 @@ final class AuthorityRecordTests: XCTestCase {
     }
 
     func testASignatureOverThePreimageVerifiesUnderTheDeviceKey() throws {
-        // What the server does with the record it received, done here against the bytes this client
-        // produced, which is the whole of what makes the two halves one protocol.
         let key = Curve25519.Signing.PrivateKey()
         let challenge = [UInt8](repeating: 0x09, count: 32)
         let bytes = try AuthorityRecord.adoptRoot(accountID: accountID,
@@ -285,8 +263,6 @@ final class AuthorityRecordTests: XCTestCase {
         let signature = try key.signature(for: Data(preimage))
 
         XCTAssertTrue(key.publicKey.isValidSignature(signature, for: Data(preimage)))
-        // The same signature against another challenge is not a signature at all: the challenge is inside
-        // the signed bytes, not checked beside them.
         let otherPreimage = try AuthorityProofs.recordPreimage(type: .adoptRoot,
                                                                challenge: [UInt8](repeating: 0x0A, count: 32),
                                                                canonicalBytes: bytes)
@@ -311,7 +287,7 @@ final class AuthorityRecordTests: XCTestCase {
                        "The 64 zeros an empty chain reports are the prevHash of its first record.")
     }
 
-    // MARK: - The three types revision 4 and the lifecycle added
+    // MARK: - Revoke, recovery and oppose
 
     func testARevocationCarriesItsReasonAndRefusesAnUnknownOne() throws {
         var bytes = try AuthorityRecord.deviceRevoke(accountID: accountID,
@@ -323,8 +299,6 @@ final class AuthorityRecordTests: XCTestCase {
         XCTAssertEqual(bytes.count, 145)
         let decoded = try AuthorityRecord.decode(bytes)
         XCTAssertEqual(decoded.type, .deviceRevoke)
-        // A revocation is signed by the key that authorizes it, never by the key it removes: the device
-        // named in one may not veto its own removal, so it cannot be the signer either.
         XCTAssertEqual(decoded.verifyingKey, deviceKey)
         XCTAssertEqual(decoded.deviceKey, recoveryKey)
 
@@ -345,8 +319,6 @@ final class AuthorityRecordTests: XCTestCase {
         XCTAssertEqual(underTheRecoveryKey.count, 209)
         XCTAssertEqual(try AuthorityRecord.decode(underTheRecoveryKey).verifyingKey, recoveryKey)
 
-        // Rank 0: the field is all zero by rule, and the signer is the device key being installed,
-        // because the account has no other key left.
         let throughAccountRecovery = try AuthorityRecord.authorityRecovery(accountID: accountID,
                                                                            deviceKey: deviceKey,
                                                                            recoveryKey: recoveryKey,
@@ -395,7 +367,6 @@ final class AuthorityRecordTests: XCTestCase {
         let decoded = try AuthorityRecord.decode(bytes)
         XCTAssertEqual(decoded.type, .oppose)
         XCTAssertEqual(decoded.verifyingKey, deviceKey)
-        // An Oppose names no device: it names a record.
         XCTAssertNil(decoded.deviceKey)
 
         bytes.replaceSubrange(80..<112, with: [UInt8](repeating: 0, count: 32))
@@ -409,10 +380,6 @@ final class AuthorityRecordTests: XCTestCase {
 
         XCTAssertEqual(fingerprint.count, AuthorityFingerprint.length)
         XCTAssertTrue(fingerprint.allSatisfy { AuthorityFingerprint.alphabet.contains($0) })
-        // The characters that look alike are what a fingerprint read aloud fails at. Asserted against the
-        // alphabet identity-service publishes, character for character: I, O, 0, 1 and 5 are the ones it
-        // actually leaves out, whatever its own comment claims, and a client that dropped one more would
-        // compute a different fingerprint from the same key.
         XCTAssertEqual(String(AuthorityFingerprint.alphabet), "ABCDEFGHJKLMNPQRSTUVWXYZ2346789")
         XCTAssertFalse(AuthorityFingerprint.alphabet.contains { "IO015".contains($0) })
         XCTAssertEqual(AuthorityFingerprint.alphabet.count, 31)
@@ -420,12 +387,8 @@ final class AuthorityRecordTests: XCTestCase {
     }
 
     func testAFingerprintIsDerivedFromTheKeyAndNotFromItsBytes() {
-        // Derived, never issued: both phones compute the same eight characters from the same 32 bytes,
-        // which is what makes the human comparison mean the two are looking at one key.
         XCTAssertEqual(AuthorityFingerprint.of(deviceKey), AuthorityFingerprint.of(deviceKey))
         XCTAssertNotEqual(AuthorityFingerprint.of(deviceKey), AuthorityFingerprint.of(recoveryKey))
-        // Taken from a digest rather than from the key's own leading bytes, so two keys that agree on
-        // their first 31 bytes still read differently across a room.
         var sharesEveryByteButTheLast: [UInt8] = deviceKey
         sharesEveryByteButTheLast[31] ^= 0x01
         XCTAssertNotEqual(AuthorityFingerprint.of(deviceKey), AuthorityFingerprint.of(sharesEveryByteButTheLast))
@@ -446,16 +409,12 @@ final class AuthorityRecordTests: XCTestCase {
         XCTAssertEqual(preimage.count, AuthorityProofs.notificationPreimageLength)
         XCTAssertEqual(Array(preimage.prefix(AuthorityProofs.notificationDomain.utf8.count)),
                        Array(AuthorityProofs.notificationDomain.utf8))
-        // The installation id is hashed rather than carried, so every element is fixed length and no
-        // field can be shifted into another.
         let domain = AuthorityProofs.notificationDomain.utf8.count
         let installOffset = domain + AccountID.rawLength
         XCTAssertEqual(Array(preimage[installOffset..<(installOffset + 32)]),
                        [UInt8](SHA256.hash(data: Data("an-install".utf8))))
         XCTAssertEqual(Array(preimage.suffix(32)), challenge)
 
-        // A registration for another install is a different preimage, which is what stops one row's
-        // signature being replayed onto another row.
         let other = try AuthorityProofs.notificationPreimage(accountID: accountID,
                                                              installationID: "another-install",
                                                              deviceKey: deviceKey,

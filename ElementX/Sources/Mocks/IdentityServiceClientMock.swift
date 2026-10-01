@@ -14,9 +14,6 @@ import Foundation
 @MainActor
 final class IdentityServiceClientMock: IdentityServiceClientProtocol {
     var status: AccountSecurityStatus
-    /// A ceremony to hand back from ``startPasskeyStepUp(accessToken:)``. `nil`, the default, keeps the
-    /// original behaviour of a deployment that will not mint one, which is what every caller of this mock
-    /// relied on before the field existed.
     var passkeyStepUpOptions: PasskeyStepUpOptions?
 
     init(status: AccountSecurityStatus, passkeyStepUpOptions: PasskeyStepUpOptions? = nil) {

@@ -6,15 +6,8 @@
 
 import AuthenticationServices
 
-/// How a web handoff ended, which the caller has no other way of knowing.
-///
-/// Told apart because they mean different things to whoever asked. A page that redirected back did what
-/// it was opened for; a sheet the person closed did nothing, and reporting that as a success is the
-/// "it worked" a reader knows is false.
 enum WebHandoffOutcome: Equatable {
-    /// The page redirected to this build's own callback, which is the only way it ends on its own.
     case returned
-    /// The person closed the sheet. Nothing was proved and nothing was spent.
     case dismissed
 }
 
@@ -49,9 +42,7 @@ class FactorEnrollmentPresenter: NSObject {
     ///
     /// Throws if the IDP redirects back with an OIDC `error` parameter, or if
     /// `ASWebAuthenticationSession` fails for a reason other than user cancellation.
-    /// User cancellation is not an error: it is reported as ``WebHandoffOutcome/dismissed``, so a
-    /// caller that has something to say about it can, and enrollment, which re-reads the account's
-    /// factors either way, can go on ignoring it.
+    /// User cancellation is not an error: it is reported as ``WebHandoffOutcome/dismissed``.
     @discardableResult
     func start() async throws -> WebHandoffOutcome {
         // Pass the device locale so the IDP renders in the user's language (e.g. French).
@@ -84,8 +75,6 @@ class FactorEnrollmentPresenter: NSObject {
                 } else if callbackURL != nil {
                     continuation.resume(returning: .returned)
                 } else {
-                    // No callback and no error at all. Whatever that is, it is not the redirect, so it is
-                    // not reported as one: the safe direction here is the one that claims nothing.
                     continuation.resume(returning: .dismissed)
                 }
             }

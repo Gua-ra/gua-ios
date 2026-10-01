@@ -9,19 +9,11 @@ import SwiftUI
 
 typealias AuthorityApprovalScreenViewModelType = StateStoreViewModelV2<AuthorityApprovalScreenViewState, AuthorityApprovalScreenViewAction>
 
-/// The signature a browser session cannot produce for itself (ADM-009 decision 6).
-///
-/// A browser login grants account access and never authority. What reaches this screen is a pending
-/// approval carrying an action digest and a challenge; what leaves it is one signature by this device's
-/// authority key. The browser never learns a key and never proxies one, so the page that started the
-/// approval can reach it and not the signature.
 class AuthorityApprovalScreenViewModel: AuthorityApprovalScreenViewModelType, AuthorityApprovalScreenViewModelProtocol {
     private let authorityService: AccountAuthorityServiceProtocol
     private let clientProxy: ClientProxyProtocol
     private let userIndicatorController: UserIndicatorControllerProtocol
 
-    /// Read alongside the approvals, because the preimage covers the account's own 34 id bytes and the
-    /// signature is made with the key the chain names for this device.
     private var chain: AuthorityChainState?
 
     private let actionsSubject: PassthroughSubject<AuthorityApprovalScreenViewModelAction, Never> = .init()
@@ -62,8 +54,6 @@ class AuthorityApprovalScreenViewModel: AuthorityApprovalScreenViewModelType, Au
         do {
             let chain = try await authorityService.state(accessToken: accessToken)
             self.chain = chain
-            // Only a device the chain names can sign, and a quarantined one may not: it may not sign a
-            // grant, a revocation or an authority-sensitive approval while its own window runs.
             guard let deviceKey = authorityService.thisDeviceKey(accountID: chain.accountID),
                   chain.unquarantinedActiveDevices.contains(where: { $0.deviceKey == deviceKey }) else {
                 state.phase = .unavailable
@@ -85,8 +75,6 @@ class AuthorityApprovalScreenViewModel: AuthorityApprovalScreenViewModelType, Au
                     state.errorMessage = L10n.screenAuthorityApprovalUnknownAction
                 }
             default:
-                // Refusing to present any of them is the rule, not a convenience: with two codes live the
-                // reader can match the wrong screen, and matching is the whole of what the code is for.
                 state.approval = nil
                 state.phase = .tooManyLive
             }
@@ -111,9 +99,7 @@ class AuthorityApprovalScreenViewModel: AuthorityApprovalScreenViewModelType, Au
                                                                   iconName: "checkmark"))
         } catch {
             MXLog.error("Failed signing the authority approval: \(error)")
-            // The approval is burned on refusal as well as on acceptance, so there is nothing to retry
-            // here: the other screen has to ask again. Re-reading says so honestly, and the refusal is
-            // restated afterwards because the re-read clears whatever was on screen.
+            // The approval is burned on refusal too, so there is nothing to retry.
             let message = (error as? LocalizedError)?.errorDescription ?? L10n.errorUnknown
             await load()
             state.errorMessage = message

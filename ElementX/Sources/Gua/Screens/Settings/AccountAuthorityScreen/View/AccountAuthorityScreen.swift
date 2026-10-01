@@ -7,12 +7,6 @@
 import Compound
 import SwiftUI
 
-/// GUA FORK: the account's trusted devices and the whole lifecycle this phone can drive.
-///
-/// The word "authority" is not on this screen, and neither is the chain, the record or the class byte:
-/// those are ours to carry, not the reader's to learn. What a reader needs is which devices can approve
-/// changes to their account, when a device that cannot yet will be able to, what is waiting and how to stop
-/// it, and what it means when nothing is left.
 struct AccountAuthorityScreen: View {
     @Bindable var context: AccountAuthorityScreenViewModel.Context
 
@@ -71,8 +65,6 @@ struct AccountAuthorityScreen: View {
 
     private var unavailableSection: some View {
         Section {
-            // No retry where retrying cannot work. A deployment that does not run the chain, and an account
-            // with no account object, answer the same way every time.
             if !context.viewState.isUnavailablePermanently {
                 ListRow(label: .centeredAction(title: L10n.actionRetry, icon: \.restart),
                         kind: .button { context.send(viewAction: .retry) })
@@ -139,11 +131,7 @@ struct AccountAuthorityScreen: View {
         }
     }
 
-    /// The terminal state of ADM-009 decision 7, said plainly and with nothing offered.
-    ///
-    /// There is deliberately no "set up again" button here. A second adoption authorized by login factors
-    /// alone is exactly the seizure this design exists to refuse, so an account that has reached this state
-    /// keeps its id, its chats and its number and does not get its authority back.
+    /// Deliberately offers no second adoption.
     private var lostSection: some View {
         Section {
             ListRow(label: .description(L10n.screenAccountAuthorityStateLostMessage), kind: .label)
@@ -152,7 +140,6 @@ struct AccountAuthorityScreen: View {
         }
     }
 
-    /// A window, said as a window: what is waiting, when it completes, and who can still stop it.
     private func pendingSection(_ pending: AuthorityPendingTransition) -> some View {
         Section {
             ListRow(label: .description(Self.pendingMessage(pending)), kind: .label)
@@ -164,8 +151,6 @@ struct AccountAuthorityScreen: View {
         } header: {
             Text(L10n.screenAccountAuthorityStatePendingTitle)
         } footer: {
-            // When a device signature is needed and this phone cannot give one, the reason is said rather
-            // than the button hidden with no explanation.
             if pending.type.needsADeviceToOppose, !context.viewState.canOpposePending {
                 Text(L10n.screenAccountAuthorityErrorOpposeDevice)
             }
@@ -255,7 +240,6 @@ struct AccountAuthorityScreen: View {
         }
     }
 
-    /// The channel every window on this screen depends on, described as what it is.
     private var alertsSection: some View {
         Section {
             ForEach(context.viewState.alerts) { alert in
@@ -312,9 +296,6 @@ struct AccountAuthorityScreen: View {
 
     // MARK: - The recovery artifact
 
-    /// The one screen ADM-009 decision 7 makes mandatory. It says what the key is for and what holding it
-    /// means, because the end state it protects against is permanent, and it does not let the record past it
-    /// until the reader says they have stored it.
     @ViewBuilder
     private var artifactSections: some View {
         Section {
@@ -330,8 +311,6 @@ struct AccountAuthorityScreen: View {
         } footer: {
             VStack(alignment: .leading, spacing: 8) {
                 Text(L10n.screenAccountAuthorityArtifactMessage)
-                // A recovery mints a new key and the old one stops working, which the reader has to be told
-                // or they will keep the wrong piece of paper.
                 if context.viewState.artifactKind != .adoption {
                     Text(L10n.screenAccountAuthorityArtifactReplaces)
                 }
@@ -354,7 +333,6 @@ struct AccountAuthorityScreen: View {
 
     // MARK: - Adding a device
 
-    /// This phone's own offer: the fingerprint it computed from its own key, for a person to read out.
     private var ownOfferSections: some View {
         Section {
             Text(AuthorityFingerprint.grouped(context.viewState.ownOffer?.fingerprint ?? ""))
@@ -369,8 +347,6 @@ struct AccountAuthorityScreen: View {
         }
     }
 
-    /// The other phone's offer, and the comparison that is the whole of what binds the key to the person
-    /// holding it.
     @ViewBuilder
     private var candidateComparisonSections: some View {
         Section {
@@ -429,10 +405,6 @@ struct AccountAuthorityScreen: View {
             }
         }
 
-        // The weaker route, and only where the server would take it at all: ADM-009 decision 3 rule 3
-        // refuses authorization 0x02 on a class 0x01 account, whose genesis-committed authority is replaced
-        // only by the key its genesis committed. Not drawn rather than drawn and refused, because the
-        // refusal arrives after a challenge and a step-up have been spent on it.
         if context.viewState.canRecoverThroughAccountRecovery {
             Section {
                 ListRow(label: .default(title: L10n.screenAccountAuthorityRecoveryNoKeyButton, icon: \.help),
@@ -457,8 +429,6 @@ struct AccountAuthorityScreen: View {
         device.label.isEmpty ? L10n.screenAccountAuthorityDeviceUnnamed : device.label
     }
 
-    /// The device's state in the reader's words, and never a rounded one: a quarantine says when it ends,
-    /// and a state this build does not know says so instead of being shown as trusted.
     private static func description(for device: AuthorityDeviceSummary) -> String {
         switch device.state {
         case .active:
@@ -475,8 +445,6 @@ struct AccountAuthorityScreen: View {
         }
     }
 
-    /// What is waiting, in the reader's words, by type. A window whose type this build does not know is
-    /// still shown with its date rather than dropped, because the date is the part that matters.
     private static func pendingMessage(_ pending: AuthorityPendingTransition) -> String {
         let when = format(pending.effectiveAt)
         switch pending.type {
@@ -501,27 +469,16 @@ struct AccountAuthorityScreen: View {
 // MARK: - Previews
 
 struct AccountAuthorityScreen_Previews: PreviewProvider, TestablePreview {
-    /// A rooted account with everything this screen can draw on it at once: the phone in the reader's hand,
-    /// a second device inside its own grant window, a key another phone has offered, a browser approval
-    /// waiting, and the security-notification rows of gate 2.
     static let viewModel = makeViewModel(chain: rootedChain(devices: [thisDevice, quarantinedDevice]),
                                          candidates: [AccountAuthorityServiceMock.candidate],
                                          approvals: [approval],
                                          alerts: [thisInstallAlert, otherInstallAlert])
 
-    /// The security-notification channel of gate 2, listed and removable.
-    ///
-    /// No device rows and no candidates in this one, so the section is above the fold: a preview snapshot is
-    /// one device screen, and a section below it is neither visible nor evidence that it was drawn.
     static let alertsViewModel = makeViewModel(chain: rootedChain(devices: []),
                                                alerts: [thisInstallAlert, otherInstallAlert])
 
-    /// An account whose id commits its own authority. ADM-009 decision 3 rule 3 refuses the account-recovery
-    /// route on one outright, so the "I don't have my recovery key" row is absent here and present above.
     static let genesisViewModel = makeViewModel(chain: rootedChain(accountClass: .genesis, devices: [thisDevice]))
 
-    /// The end state of decision 7: rooted, no device left, no recovery key. Permanent, and the screen says
-    /// so rather than offering a second adoption, which would be the seizure O9 rejected.
     static let lostViewModel = makeViewModel(chain: AuthorityChainState(accountID: accountID,
                                                                         accountClass: .bootstrap,
                                                                         state: .authorityLost,
@@ -568,12 +525,7 @@ struct AccountAuthorityScreen_Previews: PreviewProvider, TestablePreview {
                                                    quarantineUntil: nil,
                                                    grantedSeq: 1)
 
-    /// Quarantined with no end date, deliberately.
-    ///
-    /// The row with a date renders it through `DateFormatter` in the simulator's own zone, so the golden
-    /// would be a picture of the recording machine's offset and CI, which runs in UTC, would draw a
-    /// different day. This suite has nowhere to pin a clock, so the state that exercises the quarantine
-    /// branch is the one that renders no absolute time.
+    /// No end date: a rendered date would depend on the recording machine's time zone.
     static let quarantinedDevice = AuthorityDeviceSummary(deviceKey: "other-device",
                                                           label: "iPad",
                                                           state: .quarantined,
@@ -618,8 +570,6 @@ struct AccountAuthorityScreen_Previews: PreviewProvider, TestablePreview {
                               alerts: [SecurityNotificationSummary] = []) -> AccountAuthorityScreenViewModel {
         let clientProxy = ClientProxyMock(.init())
         clientProxy.accessToken = "preview-token"
-        // Fixed answers for every read this screen makes on appear. Without them a session-less preview
-        // renders "we could not read this", which is not the screen anyone wants a picture of.
         let authorityService = AccountAuthorityServiceMock(chain: chain,
                                                            candidateList: candidates,
                                                            approvals: approvals,

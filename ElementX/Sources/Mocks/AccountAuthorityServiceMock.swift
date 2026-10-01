@@ -6,15 +6,6 @@
 
 import Foundation
 
-/// GUA FORK: a fixed-answer account authority service for previews.
-///
-/// The two authority screens read the chain, the candidates, the live approvals and the security-notification
-/// rows the moment they appear. A preview with the real service has no session, so every one of those reads
-/// fails and the screen correctly renders "we could not read this" instead of the thing being previewed.
-///
-/// Every value here is inert. No key is generated, nothing is signed, and the two `prepare` methods hand back
-/// a record with a printable artifact rather than a real one: a preview must never mint the private recovery
-/// authority key, and a screenshot of a real one would be a screenshot of a secret.
 @MainActor
 final class AccountAuthorityServiceMock: AccountAuthorityServiceProtocol {
     var isEnabled = true
@@ -24,7 +15,6 @@ final class AccountAuthorityServiceMock: AccountAuthorityServiceProtocol {
     var alerts: [SecurityNotificationSummary] = []
     var installationID: String?
     var deviceKey: String?
-    /// An error for the reads, so the states a screen reaches by failing can be previewed too.
     var loadError: Error?
 
     init(chain: AuthorityChainState? = nil,
@@ -140,11 +130,9 @@ final class AccountAuthorityServiceMock: AccountAuthorityServiceProtocol {
 
     // MARK: - Fixed values
 
-    /// A printable stand-in for the artifact, in the shape the encoding produces but not from any key.
+    /// A stand-in in the artifact's format, not derived from any key.
     static let artifact = "gua-recovery-1 tvq3 dhpp 7vng boue jl2j f3bm yrce trlj pmzg sglq howa ghfo p5qa"
 
-    /// A fixed preview accountId, built rather than derived so nothing on a preview's path can throw.
-    /// Canonical by construction: the value is this client's own base32 of exactly these raw bytes.
     static let accountID: AccountID = {
         let raw = [AccountID.formatVersion, AccountID.classBootstrap] + [UInt8](repeating: 0x11, count: 32)
         return AccountID(value: AccountID.prefix + GuaBase32.encode(raw), rawBytes: raw)

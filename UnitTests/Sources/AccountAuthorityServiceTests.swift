@@ -54,9 +54,6 @@ final class AccountAuthorityServiceTests: XCTestCase {
             try await self.service.prepareAdoption(accessToken: "token", accountID: self.accountID, stepUp: .pin("123456"))
         }
         await assertThrowsDisabled { try await self.service.liveApprovals(accessToken: "token") }
-        // Every surface the lifecycle added, not only the two that existed before it: a deployment with the
-        // flag down has to behave exactly as it did, and one method that forgot the gate is the whole
-        // difference between that and a feature that is half on.
         await assertThrowsDisabled {
             try await self.service.offerThisDevice(accessToken: "token",
                                                    state: self.chainState(headSeq: 1, headHash: String(repeating: "0", count: 64)))
@@ -119,14 +116,11 @@ final class AccountAuthorityServiceTests: XCTestCase {
         XCTAssertEqual(client.challengeRequests.first?.purpose, .adopt)
         XCTAssertEqual(client.challengeRequests.first?.stepUp, .pin("123456"))
 
-        // What was built decodes under this client's own strict rules.
         let bytes = try XCTUnwrap(GuaBase64URL.decode(prepared.record))
         XCTAssertNoThrow(try AuthorityRecord.validate(bytes))
         XCTAssertEqual(bytes.count, 177)
         XCTAssertEqual(Array(bytes[6..<40]), accountID.rawBytes)
 
-        // And the signature verifies against the preimage the server rebuilds: the magic, the challenge
-        // it minted, and these exact bytes.
         let challenge = try XCTUnwrap(GuaBase64URL.decode(prepared.challenge))
         let preimage = try AuthorityProofs.recordPreimage(type: .adoptRoot, challenge: challenge, canonicalBytes: bytes)
         let deviceKey = try Curve25519.Signing.PublicKey(rawRepresentation: Data(Array(bytes[80..<112])))
@@ -144,8 +138,6 @@ final class AccountAuthorityServiceTests: XCTestCase {
         let bytes = try XCTUnwrap(GuaBase64URL.decode(prepared.record))
         XCTAssertNotEqual(Array(bytes[80..<112]), Array(bytes[113..<145]))
 
-        // Stored before the submission, exactly as the genesis registration does it: an adoption that is
-        // accepted while its reply is lost still has its key on this device.
         let stored = try XCTUnwrap(keyStore.stored[accountID.value])
         XCTAssertEqual([UInt8](stored.authority.publicKey.rawRepresentation), Array(bytes[80..<112]))
         XCTAssertEqual([UInt8](stored.recovery.publicKey.rawRepresentation), Array(bytes[113..<145]))
@@ -160,8 +152,6 @@ final class AccountAuthorityServiceTests: XCTestCase {
 
         let artifact = try XCTUnwrap(prepared.recoveryArtifact)
         let stored = try XCTUnwrap(keyStore.stored[accountID.value])
-        // Read back through the decoder a person's retyped copy goes through, so the artifact on screen and
-        // the key the record commits are checked against each other in the shape the other phone accepts.
         XCTAssertEqual(try AuthorityRecoveryArtifact.parse(artifact).rawRepresentation,
                        stored.recovery.rawRepresentation)
 
@@ -221,8 +211,6 @@ final class AccountAuthorityServiceTests: XCTestCase {
             _ = try await service.prepareAdoption(accessToken: "token", accountID: accountID, stepUp: .pin("123456"))
             XCTFail("An adoption whose key could not be stored must not go on to be submitted.")
         } catch {
-            // Carrying on would commit a key this device cannot read back, which is an account rooted on
-            // nothing, permanently.
             XCTAssertEqual(error as? AccountAuthorityServiceError, .keyUnavailable)
         }
         XCTAssertEqual(client.adoptions.count, 0)
@@ -280,9 +268,6 @@ final class AccountAuthorityServiceTests: XCTestCase {
 
     func testOfferingThisDeviceSendsOnlyThePublicHalfAndShowsAFingerprintItComputedItself() async throws {
         appSettings.guaAccountAuthorityEnabled = true
-        // The server's own fingerprint is deliberately wrong here. What the screen shows has to be the one
-        // this phone derived from the key, because a server-issued string would make the comparison across
-        // the room mean "both spoke to the same server", which is already assumed.
         client.fingerprintToReturn = "ZZZZZZZZ"
 
         let offer = try await service.offerThisDevice(accessToken: "token",
@@ -304,8 +289,6 @@ final class AccountAuthorityServiceTests: XCTestCase {
         let first = try await service.offerThisDevice(accessToken: "token", state: empty)
         let second = try await service.offerThisDevice(accessToken: "token", state: empty)
 
-        // A second key pair would leave the phone with two answers to "which key is mine" and would orphan
-        // whichever the chain ends up naming.
         XCTAssertEqual(first.deviceKeyB64, second.deviceKeyB64)
     }
 
@@ -329,9 +312,6 @@ final class AccountAuthorityServiceTests: XCTestCase {
 
         let offer = try await service.offerThisDevice(accessToken: "token", state: state)
 
-        // Offering a revoked key back is a revocation with no effect, and the chain cannot say whether the
-        // device was removed because it was lost or because it was in someone else's hands. A fresh pair
-        // leaves that question to the owner instead of answering it for them.
         XCTAssertNotEqual(offer.deviceKeyB64, revokedKeyB64)
         XCTAssertEqual(offer.deviceKeyB64,
                        try GuaBase64URL.encode([UInt8](keyStore.authorityKey(forAccountID: accountID.value).publicKey.rawRepresentation)))
@@ -355,8 +335,6 @@ final class AccountAuthorityServiceTests: XCTestCase {
             XCTAssertEqual(error as? AccountAuthorityServiceError, .candidateUnverified)
         }
 
-        // A candidate whose fingerprint does not belong to its key is the substitution the comparison
-        // exists to catch, so it is refused even with the confirmation on.
         let mismatched = AuthorityCandidate(deviceKeyB64: GuaBase64URL.encode(granteeKey),
                                             fingerprint: "ABCD2346",
                                             label: "iPad",
@@ -397,8 +375,6 @@ final class AccountAuthorityServiceTests: XCTestCase {
         XCTAssertEqual(Array(bytes[0..<4]), Array("GUAX".utf8))
         XCTAssertEqual(Array(bytes[80..<112]), removed)
         XCTAssertEqual(bytes[112], AuthorityRecord.reasonCompromised)
-        // The signer is the key that authorizes it, never the key it removes: the device named in a
-        // revocation may not veto its own removal, so it cannot be its signer either.
         XCTAssertEqual(Array(bytes[113..<145]), [UInt8](deviceKey.publicKey.rawRepresentation))
         XCTAssertEqual(client.challengeRequests.first?.purpose, .revoke)
         XCTAssertNotNil(try? keyStore.authorityKey(forAccountID: accountID.value),
@@ -418,7 +394,6 @@ final class AccountAuthorityServiceTests: XCTestCase {
                                            reason: AuthorityRecord.reasonReplaced,
                                            stepUp: .pin("123456"))
 
-        // "Stop trusting this phone" has to be true on the phone as well as on the chain.
         XCTAssertNil(try? keyStore.authorityKey(forAccountID: accountID.value))
     }
 
@@ -472,19 +447,12 @@ final class AccountAuthorityServiceTests: XCTestCase {
         let submitted = try XCTUnwrap(client.signedOppositions.first)
         let bytes = try XCTUnwrap(GuaBase64URL.decode(submitted.record))
         XCTAssertEqual(Array(bytes[0..<4]), Array("GUAO".utf8))
-        // It takes no slot and is never appended, so it carries the seq and prevHash of the record it
-        // cancels rather than the position after it. That prevHash is the PENDING record's own, from the
-        // chain read, and not the head: placing a pending record makes its own hash the head, so signing
-        // over the head produced an objection the server could only answer authority_opposition_stale.
-        // This assertion used to compare against headHash and so asserted the bug.
         XCTAssertEqual(Array(bytes[40..<72]), AuthorityRecord.hashBytes(fromHex: Self.pendingPrevHash))
         XCTAssertNotEqual(Array(bytes[40..<72]), AuthorityRecord.hashBytes(fromHex: headHash),
                           "The head while something is pending IS that record, so it is never its prevHash.")
         XCTAssertEqual(Array(bytes[72..<80]), [0, 0, 0, 0, 0, 0, 0, 3])
         XCTAssertEqual(Array(bytes[80..<112]), AuthorityRecord.hashBytes(fromHex: pending.recordHash))
         XCTAssertEqual(Array(bytes[112..<144]), [UInt8](deviceKey.publicKey.rawRepresentation))
-        // No factor is asked for and no hold is weighed: the holds gate starting a transition and never
-        // opposing one, so an owner who has just changed their PIN is not the one disarmed by it.
         XCTAssertEqual(client.challengeRequests.first?.purpose, .oppose)
         XCTAssertNil(client.challengeRequests.first?.stepUp)
     }
@@ -493,9 +461,6 @@ final class AccountAuthorityServiceTests: XCTestCase {
         appSettings.guaAccountAuthorityEnabled = true
         keyStore.stored[accountID.value] = AccountAuthorityKeyPair(authority: Curve25519.Signing.PrivateKey(),
                                                                    recovery: Curve25519.Signing.PrivateKey())
-        // A server that predates the field. There is no way to derive the value locally, and the head is
-        // the pending record itself, so the only honest answer is to refuse: an objection built against the
-        // wrong position is accepted by nothing and tells the owner their device said no when it did not.
         let withoutPrevHash = AuthorityPendingTransition(type: .deviceRevoke,
                                                          seq: 3,
                                                          effectiveAt: Date().addingTimeInterval(259_200),
@@ -520,12 +485,8 @@ final class AccountAuthorityServiceTests: XCTestCase {
         let key = Curve25519.Signing.PrivateKey()
         let rendered = AuthorityRecoveryArtifact.render(key)
 
-        // The framework and its version, first, exactly as the other platform renders and requires it: an
-        // artifact taken on one phone is typed into whichever phone replaces it.
         XCTAssertTrue(rendered.hasPrefix(AuthorityRecoveryArtifact.prefix + " "), rendered)
 
-        // Read off one screen and typed into another: the grouping and the case are forgiven, because the
-        // encoding has neither.
         let parsed = try AuthorityRecoveryArtifact.parse(rendered.uppercased())
         XCTAssertEqual(parsed.rawRepresentation, key.rawRepresentation)
         let body = rendered.dropFirst(AuthorityRecoveryArtifact.prefix.count).filter { !$0.isWhitespace }
@@ -534,8 +495,6 @@ final class AccountAuthorityServiceTests: XCTestCase {
         XCTAssertEqual(try AuthorityRecoveryArtifact.parse("  \(rendered)\n").rawRepresentation,
                        key.rawRepresentation)
 
-        // The bare body is the shape this client used to render, and it is refused now rather than being
-        // half-accepted: a key with no framework on it is not this framework's key.
         for wrong in ["", "not a key", String(body), AuthorityRecoveryArtifact.prefix,
                       "gua-recovery-2 \(body)", String(repeating: "a", count: 51), rendered + "a"] {
             XCTAssertThrowsError(try AuthorityRecoveryArtifact.parse(wrong)) { error in
@@ -566,8 +525,6 @@ final class AccountAuthorityServiceTests: XCTestCase {
                                                          typedArtifact: AuthorityRecoveryArtifact.render(committedRecoveryKey),
                                                          stepUp: .pin("123456"))
         XCTAssertEqual(prepared.kind, .recoveryUnderRecoveryKey)
-        // A new recovery key is minted, so the same rule as adoption applies: it is shown once and the
-        // record is refused until the user says they stored it.
         XCTAssertNotNil(prepared.recoveryArtifact)
         prepared.confirmArtifactStored()
         _ = try await service.submit(accessToken: "token", prepared: prepared)
@@ -641,8 +598,6 @@ final class AccountAuthorityServiceTests: XCTestCase {
         XCTAssertEqual(client.challengeRequests.first?.purpose, .notify)
         XCTAssertNil(client.challengeRequests.first?.stepUp, "Binding a registration asks for no factor.")
 
-        // The key on the row is proved rather than claimed. Without the signature an attacker could name
-        // the owner's key on their own row, or plant a row the owner's own device can never remove.
         let challenge = try XCTUnwrap(try GuaBase64URL.decode(XCTUnwrap(registration.challenge)))
         let preimage = try AuthorityProofs.notificationPreimage(accountID: accountID,
                                                                 installationID: installationIDStore.value,
@@ -681,9 +636,6 @@ final class AccountAuthorityServiceTests: XCTestCase {
         XCTAssertTrue(client.registrations.isEmpty)
     }
 
-    /// One tier, whichever row is named (ADM-009 decision 13). The own row pays the same price as any
-    /// other, and the request carries no field for the caller to name itself with, because that field was
-    /// what selected the cheaper tier the server has removed.
     func testEveryRemovalCarriesTheFactorAndSignsTheRowItNames() async throws {
         appSettings.guaAccountAuthorityEnabled = true
         let deviceKey = Curve25519.Signing.PrivateKey()
@@ -744,8 +696,6 @@ final class AccountAuthorityServiceTests: XCTestCase {
         appSettings.guaAccountAuthorityEnabled = true
         keyStore.stored[accountID.value] = AccountAuthorityKeyPair(authority: Curve25519.Signing.PrivateKey(),
                                                                    recovery: Curve25519.Signing.PrivateKey())
-        // A 31-byte challenge is not a challenge, and a signature over whatever it happened to be would
-        // still be a signature by an authority key.
         let approval = AuthorityApproval(approvalID: GuaBase64URL.encode([UInt8](repeating: 0x05, count: 16)),
                                          code: "AB7K",
                                          action: "authority.device.grant",
@@ -766,8 +716,6 @@ final class AccountAuthorityServiceTests: XCTestCase {
 
     // MARK: - The web step-up
 
-    /// The fallback for a device that cannot run the assertion natively: the same handoff factor
-    /// enrollment uses, scoped to one transition and pointed back at this build's own scheme.
     func testTheWebStepUpIsScopedToThePurposeAndReturnsToThisBuild() async throws {
         appSettings.guaAccountAuthorityEnabled = true
         let minted = try XCTUnwrap(URL(string: "https://auth.example/login/enroll/step-up"))
@@ -780,8 +728,6 @@ final class AccountAuthorityServiceTests: XCTestCase {
                        [.init(purpose: .recover, redirectURI: appSettings.oidcRedirectURL.absoluteString)])
     }
 
-    /// The four purposes that ask for a factor, and no others. A purpose that asks for none would open a
-    /// page with nothing to ask and record a proof of nothing, so no request is spent finding that out.
     func testOnlyATransitionThatAsksForAFactorCanOpenASheet() async throws {
         appSettings.guaAccountAuthorityEnabled = true
 
@@ -794,9 +740,7 @@ final class AccountAuthorityServiceTests: XCTestCase {
             do {
                 _ = try await service.webStepUpURL(accessToken: "token", purpose: purpose)
                 XCTFail("\(purpose) must not open a step-up sheet.")
-            } catch IdentityServiceError.authority(.stepUpSheetPurposeRefused) {
-                // The server's own refusal, in the server's own words.
-            }
+            } catch IdentityServiceError.authority(.stepUpSheetPurposeRefused) { }
         }
         XCTAssertEqual(client.stepUpRequests.count, 4, "A refused purpose costs no request.")
     }
@@ -820,11 +764,7 @@ final class AccountAuthorityServiceTests: XCTestCase {
                            expiresAt: Date().addingTimeInterval(600))
     }
 
-    /// A pending step whose own `prevHash` is deliberately NOT the head hash the tests pass beside it.
-    ///
-    /// Those two being the same value is what let the objection bug hide: placing a pending record makes
-    /// its own hash the head, so a test whose head hash and pending prevHash are interchangeable cannot
-    /// tell a correct objection from one built against the wrong position.
+    /// Deliberately different from the head hash, so an objection built at the head fails.
     private static let pendingPrevHash = String(repeating: "ef", count: 32)
 
     private static func pending(type: AuthorityPendingType) -> AuthorityPendingTransition {

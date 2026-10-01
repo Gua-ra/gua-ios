@@ -71,9 +71,6 @@ enum IdentityServiceError: Error, LocalizedError {
     /// no handle exists to present, so callers take the no-handle bootstrap branch decision 6 calls
     /// not a failure rather than blocking the signup.
     case genesisIssuanceNotPermitted
-    /// Anything `/account/authority/**` refused (ADM-009). One case with a typed refusal rather than
-    /// twenty, because these are read by one feature that ships disabled, and a caller that does not
-    /// know the chain has no branch to write against them.
     case authority(AuthorityRefusal)
     case server(status: Int, message: String?)
     case transport(Error)
@@ -141,77 +138,33 @@ enum IdentityServiceError: Error, LocalizedError {
     }
 }
 
-/// GUA FORK: why an authority transition was refused, by the stable code identity-service returns.
-///
-/// The codes are the server's, so a refusal can be read against ADM-009 rather than against a status
-/// line: 403 carries the hold, the artifact and the native-session rule, and 409 carries three different
-/// conflicts. A code this build has not heard of stays ``unrecognised`` rather than being rounded to the
-/// nearest one it knows.
 enum AuthorityRefusal: Equatable {
-    /// `identity.authority.enabled` is false here, or this deployment predates the endpoints. Per the
-    /// wire contract this is "this build does not have the feature", never an error worth showing.
     case disabled
-    /// No accepted factor was produced. A passkey or the PIN, and never a code sent to the number.
     case stepUpRequired
-    /// The factor presented, or the account's last completed recovery, is inside the fresh-factor hold.
     case tooRecent(retryAfterSeconds: Int?)
-    /// The web step-up would open a page with nothing to ask: the account holds neither a passkey this
-    /// deployment can assert nor a PIN. Said at the entry point rather than on a page whose every button
-    /// is already refused, and never answered with a code to the account's number.
     case stepUpSheetUnavailable
-    /// A web step-up was asked for a purpose that asks for no factor, or the page's session carries a
-    /// purpose this deployment cannot read back. Only a client bug reaches it.
     case stepUpSheetPurposeRefused
-    /// A session that is not the native app. The browser holds no authority, ever.
     case nativeSessionRequired
     case artifactUnconfirmed
-    /// Adoption is off on this deployment: ADM-009 gate 3 keeps production adoption refused.
     case adoptionNotPermitted
-    /// The challenge was spent, expired, or belongs to another session.
     case challengeInvalid
-    /// The record's type is not permitted at that position or on that class of account.
     case positionRefused
     case pendingConflict
-    /// The head moved: another device landed a record first. Re-read and decide again.
     case headConflict
-    /// The account holds no chain row at all.
     case noAccount
-    /// The doubling backoff of ADM-002 D2, or the one-window cooldown.
     case backoff(retryAfterSeconds: Int?)
-    /// This device may not sign: the chain does not have its key active, or the account holds none.
     case signerRefused
-    /// This device's own grant is still inside its window, so it may not sign a grant, a revocation or an
-    /// approval yet, and it does not count toward the device a revocation must leave behind.
     case deviceQuarantined
-    /// The revocation would leave the account with no unquarantined active device. An account with one
-    /// device that wants to replace it goes through recovery, which installs the replacement in the same
-    /// record.
     case lastDevice
-    /// Opposing this is a claim only a device can make. A session may oppose an adoption and nothing
-    /// else, because a stolen session could otherwise veto the owner's own revocation of the thief's
-    /// device.
     case oppositionDeviceRequired
-    /// The record the opposition names is not the one pending any more: it completed, or something else
-    /// cancelled it first.
     case oppositionStale
-    /// The grant names a key that is not a live candidate of this account. A stale or wrong-account
-    /// candidate fails closed rather than being granted.
     case unknownCandidate
-    /// The account holds no live security-notification registration, so a window would run with nobody
-    /// hearing about it. This one is actionable, and its copy says what to do.
     case noNotificationChannel
-    /// The channel itself is switched off on this deployment. Like ``disabled``, this is "not here"
-    /// rather than "went wrong".
     case notificationsDisabled
-    /// Removing this row from somewhere else needs a signature by the device key the row itself names, and
-    /// this phone does not hold it. The server verifies under the key on the row rather than under one the
-    /// request chooses, which is what stops a fresh post-recovery session stripping the owner's channel.
     case notificationDeviceRequired
-    /// The registration or the removal was malformed, or named a row this account does not hold.
     case notificationRefused(code: String)
     case approvalInvalid
     case approvalLimit
-    /// The record was refused by the decoder, naming the rule. A client bug, not a user's problem.
     case invalidRecord(rule: String?)
     case unrecognised(code: String)
 
@@ -253,22 +206,16 @@ enum AuthorityRefusal: Equatable {
         }
     }
 
-    /// Whether this refusal means the feature is not here, rather than that something went wrong.
     var isFeatureAbsent: Bool {
         self == .disabled || self == .notificationsDisabled
     }
 
-    /// The sentence to show. Every refusal a shipped surface can reach has its own; the rest land on the
-    /// generic one, because inventing copy for a state no screen can produce would be a claim that the
-    /// state was handled.
     var message: String {
         switch self {
         case .disabled, .notificationsDisabled, .nativeSessionRequired, .artifactUnconfirmed,
              .invalidRecord, .stepUpSheetPurposeRefused, .unrecognised:
             L10n.errorUnknown
         case .stepUpSheetUnavailable:
-            // The same sentence the account gets when it holds no factor at all, because that is what this
-            // refusal says about it: there is no proof it can produce for a transition.
             L10n.screenAccountAuthorityErrorStepUp
         case .signerRefused:
             L10n.screenAccountAuthorityErrorNotThisDevice
@@ -778,16 +725,7 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         }
     }
 
-    /// Asks for a handoff URL naming this build's own redirect, once, and never insists on it.
-    ///
-    /// A deployment that has not allowlisted this build's scheme, or a server too old to know the field,
-    /// refuses with `invalid_redirect_uri`; the same call then goes out with nothing named, which is what
-    /// every build did before the field existed. The handoff still runs, and the sheet returns to the
-    /// deployment's configured app instead of this one, which is a worse ending than the right scheme and
-    /// a far better one than a QA build that cannot take a step-up at all.
-    ///
-    /// Shared by the two handoffs rather than written twice, which is the same reason the server builds
-    /// both their sessions in one place: a second copy is a second place for the allowlist rule to drift.
+    /// Retries once without the redirect when the deployment refuses it with `invalid_redirect_uri`.
     private func namedRedirectThenTheDeploymentsOwn(_ redirectURI: String?,
                                                     _ request: (String?) async throws -> URL) async throws -> URL {
         do {
@@ -895,20 +833,13 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
             let challenge: String
             let expiresInSeconds: Int
         }
-        // Exactly one step-up per call. There is no field for "the factor this device could not use",
-        // and none is invented: that claim costs an attacker nothing and could only ever be a request
-        // for the weaker factor.
         let body = switch stepUp {
         case let .passkey(stepUpID, assertion):
             Body(purpose: purpose.rawValue, passkeyStepUpId: stepUpID, passkeyCredential: assertion, pin: nil)
         case let .pin(pin):
             Body(purpose: purpose.rawValue, passkeyStepUpId: nil, passkeyCredential: nil, pin: pin)
         case .webSheet, nil:
-            // Two situations, one body, and that is the contract rather than a shortcut: the purposes that
-            // ask for no factor, and a request whose proof was taken in the sheet, which the server finds
-            // by this account, this session and this purpose precisely because the request carries none.
-            // An empty string in the PIN field would read as one being presented and refused, which is a
-            // different thing from none being presented.
+            // No factor fields at all: an empty PIN would read as a PIN presented and refused.
             Body(purpose: purpose.rawValue, passkeyStepUpId: nil, passkeyCredential: nil, pin: nil)
         }
         let (data, _) = try await sendAuthenticated(path: "/account/authority/challenge",
@@ -935,10 +866,6 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         }
     }
 
-    /// The body carries the purpose and at most this build's redirect, and there is nothing else it can
-    /// carry: no phone number, because no arm of that page sends a code, and no statement about which
-    /// factor this device can produce, because that claim costs an attacker nothing and could only ever
-    /// ask for something weaker.
     private func requestAuthorityStepUpURL(accessToken: String,
                                            purpose: AuthorityPurpose,
                                            redirectURI: String?) async throws -> URL {
@@ -973,9 +900,6 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         struct Body: Encodable {
             let record: String
             let signature: String
-            /// The challenge travels back with the record. The server stores only its SHA-256, so it
-            /// cannot rebuild the preimage without it, and holding the value would mean a database dump
-            /// handed an attacker something signable.
             let challenge: String
             let recoveryArtifactConfirmed: Bool
         }
@@ -1029,17 +953,12 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
             let passkeyCredential: PasskeyAssertion?
             let pin: String?
         }
-        // No factor the first time, because at seq 1 the account holds no authority to weigh: the honest
-        // veto is that someone who can already read this account's notifications says no. From the second
-        // onward the server asks for one, on any factor the account holds and at any age.
         let body = switch stepUp {
         case let .passkey(stepUpID, assertion):
             Body(recordHash: recordHash, passkeyStepUpId: stepUpID, passkeyCredential: assertion, pin: nil)
         case let .pin(pin):
             Body(recordHash: recordHash, passkeyStepUpId: nil, passkeyCredential: nil, pin: pin)
         case .webSheet, nil:
-            // An opposition takes no sheet: the purposes that open one are the four that move authority,
-            // and this app never asks for one here. Sending nothing is what the server reads as nothing.
             Body(recordHash: recordHash, passkeyStepUpId: nil, passkeyCredential: nil, pin: nil)
         }
         try await sendAuthenticated(path: "/account/authority/oppose",
@@ -1124,8 +1043,6 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
                                                     expectsBody: true)
         do {
             let response = try decoder.decode(Response.self, from: data)
-            // The register reply is narrower than the listing: it says which row was written and whether
-            // it is bound, and the label and the last-seen time come from a read.
             return SecurityNotificationSummary(installationID: response.installationId,
                                                platform: registration.platform,
                                                deviceLabel: registration.deviceLabel ?? "",
@@ -1162,9 +1079,6 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
     }
 
     func removeSecurityNotification(accessToken: String, removal: SecurityNotificationRemoval) async throws {
-        // It names the row to remove and nothing else. There is no field for the caller to say which
-        // install it is, because the server's own request object has none: which tier a caller reaches is
-        // decided by what it can produce, and a request cannot authenticate itself.
         struct Body: Encodable {
             let installationId: String
             let passkeyStepUpId: String?
@@ -1183,8 +1097,6 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         case let .pin(presented):
             pin = presented
         case .webSheet, nil:
-            // A notification binding is not one of the four purposes the sheet can confirm, so nothing
-            // presents a sheet proof here and nothing is put in the body either way.
             break
         }
         try await sendAuthenticated(path: "/account/security-notifications/remove",
@@ -1222,9 +1134,7 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
                 let seq: Int64
                 let effectiveAtEpochSeconds: Int64
                 let recordHash: String
-                /// The hash of the record BEFORE the pending one, which an `Oppose` signs over. Optional
-                /// so a server that predates the field decodes, and an objection then refuses to be built
-                /// rather than being built wrong.
+                /// Optional so a server that predates the field still decodes.
                 let prevHash: String?
             }
         }
@@ -1235,8 +1145,6 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         } catch {
             throw IdentityServiceError.decoding(error)
         }
-        // The id is parsed rather than carried as a string: the client signs over its 34 raw bytes, so an
-        // id it cannot re-derive canonically is one it must not sign anything under.
         guard let accountID = try? AccountID.parse(response.accountId) else {
             throw IdentityServiceError.decoding(AccountGenesisError.badAccountID)
         }
@@ -1289,9 +1197,6 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
 
     func signAuthorityApproval(accessToken: String, approvalID: String, signature: String) async throws {
         struct Body: Encodable { let signature: String }
-        // The id is percent-encoded rather than interpolated: it is base64url, so it never needs it
-        // today, but a path built by concatenation is one malformed value away from addressing something
-        // else on this service.
         let escaped = approvalID.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? ""
         guard !escaped.isEmpty else { throw IdentityServiceError.invalidURL }
         try await sendAuthenticated(path: "/account/authority/approval/\(escaped)/sign",
@@ -1301,14 +1206,10 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
                                     expectsBody: false)
     }
 
-    /// The body every record submission and the signed opposition send. One type rather than five
-    /// identical nested ones, so a field cannot be spelled differently on the path nobody exercised.
     private struct AuthorityRecordBody: Encodable {
         let record: String
         let signature: String
-        /// The challenge travels back with the record. The server stores only its SHA-256, so it cannot
-        /// rebuild the preimage without it, and holding the value would mean a database dump handed an
-        /// attacker something signable.
+        /// Sent back because the server stores only its hash.
         let challenge: String
     }
 
@@ -1326,8 +1227,6 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
                            expiresAt: Date(timeIntervalSince1970: TimeInterval(response.expiresAtEpochSeconds)))
     }
 
-    /// What every record submission answers with. Declared beside the method rather than inside it,
-    /// because a generic function cannot nest a type.
     private struct AuthoritySubmissionResponse: Decodable {
         let seq: Int64
         let state: String
@@ -1335,7 +1234,6 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         let recordHash: String
     }
 
-    /// The four record submissions answer the same way, so they share one path through the client.
     private func submitAuthorityRecord(path: String,
                                        accessToken: String,
                                        body: some Encodable) async throws -> AuthoritySubmission {
@@ -1355,8 +1253,6 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         }
     }
 
-    /// An authenticated GET. The two authority reads are the only GETs with a typed body in this client,
-    /// and they go through here rather than each assembling a request of its own.
     private func getAuthenticated(path: String, accessToken: String) async throws -> Data {
         guard let url = URL(string: path, relativeTo: baseURL) else {
             throw IdentityServiceError.invalidURL
@@ -1447,17 +1343,8 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         return .server(status: status, message: body?.message ?? body?.errorDescription ?? body?.error)
     }
 
-    /// Everything `/account/authority/**` refuses, mapped by the server's own code.
-    ///
-    /// The path check is what keeps this from claiming refusals that are not the chain's: only an
-    /// authority endpoint can answer with an authority code, and only there does a bare 503 or 404 mean
-    /// the feature is absent rather than that the service is in trouble. A deployment that predates the
-    /// endpoints answers 404, and the wire contract reads both as "this build does not have the feature".
+    /// Only on an authority path does a bare 404 or 503 mean the feature is absent.
     private static func authorityError(code: String?, status: Int, path: String, retryAfterSeconds: Int?) -> IdentityServiceError? {
-        // The security-notification channel is part of the same feature and answers with the same code
-        // vocabulary, so it is mapped here too. Its path is separate because it is not a chain endpoint:
-        // nothing it does appends a record. `/security/authority/**` is here for the same reason: the web
-        // step-up is started next to factor enrollment and refuses in the chain's own vocabulary.
         guard path.hasPrefix("/account/authority")
             || path.hasPrefix("/account/security-notifications")
             || path.hasPrefix("/security/authority") else {

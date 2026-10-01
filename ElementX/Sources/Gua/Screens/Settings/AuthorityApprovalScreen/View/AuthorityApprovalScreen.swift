@@ -7,12 +7,6 @@
 import Compound
 import SwiftUI
 
-/// GUA FORK: approving, from a device that holds the account's authority, an action something else asked
-/// for.
-///
-/// Two things are on this screen and both have to be: the four-character code, so the reader can see they
-/// are answering the request in front of them, and what the request would do, in words. A page that
-/// started an approval nobody wanted reaches the first screen and not this one.
 struct AuthorityApprovalScreen: View {
     @Bindable var context: AuthorityApprovalScreenViewModel.Context
 
@@ -98,16 +92,10 @@ struct AuthorityApprovalScreen: View {
 // MARK: - Previews
 
 struct AuthorityApprovalScreen_Previews: PreviewProvider, TestablePreview {
-    /// One approval this build has a sentence for, which is the only kind it will sign.
     static let viewModel = makeViewModel(approvals: [approval(actionID: "authority.device.grant")])
 
-    /// An action id this build has no sentence for. ADM-009 decision 6 has the device name the action on a
-    /// screen the page does not control, so a request it cannot describe is shown as unsignable rather than
-    /// as a blank approval with a live button.
     static let undescribableViewModel = makeViewModel(approvals: [approval(actionID: "something.this.build.cannot.name")])
 
-    /// Two live at once. The four-character code binds the two screens together only while exactly one of
-    /// them is on, so the device presents none.
     static let tooManyViewModel = makeViewModel(approvals: [approval(actionID: "authority.device.grant"),
                                                             approval(actionID: "authority.device.revoke", id: "second", code: "M4XQ")])
 

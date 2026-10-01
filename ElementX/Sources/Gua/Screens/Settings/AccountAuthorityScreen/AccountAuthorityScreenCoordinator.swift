@@ -13,7 +13,6 @@ struct AccountAuthorityScreenCoordinatorParameters {
     let clientProxy: ClientProxyProtocol
     let userIndicatorController: UserIndicatorControllerProtocol
     let windowManager: WindowManagerProtocol
-    /// Read for this build's own OIDC redirect, which is what the web step-up sheet closes back into.
     let appSettings: AppSettings
 }
 

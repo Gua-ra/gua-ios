@@ -48,10 +48,7 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
         try await deferred.fulfill()
     }
 
-    /// Waits until the stub has been asked to object the given number of times.
-    ///
-    /// The objection flow begins and ends on the overview, so a phase is no evidence that it has run. The
-    /// stubs never suspend, so yielding the main actor is enough to let it finish.
+    /// The objection flow starts and ends on the overview, so the phase cannot show that it ran.
     private func waitForObjections(_ count: Int, file: StaticString = #filePath, line: UInt = #line) async throws {
         var yields = 0
         while authorityService.opposedStepUps.count < count, yields < 500 {
@@ -152,8 +149,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
     }
 
     func testAPasskeyThatCannotBeProducedFallsBackToThePin() async throws {
-        // Whatever happened inside the ceremony stays on this device: the server is never told a passkey
-        // was unavailable, because that claim costs an attacker nothing.
         let presenter = PasskeyPresenterStub(result: .failure(PasskeyStepUpError.cancelled))
         makeViewModel(chain: bootstrapChain(), status: Self.status(hasPin: true, passkeyRegistered: true),
                       passkeyOptions: Self.passkeyOptions,
@@ -190,8 +185,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
         context.send(viewAction: .pinChanged)
         try await waitForPhase(.artifact)
 
-        // A second pair would overwrite the first in the keychain, leaving the signed record committing a
-        // key this device no longer holds.
         XCTAssertEqual(authorityService.preparedStepUps.count, 1)
     }
 
@@ -233,8 +226,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
         XCTAssertEqual(context.viewState.phase, .overview)
         XCTAssertNil(context.viewState.recoveryArtifact)
         XCTAssertFalse(context.viewState.bindings.hasStoredRecoveryArtifact)
-        // Its challenge is single use and its keys are unreferenced until a record naming them is on the
-        // chain, so an abandoned preparation leaves nothing half-rooted.
         context.send(viewAction: .submitArtifact)
         XCTAssertEqual(authorityService.submissions, 0)
     }
@@ -242,9 +233,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
     // MARK: - The passkey-only account
 
     func testAPasskeyOnlyAccountIsNeverToldToAddAPin() async throws {
-        // The ceremony does not complete and the account holds no PIN. The honest answer is that the
-        // passkey did not go through; telling this account to set up a PIN would be an instruction to add a
-        // weaker factor in order to gain authority, which is exactly what C4 forbids.
         let presenter = PasskeyPresenterStub(result: .failure(PasskeyStepUpError.cancelled))
         makeViewModel(chain: bootstrapChain(),
                       status: Self.status(hasPin: false, passkeyRegistered: true),
@@ -263,8 +251,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
     }
 
     func testAPasskeyOnlyAccountWithNoCeremonyAvailableIsToldTheSameThing() async throws {
-        // No presenter at all, which is what a context that cannot run the system sheet looks like, and no
-        // web sheet either, which is the one fallback left after it.
         makeViewModel(chain: bootstrapChain(),
                       status: Self.status(hasPin: false, passkeyRegistered: true),
                       passkeyOptions: Self.passkeyOptions,
@@ -281,9 +267,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
 
     // MARK: - The web step-up
 
-    /// The point of the whole fallback: a device that cannot produce the assertion runs the same ceremony
-    /// on the sign-in origin, and the PIN is not what it falls back to. This is the simulator, and every
-    /// build whose associated domains do not name the deployment it is talking to.
     func testAPasskeyThatCannotRunHereIsRunInTheWebSheetRatherThanAskingForThePin() async throws {
         let presenter = PasskeyPresenterStub(result: .failure(PasskeyStepUpError.unavailable))
         let web = WebStepUpPresenterStub(result: .success(.returned))
@@ -300,14 +283,10 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
         XCTAssertEqual(presenter.callCount, 1, "The native ceremony is still tried first.")
         XCTAssertEqual(authorityService.webStepUpPurposes, [.adopt])
         XCTAssertEqual(web.presentedURLs.count, 1)
-        // What is spent carries no factor of its own: the proof is a row the server wrote against this
-        // account, this session and this purpose.
         XCTAssertEqual(authorityService.preparedStepUps, [.webSheet])
         XCTAssertTrue(context.viewState.bindings.pin.isEmpty)
     }
 
-    /// The account C4 is about. It holds no PIN and cannot be asked for one, and before the sheet existed
-    /// this ended in a message on every device that cannot run the ceremony.
     func testAPasskeyOnlyAccountGainsAuthorityThroughTheSheet() async throws {
         let web = WebStepUpPresenterStub(result: .success(.returned))
         makeViewModel(chain: bootstrapChain(),
@@ -324,8 +303,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
         XCTAssertNil(context.viewState.errorMessage)
     }
 
-    /// Dismissing the system sheet is an answer, not a device that cannot run the ceremony, so no browser
-    /// opens over the top of it.
     func testClosingTheSystemSheetDoesNotOpenABrowser() async throws {
         let presenter = PasskeyPresenterStub(result: .failure(PasskeyStepUpError.cancelled))
         let web = WebStepUpPresenterStub(result: .success(.returned))
@@ -343,8 +320,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
         XCTAssertTrue(authorityService.webStepUpPurposes.isEmpty)
     }
 
-    /// Closing the page proves nothing and spends nothing, and is reported as neither a success nor a
-    /// failure of the person's: they said no.
     func testAClosedSheetSpendsNothingAndClaimsNothing() async throws {
         let web = WebStepUpPresenterStub(result: .success(.dismissed))
         makeViewModel(chain: bootstrapChain(),
@@ -362,8 +337,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
         XCTAssertNil(context.viewState.errorMessage)
     }
 
-    /// A sheet this deployment will not open, on an account that holds a PIN. The PIN is the last resort
-    /// rather than the first, which is the whole ordering this change is about.
     func testASheetThisDeploymentWillNotOpenLeavesThePinAsTheLastResort() async throws {
         let web = WebStepUpPresenterStub(result: .success(.returned))
         makeViewModel(chain: bootstrapChain(),
@@ -384,8 +357,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
         XCTAssertEqual(authorityService.preparedStepUps, [.pin("123456")])
     }
 
-    /// The same refusal on a passkey-only account. It is told what happened, and it is never told to add a
-    /// PIN in order to gain authority.
     func testAPasskeyOnlyAccountIsNeverSentToThePinWhenTheSheetFails() async throws {
         makeViewModel(chain: bootstrapChain(),
                       status: Self.status(hasPin: false, passkeyRegistered: true),
@@ -404,8 +375,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
         XCTAssertTrue(authorityService.preparedStepUps.isEmpty)
     }
 
-    /// The one refusal that is not worth retrying: the deployment saying this account holds nothing it can
-    /// check. That is the same thing it says to an account with no factor at all, so it gets that sentence.
     func testAnAccountTheDeploymentCannotCheckIsToldSoRatherThanAskedToRetry() async throws {
         makeViewModel(chain: bootstrapChain(),
                       status: Self.status(hasPin: false, passkeyRegistered: true),
@@ -423,9 +392,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
         XCTAssertEqual(context.viewState.phase, .overview)
     }
 
-    /// A sheet proof the server will not spend here is not an account with no two-step verification, which
-    /// is what the plain refusal's copy says. The likeliest cause is that the session that took the proof is
-    /// not the session spending it any more, and the reader can open the sheet again.
     func testAProofTheServerWillNotSpendIsNotReportedAsAMissingFactor() async throws {
         makeViewModel(chain: bootstrapChain(),
                       status: Self.status(hasPin: false, passkeyRegistered: true),
@@ -444,8 +410,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
         XCTAssertNotEqual(context.viewState.errorMessage, L10n.screenAccountAuthorityErrorStepUp)
     }
 
-    /// One sheet per transition, scoped to that transition. A proof taken to root this account is not a
-    /// proof for removing a device, and the purpose is where that binding starts.
     func testEachTransitionOpensASheetScopedToItsOwnPurpose() async throws {
         let revoking = device(key: "other-device", state: .active, quarantineUntil: nil, grantedSeq: 2)
         makeViewModel(chain: rootedChain(pending: nil,
@@ -469,9 +433,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
         XCTAssertEqual(authorityService.preparedStepUps, [.webSheet, .webSheet])
     }
 
-    /// Turning off another install's security alerts is not one of the four transitions the sheet can
-    /// confirm, so it does not open one. Its own rule is stricter than a factor anyway: a signature by the
-    /// key the row itself names.
     func testTurningOffAnotherInstallsAlertsNeverOpensASheet() async throws {
         let web = WebStepUpPresenterStub(result: .success(.returned))
         makeViewModel(chain: rootedChain(pending: nil),
@@ -505,8 +466,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
                                                                              recordHash: "adoption-hash")))
         try await waitForPhase(.overview)
 
-        // No device key on this phone at all, and the button is still offered: at seq 1 the account holds no
-        // authority to weigh, so the honest veto is that someone who can read the notifications says no.
         XCTAssertNil(context.viewState.thisDeviceKey)
         XCTAssertTrue(context.viewState.canOpposePending)
 
@@ -518,10 +477,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
     }
 
     func testASecondObjectionAsksForTheFactorTheServerWantsAndIsThenMade() async throws {
-        // What the server does from the second objection onward, and the only thing that makes the veto of
-        // decision 4 worth having: a cancelled record gives its slot back, so whoever started the first
-        // adoption can start another one, and an owner who could object only once would lose the account to
-        // a second attempt.
         makeViewModel(chain: rootedChain(pending: AuthorityPendingTransition(type: .adoptRoot,
                                                                              seq: 1,
                                                                              effectiveAt: Date().addingTimeInterval(259_200),
@@ -532,8 +487,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
         try await waitForPhase(.overview)
 
         context.send(viewAction: .opposePending)
-        // The refusal is not the end of it: the factor is asked for on this screen, as it is for every
-        // other transition here.
         try await waitForPhase(.enteringPin)
         XCTAssertNil(context.viewState.errorMessage, "A refusal that is being answered is not an error to read.")
 
@@ -545,14 +498,10 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
                        "The first attempt presents nothing and the retry presents the factor.")
         XCTAssertEqual(authorityService.oppositions, ["adoption-hash"])
         XCTAssertNil(context.viewState.errorMessage)
-        // OPPOSE asks for no factor in its own right, so the deployment refuses a sheet for it and this
-        // screen never asks for one.
         XCTAssertTrue(authorityService.webStepUpPurposes.isEmpty)
     }
 
     func testAPasskeyHolderIsNotToldToSetUpAFactorToObjectASecondTime() async throws {
-        // The copy this used to end on told a passkey-only account to set up two-step verification, which
-        // it holds, in order to do something it can do.
         let presenter = PasskeyPresenterStub(result: .success(Self.assertion))
         makeViewModel(chain: rootedChain(pending: AuthorityPendingTransition(type: .adoptRoot,
                                                                              seq: 1,
@@ -565,8 +514,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
         try await waitForPhase(.overview)
 
         context.send(viewAction: .opposePending)
-        // Both attempts, rather than a phase: this flow starts and ends on the overview, so the phase says
-        // nothing about whether it has run.
         try await waitForObjections(2)
 
         XCTAssertEqual(presenter.callCount, 1)
@@ -587,8 +534,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
         authorityService.deviceKey = "this-device"
         try await waitForPhase(.overview)
 
-        // A quarantined device may not sign one, so the screen does not offer an action the server refuses
-        // on the one screen where a refusal costs the owner the window.
         XCTAssertFalse(context.viewState.canOpposePending)
 
         makeViewModel(chain: rootedChain(pending: pending,
@@ -656,8 +601,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
         try await waitForPhase(.overview)
 
         XCTAssertTrue(context.viewState.canActAsAnAuthorityDevice)
-        // Exactly two active devices: the carve-out of decision 5 applies and the screen says so rather
-        // than hiding it.
         XCTAssertTrue(context.viewState.isInTheTwoDeviceCarveOut)
 
         context.send(viewAction: .revokeDevice(mine))
@@ -703,8 +646,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
         context.send(viewAction: .submitRecoveryArtifact)
         XCTAssertTrue(authorityService.typedArtifacts.isEmpty)
 
-        // The body on its own is not an artifact of this framework, and the button says so rather than
-        // sending it: the length is right and the thing is not one.
         context.recoveryArtifact = String(repeating: "a", count: AuthorityRecoveryArtifact.encodedLength)
         XCTAssertFalse(context.viewState.canSubmitRecoveryArtifact)
 
@@ -718,7 +659,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
         try await waitForPhase(.artifact)
 
         XCTAssertEqual(authorityService.typedArtifacts.count, 1)
-        // A recovery mints a new recovery key, so the same shown-once rule applies as for adoption.
         XCTAssertEqual(context.viewState.artifactKind, .recoveryUnderRecoveryKey)
         XCTAssertNotNil(context.viewState.recoveryArtifact)
         XCTAssertFalse(context.viewState.canSubmitArtifact)
@@ -743,17 +683,12 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
         XCTAssertTrue(context.viewState.canRecoverThroughAccountRecovery)
     }
 
-    /// ADM-009 decision 3 rule 3 refuses authorization `0x02` on a class `0x01` account outright, so the
-    /// route is not offered on one. The button whose only outcome is a refusal is the expensive kind: the
-    /// refusal arrives from the server after a challenge has been minted and a step-up spent on it.
     func testTheAccountRecoveryPathIsNotOfferedOnAGenesisAccount() async throws {
         makeViewModel(chain: genesisRootedChain())
         try await waitForPhase(.overview)
 
         XCTAssertFalse(context.viewState.canRecoverThroughAccountRecovery)
 
-        // And not merely undrawn. The action is refused where it is handled, so a row that survived a
-        // refactor, or a send from anywhere else, still spends nothing.
         context.send(viewAction: .startRecoveryThroughAccountRecovery)
         for _ in 0..<50 {
             await Task.yield()
@@ -765,9 +700,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
         XCTAssertTrue(authorityService.submittedKinds.isEmpty)
     }
 
-    /// The other two conditions of the same gate, so it is the whole rule that is pinned rather than the
-    /// class alone: a bootstrap account has no committed authority to replace, and a pending record already
-    /// holds the slot a rank-0 record would need.
     func testTheAccountRecoveryPathIsWithheldWhileThereIsNothingToReplaceOrSomethingPending() async throws {
         makeViewModel(chain: bootstrapChain())
         try await waitForPhase(.overview)
@@ -793,8 +725,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
         try await waitForPhase(.overview)
 
         XCTAssertTrue(context.viewState.isAuthorityLost)
-        // A second adoption authorized by login factors alone is the seizure this design refuses, so the
-        // screen offers no way back.
         XCTAssertFalse(context.viewState.canAdopt)
         XCTAssertFalse(context.viewState.canActAsAnAuthorityDevice)
 
@@ -804,11 +734,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
 
     // MARK: - Security alerts
 
-    /// ADM-009 decision 13: one removal tier, and this install's own row is not cheaper than any other.
-    ///
-    /// The tier that was cheaper was decided by comparing one installation id in the request body against
-    /// another, which is two values the same caller sets. The server removed it, so a button that presented
-    /// no factor had no outcome left but a refusal.
     func testThisInstallCanBeRegisteredForAlertsAndRemovedAtTheOnePrice() async throws {
         makeViewModel(chain: rootedChain(pending: nil))
         authorityService.installationID = "this-install"
@@ -838,9 +763,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
                        "The same step-up as every other authority action on this screen, own row included.")
     }
 
-    /// The one step with no route through the browser. The removal endpoint takes its factor in its own
-    /// request and reads no sheet proof, so an account whose passkey this phone cannot assert and which
-    /// holds no PIN is told what is missing, and is not told to add a PIN.
     func testAnAccountThatCannotPresentAFactorForARemovalIsToldSo() async throws {
         let web = WebStepUpPresenterStub(result: .success(.returned))
         makeViewModel(chain: rootedChain(pending: nil),
@@ -877,9 +799,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
                                                                tokenFingerprint: "fingerprint",
                                                                isBoundToAnAuthorityDevice: true,
                                                                lastSeenAt: Date())]
-        // The server verifies the removal under the key the row itself names, not under one the request
-        // chooses, which is what stops a fresh post-recovery session stripping the channel. "Try again"
-        // would be the wrong thing to tell the owner, because trying again cannot work.
         authorityService.removeAlertsError = IdentityServiceError.authority(.notificationDeviceRequired)
         try await waitForPhase(.overview)
 
@@ -897,9 +816,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
     func testADeploymentWithNoChannelIsNotOfferedOne() async throws {
         makeViewModel(chain: rootedChain(pending: nil))
         authorityService.installationID = "this-install"
-        // The channel has its own off-by-default flag on the server, so a deployment can have the chain and
-        // not the channel. Offering to turn on something that is not there would be a promise the next
-        // window breaks.
         authorityService.securityAlertsError = IdentityServiceError.authority(.notificationsDisabled)
         try await waitForPhase(.overview)
 
@@ -910,7 +826,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
     func testAChannelThatFailedToAnswerIsNotReadAsAbsent() async throws {
         makeViewModel(chain: rootedChain(pending: nil))
         authorityService.installationID = "this-install"
-        // "Went wrong" is a different answer from "not here", and only the second one hides the section.
         authorityService.securityAlertsError = IdentityServiceError.authority(.noAccount)
         try await waitForPhase(.overview)
 
@@ -984,8 +899,6 @@ final class AccountAuthorityScreenViewModelTests: XCTestCase {
                             pending: pending)
     }
 
-    /// A rooted account whose id commits its own authority, which is the class the weaker recovery route is
-    /// refused on.
     private func genesisRootedChain() -> AuthorityChainState {
         AuthorityChainState(accountID: accountID,
                             accountClass: .genesis,
@@ -1016,13 +929,10 @@ final class AuthorityServiceStub: AccountAuthorityServiceProtocol {
     var prepareError: Error?
     var offerError: Error?
     var opposeError: Error?
-    /// The server from the second objection onward: a factor-free objection is refused and the same
-    /// objection carrying a factor is made.
     var opposeNeedsAStepUp = false
     var registerAlertsError: Error?
     var securityAlertsError: Error?
     var removeAlertsError: Error?
-    /// The URL the web step-up is minted at, or an error the deployment answers with instead.
     var webStepUpResult: Result<URL, Error> = .success(URL(string: "https://auth.gua.test/login/enroll/token")!)
 
     private(set) var preparedStepUps: [AuthorityStepUp] = []
@@ -1124,8 +1034,6 @@ final class AuthorityServiceStub: AccountAuthorityServiceProtocol {
                 pending: AuthorityPendingTransition,
                 stepUp: AuthorityStepUp?) async throws {
         if let opposeError { throw opposeError }
-        // Every attempt is recorded, refused or not, so a test can see what was presented and in which
-        // order.
         opposedStepUps.append(stepUp)
         if opposeNeedsAStepUp, stepUp == nil {
             throw IdentityServiceError.authority(.stepUpRequired)
@@ -1189,8 +1097,6 @@ final class AuthorityServiceStub: AccountAuthorityServiceProtocol {
     }
 }
 
-/// A web sheet that is never really presented: what the view model needs from it is the URL it was asked
-/// to open, and how the page ended.
 @MainActor
 final class WebStepUpPresenterStub: AuthorityWebStepUpPresenting {
     private let result: Result<WebHandoffOutcome, Error>

@@ -36,8 +36,6 @@ class SettingsScreenViewModelTests: XCTestCase {
         try await deferred.fulfill()
     }
     
-    /// GUA FORK: with `guaAccountAuthorityEnabled` off, this Settings screen is what it was before
-    /// ADM-009: the trusted-devices row does not exist, so nothing existing changes behaviour.
     func testTheTrustedDevicesRowIsAbsentWhileTheFlagIsOff() {
         XCTAssertFalse(ServiceLocator.shared.settings.guaAccountAuthorityEnabled)
         XCTAssertFalse(context.viewState.showAccountAuthority)

@@ -73,8 +73,6 @@ final class AuthorityApprovalScreenViewModelTests: XCTestCase {
     }
 
     func testAnApprovalThisAppCannotDescribeIsNotSignable() async throws {
-        // ADM-009 decision 6 has the approval name the action on a screen the page does not control. A
-        // request this build has no words for cannot be named, so it cannot be approved here either.
         makeViewModel(approvals: [Self.approval(id: "one", code: "AB7K", action: "something.new")])
         try await waitForPhase(.approval)
 
@@ -87,8 +85,6 @@ final class AuthorityApprovalScreenViewModelTests: XCTestCase {
     }
 
     func testADeviceRefusesToPresentOneApprovalWhileAnotherIsLive() async throws {
-        // With two codes live the reader can match the wrong screen, and matching is the whole of what
-        // the code is for.
         makeViewModel(approvals: [Self.approval(id: "one", code: "AB7K", action: "authority.device.grant"),
                                   Self.approval(id: "two", code: "QP49", action: "authority.device.revoke")])
         try await waitForPhase(.tooManyLive)
@@ -114,8 +110,6 @@ final class AuthorityApprovalScreenViewModelTests: XCTestCase {
     }
 
     func testAQuarantinedDeviceMayNotSignAnApproval() async throws {
-        // A device inside its own grant window may not sign a grant, a revocation or an
-        // authority-sensitive approval.
         makeViewModel(approvals: [Self.approval(id: "one", code: "AB7K", action: "authority.device.grant")],
                       deviceState: .quarantined)
         try await waitForPhase(.unavailable)
@@ -143,7 +137,6 @@ final class AuthorityApprovalScreenViewModelTests: XCTestCase {
         let deferred = deferFulfillment(context.observe(\.viewState.errorMessage)) { $0 != nil }
         try await deferred.fulfill()
 
-        // The approval is burned on refusal as well as on acceptance, so there is nothing to retry here.
         XCTAssertEqual(context.viewState.errorMessage, L10n.screenAuthorityApprovalRefused)
         XCTAssertTrue(authorityService.signedApprovals.isEmpty)
     }

@@ -32,7 +32,6 @@ enum SettingsScreenCoordinatorAction {
     case twoStepVerification
     case changePhoneNumber
     case findFriends
-    /// GUA FORK: the account's trusted devices (ADM-009)
     case accountAuthority
 }
 

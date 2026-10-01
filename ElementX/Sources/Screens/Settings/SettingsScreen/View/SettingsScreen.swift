@@ -146,8 +146,6 @@ struct SettingsScreen: View {
                         context.send(viewAction: .twoStepVerification)
                     })
 
-            // GUA FORK: trusted devices (ADM-009). The row exists only while the feature flag is on,
-            // so with the flag down this screen is what it was before the chain existed.
             if context.viewState.showAccountAuthority {
                 ListRow(label: .default(title: L10n.screenAccountAuthorityTitle,
                                         icon: \.devices),

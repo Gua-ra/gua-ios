@@ -260,10 +260,6 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
         navigationStackCoordinator.push(coordinator)
     }
 
-    /// GUA FORK: trusted devices (ADM-009), reachable only while `guaAccountAuthorityEnabled` is on.
-    ///
-    /// The flag is checked again here rather than trusted from the row that sent us: a route is a
-    /// message, and this is the one place that can refuse to build a screen the feature does not have.
     private func presentAccountAuthority() {
         guard flowParameters.appSettings.guaAccountAuthorityEnabled else { return }
         guard let identityServiceClient = IdentityServiceClient(),
@@ -295,7 +291,6 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
         navigationStackCoordinator.push(coordinator)
     }
 
-    /// GUA FORK: the approval an authority device signs for a session that holds none.
     private func presentAuthorityApprovals(authorityService: AccountAuthorityServiceProtocol) {
         let parameters = AuthorityApprovalScreenCoordinatorParameters(authorityService: authorityService,
                                                                       clientProxy: flowParameters.userSession.clientProxy,

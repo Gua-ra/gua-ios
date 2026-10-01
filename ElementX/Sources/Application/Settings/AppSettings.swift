@@ -486,18 +486,7 @@ final class AppSettings {
     @UserPreference(key: UserDefaultsKeys.guaAccountGenesisEnabled, defaultValue: false, storageType: .userDefaults(store))
     var guaAccountGenesisEnabled
 
-    /// GUA FORK: when `true`, the account authority chain of ADM-009 is reachable: a bootstrap account
-    /// can be rooted on this phone, the device set can be read, a grant can be signed for another
-    /// device, and an action a browser session started can be approved here.
-    ///
-    /// Off by default, and off is a hard off: with the flag down no key is generated, no request is made
-    /// and the Settings entry point does not exist. Nothing existing changes behaviour either way, which
-    /// `AccountAuthorityServiceTests` covers.
-    ///
-    /// It must stay off outside dev. The server side ships disabled too (`identity.authority.enabled`),
-    /// and ADM-009 gate 2 blocks it everywhere until a pending transition has an out-of-band
-    /// notification channel that is neither the account's phone number nor a session an account recovery
-    /// revokes: every window in the design is theatre without one, because the owner is never told.
+    /// GUA FORK: when `true`, the account authority screens and requests are reachable. Keep it off outside dev.
     @UserPreference(key: UserDefaultsKeys.guaAccountAuthorityEnabled, defaultValue: false, storageType: .userDefaults(store))
     var guaAccountAuthorityEnabled
 
