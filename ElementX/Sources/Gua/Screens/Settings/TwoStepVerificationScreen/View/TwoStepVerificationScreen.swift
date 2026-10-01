@@ -62,9 +62,6 @@ struct TwoStepVerificationScreen: View {
         }
     }
 
-    /// GUA FORK: the overview renders the account's factors as the server reports them, instead of
-    /// branching on a single `hasPin`. A passkey holder sees a passkey, and a report that could not
-    /// be read says so rather than claiming the account has nothing.
     @ViewBuilder
     private var overviewSection: some View {
         if context.viewState.factors == nil {
@@ -98,15 +95,9 @@ struct TwoStepVerificationScreen: View {
                 }
             } footer: {
                 if let errorMessage = context.viewState.errorMessage {
-                    // A change that ended here was refused (the PIN-change cooldown, a locked PIN),
-                    // and the refusal is what the person needs to read. Without this the
-                    // flow just closed with no reason given.
                     Text(errorMessage)
                         .foregroundStyle(.compound.textCriticalPrimary)
                 } else {
-                    // The PIN stays on offer to a passkey holder, and it is worth saying why: a
-                    // credential that stops working on the device in hand is only a locked account
-                    // if there is nothing underneath it.
                     Text(hasPasskey && !hasPin ? L10n.screenTwoStepVerificationPinBackupFooter : "")
                 }
             }
@@ -133,8 +124,6 @@ struct TwoStepVerificationScreen: View {
         return L10n.screenTwoStepVerificationOverviewFooterOff
     }
 
-    /// Shown when the factor report could not be read. It offers a retry and nothing else: this
-    /// screen has no way to know what the account holds, so it invites no setup.
     private var statusUnavailableSection: some View {
         Section {
             ListRow(label: .default(title: L10n.screenTwoStepVerificationStatusUnavailable,
@@ -266,8 +255,6 @@ struct TwoStepVerificationScreen_Previews: PreviewProvider, TestablePreview {
         let clientProxy = ClientProxyMock(.init())
         clientProxy.accessToken = "preview-token"
         let userIndicatorController = UserIndicatorControllerMock()
-        // A fixed factor report, so the preview renders the overview rather than the "we could not
-        // read your settings" state a session-less preview would otherwise land in.
         let identityServiceClient = IdentityServiceClientMock(status: .init(hasPin: false,
                                                                             passkeyRegistered: true,
                                                                             preferredFactor: .passkey,

@@ -14,8 +14,6 @@ struct TwoStepVerificationScreenCoordinatorParameters {
     let userIndicatorController: UserIndicatorControllerProtocol
     let windowManager: WindowManagerProtocol
     let appSettings: AppSettings
-    /// A factor to start setting up on arrival, when the caller already knows which one the user
-    /// asked for. `nil` just opens the overview.
     let initialSetup: AuthFactor?
 }
 
@@ -28,7 +26,7 @@ final class TwoStepVerificationScreenCoordinator: CoordinatorProtocol {
     private let viewModel: TwoStepVerificationScreenViewModelProtocol
 
     private var cancellables = Set<AnyCancellable>()
-    /// Retained for the lifetime of the web flow so the session isn't cancelled early.
+    /// Retained so the session is not cancelled early.
     private var enrollmentPresenter: FactorEnrollmentPresenter?
 
     private let enrollmentIndicatorID = "TwoStepVerificationScreen-Enrollment"
@@ -63,17 +61,11 @@ final class TwoStepVerificationScreenCoordinator: CoordinatorProtocol {
         .store(in: &cancellables)
     }
 
-    /// The two factors this screen can enroll. Its own small type rather than ``AuthFactor``, which
-    /// also names things no enrollment URL exists for: a phone code, and whatever a newer server
-    /// calls a factor this build has never heard of.
     private enum EnrollableFactor {
         case passkey
         case pin
     }
 
-    /// Opens the enrollment web session for one factor. Both factors take the same route because
-    /// both are durable: the session confirms the account before anything is stored, which a bearer
-    /// token on its own does not.
     private func startEnrollment(factor: EnrollableFactor) async {
         guard let accessToken = parameters.clientProxy.accessToken else {
             MXLog.warning("No access token available; cannot start factor enrollment.")
@@ -108,17 +100,10 @@ final class TwoStepVerificationScreenCoordinator: CoordinatorProtocol {
                                                                              iconName: "xmark"))
         }
         enrollmentPresenter = nil
-        // The session may have added the factor, and the screen has no other way to find out: the
-        // report it is rendering was read before the sheet opened.
+        // The web session may have added the factor, so re-read the status.
         viewModel.context.send(viewAction: .retryStatus)
     }
 
-    /// The redirect asked for is this build's own, taken from the same setting the sheet waits on
-    /// below (`FactorEnrollmentPresenter` closes when the page redirects to it). The release, QA and
-    /// debug builds answer to different schemes, so a deployment that only knows one of them returns
-    /// every enrollment to whichever build that is. Asking for it is all the client does: the
-    /// server keeps the allowlist, and a value it does not hold costs nothing because the client
-    /// asks again without one.
     private func enrollmentURL(for factor: EnrollableFactor, accessToken: String) async throws -> URL {
         let redirectURI = parameters.appSettings.oidcRedirectURL.absoluteString
         switch factor {

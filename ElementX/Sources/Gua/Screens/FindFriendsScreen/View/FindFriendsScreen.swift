@@ -70,7 +70,6 @@ struct FindFriendsScreen: View {
 
     private func contactRow(_ contact: DiscoveredContact) -> some View {
         HStack(spacing: 12) {
-            // Tapping the avatar opens the contact's profile (photo + details).
             Button {
                 context.send(viewAction: .showProfile(contact))
             } label: {
@@ -79,7 +78,6 @@ struct FindFriendsScreen: View {
             .buttonStyle(.plain)
             .accessibilityLabel("View \(contact.localName)'s profile")
 
-            // Tapping the rest of the row starts (or opens) the chat.
             Button {
                 context.send(viewAction: .selectContact(contact))
             } label: {
