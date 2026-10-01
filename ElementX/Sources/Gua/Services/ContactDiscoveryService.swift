@@ -7,9 +7,7 @@
 import Contacts
 import Foundation
 
-/// A contact from the device address book that has been matched to a Gua account.
 struct DiscoveredContact: Identifiable, Equatable {
-    /// The name as it appears in the user's address book (falls back to the Gua display name).
     let localName: String
     let phoneNumber: String
     let userId: String
@@ -19,8 +17,6 @@ struct DiscoveredContact: Identifiable, Equatable {
         userId
     }
 
-    /// What to show as the handle line, preferring the global username and never
-    /// surfacing the homeserver.
     var handle: String {
         if let username, !username.isEmpty { return "@\(username)" }
         return userId.guaDisplayHandle
@@ -48,7 +44,6 @@ enum ContactDiscoveryError: Error, LocalizedError {
 protocol ContactDiscoveryServiceProtocol {
     var authorizationStatus: CNAuthorizationStatus { get }
     func requestAccess() async -> Bool
-    /// Reads the address book, normalizes numbers to E.164, and returns the contacts that are on Gua.
     func discover(accessToken: String) async throws -> [DiscoveredContact]
 }
 
@@ -57,10 +52,9 @@ final class ContactDiscoveryService: ContactDiscoveryServiceProtocol {
     private let identityServiceClient: IdentityServiceClientProtocol
     private let store = CNContactStore()
 
-    /// The signed-in user's own ID, so we never surface them as a "friend" to chat with.
     private let currentUserID: String
 
-    /// Identity-service caps the batch; stay under it.
+    /// identity-service caps the batch size.
     private let maxNumbersPerRequest: Int
 
     init(identityServiceClient: IdentityServiceClientProtocol, currentUserID: String, maxNumbersPerRequest: Int = 1000) {
@@ -85,8 +79,6 @@ final class ContactDiscoveryService: ContactDiscoveryServiceProtocol {
     func discover(accessToken: String) async throws -> [DiscoveredContact] {
         guard await requestAccess() else { throw ContactDiscoveryError.accessDenied }
 
-        // Map every normalized E.164 number to the best local name so matches can be
-        // labelled with how the user actually knows the person.
         let nameByNumber = readAddressBook()
         guard !nameByNumber.isEmpty else { throw ContactDiscoveryError.noContactsWithNumbers }
 
@@ -104,7 +96,6 @@ final class ContactDiscoveryService: ContactDiscoveryServiceProtocol {
                                   userId: match.userId,
                                   username: match.username)
             }
-            // Never surface the signed-in user as a contact to start a chat with.
             .filter { $0.userId.localizedCaseInsensitiveCompare(currentUserID) != .orderedSame }
             .sorted { $0.localName.localizedCaseInsensitiveCompare($1.localName) == .orderedAscending }
     }
@@ -123,9 +114,7 @@ final class ContactDiscoveryService: ContactDiscoveryServiceProtocol {
     // MARK: - Address book
 
     private func readAddressBook() -> [String: String] {
-        // Use the formatter's own descriptor so every key it reads (given/middle/family,
-        // prefix/suffix, …) is fetched; otherwise CNContactFormatter throws when it touches
-        // an unfetched property.
+        // CNContactFormatter throws on any unfetched key, so fetch its own descriptor.
         let keys: [CNKeyDescriptor] = [
             CNContactFormatter.descriptorForRequiredKeys(for: .fullName),
             CNContactPhoneNumbersKey as CNKeyDescriptor
@@ -139,7 +128,6 @@ final class ContactDiscoveryService: ContactDiscoveryServiceProtocol {
                 let name = CNContactFormatter.string(from: contact, style: .fullName) ?? ""
                 for labelled in contact.phoneNumbers {
                     guard let e164 = Self.normalizeToE164(labelled.value.stringValue, defaultDialCode: defaultDialCode) else { continue }
-                    // First non-empty name wins; never overwrite a real name with a blank.
                     if nameByNumber[e164] == nil || (nameByNumber[e164]?.isEmpty ?? true) {
                         nameByNumber[e164] = name.isEmpty ? e164 : name
                     }
@@ -151,11 +139,7 @@ final class ContactDiscoveryService: ContactDiscoveryServiceProtocol {
         return nameByNumber
     }
 
-    /// Best-effort E.164 normalization for an address-book number. International numbers
-    /// (with `+`, `00`, or the device region's dial code already included) are used as-is;
-    /// national numbers get the device region's dial code with a single trunk `0` dropped.
-    /// The server validates and silently skips anything that still isn't valid E.164, so
-    /// over-normalizing is harmless.
+    /// Best effort: the server ignores anything that is still not valid E.164.
     static func normalizeToE164(_ raw: String, defaultDialCode: String) -> String? {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         let digits = trimmed.filter(\.isNumber)

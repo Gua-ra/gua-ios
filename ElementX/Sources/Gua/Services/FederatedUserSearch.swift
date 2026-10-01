@@ -7,22 +7,14 @@
 
 import Foundation
 
-/// How a federation homeserver lets its users be found by bare-handle search from other servers.
-/// Absent means `global`, the default for roster entries that predate the policy. Values this
-/// client doesn't recognize are treated as **not** discoverable, so a stricter policy introduced
-/// server-side is never widened by an older client.
+/// Absent means `global`. Unrecognized values are not discoverable, so an older client never widens a stricter policy.
 enum RosterSearchVisibility: Equatable {
-    /// Discoverable from every federation server.
     case global
-    /// Discoverable only from servers sharing at least one search group.
     case group
-    /// Discoverable only from the user's own server, i.e. never via federated search.
     case server
     case unrecognized(String)
 
     init(rawValue: String?) {
-        // The resolver serializes the policy like the entry status, i.e. uppercase (`GLOBAL`);
-        // match case-insensitively so either casing works.
         switch rawValue?.lowercased() {
         case nil, "global": self = .global
         case "group": self = .group
@@ -32,13 +24,7 @@ enum RosterSearchVisibility: Equatable {
     }
 }
 
-/// Pure logic for Gua's federated bare-username search: when someone types a handle with no
-/// homeserver (`ana-souza`), the client fans out an exact-match lookup to the other federation
-/// servers from the resolver roster, honouring each server's discoverability policy.
 enum FederatedUserSearch {
-    /// Normalizes a search query into a bare handle, or `nil` when the query isn't one.
-    /// A bare handle is an optional leading `@` followed by at least 3 localpart characters and
-    /// no `:`; with a `:` the user is already typing a full address.
     static func bareHandle(from query: String) -> String? {
         var handle = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !handle.contains(":") else { return nil }
@@ -49,12 +35,7 @@ enum FederatedUserSearch {
         return handle
     }
 
-    /// The full user IDs to look up for a bare handle: the searcher's own server first, then one
-    /// per ACTIVE roster server that allows discovery from it, in roster order.
-    ///
-    /// Includes the searcher's own server: Synapse's directory only returns people you already share
-    /// a room with unless `search_all_users` is on, so a bare handle is looked up there by exact
-    /// match like everywhere else. Duplicates are dropped downstream.
+    /// Includes the searcher's own server, because Synapse's directory search only returns users who already share a room.
     static func candidates(forHandle handle: String, roster: FederationRoster, ownServerName: String) -> [String] {
         let ownGroups = Set(roster.entries.first { $0.homeserver.serverName == ownServerName }?.homeserver.searchGroups ?? [])
 
@@ -72,22 +53,16 @@ enum FederatedUserSearch {
             }
             .map { "@\(handle):\($0.homeserver.serverName)" }
 
-        // Own server first: it is the likeliest match and the one a person expects to be instant.
         return ["@\(handle):\(ownServerName)"] + federated
     }
 }
 
 // MARK: - Roster cache
 
-/// Provides the current federation roster to user search, or `nil` when it isn't available.
-/// Unavailability is not an error: federated search silently degrades to local-only.
 protocol FederationRosterProviding: Sendable {
     func currentRoster() async -> FederationRoster?
 }
 
-/// In-memory roster cache so a burst of searches doesn't hammer the resolver: the roster only
-/// changes when servers join or leave the federation, so a short TTL is plenty. Keeps serving
-/// the last good roster when a refresh fails.
 actor FederationRosterCache: FederationRosterProviding {
     static let shared = FederationRosterCache()
 
@@ -95,9 +70,6 @@ actor FederationRosterCache: FederationRosterProviding {
     private let timeToLive: TimeInterval
     private var cached: (roster: FederationRoster, fetchedAt: Date)?
 
-    /// - Parameters:
-    ///   - fetcher: Where the roster comes from; `nil` (an unconfigured resolver) disables federated search.
-    ///   - timeToLive: How long a fetched roster stays fresh.
     init(fetcher: FederationRosterFetching? = ResolverClient(), timeToLive: TimeInterval = 5 * 60) {
         self.fetcher = fetcher
         self.timeToLive = timeToLive
@@ -111,7 +83,7 @@ actor FederationRosterCache: FederationRosterProviding {
             return nil
         }
         guard let roster = try? await fetcher.fetchRoster() else {
-            // A transient resolver error shouldn't kill federated search: serve the stale roster if there is one.
+            // A failed refresh serves the stale roster.
             return cached?.roster
         }
         cached = (roster, Date())

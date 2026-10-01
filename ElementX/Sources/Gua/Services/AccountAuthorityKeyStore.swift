@@ -8,46 +8,26 @@ import CryptoKit
 import Foundation
 import KeychainAccess
 
-/// The two Ed25519 keys an `AccountGenesis` commits: the account authority key, and the recovery
-/// authority key that recovery-policy transitions will later be authorized under (ADM-008 decision 4).
-///
-/// They are distinct keys, which the codec enforces on the way in as well: a genesis whose two keys are
-/// equal is refused with `duplicate_keys`.
 struct AccountAuthorityKeyPair {
     let authority: Curve25519.Signing.PrivateKey
     let recovery: Curve25519.Signing.PrivateKey
 }
 
 enum AccountAuthorityKeyStoreError: Error, Equatable {
-    /// No authority key is stored for this accountId. The signup that registered the genesis must fail
-    /// rather than quietly fall back to a bootstrap account (ADM-008 decision 6: a presented handle that
-    /// fails to attach fails the signup).
     case keyMissing
     case keychain(String)
 }
 
 @MainActor
 protocol AccountAuthorityKeyStoreProtocol {
-    /// Generates a fresh authority and recovery key pair. Nothing is stored until ``persist(_:forAccountID:)``.
     func generateKeyPair() -> AccountAuthorityKeyPair
     func persist(_ keyPair: AccountAuthorityKeyPair, forAccountID accountID: String) throws
     func authorityKey(forAccountID accountID: String) throws -> Curve25519.Signing.PrivateKey
     func removeKeys(forAccountID accountID: String)
 }
 
-/// Device-only storage for the account authority and recovery keys.
-///
-/// The keys stay device-only and non-synced, so they are unescrowed and a lost device loses authority
-/// (ADM-008 decision 5, whose Consequences section accepts this). The store keeps them in the keychain
-/// under `whenUnlockedThisDeviceOnly`, which iCloud Keychain never syncs and no device backup includes,
-/// with `synchronizable` explicitly off: the opposite of `KeychainController.recoveryKeychain`, which
-/// exists to sync.
-///
-/// The keys are never written to disk by this app, never logged, and never leave this store: callers
-/// receive a signing key for one fixed-length preimage, not raw key bytes.
-///
-/// Ed25519 cannot live in the Secure Enclave (P-256 only). Suite 0x01 is Ed25519; the suite byte
-/// reserves a hardware-resident P-256 suite for later (ADM-008 decision 5).
+/// Device-only keychain storage, never synced or backed up: a lost device loses the authority key.
+/// The Secure Enclave does not support Ed25519, so the keys cannot live there.
 @MainActor
 final class AccountAuthorityKeyStore: AccountAuthorityKeyStoreProtocol {
     private let keychain: Keychain
@@ -66,16 +46,12 @@ final class AccountAuthorityKeyStore: AccountAuthorityKeyStoreProtocol {
             .accessibility(.whenUnlockedThisDeviceOnly)
     }
 
-    /// The store the app uses, keyed to this build's bundle identifier like every other Gua keychain.
     convenience init() {
         self.init(service: KeychainControllerService.sessions.genesisID,
                   accessGroup: InfoPlistReader.main.keychainAccessGroupIdentifier)
     }
 
     func generateKeyPair() -> AccountAuthorityKeyPair {
-        // CryptoKit seeds both from the system CSPRNG. Two independent keys are overwhelmingly distinct;
-        // the codec refuses a genesis whose keys are equal, so a freak collision fails closed rather
-        // than committing one key in both roles.
         AccountAuthorityKeyPair(authority: Curve25519.Signing.PrivateKey(),
                                 recovery: Curve25519.Signing.PrivateKey())
     }
@@ -85,7 +61,6 @@ final class AccountAuthorityKeyStore: AccountAuthorityKeyStoreProtocol {
             try keychain.set(keyPair.authority.rawRepresentation, key: Self.authorityPrefix + accountID)
             try keychain.set(keyPair.recovery.rawRepresentation, key: Self.recoveryPrefix + accountID)
         } catch {
-            // The error is logged, the key material never is.
             MXLog.error("Failed storing the account authority key pair: \(error)")
             throw AccountAuthorityKeyStoreError.keychain(String(describing: error))
         }

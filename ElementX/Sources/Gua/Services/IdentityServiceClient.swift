@@ -15,61 +15,27 @@ enum IdentityServiceError: Error, LocalizedError {
     case pinLocked(retryAfterSeconds: Int?)
     case pinChangeCooldown(retryAfterSeconds: Int?)
     case pinChangeChallengeInvalid
-    /// The phone-change challenge from `/account/phone/change/start` is missing or expired, so the
-    /// flow has to start again from the reauth step.
     case phoneChangeChallengeInvalid
-    /// 403 `step_up_required`: the account holds neither a PIN nor a passkey, and the operation
-    /// demands one of them. A hard block, not a prompt to retry: the operation is over until the
-    /// user sets up a factor, and there is no reauth-token-only path behind it.
+    /// The account holds no PIN or passkey, so the operation is blocked until one is set up.
     case stepUpRequired
-    /// The passkey step-up ceremony cannot be started for this account on this deployment: passkeys
-    /// are off here, or the account has no registered credential to assert. Never a reason to give
-    /// up, only a reason to offer the next factor down.
+    /// Passkeys are off or the account has none; callers fall back to the next factor.
     case passkeyStepUpUnavailable
-    /// 403 `passkey_user_verification_required`: the assertion proved possession of the device but
-    /// not the human, which is the whole of what separates a step-up from a sign-in.
     case passkeyUserVerificationRequired
-    /// Change-phone is temporarily blocked because the factor being spent was registered too
-    /// recently (the fresh-2FA hold, which covers a new PIN and a new passkey alike).
+    /// The factor being used was registered too recently.
     case twoFactorCooldown(retryAfterSeconds: Int?)
-    /// 425 `phone_change_cooldown`: the minimum gap between two successful phone changes. A
-    /// different refusal from the fresh-2FA hold above, and waiting out one does not clear the other.
+    /// Minimum gap between phone changes, independent of `twoFactorCooldown`.
     case phoneChangeCooldown(retryAfterSeconds: Int?)
     case invalidReauthToken
     case phoneAlreadyLinked
-    /// 403 `reauth_phone_mismatch`: the number typed at a reauthentication step is not the one on
-    /// the signed-in account. The server answers the same way whether the number is unknown or
-    /// belongs to somebody else, and it says so in one fixed English sentence. The wording shown is
-    /// this fork's own translated constant, which is a single string for every reason the number is
-    /// wrong, so the neutrality holds in each language rather than only in the server's.
+    /// Shown with one neutral string, so it never reveals whether the number belongs to another account.
     case reauthPhoneMismatch
-    /// 400 `invalid_phone_number`: the normalizer could not read the number at all. It says nothing
-    /// about which account the number belongs to, and it must not be shown as though it did.
     case invalidPhoneNumber
-    /// 409 `pin_already_set`: the account gained a PIN since this screen read its factor report, so
-    /// there is nothing to enroll.
     case pinAlreadySet
-    /// 409 `passkey_already_registered`: the same thing for a passkey. Kept apart from the PIN so
-    /// the sentence can name the factor the account turns out to hold.
     case passkeyAlreadyRegistered
-    /// 409 `step_up_unavailable`: the account can only prove itself with a passkey and this
-    /// deployment has passkeys turned off, so there is no proof it can produce and no factor it can
-    /// add here. The only way back into the account is the delayed recovery, which is why this is
-    /// the one enrollment refusal whose copy sends the reader somewhere else entirely.
+    /// The account's only factor is a passkey and this deployment has passkeys off.
     case stepUpUnavailable
-    /// 400 `invalid_redirect_uri`: the deployment does not permit the redirect this build asked the
-    /// enrollment sheet to return to. It is a deployment's allowlist talking to a build, not
-    /// anything the reader did or can fix, which is why the client answers it by asking again
-    /// without a redirect rather than by showing it. A reader only ever sees this if that second
-    /// attempt fails too, and then there is nothing truer to say than that something went wrong.
     case invalidRedirectURI
-    /// `POST /account/genesis` answered 503: this deployment does not do account genesis. Callers treat
-    /// it as "not supported here" and carry on with the existing signup, never as a failure.
     case genesisUnavailable
-    /// `POST /account/genesis` answered 403: the deployment declines to issue under the recovery
-    /// framework this client commits to, which ADM-008 decision 4 gates on ADM-002. Like 503 it means
-    /// no handle exists to present, so callers take the no-handle bootstrap branch decision 6 calls
-    /// not a failure rather than blocking the signup.
     case genesisIssuanceNotPermitted
     case server(status: Int, message: String?)
     case transport(Error)
@@ -118,8 +84,7 @@ enum IdentityServiceError: Error, LocalizedError {
         }
     }
 
-    /// Coarse, human-friendly rendering of a remaining-duration in seconds, e.g. "7 days",
-    /// "3 hours", "5 minutes". Rounds up so we never under-promise availability.
+    /// Rounds up, so the wait shown is never shorter than the real one.
     static func humanReadableDuration(seconds: Int) -> String {
         let seconds = max(0, seconds)
         let day = 86400, hour = 3600, minute = 60
@@ -136,8 +101,6 @@ enum IdentityServiceError: Error, LocalizedError {
     }
 }
 
-/// GUA FORK: what `POST /account/genesis` returns (ADM-008 decision 6). The handle is single-use and
-/// expires with `expiresAt`; the server stores only its hash.
 struct AccountGenesisRegistrationResponse: Equatable {
     let accountID: String
     let attachHandle: String
@@ -146,44 +109,21 @@ struct AccountGenesisRegistrationResponse: Equatable {
 
 @MainActor
 protocol IdentityServiceClientProtocol {
-    /// Contact discovery: match a batch of address-book phone numbers (E.164) against Gua
-    /// accounts. The numbers are sent over TLS and digested server-side; only the contacts
-    /// that are on Gua and discoverable come back.
     func lookupContacts(accessToken: String, phones: [String]) async throws -> [ContactMatch]
-    /// Sends the reauth OTP, but only once `phone` turns out to be the number on the caller's own
-    /// account. The server digests what is submitted and compares it with that account's directory
-    /// binding, so the number is a proof rather than a routing hint: nothing is stored, and a
-    /// number that is not this account's is refused identically whoever it belongs to.
     func startAccountReauth(accessToken: String, phone: String, language: String?) async throws
-    /// Exchanges the reauth OTP for a single-use token scoped to `operation`. The number is
-    /// submitted again because nothing was kept between the two calls, and the scope is not
-    /// cosmetic: the server refuses a token presented for any other operation, so every caller
-    /// names the one it is about to perform.
     func verifyAccountReauth(accessToken: String, phone: String, code: String, operation: ReauthOperation) async throws -> String
     func deactivateAccount(accessToken: String, reauthToken: String, eraseData: Bool) async throws
     func resetIdentityCredentials(accessToken: String, reauthToken: String) async throws -> IdentityResetCredentials
-    /// GUA FORK: two-step verification. `GET /security/pin/status` reports the whole factor
-    /// inventory, not just the PIN, and it is the signal every "which factor does this account
-    /// need" decision reads.
     func securityStatus(accessToken: String) async throws -> AccountSecurityStatus
-    /// Starts a PIN change and texts a code to `phone`. Authorized by a step-up passkey assertion when
-    /// `passkeyStepUpID` and `passkeyAssertion` are supplied, in which case `currentPin` is not consulted,
-    /// otherwise by `currentPin`.
+    /// Authorized by the passkey assertion when supplied, otherwise by `currentPin`.
     func startPinChange(accessToken: String,
                         phone: String,
                         currentPin: String?,
                         passkeyStepUpID: String?,
                         passkeyAssertion: PasskeyAssertion?) async throws -> String
     func completePinChange(accessToken: String, challengeId: String, otpCode: String, newPin: String) async throws
-    /// Cancels a delayed account recovery on the signed-in account (`POST /security/recovery/cancel`).
-    /// The server answers 204 whether or not one was pending, so success says nothing about what was
-    /// there; read `securityStatus` again for that.
+    /// Succeeds whether or not a recovery was pending.
     func cancelAccountRecovery(accessToken: String) async throws
-    // GUA FORK: change phone number. Reauth by OTP to the CURRENT number first
-    // (`/account/reauth/start` + `/account/reauth/verify` scoped to PHONE_CHANGE), then
-    // `/account/phone/change/start`, which spends that token together with a step-up factor and
-    // only then texts the NEW number, and finally `/account/phone/change/complete` with the code
-    // that arrived there.
     func startPasskeyStepUp(accessToken: String) async throws -> PasskeyStepUpOptions
     func startPhoneChange(accessToken: String,
                           reauthToken: String,
@@ -193,47 +133,23 @@ protocol IdentityServiceClientProtocol {
                           passkeyAssertion: PasskeyAssertion?,
                           language: String?) async throws -> PhoneChangeChallenge
     func completePhoneChange(accessToken: String, challengeId: String, code: String) async throws
-    /// Begins passkey enrollment and returns the IdP-hosted URL to load in an
-    /// authenticated web session. The flow finishes when that page redirects to
-    /// the app's OIDC redirect URL.
-    ///
-    /// `redirectURI` is this build's own redirect, which is how the sheet finds its way back to the
-    /// variant it was opened from: the QA and debug builds answer to different schemes from the
-    /// release build, and a deployment that only knows one of them would otherwise return every
-    /// enrollment to the release app. It is a request, not a decision: the server keeps the
-    /// allowlist and the client falls back to the deployment's own default when it refuses.
+    /// Returns the sign-in page URL where enrollment runs in an authenticated web session.
     func startPasskeyEnrollment(accessToken: String, redirectURI: String?) async throws -> URL
-    /// Begins PIN enrollment the same way, and for the same reason: a bearer session on its own
-    /// must not add a durable factor, so the first PIN is set inside a web session that confirms
-    /// the account first (a passkey, an existing PIN, or the account's own number and a code sent
-    /// to it). Changing a PIN that already exists is a different flow and stays native.
+    /// A bearer session alone must not add a factor, so the first PIN is set in a web session that confirms the account.
     func startPinEnrollment(accessToken: String, redirectURI: String?) async throws -> URL
 }
 
-/// GUA FORK: the slice of identity-service that account genesis needs, kept separate from
-/// `IdentityServiceClientProtocol` because this one call is unauthenticated and runs before any session
-/// exists. Mirrors how `FederationRosterFetching` narrows the resolver.
+/// Unauthenticated: runs before any session exists.
 protocol AccountGenesisRegistering: Sendable {
-    /// Registers an on-device `AccountGenesis` and returns its accountId with a single-use attach
-    /// handle. Self-authenticating: the body carries a possession proof under the key committed inside
-    /// the genesis itself, which is what lets it run with no session to authenticate against.
-    ///
-    /// Both arguments are base64url without padding. Throws ``IdentityServiceError/genesisUnavailable``
-    /// on 503 and ``IdentityServiceError/genesisIssuanceNotPermitted`` on 403. Both mean the deployment
-    /// issues no handle, rather than that anything went wrong.
     func registerAccountGenesis(genesis: String, proof: String) async throws -> AccountGenesisRegistrationResponse
 }
 
-/// Ephemeral credentials minted by the identity-service for the Matrix
-/// `m.login.password` UIA stage during `client.resetIdentity()`.
+/// Ephemeral credentials for the `m.login.password` UIA stage of an identity reset.
 struct IdentityResetCredentials: Equatable {
     let userId: String
     let password: String
 }
 
-/// A contact-discovery hit: an address-book phone number that belongs to a Gua account.
-/// `phoneNumber` echoes back the submitted number so the client can map it onto the local
-/// address book; `username` is the global Gua handle when one has been assigned.
 struct ContactMatch: Equatable, Identifiable {
     let phoneNumber: String
     let userId: String
@@ -258,7 +174,6 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         encoder = JSONEncoder()
     }
 
-    /// Convenience initializer using the active `GuaDeployment`'s identity-service URL.
     convenience init?() {
         guard let url = GuaDeployment.current.identityServiceBaseURL else { return nil }
         self.init(baseURL: url)
@@ -380,10 +295,6 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         }
         do {
             let response = try decoder.decode(Response.self, from: data)
-            // A field the deployment did not send stays absent here rather than becoming a value.
-            // The hold used to default to 0, which reads as "no hold" and made the pre-check inert
-            // against every server that had not started emitting it; `nil` says "not reported" and
-            // lets the caller keep the server's own mid-flow refusal as the thing that decides.
             return AccountSecurityStatus(hasPin: response.hasPin,
                                          passkeyRegistered: response.passkeyRegistered ?? false,
                                          preferredFactor: response.preferredFactor.map(AuthFactor.init(wireValue:)),
@@ -397,8 +308,6 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         }
     }
 
-    /// An older deployment sends none of the recovery fields, which reads as nothing pending. The
-    /// dates only mean something while a recovery is live, so they are dropped when it is not.
     private static func pendingAccountRecovery(pending: Bool?, completableAt: Int64?, expiresAt: Int64?) -> PendingAccountRecovery? {
         guard pending == true else { return nil }
         return PendingAccountRecovery(completableAt: completableAt.map { Date(timeIntervalSince1970: TimeInterval($0)) },
@@ -461,13 +370,6 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
 
     // MARK: - Change phone number
 
-    /// Mints a user-verifying passkey ceremony pinned to the authenticated caller
-    /// (`POST /security/passkey/stepup/options`), whose assertion settles the phone-change step-up
-    /// on its own.
-    ///
-    /// A deployment with passkeys off answers 404 and an account with no registered credential
-    /// answers 409; both surface as ``IdentityServiceError/passkeyStepUpUnavailable`` so the caller
-    /// offers the next factor down instead of treating it as a failure.
     func startPasskeyStepUp(accessToken: String) async throws -> PasskeyStepUpOptions {
         struct EmptyBody: Encodable { }
         struct Response: Decodable {
@@ -495,9 +397,6 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         } catch {
             throw IdentityServiceError.decoding(error)
         }
-        // Every byte field on the wire is base64url. A ceremony this client cannot assemble
-        // verbatim is not one to improvise: there is no rp id to fall back on that would not be a
-        // guess, so it becomes "unavailable" and the caller asks for the PIN.
         guard let relyingPartyID = response.publicKey.rpId, !relyingPartyID.isEmpty,
               let challenge = GuaBase64URL.decode(response.publicKey.challenge).map({ Data($0) }) else {
             throw IdentityServiceError.passkeyStepUpUnavailable
@@ -510,14 +409,7 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
                                     allowedCredentialIDs: allowed)
     }
 
-    /// Starts the change (`POST /account/phone/change/start`): spends the PHONE_CHANGE-scoped reauth
-    /// token together with the step-up factor, and only then texts the NEW number, returning the
-    /// challenge to redeem. The ordering is the server's and matters: no SMS reaches the new number
-    /// until a step-up has actually been accepted.
-    ///
-    /// Exactly one step-up is offered per call: the assertion when the device produced one,
-    /// otherwise the PIN. There is no field for saying which factor the device could not use, and
-    /// none is invented here.
+    /// Sends exactly one step-up: the passkey assertion when present, otherwise the PIN.
     func startPhoneChange(accessToken: String,
                           reauthToken: String,
                           newPhone: String,
@@ -555,9 +447,6 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         }
     }
 
-    /// Redeems the challenge with the OTP delivered to the new number
-    /// (`POST /account/phone/change/complete`). The server swaps the mapping atomically and revokes
-    /// the outstanding sessions. 204 on success.
     func completePhoneChange(accessToken: String, challengeId: String, code: String) async throws {
         struct Body: Encodable {
             let challengeId: String
@@ -584,21 +473,11 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
                                         redirectURI: redirectURI)
     }
 
-    /// Both enrollments answer the same way: a one-time URL on the sign-in origin, opened in an
-    /// authenticated web view, which is where the account is confirmed before anything is stored.
-    ///
-    /// The named redirect is asked for once and never insisted on. A deployment that has not
-    /// allowlisted this build's scheme, or a server too old to know the field, refuses with
-    /// `invalid_redirect_uri`; the same call then goes out with nothing named, which is what every
-    /// build did before this. The enrollment still runs, and the sheet returns to the deployment's
-    /// configured app instead of this one, which is a worse ending than the right scheme and a far
-    /// better one than a QA build that cannot enroll a factor at all.
+    /// If the deployment refuses this build's redirect, retries once without one so enrollment still runs.
     private func startFactorEnrollment(path: String, accessToken: String, redirectURI: String?) async throws -> URL {
         do {
             return try await requestEnrollmentURL(path: path, accessToken: accessToken, redirectURI: redirectURI)
         } catch IdentityServiceError.invalidRedirectURI where redirectURI != nil {
-            // Never logged in full: the value is this build's own scheme, and the refusal is about
-            // the deployment's allowlist rather than about anything in it.
             MXLog.warning("Enrollment redirect refused by the deployment, asking again for its default")
             return try await requestEnrollmentURL(path: path, accessToken: accessToken, redirectURI: nil)
         }
@@ -661,9 +540,6 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         guard let httpResponse = response as? HTTPURLResponse else {
             throw IdentityServiceError.server(status: -1, message: "Non-HTTP response.")
         }
-        // 503 and 403 are the deployment saying no handle exists to present: genesis is off here, or
-        // it declines to issue under this recovery framework. Neither is a failure. Everything else
-        // that is not a 201 is, and the caller must not quietly create an account without one.
         guard httpResponse.statusCode != 503 else { throw IdentityServiceError.genesisUnavailable }
         guard httpResponse.statusCode != 403 else { throw IdentityServiceError.genesisIssuanceNotPermitted }
         guard httpResponse.statusCode == 201 else {
@@ -726,13 +602,7 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         }
     }
 
-    /// Turns a refusal into the typed error the screens branch on.
-    ///
-    /// The mapping is by error code rather than by status, because the code is what the server
-    /// promises and a status is shared by refusals that mean different things: 403 carries both the
-    /// hard block and a passkey that did not verify its user, and 425 carries two cooldowns that do
-    /// not substitute for one another. An unrecognized code stays a plain server error rather than
-    /// being rounded to the nearest known one.
+    /// Maps by error code: a single status carries refusals with different meanings.
     private static func mappedError(status: Int, body: ErrorBody?, retryAfterHeader: String?, path: String) -> IdentityServiceError {
         let retry = body?.retryAfterSeconds ?? retryAfterHeader.flatMap(Int.init)
         if let mapped = passkeyError(code: body?.code, status: status, path: path)
@@ -746,9 +616,6 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         return .server(status: status, message: body?.message ?? body?.errorDescription ?? body?.error)
     }
 
-    /// Everything that means "the passkey path is not available to this caller right now". All of
-    /// it falls back to the next factor rather than ending the operation, which is why a refused
-    /// assertion and an account with no credential land in the same place.
     private static func passkeyError(code: String?, status: Int, path: String) -> IdentityServiceError? {
         switch code {
         case "passkey_user_verification_required": return .passkeyUserVerificationRequired
@@ -756,13 +623,10 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
              "passkey_user_unknown", "passkey_challenge_expired", "passkey_response_invalid":
             return .passkeyStepUpUnavailable
         default:
-            // A passkey endpoint that is simply not there on this deployment.
             return status == 404 && path.hasPrefix("/security/passkey/") ? .passkeyStepUpUnavailable : nil
         }
     }
 
-    /// The refusals that expire on their own. They are kept apart because waiting out one of them
-    /// does nothing for the others.
     private static func waitError(code: String?, retryAfterSeconds: Int?) -> IdentityServiceError? {
         switch code {
         case "twofa_cooldown_active": .twoFactorCooldown(retryAfterSeconds: retryAfterSeconds)
@@ -773,11 +637,6 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         }
     }
 
-    /// Wrong, missing or spent proofs, and the one refusal that ends the operation outright.
-    ///
-    /// The mismatch drops the server's message. That message is one fixed English sentence, so
-    /// carrying it through would show English to everybody; the local string says exactly the same
-    /// thing and is, like the server's, a single constant for every reason the number is wrong.
     private static func credentialError(code: String?) -> IdentityServiceError? {
         switch code {
         case "invalid_otp": .invalidOTP
