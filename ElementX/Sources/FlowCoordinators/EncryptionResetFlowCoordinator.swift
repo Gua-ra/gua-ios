@@ -165,6 +165,9 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
                         // The banner is still up and is now the retry, so this is not a dead end.
                         MXLog.error("GUA-KEYSTORE: could not provision key storage after the reset.")
                         userIndicatorController.submitIndicator(UserIndicator(title: L10n.errorUnknown))
+                    case .identityIncompleteAfterReset:
+                        MXLog.error("GUA-KEYSTORE: the account is incomplete after the reset; leaving it to the banner.")
+                        userIndicatorController.submitIndicator(UserIndicator(title: UntranslatedL10n.guaEncryptionResetFailed))
                     }
 
                     actionsSubject.send(.resetComplete)

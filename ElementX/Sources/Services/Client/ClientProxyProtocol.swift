@@ -152,6 +152,10 @@ protocol ClientProxyProtocol: AnyObject {
     func startSync()
 
     func stopSync()
+
+    /// GUA FORK: returns once the sync has stopped; sync starts are suppressed until the guard is
+    /// released. A call while a guard is held returns that guard.
+    func acquireIdentityResetGuard() async -> IdentityResetGuardProtocol
     
     func stopSync(completion: (() -> Void)?) // Hopefully this will become async once we get SE-0371.
     

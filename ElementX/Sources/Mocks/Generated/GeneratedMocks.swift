@@ -2393,6 +2393,70 @@ class ClientProxyMock: ClientProxyProtocol, @unchecked Sendable {
         stopSyncCallsCount += 1
         stopSyncClosure?()
     }
+    //MARK: - acquireIdentityResetGuard
+
+    var acquireIdentityResetGuardUnderlyingCallsCount = 0
+    var acquireIdentityResetGuardCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return acquireIdentityResetGuardUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = acquireIdentityResetGuardUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                acquireIdentityResetGuardUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    acquireIdentityResetGuardUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var acquireIdentityResetGuardCalled: Bool {
+        return acquireIdentityResetGuardCallsCount > 0
+    }
+
+    var acquireIdentityResetGuardUnderlyingReturnValue: IdentityResetGuardProtocol!
+    var acquireIdentityResetGuardReturnValue: IdentityResetGuardProtocol! {
+        get {
+            if Thread.isMainThread {
+                return acquireIdentityResetGuardUnderlyingReturnValue
+            } else {
+                var returnValue: IdentityResetGuardProtocol? = nil
+                DispatchQueue.main.sync {
+                    returnValue = acquireIdentityResetGuardUnderlyingReturnValue
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                acquireIdentityResetGuardUnderlyingReturnValue = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    acquireIdentityResetGuardUnderlyingReturnValue = newValue
+                }
+            }
+        }
+    }
+    var acquireIdentityResetGuardClosure: (() async -> IdentityResetGuardProtocol)?
+
+    func acquireIdentityResetGuard() async -> IdentityResetGuardProtocol {
+        acquireIdentityResetGuardCallsCount += 1
+        if let acquireIdentityResetGuardClosure = acquireIdentityResetGuardClosure {
+            return await acquireIdentityResetGuardClosure()
+        } else {
+            return acquireIdentityResetGuardReturnValue
+        }
+    }
     //MARK: - stopSync
 
     var stopSyncCompletionUnderlyingCallsCount = 0
@@ -6244,6 +6308,115 @@ class ElementCallWidgetDriverMock: ElementCallWidgetDriverProtocol, @unchecked S
         } else {
             return handleMessageReturnValue
         }
+    }
+}
+class IdentityResetGuardMock: IdentityResetGuardProtocol, @unchecked Sendable {
+    var inFlightReset: Task<Result<Void, Error>, Never>?
+
+    //MARK: - runReset
+
+    var runResetAuthUnderlyingCallsCount = 0
+    var runResetAuthCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return runResetAuthUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = runResetAuthUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                runResetAuthUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    runResetAuthUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var runResetAuthCalled: Bool {
+        return runResetAuthCallsCount > 0
+    }
+    var runResetAuthReceivedArguments: (handle: IdentityResetHandle, auth: AuthData?)?
+    var runResetAuthReceivedInvocations: [(handle: IdentityResetHandle, auth: AuthData?)] = []
+
+    var runResetAuthUnderlyingReturnValue: Task<Result<Void, Error>, Never>!
+    var runResetAuthReturnValue: Task<Result<Void, Error>, Never>! {
+        get {
+            if Thread.isMainThread {
+                return runResetAuthUnderlyingReturnValue
+            } else {
+                var returnValue: Task<Result<Void, Error>, Never>? = nil
+                DispatchQueue.main.sync {
+                    returnValue = runResetAuthUnderlyingReturnValue
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                runResetAuthUnderlyingReturnValue = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    runResetAuthUnderlyingReturnValue = newValue
+                }
+            }
+        }
+    }
+    var runResetAuthClosure: ((IdentityResetHandle, AuthData?) -> Task<Result<Void, Error>, Never>)?
+
+    func runReset(_ handle: IdentityResetHandle, auth: AuthData?) -> Task<Result<Void, Error>, Never> {
+        runResetAuthCallsCount += 1
+        runResetAuthReceivedArguments = (handle: handle, auth: auth)
+        DispatchQueue.main.async {
+            self.runResetAuthReceivedInvocations.append((handle: handle, auth: auth))
+        }
+        if let runResetAuthClosure = runResetAuthClosure {
+            return runResetAuthClosure(handle, auth)
+        } else {
+            return runResetAuthReturnValue
+        }
+    }
+    //MARK: - releaseIfIdle
+
+    var releaseIfIdleUnderlyingCallsCount = 0
+    var releaseIfIdleCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return releaseIfIdleUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = releaseIfIdleUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                releaseIfIdleUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    releaseIfIdleUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var releaseIfIdleCalled: Bool {
+        return releaseIfIdleCallsCount > 0
+    }
+    var releaseIfIdleClosure: (() async -> Void)?
+
+    func releaseIfIdle() async {
+        releaseIfIdleCallsCount += 1
+        await releaseIfIdleClosure?()
     }
 }
 class InvitedRoomProxyMock: InvitedRoomProxyProtocol, @unchecked Sendable {

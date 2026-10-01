@@ -399,6 +399,7 @@ class KeyStorageBootstrapTests: XCTestCase {
                                                                      enableCalls += 1
                                                                      throw RecoveryError.BackupExistsOnServer
                                                                  },
+                                                                 authoritativeState: { .disabled },
                                                                  waitForEnabled: { timeout in
                                                                      waits.append(timeout)
                                                                      return false
@@ -421,6 +422,7 @@ class KeyStorageBootstrapTests: XCTestCase {
                                                                      enableCalls += 1
                                                                      throw SecureBackupControllerError.failedEnablingBackup
                                                                  },
+                                                                 authoritativeState: { .disabled },
                                                                  waitForEnabled: { _ in false })
 
         XCTAssertEqual(outcome, .resetRequired)
@@ -434,6 +436,7 @@ class KeyStorageBootstrapTests: XCTestCase {
         let outcome = await SecureBackupController.provisionLoop(backoff: [.milliseconds(1), .milliseconds(1)],
                                                                  isEnabled: { enabled },
                                                                  enableRecovery: { enabled = true },
+                                                                 authoritativeState: { enabled ? .enabled : .disabled },
                                                                  waitForEnabled: { _ in enabled })
 
         XCTAssertEqual(outcome, .repaired)
@@ -445,6 +448,7 @@ class KeyStorageBootstrapTests: XCTestCase {
         let outcome = await SecureBackupController.provisionLoop(backoff: [.milliseconds(1)],
                                                                  isEnabled: { true },
                                                                  enableRecovery: { enableCalls += 1 },
+                                                                 authoritativeState: { .enabled },
                                                                  waitForEnabled: { _ in true })
 
         XCTAssertEqual(outcome, .repaired)

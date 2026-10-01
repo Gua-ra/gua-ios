@@ -323,6 +323,8 @@ class UserSessionStore: UserSessionStoreProtocol {
                     MXLog.info("GUA-KEYSTORE: state not readable yet, will retry next launch.")
                 case .resetRequired:
                     MXLog.warning("GUA-KEYSTORE: only a reset can finish this device; leaving it to the banner.")
+                case .identityIncompleteAfterReset:
+                    MXLog.warning("GUA-KEYSTORE: the account is incomplete after a reset; leaving it to the banner.")
                 }
             } catch {
                 MXLog.error("Unexpected error while restoring key storage: \(error)")

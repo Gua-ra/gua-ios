@@ -76,6 +76,12 @@ class NotificationServiceExtension: UNNotificationServiceExtension {
             return contentHandler(request.content)
         }
         
+        // GUA FORK: stay out of the crypto store while the app resets this account's identity.
+        if IdentityResetMarker.isFresh(startedAt: settings.identityResetStartedAt(forUserID: credentials.userID)) {
+            MXLog.info("\(tag) Identity reset in progress for this account, delivering the notification as received.")
+            return contentHandler(request.content)
+        }
+
         let homeserverURL = credentials.restorationToken.session.homeserverUrl
         appHooks.remoteSettingsHook.loadCache(forHomeserver: homeserverURL, applyingTo: settings)
         

@@ -100,4 +100,7 @@ enum EncryptionRepairOutcome: Equatable {
     case notYet
     /// Everything non-destructive has been tried. Only a reset can finish this device.
     case resetRequired
+    /// The reset landed, but this device lacks the private cross-signing keys to enable recovery.
+    /// Not retried automatically.
+    case identityIncompleteAfterReset
 }
