@@ -209,7 +209,7 @@ final class NotificationManagerTests: XCTestCase {
         XCTAssertEqual(options, [.badge, .sound, .list, .banner])
     }
 
-    func test_whenWillPresentAuthorityAlertAndEveryGateHostile_CorrectPresentationOptionsReturned() async throws {
+    func test_whenWillPresentAuthorityAlertWithInAppNotificationsOff_alertIsPresented() async throws {
         appSettings.enableInAppNotifications = false
         shouldDisplayInAppNotificationReturnValue = false
         notificationManager.delegate = self
@@ -219,7 +219,7 @@ final class NotificationManagerTests: XCTestCase {
         XCTAssertEqual(options, [.badge, .sound, .list, .banner])
     }
 
-    func test_whenWillPresentWithoutAuthorityAlertAndEveryGateHostile_CorrectPresentationOptionsReturned() async throws {
+    func test_whenWillPresentChatNotificationWithInAppNotificationsOff_nothingIsPresented() async throws {
         appSettings.enableInAppNotifications = false
         shouldDisplayInAppNotificationReturnValue = false
         notificationManager.delegate = self
@@ -229,7 +229,7 @@ final class NotificationManagerTests: XCTestCase {
         XCTAssertEqual(options, [])
     }
 
-    func test_whenWillPresentAuthorityAlertWithAnotherMarkerValue_CorrectPresentationOptionsReturned() async throws {
+    func test_whenWillPresentAuthorityAlertWithAnotherMarkerValue_nothingIsPresented() async throws {
         appSettings.enableInAppNotifications = false
         shouldDisplayInAppNotificationReturnValue = false
         notificationManager.delegate = self
