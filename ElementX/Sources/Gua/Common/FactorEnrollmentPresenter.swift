@@ -6,22 +6,13 @@
 
 import AuthenticationServices
 
-/// Presents a web authentication session that drives factor enrollment, passkey or PIN, on the
-/// IdP-hosted page returned by identity-service.
-///
-/// Both factors go through it for the same reason: a bearer session alone must never add a durable
-/// factor, and the page is where the account is confirmed first.
-///
-/// A web authentication session is used (rather than `SFSafariViewController`) so
-/// that the existing login session is available and the user doesn't have to sign
-/// in again. The session finishes when the page redirects to the app's OIDC
-/// redirect URL. Mirrors ``OIDCAccountSettingsPresenter``.
+/// Uses a web authentication session so the existing sign-in session is available.
 @MainActor
 class FactorEnrollmentPresenter: NSObject {
     private let enrollURL: URL
     private let presentationAnchor: UIWindow
     private let oidcRedirectURL: URL
-    /// Retained for the lifetime of the presentation so the session isn't cancelled early.
+    /// Retained so the session is not cancelled early.
     private var session: ASWebAuthenticationSession?
 
     init(enrollURL: URL, presentationAnchor: UIWindow, appSettings: AppSettings) {
@@ -31,15 +22,8 @@ class FactorEnrollmentPresenter: NSObject {
         super.init()
     }
 
-    /// Presents the web authentication session and returns once it is dismissed —
-    /// either because the page redirected to the callback URL or because the user
-    /// closed the sheet.
-    ///
-    /// Throws if the IDP redirects back with an OIDC `error` parameter, or if
-    /// `ASWebAuthenticationSession` fails for a reason other than user cancellation.
-    /// User cancellation is treated as success (no error thrown).
+    /// User cancellation returns normally; an OIDC `error` on the redirect throws.
     func start() async throws {
-        // Pass the device locale so the IDP renders in the user's language (e.g. French).
         var urlToOpen = enrollURL
         if let languageCode = Locale.current.language.languageCode?.identifier,
            var components = URLComponents(url: enrollURL, resolvingAgainstBaseURL: true) {
@@ -51,7 +35,6 @@ class FactorEnrollmentPresenter: NSObject {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             let session = ASWebAuthenticationSession(url: urlToOpen, callback: .oidcRedirectURL(oidcRedirectURL)) { callbackURL, error in
                 if let error {
-                    // Treat user-initiated cancellation as a normal dismissal (no error to surface).
                     if (error as? ASWebAuthenticationSessionError)?.code == .canceledLogin {
                         continuation.resume()
                     } else {
@@ -60,7 +43,6 @@ class FactorEnrollmentPresenter: NSObject {
                 } else if let callbackURL,
                           let components = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false),
                           let errorCode = components.queryItems?.first(where: { $0.name == "error" })?.value {
-                    // IDP redirected back with an OIDC error (e.g. access_denied).
                     let description = components.queryItems?.first(where: { $0.name == "error_description" })?.value
                     let message = description ?? errorCode
                     continuation.resume(throwing: NSError(domain: "FactorEnrollment",

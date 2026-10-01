@@ -7,14 +7,10 @@
 import Compound
 import SwiftUI
 
-/// WhatsApp-style 6-bubble PIN entry. A hidden `SecureField` captures keystrokes while a row of
-/// circles visualizes how many digits have been entered. Tapping anywhere on the row re-focuses
-/// the field.
 struct PinBubbleField: View {
     @Binding var pin: String
     let length: Int
     var hasError = false
-    /// Bound from the parent so we can keep the keyboard up across `step` transitions.
     @FocusState private var isFocused: Bool
 
     init(pin: Binding<String>, length: Int = 6, hasError: Bool = false) {
@@ -25,7 +21,7 @@ struct PinBubbleField: View {
 
     var body: some View {
         ZStack {
-            // Invisible field that owns the keyboard. We keep it focusable but visually hidden.
+            // Hidden field that owns the keyboard.
             SecureField("", text: $pin)
                 .keyboardType(.numberPad)
                 .textContentType(.oneTimeCode)

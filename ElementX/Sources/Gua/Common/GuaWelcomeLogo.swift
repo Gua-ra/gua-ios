@@ -8,19 +8,8 @@
 import CoreMotion
 import SwiftUI
 
-/// The welcome-screen app logo: the Gua app-icon artwork presented as a raised glass tile.
-///
-/// Four things animate. An entrance (one-shot fly-in and spin on appear, plain SwiftUI `@State`, so
-/// it plays on the simulator too). A `CoreMotion` tilt of up to 5 degrees with a specular highlight
-/// that follows it (the simulator has no gyroscope, so the tilt rests there). A fixed specular bevel
-/// on the wolf and bubble layers (`appLogoWolf`, `appLogoBubble`) whose geometry never moves with
-/// the tilt, so the tile stays one rigid object; only its brightness lifts in motion. A diagonal
-/// sheen sweep and a steady green aura, driven by `SwiftUI.TimelineView(.animation)`; the `SwiftUI.`
-/// qualifier avoids ElementX's own `TimelineView`.
-///
-/// Static under Reduce Motion (`animated == false`) and in snapshot tests.
 struct GuaWelcomeLogo: View {
-    /// When `false` (Reduce Motion) the logo is drawn as a still glass tile with no entrance.
+    /// `false` under Reduce Motion and in snapshot tests.
     let animated: Bool
     var size: CGFloat = 84
 
@@ -30,20 +19,15 @@ struct GuaWelcomeLogo: View {
     }
 
     @State private var tilt = DeviceTiltMotion()
-    /// Drives the one-shot fly-in/spin entrance: starts off-screen + rotated, springs to rest.
     @State private var entered = false
-    /// Set once the entrance spring has been scheduled, so per-frame ticks don't re-arm it.
     @State private var entranceScheduled = false
-    /// Time the logo has actually spent on screen (sum of rendered-frame deltas, stall-capped).
     @State private var renderedLeadIn: TimeInterval = 0
-    /// Timestamp of the previous rendered frame, for the lead-in accumulation.
     @State private var lastTick: TimeInterval?
 
     private var isLive: Bool {
         animated && !ProcessInfo.isRunningTests
     }
 
-    /// Off-screen starting offset for the entrance fly-in (the logo arrives from the trailing side).
     private var entranceTravel: CGFloat {
         size * 2.6
     }
@@ -60,9 +44,6 @@ struct GuaWelcomeLogo: View {
             }
         }
         .frame(width: size, height: size)
-        // One-shot entrance, applied on the OUTER container (independent of the per-frame
-        // TimelineView) so it plays exactly once. Unlike the device-motion parallax it needs no
-        // gyroscope, so it is fully visible on the simulator too.
         .scaleEffect(entered ? 1 : 0.82)
         .rotation3DEffect(.degrees(entered ? 0 : 68), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
         .offset(x: entered ? 0 : entranceTravel)
@@ -72,19 +53,14 @@ struct GuaWelcomeLogo: View {
             if isLive {
                 tilt.start()
             } else {
-                entered = true // Reduce Motion / tests: appear in place, no fly-in.
+                entered = true
             }
         }
         .onDisappear { tilt.stop() }
     }
 
-    /// Starts the one-shot entrance after ~0.35s of *rendered* frames rather than from `onAppear`.
-    ///
-    /// At app launch `onAppear` fires while the launch screen still covers the app and the main
-    /// thread is busy, so a wall-clock spring started there burns out before anything is visible
-    /// and the logo pops into place. The `TimelineView` only ticks for frames that are drawn, so
-    /// the lead-in is accumulated from per-frame deltas (capped, so a startup stall cannot consume
-    /// it) and the spring fires once the screen has been rendering for a beat.
+    /// Starts the entrance after about 0.35s of rendered frames: at launch `onAppear` fires behind the launch screen,
+    /// so a spring started there finishes unseen.
     private func startEntranceIfNeeded(now: Date) {
         guard !entranceScheduled else { return }
         let t = now.timeIntervalSinceReferenceDate
@@ -100,29 +76,20 @@ struct GuaWelcomeLogo: View {
 
     private func treated(t: TimeInterval) -> some View {
         logo
-            .overlay { glyphRelief() } // raised liquid-glass edges on the wolf + bubble layers
+            .overlay { glyphRelief() }
             .overlay { sheen(t: t) }
             .overlay { glassHighlight() }
-            .overlay { innerRimLine() } // inner edge line, clipped to icon boundary
+            .overlay { innerRimLine() }
             .clipShape(shape)
-            .overlay { outerRimLine() } // outer edge line, unclipped: creates the double-line look
-            // Slight parallax against the (anchored) aura as the phone tilts: the tile reads as
-            // floating above the glow, like the home-screen icon parallax. Zero at rest, so a still
-            // phone shows the icon exactly in place.
+            .overlay { outerRimLine() }
             .offset(x: tilt.roll * size * 0.025, y: tilt.pitch * size * 0.025)
             .background { aura(t: t) }
-            // Whole logo tilts ±5° in 3D, shifting the angle-of-view of the raised glass edges.
             .rotation3DEffect(.degrees(tilt.pitch * 5), axis: (x: 1, y: 0, z: 0), perspective: 0.6)
             .rotation3DEffect(.degrees(tilt.roll * 5), axis: (x: 0, y: 1, z: 0), perspective: 0.6)
             .shadow(color: .black.opacity(0.18), radius: 16, y: 8)
     }
 
-    /// A specular hotspot that slides across the glass as the device tilts, like light catching a real
-    /// glass surface. Driven purely by `CoreMotion`, so it's still when the phone is still (and
-    /// sits centred on the simulator). Clipped to the logo by the caller's `.clipShape`.
     private func glassHighlight() -> some View {
-        // Only catches the light while the phone is actually tilting; when still it fades to nothing
-        // so it never pools as a bright spot in the centre of the icon.
         let mag = min(1, (tilt.roll * tilt.roll + tilt.pitch * tilt.pitch).squareRoot() * 1.7)
         return RadialGradient(colors: [.white.opacity(0.4), .white.opacity(0.08), .clear],
                               center: .center, startRadius: 0, endRadius: size * 0.55)
@@ -140,38 +107,23 @@ struct GuaWelcomeLogo: View {
             .frame(width: size, height: size)
     }
 
-    /// The tilt-driven light-source angle for the rim specular.
-    /// At rest (roll=0, pitch=0) the highlight sits at 12 o'clock, natural overhead light.
     private var rimLightAngle: Angle {
         Angle(radians: atan2(tilt.roll, -tilt.pitch) - .pi / 2)
     }
 
     // MARK: - Glyph liquid-glass bevel
 
-    /// Smoothed tilt magnitude: 0 with the phone still, →1 as it tilts.
     private var tiltMagnitude: Double {
         min(1, (tilt.roll * tilt.roll + tilt.pitch * tilt.pitch).squareRoot())
     }
 
-    /// Fixed overhead light direction for the glyph bevel: straight up (12 o'clock), in screen
-    /// coordinates (y down). This is exactly the at-rest value of the old tilt-tracking angle
-    /// (`atan2(0, 0.55) - .pi/2`), frozen so the bevel geometry never translates with tilt; a
-    /// tracking bevel renders the wolf and bubble as offset duplicates.
+    /// Fixed overhead light: a bevel that tracks tilt renders the glyph layers as offset duplicates.
     private var bevelLightVector: CGSize {
         CGSize(width: 0, height: -1)
     }
 
-    /// The specular bevel around the wolf-in-speech-bubble glyph: for each glyph layer
-    /// (`appLogoBubble`, then `appLogoWolf`) a thin white crescent hugs the top edge and a dark
-    /// crescent the bottom, so the glyph reads as raised glass. The crescents are built by shifting a
-    /// tinted copy of the glyph up/down and punching the unshifted glyph back out (`.destinationOut`),
-    /// leaving only the exposed edge. The shift is a *fixed* sub-tile bake: it does not track tilt and
-    /// the two layers share the same drift (none), so on tilt the whole tile moves as one rigid unit
-    /// with no offset duplicate. Only the crescents' brightness lifts a touch while the phone is in
-    /// motion, so the glass still catches the light.
     private func glyphRelief() -> some View {
         let mag = tiltMagnitude
-        // Fixed bevel depth in points, identical at rest and in motion, so no growing/moving copy.
         let depth = size * 0.014
 
         return ZStack {
@@ -181,18 +133,13 @@ struct GuaWelcomeLogo: View {
         .allowsHitTesting(false)
     }
 
-    /// Light + shade crescents for one glyph layer, baked to the fixed overhead light. `mag` only
-    /// modulates brightness (the light "catches" more in motion); the crescent geometry is identical
-    /// at every tilt so the layer never drifts away from the base artwork.
     private func glyphBevel(asset: ImageAsset, depth: CGFloat, mag: Double) -> some View {
         ZStack {
-            // Specular crescent on the lit (top) edge.
             glyphCrescent(asset: asset,
                           color: .white,
                           offset: CGSize(width: bevelLightVector.width * depth, height: bevelLightVector.height * depth))
                 .opacity(0.55 + 0.30 * mag)
                 .blendMode(.screen)
-            // Shade crescent on the far (bottom) edge, which sells the raised 3D relief.
             glyphCrescent(asset: asset,
                           color: .black,
                           offset: CGSize(width: -bevelLightVector.width * depth * 0.8, height: -bevelLightVector.height * depth * 0.8))
@@ -200,8 +147,6 @@ struct GuaWelcomeLogo: View {
         }
     }
 
-    /// A thin edge crescent: the glyph tinted `color`, shifted by `offset`, minus the glyph at rest:
-    /// only the sliver of the shifted copy that clears the glyph's own silhouette survives.
     private func glyphCrescent(asset: ImageAsset, color: Color, offset: CGSize) -> some View {
         ZStack {
             glyphTemplate(asset, color: color)
@@ -222,8 +167,6 @@ struct GuaWelcomeLogo: View {
             .foregroundStyle(color)
     }
 
-    /// Inner glass-edge line: sits ~2.5 pt inside the clip boundary, with a specular highlight
-    /// that tracks the tilt direction. Placed before `.clipShape` so it's bounded by the icon.
     private func innerRimLine() -> some View {
         RoundedRectangle(cornerRadius: corner - 2.5, style: .continuous)
             .stroke(AngularGradient(stops: [
@@ -240,8 +183,6 @@ struct GuaWelcomeLogo: View {
             .allowsHitTesting(false)
     }
 
-    /// Outer glass-edge line: sits at the clip boundary (placed after `.clipShape`, so it's not
-    /// clipped). Together with `innerRimLine` this creates the double-line raised-glass-edge look.
     private func outerRimLine() -> some View {
         shape
             .stroke(AngularGradient(stops: [
@@ -258,15 +199,11 @@ struct GuaWelcomeLogo: View {
             .allowsHitTesting(false)
     }
 
-    /// A soft white highlight band that sweeps diagonally across the glass (clipped to the logo by
-    /// the caller's `.clipShape`). One ~1s pass per ~11s cycle, with a clear idle pause between, so the
-    /// sheen reads as an occasional catch of light rather than a constant loop. `.screen` blend makes
-    /// it read as light catching the surface.
     private func sheen(t: TimeInterval) -> some View {
-        let cycle = 11.0 // total period (glare sweeps less often)
-        let sweepDuration = 1.0 // visible travel, then idle for the remainder
+        let cycle = 11.0
+        let sweepDuration = 1.0
         let phase = t.truncatingRemainder(dividingBy: cycle)
-        let progress = min(phase / sweepDuration, 1) // 0...1 during the sweep, parked at 1 while idle
+        let progress = min(phase / sweepDuration, 1)
         let visible = phase < sweepDuration
 
         return LinearGradient(colors: [.clear, .white.opacity(0.55), .clear],
@@ -279,17 +216,14 @@ struct GuaWelcomeLogo: View {
             .allowsHitTesting(false)
     }
 
-    /// A lively Gua-green aura that sits behind the icon and spills ~28% past its edges as a soft
-    /// halo. The hue drifts gently around Gua green and the glow slowly shifts position: visible
-    /// and alive, but steady (no breathing/pulsing) and still tasteful.
     private func aura(t: TimeInterval) -> some View {
-        let hue = 0.40 + 0.05 * sin(t * (2 * .pi / 4.0)) // gentle drift around Gua green
+        let hue = 0.40 + 0.05 * sin(t * (2 * .pi / 4.0))
         let drift = size * 0.06
 
         return shape
             .fill(Color(hue: hue, saturation: 0.8, brightness: 0.95))
-            .opacity(0.30) // steady glow, no breathing
-            .frame(width: size * 1.28, height: size * 1.28) // spill ~28% beyond the icon
+            .opacity(0.30)
+            .frame(width: size * 1.28, height: size * 1.28)
             .offset(x: cos(t * (2 * .pi / 5.0)) * drift,
                     y: sin(t * (2 * .pi / 6.0)) * drift)
             .blur(radius: size * 0.28)
@@ -297,10 +231,6 @@ struct GuaWelcomeLogo: View {
     }
 }
 
-/// Publishes the device's `roll` and `pitch` (each roughly -1...1) from `CoreMotion`, smoothed so the
-/// parallax tilt eases rather than jitters. Device-motion updates require no `Info.plist` permission.
-/// On hardware without a gyroscope (e.g. the simulator) `isDeviceMotionAvailable` is `false`, so the
-/// values stay at zero and the logo simply doesn't tilt.
 @Observable
 final class DeviceTiltMotion {
     private(set) var roll: Double = 0
@@ -314,7 +244,6 @@ final class DeviceTiltMotion {
         manager.deviceMotionUpdateInterval = 1 / 30
         manager.startDeviceMotionUpdates(to: .main) { [weak self] motion, _ in
             guard let self, let attitude = motion?.attitude else { return }
-            // Clamp to a small range and ease towards the target so motion is gentle and smooth.
             let targetRoll = max(-1, min(1, attitude.roll / (.pi / 6)))
             let targetPitch = max(-1, min(1, attitude.pitch / (.pi / 6)))
             roll += (targetRoll - roll) * 0.15
