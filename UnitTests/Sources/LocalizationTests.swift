@@ -74,4 +74,38 @@ class LocalizationTests: XCTestCase {
         XCTAssertEqual(UntranslatedL10n.untranslatedPlural(1), "One untranslated item")
         XCTAssertEqual(UntranslatedL10n.untranslatedPlural(5), "5 untranslated items")
     }
+
+    /// Gua keeps its own translations in the Untranslated table, so it must follow the app language like L10n.
+    func testUntranslatedFollowsAppLanguage() throws {
+        let english = try XCTUnwrap(untranslatedValue("gua_sign_in_with_passkey", language: "en"))
+
+        for language in ["pt-BR", "es", "fr"] {
+            Bundle.overrideLocalizations = [language]
+
+            let expected = try XCTUnwrap(untranslatedValue("gua_sign_in_with_passkey", language: language))
+            XCTAssertNotEqual(expected, english, "\(language) has no translation for gua_sign_in_with_passkey")
+            XCTAssertEqual(UntranslatedL10n.guaSignInWithPasskey, expected)
+        }
+
+        Bundle.overrideLocalizations = ["xx"]
+        XCTAssertEqual(UntranslatedL10n.guaSignInWithPasskey, english)
+    }
+
+    /// A key the app language lacks falls back to English instead of showing the key.
+    func testUntranslatedFallsBackForMissingKey() {
+        Bundle.overrideLocalizations = ["pt-BR"]
+
+        XCTAssertNil(untranslatedValue("untranslated", language: "pt-BR"))
+        XCTAssertEqual(UntranslatedL10n.untranslated, "Untranslated")
+        XCTAssertEqual(UntranslatedL10n.untranslatedPlural(5), "5 untranslated items")
+    }
+
+    // MARK: - Helpers
+
+    /// Reads a value straight from one language's Untranslated table, or nil when that table lacks the key.
+    private func untranslatedValue(_ key: String, language: String) -> String? {
+        guard let bundle = Bundle.lprojBundle(for: language) else { return nil }
+        let value = bundle.localizedString(forKey: key, value: nil, table: "Untranslated")
+        return value == key ? nil : value
+    }
 }
