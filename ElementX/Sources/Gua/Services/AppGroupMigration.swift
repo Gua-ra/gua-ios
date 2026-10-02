@@ -136,9 +136,12 @@ struct AppGroupMigration {
                                                  pusherNotificationClientIdentifier: token.pusherNotificationClientIdentifier)
             keychainController.setRestorationToken(migratedToken, forUsername: credentials.userID)
 
-            guard keychainController.restorationTokens().contains(where: { $0.userID == credentials.userID && $0.restorationToken == migratedToken }) else {
-                MXLog.error("Failed updating the restoration token, putting the session data back")
-                if needsMove {
+            // A failed restore deletes the token, so the data has to stay where the stored token
+            // points. Data left in the group is adopted by a later run whichever token it finds.
+            let stored = keychainController.restorationTokens().first { $0.userID == credentials.userID }?.restorationToken
+            guard let stored, isSameLocation(stored.sessionDirectories.dataDirectory, data) else {
+                MXLog.error("Failed updating the restoration token")
+                if stored != nil, needsMove {
                     try? fileManager.moveItem(at: data, to: legacyData)
                 }
                 return .deferred

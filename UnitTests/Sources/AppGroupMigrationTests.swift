@@ -169,6 +169,35 @@ final class AppGroupMigrationTests: XCTestCase {
         XCTAssertEqual(storedTokens[userID], token)
     }
 
+    func testDataStaysInTheGroupWhenTheUpdatedTokenCannotBeReadBack() throws {
+        let legacyData = try makeStore(in: directories.legacySessions)
+        storedTokens[userID] = makeToken(dataDirectory: legacyData)
+        keychainController.setRestorationTokenForUsernameClosure = { [unowned self] token, userID in
+            storedTokens[userID] = token
+            keychainController.restorationTokensClosure = { [] }
+        }
+
+        XCTAssertEqual(migration.run(), .deferred)
+
+        let data = directories.sessions.appending(component: legacyData.lastPathComponent, directoryHint: .isDirectory)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: data.appending(component: "matrix-sdk-crypto.sqlite3").path(percentEncoded: false)))
+        XCTAssertEqual(storedTokens[userID]?.sessionDirectories.dataDirectory, data)
+    }
+
+    func testExistingGroupDataIsNeverOverwritten() throws {
+        let data = try makeStore(in: directories.sessions)
+        let legacyData = directories.legacySessions.appending(component: data.lastPathComponent, directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: legacyData, withIntermediateDirectories: true)
+        try Data("legacy".utf8).write(to: legacyData.appending(component: "matrix-sdk-crypto.sqlite3"))
+        storedTokens[userID] = makeToken(dataDirectory: legacyData)
+
+        XCTAssertEqual(migration.run(), .migrated)
+
+        XCTAssertEqual(try Data(contentsOf: data.appending(component: "matrix-sdk-crypto.sqlite3")), Data("crypto".utf8))
+        XCTAssertEqual(try Data(contentsOf: legacyData.appending(component: "matrix-sdk-crypto.sqlite3")), Data("legacy".utf8))
+        XCTAssertEqual(storedTokens[userID]?.sessionDirectories.dataDirectory, data)
+    }
+
     // MARK: - Repeated launches
 
     func testNothingLeftBehindIsANoOp() throws {
