@@ -20,6 +20,7 @@ class TwoStepVerificationScreenViewModelTests: XCTestCase {
 
     override func setUpWithError() throws {
         makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: false))
+        // Put the screen into the phone-entry phase so phoneChanged actions are meaningful.
         context.send(viewAction: .startChange)
     }
 
@@ -86,6 +87,8 @@ class TwoStepVerificationScreenViewModelTests: XCTestCase {
         XCTAssertTrue(identityService.pinChangeStarts.isEmpty, "Nothing is sent until a factor is accepted")
     }
 
+    /// A passkey registered too recently is refused by the server with a hold. The PIN underneath
+    /// must actually get its turn.
     func testServerRefusedPasskeyFallsBackToTheCurrentPin() async throws {
         makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: true))
         identityService.passkeyPinChangeError = IdentityServiceError.twoFactorCooldown(retryAfterSeconds: 3600)
@@ -114,6 +117,8 @@ class TwoStepVerificationScreenViewModelTests: XCTestCase {
         XCTAssertTrue(identityService.pinChangeStarts.isEmpty)
     }
 
+    /// No connection says nothing about the passkey, so it is not reported as a refused one and the
+    /// PIN is not offered in its place.
     func testAConnectionFailureIsShownAsItIsAndNotAsARefusedPasskey() async throws {
         makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: true))
         identityService.passkeyPinChangeError = IdentityServiceError.transport(URLError(.notConnectedToInternet))
@@ -140,6 +145,8 @@ class TwoStepVerificationScreenViewModelTests: XCTestCase {
         XCTAssertEqual(context.viewState.phase, .overview)
     }
 
+    /// The current PIN was never asked for on the passkey path, so a failure finishing the change
+    /// must not start asking for it.
     func testAFailureAfterThePasskeyWasAcceptedReturnsToTheNewPin() async throws {
         makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: true))
         identityService.completePinChangeError = IdentityServiceError.server(status: 500, message: nil)
@@ -181,6 +188,8 @@ class TwoStepVerificationScreenViewModelTests: XCTestCase {
 
     // MARK: - GUA FORK: the first PIN is enrolled in the web session
 
+    /// A bearer session alone must not add a factor, so adding a first PIN leaves this screen for
+    /// the enrollment session.
     func testSettingTheFirstPinHandsOverToTheEnrollmentSession() async throws {
         makeViewModel(status: Self.status(hasPin: false, passkeyRegistered: false))
         try await waitForPhase(.overview)
@@ -226,6 +235,7 @@ class TwoStepVerificationScreenViewModelTests: XCTestCase {
         XCTAssertFalse(context.viewState.hasPin, "The PIN is still on offer as the fallback")
     }
 
+    /// A report that could not be read must not collapse into "no PIN".
     func testUnreadableStatusIsNotReportedAsNoFactor() async throws {
         makeViewModel(status: nil)
 
@@ -277,6 +287,7 @@ class TwoStepVerificationScreenViewModelTests: XCTestCase {
 // MARK: - Stub
 
 private final class TwoStepVerificationIdentityServiceStub: IdentityServiceClientProtocol {
+    /// `nil` stands for a report that could not be read.
     private let status: AccountSecurityStatus?
 
     init(status: AccountSecurityStatus?) {
@@ -311,6 +322,7 @@ private final class TwoStepVerificationIdentityServiceStub: IdentityServiceClien
     private(set) var pinChangeStarts: [PinChangeStart] = []
     private(set) var stepUpStarts = 0
     private(set) var completePinChangeCalls = 0
+    /// Thrown by a start that carries a passkey assertion. A start with the PIN always succeeds.
     var passkeyPinChangeError: Error?
     var stepUpError: Error?
     var completePinChangeError: Error?
@@ -367,6 +379,7 @@ private final class TwoStepVerificationIdentityServiceStub: IdentityServiceClien
 private final class TwoStepPasskeyPresenterStub: PasskeyStepUpPresenting {
     private let result: Result<PasskeyAssertion, Error>
     private(set) var callCount = 0
+    /// Runs while the sheet would be up, before the result is handed back.
     var beforeReturning: (@MainActor () -> Void)?
 
     init(result: Result<PasskeyAssertion, Error>) {

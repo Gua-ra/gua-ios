@@ -8,6 +8,9 @@
 @testable import ElementX
 import XCTest
 
+/// Coverage of the account slices of identity-service this app talks to: the fields
+/// `GET /security/pin/status` adds for a live recovery, `POST /security/recovery/cancel`,
+/// reauthentication by phone digest, and factor enrollment.
 @MainActor
 final class IdentityServiceClientTests: XCTestCase {
     private var client: IdentityServiceClient!
@@ -75,6 +78,8 @@ final class IdentityServiceClientTests: XCTestCase {
 
     // MARK: - The language the code is written in
 
+    /// Pins the helper's own output for the locale a Brazilian device reports. A hand-written tag
+    /// would only prove the header is forwarded.
     func testTheDeviceLanguageIsAskedForAsABCP47Tag() {
         XCTAssertEqual(Locale.guaLanguageTag(for: Locale(identifier: "pt_BR")), "pt-BR")
         XCTAssertEqual(Locale.guaLanguageTag(for: Locale(identifier: "en_US")), "en-US")
@@ -84,12 +89,16 @@ final class IdentityServiceClientTests: XCTestCase {
 
     // MARK: - The number the screens resolve before they spend an attempt
 
+    /// The resolver the three reauth screens share. It must accept the punctuated shape AutoFill
+    /// supplies from Contacts and refuse what the server cannot read.
     func testAPunctuatedNumberResolvesToTheDigitsAndTheRestIsRefused() {
         XCTAssertEqual(GuaPhoneNumber.e164(from: "+1 (415) 555-0143"), "+14155550143")
         XCTAssertEqual(GuaPhoneNumber.e164(from: "+55 11 98888-7777"), "+5511988887777")
         XCTAssertEqual(GuaPhoneNumber.e164(from: " +1-415-555-0143 "), "+14155550143")
         XCTAssertEqual(GuaPhoneNumber.e164(from: "+14155550143"), "+14155550143")
 
+        // No country code, letters, too short or too long: refused, because each would cost a reauth
+        // attempt.
         XCTAssertNil(GuaPhoneNumber.e164(from: "4155550143"))
         XCTAssertNil(GuaPhoneNumber.e164(from: "+1 (415) CALL-NOW"))
         XCTAssertNil(GuaPhoneNumber.e164(from: "+1234567"))
@@ -114,6 +123,7 @@ final class IdentityServiceClientTests: XCTestCase {
         XCTAssertEqual(try IdentityServiceStub.lastBodyObject()["phone"] as? String, "+14155550143")
     }
 
+    /// The number goes out again with the code: the server stores nothing between the two calls.
     func testVerifyingReauthSubmitsTheNumberTheCodeAndTheOperation() async throws {
         IdentityServiceStub.respond(status: 200, body: #"{ "reauthToken": "token", "expiresInSeconds": 300 }"#)
 
@@ -129,6 +139,8 @@ final class IdentityServiceClientTests: XCTestCase {
         XCTAssertEqual(body["operation"] as? String, "PHONE_CHANGE")
     }
 
+    /// The refusal is one localized sentence whatever the body says, so it is identical for a number
+    /// nobody has, a number somebody else has, and a number that is not this account's.
     func testAWrongNumberSurfacesTheLocalNeutralRefusal() async throws {
         let bodies = [#"{ "code": "reauth_phone_mismatch", "message": "That is not the number on your account." }"#,
                       #"{ "code": "reauth_phone_mismatch" }"#]
@@ -172,6 +184,7 @@ final class IdentityServiceClientTests: XCTestCase {
         XCTAssertEqual(request.httpMethod, "POST")
         XCTAssertEqual(request.url?.path, "/security/pin/enroll/start")
         XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer access-token")
+        // The enrollment call reads the language itself, so it is checked here rather than at a caller.
         XCTAssertEqual(request.value(forHTTPHeaderField: "Accept-Language"), Locale.guaLanguageTag())
     }
 
@@ -201,6 +214,8 @@ final class IdentityServiceClientTests: XCTestCase {
         }
     }
 
+    /// A passkey-only account on a deployment with passkeys off can add no factor. The refusal points
+    /// at the delayed recovery.
     func testAnAccountWithNoProofItCanRunIsPointedAtRecovery() async throws {
         IdentityServiceStub.respond(status: 409, body: #"{ "code": "step_up_unavailable" }"#)
 
@@ -218,6 +233,8 @@ final class IdentityServiceClientTests: XCTestCase {
 
     // MARK: - The enrollment redirect
 
+    /// A named redirect sends the sheet back to the build it was opened from. The QA and debug builds
+    /// answer to schemes the release build does not.
     func testEnrollmentAsksToReturnToThisBuildsRedirect() async throws {
         IdentityServiceStub.respond(status: 200, body: #"{ "enrollUrl": "https://identity.example/login/enroll/token" }"#)
 
@@ -226,6 +243,8 @@ final class IdentityServiceClientTests: XCTestCase {
         XCTAssertEqual(try IdentityServiceStub.lastBodyObject()["redirectUri"] as? String, "global.gua.dev:/oidc")
     }
 
+    /// Naming nothing keeps the field off the wire entirely, which is what a server too old to know
+    /// it needs to see.
     func testEnrollmentWithNoRedirectNamesNone() async throws {
         IdentityServiceStub.respond(status: 200, body: #"{ "enrollUrl": "https://identity.example/login/enroll/token" }"#)
 
@@ -234,6 +253,8 @@ final class IdentityServiceClientTests: XCTestCase {
         XCTAssertNil(try IdentityServiceStub.lastBodyObject()["redirectUri"])
     }
 
+    /// A build can hold a scheme the deployment has not allowlisted. Enrollment must not end there:
+    /// the call goes out once more with no redirect.
     func testARefusedRedirectIsAskedAgainWithoutOneRatherThanFailing() async throws {
         IdentityServiceStub.respond(inOrder: [(400, #"{ "code": "invalid_redirect_uri", "message": "Not allowed." }"#),
                                               (200, #"{ "enrollUrl": "https://identity.example/login/enroll/token" }"#)])
@@ -246,6 +267,7 @@ final class IdentityServiceClientTests: XCTestCase {
         XCTAssertNil(try IdentityServiceStub.bodyObject(at: 1)["redirectUri"])
     }
 
+    /// Once only: a server that also refuses the call without a redirect is refusing something else.
     func testARefusedRedirectIsNotAskedAgainMoreThanOnce() async throws {
         IdentityServiceStub.respond(status: 400, body: #"{ "code": "invalid_redirect_uri" }"#)
 
@@ -297,6 +319,7 @@ private enum IdentityServiceStub {
     static var lastBody = Data()
     /// Consumed in order; empty means every request gets the single canned response.
     static var queuedResponses: [(status: Int, body: Data)] = []
+    /// Every body that went out, so a test can say what the second attempt asked for.
     static var sentBodies: [Data] = []
 
     static func lastBodyObject() throws -> [String: Any] {

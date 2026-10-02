@@ -83,6 +83,8 @@ final class AccountGenesisServiceTests: XCTestCase {
         XCTAssertTrue(keyStore.stored.isEmpty)
     }
 
+    /// 403 means the deployment declines to issue, so no handle exists. It is read like 503 and the
+    /// signup continues: failing here would stop account creation on such deployments.
     func testADeploymentThatDeclinesToIssueFallsBackSilently() async throws {
         appSettings.guaAccountGenesisEnabled = true
         registrar.errorToThrow = IdentityServiceError.genesisIssuanceNotPermitted
@@ -172,6 +174,8 @@ final class AccountGenesisServiceTests: XCTestCase {
         let hint = service.loginHint(phoneNumber: "+5511999999999", pending: pending)
 
         XCTAssertEqual(hint, "gua:phone=+5511999999999;genesis=dGVzdC1oYW5kbGUtdGhhdC1pcy1sb25nLWVub3VnaA")
+        // The bare reserved value for passkey-first entry keeps its own meaning; the prefixed grammar
+        // must never collide with it.
         XCTAssertNotEqual(hint, AuthenticationService.passkeyLoginHint)
         XCTAssertTrue(hint.hasPrefix("gua:"))
     }
@@ -262,6 +266,8 @@ final class AccountGenesisServiceTests: XCTestCase {
 
 // MARK: - Stubs
 
+/// Echoes back the accountId derived from the bytes it was handed, the way identity-service does,
+/// so a test can assert on what the client actually put on the wire.
 private final class GenesisRegistrarStub: AccountGenesisRegistering, @unchecked Sendable {
     var handle = "c3R1Yi1hdHRhY2gtaGFuZGxlLWZvci10ZXN0cw"
     var expiresAt = Date().addingTimeInterval(1800)

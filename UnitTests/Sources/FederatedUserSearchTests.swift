@@ -80,6 +80,7 @@ final class FederatedUserSearchTests: XCTestCase {
     }
 
     func testVisibilityMatchingIsCaseInsensitive() {
+        // The resolver serializes the policy uppercase, like the entry status.
         XCTAssertEqual(RosterSearchVisibility(rawValue: "GLOBAL"), .global)
         XCTAssertEqual(RosterSearchVisibility(rawValue: "GROUP"), .group)
         XCTAssertEqual(RosterSearchVisibility(rawValue: "SERVER"), .server)
@@ -231,6 +232,7 @@ final class FederatedUserSearchTests: XCTestCase {
         makeRoster([.init(serverName: "b.gua.example", searchVisibility: nil, searchGroups: nil)])
     }
 
+    /// A realistic resolver payload: the client only decodes what it needs and ignores the rest.
     private let rosterJSON = """
     {
       "version": 12,

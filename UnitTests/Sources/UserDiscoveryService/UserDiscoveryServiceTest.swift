@@ -175,6 +175,8 @@ class UserDiscoveryServiceTest: XCTestCase {
                                                "@ana-souza:br.gua.example"])
     }
 
+    /// Regression: an unconfigured or unreachable resolver must not remove the ability to find
+    /// someone on your own server.
     func testOwnServerIsStillSearchedWithoutARoster() async {
         service = UserDiscoveryService(clientProxy: clientProxy, federationRosterProvider: nil)
         clientProxy.searchUsersSearchTermLimitReturnValue = .success(.init(results: [], limited: false))

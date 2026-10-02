@@ -8,6 +8,10 @@ import Combine
 @testable import ElementX
 import XCTest
 
+/// GUA FORK: the identity-reset entry point into reauthentication. Pins the same properties as
+/// the other two reauth screens: no code until the account's own number is given, both calls carry
+/// that number under this operation's scope, and a refusal says only that the number is not this
+/// account's.
 @MainActor
 class EncryptionResetPasswordScreenViewModelTests: XCTestCase {
     private var passwordPublisher: PassthroughSubject<String, Never>!
@@ -36,6 +40,8 @@ class EncryptionResetPasswordScreenViewModelTests: XCTestCase {
         XCTAssertEqual(context.viewState.reauthPhase, .idle)
     }
 
+    /// Both calls carry the number, and the token is scoped to this operation: one issued for a
+    /// deactivation cannot pay for a reset. The reset credentials are fetched with that same token.
     func testTheNumberTravelsWithBothReauthCallsUnderTheResetScope() async throws {
         context.phoneNumber = "+14155550143"
 
@@ -96,6 +102,8 @@ class EncryptionResetPasswordScreenViewModelTests: XCTestCase {
 
 // MARK: - Stub
 
+/// GUA FORK: identity-service as this screen sees it, which is the two reauth calls and the
+/// credentials they authorize.
 @MainActor
 private final class EncryptionResetIdentityServiceStub: IdentityServiceClientProtocol {
     struct VerifyCall {

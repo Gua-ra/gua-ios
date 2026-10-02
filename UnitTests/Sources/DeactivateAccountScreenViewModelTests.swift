@@ -80,6 +80,8 @@ class DeactivateAccountScreenViewModelTests: XCTestCase {
     
     // MARK: - GUA FORK: reauthentication by phone digest
     
+    /// identity-service never says which number an account is on, so the number is asked for and no
+    /// code is sent until it matches.
     func testNoCodeIsSentUntilTheAccountsNumberIsGiven() async {
         let identityService = DeactivateIdentityServiceStub()
         makeViewModel(identityService: identityService)
@@ -110,6 +112,8 @@ class DeactivateAccountScreenViewModelTests: XCTestCase {
         XCTAssertEqual(identityService.verifyCalls.map(\.operation), [.deactivate])
     }
     
+    /// This screen has no country picker, so a number without its country code is refused here,
+    /// before it costs a reauth attempt.
     func testANumberThatIsNotE164NeverCostsAnAttempt() async throws {
         let identityService = DeactivateIdentityServiceStub()
         makeViewModel(identityService: identityService)
@@ -123,6 +127,8 @@ class DeactivateAccountScreenViewModelTests: XCTestCase {
         XCTAssertTrue(identityService.startPhones.isEmpty)
     }
 
+    /// AutoFill fills the field with the number as Contacts stores it, punctuation included. It must
+    /// not be refused, and both calls send the resolved E.164.
     func testTheNumberAutoFillPutsInTheFieldIsSentAsE164() async throws {
         let identityService = DeactivateIdentityServiceStub()
         makeViewModel(identityService: identityService)
@@ -141,6 +147,7 @@ class DeactivateAccountScreenViewModelTests: XCTestCase {
         XCTAssertEqual(identityService.verifyCalls.map(\.phone), ["+14155550143"])
     }
 
+    /// The refusal says only that this is not the number on the account, in the user's language.
     func testAWrongNumberShowsTheNeutralRefusalAndNothingAboutOtherAccounts() async throws {
         let identityService = DeactivateIdentityServiceStub()
         identityService.startError = IdentityServiceError.reauthPhoneMismatch
@@ -163,6 +170,8 @@ class DeactivateAccountScreenViewModelTests: XCTestCase {
 
 // MARK: - Stub
 
+/// GUA FORK: identity-service as this screen sees it, which is the two reauth calls and the
+/// deactivation they authorize.
 @MainActor
 private final class DeactivateIdentityServiceStub: IdentityServiceClientProtocol {
     struct VerifyCall {

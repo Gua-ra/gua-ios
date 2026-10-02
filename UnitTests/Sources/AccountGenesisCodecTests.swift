@@ -8,8 +8,10 @@ import CryptoKit
 @testable import ElementX
 import XCTest
 
-/// Runs the golden vectors copied byte for byte from identity-service. Signatures are verified, not compared
-/// with the vectors, because CryptoKit's Ed25519 signing is randomized.
+/// Runs the golden vectors that ship with identity-service (`docs/specs/genesis-vectors.v1.json`).
+/// The copy under `UnitTests/Resources` is byte-identical, and every entry is walked, rejections
+/// included. Signatures are verified, not compared with the vectors, because CryptoKit's Ed25519
+/// signing is randomized.
 final class AccountGenesisCodecTests: XCTestCase {
     private var vectors: GenesisVectors!
 
@@ -117,6 +119,7 @@ final class AccountGenesisCodecTests: XCTestCase {
         XCTAssertEqual(AccountID.encodedLength, vectors.accountId.encodedLength)
         XCTAssertEqual(AccountID.length, vectors.accountId.totalLength)
 
+        // The last character holds three unused bits, so only these four can end a well-formed id.
         for vector in vectors.accountGenesis {
             let last = try XCTUnwrap(vector.accountId.last).description
             XCTAssertTrue(vectors.accountId.allowedFinalCharacters.contains(last), vector.name)
@@ -202,12 +205,16 @@ final class AccountGenesisCodecTests: XCTestCase {
     }
 
     func testBase32RejectsNonCanonicalSpellings() {
+        // Uppercase, padding and a character outside the alphabet are all refused, because each would
+        // give one byte string a second spelling.
         XCTAssertThrowsError(try GuaBase32.decode("AAAA"))
         XCTAssertThrowsError(try GuaBase32.decode("aaaa===="))
         XCTAssertThrowsError(try GuaBase32.decode("aaa1"))
+        // 1, 3 and 6 left-over characters cannot come out of any byte string.
         XCTAssertThrowsError(try GuaBase32.decode("a"))
         XCTAssertThrowsError(try GuaBase32.decode("aaa"))
         XCTAssertThrowsError(try GuaBase32.decode("aaaaaa"))
+        // Non-zero trailing bits.
         XCTAssertThrowsError(try GuaBase32.decode("ab"))
         XCTAssertEqual(try GuaBase32.decode("aa"), [0])
     }

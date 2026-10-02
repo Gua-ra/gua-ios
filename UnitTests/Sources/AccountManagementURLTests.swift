@@ -8,6 +8,8 @@
 @testable import ElementX
 import XCTest
 
+/// The query parameters Gua appends to MAS URLs. They are added to the raw percent-encoded query, so
+/// whatever the SDK already escaped has to come out byte for byte.
 final class AccountManagementURLTests: XCTestCase {
     func testLoginHintNamesTheSignedInAccount() throws {
         var components = try XCTUnwrap(URLComponents(string: "https://auth.example/account/?action=org.matrix.profile"))
