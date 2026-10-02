@@ -18,7 +18,7 @@ After that run `xcodegen` to regenerate the project.
 
 
 ## Check translations
-Gua ships en, pt-BR, es and fr. [check_translations.py](check_translations.py) fails when a pt-BR, es or fr user would see English: a missing or English-identical translation, a permission prompt without a translation, another language in the Xcode project, or (with `--base <sha>`) an English literal added to a SwiftUI text API. CI runs it from `.github/workflows/unit_tests.yml`.
+Gua ships en, pt-BR, es and fr. [check_translations.py](check_translations.py) fails when a pt-BR, es or fr user would see English: a missing or English-identical translation, a permission prompt without a translation, another language in the Xcode project, or (with `--base <sha>`) an English literal added to a SwiftUI text API, an alert or dialog, or a `title:`, `subtitle:`, `message:` or `placeholder:` argument outside previews. CI runs it from `.github/workflows/unit_tests.yml`.
 
 ```
 Tools/Scripts/check_translations.py --base origin/develop

@@ -16,7 +16,9 @@ Checks:
   2. Every NS*UsageDescription in the app's Info.plist is translated in each InfoPlist.strings.
   3. The Xcode project ships only the supported localizations.
   4. Lines added under ElementX/Sources since --base do not pass an English literal to a SwiftUI
-     text API. Add `// l10n-ignore` to a line that really needs one.
+     text API, an alert or dialog, or a `title:`, `subtitle:`, `message:` or `placeholder:`
+     argument. Preview code at the end of a file is skipped. Add `// l10n-ignore` to a line that
+     really needs one.
 
 Usage: Tools/Scripts/check_translations.py [--base <git sha>]
 """
@@ -44,10 +46,14 @@ STRINGS_ENTRY = re.compile(r'^\s*"((?:[^"\\]|\\.)*)"\s*=\s*"((?:[^"\\]|\\.)*)"\s
 PLACEHOLDER = re.compile(r"%(?:\d+\$)?(?:#@[A-Za-z_]+@|l{0,2}[@dDuUxXoOfeEgGcCsSp])")
 
 # A string literal containing at least one letter, passed straight to a text-taking API.
-TEXT_APIS = r'(?:\bText|\bLabel|\bButton|\.navigationTitle|\.accessibilityLabel|\.accessibilityHint|\bprompt:|UserIndicator\(title:)'
+TEXT_APIS = (r'(?:\bText|\bLabel|\bButton|\bTextField|\bSecureField|\bToggle|\bSection|\bLink'
+             r'|\.navigationTitle|\.accessibilityLabel|\.accessibilityHint|\.accessibilityValue'
+             r'|\.alert|\.confirmationDialog|\bprompt:|\b(?:title|subtitle|message|placeholder):)')
 LITERAL_CALL = re.compile(TEXT_APIS + r'\(?\s*"((?:[^"\\]|\\.)*)"')
 IGNORE_MARKER = "// l10n-ignore"
-LITERAL_EXCLUDED_DIRS = ("ElementX/Sources/Generated/", "ElementX/Sources/UITests/")
+LITERAL_EXCLUDED_DIRS = ("ElementX/Sources/Generated/", "ElementX/Sources/UITests/", "ElementX/Sources/Mocks/")
+# Previews sit at the end of a screen's file; literals from there on are sample data, not copy.
+PREVIEW_START = re.compile(r"PreviewProvider|#Preview\b")
 
 
 def read_strings(path):
@@ -169,12 +175,22 @@ def added_lines(base):
             line_number += 1
 
 
+def preview_start_line(path, cache):
+    if path not in cache:
+        source = subprocess.run(["git", "-C", str(ROOT), "show", f"HEAD:{path}"], capture_output=True, text=True).stdout
+        cache[path] = next((number for number, line in enumerate(source.splitlines(), 1) if PREVIEW_START.search(line)), None)
+    return cache[path]
+
+
 def check_literals(base):
-    problems = []
+    problems, preview_lines = [], {}
     for path, line_number, line in added_lines(base):
         if path.startswith(LITERAL_EXCLUDED_DIRS) or IGNORE_MARKER in line:
             continue
-        code = line.split("//", 1)[0] if not line.lstrip().startswith("//") else ""
+        preview_line = preview_start_line(path, preview_lines)
+        if preview_line is not None and line_number >= preview_line:
+            continue
+        code = line.split("//", 1)[0] if not line.lstrip().startswith(("//", "@available")) else ""
         for literal in LITERAL_CALL.findall(code):
             if re.search(r"[A-Za-z]", re.sub(r"\\\(.*?\)", "", literal)):
                 problems.append(f'{path}:{line_number}: English literal "{literal}", use a strings key or add {IGNORE_MARKER}')
