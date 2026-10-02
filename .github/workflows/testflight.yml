@@ -681,6 +681,8 @@ jobs:
           ASC_APP_ID: ${{ secrets.ASC_APP_ID }}
           EXTERNAL_GROUP: ${{ vars.TESTFLIGHT_EXTERNAL_GROUP || 'External Testers' }}
           WHATS_NEW: ${{ inputs.whats_new || '' }}
+          # Read-only use: finds the release PR's Summary for What to Test.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node .github/scripts/testflight-external.mjs
 
       - name: Tell the PR where it went

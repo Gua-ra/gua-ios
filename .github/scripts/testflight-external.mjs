@@ -18,7 +18,8 @@
 //
 // Env: ASC_KEY_ID, ASC_ISSUER_ID, ASC_PRIVATE_KEY (PEM), ASC_APP_ID, BUILD_NUMBER,
 //      MARKETING_VERSION, EXTERNAL_GROUP (default "External Testers"),
-//      WHATS_NEW (optional "What to Test" text), WAIT_MINUTES (default 40).
+//      WHATS_NEW (optional "What to Test" text), WAIT_MINUTES (default 40),
+//      GITHUB_TOKEN, GITHUB_REPOSITORY, GITHUB_SHA (to read the release PR's Summary).
 //
 // Exit codes: 0 when the build is in the group and submitted or approved, 1 otherwise.
 
@@ -27,7 +28,10 @@ import { appendFileSync } from "node:fs";
 
 const API = "https://api.appstoreconnect.apple.com";
 const DRY_RUN = process.argv.includes("--dry-run");
-const DEFAULT_WHATS_NEW = "Bug fixes and improvements.";
+// What to Test comes from the dispatch input, else the Summary of the release PR this build
+// was merged from, else this generic note.
+const DEFAULT_WHATS_NEW =
+  "Thanks for testing Gua. Use it for your everyday chats and tell us anything that feels wrong: take a screenshot and share it with TestFlight.";
 
 // External build states that need no further action from this script.
 const SUBMITTED_STATES = new Set([
@@ -176,6 +180,29 @@ async function setWhatsNew(asc, appId, buildId, note) {
   }
 }
 
+/** The "## Summary" section of the release PR that produced GITHUB_SHA, as plain text.
+ *  Empty when there is no such PR or section; never fails the run. */
+async function releaseSummary() {
+  const { GITHUB_TOKEN: token, GITHUB_REPOSITORY: repo, GITHUB_SHA: sha } = process.env;
+  if (!token || !repo || !sha) return "";
+  try {
+    const res = await fetch(`https://api.github.com/repos/${repo}/commits/${sha}/pulls`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" },
+    });
+    if (!res.ok) return "";
+    const pulls = await res.json();
+    const body = (pulls.find((p) => p.base?.ref === "main") ?? pulls[0])?.body ?? "";
+    const match = body.match(/^##\s*Summary\s*$([\s\S]*?)(?=^##\s|(?![\s\S]))/m);
+    return (match?.[1] ?? "")
+      .replace(/\s*\(?#\d+\)?/g, "")
+      .replace(/[`*_]/g, "")
+      .trim()
+      .slice(0, 4000);
+  } catch {
+    return "";
+  }
+}
+
 async function main() {
   const asc = client({
     keyId: env("ASC_KEY_ID"),
@@ -186,7 +213,7 @@ async function main() {
   const buildNumber = env("BUILD_NUMBER");
   const version = env("MARKETING_VERSION");
   const groupName = env("EXTERNAL_GROUP", "External Testers");
-  const note = (process.env.WHATS_NEW || "").trim();
+  const note = (process.env.WHATS_NEW || "").trim() || (await releaseSummary());
   const waitMinutes = Number(process.env.WAIT_MINUTES || 40);
 
   // The app-scoped list does not accept filter[name]; groups are few, so match here.
