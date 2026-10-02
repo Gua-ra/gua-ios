@@ -75,7 +75,8 @@ packages:
     # path: ../matrix-rust-sdk
   Compound:
     url: https://github.com/element-hq/compound-ios
-    # Pinned to a revision that fixes ListRow clipping on the iOS 26 SDK.
+    # Pinned to a revision that includes 16f4544 "iOS 26 tweaks", which fixes ListRow toggle and
+    # picker clipping on the iOS 26 SDK.
     revision: a1db8e1b61db70417af406bdf9f8d324b079041f
     # path: ../compound-ios
   AnalyticsEvents:

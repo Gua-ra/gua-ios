@@ -60,6 +60,21 @@ workflow fails early and names the missing one.
 | `GUA_DIST_CERT_P12`, `GUA_DIST_CERT_PASSWORD` | Base64 `.p12` of the Apple Distribution identity and its password |
 | `GUA_DEV_RESOLVER_BASE_URL`, `GUA_DEV_IDENTITY_SERVICE_BASE_URL`, `GUA_DEV_ACCOUNT_PROVIDER` | Dev backend endpoints written into `Secrets/Secrets.swift` for QA builds only |
 
+The issuer id and key id are on App Store Connect -> Users and Access -> Integrations ->
+App Store Connect API. Each app id is the "Apple ID" on that app's App Information page.
+
+## Before the first run
+
+The Apple Developer account must already hold, for each app (`global.gua` and
+`global.gua.dev`):
+
+- the three App IDs (`<bundle id>`, `.nse`, `.shareextension`) with Push Notifications,
+  Associated Domains, App Groups and Keychain Sharing enabled;
+- the App Group (`group.global.gua` or `group.global.gua.dev`);
+- an App Store Connect app record.
+
+`sigh` creates missing provisioning profiles, but not identifiers, groups or app records.
+
 ## Versions
 
 - Build number: UTC `YYMMDDHHMM` unless overridden on a manual run.

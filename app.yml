@@ -7,7 +7,9 @@ settings:
   # Must match the team that owns the App Store Connect record for global.gua,
   # since it also prefixes KEYCHAIN_ACCESS_GROUP_IDENTIFIER and the App ID.
   DEVELOPMENT_TEAM: BSLR4D6L28
-  # Empty so no host is committed; dev builds read it from Secrets.
+  # Empty so no host is committed. Dev builds read the provider from Secrets
+  # (GuaDeployment.defaultAccountProvider); CI or a local build may still override it through this
+  # setting, which lands in Info.plist as GuaDefaultAccountProvider.
   DEFAULT_ACCOUNT_PROVIDER: ""
   OIDC_REDIRECT_URL: global.gua:/oidc
   OIDC_STATIC_REGISTRATIONS: ""

@@ -23,7 +23,7 @@ Sign-in takes three steps. The user sees none of the routing behind them.
 2. **Sign in through the Gua identity host.** The app runs a standard OIDC sign-in (authorization code with PKCE) against [`gua-auth-service`](https://github.com/Gua-ra/gua-auth-service), Gua's fork of the Matrix Authentication Service.
 3. **Delegate to the identity service.** The MAS fork hands sign-in to the [Gua Identity Service](https://github.com/Gua-ra/identity-service). The identity service verifies the phone number with a one-time code and checks the account PIN as the second factor.
 
-The app then connects to the homeserver the resolver named. Users never pick, type, or see a server name.
+The app then connects to the homeserver the resolver named. Users never pick, type, or see a server name. Every sign-in performs a fresh authentication: the app uses an ephemeral web session with `prompt=login`, so a cached browser session never bypasses verification.
 
 Beyond sign-in, the Gua product layer adds:
 

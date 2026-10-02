@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Default export options. The TestFlight workflow (.github/workflows/testflight.yml) exports
+  with a plist it generates per run, which adds the team id and the provisioning profile names
+  for manual signing. manageAppVersionAndBuildNumber is false because the workflow sets the
+  build number itself.
+-->
 <plist version="1.0">
 <dict>
 	<key>method</key>

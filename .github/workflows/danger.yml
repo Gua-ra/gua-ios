@@ -27,8 +27,12 @@ jobs:
         with:
           persist-credentials: false
 
-      # Pinned past 3.22.1: that release's image installs Node 18, which the unpinned danger-js inside it no longer supports.
-      # Move back to a tag once one ships with Node 20 or later.
+      # The dockerized action bundles its own danger-js runtime; the brew tap's packaged binary
+      # crashes fetching PR data.
+      #
+      # Pinned past 3.22.1: that release's image installs Node 18, and the unpinned danger-js inside it
+      # needs Node 20 or later ("ReferenceError: File is not defined"). Move back to a tag once one
+      # ships with Node 20 or later.
       - name: Danger
         uses: danger/swift@53887414329bbf7deecde31f7d1d20bb15e6c4d3 # master, 2026-08-24, Node 24
         env:

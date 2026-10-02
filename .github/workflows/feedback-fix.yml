@@ -1,6 +1,16 @@
 name: Feedback fix
 
-# FIX_RUNNER selects the runner; simulator QA needs a self-hosted macOS runner.
+# The "approve it and it gets worked on" half of the feedback pipeline.
+#
+# feedback-bot (in gua-deploy) files crashes and tester feedback as issues here. A human reads
+# each one and adds the `feedback:approved` label if it is worth acting on. This workflow then
+# runs a coding agent headlessly against this repository to investigate, fix and build the
+# change, and to open a pull request that links back to the issue. Review happens on that pull
+# request; shipping it to QA is still the `release-qa` label, and production is still gated on
+# the `production` environment.
+#
+# FIX_RUNNER selects the runner; simulator QA needs a self-hosted macOS runner. Without one the
+# job falls back to macos-latest, which can build and run unit tests but cannot drive the app.
 
 on:
   issues:
@@ -22,6 +32,8 @@ permissions:
 
 jobs:
   fix:
+    # `labeled` fires for every label, so gate on the one that means approved. Manual dispatch
+    # skips the label check: it is already a deliberate human action.
     if: >-
       github.event_name == 'workflow_dispatch' ||
       github.event.label.name == 'feedback:approved'
@@ -38,6 +50,7 @@ jobs:
           persist-credentials: false
           lfs: true
 
+      # Fail on the missing prerequisite here rather than 20 minutes later inside the agent call.
       - name: Check the credentials this needs are present
         run: |
           missing=""
@@ -61,6 +74,7 @@ jobs:
           gh auth setup-git
           git config --global user.name "gua-feedback-bot"
           git config --global user.email "feedback-bot@users.noreply.github.com"
+          # Commits carry no co-author trailer and no generated-by footer.
           mkdir -p "$HOME/.claude"
           printf '{ "includeCoAuthoredBy": false }\n' > "$HOME/.claude/settings.json"
 
