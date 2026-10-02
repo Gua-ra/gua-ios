@@ -446,7 +446,7 @@ internal enum L10n {
   internal static var commonEncryption: String { return L10n.tr("Localizable", "common_encryption") }
   /// Encryption enabled
   internal static var commonEncryptionEnabled: String { return L10n.tr("Localizable", "common_encryption_enabled") }
-  /// Enter your PIN
+  /// Enter your passcode
   internal static var commonEnterYourPin: String { return L10n.tr("Localizable", "common_enter_your_pin") }
   /// Error
   internal static var commonError: String { return L10n.tr("Localizable", "common_error") }

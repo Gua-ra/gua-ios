@@ -201,7 +201,7 @@
 "common_empty_file" = "Empty file";
 "common_encryption" = "Encryption";
 "common_encryption_enabled" = "Encryption enabled";
-"common_enter_your_pin" = "Enter your PIN";
+"common_enter_your_pin" = "Enter your passcode";
 "common_error" = "Error";
 "common_everyone" = "Everyone";
 "common_face_id_ios" = "Face ID";
