@@ -16,3 +16,12 @@ After that run `xcodegen` to regenerate the project.
 - `MyScreenNameScreenUITests.swift` within `UITests/Sources`
 - `MyScreenNameViewModelTests.swift` within `UnitTests/Sources/Unit`
 
+
+## Check translations
+Gua ships en, pt-BR, es and fr. [check_translations.py](check_translations.py) fails when a pt-BR, es or fr user would see English: a missing or English-identical translation, a permission prompt without a translation, another language in the Xcode project, or (with `--base <sha>`) an English literal added to a SwiftUI text API. CI runs it from `.github/workflows/unit_tests.yml`.
+
+```
+Tools/Scripts/check_translations.py --base origin/develop
+```
+
+Lines in [translations_baseline.txt](translations_baseline.txt) are accepted without a translation. Add to it only in upstream sync PRs; a line that is no longer needed fails the check. A source line that really needs a literal can end with `// l10n-ignore`.
