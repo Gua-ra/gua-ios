@@ -181,7 +181,7 @@
 "common_creating_room" = "Création du salon…";
 "common_current_user_canceled_knock" = "Demande annulée";
 "common_current_user_left_room" = "Quitter le salon";
-"common_current_user_left_space" = "Vous avez quitté l'espace";
+"common_current_user_left_space" = "Vous avez quitté l’espace";
 "common_current_user_rejected_invite" = "Invitation refusée";
 "common_dark" = "Sombre";
 "common_date_date_at_time" = "%1$@ à %2$@";
@@ -283,7 +283,7 @@
 "common_server_unreachable" = "Serveur inaccessible";
 "common_server_url" = "URL du serveur";
 "common_settings" = "Paramètres";
-"common_share_space" = "Partager l'espace";
+"common_share_space" = "Partager l’espace";
 "common_shared_location" = "Position partagée";
 "common_signing_out" = "Déconnexion";
 "common_something_went_wrong" = "Une erreur s'est produite";
@@ -681,7 +681,7 @@
 "screen_analytics_settings_share_data" = "Partagez des données de statistiques d’utilisation";
 "screen_app_lock_biometric_authentication" = "l'authentification biométrique";
 "screen_app_lock_biometric_unlock" = "déverrouillage biométrique";
-"screen_app_lock_biometric_unlock_reason_ios" = "Veuillez vous authentification pour accéder à l’application";
+"screen_app_lock_biometric_unlock_reason_ios" = "Authentifiez-vous pour accéder à l’application";
 "screen_app_lock_forgot_pin" = "Code oublié ?";
 "screen_app_lock_settings_change_pin" = "Modifier le code de l’app";
 "screen_app_lock_settings_enable_biometric_unlock" = "Autoriser le déverrouillage biométrique";
@@ -795,10 +795,10 @@
 "screen_identity_confirmation_create_new_recovery_key" = "Créer une nouvelle clé de récupération";
 "screen_identity_confirmation_subtitle" = "Confirmez cet appareil pour activer la messagerie sécurisée.";
 "screen_identity_confirmation_title" = "Confirmez que c’est bien vous";
-"screen_identity_confirmation_use_another_device" = "Utiliser une autre session";
+"screen_identity_confirmation_use_another_device" = "Utiliser un autre appareil";
 "screen_identity_confirmation_use_recovery_key" = "Utiliser la clé de récupération";
-"screen_identity_confirmed_subtitle" = "Vous pouvez désormais lire ou envoyer des messages en toute sécurité, et toute personne avec qui vous discutez peut également faire confiance à cette session.";
-"screen_identity_confirmed_title" = "Session vérifiée";
+"screen_identity_confirmed_subtitle" = "Vous pouvez désormais lire ou envoyer des messages en toute sécurité, et toute personne avec qui vous discutez peut également faire confiance à cet appareil.";
+"screen_identity_confirmed_title" = "Appareil vérifié";
 "screen_identity_waiting_on_other_device" = "En attente d’une autre session…";
 "screen_invites_decline_chat_message" = "Êtes-vous sûr de vouloir décliner l’invitation à rejoindre %1$@ ?";
 "screen_invites_decline_chat_title" = "Refuser l’invitation";
@@ -959,7 +959,7 @@
 "screen_report_content_hint" = "Raison du signalement de ce contenu";
 "screen_reset_encryption_confirmation_alert_action" = "Oui, réinitialisez maintenant";
 "screen_reset_encryption_confirmation_alert_subtitle" = "Cette opération ne peut pas être annulée.";
-"screen_reset_encryption_confirmation_alert_title" = "Reconfigurer la messagerie sécurisée depuis le début ?";
+"screen_reset_encryption_confirmation_alert_title" = "Configurer la messagerie sécurisée à partir de zéro ?";
 "screen_reset_encryption_password_subtitle" = "Veuillez confirmer que vous souhaitez réinitialiser votre identité.";
 "screen_reset_encryption_password_title" = "Saisissez le mot de passe de votre compte pour continuer";
 "screen_reset_identity_confirmation_subtitle" = "Vous êtes sur le point d'accéder à votre compte %1$@ pour réinitialiser votre identité. Vous serez ensuite redirigé vers l'application.";
@@ -1007,7 +1007,7 @@
 "screen_room_details_error_loading_notification_settings" = "Une erreur s’est produite lors du chargement des paramètres de notification.";
 "screen_room_details_error_muting" = "Échec de la mise en sourdine de ce salon, veuillez réessayer.";
 "screen_room_details_error_unmuting" = "Échec de la désactivation de la mise en sourdine de ce salon, veuillez réessayer.";
-"screen_room_details_invite_people_dont_close" = "Ne fermez pas l'application avant que l'opération soit terminée.";
+"screen_room_details_invite_people_dont_close" = "Ne fermez pas l’application avant que l’opération soit terminée.";
 "screen_room_details_invite_people_preparing" = "Préparation des invitations...";
 "screen_room_details_notification_mode_custom" = "Personnalisé";
 "screen_room_details_notification_mode_default" = "Défaut";
@@ -1406,7 +1406,7 @@
 "screen_phone_login_button_title" = "Continuer avec le numéro de téléphone";
 
 "screen_otp_code_placeholder" = "Code à 6 chiffres";
-"screen_otp_invalid_code" = "Ce code est erroné ou a expiré. Veuillez réessayer.";
+"screen_otp_invalid_code" = "Ce code est incorrect ou a expiré. Veuillez réessayer.";
 
 // GUA FORK: Gua-custom keys missing from fr.lproj, ported from en/pt-BR so the
 // onboarding, two-step verification, PIN, profile-setup and re-auth flows render
@@ -1468,7 +1468,7 @@
 "screen_two_step_verification_phone_footer" = "Nous enverrons un code de vérification par SMS au téléphone associé à votre compte.";
 "screen_two_step_verification_otp_header" = "Saisissez le code SMS";
 "screen_two_step_verification_otp_footer" = "Saisissez le code à 6 chiffres que nous venons d'envoyer sur votre téléphone.";
-"screen_two_step_verification_otp_invalid" = "Ce code est erroné ou a expiré. Veuillez réessayer.";
+"screen_two_step_verification_otp_invalid" = "Ce code est incorrect ou a expiré. Veuillez réessayer.";
 "screen_two_step_verification_cooldown" = "Pour des raisons de sécurité, vous ne pouvez modifier votre code PIN qu'une fois par jour. Veuillez réessayer plus tard.";
 "screen_account_recovery_banner_title" = "Quelqu'un a commencé à récupérer votre compte";
 "screen_account_recovery_banner_message_later" = "La récupération pourra être finalisée à partir du %1$@. Si c'était vous, vous pouvez ignorer ce message. Sinon, annulez-la depuis un appareil sur lequel vous êtes encore connecté.";
@@ -1506,7 +1506,7 @@
 "screen_change_phone_pin_incorrect" = "Ce code PIN est incorrect. Pour des raisons de sécurité, saisissez le nouveau code que nous venons d’envoyer à votre numéro actuel.";
 "screen_change_phone_otp_header" = "Vérifiez votre nouveau numéro";
 "screen_change_phone_otp_footer" = "Saisissez le code à 6 chiffres que nous avons envoyé à votre nouveau numéro.";
-"screen_change_phone_otp_invalid" = "Ce code est erroné ou a expiré. Veuillez réessayer.";
+"screen_change_phone_otp_invalid" = "Ce code est incorrect ou a expiré. Veuillez réessayer.";
 "screen_change_phone_success" = "Votre numéro de téléphone a été mis à jour.";
 "screen_change_phone_done_header" = "C'est fait";
 "screen_change_phone_done_message" = "Votre numéro de téléphone a été mis à jour. Vous utiliserez votre nouveau numéro pour vous connecter à partir de maintenant.";

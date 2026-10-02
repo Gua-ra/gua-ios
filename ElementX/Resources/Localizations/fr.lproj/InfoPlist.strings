@@ -1,6 +1,6 @@
 "NSCameraUsageDescription" = "Pour prendre des photos ou enregistrer des vidéos et les envoyer, Gua a besoin d’accéder à l’appareil photo.";
-"NSContactsUsageDescription" = "Gua consulte vos contacts de manière privée pour savoir lesquels sont déjà ici. Vos contacts ne sont jamais conservés.";
-"NSFaceIDUsageDescription" = "Gua utilise Face ID pour déverrouiller l’app, pour que vous n’ayez pas à saisir votre code à chaque fois.";
+"NSContactsUsageDescription" = "Gua vérifie vos contacts en toute confidentialité pour savoir lesquels utilisent déjà l’app. Vos contacts ne sont jamais conservés.";
+"NSFaceIDUsageDescription" = "Gua utilise Face ID pour déverrouiller l’app, sans que vous ayez à saisir votre code à chaque fois.";
 "NSLocationWhenInUseUsageDescription" = "Autorisez l’accès à votre position pour que Gua puisse la partager.";
 "NSMicrophoneUsageDescription" = "Pour enregistrer et envoyer des messages audio, Gua a besoin d’accéder au micro.";
 "NSPhotoLibraryAddUsageDescription" = "Cela vous permet d’enregistrer des images et des vidéos dans votre photothèque.";
