@@ -14,6 +14,8 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
     private let clientProxy: ClientProxyProtocol
     private let identityServiceClient: IdentityServiceClientProtocol
     private let userIndicatorController: UserIndicatorControllerProtocol
+    /// `nil` means this context cannot present a passkey, which is treated like a device that cannot
+    /// produce an assertion: the PIN is offered instead.
     private let passkeyStepUpPresenter: PasskeyStepUpPresenting?
 
     private let actionsSubject: PassthroughSubject<ChangePhoneScreenViewModelAction, Never> = .init()
@@ -158,7 +160,9 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
 
     // MARK: - Backend interactions
 
-    /// Runs before anything is sent, so an account that cannot finish is never texted.
+    /// Reads the account's factor report (`GET /security/pin/status`) and routes on it. Runs before
+    /// anything is sent, so an account that cannot finish is never texted. It decides which factor to
+    /// offer, never whether the operation is allowed: the server settles that at the step-up.
     private func beginFlow() async {
         guard let accessToken = clientProxy.accessToken else {
             state.errorMessage = L10n.errorUnknown
@@ -198,6 +202,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         }
     }
 
+    /// Refusals shown on the number step rather than the code step.
     private static func belongsOnTheNumberStep(_ error: IdentityServiceError) -> Bool {
         switch error {
         case .reauthPhoneMismatch, .invalidPhoneNumber, .rateLimited: true
@@ -213,6 +218,8 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         }
     }
 
+    /// Empties the field by default. `keepingConfirmedNumber` puts back a number the server already
+    /// accepted, because retyping it proves nothing.
     private func askForCurrentPhone(message: String? = nil, keepingConfirmedNumber: Bool = false) {
         state.bindings.code = ""
         if keepingConfirmedNumber, !state.currentPhoneE164.isEmpty {
@@ -300,6 +307,8 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         }
     }
 
+    /// Produces the step-up factor, strongest first, and starts the change with it. A passkey failure
+    /// on the device becomes "ask for the next factor" and is never reported to the server.
     private func stepUp() async {
         if state.stepUpFactors.first == .passkey, !state.passkeyRefusedByServer, let passkeyStepUpPresenter {
             guard let accessToken = clientProxy.accessToken else {
@@ -343,6 +352,8 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         block(reason: state.stepUpFactors.contains(.passkey) ? .passkeyUnusableHere : .noFactorRegistered)
     }
 
+    /// Spends the reauth token together with the step-up factor. The server sends the SMS to the new
+    /// number inside this call, and only after it accepts the step-up.
     private func startChange(pin: String?, passkey: (stepUpID: String, assertion: PasskeyAssertion)?) async {
         guard let accessToken = clientProxy.accessToken else {
             state.errorMessage = L10n.errorUnknown
@@ -376,6 +387,8 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         }
     }
 
+    /// Routes a refusal from `/account/phone/change/start`. The reauth token is already spent, so the
+    /// flow ends (hard block), waits (cooldown) or returns to where a token is issued.
     private func handleStartChangeFailure(_ error: Error) async {
         switch error as? IdentityServiceError {
         case .stepUpRequired:
@@ -389,6 +402,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         case .passkeyUserVerificationRequired, .passkeyStepUpUnavailable:
             await fallBackFromRefusedPasskey()
         case .invalidPin:
+            // The server burns the token before it checks the PIN, so a wrong PIN restarts at reauth.
             await restartAtReauth(message: L10n.screenChangePhonePinIncorrect)
         case .invalidReauthToken:
             await restartAtReauth(message: IdentityServiceError.invalidReauthToken.errorDescription)
@@ -409,6 +423,8 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         }
     }
 
+    /// The server refused the assertion, so running the ceremony again would fail the same way. The
+    /// rest of the flow uses the PIN, if the account holds one.
     private func fallBackFromRefusedPasskey() async {
         MXLog.info("The passkey step-up was refused by the server; the rest of this flow uses the PIN")
         state.passkeyRefusedByServer = true
@@ -425,6 +441,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         state.phase = .cooldown
     }
 
+    /// Ends the attempt without spending another code.
     private func abandonFlow(message: String) {
         state.challengeID = ""
         state.errorMessage = nil
@@ -478,8 +495,8 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         }
     }
 
-    /// `passkeyRefusedByServer` survives the restart, otherwise the refused passkey is offered again
-    /// and the PIN is never reached.
+    /// Goes back to where the reauth token is issued and sends a fresh code. `passkeyRefusedByServer`
+    /// survives the restart, otherwise the refused passkey is offered again and the PIN is never reached.
     private func restartAtReauth(message: String?) async {
         state.reauthToken = ""
         state.challengeID = ""
@@ -494,7 +511,8 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         }
     }
 
-    /// The reauth token is unspent here, so the PIN can be asked for straight away.
+    /// The assertion was not produced on this device. Offers the next factor and tells the server
+    /// nothing. The reauth token is unspent here, so the PIN can be asked for straight away.
     private func fallBackFromPasskey(error: Error) {
         MXLog.info("Passkey step-up was not produced on this device; offering the next factor")
         let cancelled: Bool

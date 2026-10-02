@@ -8,7 +8,11 @@
 import CoreMotion
 import SwiftUI
 
+/// The welcome-screen logo: the Gua app-icon artwork as a raised glass tile, with a one-shot
+/// entrance, a device-motion tilt, a fixed bevel on the glyph layers, an occasional sheen and a
+/// green aura. Static under Reduce Motion (`animated == false`) and in snapshot tests.
 struct GuaWelcomeLogo: View {
+    /// When `false` (Reduce Motion) the logo is drawn as a still tile with no entrance.
     let animated: Bool
     var size: CGFloat = 84
 
@@ -19,7 +23,9 @@ struct GuaWelcomeLogo: View {
 
     @State private var tilt = DeviceTiltMotion()
     @State private var entered = false
+    /// Set once the entrance spring has been scheduled, so per-frame ticks do not re-arm it.
     @State private var entranceScheduled = false
+    /// Time the logo has actually spent on screen (sum of rendered-frame deltas, stall-capped).
     @State private var renderedLeadIn: TimeInterval = 0
     @State private var lastTick: TimeInterval?
 
@@ -34,6 +40,7 @@ struct GuaWelcomeLogo: View {
     var body: some View {
         Group {
             if isLive {
+                // The `SwiftUI.` qualifier avoids ElementX's own `TimelineView`.
                 SwiftUI.TimelineView(.animation) { context in
                     treated(t: context.date.timeIntervalSinceReferenceDate)
                         .onChange(of: context.date) { startEntranceIfNeeded(now: context.date) }
@@ -52,7 +59,7 @@ struct GuaWelcomeLogo: View {
             if isLive {
                 tilt.start()
             } else {
-                entered = true
+                entered = true // Reduce Motion / tests: appear in place, no fly-in.
             }
         }
         .onDisappear { tilt.stop() }
@@ -88,6 +95,7 @@ struct GuaWelcomeLogo: View {
             .shadow(color: .black.opacity(0.18), radius: 16, y: 8)
     }
 
+    /// A specular hotspot that follows device tilt and fades to nothing when the phone is still.
     private func glassHighlight() -> some View {
         let mag = min(1, (tilt.roll * tilt.roll + tilt.pitch * tilt.pitch).squareRoot() * 1.7)
         return RadialGradient(colors: [.white.opacity(0.4), .white.opacity(0.08), .clear],
@@ -106,6 +114,7 @@ struct GuaWelcomeLogo: View {
             .frame(width: size, height: size)
     }
 
+    /// The tilt-driven light angle for the rim highlight. At rest it sits at 12 o'clock.
     private var rimLightAngle: Angle {
         Angle(radians: atan2(tilt.roll, -tilt.pitch) - .pi / 2)
     }
@@ -121,6 +130,9 @@ struct GuaWelcomeLogo: View {
         CGSize(width: 0, height: -1)
     }
 
+    /// The bevel on the glyph layers (`appLogoBubble`, then `appLogoWolf`): a light crescent on the top
+    /// edge and a shade crescent on the bottom, so the glyph reads as raised glass. The geometry is
+    /// fixed; only the brightness follows tilt.
     private func glyphRelief() -> some View {
         let mag = tiltMagnitude
         let depth = size * 0.014
@@ -146,6 +158,7 @@ struct GuaWelcomeLogo: View {
         }
     }
 
+    /// A thin edge crescent: the glyph tinted `color`, shifted by `offset`, minus the glyph at rest.
     private func glyphCrescent(asset: ImageAsset, color: Color, offset: CGSize) -> some View {
         ZStack {
             glyphTemplate(asset, color: color)
@@ -166,6 +179,8 @@ struct GuaWelcomeLogo: View {
             .foregroundStyle(color)
     }
 
+    /// Inner edge line, about 2.5 pt inside the clip boundary. Applied before `.clipShape`, so the
+    /// icon bounds it.
     private func innerRimLine() -> some View {
         RoundedRectangle(cornerRadius: corner - 2.5, style: .continuous)
             .stroke(AngularGradient(stops: [
@@ -182,6 +197,8 @@ struct GuaWelcomeLogo: View {
             .allowsHitTesting(false)
     }
 
+    /// Outer edge line at the clip boundary. Applied after `.clipShape`, so it is not clipped. With
+    /// `innerRimLine` it makes the double edge line.
     private func outerRimLine() -> some View {
         shape
             .stroke(AngularGradient(stops: [
@@ -198,6 +215,7 @@ struct GuaWelcomeLogo: View {
             .allowsHitTesting(false)
     }
 
+    /// A highlight band that sweeps diagonally across the glass: one pass of about 1s per 11s cycle.
     private func sheen(t: TimeInterval) -> some View {
         let cycle = 11.0
         let sweepDuration = 1.0
@@ -215,6 +233,7 @@ struct GuaWelcomeLogo: View {
             .allowsHitTesting(false)
     }
 
+    /// A steady Gua-green glow behind the icon that spills about 28% past its edges.
     private func aura(t: TimeInterval) -> some View {
         let hue = 0.40 + 0.05 * sin(t * (2 * .pi / 4.0))
         let drift = size * 0.06
@@ -230,6 +249,9 @@ struct GuaWelcomeLogo: View {
     }
 }
 
+/// Publishes the device's `roll` and `pitch` (each roughly -1...1) from `CoreMotion`, smoothed.
+/// Device-motion updates need no `Info.plist` permission. Without a gyroscope (the simulator) the
+/// values stay at zero and the logo does not tilt.
 @Observable
 final class DeviceTiltMotion {
     private(set) var roll: Double = 0

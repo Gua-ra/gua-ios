@@ -28,13 +28,15 @@ enum GuaBase64URL {
     }
 }
 
+/// A genesis this device registered, carried for the length of one signup and no longer.
 /// The attach handle is only a routing hint; attaching requires the proof signature.
 struct PendingAccountGenesis: Equatable {
     let accountID: AccountID
     let attachHandle: String
     let expiresAt: Date
 
-    /// Mirrors the server's handle validation: a malformed handle fails the whole authorize request.
+    /// Mirrors the server's handle validation (unpadded base64url). A malformed handle fails the whole
+    /// authorize request, so one this client would not accept must never be put in a login hint.
     static func isValidAttachHandle(_ value: String) -> Bool {
         guard (16...128).contains(value.count) else { return false }
         return value.allSatisfy { character in
@@ -42,6 +44,8 @@ struct PendingAccountGenesis: Equatable {
         }
     }
 
+    /// Whether the server's window on this handle is still open. A handle presented outside it does
+    /// not attach, which fails the signup.
     func isUsable(at date: Date = Date()) -> Bool {
         expiresAt > date
     }
@@ -51,32 +55,47 @@ enum AccountGenesisRegistration: Equatable {
     case registered(PendingAccountGenesis)
     /// No genesis is issued (503 or 403); the signup continues without one.
     case notSupportedByDeployment
+    /// The feature flag is off, so nothing was generated, stored or sent.
     case disabled
 }
 
 enum AccountGenesisServiceError: Error {
+    /// The authority key could not be created, stored or read back. The signup must fail here rather
+    /// than create an account without a genesis.
     case keyUnavailable
     case signingFailed
     case malformedChallenge
+    /// The server returned a handle its own login-hint parser would refuse.
     case malformedAttachHandle
+    /// The attach window closed before the handle was presented.
     case handleExpired
     case registrationFailed(Error)
 }
 
 @MainActor
 protocol AccountGenesisServiceProtocol {
+    /// The feature flag. While false nothing here runs and both auth paths are unchanged.
     var isEnabled: Bool { get }
 
+    /// Generates the account authority key, registers the genesis, and returns the single-use attach
+    /// handle for this signup.
     func registerGenesis() async throws -> AccountGenesisRegistration
 
+    /// The reserved `login_hint` grammar: `gua:phone=<E.164>;genesis=<handle>`.
     nonisolated func loginHint(phoneNumber: String, pending: PendingAccountGenesis) -> String
 
+    /// Signs the fixed-length attach preimage with the committed authority key and returns the
+    /// signature as base64url, for the profile step's `attachProof`.
     func attachProof(challenge: String, for pending: PendingAccountGenesis) throws -> String
 
-    /// Call on every abandoned signup: the keys are filed under an accountId only the pending signup knows.
+    /// Drops the keys of a signup that did not complete. Call on every abandoned signup: the keys are
+    /// filed under an accountId only the pending signup knows, so leftovers could never be removed.
     func discard(_ pending: PendingAccountGenesis)
 }
 
+/// Creates an `AccountGenesis` on device, registers it, carries its handle through the OIDC
+/// `login_hint`, and proves possession of the committed key when the sign-in page asks for it.
+/// Routing and login are unchanged, and the accountId is never shown or kept past the signup.
 @MainActor
 final class AccountGenesisService: AccountGenesisServiceProtocol {
     private let identityServiceClient: AccountGenesisRegistering
@@ -91,6 +110,7 @@ final class AccountGenesisService: AccountGenesisServiceProtocol {
         self.appSettings = appSettings
     }
 
+    /// Returns `nil` when this build has no identity service configured.
     convenience init?(appSettings: AppSettings) {
         guard let client = IdentityServiceClient() else { return nil }
         self.init(identityServiceClient: client,
@@ -107,6 +127,8 @@ final class AccountGenesisService: AccountGenesisServiceProtocol {
 
         let keyPair = keyStore.generateKeyPair()
 
+        // 16 CSPRNG bytes, never derived from the phone or anything identifying, so two devices that
+        // chose the same keys would still get distinct ids.
         var entropy = [UInt8](repeating: 0, count: AccountGenesis.entropyLength)
         guard SecRandomCopyBytes(kSecRandomDefault, entropy.count, &entropy) == errSecSuccess else {
             throw AccountGenesisServiceError.keyUnavailable
@@ -133,6 +155,8 @@ final class AccountGenesisService: AccountGenesisServiceProtocol {
             let response = try await identityServiceClient.registerAccountGenesis(genesis: GuaBase64URL.encode(canonicalBytes),
                                                                                   proof: GuaBase64URL.encode([UInt8](signature)))
             guard response.accountID == accountID.value else {
+                // The server derives the accountId from the bytes it received, so a mismatch means they
+                // changed in flight.
                 MXLog.error("The registered accountId does not match the one derived on device.")
                 keyStore.removeKeys(forAccountID: accountID.value)
                 throw AccountGenesisServiceError.registrationFailed(AccountGenesisError.badAccountID)
@@ -152,6 +176,8 @@ final class AccountGenesisService: AccountGenesisServiceProtocol {
             }
             return .registered(pending)
         } catch IdentityServiceError.genesisUnavailable, IdentityServiceError.genesisIssuanceNotPermitted {
+            // 503 or 403: no handle exists to present. Not an error and nothing the user sees; the signup
+            // continues without a genesis.
             MXLog.info("This deployment issues no account genesis; continuing with the existing signup.")
             keyStore.removeKeys(forAccountID: accountID.value)
             return .notSupportedByDeployment
@@ -165,7 +191,9 @@ final class AccountGenesisService: AccountGenesisServiceProtocol {
     }
 
     nonisolated func loginHint(phoneNumber: String, pending: PendingAccountGenesis) -> String {
-        // Neither value can contain `;` or `=`: the handle alphabet is validated at registration and the phone is E.164.
+        // The server's grammar is strict: an unparsable hint or a malformed handle fails the signup
+        // rather than being dropped. Neither value can contain `;` or `=`: the handle alphabet is
+        // validated at registration and the phone is E.164.
         "gua:phone=\(phoneNumber);genesis=\(pending.attachHandle)"
     }
 

@@ -7,6 +7,9 @@
 import Compound
 import SwiftUI
 
+/// Encourages the user to set up two-step verification. Shown above the room list when the account
+/// holds no strong factor and the reminder is not snoozed. The primary button opens Settings; the
+/// dismiss button snoozes the reminder for a week.
 struct HomeScreenPinSetupReminderBanner: View {
     var context: HomeScreenViewModel.Context
 

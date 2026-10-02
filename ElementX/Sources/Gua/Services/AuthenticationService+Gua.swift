@@ -7,6 +7,8 @@
 import Foundation
 
 extension AuthenticationService {
-    /// Reserved `login_hint` literal, a wire contract with identity-service and the sign-in page.
+    /// Reserved OIDC `login_hint` literal that asks the sign-in page to lead with a passkey, sent in
+    /// place of a phone number. MAS forwards it verbatim and identity-service maps it to the `PASSKEY`
+    /// session intent. A wire contract with identity-service and the sign-in page: change it there first.
     static let passkeyLoginHint = "passkey"
 }

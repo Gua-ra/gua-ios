@@ -7,11 +7,15 @@
 import Compound
 import SwiftUI
 
-/// No dismiss button: this banner is how the owner learns that someone may be taking over the account.
+/// Tells the owner that someone started a delayed recovery of their account, and lets them cancel
+/// it. Shown above the room list while the identity service reports one as live. No dismiss button:
+/// this banner is how the owner learns that someone may be taking over the account.
 struct HomeScreenAccountRecoveryBanner: View {
     let recovery: PendingAccountRecovery
     var context: HomeScreenViewModel.Context
 
+    /// Set when the completable time arrives, so a device left on the home screen switches to "can be
+    /// finished now". Nothing else redraws the banner then.
     @State private var reachedCompletableAt = Date.distantPast
 
     var body: some View {
@@ -47,7 +51,8 @@ struct HomeScreenAccountRecoveryBanner: View {
         .padding(.horizontal, 16)
     }
 
-    /// The date is deliberately coarse: a clock time would reveal when the account was last used.
+    /// When the recovery can be finished, or that it already can be. The date is deliberately coarse:
+    /// a clock time would reveal when the account was last used.
     static func message(for recovery: PendingAccountRecovery, now: Date) -> String {
         guard let completableAt = recovery.completableAt else {
             return L10n.screenAccountRecoveryBannerMessageGeneric

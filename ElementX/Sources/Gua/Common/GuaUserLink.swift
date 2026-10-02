@@ -7,8 +7,14 @@
 
 import Foundation
 
-/// Share link on the brand host carrying only the localpart, so the homeserver is never shown.
+/// Builds the user-facing share link for a Gua account. It lives on the brand host and carries
+/// only the localpart, so the homeserver is never shown:
+///
+///     @alice:dev.local  ->  https://gua.global/u/alice
+///
+/// Only for sharing and inviting. In-app mention parsing and pills still use `matrix.to`.
 enum GuaUserLink {
+    /// Builds `https://<brandHost>/u/<localpart>` for a Matrix user ID. Returns `nil` for a malformed ID.
     static func url(for userID: String) -> URL? {
         guard userID.hasPrefix("@") else { return nil }
 

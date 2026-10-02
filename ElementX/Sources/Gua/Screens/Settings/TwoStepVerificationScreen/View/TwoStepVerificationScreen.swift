@@ -62,6 +62,8 @@ struct TwoStepVerificationScreen: View {
         }
     }
 
+    /// Renders the account's factors as the server reports them. A report that could not be read
+    /// says so instead of claiming the account has nothing.
     @ViewBuilder
     private var overviewSection: some View {
         if context.viewState.factors == nil {
@@ -124,6 +126,7 @@ struct TwoStepVerificationScreen: View {
         return L10n.screenTwoStepVerificationOverviewFooterOff
     }
 
+    /// Shown when the factor report could not be read. Offers a retry and no setup.
     private var statusUnavailableSection: some View {
         Section {
             ListRow(label: .default(title: L10n.screenTwoStepVerificationStatusUnavailable,

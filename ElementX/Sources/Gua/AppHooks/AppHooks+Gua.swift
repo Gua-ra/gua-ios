@@ -11,11 +11,15 @@ import MatrixRustSDK
 #if IS_MAIN_APP
 private struct GuaAppSettingsHook: AppSettingsHookProtocol {
     private enum Constants {
-        // MAS requires a native redirect with no authority (`scheme:/path`) whose scheme is the reverse DNS of the client_uri host.
+        // Custom-scheme OIDC redirect. MAS's client-registration policy requires a native redirect with
+        // no authority (`scheme:/path`, not `scheme://host`) whose reverse-DNS scheme matches the
+        // client_uri host: `global.gua` and `gua.global`.
         static let oidcRedirectURL = "global.gua:/oidc"
         static let localMasClientID = "01JXGA7E570000000000000000"
 
-        // MAS requires client_uri, logo_uri, tos_uri and policy_uri to share that one host.
+        // OIDC dynamic client registration requires client_uri, logo_uri, tos_uri and policy_uri to
+        // share that one host, so every URI below lives on `gua.global`. MAS only validates the hosts
+        // and never fetches these URLs.
         static let websiteURL: URL = "https://gua.global"
         static let logoURL: URL = "https://gua.global/gua-icon.png"
         static let copyrightURL: URL = "https://gua.global/copyright"
@@ -34,6 +38,8 @@ private struct GuaAppSettingsHook: AppSettingsHookProtocol {
     }
 
     func configure(_ appSettings: AppSettings) -> AppSettings {
+        // The account provider is injected, never hardcoded: an optional Info.plist override wins,
+        // otherwise `GuaDeployment` supplies it. Falls back to the existing providers if neither is set.
         let injectedProvider = string(for: Constants.infoPlistAccountProviderKey)?.trimmingCharacters(in: .whitespacesAndNewlines)
         let resolvedProvider = (injectedProvider?.isEmpty == false ? injectedProvider : nil) ?? GuaDeployment.current.defaultAccountProvider
         let accountProviders = resolvedProvider.map { [$0] } ?? appSettings.accountProviders

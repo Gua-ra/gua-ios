@@ -6,7 +6,9 @@
 
 import Foundation
 
-/// `baseURL` is used directly: well-known discovery fails for http and localhost homeservers.
+/// A homeserver as advertised by the resolver for a phone number: the one to sign in to, or the one
+/// to create the account on. `baseURL` goes straight to the authentication service, because
+/// well-known discovery fails for http and localhost homeservers. `masIssuer` is decoded but not read.
 struct ResolvedHomeserver: Equatable {
     let serverName: String
     let baseURL: String
@@ -14,13 +16,20 @@ struct ResolvedHomeserver: Equatable {
     let region: String?
 }
 
+/// Outcome of resolving a phone number against the resolver.
 struct HomeserverResolution: Equatable {
+    /// `true` when the resolver reports an account for this phone (login), `false` when it does not
+    /// (register).
     let exists: Bool
+    /// The homeserver to authenticate against (login) or create the account on (register).
     let homeserver: ResolvedHomeserver
+    /// Why the resolver decided what it did. Present only when the caller asked for a trace
+    /// (`ResolveOptions.trace`); for debug and support tooling, never shown in the UI.
     var trace: DecisionTrace?
 }
 
-/// Nil fields are omitted, so a plain resolve sends only `{"phone"}`.
+/// Optional `POST /resolve` request fields. Nil fields are omitted from the JSON body, so a plain
+/// resolve sends only `{"phone"}`.
 struct ResolveOptions: Encodable, Equatable {
     var country: String?
     var mccmnc: String?
@@ -32,7 +41,8 @@ struct ResolveOptions: Encodable, Equatable {
     var trace: Bool?
 }
 
-/// Opaque signed envelope: the client forwards it and never creates or alters one.
+/// Signed routing claims carried to the resolver as an opaque envelope (schema
+/// `gua-routing-claims.v1`). The client forwards it and never creates or alters one.
 struct RoutingClaimsEnvelope: Codable, Equatable {
     let schemaVersion: String
     let issuer: String
@@ -40,17 +50,22 @@ struct RoutingClaimsEnvelope: Codable, Equatable {
     let issuedAt: String
     let expiresAt: String
     let nonce: String
+    /// The E.164 phone this envelope was issued for. The resolver rejects an envelope whose subject
+    /// does not match the resolved phone, and the subject is part of the signed canonical bytes, so
+    /// a captured envelope cannot be replayed against another number.
     let subject: String
     let affiliations: [String]?
     let attributes: [String: String]?
     let signatures: [ClaimSignature]
 }
 
+/// One signature over a routing-claims envelope's canonical bytes.
 struct ClaimSignature: Codable, Equatable {
     let keyId: String
     let signatureB64: String
 }
 
+/// The resolver's explanation of a routing decision, returned when `ResolveOptions.trace` is set.
 struct DecisionTrace: Decodable, Equatable {
     let source: String
     let rule: String
@@ -61,16 +76,23 @@ struct DecisionTrace: Decodable, Equatable {
     let delegatedZoneId: String?
     let assignmentPolicy: String?
     let homeserverId: String?
-    /// Informational: the client does not verify or pin the roster.
+    /// The roster version the resolver decided against. Informational: the client does not verify or
+    /// pin the roster.
     let rosterVersion: Int64?
 }
 
+/// One homeserver in the resolver's signed federation roster (`GET /roster`). Only the fields
+/// federated user search consumes are decoded.
 struct FederationRosterServer: Decodable, Equatable {
     let serverName: String
+    /// Raw bare-handle discoverability policy; absent means globally discoverable.
+    /// Interpreted by `RosterSearchVisibility`.
     let searchVisibility: String?
+    /// Discovery groups compared against the searcher's own server's groups when the policy is `group`.
     let searchGroups: [String]?
 }
 
+/// A roster entry: a homeserver plus its membership status in the federation.
 struct FederationRosterEntry: Decodable, Equatable {
     let homeserver: FederationRosterServer
     let status: String
@@ -80,6 +102,7 @@ struct FederationRosterEntry: Decodable, Equatable {
     }
 }
 
+/// The resolver's view of the federation: every homeserver it routes to.
 struct FederationRoster: Decodable, Equatable {
     let entries: [FederationRosterEntry]
 }
@@ -92,9 +115,16 @@ enum ResolverError: Error, LocalizedError {
     case transport(Error)
     case decoding(Error)
 
+    // Typed problem codes from the resolver's error body `{code, message}`. Anything unrecognized
+    // stays a plain `.server(status:)`.
+
+    /// The resolver rejected the phone as not valid E.164 (`code: "invalid_phone"`, HTTP 400).
     case invalidPhone
+    /// The signed routing-claims envelope failed verification (`code: "invalid_routing_claims"`, HTTP 400).
     case invalidRoutingClaims
+    /// The routing directory is temporarily unavailable (`code: "directory_unavailable"`, HTTP 503).
     case directoryUnavailable
+    /// No homeserver is currently accepting new accounts (`code: "no_placement_available"`, HTTP 503).
     case noPlacementAvailable
 
     var errorDescription: String? {
@@ -112,6 +142,9 @@ enum ResolverError: Error, LocalizedError {
         }
     }
 
+    /// A short user-facing message for the phone-entry screen; `errorDescription` stays technical for
+    /// logs. A known problem code gets its own copy, a plain 4xx means the number was rejected (the user
+    /// can fix it), and anything else is a service or network problem (retry).
     var userFacingMessage: String {
         switch self {
         case .invalidPhone:
@@ -131,21 +164,29 @@ enum ResolverError: Error, LocalizedError {
 }
 
 protocol ResolverClientProtocol: Sendable {
+    /// Resolves a phone number to the homeserver it belongs to, or should be created on. The resolver
+    /// verifies nothing about the number.
     func resolve(phoneNumber: String) async throws -> HomeserverResolution
 
+    /// Resolves with the additive v1 fields (carrier and geo hints, routing claims, trace).
     func resolve(phoneNumber: String, options: ResolveOptions) async throws -> HomeserverResolution
 }
 
 extension ResolverClientProtocol {
+    /// Default so existing conformers keep compiling: the options are dropped and the plain resolve runs.
     func resolve(phoneNumber: String, options: ResolveOptions) async throws -> HomeserverResolution {
         try await resolve(phoneNumber: phoneNumber)
     }
 }
 
+/// The slice of the resolver that federated user search needs: the roster of federation homeservers.
 protocol FederationRosterFetching: Sendable {
     func fetchRoster() async throws -> FederationRoster
 }
 
+/// Talks to the Gua resolver. `POST /resolve` maps a phone number to a homeserver, so the client
+/// never hardcodes one; `GET /roster` lists the federation's homeservers so bare-handle search can
+/// fan out across them.
 final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
     private let baseURL: URL
     private let session: URLSession
@@ -157,6 +198,7 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
         self.session = session
     }
 
+    /// Uses the active `GuaDeployment`'s resolver URL. Returns `nil` when the resolver is not configured.
     convenience init?() {
         guard let url = GuaDeployment.current.resolverBaseURL else { return nil }
         self.init(baseURL: url)
@@ -240,6 +282,8 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
                                     trace: parsed.trace)
     }
 
+    /// Maps a non-success `/resolve` response to a typed error. The error body is `{code, message}`:
+    /// a recognized code gets its dedicated case, anything else stays a plain server error.
     private func resolveError(status: Int, body: Data) -> ResolverError {
         struct ProblemResponse: Decodable {
             let code: String?

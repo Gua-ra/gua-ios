@@ -8,25 +8,32 @@ import CryptoKit
 import Foundation
 import KeychainAccess
 
+/// The two Ed25519 keys an `AccountGenesis` commits: the account authority key and the recovery
+/// authority key. They must differ: the codec refuses a genesis whose keys are equal (`duplicate_keys`).
 struct AccountAuthorityKeyPair {
     let authority: Curve25519.Signing.PrivateKey
     let recovery: Curve25519.Signing.PrivateKey
 }
 
 enum AccountAuthorityKeyStoreError: Error, Equatable {
+    /// No authority key is stored for this accountId. The signup that registered the genesis must fail
+    /// rather than fall back to a bootstrap account.
     case keyMissing
     case keychain(String)
 }
 
 @MainActor
 protocol AccountAuthorityKeyStoreProtocol {
+    /// Generates a fresh authority and recovery key pair. Nothing is stored until ``persist(_:forAccountID:)``.
     func generateKeyPair() -> AccountAuthorityKeyPair
     func persist(_ keyPair: AccountAuthorityKeyPair, forAccountID accountID: String) throws
     func authorityKey(forAccountID accountID: String) throws -> Curve25519.Signing.PrivateKey
     func removeKeys(forAccountID accountID: String)
 }
 
-/// Device-only keychain storage, never synced or backed up: a lost device loses the authority key.
+/// Device-only keychain storage for the account authority and recovery keys, under
+/// `whenUnlockedThisDeviceOnly` with sync off: never in iCloud Keychain or a device backup, so a lost
+/// device loses the authority key. Key material is never logged.
 /// The Secure Enclave does not support Ed25519, so the keys cannot live there.
 @MainActor
 final class AccountAuthorityKeyStore: AccountAuthorityKeyStoreProtocol {

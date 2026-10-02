@@ -7,7 +7,9 @@
 import Contacts
 import Foundation
 
+/// A contact from the device address book that has been matched to a Gua account.
 struct DiscoveredContact: Identifiable, Equatable {
+    /// The name from the user's address book, falling back to the Gua display name.
     let localName: String
     let phoneNumber: String
     let userId: String
@@ -17,6 +19,7 @@ struct DiscoveredContact: Identifiable, Equatable {
         userId
     }
 
+    /// The handle line: the global username when there is one, never the homeserver.
     var handle: String {
         if let username, !username.isEmpty { return "@\(username)" }
         return userId.guaDisplayHandle
@@ -44,6 +47,7 @@ enum ContactDiscoveryError: Error, LocalizedError {
 protocol ContactDiscoveryServiceProtocol {
     var authorizationStatus: CNAuthorizationStatus { get }
     func requestAccess() async -> Bool
+    /// Reads the address book, normalizes numbers to E.164, and returns the contacts that are on Gua.
     func discover(accessToken: String) async throws -> [DiscoveredContact]
 }
 
@@ -52,6 +56,7 @@ final class ContactDiscoveryService: ContactDiscoveryServiceProtocol {
     private let identityServiceClient: IdentityServiceClientProtocol
     private let store = CNContactStore()
 
+    /// The signed-in user's own ID, so they are never listed as a contact.
     private let currentUserID: String
 
     /// identity-service caps the batch size.
@@ -139,7 +144,10 @@ final class ContactDiscoveryService: ContactDiscoveryServiceProtocol {
         return nameByNumber
     }
 
-    /// Best effort: the server ignores anything that is still not valid E.164.
+    /// Best-effort E.164 normalization of an address-book number. Numbers already international (`+`,
+    /// `00`, or starting with the device region's dial code) are used as they are; national numbers get
+    /// the device region's dial code with one trunk `0` dropped. The server skips anything that is still
+    /// not valid E.164, so over-normalizing is harmless.
     static func normalizeToE164(_ raw: String, defaultDialCode: String) -> String? {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         let digits = trimmed.filter(\.isNumber)

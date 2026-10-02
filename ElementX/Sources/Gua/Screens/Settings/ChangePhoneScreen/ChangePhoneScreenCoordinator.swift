@@ -17,6 +17,7 @@ struct ChangePhoneScreenCoordinatorParameters {
 
 enum ChangePhoneScreenCoordinatorAction {
     case close
+    /// The account can produce no step-up factor and the user picked one to set up.
     case setUpStepUpFactor(AuthFactor)
 }
 

@@ -6,15 +6,24 @@
 
 import AuthenticationServices
 
-/// Failures stay on the device: the server is never told that a passkey was unavailable.
+/// Runs the user-verifying passkey assertion that a privileged operation accepts as its step-up
+/// factor. Native rather than web: `POST /security/passkey/stepup/options` returns WebAuthn request
+/// options, not a page, and the assertion travels as JSON in the body of the operation.
+///
+/// Failures stay on the device: the server is never told that a passkey was unavailable, and the
+/// caller asks for the next factor.
 @MainActor
 protocol PasskeyStepUpPresenting {
+    /// Presents the system passkey sheet for `options` and returns the assertion to redeem.
     func assertion(for options: PasskeyStepUpOptions) async throws -> PasskeyAssertion
 }
 
 enum PasskeyStepUpError: Error {
+    /// The ceremony could not be run on this device at all.
     case unavailable
+    /// The user dismissed the sheet, or picked no credential.
     case cancelled
+    /// The authenticator or the system refused the ceremony.
     case failed(Error)
 }
 

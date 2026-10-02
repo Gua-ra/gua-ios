@@ -14,6 +14,7 @@ struct TwoStepVerificationScreenCoordinatorParameters {
     let userIndicatorController: UserIndicatorControllerProtocol
     let windowManager: WindowManagerProtocol
     let appSettings: AppSettings
+    /// A factor to start setting up on arrival. `nil` just opens the overview.
     let initialSetup: AuthFactor?
 }
 
@@ -61,11 +62,15 @@ final class TwoStepVerificationScreenCoordinator: CoordinatorProtocol {
         .store(in: &cancellables)
     }
 
+    /// The two factors this screen can enroll. Not `AuthFactor`, which also names factors that have
+    /// no enrollment URL.
     private enum EnrollableFactor {
         case passkey
         case pin
     }
 
+    /// Opens the enrollment web session for one factor. The session confirms the account before
+    /// anything is stored, which a bearer token alone does not.
     private func startEnrollment(factor: EnrollableFactor) async {
         guard let accessToken = parameters.clientProxy.accessToken else {
             MXLog.warning("No access token available; cannot start factor enrollment.")
@@ -104,6 +109,8 @@ final class TwoStepVerificationScreenCoordinator: CoordinatorProtocol {
         viewModel.context.send(viewAction: .retryStatus)
     }
 
+    /// Asks for this build's own redirect, the one `FactorEnrollmentPresenter` waits on. The server
+    /// keeps the allowlist; if it refuses, the client asks again without one.
     private func enrollmentURL(for factor: EnrollableFactor, accessToken: String) async throws -> URL {
         let redirectURI = parameters.appSettings.oidcRedirectURL.absoluteString
         switch factor {

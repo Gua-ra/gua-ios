@@ -6,8 +6,9 @@
 
 import Foundation
 
-/// Set while an identity reset has started but is not yet approved. The SDK has already replaced the local
-/// identity by then, so key-storage repair must refuse until the reset finishes.
+/// Set while an identity reset has started but is not yet approved. The SDK has already replaced
+/// the local identity by then, so key-storage repair must refuse until the reset finishes.
+/// Kept in user defaults, keyed by account, so it survives the app being killed in between.
 enum IdentityResetPendingStore {
     private static func key(for userID: String) -> String {
         "gua.identityResetPending.\(userID)"

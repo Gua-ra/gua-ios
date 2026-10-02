@@ -7,9 +7,15 @@
 import Foundation
 
 enum GuaPhoneNumber {
+    /// Separators a person, or an address book, writes inside a number. They are dropped, not refused.
     private static let separators: Set<Character> = ["-", "(", ")", ".", "/"]
 
-    /// Accepts the punctuation AutoFill supplies from Contacts, so a filled number is never refused.
+    /// The E.164 form sent to identity-service (`+`, country code, national digits), or `nil` when
+    /// the text cannot be read as one.
+    ///
+    /// Every screen resolves a typed number here first, because a number the server cannot read still
+    /// spends one of the account's limited reauth attempts. Accepts the punctuation AutoFill supplies
+    /// from Contacts ("+1 (415) 555-0143"), so a filled number is never refused.
     static func e164(from phone: String) -> String? {
         let trimmed = phone.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.hasPrefix("+") else { return nil }

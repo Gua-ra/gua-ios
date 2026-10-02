@@ -7,6 +7,8 @@
 import Compound
 import SwiftUI
 
+/// Six-bubble PIN entry. A hidden `SecureField` captures keystrokes while a row of circles shows
+/// how many digits have been entered. Tapping the row refocuses the field.
 struct PinBubbleField: View {
     @Binding var pin: String
     let length: Int

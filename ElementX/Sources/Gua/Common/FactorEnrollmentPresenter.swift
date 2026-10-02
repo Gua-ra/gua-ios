@@ -6,7 +6,10 @@
 
 import AuthenticationServices
 
-/// Uses a web authentication session so the existing sign-in session is available.
+/// Presents the web authentication session that drives factor enrollment, passkey or PIN, on the
+/// IdP-hosted page returned by identity-service. A web authentication session, not
+/// `SFSafariViewController`, so the existing sign-in session is available. It finishes when the
+/// page redirects to the app's OIDC redirect URL.
 @MainActor
 class FactorEnrollmentPresenter: NSObject {
     private let enrollURL: URL
@@ -22,8 +25,11 @@ class FactorEnrollmentPresenter: NSObject {
         super.init()
     }
 
-    /// User cancellation returns normally; an OIDC `error` on the redirect throws.
+    /// Returns once the session is dismissed, by the callback redirect or by the user closing the
+    /// sheet. User cancellation returns normally. Throws if the IdP redirects back with an OIDC `error`
+    /// parameter or the session fails for any other reason.
     func start() async throws {
+        // Pass the device locale so the IdP renders in the user's language.
         var urlToOpen = enrollURL
         if let languageCode = Locale.current.language.languageCode?.identifier,
            var components = URLComponents(url: enrollURL, resolvingAgainstBaseURL: true) {
