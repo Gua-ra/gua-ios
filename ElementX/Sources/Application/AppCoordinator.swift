@@ -87,6 +87,9 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         let appBuild = InfoPlistReader.main.bundleVersion
         MXLog.info("\(appName) \(appVersion) (\(appBuild))")
         
+        // GUA FORK: must run before anything reads the settings suite or restores a session.
+        let appGroupMigration = AppGroupMigration.runIfNeeded()
+        
         if ProcessInfo.processInfo.environment["RESET_APP_SETTINGS"].map(Bool.init) == true {
             AppSettings.resetAllSettings()
         }
@@ -139,13 +142,17 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
             fatalError("The app's version number **must** use semver for migration purposes.")
         }
         
-        if let previousVersion = appSettings.lastVersionLaunched.flatMap(Version.init) {
-            performMigrationsIfNecessary(from: previousVersion, to: currentVersion)
-        } else {
-            // The app has been deleted since the previous run. Reset everything.
-            wipeUserData(includingSettings: true)
+        // GUA FORK: a deferred app group migration leaves this to a later launch, and data it moved
+        // proves the app was not deleted since the previous run.
+        if appGroupMigration != .deferred {
+            if let previousVersion = appSettings.lastVersionLaunched.flatMap(Version.init) {
+                performMigrationsIfNecessary(from: previousVersion, to: currentVersion)
+            } else if appGroupMigration == .nothingToMigrate {
+                // The app has been deleted since the previous run. Reset everything.
+                wipeUserData(includingSettings: true)
+            }
+            appSettings.lastVersionLaunched = currentVersion.description
         }
-        appSettings.lastVersionLaunched = currentVersion.description
 
         setupStateMachine()
 
