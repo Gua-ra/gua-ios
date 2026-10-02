@@ -6,6 +6,17 @@
 
 import AuthenticationServices
 
+/// The enrollment page sent the reader back with an OAuth `error`. The code and the server's
+/// `error_description` are English for the log; the reader sees a translated generic message.
+struct FactorEnrollmentRefusal: LocalizedError {
+    let code: String
+    let serverDescription: String?
+
+    var errorDescription: String? {
+        L10n.errorUnknown
+    }
+}
+
 /// Presents a web authentication session that drives factor enrollment, passkey or PIN, on the
 /// IdP-hosted page returned by identity-service.
 ///
@@ -39,13 +50,11 @@ class FactorEnrollmentPresenter: NSObject {
     /// `ASWebAuthenticationSession` fails for a reason other than user cancellation.
     /// User cancellation is treated as success (no error thrown).
     func start() async throws {
-        // Pass the device locale so the IDP renders in the user's language (e.g. French).
+        // Pass the app language so the page matches the screen that opened it. Appended to the raw
+        // query: rewriting `queryItems` would turn an escaped `%2B` in the token URL into a bare `+`.
         var urlToOpen = enrollURL
-        if let languageCode = Locale.current.language.languageCode?.identifier,
-           var components = URLComponents(url: enrollURL, resolvingAgainstBaseURL: true) {
-            var queryItems = components.queryItems ?? []
-            queryItems.append(URLQueryItem(name: "ui_locales", value: languageCode))
-            components.queryItems = queryItems
+        if var components = URLComponents(url: enrollURL, resolvingAgainstBaseURL: true) {
+            components.appendUILocalesPreservingEncoding()
             urlToOpen = components.url ?? enrollURL
         }
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
@@ -62,10 +71,7 @@ class FactorEnrollmentPresenter: NSObject {
                           let errorCode = components.queryItems?.first(where: { $0.name == "error" })?.value {
                     // IDP redirected back with an OIDC error (e.g. access_denied).
                     let description = components.queryItems?.first(where: { $0.name == "error_description" })?.value
-                    let message = description ?? errorCode
-                    continuation.resume(throwing: NSError(domain: "FactorEnrollment",
-                                                          code: -1,
-                                                          userInfo: [NSLocalizedDescriptionKey: message]))
+                    continuation.resume(throwing: FactorEnrollmentRefusal(code: errorCode, serverDescription: description))
                 } else {
                     continuation.resume()
                 }
@@ -73,7 +79,8 @@ class FactorEnrollmentPresenter: NSObject {
             session.prefersEphemeralWebBrowserSession = false
             session.presentationContextProvider = self
             session.additionalHeaderFields = [
-                "X-Element-User-Agent": UserAgentBuilder.makeASCIIUserAgent()
+                "X-Element-User-Agent": UserAgentBuilder.makeASCIIUserAgent(),
+                "Accept-Language": Bundle.guaAppLanguage
             ]
             self.session = session
             session.start()

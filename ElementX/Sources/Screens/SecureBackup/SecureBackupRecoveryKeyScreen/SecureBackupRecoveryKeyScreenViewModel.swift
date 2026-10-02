@@ -52,7 +52,7 @@ class SecureBackupRecoveryKeyScreenViewModel: SecureBackupRecoveryKeyScreenViewM
             }
         case .copyKey:
             UIPasteboard.general.string = state.recoveryKey
-            userIndicatorController.submitIndicator(.init(title: "Copied recovery key"))
+            userIndicatorController.submitIndicator(.init(title: L10n.screenRecoveryKeyCopiedToClipboard))
             state.doneButtonEnabled = true
         case .keySaved:
             state.doneButtonEnabled = true

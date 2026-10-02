@@ -51,7 +51,9 @@ class OIDCAccountSettingsPresenter: NSObject {
             session.prefersEphemeralWebBrowserSession = false
             session.presentationContextProvider = self
             session.additionalHeaderFields = [
-                "X-Element-User-Agent": UserAgentBuilder.makeASCIIUserAgent()
+                "X-Element-User-Agent": UserAgentBuilder.makeASCIIUserAgent(),
+                // GUA FORK: MAS picks its page language from this header on the first request.
+                "Accept-Language": Bundle.guaAppLanguage
             ]
             self.session = session
             session.start()
