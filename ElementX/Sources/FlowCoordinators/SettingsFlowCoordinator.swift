@@ -236,7 +236,7 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
         }
     }
 
-    /// GUA FORK
+    /// GUA FORK: Two-step verification entry point.
     private func presentTwoStepVerification(initialSetup: AuthFactor? = nil) {
         guard let identityServiceClient = IdentityServiceClient() else {
             MXLog.warning("Identity service is not configured; cannot show two-step verification screen.")
@@ -257,7 +257,7 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
         navigationStackCoordinator.push(coordinator)
     }
 
-    /// GUA FORK
+    /// GUA FORK: Change-phone-number entry point.
     private func presentChangePhone() {
         guard let identityServiceClient = IdentityServiceClient() else {
             MXLog.warning("Identity service is not configured; cannot show change phone number screen.")
@@ -277,6 +277,7 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                     navigationStackCoordinator.pop()
                 case .setUpStepUpFactor(let factor):
                     navigationStackCoordinator.pop()
+                    // Route to the factor the user picked, not to a hardcoded PIN setup.
                     presentTwoStepVerification(initialSetup: factor)
                 }
             }

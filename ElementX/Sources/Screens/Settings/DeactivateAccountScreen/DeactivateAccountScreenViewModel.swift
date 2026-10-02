@@ -120,6 +120,8 @@ class DeactivateAccountScreenViewModel: DeactivateAccountScreenViewModelType, De
         
         MXLog.warning("Deactivating account.")
         
+        // Preferred path: identity-service OTP reauth (Gua stores no passwords). The legacy SDK
+        // password flow is used only when the identity-service client is unavailable.
         if let identityServiceClient,
            let reauthToken,
            let accessToken = clientProxy.accessToken {

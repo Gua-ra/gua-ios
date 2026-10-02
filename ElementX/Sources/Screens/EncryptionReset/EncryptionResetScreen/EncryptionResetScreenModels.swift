@@ -13,13 +13,17 @@ enum EncryptionResetScreenViewModelAction {
     /// `completionPublisher` fires when the OIDC approval web sheet is dismissed,
     /// signalling that the reset may now be performed.
     case requestOIDCAuthorisation(url: URL, completionPublisher: PassthroughSubject<OIDCAccountSettingsPresenter.Outcome, Never>)
+    /// GUA FORK: the approval landed, so close the web sheet rather than leaving the user to.
     case dismissOIDCPresentation
     case resetFinished
+    /// GUA FORK: the user chose to get the keys from another device of theirs instead of resetting.
     case recoverFromOtherDevice
     case cancel
 }
 
 struct EncryptionResetScreenViewState: BindableState {
+    /// GUA FORK: true only when another device of this account holds the keys, so verifying
+    /// with it can bring the messages here without a reset.
     var canRecoverFromOtherDevice = false
     /// GUA FORK: `resetIdentity()` deletes the key backup before it returns, so a second press must never reach it.
     var isResetting = false

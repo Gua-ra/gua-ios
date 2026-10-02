@@ -59,6 +59,7 @@ class EncryptionResetPasswordScreenViewModel: EncryptionResetPasswordScreenViewM
         }
         let typed = state.bindings.phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !typed.isEmpty else { return }
+        // Refused here rather than at the server, where an unreadable number still costs a reauth attempt.
         guard let phone = GuaPhoneNumber.e164(from: typed) else {
             state.reauthPhase = .error(L10n.screenPhoneLoginInvalidNumber)
             return
@@ -88,6 +89,7 @@ class EncryptionResetPasswordScreenViewModel: EncryptionResetPasswordScreenViewM
         }
         state.reauthPhase = .verifyingCode
         do {
+            // The token is scoped to this operation; the server refuses it for any other.
             let token = try await identityServiceClient.verifyAccountReauth(accessToken: accessToken,
                                                                             phone: phone,
                                                                             code: code,
@@ -96,6 +98,8 @@ class EncryptionResetPasswordScreenViewModel: EncryptionResetPasswordScreenViewM
             state.reauthPhase = .resolving
             let credentials = try await identityServiceClient.resetIdentityCredentials(accessToken: accessToken,
                                                                                        reauthToken: token)
+            // Forward the ephemeral password back to the EncryptionResetScreen view model, which
+            // feeds it into `identityResetHandle.reset(auth: .password(...))`.
             passwordPublisher.send(credentials.password)
             actionsSubject.send(.passwordEntered)
         } catch IdentityServiceError.invalidOTP {

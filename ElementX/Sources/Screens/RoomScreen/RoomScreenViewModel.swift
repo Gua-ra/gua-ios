@@ -259,7 +259,8 @@ class RoomScreenViewModel: RoomScreenViewModelType, RoomScreenViewModelProtocol 
         }
         
         guard let userIdentity else {
-            // The identity may not be downloaded yet for a new DM, so this is not a failure.
+            // The identity may not be downloaded yet for a new DM. This is expected, so do not
+            // assert (MXLog.failure traps in debug builds).
             MXLog.info("User identity not available yet; showing DM as not verified for now")
             state.dmRecipientVerificationState = .notVerified
             return

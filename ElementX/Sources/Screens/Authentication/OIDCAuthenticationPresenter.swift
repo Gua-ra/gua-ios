@@ -35,7 +35,9 @@ class OIDCAuthenticationPresenter: NSObject {
                 continuation.resume(returning: (url, error))
             }
             
-            // GUA FORK: ephemeral, so a MAS cookie from an earlier sign-in is never reused.
+            // GUA FORK: ephemeral, so the MAS session cookie is not shared with Safari or kept
+            // between logins. Upstream uses `false`; with the phone-OTP flow MAS would then reuse
+            // its session and sign in whoever authenticated last, never reaching identity-service.
             session.prefersEphemeralWebBrowserSession = true
             session.presentationContextProvider = self
             session.additionalHeaderFields = [

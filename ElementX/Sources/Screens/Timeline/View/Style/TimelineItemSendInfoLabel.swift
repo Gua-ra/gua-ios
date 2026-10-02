@@ -143,6 +143,8 @@ private extension TimelineItemSendInfo {
         status = if case .sendingFailed = adjustedDeliveryStatus {
             .sendingFailed
         } else if let authenticity = timelineItem.properties.encryptionAuthenticity {
+            // GUA FORK: a shield about the sender's own setup is hidden on outgoing messages. In the
+            // delivery-status slot it reads as "this failed to send".
             timelineItem.isOutgoing && authenticity.describesOwnSetup ? nil : .encryptionAuthenticity(authenticity)
         } else {
             nil
@@ -175,6 +177,8 @@ private extension TimelineItemSendInfo {
 
 private extension EncryptionAuthenticity {
     var foregroundStyle: SwiftUI.Color {
+        // GUA FORK: this label shares its slot and colour with "failed to send", so only the
+        // alarming states use the critical colour.
         guard isAlarming else { return .compound.textSecondary }
 
         return switch color {

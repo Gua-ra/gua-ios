@@ -13,6 +13,8 @@ struct HomeScreenRecoveryKeyConfirmationBanner: View {
     enum State {
         case setUpRecovery, recoveryOutOfSync
 
+        /// The action the banner's button sends. Lives on the state, not the view, so a test can
+        /// assert it without standing up SwiftUI.
         var primaryAction: HomeScreenViewAction {
             switch self {
             case .setUpRecovery: .setupRecovery
@@ -24,11 +26,13 @@ struct HomeScreenRecoveryKeyConfirmationBanner: View {
 
     let state: State
     var context: HomeScreenViewModel.Context
+    /// GUA FORK: owned by the view model, so it is cleared when the repair ends.
     let isWorking: Bool
     
     var title: String {
         switch state {
         case .setUpRecovery: L10n.bannerSetUpRecoveryTitle
+        // GUA FORK: Gua never shows a recovery key, so the banner does not ask to confirm one.
         case .recoveryOutOfSync: UntranslatedL10n.guaEncryptionRepairTitle
         }
     }

@@ -87,6 +87,7 @@ struct EncryptionResetScreen_Previews: PreviewProvider, TestablePreview {
     static let viewModel = EncryptionResetScreenViewModel(clientProxy: ClientProxyMock(.init()),
                                                           userIndicatorController: UserIndicatorControllerMock())
     
+    /// GUA FORK: the same screen when another device of this account still holds the keys.
     static let recoverViewModel: EncryptionResetScreenViewModel = {
         let clientProxy = ClientProxyMock(.init(recoveryState: .incomplete))
         clientProxy.hasDevicesToVerifyAgainstReturnValue = .success(true)

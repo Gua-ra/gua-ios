@@ -450,6 +450,7 @@ struct RoomTimelineItemFactory: RoomTimelineItemFactoryProtocol {
                 errorLabel = L10n.commonWaitingForDecryptionKey
             case .verificationViolation:
                 encryptionType = .megolmV1AesSha2(sessionID: sessionID, cause: .verificationViolation)
+                // GUA FORK: upstream said the sender's "verified identity was reset".
                 errorLabel = UntranslatedL10n.guaIdentityChangeUndecryptable
             case .unsignedDevice, .unknownDevice:
                 encryptionType = .megolmV1AesSha2(sessionID: sessionID, cause: .insecureDevice)

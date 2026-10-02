@@ -50,7 +50,8 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
             .sink { [weak self] securityState in
                 guard let self else { return }
                 
-                // GUA FORK: the recovery-key console is never shown.
+                // GUA FORK: upstream's recovery-key console is never shown. The home-screen banner
+                // repairs key storage silently and escalates to a reset by itself.
                 _ = securityState
                 state.showSecuritySectionBadge = false
                 state.securitySectionMode = .none

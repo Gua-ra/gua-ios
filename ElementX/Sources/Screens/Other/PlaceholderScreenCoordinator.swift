@@ -52,12 +52,15 @@ struct PlaceholderScreen: View {
                     .padding(.horizontal, 24)
             }
         } else {
+            // GUA FORK: the privacy screen, which the app switcher snapshots, which covers the app as
+            // it resigns active, and which sits behind the unlock prompt.
             PrivacyScreenLogo(size: 96)
         }
     }
 }
 
-/// GUA FORK: static, because iOS snapshots this view for the app switcher on its first frame.
+/// GUA FORK: the app mark on the privacy screen. Static, and not `GuaWelcomeLogo`: iOS snapshots
+/// this view for the app switcher, so it must be fully drawn on its first frame.
 private struct PrivacyScreenLogo: View {
     let size: CGFloat
 
@@ -80,6 +83,8 @@ private struct PrivacyScreenLogo: View {
     }
 }
 
+/// GUA FORK: the soft halo behind the privacy screen's mark, using the Compound subtle green ramp
+/// of the home screen.
 private struct PrivacyScreenBloom: View {
     var body: some View {
         RadialGradient(gradient: .compound.subtle,

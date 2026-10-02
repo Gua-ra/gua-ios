@@ -89,7 +89,8 @@ extension AppLockServiceMock {
         mock.numberOfPINAttempts = CurrentValueSubject<Int, Never>(numberOfPINAttempts).eraseToAnyPublisher()
         mock.underlyingBiometryType = biometryType
         mock.underlyingBiometricUnlockEnabled = biometryType != .none
-        // GUA FORK
+        // GUA FORK: biometric unlock is on by default and stays trusted until a new face or
+        // fingerprint is enrolled, so that is the state to mock.
         mock.underlyingBiometricUnlockTrusted = biometryType != .none
         mock.unlockWithClosure = { $0 == pinCode }
         return mock

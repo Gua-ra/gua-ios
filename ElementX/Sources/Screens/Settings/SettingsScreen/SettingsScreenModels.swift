@@ -43,8 +43,11 @@ struct SettingsScreenViewState: BindableState {
     var userDisplayName: String?
     var showDeveloperOptions: Bool
 
+    /// GUA FORK: when `true`, the advanced Encryption entry point is hidden from Settings.
+    /// E2EE remains fully enabled with safe defaults.
     var hidesAdvancedEncryption = true
 
+    /// GUA FORK: the bare localpart (e.g. "alice") of `userID`. Display only.
     var userLocalpart: String {
         userID.hasPrefix("@") ? String(userID.dropFirst().prefix { $0 != ":" }) : userID
     }

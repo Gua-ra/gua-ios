@@ -60,7 +60,7 @@ struct StartChatScreen: View {
 
     private var findFriendsSection: some View {
         Section {
-            // GUA FORK
+            // GUA FORK: Discover which phone contacts are already on Gua.
             ListRow(label: .default(title: "Find friends",
                                     description: "See which of your contacts are on Gua",
                                     icon: \.userAdd),

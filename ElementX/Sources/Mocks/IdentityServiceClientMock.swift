@@ -6,6 +6,8 @@
 
 import Foundation
 
+/// GUA FORK: a fixed-answer identity service for previews. The real client needs a session, so a
+/// preview would otherwise render the status-unavailable state.
 @MainActor
 final class IdentityServiceClientMock: IdentityServiceClientProtocol {
     var status: AccountSecurityStatus

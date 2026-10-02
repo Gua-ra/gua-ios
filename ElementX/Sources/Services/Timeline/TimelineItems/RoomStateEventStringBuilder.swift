@@ -11,6 +11,8 @@ import UIKit
 struct RoomStateEventStringBuilder {
     let userID: String
     var shouldDisambiguateDisplayNames = true
+    /// In a 1:1 chat the membership and creation events ("You joined the room", "You created the
+    /// room") read like group noise. They are suppressed when this is set.
     var isDirectOneToOneRoom = false
     
     func buildString(for change: MembershipChange?,

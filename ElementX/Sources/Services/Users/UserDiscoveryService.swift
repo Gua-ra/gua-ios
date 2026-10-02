@@ -71,7 +71,11 @@ final class UserDiscoveryService: UserDiscoveryServiceProtocol {
 
     // MARK: - Gua federated bare-handle search
 
-    /// GUA FORK: the own-server lookup must not depend on the roster, which only adds other servers.
+    /// GUA FORK: exact-handle matches for a bare username, on the searcher's own homeserver and on
+    /// the other homeservers of the federation, honouring each server's discoverability policy. Empty
+    /// when the query is not a bare handle.
+    ///
+    /// The own-server lookup must not depend on the roster, which only adds the other servers.
     private func federatedProfiles(matching searchQuery: String) async -> [UserProfileProxy] {
         guard let handle = FederatedUserSearch.bareHandle(from: searchQuery) else {
             return []
@@ -108,6 +112,7 @@ final class UserDiscoveryService: UserDiscoveryServiceProtocol {
         }
     }
 
+    /// Resolves one candidate through the same profile lookup used for a full `@user:server` address.
     /// Failed or slow lookups are dropped, so one server cannot stall the search.
     private func federatedProfile(for userID: String) async -> UserProfileProxy? {
         await withTaskGroup(of: UserProfileProxy?.self) { group in
@@ -125,6 +130,7 @@ final class UserDiscoveryService: UserDiscoveryServiceProtocol {
         }
     }
 
+    /// Local results first, then the federated exact matches that are not already present.
     private func appendFederated(_ federatedProfiles: [UserProfileProxy], to users: [UserProfileProxy]) -> [UserProfileProxy] {
         guard !federatedProfiles.isEmpty else {
             return users

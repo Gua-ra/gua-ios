@@ -84,7 +84,8 @@ struct OIDCAuthorizationDataProxy: Hashable {
         guard var components = URLComponents(string: underlyingData.loginUrl()) else {
             fatalError("OIDC login URL hasn't been validated.")
         }
-        // GUA FORK
+        // GUA FORK: pass the device locale without re-serializing the query, which would turn the
+        // `%2B` of the E.164 `login_hint` into a bare `+`.
         components.appendUILocalesPreservingEncoding()
         guard let url = components.url else {
             fatalError("OIDC login URL hasn't been validated.")

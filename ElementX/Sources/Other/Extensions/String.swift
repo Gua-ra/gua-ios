@@ -97,7 +97,8 @@ extension String {
 }
 
 extension String {
-    /// GUA FORK: display only; logic and routing use the full `userID`.
+    /// GUA FORK: a display-only handle that hides the `:homeserver` suffix
+    /// (`@alice:dev.local` -> `@alice`). Logic, avatars and routing still use the full `userID`.
     var guaDisplayHandle: String {
         guard hasPrefix("@") else { return self }
         return "@" + dropFirst().prefix { $0 != ":" }

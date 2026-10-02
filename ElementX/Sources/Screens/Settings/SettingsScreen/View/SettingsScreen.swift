@@ -77,7 +77,7 @@ struct SettingsScreen: View {
     
     private var manageMyAppSection: some View {
         Section {
-            // GUA FORK
+            // GUA FORK: Find which of the user's phone contacts are already on Gua.
             ListRow(label: .default(title: L10n.screenFindFriendsTitle,
                                     icon: \.userAdd),
                     kind: .navigationLink {
@@ -98,7 +98,8 @@ struct SettingsScreen: View {
                     })
                     .accessibilityIdentifier(A11yIdentifiers.settingsScreen.screenLock)
             
-            // GUA FORK
+            // GUA FORK: the Encryption entry point is hidden when `hidesAdvancedEncryption` is set.
+            // E2EE stays on, and key storage and recovery are managed automatically.
             if !context.viewState.hidesAdvancedEncryption {
                 switch context.viewState.securitySectionMode {
                 case .secureBackup:
@@ -133,14 +134,14 @@ struct SettingsScreen: View {
                         })
             }
             
-            // GUA FORK
+            // GUA FORK: Two-step verification entry point
             ListRow(label: .default(title: L10n.screenTwoStepVerificationTitle,
                                     icon: \.lockSolid),
                     kind: .navigationLink {
                         context.send(viewAction: .twoStepVerification)
                     })
 
-            // GUA FORK
+            // GUA FORK: Change phone number entry point
             ListRow(label: .default(title: L10n.screenChangePhoneTitle,
                                     icon: \.edit),
                     kind: .navigationLink {

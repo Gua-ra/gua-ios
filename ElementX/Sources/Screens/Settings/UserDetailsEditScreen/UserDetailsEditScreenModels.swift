@@ -16,6 +16,7 @@ enum UserDetailsEditScreenViewModelAction {
 struct UserDetailsEditScreenViewState: BindableState {
     let userID: String
 
+    /// GUA FORK: the bare localpart (e.g. "alice") of `userID`. Display only.
     var userLocalpart: String {
         userID.hasPrefix("@") ? String(userID.dropFirst().prefix { $0 != ":" }) : userID
     }

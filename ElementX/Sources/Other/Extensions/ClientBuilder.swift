@@ -49,7 +49,10 @@ extension ClientBuilder {
                 .roomKeyRecipientStrategy(strategy: .identityBasedStrategy)
                 .decryptionSettings(decryptionSettings: .init(senderDeviceTrustRequirement: .crossSignedOrLegacy))
         } else {
-            // GUA FORK: an identity change informs but never blocks sending.
+            // GUA FORK: upstream uses `.errorOnVerifiedUserProblem`, which blocks sending when a
+            // verified contact's identity changes. Here an identity change informs (banner and
+            // shields) but never blocks sending, so keys go to all of the recipient's devices. The
+            // strict behaviour stays available through the developer isolation mode above.
             builder = builder
                 .roomKeyRecipientStrategy(strategy: .allDevices)
                 .decryptionSettings(decryptionSettings: .init(senderDeviceTrustRequirement: .untrusted))

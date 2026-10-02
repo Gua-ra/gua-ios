@@ -73,7 +73,9 @@ struct RoomSummary {
         notificationMode == .mute
     }
 
-    /// GUA FORK: a room with no joined hero, no last message and no pending invite or knock is an orphan.
+    /// GUA FORK: a stray "Empty Room" left when a chat was created but the other member never joined.
+    /// It has no joined hero, no last message, and at most the local user plus one invited peer. A room
+    /// with a pending invite or knock is never an orphan: the user must see it to act.
     var isEmptyOrphanRoom: Bool {
         joinRequestType == nil && heroes.isEmpty && lastMessage == nil && activeMembersCount <= 2
     }

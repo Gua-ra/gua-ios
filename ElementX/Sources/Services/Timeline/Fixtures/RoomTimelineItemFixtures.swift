@@ -263,6 +263,7 @@ enum RoomTimelineItemFixtures {
 
     // MARK: - Gua marketing fixtures
 
+    /// One to one showcase in Portuguese: incoming texts, an inline image and an outgoing reply.
     static var guaMarketing1to1: [RoomTimelineItemProtocol] {
         [
             TextRoomTimelineItem(id: .event(uniqueID: .init("gua.dm.0"),
@@ -304,6 +305,7 @@ enum RoomTimelineItemFixtures {
         ]
     }
 
+    /// French Canadian one to one showcase: brunch plans in Québécois French.
     static var guaMarketingCanadaFR: [RoomTimelineItemProtocol] {
         [
             TextRoomTimelineItem(id: .event(uniqueID: .init("gua.fr.0"),

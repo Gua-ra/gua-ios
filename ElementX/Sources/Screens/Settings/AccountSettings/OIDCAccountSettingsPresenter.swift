@@ -28,7 +28,7 @@ class OIDCAccountSettingsPresenter: NSObject {
         super.init()
     }
 
-    /// GUA FORK
+    /// GUA FORK: how the web sheet ended.
     enum Outcome {
         /// The page navigated to the app's own scheme: whatever it was asked to do, it finished.
         case returned
@@ -36,6 +36,7 @@ class OIDCAccountSettingsPresenter: NSObject {
         case dismissed
     }
 
+    /// Resolves once the sheet is gone, saying whether the page came back to the app or was dismissed.
     func start() async -> Outcome {
         await withCheckedContinuation { (continuation: CheckedContinuation<Outcome, Never>) in
             let session = ASWebAuthenticationSession(url: accountURL, callback: .oidcRedirectURL(oidcRedirectURL)) { callbackURL, _ in

@@ -96,16 +96,19 @@ struct HomeScreenViewState: BindableState {
     
     var securityBannerMode = HomeScreenSecurityBannerMode.none
     
-    /// GUA FORK
+    /// GUA FORK: true while the silent repair behind the banner button is running.
     var isFinishingEncryptionSetup = false
     /// GUA FORK: distinguishes a repair the user started from one running behind the screen, so the
     /// background one clearing cannot cancel the spinner on a tap that is still working.
     var isRepairingEncryptionSetupFromTap = false
     var requiresExtraAccountSetup = false
 
+    /// GUA FORK: true when the identity service reports no strong factor on the account and the
+    /// reminder is not snoozed.
     var pinSetupReminderVisible = false
 
-    /// GUA FORK: a live account recovery; only the server clears it.
+    /// GUA FORK: a delayed account recovery live on this account, shown until it is cancelled,
+    /// finished or runs out. Unlike the PIN reminder it cannot be snoozed: only the server clears it.
     var accountRecoveryBanner: PendingAccountRecovery?
 
     var rooms: [HomeScreenRoom] = []

@@ -87,7 +87,8 @@ class UserProfileScreenViewModel: UserProfileScreenViewModelType, UserProfileScr
                 break
             }
         case .failure(let error):
-            // GUA FORK: fall back to a minimal profile when the homeserver cannot return one.
+            // GUA FORK: a contact from Find Friends is known to be on Gua even when the homeserver
+            // cannot return a full profile. Fall back to a minimal profile instead of an error alert.
             MXLog.warning("Falling back to minimal profile for \(state.userID): \(error)")
             state.userProfile = UserProfileProxy(userID: state.userID)
             // GUA FORK

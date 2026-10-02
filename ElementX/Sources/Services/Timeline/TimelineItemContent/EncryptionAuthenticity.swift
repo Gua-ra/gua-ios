@@ -57,13 +57,16 @@ enum EncryptionAuthenticity: Hashable {
     
     var icon: KeyPath<CompoundIcons, Image> {
         switch self {
+        // GUA FORK: only the two states that mean "this may not be who you think" keep the solid
+        // alarm glyph. The rest are context, not a warning.
         case .verificationViolation, .mismatchedSender: \.helpSolid
         case .notGuaranteed, .unknownDevice, .unsignedDevice, .unverifiedIdentity: \.info
         case .sentInClear: \.lockOff
         }
     }
 
-    /// GUA FORK: alarm colour only for states that question who sent the message.
+    /// GUA FORK: whether this state warrants alarm colour. Red in the send-status slot reads as
+    /// "did not send", so it is reserved for states that question who sent the message.
     var isAlarming: Bool {
         switch self {
         case .verificationViolation, .mismatchedSender, .sentInClear: true

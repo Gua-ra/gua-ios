@@ -114,7 +114,8 @@ class AppLockSetupFlowCoordinator: FlowCoordinatorProtocol {
                 return .loggingOut
             case (.createPIN(let replacingExitingPIN), .pinEntered):
                 if presentingFlow == .onboarding {
-                    // GUA FORK
+                    // GUA FORK: setting a PIN enables biometric unlock by default, so there is
+                    // nothing left to ask for.
                     return appLockService.biometricUnlockEnabled || appLockService.biometryType == .none ? .complete : .biometricsPrompt
                 } else if !replacingExitingPIN {
                     return appLockService.biometricUnlockEnabled || appLockService.biometryType == .none ? .settings : .biometricsPrompt

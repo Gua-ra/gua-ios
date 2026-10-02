@@ -11,13 +11,20 @@ enum DeactivateAccountScreenViewModelAction {
     case accountDeactivated
 }
 
-/// GUA FORK: the number is typed, never looked up, and the server sends no code unless it matches the account.
+/// Reauthentication phase gating deactivation: the user must prove possession of the linked phone
+/// before the destructive request is honoured.
+///
+/// GUA FORK: the number is typed, never looked up, and the server sends no code unless it matches
+/// the account.
 enum DeactivateAccountReauthPhase: Equatable {
+    /// Ready to send the OTP. Initial state, and after a failed or cancelled attempt.
     case idle
     case sendingCode
     case awaitingCode
     case verifyingCode
+    /// Reauth verified; ready to deactivate.
     case verified
+    /// Server returned an error in any of the steps.
     case error(String)
 }
 
@@ -28,7 +35,8 @@ struct DeactivateAccountScreenViewState: BindableState {
     let infoPoint3 = AttributedString(L10n.screenDeactivateAccountListItem3)
     let infoPoint4 = AttributedString(L10n.screenDeactivateAccountListItem4)
 
-    /// When false, the SDK's legacy password flow is used.
+    /// True only when the identity-service client is configured. When false, the SDK's legacy password
+    /// flow is used (development environments without a backend).
     let identityServiceAvailable: Bool
 
     var reauthPhase: DeactivateAccountReauthPhase = .idle
@@ -55,6 +63,8 @@ struct DeactivateAccountScreenViewState: BindableState {
 struct DeactivateAccountScreenViewStateBindings {
     var password = ""
     var eraseData = false
+    /// The number the account is on, as the user types it. Both reauth calls carry it: the server
+    /// keeps nothing between them.
     var phoneNumber = ""
     var otpCode = ""
     var alertInfo: AlertInfo<DeactivateAccountScreenAlert>?

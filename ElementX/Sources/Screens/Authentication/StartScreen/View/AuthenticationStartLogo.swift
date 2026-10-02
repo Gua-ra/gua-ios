@@ -7,6 +7,8 @@
 
 import SwiftUI
 
+/// The app logo with a rotating multi-hue aura behind it that spills out as a soft glow.
+/// The motion is suppressed under Reduce Motion.
 struct AuthenticationStartLogo: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -87,6 +89,8 @@ struct AuthenticationStartLogo: View {
     }
 }
 
+/// An angular gradient that rotates and breathes, in pure SwiftUI. Always drawn; `animated` only
+/// toggles the motion.
 private struct SiriAura: View {
     let animated: Bool
 

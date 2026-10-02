@@ -102,11 +102,15 @@ class AppLockService: AppLockServiceProtocol {
 
     func disableBiometricUnlock() {
         keychainController.removePINCodeBiometricState()
-        // GUA FORK
+        // GUA FORK: remember that this was the user's choice, so the default below does not
+        // turn biometric unlock back on at the next launch.
         appSettings.appLockBiometricUnlockOptOut = true
     }
 
-    /// GUA FORK: no-op when the user opted out, no biometrics are enrolled, or no PIN is set.
+    /// GUA FORK: turns biometric unlock on by default, so the PIN code is only the fallback. Does
+    /// nothing when the user has opted out, no biometrics are enrolled, or no PIN is set.
+    ///
+    /// Called when a PIN code is set, and again at launch for PIN codes that predate the default.
     func applyBiometricUnlockDefault() {
         guard biometryType != .none,
               !appSettings.appLockBiometricUnlockOptOut,
@@ -122,7 +126,8 @@ class AppLockService: AppLockServiceProtocol {
         keychainController.removePINCode()
         keychainController.removePINCodeBiometricState()
         appSettings.appLockNumberOfPINAttempts = 0
-        // GUA FORK
+        // GUA FORK: removing the PIN code forgets the opt-out too, so a new PIN starts from the
+        // biometrics-on default.
         appSettings.appLockBiometricUnlockOptOut = false
         isEnabledSubject.send(false)
     }

@@ -11,7 +11,9 @@ enum EncryptionResetPasswordScreenViewModelAction {
     case passwordEntered
 }
 
-/// GUA FORK: OTP reauth phases. The legacy password path is used when identity-service is unavailable.
+/// GUA FORK: OTP reauth phases. The legacy password path is used when identity-service is
+/// unavailable. The number is typed, never looked up, and is part of the proof: the server sends no
+/// code unless it matches the account.
 enum EncryptionResetReauthPhase: Equatable {
     case idle
     case sendingCode
@@ -29,6 +31,7 @@ struct EncryptionResetPasswordScreenViewState: BindableState {
 
 struct EncryptionResetPasswordScreenViewStateBindings {
     var password: String
+    /// The number the account is on, as the user types it. Both reauth calls carry it.
     var phoneNumber = ""
     var otpCode = ""
     var alertInfo: AlertInfo<UUID>?
