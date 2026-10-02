@@ -300,6 +300,80 @@ final class IdentityServiceClientTests: XCTestCase {
         XCTAssertEqual(IdentityServiceStub.sentBodies.count, 2)
     }
 
+    // MARK: - The authority web step-up
+
+    func testStartingAnAuthorityWebStepUpNamesThePurposeAndThisBuildsRedirect() async throws {
+        IdentityServiceStub.respond(status: 200, body: #"{ "stepUpUrl": "https://identity.example/login/enroll/step-up" }"#)
+
+        let url = try await client.startAuthorityWebStepUp(accessToken: "access-token",
+                                                           purpose: .adopt,
+                                                           redirectURI: "global.gua.dev:/oidc")
+
+        XCTAssertEqual(url, URL(string: "https://identity.example/login/enroll/step-up"))
+        let request = try XCTUnwrap(IdentityServiceStub.lastRequest)
+        XCTAssertEqual(request.httpMethod, "POST")
+        XCTAssertEqual(request.url?.path, "/security/authority/step-up/start")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer access-token")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Accept-Language"), Locale.guaLanguageTag())
+
+        let body = try IdentityServiceStub.lastBodyObject()
+        XCTAssertEqual(body["purpose"] as? String, "ADOPT")
+        XCTAssertEqual(body["redirectUri"] as? String, "global.gua.dev:/oidc")
+        XCTAssertEqual(Set(body.keys), ["purpose", "redirectUri"])
+    }
+
+    func testARefusedRedirectOnTheStepUpIsAskedAgainWithoutOne() async throws {
+        IdentityServiceStub.respond(inOrder: [(400, #"{ "code": "invalid_redirect_uri" }"#),
+                                              (200, #"{ "stepUpUrl": "https://identity.example/login/enroll/step-up" }"#)])
+
+        let url = try await client.startAuthorityWebStepUp(accessToken: "access-token",
+                                                           purpose: .revoke,
+                                                           redirectURI: "global.gua.debug:/oidc")
+
+        XCTAssertEqual(url, URL(string: "https://identity.example/login/enroll/step-up"))
+        XCTAssertEqual(IdentityServiceStub.sentBodies.count, 2)
+        XCTAssertEqual(try IdentityServiceStub.bodyObject(at: 0)["redirectUri"] as? String, "global.gua.debug:/oidc")
+        XCTAssertNil(try IdentityServiceStub.bodyObject(at: 1)["redirectUri"])
+        XCTAssertEqual(try IdentityServiceStub.bodyObject(at: 1)["purpose"] as? String, "REVOKE",
+                       "The second attempt drops the redirect and nothing else: the purpose is the whole point of the call.")
+    }
+
+    func testAnAccountWithNothingTheSheetCanRunIsRefusedBeforeThePage() async throws {
+        IdentityServiceStub.respond(status: 409, body: #"{ "code": "authority_step_up_unavailable" }"#)
+
+        do {
+            _ = try await client.startAuthorityWebStepUp(accessToken: "access-token", purpose: .adopt, redirectURI: nil)
+            XCTFail("Expected the conflict to throw")
+        } catch IdentityServiceError.authority(.stepUpSheetUnavailable) { }
+    }
+
+    func testADeploymentWithoutTheStepUpEndpointReadsAsTheFeatureBeingAbsent() async throws {
+        IdentityServiceStub.respond(status: 404, body: "")
+
+        do {
+            _ = try await client.startAuthorityWebStepUp(accessToken: "access-token", purpose: .grant, redirectURI: nil)
+            XCTFail("Expected the missing endpoint to throw")
+        } catch let IdentityServiceError.authority(refusal) {
+            XCTAssertEqual(refusal, .disabled)
+            XCTAssertTrue(refusal.isFeatureAbsent)
+        }
+    }
+
+    func testAChallengeSpendingASheetProofPresentsNoFactorOfItsOwn() async throws {
+        IdentityServiceStub.respond(status: 200, body: #"{ "challenge": "Y2hhbGxlbmdl", "expiresInSeconds": 900 }"#)
+
+        _ = try await client.authorityChallenge(accessToken: "access-token", purpose: .adopt, stepUp: .webSheet)
+
+        let request = try XCTUnwrap(IdentityServiceStub.lastRequest)
+        XCTAssertEqual(request.url?.path, "/account/authority/challenge")
+        let body = try IdentityServiceStub.lastBodyObject()
+        XCTAssertEqual(body["purpose"] as? String, "ADOPT")
+        XCTAssertNil(body["pin"])
+        XCTAssertNil(body["passkeyStepUpId"])
+        XCTAssertNil(body["passkeyCredential"])
+        XCTAssertEqual(Set(body.keys), ["purpose"])
+    }
+
     // MARK: - Cancel
 
     func testCancelAccountRecoveryPostsWithTheBearerToken() async throws {
