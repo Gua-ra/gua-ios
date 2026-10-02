@@ -68,7 +68,7 @@ class DeactivateAccountScreenViewModel: DeactivateAccountScreenViewModelType, De
         do {
             try await identityServiceClient.startAccountReauth(accessToken: accessToken,
                                                                phone: phone,
-                                                               language: Locale.guaLanguageTag())
+                                                               language: Bundle.guaAppLanguage)
             state.reauthPhase = .awaitingCode
         } catch {
             // A number that is not this account's arrives here as the server's own refusal, which

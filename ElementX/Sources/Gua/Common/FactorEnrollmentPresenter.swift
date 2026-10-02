@@ -50,13 +50,11 @@ class FactorEnrollmentPresenter: NSObject {
     /// `ASWebAuthenticationSession` fails for a reason other than user cancellation.
     /// User cancellation is treated as success (no error thrown).
     func start() async throws {
-        // Pass the device locale so the IDP renders in the user's language (e.g. French).
+        // Pass the app language so the page matches the screen that opened it. Appended to the raw
+        // query: rewriting `queryItems` would turn an escaped `%2B` in the token URL into a bare `+`.
         var urlToOpen = enrollURL
-        if let languageCode = Locale.current.language.languageCode?.identifier,
-           var components = URLComponents(url: enrollURL, resolvingAgainstBaseURL: true) {
-            var queryItems = components.queryItems ?? []
-            queryItems.append(URLQueryItem(name: "ui_locales", value: languageCode))
-            components.queryItems = queryItems
+        if var components = URLComponents(url: enrollURL, resolvingAgainstBaseURL: true) {
+            components.appendUILocalesPreservingEncoding()
             urlToOpen = components.url ?? enrollURL
         }
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
@@ -81,7 +79,8 @@ class FactorEnrollmentPresenter: NSObject {
             session.prefersEphemeralWebBrowserSession = false
             session.presentationContextProvider = self
             session.additionalHeaderFields = [
-                "X-Element-User-Agent": UserAgentBuilder.makeASCIIUserAgent()
+                "X-Element-User-Agent": UserAgentBuilder.makeASCIIUserAgent(),
+                "Accept-Language": Bundle.guaAppLanguage
             ]
             self.session = session
             session.start()

@@ -601,7 +601,7 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         let (data, _) = try await sendAuthenticated(path: path,
                                                     accessToken: accessToken,
                                                     body: Body(redirectUri: redirectURI),
-                                                    language: Locale.guaLanguageTag(),
+                                                    language: Bundle.guaAppLanguage,
                                                     expectsBody: true)
         do {
             let response = try decoder.decode(Response.self, from: data)
@@ -689,7 +689,9 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        if let language { request.setValue(language, forHTTPHeaderField: "Accept-Language") }
+        // Every call says which language the app is shown in, so whatever the server texts or
+        // renders for it matches the screen, not the device region.
+        request.setValue(language ?? Bundle.guaAppLanguage, forHTTPHeaderField: "Accept-Language")
         do {
             request.httpBody = try encoder.encode(body)
         } catch {

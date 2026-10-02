@@ -6,23 +6,16 @@
 
 import Foundation
 
-extension Locale {
-    /// The `Accept-Language` tag that goes out with an identity-service call that texts something,
-    /// which is what picks the language the SMS is written in.
+extension Bundle {
+    /// The language the app's own screens are shown in: "pt-BR", "es", "fr" or "en".
     ///
-    /// Built from the language subtags rather than taken from `identifier`, which is the ICU form:
-    /// `pt_BR` carries an underscore, matches none of the server's template keys, and its primary
-    /// tag is never reached either because the server splits on `-`. Every Brazilian account was
-    /// therefore getting its codes in English. `identifier(.bcp47)` has the right separator but
-    /// also carries the locale's extensions (`pt-BR-u-ca-gregory`), which costs the same fallback,
-    /// so only the language and its region are kept.
-    static func guaLanguageTag(for locale: Locale = .current) -> String? {
-        guard let languageCode = locale.language.languageCode?.identifier, !languageCode.isEmpty else {
-            return nil
-        }
-        guard let region = locale.language.region?.identifier, !region.isEmpty else {
-            return languageCode
-        }
-        return "\(languageCode)-\(region)"
+    /// Everything the app hands to the server side speaks this language, so a web page opened from
+    /// the app (`ui_locales`) and a text sent by identity-service (`Accept-Language`) match the screen
+    /// that asked for them. The device locale is the wrong source: a Brazilian phone set to the Canada
+    /// region reports `pt-CA`, and a Portuguese one reports `pt-PT`, neither of which the server has a
+    /// template for, while the app shows both of them Brazilian Portuguese. It follows
+    /// `overrideLocalizations` like `L10n` does, so tests see the language they set.
+    static var guaAppLanguage: String {
+        (overrideLocalizations ?? app.preferredLocalizations).first ?? "en"
     }
 }
