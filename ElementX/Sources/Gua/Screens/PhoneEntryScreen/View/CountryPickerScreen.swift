@@ -57,8 +57,8 @@ struct CountryPickerScreen: View {
                 .contentShape(Rectangle())
             }
             .listStyle(.plain)
-            .searchable(text: $searchQuery, prompt: Text("Search country or code"))
-            .navigationTitle("Select country")
+            .searchable(text: $searchQuery, prompt: Text(UntranslatedL10n.guaCountryPickerSearchPrompt))
+            .navigationTitle(UntranslatedL10n.guaCountryPickerTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

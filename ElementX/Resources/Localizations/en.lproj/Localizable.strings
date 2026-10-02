@@ -334,13 +334,6 @@
 "common.select_account" = "Select an account";
 "common_unable_to_decrypt_insecure_device" = "Sent from an insecure device";
 "common_unable_to_decrypt_verification_violation" = "Sender's verified identity was reset";
-/* GUA FORK: coarse human-readable durations (e.g. cooldown copy). */
-"common_duration_one_day" = "1 day";
-"common_duration_days" = "%1$d days";
-"common_duration_one_hour" = "1 hour";
-"common_duration_hours" = "%1$d hours";
-"common_duration_one_minute" = "1 minute";
-"common_duration_minutes" = "%1$d minutes";
 "confirm_recovery_key_banner_message" = "Confirm your recovery key to maintain access to your key storage and message history.";
 "confirm_recovery_key_banner_primary_button_title" = "Enter your recovery key";
 "confirm_recovery_key_banner_secondary_button_title" = "Forgot your recovery key?";

@@ -430,24 +430,6 @@ internal enum L10n {
   internal static var commonDownloadFailed: String { return L10n.tr("Localizable", "common_download_failed") }
   /// Downloading
   internal static var commonDownloading: String { return L10n.tr("Localizable", "common_downloading") }
-  /// %1$d days
-  internal static func commonDurationDays(_ p1: Int) -> String {
-    return L10n.tr("Localizable", "common_duration_days", p1)
-  }
-  /// %1$d hours
-  internal static func commonDurationHours(_ p1: Int) -> String {
-    return L10n.tr("Localizable", "common_duration_hours", p1)
-  }
-  /// %1$d minutes
-  internal static func commonDurationMinutes(_ p1: Int) -> String {
-    return L10n.tr("Localizable", "common_duration_minutes", p1)
-  }
-  /// 1 day
-  internal static var commonDurationOneDay: String { return L10n.tr("Localizable", "common_duration_one_day") }
-  /// 1 hour
-  internal static var commonDurationOneHour: String { return L10n.tr("Localizable", "common_duration_one_hour") }
-  /// 1 minute
-  internal static var commonDurationOneMinute: String { return L10n.tr("Localizable", "common_duration_one_minute") }
   /// (edited)
   internal static var commonEditedSuffix: String { return L10n.tr("Localizable", "common_edited_suffix") }
   /// Editing

@@ -118,6 +118,48 @@ class LocalizationTests: XCTestCase {
         XCTAssertEqual(UntranslatedL10n.untranslatedPlural(5), "5 untranslated items")
     }
 
+    /// Identity-service refusals are shown as they are, so none of them may fall back to English or
+    /// pass the server's English through.
+    func testIdentityServiceErrorsFollowAppLanguage() {
+        let errors: [IdentityServiceError] = [.rateLimited,
+                                              .pinLocked(retryAfterSeconds: 120),
+                                              .pinChangeChallengeInvalid,
+                                              .server(status: 500, message: "Internal server error")]
+
+        Bundle.overrideLocalizations = ["en"]
+        let english = errors.map(\.errorDescription)
+
+        for language in ["pt-BR", "es", "fr"] {
+            Bundle.overrideLocalizations = [language]
+
+            for (error, englishDescription) in zip(errors, english) {
+                let description = error.errorDescription
+                XCTAssertNotNil(description)
+                XCTAssertNotEqual(description, englishDescription, "\(language): \(error)")
+                XCTAssertFalse(description?.contains("Internal server error") ?? true)
+            }
+        }
+
+        Bundle.overrideLocalizations = ["pt-BR"]
+        XCTAssertEqual(IdentityServiceError.pinLocked(retryAfterSeconds: 120).errorDescription,
+                       "Muitas tentativas erradas de PIN. Tente novamente em 2 minutos.")
+    }
+
+    /// Durations use plural rules of the app language rather than an English "minute(s)".
+    func testDurationsFollowAppLanguage() {
+        Bundle.overrideLocalizations = ["pt-BR"]
+        XCTAssertEqual(IdentityServiceError.humanReadableDuration(seconds: 30), "1 minuto")
+        XCTAssertEqual(IdentityServiceError.humanReadableDuration(seconds: 5 * 3600), "5 horas")
+        XCTAssertEqual(IdentityServiceError.humanReadableDuration(seconds: 86400), "1 dia")
+
+        Bundle.overrideLocalizations = ["fr"]
+        XCTAssertEqual(IdentityServiceError.humanReadableDuration(seconds: 3 * 86400), "3 jours")
+
+        Bundle.overrideLocalizations = ["en"]
+        XCTAssertEqual(IdentityServiceError.humanReadableDuration(seconds: 3600), "1 hour")
+        XCTAssertEqual(IdentityServiceError.humanReadableDuration(seconds: 7 * 60), "7 minutes")
+    }
+
     // MARK: - Helpers
 
     /// Reads a value straight from one language's Untranslated table, or nil when that table lacks the key.

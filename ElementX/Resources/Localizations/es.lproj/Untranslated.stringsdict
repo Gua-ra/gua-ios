@@ -2,22 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>untranslated_plural</key>
-	<dict>
-		<key>NSStringLocalizedFormatKey</key>
-		<string>%#@VARIABLE@</string>
-		<key>VARIABLE</key>
-		<dict>
-			<key>NSStringFormatSpecTypeKey</key>
-			<string>NSStringPluralRuleType</string>
-			<key>NSStringFormatValueTypeKey</key>
-			<string>d</string>
-			<key>one</key>
-			<string>One untranslated item</string>
-			<key>other</key>
-			<string>%d untranslated items</string>
-		</dict>
-	</dict>
 	<key>gua_duration_days</key>
 	<dict>
 		<key>NSStringLocalizedFormatKey</key>
@@ -29,9 +13,9 @@
 			<key>NSStringFormatValueTypeKey</key>
 			<string>d</string>
 			<key>one</key>
-			<string>%1$d day</string>
+			<string>%1$d día</string>
 			<key>other</key>
-			<string>%1$d days</string>
+			<string>%1$d días</string>
 		</dict>
 	</dict>
 	<key>gua_duration_hours</key>
@@ -45,9 +29,9 @@
 			<key>NSStringFormatValueTypeKey</key>
 			<string>d</string>
 			<key>one</key>
-			<string>%1$d hour</string>
+			<string>%1$d hora</string>
 			<key>other</key>
-			<string>%1$d hours</string>
+			<string>%1$d horas</string>
 		</dict>
 	</dict>
 	<key>gua_duration_minutes</key>
@@ -61,9 +45,9 @@
 			<key>NSStringFormatValueTypeKey</key>
 			<string>d</string>
 			<key>one</key>
-			<string>%1$d minute</string>
+			<string>%1$d minuto</string>
 			<key>other</key>
-			<string>%1$d minutes</string>
+			<string>%1$d minutos</string>
 		</dict>
 	</dict>
 	<key>gua_find_friends_results_header</key>
@@ -77,9 +61,9 @@
 			<key>NSStringFormatValueTypeKey</key>
 			<string>d</string>
 			<key>one</key>
-			<string>%1$d contact is on Gua</string>
+			<string>%1$d contacto está en Gua</string>
 			<key>other</key>
-			<string>%1$d contacts are on Gua</string>
+			<string>%1$d contactos están en Gua</string>
 		</dict>
 	</dict>
 </dict>

@@ -1876,6 +1876,7 @@
 		46E8CDBF82C9DD4D5D0E27BD /* NotificationSettingsChatType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSettingsChatType.swift; sourceTree = "<group>"; };
 		4701F658A0F92EC3FEE809DA /* UserProfileScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileScreen.swift; sourceTree = "<group>"; };
 		4723E3E5A0A13912C3535F55 /* TimelineProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineProxy.swift; sourceTree = "<group>"; };
+		473D6FCBD98E78ED61D7C374 /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = es; path = es.lproj/Untranslated.stringsdict; sourceTree = "<group>"; };
 		4763178D1395342B73601CE8 /* WindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowManager.swift; sourceTree = "<group>"; };
 		479338E506BF8225B8D086D3 /* ScrollViewAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollViewAdapter.swift; sourceTree = "<group>"; };
 		47C603BDED776CA9B392B666 /* MockCoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockCoder.swift; sourceTree = "<group>"; };
@@ -1965,6 +1966,7 @@
 		58840CE625D2759E63BBD5BF /* ElementX.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ElementX.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		58912AE0A41621B4E5AE7429 /* PinnedItemsIndicatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinnedItemsIndicatorView.swift; sourceTree = "<group>"; };
 		58AA8EF48451C5552CFF02E3 /* SecureBackupRecoveryKeyScreenCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureBackupRecoveryKeyScreenCoordinator.swift; sourceTree = "<group>"; };
+		593E9CADB862FA22C8BE7ABB /* pt-BR */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = "pt-BR"; path = "pt-BR.lproj/Untranslated.stringsdict"; sourceTree = "<group>"; };
 		593F87DE9B850E3DBD0DA014 /* OIDCAuthenticationPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OIDCAuthenticationPresenter.swift; sourceTree = "<group>"; };
 		5940F68DB4FFDADAF31E7104 /* RoomScreenModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomScreenModels.swift; sourceTree = "<group>"; };
 		594B5AFB7B8DA98EDAD6F459 /* target.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = target.yml; sourceTree = "<group>"; };
@@ -2263,6 +2265,7 @@
 		8F14C1DB44D5D0F80F21BDA6 /* genesis-vectors.v1.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "genesis-vectors.v1.json"; sourceTree = "<group>"; };
 		8F1E6558FD5932D054846EA4 /* SeparatorMediaEventsTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeparatorMediaEventsTimelineView.swift; sourceTree = "<group>"; };
 		8F1E9F07D267F9E56A0C6854 /* target.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = target.yml; sourceTree = "<group>"; };
+		8F4233EC72A38D1FB57CBFC5 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = fr; path = fr.lproj/Untranslated.stringsdict; sourceTree = "<group>"; };
 		8F49BA1F033049A1F8A6CA66 /* LoginScreenModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginScreenModels.swift; sourceTree = "<group>"; };
 		8F7F49BD71B612F2389DEC50 /* CallInviteRoomTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallInviteRoomTimelineView.swift; sourceTree = "<group>"; };
 		8F88F86BDB0CCF7D3A50916C /* ConfettiScene.scn */ = {isa = PBXFileReference; path = ConfettiScene.scn; sourceTree = "<group>"; };
@@ -8811,6 +8814,9 @@
 			isa = PBXVariantGroup;
 			children = (
 				7982734A96639D5FE810883E /* en */,
+				473D6FCBD98E78ED61D7C374 /* es */,
+				8F4233EC72A38D1FB57CBFC5 /* fr */,
+				593E9CADB862FA22C8BE7ABB /* pt-BR */,
 			);
 			name = Untranslated.stringsdict;
 			sourceTree = "<group>";

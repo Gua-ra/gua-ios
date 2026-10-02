@@ -104,7 +104,8 @@ final class TwoStepVerificationScreenCoordinator: CoordinatorProtocol {
             try await presenter.start()
         } catch {
             MXLog.error("Factor enrollment failed: \(error)")
-            parameters.userIndicatorController.submitIndicator(UserIndicator(title: error.localizedDescription,
+            // Neither a refusal from the page nor a web session failure has wording of its own.
+            parameters.userIndicatorController.submitIndicator(UserIndicator(title: L10n.errorUnknown,
                                                                              iconName: "xmark"))
         }
         enrollmentPresenter = nil

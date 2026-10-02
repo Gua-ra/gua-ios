@@ -147,9 +147,10 @@ class DeactivateAccountScreenViewModel: DeactivateAccountScreenViewModelType, De
                 MXLog.error("identity-service deactivate failed: \(error)")
                 self.reauthToken = nil
                 state.reauthPhase = .error((error as? LocalizedError)?.errorDescription ?? L10n.errorUnknown)
+                let message = (error as? LocalizedError)?.errorDescription
                 state.bindings.alertInfo = .init(id: .deactivationFailed,
                                                  title: L10n.errorUnknown,
-                                                 message: (error as? LocalizedError)?.errorDescription ?? String(describing: error))
+                                                 message: message == L10n.errorUnknown ? nil : message)
                 return
             }
         }

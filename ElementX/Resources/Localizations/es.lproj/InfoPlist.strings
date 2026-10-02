@@ -1,5 +1,5 @@
 "NSCameraUsageDescription" = "Para tomar fotos o grabar vídeos y enviarlos como mensajes, Gua necesita acceder a la cámara.";
-"NSContactsUsageDescription" = "Gua revisa tus contactos de forma privada para encontrar quiénes ya están aquí. Tus contactos nunca se guardan.";
+"NSContactsUsageDescription" = "Gua consulta tus contactos de forma privada para saber cuáles ya están aquí. Tus contactos nunca se almacenan.";
 "NSFaceIDUsageDescription" = "Gua usa Face ID para desbloquear la app, así no tienes que escribir tu código cada vez.";
 "NSLocationWhenInUseUsageDescription" = "Permite el acceso a la ubicación para que Gua pueda compartir tu ubicación.";
 "NSMicrophoneUsageDescription" = "Para grabar y enviar mensajes de audio, Gua necesita acceder al micrófono.";

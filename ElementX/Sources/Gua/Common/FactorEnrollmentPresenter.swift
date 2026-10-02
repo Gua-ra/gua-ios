@@ -6,6 +6,17 @@
 
 import AuthenticationServices
 
+/// The enrollment page sent the reader back with an OAuth `error`. The code and the server's
+/// `error_description` are English for the log; the reader sees a translated generic message.
+struct FactorEnrollmentRefusal: LocalizedError {
+    let code: String
+    let serverDescription: String?
+
+    var errorDescription: String? {
+        L10n.errorUnknown
+    }
+}
+
 /// Presents a web authentication session that drives factor enrollment, passkey or PIN, on the
 /// IdP-hosted page returned by identity-service.
 ///
@@ -62,10 +73,7 @@ class FactorEnrollmentPresenter: NSObject {
                           let errorCode = components.queryItems?.first(where: { $0.name == "error" })?.value {
                     // IDP redirected back with an OIDC error (e.g. access_denied).
                     let description = components.queryItems?.first(where: { $0.name == "error_description" })?.value
-                    let message = description ?? errorCode
-                    continuation.resume(throwing: NSError(domain: "FactorEnrollment",
-                                                          code: -1,
-                                                          userInfo: [NSLocalizedDescriptionKey: message]))
+                    continuation.resume(throwing: FactorEnrollmentRefusal(code: errorCode, serverDescription: description))
                 } else {
                     continuation.resume()
                 }

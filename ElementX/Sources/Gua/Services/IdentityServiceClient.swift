@@ -75,64 +75,55 @@ enum IdentityServiceError: Error, LocalizedError {
     case transport(Error)
     case decoding(Error)
 
+    /// What the reader sees, in the app language. The server's own `message` is English and is kept
+    /// for logs only (`String(describing:)` of the case still carries it).
     var errorDescription: String? {
         switch self {
-        case .notConfigured: "Identity service is not configured."
-        case .invalidURL: "Identity service URL is invalid."
-        case .rateLimited: "Too many attempts. Please wait a moment and try again."
-        case .invalidOTP: "The code you entered is invalid or has expired."
-        case .invalidPin: "That PIN is incorrect. Please try again."
+        case .rateLimited: UntranslatedL10n.guaErrorRateLimited
+        case .invalidOTP: L10n.screenTwoStepVerificationOtpInvalid
+        case .invalidPin: UntranslatedL10n.guaPinIncorrect
         case let .pinLocked(retry):
-            if let retry { "PIN locked due to too many wrong attempts. Try again in \(retry / 60) minute(s)." }
-            else { "PIN locked due to too many wrong attempts. Try again later." }
+            if let retry, retry > 0 {
+                UntranslatedL10n.guaPinLockedRetry(IdentityServiceError.humanReadableDuration(seconds: retry))
+            } else { L10n.screenTwoStepVerificationLocked }
         case let .pinChangeCooldown(retry):
             if let retry, retry > 0 {
-                "For security, you can change your PIN again in \(max(1, Int((Double(retry) / 3600.0).rounded(.up)))) hour(s)."
-            } else { "For security, you can only change your PIN once per day." }
-        case .pinChangeChallengeInvalid: "Your PIN change session expired. Please start over."
-        case .phoneChangeChallengeInvalid: "Your number change expired. Please start over."
-        case .stepUpRequired: "You'll need two-step verification before you can change your number."
-        case .passkeyStepUpUnavailable: "Your passkey can't be used for this right now."
-        case .passkeyUserVerificationRequired: "That passkey didn't verify it was you. Please try again."
-        case let .twoFactorCooldown(retry):
+                UntranslatedL10n.guaPinChangeCooldownRetry(IdentityServiceError.humanReadableDuration(seconds: retry))
+            } else { L10n.screenTwoStepVerificationCooldown }
+        case .pinChangeChallengeInvalid, .phoneChangeChallengeInvalid: UntranslatedL10n.guaFlowExpired
+        case .stepUpRequired: UntranslatedL10n.guaStepUpRequired
+        case .passkeyStepUpUnavailable: UntranslatedL10n.guaPasskeyUnavailable
+        case .passkeyUserVerificationRequired: UntranslatedL10n.guaPasskeyVerificationFailed
+        case let .twoFactorCooldown(retry), let .phoneChangeCooldown(retry):
             if let retry, retry > 0 {
-                "For your security, you can change your number in \(IdentityServiceError.humanReadableDuration(seconds: retry))."
-            } else { "For your security, you can't change your number just yet. Please try again later." }
-        case let .phoneChangeCooldown(retry):
-            if let retry, retry > 0 {
-                "For your security, you can change your number again in \(IdentityServiceError.humanReadableDuration(seconds: retry))."
-            } else { "For your security, you can't change your number again just yet. Please try again later." }
-        case .invalidReauthToken: "Your verification expired. Please request a new code."
-        case .phoneAlreadyLinked: "That phone number is already linked to another account."
+                L10n.screenChangePhoneCooldownMessage(IdentityServiceError.humanReadableDuration(seconds: retry))
+            } else { L10n.screenChangePhoneCooldownMessageGeneric }
+        case .invalidReauthToken: UntranslatedL10n.guaReauthExpired
+        case .phoneAlreadyLinked: L10n.screenChangePhoneAlreadyLinked
         case .reauthPhoneMismatch: L10n.screenAccountReauthPhoneMismatch
         case .invalidPhoneNumber: L10n.screenPhoneLoginInvalidNumber
         case .pinAlreadySet: L10n.screenTwoStepVerificationPinAlreadySet
         case .passkeyAlreadyRegistered: L10n.screenTwoStepVerificationPasskeyAlreadySet
         case .stepUpUnavailable: L10n.screenTwoStepVerificationStepUpUnavailable
-        case .invalidRedirectURI: L10n.errorUnknown
-        case .genesisUnavailable: "Account genesis is not enabled on this deployment."
-        case .genesisIssuanceNotPermitted: "Account genesis issuance is not permitted on this deployment."
-        case let .server(status, message): message ?? "Server error (\(status))."
-        case let .transport(error): error.localizedDescription
-        case let .decoding(error): "Could not parse the server response: \(error.localizedDescription)"
+        // Configuration, deployment and transport problems the reader can do nothing about.
+        case .notConfigured, .invalidURL, .invalidRedirectURI, .genesisUnavailable, .genesisIssuanceNotPermitted,
+             .server, .transport, .decoding:
+            L10n.errorUnknown
         }
     }
 
-    /// Coarse, human-friendly rendering of a remaining-duration in seconds, e.g. "7 days",
-    /// "3 hours", "5 minutes". Rounds up so we never under-promise availability.
+    /// Coarse rendering of a remaining duration in the app language, e.g. "7 days", "3 hours",
+    /// "5 minutes". Rounds up so we never under-promise availability.
     static func humanReadableDuration(seconds: Int) -> String {
         let seconds = max(0, seconds)
         let day = 86400, hour = 3600, minute = 60
         if seconds >= day {
-            let days = Int((Double(seconds) / Double(day)).rounded(.up))
-            return days == 1 ? L10n.commonDurationOneDay : L10n.commonDurationDays(days)
+            return UntranslatedL10n.guaDurationDays(Int((Double(seconds) / Double(day)).rounded(.up)))
         }
         if seconds >= hour {
-            let hours = Int((Double(seconds) / Double(hour)).rounded(.up))
-            return hours == 1 ? L10n.commonDurationOneHour : L10n.commonDurationHours(hours)
+            return UntranslatedL10n.guaDurationHours(Int((Double(seconds) / Double(hour)).rounded(.up)))
         }
-        let minutes = max(1, Int((Double(seconds) / Double(minute)).rounded(.up)))
-        return minutes == 1 ? L10n.commonDurationOneMinute : L10n.commonDurationMinutes(minutes)
+        return UntranslatedL10n.guaDurationMinutes(max(1, Int((Double(seconds) / Double(minute)).rounded(.up))))
     }
 }
 

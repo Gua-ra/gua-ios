@@ -103,3 +103,51 @@
    and could not. Deliberately a failure rather than a silent fallback: an account created without
    the genesis it intended would be indistinguishable afterwards. */
 "gua_account_genesis_setup_failed" = "We couldn’t finish setting up your account on this device. Please try again.";
+
+// MARK: - Gua: identity-service refusals
+
+/* Shown for every identity-service refusal that has no wording of its own. The server's own text is English and never shown. */
+"gua_error_rate_limited" = "Too many attempts. Please wait a moment and try again.";
+"gua_pin_incorrect" = "That PIN is incorrect. Please try again.";
+/* %1$@ is a duration such as "5 minutes" (gua_duration_*). */
+"gua_pin_locked_retry" = "Too many wrong PIN attempts. Try again in %1$@.";
+/* %1$@ is a duration such as "3 hours" (gua_duration_*). */
+"gua_pin_change_cooldown_retry" = "For security, you can change your PIN again in %1$@.";
+/* A PIN change or number change waited too long between its steps and has to begin again. */
+"gua_flow_expired" = "This took too long. Please start again.";
+"gua_reauth_expired" = "Your verification expired. Please request a new code.";
+"gua_step_up_required" = "You’ll need two-step verification before you can change your number.";
+"gua_passkey_unavailable" = "Your passkey can’t be used for this right now.";
+"gua_passkey_verification_failed" = "That passkey didn’t confirm it was you. Please try again.";
+
+// MARK: - Gua: launch
+
+/* Toast when the saved sign-in could not be restored at launch and the sign-in screen is shown instead. */
+"gua_restore_signin_failed" = "We couldn’t sign you back in. Please sign in again.";
+
+// MARK: - Gua: phone number entry
+
+"gua_country_picker_title" = "Select country";
+"gua_country_picker_search_prompt" = "Search country or code";
+/* VoiceOver label of the country code button. %1$@ is the country name, %2$@ its calling code without the plus sign. */
+"gua_country_code_a11y_label" = "Country code: %1$@, plus %2$@";
+"gua_country_code_a11y_hint" = "Opens country picker";
+
+// MARK: - Gua: chat details
+
+/* Title of the details screen of a 1:1 chat, which is a person rather than a group. */
+"gua_contact_info_title" = "Contact info";
+
+// MARK: - Gua: find friends
+
+"gua_find_friends_action_description" = "See which of your contacts are on Gua";
+"gua_find_friends_loading" = "Looking for your contacts on Gua…";
+"gua_find_friends_permission_title" = "Allow access to Contacts";
+"gua_find_friends_permission_message" = "Gua checks your contacts privately to find which of them are already here. Your contacts are never stored.";
+/* Opens the iOS Settings app, so it uses that app's name. */
+"gua_find_friends_open_settings" = "Open Settings";
+/* VoiceOver label of a contact's avatar. %1$@ is the contact's name. */
+"gua_find_friends_view_profile_a11y" = "View %1$@’s profile";
+"gua_find_friends_start_chat_failed_title" = "Couldn’t start the chat";
+/* %1$@ is the contact's name. */
+"gua_find_friends_start_chat_failed_message" = "Something went wrong starting a chat with %1$@. Please try again.";

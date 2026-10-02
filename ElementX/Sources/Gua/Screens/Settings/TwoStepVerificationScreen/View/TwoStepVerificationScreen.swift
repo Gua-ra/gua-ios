@@ -196,8 +196,8 @@ struct TwoStepVerificationScreen: View {
             .frame(height: 48)
             .background(.compound.bgSubtleSecondary, in: RoundedRectangle(cornerRadius: 14))
         }
-        .accessibilityLabel("Country code: \(context.viewState.selectedCountry.name) plus \(context.viewState.selectedCountry.dialCode)")
-        .accessibilityHint("Opens country picker")
+        .accessibilityLabel(UntranslatedL10n.guaCountryCodeA11yLabel(context.viewState.selectedCountry.name, context.viewState.selectedCountry.dialCode))
+        .accessibilityHint(UntranslatedL10n.guaCountryCodeA11yHint)
     }
 
     private var phoneField: some View {
