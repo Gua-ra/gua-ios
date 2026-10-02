@@ -21,10 +21,10 @@ class LocalizationTests: XCTestCase {
 
         XCTAssertEqual(L10n.testLanguageIdentifier, "en")
 
-        // set app language to Italian
-        Bundle.overrideLocalizations = ["it"]
+        // set app language to French
+        Bundle.overrideLocalizations = ["fr"]
 
-        XCTAssertEqual(L10n.testLanguageIdentifier, "it")
+        XCTAssertEqual(L10n.testLanguageIdentifier, "fr")
     }
 
     /// Test fallback language for a language not supported at all
@@ -38,9 +38,9 @@ class LocalizationTests: XCTestCase {
     /// Test fallback language for a language supported but poorly translated
     func testFallbackOnNotTranslatedKey() {
         //  set app language to something Element supports but use a key that is not translated (we have a key that should never be translated)
-        Bundle.overrideLocalizations = ["it"]
+        Bundle.overrideLocalizations = ["fr"]
 
-        XCTAssertEqual(L10n.testLanguageIdentifier, "it")
+        XCTAssertEqual(L10n.testLanguageIdentifier, "fr")
         XCTAssertEqual(L10n.testUntranslatedDefaultLanguageIdentifier, "en")
     }
 
@@ -52,11 +52,11 @@ class LocalizationTests: XCTestCase {
         XCTAssertEqual(L10n.commonMemberCount(1), "1 Member")
         XCTAssertEqual(L10n.commonMemberCount(2), "2 Members")
 
-        //  set app language to Italian
-        Bundle.overrideLocalizations = ["it"]
+        //  set app language to Brazilian Portuguese
+        Bundle.overrideLocalizations = ["pt-BR"]
 
-        XCTAssertEqual(L10n.commonMemberCount(1), "1 Membro")
-        XCTAssertEqual(L10n.commonMemberCount(2), "2 Membri")
+        XCTAssertEqual(L10n.commonMemberCount(1), "1 membro")
+        XCTAssertEqual(L10n.commonMemberCount(2), "2 membros")
     }
 
     /// Test plurals fallback language for a language not supported at all
@@ -66,6 +66,24 @@ class LocalizationTests: XCTestCase {
 
         XCTAssertEqual(L10n.commonMemberCount(1), "1 Member")
         XCTAssertEqual(L10n.commonMemberCount(2), "2 Members")
+    }
+
+    /// Gua ships en, pt-BR, es and fr. Any Portuguese resolves to pt-BR and an unsupported language to English.
+    func testShippedLanguagesResolve() {
+        XCTAssertEqual(Set(Bundle.app.localizations), ["en", "pt-BR", "es", "fr"])
+
+        let expectations: [(preferences: [String], language: String)] = [(["pt-BR"], "pt-BR"),
+                                                                         (["pt"], "pt-BR"),
+                                                                         (["pt-PT"], "pt-BR"),
+                                                                         (["es-MX"], "es"),
+                                                                         (["fr-CA"], "fr"),
+                                                                         (["en-US"], "en"),
+                                                                         (["de"], "en"),
+                                                                         (["ja"], "en")]
+        for expectation in expectations {
+            let resolved = Bundle.preferredLocalizations(from: Bundle.app.localizations, forPreferences: expectation.preferences)
+            XCTAssertEqual(resolved.first, expectation.language, "\(expectation.preferences)")
+        }
     }
 
     /// Test untranslated strings
