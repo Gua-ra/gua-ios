@@ -31,9 +31,6 @@ struct ChangePhoneScreen: View {
             }
     }
 
-    /// The message phases (intro/stepUpRequired/cooldown/done) render as polished centered cards on
-    /// a plain background. The entry phases (current number/reauth code/new number/PIN/OTP) keep
-    /// the Compound list/`Form` styling.
     @ViewBuilder
     private var screenContent: some View {
         switch context.viewState.phase {
@@ -81,9 +78,6 @@ struct ChangePhoneScreen: View {
 
     // MARK: - Step-up required interstitial
 
-    /// The hard block. It offers both ways to get a factor, strongest first, instead of the old
-    /// single funnel into PIN setup: an account that wants a passkey should not have to create a
-    /// PIN to be allowed to change its number.
     private var stepUpRequiredSection: some View {
         ChangePhoneMessageScreen(icon: \.lock,
                                  iconTint: .compound.iconPrimary,
@@ -238,16 +232,7 @@ struct ChangePhoneScreen: View {
 
 // MARK: - Message phase layout
 
-/// A polished, centered "hero" message screen used by the intro / needs-PIN / cooldown / done phases.
-/// Mirrors the Android `MessageCard`: a tinted card near the top holding an icon tile, a bold title and
-/// a muted body, with an optional full-width primary CTA below the card (outside it).
-/// One button on a message phase: its title and its handler travel together.
-///
-/// They are bundled rather than passed as a title plus a bare closure because the screen offers two
-/// buttons. With two closure parameters an unlabelled trailing closure binds to the LAST of them,
-/// so a call site that meant to pass the primary handler silently filled in the secondary one and
-/// left `action` nil, and the primary button was then nil-guarded out of the layout entirely. One
-/// closure per initialiser makes that misbinding impossible to write.
+/// Title and handler travel together: with two closure parameters, a trailing closure binds to the last one.
 private struct ChangePhoneMessageButton {
     let title: String
     let action: () -> Void
@@ -297,7 +282,6 @@ private struct ChangePhoneMessageScreen: View {
     }
 }
 
-/// The rounded `bgSubtleSecondary` card: an icon tile, a centered title and a centered body.
 private struct ChangePhoneMessageCard: View {
     let icon: KeyPath<CompoundIcons, Image>
     let iconTint: Color

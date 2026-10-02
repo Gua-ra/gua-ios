@@ -80,9 +80,8 @@ targets:
         GuaDefaultAccountProvider: $(DEFAULT_ACCOUNT_PROVIDER)
         GuaOidcRedirectURL: $(OIDC_REDIRECT_URL)
         GuaOidcStaticRegistrations: $(OIDC_STATIC_REGISTRATIONS)
-        # LOCAL DEV ONLY: allow plain-HTTP to loopback/.local hosts so the app can
-        # reach the local stack (Synapse :8008, MAS :8090). Does NOT relax ATS for
-        # remote servers. Harmless to ship, but tied to the local DEFAULT_ACCOUNT_PROVIDER.
+        # Local dev only: allows cleartext to loopback and .local hosts, so the app can reach the
+        # local stack (Synapse :8008, MAS :8090). Does not relax ATS for remote servers.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
         ITSAppUsesNonExemptEncryption: false
@@ -113,20 +112,8 @@ targets:
         aps-environment: $(APNS_ENVIRONMENT)
         com.apple.developer.associated-domains:
         - webcredentials:gua.global
-        # The non-public dev host's webcredentials entry is intentionally NOT committed.
-        # Add `- webcredentials:<dev-host>` locally (and mark this file assume-unchanged) if you
-        # need passkeys against the dev server.
-        #        - applinks:element.io
-        #        - applinks:app.element.io
-        #        - applinks:staging.element.io
-        #        - applinks:develop.element.io
-        #        - applinks:mobile.element.io
-        #        - applinks:call.element.io
-        #        - applinks:call.element.dev
-        #        - applinks:matrix.to
-        #        # - applinks:localhost?mode=developer # developer mode only works with https (but self-signed is fine).
-        #        - webcredentials:*.element.io
-        # com.apple.developer.usernotifications.communication: true
+        # The dev host's webcredentials entry is not committed. Add `- webcredentials:<dev-host>`
+        # locally (and mark this file assume-unchanged) for passkeys against the dev server.
         com.apple.security.application-groups:
         - $(APP_GROUP_IDENTIFIER)
         keychain-access-groups:
@@ -153,10 +140,9 @@ targets:
           APNS_ENVIRONMENT: development
         Release:
           APNS_ENVIRONMENT: production
-          # Release archives target PROD: GuaDeployment.current resolves to .production, whose
-          # resolver / identity / account-provider hosts are committed in GuaDeployment.swift, so
-          # a prod build needs no injected secrets. Dev TestFlight builds come from the Dev
-          # variant (Variants/Dev/dev.yml), which re-adds GUA_DEVELOPMENT and its own bundle id.
+          # Release archives target prod: GuaDeployment.current resolves to .production, whose
+          # hosts are committed in GuaDeployment.swift, so a prod build needs no injected secrets.
+          # Dev TestFlight builds come from the Dev variant (Variants/Dev/dev.yml).
 
     preBuildScripts:
       - name: 🛠 SwiftGen

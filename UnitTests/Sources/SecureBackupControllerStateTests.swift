@@ -43,8 +43,6 @@ class SecureBackupControllerStateTests: XCTestCase {
         givenTheSDKReports(.disabled)
     }
 
-    // MARK: - T1
-
     /// `Done` is a progress event, not a verdict. When the SDK recomputes `.incomplete`, nothing may
     /// have announced `.enabled` in between.
     func testDoneDoesNotPublishEnabledWhenTheSDKRecomputesIncomplete() async {
@@ -56,8 +54,6 @@ class SecureBackupControllerStateTests: XCTestCase {
         XCTAssertEqual(published.last, .incomplete)
         XCTAssertEqual(try? result.get(), "k")
     }
-
-    // MARK: - T2
 
     /// A structural refusal produces no SDK listener update, so the transient `.settingUp` has to
     /// be closed out by the controller itself, with the SDK's current answer.
@@ -72,8 +68,6 @@ class SecureBackupControllerStateTests: XCTestCase {
         XCTAssertTrue(isFailure(result))
     }
 
-    // MARK: - T3
-
     /// The terminal `.enabled` is read from the SDK, once, and is not also manufactured from `Done`.
     func testASuccessfulEnableReadsTheSDKStateAndPublishesEnabledOnce() async {
         let result = await whenEnablingRecovery(progress: [.starting, .done(recoveryKey: "k")],
@@ -86,10 +80,7 @@ class SecureBackupControllerStateTests: XCTestCase {
         XCTAssertEqual(try? result.get(), "k")
     }
 
-    // MARK: - T4
-
-    /// After a failed call the SDK still holds the pre-call state. That is what gets published:
-    /// the epilogue reports, it does not conclude.
+    /// After a failed call the SDK still holds the pre-call state, and that is what gets published.
     func testAFailedEnablePublishesThePreCallSDKStateNotSuccess() async {
         let result = await whenEnablingRecovery(progress: [.starting],
                                                 returning: .failure(TransientError()),
@@ -99,8 +90,6 @@ class SecureBackupControllerStateTests: XCTestCase {
         XCTAssertEqual(published.last, .disabled)
         XCTAssertTrue(isFailure(result))
     }
-
-    // MARK: - T5
 
     /// An SDK that cannot answer is still a better final value than a transient nobody re-publishes.
     func testAFailedEnablePublishesUnknownRatherThanStayingInSettingUp() async {

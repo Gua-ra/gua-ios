@@ -98,13 +98,8 @@ struct SettingsScreen: View {
                     })
                     .accessibilityIdentifier(A11yIdentifiers.settingsScreen.screenLock)
             
-            // GUA FORK: The Encryption (secure backup / key storage / recovery)
-            // entry point is intentionally hidden when `hidesAdvancedEncryption`
-            // is set. End-to-end encryption stays fully on with safe defaults —
-            // key storage and recovery are managed automatically — but the advanced
-            // cryptographic controls are not surfaced to non-technical users.
-            // (Engine logic in the view model is left untouched so encryption
-            // keeps working in the background.)
+            // GUA FORK: the Encryption entry point is hidden when `hidesAdvancedEncryption` is set.
+            // E2EE stays on, and key storage and recovery are managed automatically.
             if !context.viewState.hidesAdvancedEncryption {
                 switch context.viewState.securitySectionMode {
                 case .secureBackup:

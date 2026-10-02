@@ -212,9 +212,9 @@ class HomeScreenViewModelTests: XCTestCase {
         securityStateStateSubject.send(.init(verificationState: .verified, recoveryState: .disabled))
         try await deferred.fulfill()
         
-        // Then the banner should be the one that finishes setup silently. GUA FORK: .disabled
-        // used to show .setUpRecovery, whose flow hands the user a recovery key to write down,
-        // and .disabled is the state an identity reset leaves behind.
+        // Then the banner should be the one that finishes setup silently. GUA FORK: `.disabled` is
+        // the state an identity reset leaves behind, and `.setUpRecovery` would hand the user a
+        // recovery key to write down.
         XCTAssertEqual(context.viewState.securityBannerMode, .show(.recoveryOutOfSync))
         
         // When the recovery is enabled.
@@ -227,9 +227,8 @@ class HomeScreenViewModelTests: XCTestCase {
     }
     
     func testTheBannerButtonRoutesToTheStagedRepair() {
-        // The banner is the ONLY encryption affordance a user has, so its button must go to the
-        // staged repair. If it points at .resetEncryption again, every tap skips straight to
-        // "Some previous messages can't be recovered" and the silent path becomes dead code.
+        // The banner is the only encryption affordance a user has, so its button must go to the
+        // staged repair and never straight to `.resetEncryption`.
         XCTAssertEqual(HomeScreenRecoveryKeyConfirmationBanner.State.recoveryOutOfSync.primaryAction,
                        .confirmRecoveryKey)
     }
@@ -243,9 +242,8 @@ class HomeScreenViewModelTests: XCTestCase {
         var receivedAction: HomeScreenViewModelAction?
         viewModel.actions.sink { receivedAction = $0 }.store(in: &cancellables)
 
-        // When the user taps the banner's button. Drive it through the banner's own primaryAction
-        // rather than naming the action: sending .confirmRecoveryKey directly is what let the
-        // banner sit on .resetEncryption for a whole release with these tests green.
+        // When the user taps the banner's button. Uses the banner's own primaryAction, so a banner
+        // wired to the wrong action fails this test.
         context.send(viewAction: HomeScreenRecoveryKeyConfirmationBanner.State.recoveryOutOfSync.primaryAction)
         try await Task.sleep(for: .milliseconds(200))
 
@@ -571,10 +569,8 @@ class HomeScreenViewModelTests: XCTestCase {
         XCTAssertFalse(HomeScreenAccountRecoveryBanner.message(for: .init(completableAt: later, expiresAt: nil), now: now)
             .contains(later.formatted(date: .omitted, time: .shortened)))
 
-        // The day it names is the day it can be finished, not the day after. The server sends an
-        // exact instant and only its date is shown, so "after <date>" would hand the owner a day
-        // they do not have on the one surface whose job is to get them to cancel in time. The year
-        // stays with it: both apps print the same shape for the same recovery.
+        // The day it names is the day it can be finished, not the day after, so the message never
+        // says "after <date>". The year stays with it: both apps print the same shape.
         let laterMessage = HomeScreenAccountRecoveryBanner.message(for: .init(completableAt: later, expiresAt: nil), now: now)
         XCTAssertTrue(laterMessage.contains(later.formatted(.dateTime.year())))
         XCTAssertFalse(laterMessage.lowercased().contains("after"))
@@ -776,7 +772,7 @@ private final class HomeScreenIdentityServiceStub: IdentityServiceClientProtocol
 
     func securityStatus(accessToken: String) async throws -> AccountSecurityStatus {
         securityStatusCalls += 1
-        // A read reports the account as it was when the request reached the server.
+        // Captured before the wait: a read reports the account as it was when the request arrived.
         let status = status
         if holdsStatusReads {
             await withCheckedContinuation { heldStatusReads.append($0) }

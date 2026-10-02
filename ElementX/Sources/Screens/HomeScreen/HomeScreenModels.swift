@@ -103,14 +103,12 @@ struct HomeScreenViewState: BindableState {
     var isRepairingEncryptionSetupFromTap = false
     var requiresExtraAccountSetup = false
 
-    /// Set to true when the identity service reports the user has not yet
-    /// configured their two-step verification PIN AND the reminder is not snoozed.
+    /// GUA FORK: true when the identity service reports no strong factor on the account and the
+    /// reminder is not snoozed.
     var pinSetupReminderVisible = false
 
-    /// GUA FORK: a delayed account recovery that is live on this account, shown until it is
-    /// cancelled, finished or runs out. Deliberately separate from the PIN reminder: that one is a
-    /// nudge the user may snooze, and this one is the owner's only warning that someone may be about
-    /// to take the account over, so nothing hides it but the server.
+    /// GUA FORK: a delayed account recovery live on this account, shown until it is cancelled,
+    /// finished or runs out. Unlike the PIN reminder it cannot be snoozed: only the server clears it.
     var accountRecoveryBanner: PendingAccountRecovery?
 
     var rooms: [HomeScreenRoom] = []

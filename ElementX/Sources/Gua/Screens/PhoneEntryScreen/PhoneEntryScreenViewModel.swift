@@ -58,29 +58,24 @@ class PhoneEntryScreenViewModel: PhoneEntryScreenViewModelType, PhoneEntryScreen
         }
     }
 
-    /// Detects a country code that the user pasted/autofilled into the *local* field — either
-    /// an explicit international "+…" number or a redundant leading dial code — switching the
-    /// country and stripping the code so only the clean local number remains.
-    ///
-    /// Runs before `autoDetectCountry()`/`reformatNumber()` so those operate on the stripped
-    /// local digits. Delegates the unambiguous-strip decision to `Country.normalize`; this is a
-    /// no-op for ordinary local typing.
+    /// Detects a country code pasted or autofilled into the local field, switches the country and
+    /// strips the code. Must run before `autoDetectCountry()` and `reformatNumber()`, which expect the
+    /// stripped digits.
     private func normalizeInput() {
         let raw = state.bindings.localPhoneNumber
         let (country, localDigits) = Country.normalize(rawInput: raw, current: state.selectedCountry)
         if country != state.selectedCountry {
             state.selectedCountry = country
         }
-        // Only rewrite the field when stripping actually changed the digits, to avoid clobbering
-        // the in-progress formatting on every keystroke (reformatNumber handles the mask).
+        // Only rewrite the field when stripping changed the digits, so in-progress formatting is not
+        // clobbered on every keystroke.
         if localDigits != raw.filter(\.isNumber) {
             state.bindings.localPhoneNumber = localDigits
         }
     }
 
-    /// Rewrites `bindings.localPhoneNumber` with the country-specific live-formatted version
-    /// (e.g. `"51985550619"` → `"(51) 98555-0619"`). The text field's cursor jumps to the
-    /// end on each reformat — acceptable trade-off for phone entry.
+    /// Rewrites the field with the country's live format. The cursor jumps to the end on each
+    /// reformat, an accepted trade-off for phone entry.
     private func reformatNumber() {
         let digits = state.bindings.localPhoneNumber.filter(\.isNumber)
         let formatted = state.selectedCountry.formatNational(digits: digits)
@@ -89,9 +84,6 @@ class PhoneEntryScreenViewModel: PhoneEntryScreenViewModelType, PhoneEntryScreen
         }
     }
 
-    /// Recomputes `selectedCountry` from the digits the user has typed, mirroring
-    /// WhatsApp's behaviour: typing a Canadian area code (e.g. 343) flips the flag
-    /// from US to CA; typing a Bahamian local number on US flips to BS; etc.
     private func autoDetectCountry() {
         if let detected = Country.detect(localDigits: state.localDigits,
                                          current: state.selectedCountry) {
@@ -108,7 +100,7 @@ class PhoneEntryScreenViewModel: PhoneEntryScreenViewModelType, PhoneEntryScreen
         guard trimmed.hasPrefix("+") else { return (Country.deviceDefault, "") }
 
         let digits = String(trimmed.dropFirst()).filter(\.isNumber)
-        // Try longest-prefix match (some dial codes are 4 digits, e.g. +1876 for Jamaica).
+        // Longest-prefix match: some dial codes are 4 digits, e.g. +1876 for Jamaica.
         for length in stride(from: min(4, digits.count), through: 1, by: -1) {
             let prefix = String(digits.prefix(length))
             if let country = Country.all.first(where: { $0.dialCode == prefix }) {

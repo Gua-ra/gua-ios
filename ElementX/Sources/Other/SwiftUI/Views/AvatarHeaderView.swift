@@ -41,7 +41,7 @@ struct AvatarHeaderView<Footer: View>: View {
         if let roomAlias = room.canonicalAlias {
             subtitle = roomAlias
         } else if room.isDirect, case let .heroes(heroes) = room.avatar, heroes.count == 1 {
-            // GUA FORK: show the bare handle, never the ":homeserver" suffix.
+            // GUA FORK
             subtitle = heroes[0].userID.guaDisplayHandle
         } else {
             subtitle = nil

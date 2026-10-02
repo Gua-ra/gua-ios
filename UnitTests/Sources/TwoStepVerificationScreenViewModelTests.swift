@@ -52,8 +52,6 @@ class TwoStepVerificationScreenViewModelTests: XCTestCase {
         try await deferred.fulfill()
     }
 
-    /// Loads the report, opens the change flow and submits a number, which is where the factor that
-    /// authorizes the change is chosen.
     private func submitNumberForChange() async throws {
         try await waitForPhase(.overview)
         context.send(viewAction: .startChange)
@@ -68,7 +66,6 @@ class TwoStepVerificationScreenViewModelTests: XCTestCase {
     func testPasskeyHolderChangesPinWithoutBeingAskedForTheCurrentOne() async throws {
         makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: true))
 
-        // No PIN is ever typed here, so reaching the code step means the PIN step was not in the way.
         try await submitNumberForChange()
         try await waitForPhase(.enteringOtp)
 
@@ -90,8 +87,8 @@ class TwoStepVerificationScreenViewModelTests: XCTestCase {
         XCTAssertTrue(identityService.pinChangeStarts.isEmpty, "Nothing is sent until a factor is accepted")
     }
 
-    /// A passkey registered too recently is refused by the server with a hold. The PIN underneath is
-    /// what that refusal leaves, and it must actually get its turn.
+    /// A passkey registered too recently is refused by the server with a hold. The PIN underneath
+    /// must actually get its turn.
     func testServerRefusedPasskeyFallsBackToTheCurrentPin() async throws {
         makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: true))
         identityService.passkeyPinChangeError = IdentityServiceError.twoFactorCooldown(retryAfterSeconds: 3600)
@@ -120,8 +117,8 @@ class TwoStepVerificationScreenViewModelTests: XCTestCase {
         XCTAssertTrue(identityService.pinChangeStarts.isEmpty)
     }
 
-    /// No connection says nothing about the passkey, so it is not reported as one that was refused,
-    /// and the PIN is not offered as though it would fare any better.
+    /// No connection says nothing about the passkey, so it is not reported as a refused one and the
+    /// PIN is not offered in its place.
     func testAConnectionFailureIsShownAsItIsAndNotAsARefusedPasskey() async throws {
         makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: true))
         identityService.passkeyPinChangeError = IdentityServiceError.transport(URLError(.notConnectedToInternet))
@@ -148,8 +145,8 @@ class TwoStepVerificationScreenViewModelTests: XCTestCase {
         XCTAssertEqual(context.viewState.phase, .overview)
     }
 
-    /// The person was never asked for their current PIN on the passkey path, so a failure finishing the
-    /// change must not start asking for it.
+    /// The current PIN was never asked for on the passkey path, so a failure finishing the change
+    /// must not start asking for it.
     func testAFailureAfterThePasskeyWasAcceptedReturnsToTheNewPin() async throws {
         makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: true))
         identityService.completePinChangeError = IdentityServiceError.server(status: 500, message: nil)
@@ -191,8 +188,8 @@ class TwoStepVerificationScreenViewModelTests: XCTestCase {
 
     // MARK: - GUA FORK: the first PIN is enrolled in the web session
 
-    /// A bearer session alone must not add a durable factor. Adding a first PIN therefore leaves
-    /// this screen for the enrollment session, and nothing is typed here on the way out.
+    /// A bearer session alone must not add a factor, so adding a first PIN leaves this screen for
+    /// the enrollment session.
     func testSettingTheFirstPinHandsOverToTheEnrollmentSession() async throws {
         makeViewModel(status: Self.status(hasPin: false, passkeyRegistered: false))
         try await waitForPhase(.overview)
@@ -204,8 +201,6 @@ class TwoStepVerificationScreenViewModelTests: XCTestCase {
         XCTAssertEqual(context.viewState.phase, .overview, "No PIN is entered on this screen any more")
     }
 
-    /// The change-phone block screen can send someone here asking for a PIN. That request takes the
-    /// same route: it is still a first factor.
     func testAnArrivingPinSetupRequestOpensTheEnrollmentSession() async throws {
         makeViewModel(status: Self.status(hasPin: false, passkeyRegistered: false), initialSetup: .pin)
 
@@ -213,8 +208,6 @@ class TwoStepVerificationScreenViewModelTests: XCTestCase {
         try await deferred.fulfill()
     }
 
-    /// An account that already holds a PIN is offered the change, which is a different flow with a
-    /// different proof and stays native.
     func testAPinHolderStillChangesItHere() async throws {
         makeViewModel(status: Self.status(hasPin: true, passkeyRegistered: false))
 
@@ -232,8 +225,6 @@ class TwoStepVerificationScreenViewModelTests: XCTestCase {
 
     // MARK: - GUA FORK: the overview reads the server's factor report
 
-    /// The overview used to be one of two PIN screens, so an account whose only factor was a
-    /// passkey was shown the one that says there is nothing.
     func testPasskeyHolderIsReportedAsHavingAPasskey() async throws {
         makeViewModel(status: Self.status(hasPin: false, passkeyRegistered: true))
 
@@ -244,8 +235,7 @@ class TwoStepVerificationScreenViewModelTests: XCTestCase {
         XCTAssertFalse(context.viewState.hasPin, "The PIN is still on offer as the fallback")
     }
 
-    /// A report that could not be read must not collapse into "no PIN". That fail-open is what
-    /// would tell a protected account it has nothing.
+    /// A report that could not be read must not collapse into "no PIN".
     func testUnreadableStatusIsNotReportedAsNoFactor() async throws {
         makeViewModel(status: nil)
 

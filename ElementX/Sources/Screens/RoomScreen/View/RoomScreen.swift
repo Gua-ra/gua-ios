@@ -67,7 +67,7 @@ struct RoomScreen: View {
             }
             .navigationTitle(L10n.screenRoomTitle) // Hidden but used for back button text.
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarRole(RoomHeaderView.toolbarRole) // Leading aligns the header on iOS 26.
+            .toolbarRole(RoomHeaderView.toolbarRole)
             .toolbar { toolbar }
             .toolbarBackground(.visible, for: .navigationBar) // Fix the toolbar's background.
             .overlay { loadingIndicator }

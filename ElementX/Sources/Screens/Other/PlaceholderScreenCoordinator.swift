@@ -40,10 +40,7 @@ struct PlaceholderScreen: View {
     @ViewBuilder
     private var content: some View {
         if hideBrandChrome {
-            // GUA FORK: the empty iPad detail pane. AuthenticationStartLogo is resizable +
-            // scaledToFit with no intrinsic cap, so without a frame it scales up to fill the
-            // whole detail pane (the "giant logo" bug). Cap it and pair it with a subtle hint
-            // so this reads as a tasteful empty state rather than a hero logo.
+            // GUA FORK: the logo has no intrinsic size cap, so it is framed here.
             VStack(spacing: 16) {
                 AuthenticationStartLogo(isOnGradient: false)
                     .frame(maxWidth: 96, maxHeight: 96)
@@ -55,26 +52,18 @@ struct PlaceholderScreen: View {
                     .padding(.horizontal, 24)
             }
         } else {
-            // GUA FORK: the privacy screen - what the app switcher snapshots, what covers the app
-            // as it resigns active, and what sits behind the unlock prompt. It used to draw the
-            // app-icon artwork with no size cap on the old launch gradient, so a raw, blown-up
-            // icon filled the screen. Show a properly sized mark on the canvas the launch, splash
-            // and PIN screens already use, so a locked Gua looks like the rest of Gua.
+            // GUA FORK: the privacy screen, which the app switcher snapshots, which covers the app as
+            // it resigns active, and which sits behind the unlock prompt.
             PrivacyScreenLogo(size: 96)
         }
     }
 }
 
-/// GUA FORK: the app mark on the privacy screen: the icon artwork presented as a tile rather than
-/// stretched to fill the screen.
-///
-/// Deliberately static, and deliberately not `GuaWelcomeLogo`. That one reveals itself from
-/// `onAppear` (it has an entrance to play), and this view is what iOS snapshots for the app
-/// switcher, so it has to be completely drawn on its very first frame.
+/// GUA FORK: the app mark on the privacy screen. Static, and not `GuaWelcomeLogo`: iOS snapshots
+/// this view for the app switcher, so it must be fully drawn on its first frame.
 private struct PrivacyScreenLogo: View {
     let size: CGFloat
 
-    /// Matches the proportions of the home screen icon, and of the welcome screen's logo tile.
     private var shape: RoundedRectangle {
         RoundedRectangle(cornerRadius: size * 0.25, style: .continuous)
     }
@@ -94,9 +83,8 @@ private struct PrivacyScreenLogo: View {
     }
 }
 
-/// GUA FORK: the soft halo behind the privacy screen's mark. Reuses the Compound "subtle" green
-/// ramp that paints the home screen bloom, which keeps the locked app unmistakably Gua without
-/// the off-brand teal launch gradient that the welcome screen has already moved away from.
+/// GUA FORK: the soft halo behind the privacy screen's mark, using the Compound subtle green ramp
+/// of the home screen.
 private struct PrivacyScreenBloom: View {
     var body: some View {
         RadialGradient(gradient: .compound.subtle,

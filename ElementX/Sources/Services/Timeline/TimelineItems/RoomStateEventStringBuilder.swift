@@ -11,9 +11,8 @@ import UIKit
 struct RoomStateEventStringBuilder {
     let userID: String
     var shouldDisambiguateDisplayNames = true
-    /// In a 1:1 direct chat the membership/creation plumbing ("You joined the room",
-    /// "You invited …", "You created the room") reads like group noise and makes the
-    /// conversation look like a group. Suppress those events when this is set.
+    /// In a 1:1 chat the membership and creation events ("You joined the room", "You created the
+    /// room") read like group noise. They are suppressed when this is set.
     var isDirectOneToOneRoom = false
     
     func buildString(for change: MembershipChange?,
@@ -36,8 +35,6 @@ struct RoomStateEventStringBuilder {
             sender.displayName ?? sender.id.guaDisplayHandle
         }
         
-        // Joining, being invited and accepting an invite are all implicit in a 1:1 chat —
-        // hide them so the DM doesn't read like a group.
         if isDirectOneToOneRoom, case .joined = change { return nil }
         if isDirectOneToOneRoom, case .invited = change { return nil }
         if isDirectOneToOneRoom, case .invitationAccepted = change { return nil }
@@ -162,7 +159,6 @@ struct RoomStateEventStringBuilder {
                 return L10n.stateEventRoomAvatarRemovedByYou
             }
         case .roomCreate:
-            // "You created the room" is group framing; a 1:1 chat just starts.
             if isDirectOneToOneRoom { return nil }
             return isOutgoing ? L10n.stateEventRoomCreatedByYou : L10n.stateEventRoomCreated(displayName)
         case .roomEncryption:

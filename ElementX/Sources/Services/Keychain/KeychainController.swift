@@ -27,9 +27,8 @@ enum KeychainControllerService: String {
         InfoPlistReader.main.baseBundleIdentifier + ".keychain.recovery.\(rawValue)"
     }
 
-    /// GUA FORK: the account authority and recovery keys an `AccountGenesis` commits live in their own
-    /// keychain, kept device-only and non-synced (ADM-008 decision 5). Deliberately separate from
-    /// `recoveryID`, which syncs on purpose, and from the session tokens, which must not leave the device.
+    /// GUA FORK: device-only, non-synced keychain for the account authority and recovery keys.
+    /// Separate from `recoveryID`, which syncs on purpose.
     var genesisID: String {
         InfoPlistReader.main.baseBundleIdentifier + ".keychain.genesis.\(rawValue)"
     }
@@ -40,15 +39,9 @@ class KeychainController: KeychainControllerProtocol {
     private let restorationTokenKeychain: Keychain
     /// The keychain responsible for storing all other secrets in the app (keyed by `Key`s).
     private let mainKeychain: Keychain
-    /// GUA FORK: the keychain holding the automatically generated recovery key, keyed by userID.
-    ///
-    /// This one is `synchronizable`, so the key rides iCloud Keychain to the account's other
-    /// devices. Without it the "recovery" key is device-local and dies with the phone, which
-    /// makes the word recovery a lie. It is deliberately separate from
-    /// `restorationTokenKeychain`: session tokens must NOT leave the device.
-    ///
-    /// `.whenUnlocked` rather than `.afterFirstUnlock` because synchronizable items must be
-    /// readable by iCloud only while the device is unlocked.
+    /// GUA FORK: holds the automatically generated recovery key, keyed by userID. Synced by iCloud
+    /// Keychain so the key survives a lost device, and separate from `restorationTokenKeychain`, whose
+    /// session tokens must not leave the device. Synchronizable items require `.whenUnlocked`.
     private let recoveryKeychain: Keychain
     
     private enum Key: String {
@@ -141,9 +134,8 @@ class KeychainController: KeychainControllerProtocol {
                 return key
             }
 
-            // GUA FORK: keys written before the recovery keychain existed live in the
-            // restoration-token keychain and are device-local. Move them across on first
-            // read so those installs also gain iCloud sync, then drop the old copy.
+            // GUA FORK: keys written before the recovery keychain existed are device-local. Move
+            // them across on first read so those installs gain iCloud sync, then drop the old copy.
             guard let legacyKey = try restorationTokenKeychain.getString(Self.recoveryKeyPrefix + username) else {
                 return nil
             }

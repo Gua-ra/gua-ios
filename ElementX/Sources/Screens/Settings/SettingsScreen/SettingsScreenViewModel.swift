@@ -50,11 +50,8 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
             .sink { [weak self] securityState in
                 guard let self else { return }
                 
-                // GUA FORK: the secure-backup section is upstream's recovery-key console, with
-                // a key-storage toggle, "set up recovery", "change recovery key" and "confirm
-                // recovery key". Every one of those is a thing Gua promises never to put in front
-                // of anyone, and the home-screen banner now repairs a broken account silently and
-                // escalates to a reset by itself, so nothing here is a user's last way out.
+                // GUA FORK: upstream's recovery-key console is never shown. The home-screen banner
+                // repairs key storage silently and escalates to a reset by itself.
                 _ = securityState
                 state.showSecuritySectionBadge = false
                 state.securitySectionMode = .none

@@ -7,17 +7,15 @@
 import Foundation
 
 enum FindFriendsScreenViewModelAction {
-    /// A direct chat with the selected contact is ready; the room id is returned so the
-    /// surrounding flow can open it.
+    /// A direct chat with the selected contact is ready; the surrounding flow opens the room.
     case startedChat(roomID: String)
-    /// The user tapped a contact's avatar — open their profile.
     case showProfile(userID: String)
     case close
 }
 
 enum FindFriendsScreenPhase: Equatable {
     case loading
-    /// Contacts permission is denied or restricted — show a CTA to open Settings.
+    /// Contacts permission is denied or restricted.
     case needsPermission
     /// Discovery ran but none of the user's contacts are on Gua yet.
     case empty
@@ -31,7 +29,7 @@ struct FindFriendsScreenViewState: BindableState {
     var errorMessage: String?
     var bindings = FindFriendsScreenViewStateBindings()
 
-    /// User id of the contact whose chat is currently being opened (drives a per-row spinner).
+    /// The contact whose chat is being opened; drives a per-row spinner.
     var startingChatUserID: String?
 }
 
@@ -43,7 +41,6 @@ enum FindFriendsScreenViewAction {
     case retry
     case openSystemSettings
     case selectContact(DiscoveredContact)
-    /// Tapping the avatar opens the contact's profile rather than starting a chat.
     case showProfile(DiscoveredContact)
     case close
 }

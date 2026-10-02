@@ -6,17 +6,9 @@
 
 import Foundation
 
-/// Remembers that an identity reset was started for an account and has not landed on the server.
-///
-/// Starting a reset is destructive before anything is approved: the SDK deletes the key backup,
-/// disables secret storage and mints a brand new local identity, all before the user has seen
-/// the approval page. If the approval never happens, that new identity exists only on this
-/// device. The setup banner's ordinary repair path would then export it into fresh key storage
-/// and report success for an identity the server has never accepted. While this marker is set,
-/// that path must refuse and ask for the reset to be finished instead.
-///
-/// Kept in user defaults, keyed by account, so it survives the app being killed between the
-/// reset starting and the approval coming back.
+/// Set while an identity reset has started but is not yet approved. The SDK has already replaced
+/// the local identity by then, so key-storage repair must refuse until the reset finishes.
+/// Kept in user defaults, keyed by account, so it survives the app being killed in between.
 enum IdentityResetPendingStore {
     private static func key(for userID: String) -> String {
         "gua.identityResetPending.\(userID)"

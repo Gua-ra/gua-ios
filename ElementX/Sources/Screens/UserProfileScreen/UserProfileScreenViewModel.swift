@@ -77,7 +77,7 @@ class UserProfileScreenViewModel: UserProfileScreenViewModelType, UserProfileScr
         switch await profileResult {
         case .success(let userProfile):
             state.userProfile = userProfile
-            // GUA FORK: share the brand link, never matrix.to (which surfaces the homeserver).
+            // GUA FORK
             state.permalink = GuaUserLink.url(for: state.userID)
 
             switch userSession.clientProxy.directRoomForUserID(userProfile.userID) {
@@ -87,13 +87,11 @@ class UserProfileScreenViewModel: UserProfileScreenViewModelType, UserProfileScr
                 break
             }
         case .failure(let error):
-            // GUA FORK: a contact surfaced by Find Friends is known to be on Gua even when the
-            // homeserver can't return a full profile right now. Degrade gracefully to a minimal
-            // profile (handle + initials) instead of a dead-end "error occurred" alert — this keeps
-            // the screen usable (and "Send message" working) rather than surfacing a raw failure.
+            // GUA FORK: a contact from Find Friends is known to be on Gua even when the homeserver
+            // cannot return a full profile. Fall back to a minimal profile instead of an error alert.
             MXLog.warning("Falling back to minimal profile for \(state.userID): \(error)")
             state.userProfile = UserProfileProxy(userID: state.userID)
-            // GUA FORK: share the brand link, never matrix.to (which surfaces the homeserver).
+            // GUA FORK
             state.permalink = GuaUserLink.url(for: state.userID)
             if case let .success(roomID) = userSession.clientProxy.directRoomForUserID(state.userID) {
                 state.dmRoomID = roomID

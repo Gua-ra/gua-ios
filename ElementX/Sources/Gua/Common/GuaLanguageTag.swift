@@ -7,15 +7,11 @@
 import Foundation
 
 extension Locale {
-    /// The `Accept-Language` tag that goes out with an identity-service call that texts something,
-    /// which is what picks the language the SMS is written in.
+    /// The `Accept-Language` tag sent with identity-service calls that text something; it picks the
+    /// language of the SMS.
     ///
-    /// Built from the language subtags rather than taken from `identifier`, which is the ICU form:
-    /// `pt_BR` carries an underscore, matches none of the server's template keys, and its primary
-    /// tag is never reached either because the server splits on `-`. Every Brazilian account was
-    /// therefore getting its codes in English. `identifier(.bcp47)` has the right separator but
-    /// also carries the locale's extensions (`pt-BR-u-ca-gregory`), which costs the same fallback,
-    /// so only the language and its region are kept.
+    /// Built from the language and region subtags: `identifier` uses an underscore (`pt_BR`) the server
+    /// cannot match, and `identifier(.bcp47)` carries locale extensions (`pt-BR-u-ca-gregory`).
     static func guaLanguageTag(for locale: Locale = .current) -> String? {
         guard let languageCode = locale.language.languageCode?.identifier, !languageCode.isEmpty else {
             return nil

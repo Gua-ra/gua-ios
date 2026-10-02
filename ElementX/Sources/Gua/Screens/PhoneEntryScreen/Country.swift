@@ -71,20 +71,19 @@ extension Country {
 
     static let fallback = Country(isoCode: "US", dialCode: "1")
 
-    /// Looks up a country by its ISO code (case-insensitive).
     static func find(isoCode: String) -> Country? {
         all.first { $0.isoCode == isoCode.uppercased() }
     }
 
-    /// Best-effort match by dial code. When several countries share a code (e.g. +1)
-    /// the first entry in `all` wins — typically the most populous one.
+    /// Best-effort match by dial code. When several countries share a code (e.g. +1) the first entry
+    /// in `all` wins.
     static func find(dialCode: String) -> Country? {
         let trimmed = dialCode.trimmingCharacters(in: CharacterSet(charactersIn: "+ "))
         return all.first { $0.dialCode == trimmed }
     }
 
-    /// ISO 3166-1 alpha-2 + ITU-T E.164 dial code. Hand-curated; the order matters
-    /// only for `find(dialCode:)` ambiguity (most populous listed first).
+    /// ISO 3166-1 alpha-2 plus E.164 dial code, hand-curated. Order matters: `find(dialCode:)` returns
+    /// the first entry for a shared dial code, so the most populous country is listed first.
     static let all: [Country] = [
         Country(isoCode: "US", dialCode: "1"),
         Country(isoCode: "CA", dialCode: "1"),
@@ -325,11 +324,9 @@ extension Country {
 
     // MARK: - Smart detection
 
-    /// NANP area codes (NPA) assigned to Canada. The North American Numbering Plan
-    /// shares the +1 dial code between the US, Canada and most Caribbean nations.
-    /// Caribbean countries are disambiguated by full +1XXX dial codes in `all`;
-    /// Canada vs US must be disambiguated by the local 3-digit area code.
-    /// Source: Canadian Numbering Administrator (CNA), 2024.
+    /// NANP area codes assigned to Canada. +1 is shared by the US, Canada and most Caribbean nations:
+    /// Caribbean countries are told apart by their full +1XXX dial codes in `all`, Canada and the US
+    /// by area code. Source: Canadian Numbering Administrator, 2024.
     static let canadianAreaCodes: Set = [
         "204", "226", "236", "249", "250", "263", "289", "306", "343", "354",
         "365", "367", "368", "382", "387", "403", "416", "418", "428", "431",
@@ -339,21 +336,14 @@ extension Country {
         "780", "782", "807", "819", "825", "833", "867", "873", "879", "902", "905"
     ]
 
-    /// Picks the most likely country for the digits the user is currently typing,
-    /// given their currently selected country. Returns `nil` if the current
-    /// selection is already the best match.
+    /// Picks the most likely country for the digits being typed, given the selected country. Returns
+    /// `nil` when the current selection is already the best match.
     ///
-    /// Rules:
-    /// 1. **Longest-prefix dial code match** against `all`. Handles e.g. user typing
-    ///    "242" while on US (+1) — recognises Bahamas (+1242). Also handles users
-    ///    pasting their full local number starting with a country code.
-    /// 2. **NANP +1 disambiguation**: when the dial code is "1" and ≥3 local digits
-    ///    are entered, look up the area code in `canadianAreaCodes` to flip between
-    ///    US and Canada.
+    /// 1. Longest-prefix dial code match against `all`: "242" typed on US (+1) is Bahamas (+1242).
+    /// 2. For +1 with at least 3 local digits, the area code decides between the US and Canada.
     static func detect(localDigits: String, current: Country) -> Country? {
         let combined = current.dialCode + localDigits
 
-        // Longest-prefix match (4 → 2 digits), skipping anything equal to the current dial code.
         let maxLen = min(5, combined.count)
         if maxLen >= 2 {
             for length in stride(from: maxLen, through: 2, by: -1) {
@@ -365,7 +355,6 @@ extension Country {
             }
         }
 
-        // NANP: US ↔ Canada area-code disambiguation.
         if current.dialCode == "1", localDigits.count >= 3 {
             let area = String(localDigits.prefix(3))
             let isCanadian = canadianAreaCodes.contains(area)
@@ -380,35 +369,27 @@ extension Country {
         return nil
     }
 
-    /// Number of digits in a national-format subscriber number for this country, inferred
-    /// from its `nationalExample` (e.g. US `"555 123 4567"` → 10, BR `"11 91234 5678"` → 11).
-    /// Returns `nil` when no curated example exists, so callers can stay conservative.
+    /// Digits in a national number for this country, inferred from its `nationalExample`. `nil` when
+    /// no curated example exists, so callers can stay conservative.
     var nationalDigitLength: Int? {
         guard let example = Country.nationalExamples[isoCode] else { return nil }
         let count = example.filter(\.isNumber).count
         return count > 0 ? count : nil
     }
 
-    /// Normalises raw text the user typed/pasted/autofilled into the *local* number field
-    /// into a clean `(country, localDigits)` pair, transparently stripping a redundant
-    /// country code and switching the country when the input is unambiguously international.
+    /// Normalizes text typed, pasted or autofilled into the local number field into a
+    /// `(country, localDigits)` pair, stripping a redundant country code and switching the country when
+    /// the input is unambiguously international. Runs on every text change, so it must leave ordinary
+    /// local typing untouched.
     ///
-    /// Runs on every text change, so it must be a no-op for ordinary local typing.
-    /// Resolution order:
-    ///
-    /// 1. **Leading "+" (explicit E.164)**: longest-prefix dial-code match → matched country
-    ///    + remainder as local digits. Always safe to strip because the user signalled intent.
-    /// 2. **No "+", leading digits == selected dial code AND total length is exactly
-    ///    `dialCode + nationalLength`**: the dial code was redundantly included (e.g. +1
-    ///    selected, `"15551234567"`). Strip it, keep the country. Only fires when the
-    ///    country has a known national length and the remainder can't itself begin with the
-    ///    dial code (NANP national numbers never start with "1"), keeping it unambiguous.
-    /// 3. **Otherwise**: return the digits untouched (only stripped of formatting) so a valid
-    ///    local number is never mangled.
+    /// 1. Leading `+`: the longest-prefix dial-code match gives the country, the rest is local digits.
+    /// 2. No `+`, the digits start with the selected dial code and the total is exactly dial code plus
+    ///    national length: the dial code is stripped. Only when the remainder cannot itself begin with
+    ///    the dial code.
+    /// 3. Otherwise the digits are returned untouched.
     static func normalize(rawInput: String, current: Country) -> (country: Country, localDigits: String) {
         let trimmed = rawInput.trimmingCharacters(in: .whitespaces)
 
-        // 1. Explicit international format.
         if trimmed.hasPrefix("+") {
             let digits = trimmed.filter(\.isNumber)
             for length in stride(from: min(4, digits.count), through: 1, by: -1) {
@@ -417,19 +398,14 @@ extension Country {
                     return (country, String(digits.dropFirst(length)))
                 }
             }
-            // Unknown dial code: keep the current country, drop the leading "+" formatting only.
             return (current, digits)
         }
 
         let digits = trimmed.filter(\.isNumber)
 
-        // 2. Redundant dial code with no "+".
         let dial = current.dialCode
         if digits.count > dial.count, digits.hasPrefix(dial), let nationalLength = current.nationalDigitLength {
             let remainder = String(digits.dropFirst(dial.count))
-            // Only strip when the remaining digits are exactly a full national number AND the
-            // remainder doesn't itself start with the dial code (which would make it ambiguous,
-            // e.g. a genuine local number that happens to begin with the dial-code digits).
             if remainder.count == nationalLength, !remainder.hasPrefix(dial) {
                 return (current, remainder)
             }
@@ -440,8 +416,7 @@ extension Country {
 }
 
 private extension Country {
-    /// National-format example mobile numbers (no country code). Used as input placeholder.
-    /// Curated for the most-populous markets; everything else falls back to a 10-digit generic.
+    /// National-format example mobile numbers (no country code), curated for the most populous markets.
     static let nationalExamples: [String: String] = [
         "US": "555 123 4567",
         "CA": "506 555 0123",
@@ -503,18 +478,14 @@ private extension Country {
         "LB": "03 123 456"
     ]
     
-    /// Live-formatting masks per country. `#` is a digit placeholder; everything else is a
-    /// literal separator inserted as the user types. Curated for markets where the local
-    /// convention groups digits with parens/dashes; otherwise `deriveMask` infers a mask
-    /// from `nationalExamples`.
+    /// Live-formatting masks. `#` is a digit placeholder; everything else is a literal separator.
+    /// Countries without an entry get a mask derived from `nationalExamples`.
     static let nationalMasks: [String: String] = [
         "US": "(###) ###-####",
         "CA": "(###) ###-####",
         "BR": "(##) #####-####"
     ]
     
-    /// Replaces every digit in `example` with `#`, preserving the separators. Used when no
-    /// explicit `nationalMasks` entry exists for the country.
     static func deriveMask(from example: String) -> String {
         String(example.map { $0.isNumber ? "#" : $0 })
     }

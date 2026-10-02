@@ -52,7 +52,7 @@ struct RoomDetailsScreen: View {
                 }
             }
         }
-        // GUA FORK: a 1:1 chat is a person, not a room — title the details screen accordingly.
+        // GUA FORK: a 1:1 chat is a person, not a room, so the details screen is titled accordingly.
         .navigationTitle(context.viewState.dmRecipientInfo == nil ? L10n.screenRoomDetailsTitle : "Contact info")
         .navigationBarTitleDisplayMode(.inline)
         .track(screen: .RoomDetails)

@@ -25,7 +25,7 @@ struct ThreadTimelineScreen: View {
         TimelineView(timelineContext: timelineContext)
             .navigationTitle(L10n.commonThread)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarRole(RoomHeaderView.toolbarRole) // Leading aligns the header on iOS 26.
+            .toolbarRole(RoomHeaderView.toolbarRole)
             .toolbar { toolbar }
             .background(.compound.bgCanvasDefault)
             .toolbarBackground(.visible, for: .navigationBar) // Fix the toolbar's background.

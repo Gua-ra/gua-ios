@@ -7,12 +7,8 @@
 
 import SwiftUI
 
-/// The app's logo with an "Apple-Intelligence/Siri"-style living aura: a flowing, multi-hue
-/// conic gradient continuously rotates behind the icon and spills out as a soft glow.
-///
-/// The motion is driven by **Core Animation** (a `CABasicAnimation` on the gradient layer),
-/// not SwiftUI's animation timeline — so it runs reliably whenever the view is on screen.
-/// It is disabled when the user prefers reduced motion.
+/// The app logo with a rotating multi-hue aura behind it that spills out as a soft glow.
+/// The motion is suppressed under Reduce Motion.
 struct AuthenticationStartLogo: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -31,10 +27,7 @@ struct AuthenticationStartLogo: View {
 
     var body: some View {
         logo
-            // The living aura, behind the icon and oversized so colour spills past the edges as a
-            // glow. Pure SwiftUI (an AngularGradient that rotates + breathes) so it renders AND
-            // animates reliably on device — a Core Animation layer in a SwiftUI background often
-            // never starts. Always drawn; the motion is suppressed under Reduce Motion.
+            // Pure SwiftUI: a Core Animation layer in a SwiftUI background often never starts.
             .background {
                 GeometryReader { proxy in
                     SiriAura(animated: !reduceMotion)
@@ -96,10 +89,8 @@ struct AuthenticationStartLogo: View {
     }
 }
 
-/// A flowing, multi-hue "Apple-Intelligence/Siri"-style glow: an angular (conic) gradient that
-/// rotates continuously and breathes, written in pure SwiftUI so it reliably renders AND animates
-/// on device. (A Core Animation layer in a SwiftUI `.background` frequently never starts its
-/// animation.) The glow is always drawn; `animated` only toggles the motion (for Reduce Motion).
+/// An angular gradient that rotates and breathes, in pure SwiftUI. Always drawn; `animated` only
+/// toggles the motion.
 private struct SiriAura: View {
     let animated: Bool
 
@@ -120,8 +111,7 @@ private struct SiriAura: View {
             let dimension = min(geometry.size.width, geometry.size.height)
 
             AngularGradient(gradient: Gradient(colors: auraColors), center: .center)
-                // Rotate the whole gradient (more reliably animatable than the `angle:` param) and
-                // blur it into a soft round halo so the colour clearly spills around the logo.
+                // Rotating the view animates more reliably than the `angle:` parameter.
                 .rotationEffect(.degrees(angle))
                 .clipShape(Circle())
                 .blur(radius: dimension * 0.11)

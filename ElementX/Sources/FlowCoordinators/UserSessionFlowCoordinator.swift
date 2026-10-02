@@ -496,11 +496,7 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
             return
         }
         
-        // GUA FORK: one warning, and no route into the recovery-key console. Upstream shows two
-        // alerts here, both saying the user will need a recovery key to restore their chats, and
-        // both offering a "Settings" button through to the screen that generates and displays one.
-        // Signing out of your only device is the moment this fork most needs not to hand out a key,
-        // so the warning names the real consequence and offers only the two real choices.
+        // GUA FORK: one warning, with no route to the recovery-key screen.
         guard secureBackupController.recoveryState.value == .enabled,
               secureBackupController.keyBackupState.value == .enabled else {
             flowParameters.userIndicatorController.alertInfo = .init(id: .init(),

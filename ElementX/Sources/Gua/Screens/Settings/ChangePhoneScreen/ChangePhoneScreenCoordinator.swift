@@ -17,8 +17,7 @@ struct ChangePhoneScreenCoordinatorParameters {
 
 enum ChangePhoneScreenCoordinatorAction {
     case close
-    /// The account can produce no step-up factor and the user picked one to set up. The Settings
-    /// flow opens that one, rather than assuming the PIN.
+    /// The account can produce no step-up factor and the user picked one to set up.
     case setUpStepUpFactor(AuthFactor)
 }
 
@@ -35,8 +34,6 @@ final class ChangePhoneScreenCoordinator: CoordinatorProtocol {
 
     init(parameters: ChangePhoneScreenCoordinatorParameters) {
         self.parameters = parameters
-        // The assertion is run natively here rather than in a web view: the step-up ceremony hands
-        // back WebAuthn options, not a page, and the assertion has to come back as JSON.
         viewModel = ChangePhoneScreenViewModel(clientProxy: parameters.clientProxy,
                                                identityServiceClient: parameters.identityServiceClient,
                                                userIndicatorController: parameters.userIndicatorController,

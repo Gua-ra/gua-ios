@@ -59,11 +59,7 @@ class EncryptionResetPasswordScreenViewModel: EncryptionResetPasswordScreenViewM
         }
         let typed = state.bindings.phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !typed.isEmpty else { return }
-        // Refused here rather than at the server: a number without a country code still parses
-        // against the server's default region, and the neutral refusal it earns cannot say the
-        // format was wrong while it spends one of the account's five attempts an hour. The
-        // punctuation AutoFill brings with it is not a reason to refuse anything, so what travels
-        // is the resolved number rather than what was typed.
+        // Refused here rather than at the server, where an unreadable number still costs a reauth attempt.
         guard let phone = GuaPhoneNumber.e164(from: typed) else {
             state.reauthPhase = .error(L10n.screenPhoneLoginInvalidNumber)
             return
@@ -75,8 +71,6 @@ class EncryptionResetPasswordScreenViewModel: EncryptionResetPasswordScreenViewM
                                                                language: Locale.guaLanguageTag())
             state.reauthPhase = .awaitingCode
         } catch {
-            // A number that is not this account's arrives as the server's own refusal, which says
-            // only that. It is shown as it is rather than reworded into something about ownership.
             MXLog.error("Failed to start account reauth: \(error)")
             state.reauthPhase = .error((error as? LocalizedError)?.errorDescription ?? L10n.errorUnknown)
         }
@@ -89,17 +83,13 @@ class EncryptionResetPasswordScreenViewModel: EncryptionResetPasswordScreenViewM
         }
         let code = state.bindings.otpCode.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !code.isEmpty else { return }
-        // Resolved the same way it was at the start call: the server holds nothing between them, so
-        // the digits that earned the code have to be the digits that spend it.
         guard let phone = GuaPhoneNumber.e164(from: state.bindings.phoneNumber) else {
             state.reauthPhase = .error(L10n.screenPhoneLoginInvalidNumber)
             return
         }
         state.reauthPhase = .verifyingCode
         do {
-            // Scoped to the operation this token is about to be spent on. The server binds the
-            // token to one operation and refuses it anywhere else, so a token minted for a
-            // deactivation cannot pay for an identity reset.
+            // The token is scoped to this operation; the server refuses it for any other.
             let token = try await identityServiceClient.verifyAccountReauth(accessToken: accessToken,
                                                                             phone: phone,
                                                                             code: code,

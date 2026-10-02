@@ -8,12 +8,10 @@ import Combine
 @testable import ElementX
 import XCTest
 
-/// GUA FORK: the identity-reset entry point into reauthentication.
-///
-/// It is the third of the three reauth screens and the least reachable by hand, so the properties
-/// the other two are tested for are pinned here too: no code exists until the account's own number
-/// is given, both calls carry that number under this operation's scope, and a refusal says only
-/// that the number is not this account's.
+/// GUA FORK: the identity-reset entry point into reauthentication. Pins the same properties as
+/// the other two reauth screens: no code until the account's own number is given, both calls carry
+/// that number under this operation's scope, and a refusal says only that the number is not this
+/// account's.
 @MainActor
 class EncryptionResetPasswordScreenViewModelTests: XCTestCase {
     private var passwordPublisher: PassthroughSubject<String, Never>!
@@ -34,8 +32,6 @@ class EncryptionResetPasswordScreenViewModelTests: XCTestCase {
                                                            identityServiceClient: identityService)
     }
 
-    /// Identity-service never says which number an account is on, so the number is asked for and no
-    /// code exists until it matches.
     func testNoCodeIsSentUntilTheAccountsNumberIsGiven() async {
         context.send(viewAction: .sendReauthCode)
         await Task.yield()
@@ -44,9 +40,8 @@ class EncryptionResetPasswordScreenViewModelTests: XCTestCase {
         XCTAssertEqual(context.viewState.reauthPhase, .idle)
     }
 
-    /// Both calls carry the number, because the server keeps nothing between them, and the token is
-    /// minted for this operation alone: one scoped to a deactivation cannot pay for a reset. The
-    /// credentials the reset runs on are then fetched with that same token.
+    /// Both calls carry the number, and the token is scoped to this operation: one issued for a
+    /// deactivation cannot pay for a reset. The reset credentials are fetched with that same token.
     func testTheNumberTravelsWithBothReauthCallsUnderTheResetScope() async throws {
         context.phoneNumber = "+14155550143"
 
@@ -65,10 +60,6 @@ class EncryptionResetPasswordScreenViewModelTests: XCTestCase {
         XCTAssertEqual(identityService.resetTokens, ["reauth-token"])
     }
 
-    /// This screen has no country picker, so a number without its country code would go out as
-    /// typed. The server would read it against its own default region and refuse it with the same
-    /// neutral sentence a stranger's number earns, having already spent one of the five attempts
-    /// the account gets in an hour. It is refused here instead, where the reason can be named.
     func testANumberThatIsNotE164NeverCostsAnAttempt() async throws {
         context.phoneNumber = "4155550143"
 
@@ -80,11 +71,6 @@ class EncryptionResetPasswordScreenViewModelTests: XCTestCase {
         XCTAssertTrue(identityService.startPhones.isEmpty)
     }
 
-    /// The field declares `.textContentType(.telephoneNumber)`, so one tap on the AutoFill
-    /// suggestion fills it with the number exactly as Contacts stores it. That number is the
-    /// account's, and the server reads it, so it must reach the server rather than being refused
-    /// for the brackets around its area code. What travels is the resolved E.164, not what was
-    /// typed, on both calls.
     func testTheNumberAutoFillPutsInTheFieldIsSentAsE164() async throws {
         context.phoneNumber = "+1 (415) 555-0143"
 
@@ -101,7 +87,6 @@ class EncryptionResetPasswordScreenViewModelTests: XCTestCase {
         XCTAssertEqual(identityService.verifyCalls.map(\.phone), ["+14155550143"])
     }
 
-    /// The refusal says only that this is not the number on the account, in the user's language.
     func testAWrongNumberShowsTheNeutralRefusalAndNothingAboutOtherAccounts() async throws {
         identityService.startError = IdentityServiceError.reauthPhoneMismatch
         context.phoneNumber = "+14155550199"

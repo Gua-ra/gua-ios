@@ -48,21 +48,17 @@ struct RoomTimelineItemFactory: RoomTimelineItemFactoryProtocol {
         case .failedToParseState(let eventType, _, let error):
             return buildUnsupportedTimelineItem(eventItemProxy, eventType, error, isOutgoing)
         case .state(_, let content):
-            // GUA FORK: 1:1 conversations are chats, not "rooms". Suppress all state
-            // events (encryption-enabled, name/avatar/topic, room create, etc.) so DMs
-            // never show "N room changes" plumbing.
+            // GUA FORK: a 1:1 chat shows no state events.
             if isDM {
                 return nil
             }
             return buildStateTimelineItem(for: eventItemProxy, state: content, isOutgoing: isOutgoing)
         case .roomMembership(userId: let userID, let displayName, change: let change, let reason):
-            // GUA FORK: hide all membership churn (joined/left/invited/etc.) in 1:1s.
             if isDM {
                 return nil
             }
             return buildStateMembershipChangeTimelineItem(for: eventItemProxy, memberUserID: userID, memberDisplayName: displayName, membershipChange: change, reason: reason, isOutgoing: isOutgoing)
         case .profileChange(let displayName, let prevDisplayName, let avatarUrl, let prevAvatarUrl):
-            // GUA FORK: hide display-name/avatar "changed" lines in 1:1s.
             if isDM {
                 return nil
             }

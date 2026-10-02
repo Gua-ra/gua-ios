@@ -63,7 +63,6 @@ class FindFriendsScreenViewModel: FindFriendsScreenViewModelType, FindFriendsScr
 
         do {
             let contacts = try await contactDiscoveryService.discover(accessToken: accessToken)
-                // Defence in depth: never list the signed-in user among their own friends.
                 .filter { $0.userId != clientProxy.userID }
             state.contacts = contacts
             state.phase = contacts.isEmpty ? .empty : .loaded
@@ -84,7 +83,6 @@ class FindFriendsScreenViewModel: FindFriendsScreenViewModelType, FindFriendsScr
         state.startingChatUserID = contact.userId
         defer { state.startingChatUserID = nil }
 
-        // Reuse an existing direct room when there is one.
         if case let .success(existingRoomID) = clientProxy.directRoomForUserID(contact.userId),
            let roomID = existingRoomID {
             actionsSubject.send(.startedChat(roomID: roomID))

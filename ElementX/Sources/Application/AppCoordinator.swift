@@ -109,8 +109,7 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         userSessionStore = UserSessionStore(keychainController: keychainController, appSettings: appSettings, appHooks: appHooks, networkMonitor: networkMonitor)
         
         let appLockService = AppLockService(keychainController: keychainController, appSettings: appSettings)
-        // GUA FORK: unlocking with Face ID/Touch ID is the default, so switch it on for anyone who
-        // set their PIN code up before this shipped (or before their device had biometrics).
+        // GUA FORK: biometric unlock is the default, so enable it for PINs set up earlier.
         appLockService.applyBiometricUnlockDefault()
         let appLockNavigationCoordinator = NavigationRootCoordinator()
         appLockFlowCoordinator = AppLockFlowCoordinator(appLockService: appLockService,
@@ -607,8 +606,8 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
                                                         analytics: ServiceLocator.shared.analytics,
                                                         userIndicatorController: ServiceLocator.shared.userIndicatorController,
                                                         resolverClient: ResolverClient(), // GUA FORK: required for phone -> homeserver routing.
-                                                        accountGenesisService: AccountGenesisService(appSettings: appSettings), // GUA FORK: ADM-008, inert while the flag is off.
-                                                        usesPhoneLoginHint: true) // Flip to false to restore the stock start/server-confirmation OIDC entry.
+                                                        accountGenesisService: AccountGenesisService(appSettings: appSettings), // GUA FORK: inert while the flag is off.
+                                                        usesPhoneLoginHint: true) // GUA FORK: false restores the stock start/server-confirmation OIDC entry.
         coordinator.delegate = self
         
         authenticationFlowCoordinator = coordinator

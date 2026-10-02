@@ -15,9 +15,7 @@ class UserDiscoveryServiceTest: XCTestCase {
     
     override func setUpWithError() throws {
         clientProxy = .init(.init(userID: "@foo:matrix.org"))
-        // A bare handle now always resolves against the searcher's own server, so the default
-        // has to be "no such user" or every search in this file would invent one. Tests that
-        // want a hit override this with their own returnValue or closure.
+        // Default to no such user: a bare handle always resolves against the own server.
         clientProxy.profileForReturnValue = .failure(.sdkError(ClientProxyMockError.generic))
         service = UserDiscoveryService(clientProxy: clientProxy, federationRosterProvider: nil)
     }
@@ -178,7 +176,7 @@ class UserDiscoveryServiceTest: XCTestCase {
     }
 
     /// Regression: an unconfigured or unreachable resolver must not remove the ability to find
-    /// someone on your own server. That is the common case and the whole point of the fix.
+    /// someone on your own server.
     func testOwnServerIsStillSearchedWithoutARoster() async {
         service = UserDiscoveryService(clientProxy: clientProxy, federationRosterProvider: nil)
         clientProxy.searchUsersSearchTermLimitReturnValue = .success(.init(results: [], limited: false))

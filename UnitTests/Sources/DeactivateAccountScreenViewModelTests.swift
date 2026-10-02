@@ -80,9 +80,8 @@ class DeactivateAccountScreenViewModelTests: XCTestCase {
     
     // MARK: - GUA FORK: reauthentication by phone digest
     
-    /// Identity-service never says which number an account is on. It compares what is submitted
-    /// with that account's own binding, so the number is asked for and no code exists until it
-    /// matches.
+    /// identity-service never says which number an account is on, so the number is asked for and no
+    /// code is sent until it matches.
     func testNoCodeIsSentUntilTheAccountsNumberIsGiven() async {
         let identityService = DeactivateIdentityServiceStub()
         makeViewModel(identityService: identityService)
@@ -113,10 +112,8 @@ class DeactivateAccountScreenViewModelTests: XCTestCase {
         XCTAssertEqual(identityService.verifyCalls.map(\.operation), [.deactivate])
     }
     
-    /// This screen has no country picker, so a number without its country code would go out as
-    /// typed. The server would read it against its own default region and refuse it with the same
-    /// neutral sentence a stranger's number earns, having already spent one of the five attempts
-    /// the account gets in an hour. It is refused here instead, where the reason can be named.
+    /// This screen has no country picker, so a number without its country code is refused here,
+    /// before it costs a reauth attempt.
     func testANumberThatIsNotE164NeverCostsAnAttempt() async throws {
         let identityService = DeactivateIdentityServiceStub()
         makeViewModel(identityService: identityService)
@@ -130,11 +127,8 @@ class DeactivateAccountScreenViewModelTests: XCTestCase {
         XCTAssertTrue(identityService.startPhones.isEmpty)
     }
 
-    /// The field declares `.textContentType(.telephoneNumber)`, so one tap on the AutoFill
-    /// suggestion fills it with the number exactly as Contacts stores it, brackets and dashes
-    /// included. That is the account's own number and the server reads it, so refusing it here
-    /// would dead-end the only screen that can deactivate the account. What travels is the resolved
-    /// E.164 on both calls, never the punctuation.
+    /// AutoFill fills the field with the number as Contacts stores it, punctuation included. It must
+    /// not be refused, and both calls send the resolved E.164.
     func testTheNumberAutoFillPutsInTheFieldIsSentAsE164() async throws {
         let identityService = DeactivateIdentityServiceStub()
         makeViewModel(identityService: identityService)

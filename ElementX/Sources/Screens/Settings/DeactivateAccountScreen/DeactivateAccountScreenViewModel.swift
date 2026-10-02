@@ -54,12 +54,7 @@ class DeactivateAccountScreenViewModel: DeactivateAccountScreenViewModelType, De
         }
         let typed = state.bindings.phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !typed.isEmpty else { return }
-        // A number the server cannot read costs one of the five reauthentication attempts the
-        // account gets in an hour, and a number missing its country code is worse: it parses
-        // against the server's default region and comes back as the same refusal a stranger's
-        // number gets, which by design cannot say the format was the problem. This screen has no
-        // country picker, so the check is what stands in for one. What AutoFill fills the field
-        // with is punctuated, so what travels is the resolved number rather than what was typed.
+        // This screen has no country picker, so a number that is not E.164 is refused here, before it costs a reauth attempt.
         guard let phone = GuaPhoneNumber.e164(from: typed) else {
             state.reauthPhase = .error(L10n.screenPhoneLoginInvalidNumber)
             return
@@ -71,9 +66,6 @@ class DeactivateAccountScreenViewModel: DeactivateAccountScreenViewModelType, De
                                                                language: Locale.guaLanguageTag())
             state.reauthPhase = .awaitingCode
         } catch {
-            // A number that is not this account's arrives here as the server's own refusal, which
-            // says only that. It is shown as it is: rewording it is how a client starts hinting at
-            // who else a number belongs to.
             MXLog.error("Failed to start account reauth: \(error)")
             state.reauthPhase = .error((error as? LocalizedError)?.errorDescription ?? L10n.errorUnknown)
         }
@@ -86,8 +78,6 @@ class DeactivateAccountScreenViewModel: DeactivateAccountScreenViewModelType, De
         }
         let code = state.bindings.otpCode.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !code.isEmpty else { return }
-        // The same resolution as the start call: the server keeps nothing between the two, so the
-        // digits that earned the code have to be the digits that spend it.
         guard let phone = GuaPhoneNumber.e164(from: state.bindings.phoneNumber) else {
             state.reauthPhase = .error(L10n.screenPhoneLoginInvalidNumber)
             return
@@ -130,9 +120,8 @@ class DeactivateAccountScreenViewModel: DeactivateAccountScreenViewModelType, De
         
         MXLog.warning("Deactivating account.")
         
-        // Preferred path: identity-service OTP-reauth flow (the Gua app does not store user
-        // passwords because sign-in is phone-OTP only). Falls back to the legacy SDK password
-        // flow only when the identity-service client is unavailable.
+        // Preferred path: identity-service OTP reauth (Gua stores no passwords). The legacy SDK
+        // password flow is used only when the identity-service client is unavailable.
         if let identityServiceClient,
            let reauthToken,
            let accessToken = clientProxy.accessToken {

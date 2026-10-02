@@ -71,14 +71,11 @@ final class UserDiscoveryService: UserDiscoveryServiceProtocol {
 
     // MARK: - Gua federated bare-handle search
 
-    /// GUA FORK: exact-handle matches for a bare username, on the searcher's own homeserver and
-    /// on the other homeservers of the Gua federation, honouring each server's discoverability
-    /// policy. Empty when the query isn't a bare handle.
+    /// GUA FORK: exact-handle matches for a bare username, on the searcher's own homeserver and on
+    /// the other homeservers of the federation, honouring each server's discoverability policy. Empty
+    /// when the query is not a bare handle.
     ///
-    /// The own-server lookup deliberately does NOT depend on the roster. The searcher's server
-    /// name comes from their own user ID, so an unconfigured or unreachable resolver must not
-    /// take away the ability to find someone on your own server, which is the common case and
-    /// the bug this whole path exists to fix. The roster only ever adds the other servers.
+    /// The own-server lookup must not depend on the roster, which only adds the other servers.
     private func federatedProfiles(matching searchQuery: String) async -> [UserProfileProxy] {
         guard let handle = FederatedUserSearch.bareHandle(from: searchQuery) else {
             return []
@@ -115,9 +112,8 @@ final class UserDiscoveryService: UserDiscoveryServiceProtocol {
         }
     }
 
-    /// Resolves one federated candidate through the same profile lookup used when a full
-    /// `@user:server` address is typed. Failures (unknown user, unreachable server) and lookups
-    /// exceeding the timeout are dropped silently, so one slow server can't stall the search.
+    /// Resolves one candidate through the same profile lookup used for a full `@user:server` address.
+    /// Failed or slow lookups are dropped, so one server cannot stall the search.
     private func federatedProfile(for userID: String) async -> UserProfileProxy? {
         await withTaskGroup(of: UserProfileProxy?.self) { group in
             group.addTask {
@@ -134,7 +130,7 @@ final class UserDiscoveryService: UserDiscoveryServiceProtocol {
         }
     }
 
-    /// Local results first, then the federated exact matches that aren't already present.
+    /// Local results first, then the federated exact matches that are not already present.
     private func appendFederated(_ federatedProfiles: [UserProfileProxy], to users: [UserProfileProxy]) -> [UserProfileProxy] {
         guard !federatedProfiles.isEmpty else {
             return users
@@ -143,7 +139,6 @@ final class UserDiscoveryService: UserDiscoveryServiceProtocol {
         return users + federatedProfiles.filter { !knownUserIDs.contains($0.userID) }
     }
 
-    /// The homeserver part of the signed-in user's ID (`@user:server` → `server`).
     private var ownServerName: String {
         let userID = clientProxy.userID
         guard let colonIndex = userID.firstIndex(of: ":") else {

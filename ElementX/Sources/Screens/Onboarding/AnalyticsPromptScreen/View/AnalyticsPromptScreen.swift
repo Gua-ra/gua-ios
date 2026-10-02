@@ -71,9 +71,7 @@ struct AnalyticsPromptScreen: View {
         }
     }
     
-    /// The enable/disable buttons. Rendered in the main (white) content area rather than over the
-    /// bottom gradient, so the dark filled buttons stay high-contrast. Both share the same filled
-    /// style so neither choice is visually weaker (no nudge towards sharing analytics).
+    /// Both buttons share one style, so neither choice is nudged.
     private var buttons: some View {
         VStack(spacing: 12) {
             Button(L10n.actionOk) { context.send(viewAction: .enable) }

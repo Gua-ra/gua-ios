@@ -7,11 +7,9 @@
 import Compound
 import SwiftUI
 
-/// Encourages the user to configure their two-step verification PIN. Shown above the
-/// room list when the identity-service reports `hasPin == false` and the reminder has
-/// not been snoozed. Tapping the primary button opens Settings so the user can finish
-/// setup via Settings → Account → Two-step verification; the dismiss button snoozes the
-/// reminder for a week.
+/// Encourages the user to set up two-step verification. Shown above the room list when the account
+/// holds no strong factor and the reminder is not snoozed. The primary button opens Settings; the
+/// dismiss button snoozes the reminder for a week.
 struct HomeScreenPinSetupReminderBanner: View {
     var context: HomeScreenViewModel.Context
 

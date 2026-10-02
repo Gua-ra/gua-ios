@@ -20,8 +20,7 @@ struct JoinRoomByAddressView: View {
     private var footerText: String {
         switch context.viewState.joinByAddressState {
         case .example:
-            // GUA FORK: upstream's hint is "e.g. #room-name:matrix.org", which names another
-            // network's homeserver and teaches the server-qualified form Gua keeps out of sight.
+            // GUA FORK: upstream's hint names matrix.org and teaches the server-qualified form.
             UntranslatedL10n.guaJoinRoomByAddressHint
         case .addressNotFound:
             L10n.screenStartChatJoinRoomByAddressRoomNotFound

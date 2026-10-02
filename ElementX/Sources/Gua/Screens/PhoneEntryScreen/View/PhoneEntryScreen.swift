@@ -42,8 +42,6 @@ struct PhoneEntryScreen: View {
 
     private var header: some View {
         VStack(spacing: 20) {
-            // App-icon logo: a one-shot fly-in/spin entrance, raised wolf+bubble relief, device-motion
-            // parallax, and a contained Gua-green aura (see GuaWelcomeLogo).
             GuaWelcomeLogo(animated: !reduceMotion)
 
             VStack(spacing: 8) {
@@ -162,14 +160,12 @@ struct PhoneEntryScreen: View {
 
     // MARK: - Trust
 
-    /// On-brand trust signal reassuring the user before they hand over a number.
     private var trustPills: some View {
         TrustPill(systemImage: "lock.fill", title: L10n.screenOnboardingTrustEncrypted)
             .padding(.top, 8)
     }
 }
 
-/// A single capsule "trust" chip — icon + short claim, sitting quietly on the canvas.
 private struct TrustPill: View {
     let systemImage: String
     let title: String

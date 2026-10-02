@@ -10,9 +10,8 @@ import Foundation
 enum PhoneEntryScreenViewModelAction {
     case `continue`(phoneNumber: String)
     case useLegacyAuth
-    /// Sign in with a passkey instead of a number. Deliberately does NOT carry a phone
-    /// number: the credential is discoverable, so it identifies the account by itself and
-    /// no code has to be sent to reach it.
+    /// Sign in with a passkey instead of a number. Carries no phone number: the credential is
+    /// discoverable, so it identifies the account by itself and no code has to be sent.
     case signInWithPasskey
 }
 
@@ -24,7 +23,6 @@ struct PhoneEntryScreenViewState: BindableState {
 
     var bindings: PhoneEntryScreenViewStateBindings
 
-    /// User-entered digits, stripped of any non-numeric characters.
     var localDigits: String {
         bindings.localPhoneNumber.filter(\.isNumber)
     }
@@ -38,10 +36,9 @@ struct PhoneEntryScreenViewState: BindableState {
         !isSubmitting && Self.isValid(localDigits: localDigits, dialCode: selectedCountry.dialCode)
     }
 
-    /// E.164 numbers are 7–15 digits including the country code. The resolver enforces the same
-    /// floor (`+[1-9]\d{6,14}`), so we keep the two in sync — otherwise a number that passes here
-    /// would be rejected by `/resolve` and surface as a confusing error. We also require at least a
-    /// 4-digit subscriber part (small island states) on top of the 7-digit total.
+    /// E.164 numbers are 7 to 15 digits including the country code. Matches the resolver's
+    /// `+[1-9]\d{6,14}` rule, so a number accepted here is not rejected by `/resolve`. Also requires at
+    /// least a 4-digit subscriber part.
     static func isValid(localDigits: String, dialCode: String) -> Bool {
         let totalDigits = dialCode.count + localDigits.count
         return localDigits.count >= 4 && totalDigits >= 7 && totalDigits <= 15

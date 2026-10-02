@@ -38,7 +38,6 @@ final class AccountAuthorityKeyStoreTests: XCTestCase {
         let loaded = try store.authorityKey(forAccountID: accountID)
         XCTAssertEqual(loaded.publicKey.rawRepresentation, keyPair.authority.publicKey.rawRepresentation)
 
-        // The key that comes back signs what the original would have signed.
         let message = Data("attach preimage stand-in".utf8)
         let signature = try loaded.signature(for: message)
         XCTAssertTrue(keyPair.authority.publicKey.isValidSignature(signature, for: message))
@@ -57,8 +56,6 @@ final class AccountAuthorityKeyStoreTests: XCTestCase {
         store.removeKeys(forAccountID: accountID)
 
         XCTAssertThrowsError(try store.authorityKey(forAccountID: accountID)) { error in
-            // A signup that reaches the attach step with no key must fail, never fall back to a
-            // bootstrap account (ADM-008 decision 6).
             XCTAssertEqual(error as? AccountAuthorityKeyStoreError, .keyMissing)
         }
     }

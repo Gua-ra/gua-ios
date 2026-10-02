@@ -58,7 +58,6 @@ class StartChatScreenViewModel: StartChatScreenViewModelType, StartChatScreenVie
         case .createRoom:
             actionsSubject.send(.createRoom)
         case .selectUser(let user):
-            // Never start a chat with yourself.
             guard user.userID != userSession.clientProxy.userID else { return }
 
             showLoadingIndicator(delay: .milliseconds(200))
@@ -187,7 +186,6 @@ class StartChatScreenViewModel: StartChatScreenViewModelType, StartChatScreenVie
     }
         
     private func createDirectRoom(user: UserProfileProxy) async {
-        // Never create a direct room with yourself.
         guard user.userID != userSession.clientProxy.userID else { return }
 
         defer {

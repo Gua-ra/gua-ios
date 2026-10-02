@@ -7,11 +7,8 @@
 import CryptoKit
 import Foundation
 
-/// Why a set of canonical bytes, or an accountId, was refused.
-///
-/// The raw values are the reason strings the golden vectors name
-/// (`docs/specs/genesis-vectors.v1.json` in identity-service), so a vector's expected reason can be
-/// compared against what this codec produced without a translation table in the middle.
+/// Why a set of canonical bytes, or an accountId, was refused. Raw values are identity-service's
+/// rejection reason strings, as its golden vectors name them (`docs/specs/genesis-vectors.v1.json`).
 enum AccountGenesisError: String, Error, Equatable {
     case wrongLength = "wrong_length"
     case badMagic = "bad_magic"
@@ -29,7 +26,6 @@ enum AccountGenesisError: String, Error, Equatable {
     case unknownRootClass = "unknown_root_class"
     case unknownAccountIDVersion = "unknown_account_id_version"
 
-    /// The reason string, matching identity-service's `InvalidGenesisException.reason()`.
     var reason: String {
         rawValue
     }
@@ -37,12 +33,9 @@ enum AccountGenesisError: String, Error, Equatable {
 
 // MARK: - Base32
 
-/// RFC 4648 base32, lowercase and unpadded, the spelling ADM-008 decision 2 fixes for an accountId.
-///
-/// The decoder is strict in the three directions an ambiguity could enter: only the lowercase
-/// alphabet, only a character count an unpadded encoding can produce, and only zero trailing bits.
-/// Each of those is a way one byte string would otherwise gain several spellings, which ADM-001 L4
-/// forbids for anything a permanent identifier covers.
+/// RFC 4648 base32, lowercase and unpadded, the spelling of an accountId. The decoder is strict so
+/// each byte string has exactly one spelling: only the lowercase alphabet, only a length an unpadded
+/// encoding can produce, and only zero trailing bits.
 enum GuaBase32 {
     private static let alphabet = Array("abcdefghijklmnopqrstuvwxyz234567")
 
@@ -78,7 +71,7 @@ enum GuaBase32 {
 
     static func decode(_ encoded: String) throws -> [UInt8] {
         let remainder = encoded.count % 8
-        // 1, 3 and 6 left-over characters cannot come out of any byte string.
+        // No byte string encodes to 1, 3 or 6 left-over characters.
         if remainder == 1 || remainder == 3 || remainder == 6 {
             throw AccountGenesisError.badBase32
         }
@@ -98,7 +91,7 @@ enum GuaBase32 {
                 bits -= 8
             }
         }
-        // Whatever is left over is padding and must be zero, or one byte string has several spellings.
+        // Non-zero trailing bits would give one byte string several spellings.
         if bits > 0, buffer & ((1 << bits) - 1) != 0 {
             throw AccountGenesisError.badBase32
         }
@@ -108,16 +101,12 @@ enum GuaBase32 {
 
 // MARK: - accountId
 
-/// An accountId: `"ga1" || base32(0x01 || class || SHA-256(canonical bytes))` (ADM-008 decision 2).
+/// An accountId: `"ga1" || base32(0x01 || class || SHA-256(canonical bytes))`.
 ///
-/// The digest covers the canonical bytes *as received*. Nothing here re-encodes a decoded object
-/// before hashing it: the accountId is permanent, so if the bytes that were hashed were not the bytes
-/// that crossed the wire, a decoder bug would silently mint a different account.
-///
-/// An accountId also has exactly one spelling. The 34 input bytes are 272 bits while the 55 base32
-/// characters carry 275, so the last character holds three unused bits and only `a`, `i`, `q` and `y`
-/// can end a well-formed id. ``parse(_:)`` applies the tightened pattern, decodes, re-encodes and
-/// compares.
+/// The digest covers the canonical bytes as received, never a re-encoding of a decoded object. The
+/// accountId is permanent, so hashing anything but the wire bytes could yield a different account.
+/// An accountId has exactly one spelling: ``parse(_:)`` applies the canonical pattern, decodes,
+/// re-encodes and compares.
 struct AccountID: Equatable {
     static let prefix = "ga1"
 
@@ -127,7 +116,7 @@ struct AccountID: Equatable {
     /// Root class byte: the account is rooted in an `AccountGenesis`.
     static let classGenesis: UInt8 = 0x01
 
-    /// Root class byte: the account is a bootstrap account (ADM-001 L5 path B1).
+    /// Root class byte: a bootstrap account, created by identity-service for a signup with no genesis.
     static let classBootstrap: UInt8 = 0x00
 
     /// Bytes under the base32: format version, root class, then the 32-byte digest.
@@ -139,17 +128,15 @@ struct AccountID: Equatable {
     /// Total characters, the `ga1` prefix included.
     static let length = prefix.count + encodedLength
 
-    /// The canonical spelling, tightened at the last character.
+    /// The canonical spelling. 34 bytes are 272 bits and 55 characters carry 275, so the last character
+    /// holds three unused bits and only `a`, `i`, `q` and `y` can end a well-formed id.
     static let canonicalPattern = "^ga1[a-z2-7]{54}[aiqy]$"
 
     let value: String
     let rawBytes: [UInt8]
 
-    /// Derives the accountId of an object from the exact bytes received for it.
-    ///
-    /// - Parameters:
-    ///   - rootClass: ``classGenesis`` or ``classBootstrap``
-    ///   - canonicalBytes: the canonical bytes as received, never a re-encoding of a parsed object
+    /// Derives the accountId from the exact bytes received, never a re-encoding of a parsed object.
+    /// `rootClass` is ``classGenesis`` or ``classBootstrap``.
     static func derive(rootClass: UInt8, canonicalBytes: [UInt8]) throws -> AccountID {
         try requireKnownClass(rootClass)
         var raw = [UInt8]()
@@ -173,21 +160,18 @@ struct AccountID: Equatable {
             throw AccountGenesisError.badAccountID
         }
         guard raw.count == rawLength else { throw AccountGenesisError.badAccountID }
-        // The pattern already excludes the seven non-canonical last characters; re-encoding and
-        // comparing is the rule ADM-008 decision 2 states, and it also catches any future change to
-        // either routine.
+        // The pattern already excludes the non-canonical last characters. Re-encoding and comparing
+        // also catches any future change to either routine.
         guard GuaBase32.encode(raw) == encoded else { throw AccountGenesisError.nonCanonicalAccountID }
         guard raw[0] == formatVersion else { throw AccountGenesisError.unknownAccountIDVersion }
         try requireKnownClass(raw[1])
         return AccountID(value: value, rawBytes: raw)
     }
 
-    /// ``classGenesis`` or ``classBootstrap``.
     var rootClass: UInt8 {
         rawBytes[1]
     }
 
-    /// True for a genesis-rooted account, false for a bootstrap one (ADM-001 L5's audit marker).
     var isGenesisRooted: Bool {
         rootClass == Self.classGenesis
     }
@@ -201,15 +185,11 @@ struct AccountID: Equatable {
 
 // MARK: - AccountGenesis
 
-/// A decoded `AccountGenesis` (ADM-008 suite 0x01) together with the exact bytes it was decoded from.
+/// A decoded `AccountGenesis` (suite 0x01) together with the exact bytes it was decoded from.
 ///
 /// It commits the initial authority key, the algorithm identifiers, and the initial recovery authority
-/// and framework. It holds no identifier and no homeserver (ADM-001 L4).
-///
-/// The layout is fixed and has no delimiters, which is what ADM-008 chose over ADM-007's `gua-lp.v1`
-/// framing for account objects: they carry no optional fields, no sets and no free strings, and the
-/// accountId is a permanent hash of these bytes, so the bytes that are hashed have to be the bytes that
-/// crossed the wire.
+/// and framework. It holds no identifier and no homeserver. The layout is fixed with no delimiters,
+/// and the accountId is a permanent hash of these bytes, so the bytes hashed must be the bytes received.
 ///
 /// ```
 /// off len field
@@ -234,7 +214,7 @@ struct AccountGenesis: Equatable {
     /// Ed25519 authority, Ed25519 recovery, SHA-256.
     static let suiteEd25519SHA256: UInt8 = 0x01
 
-    /// One committed recovery authority key (ADM-008 decision 4).
+    /// One committed recovery authority key.
     static let recoveryFrameworkCommittedKey: UInt8 = 0x01
 
     static let entropyLength = 16
@@ -257,12 +237,10 @@ struct AccountGenesis: Equatable {
     /// The bytes as received. The accountId is the hash of these, never of a re-encoding.
     let canonicalBytes: [UInt8]
 
-    /// Genesis-rooted accountId over the received bytes.
     func accountID() throws -> AccountID {
         try AccountID.derive(rootClass: AccountID.classGenesis, canonicalBytes: canonicalBytes)
     }
 
-    /// Builds canonical bytes.
     static func encode(authorityPublicKey: [UInt8],
                        recoveryFrameworkID: UInt8 = recoveryFrameworkCommittedKey,
                        recoveryAuthorityPublicKey: [UInt8],
@@ -288,8 +266,8 @@ struct AccountGenesis: Equatable {
     /// from what was received.
     ///
     /// Rejects an unknown version, suite or framework, a wrong length, an all-zero key, equal authority
-    /// and recovery keys, and a key that fails Ed25519 point decoding. The all-zero rule is separate
-    /// from point decoding on purpose: the all-zero encoding decodes to a valid low-order point.
+    /// and recovery keys, and a key that fails Ed25519 point decoding. The all-zero check is separate
+    /// from point decoding: all-zero bytes decode to a valid low-order point.
     static func decode(_ bytes: [UInt8]) throws -> AccountGenesis {
         guard bytes.count == length else { throw AccountGenesisError.wrongLength }
         guard Array(bytes[0..<magic.count]) == magic else { throw AccountGenesisError.badMagic }
@@ -325,9 +303,9 @@ struct AccountGenesis: Equatable {
 
 // MARK: - BootstrapGenesis
 
-/// A `BootstrapGenesis` (ADM-008 suite 0x00). The client never mints one: identity-service does that
-/// for a signup that presented no handle (ADM-001 L5 path B1). The codec is here so the client can
-/// recognise and re-derive a bootstrap id, and so the golden vectors covering it are exercised.
+/// A `BootstrapGenesis` (suite 0x00). The client never creates one: identity-service does, for a
+/// signup that presented no handle. The codec is here so the client can recognise and re-derive a
+/// bootstrap accountId.
 ///
 /// ```
 /// off len field
@@ -368,24 +346,20 @@ struct BootstrapGenesis: Equatable {
 
 // MARK: - Proofs
 
-/// The two possession proofs ADM-008 defines, and the fixed-length preimages they cover.
+/// The two possession proofs and the fixed-length preimages they cover.
 ///
-/// **Registration proof** (decision 3). An Ed25519 signature by the authority key over the ASCII domain
-/// `gua-account-genesis-proof.v1` followed by the canonical bytes. It proves the registrant holds the
-/// key and is not part of the genesis. No identifier appears in the preimage: an MXID there would put
-/// an identifier into the id.
+/// Registration proof: an Ed25519 signature by the authority key over the ASCII domain
+/// `gua-account-genesis-proof.v1` followed by the canonical bytes. No identifier appears in the preimage.
 ///
-/// **Attach proof** (decision 6). An Ed25519 signature by the same committed authority key over the
-/// domain `gua-account-attach-proof.v1`, then the 32 server-chosen challenge bytes, then the 34 raw
-/// accountId bytes. Every element is fixed length, so no field can be shifted into another: 27 + 32 +
-/// 34. A handle alone attaches nothing, because anyone can compose an authorize URL carrying someone
-/// else's handle; only this signature shows that the party which registered the genesis held its key
+/// Attach proof: an Ed25519 signature by the same key over the domain `gua-account-attach-proof.v1`,
+/// then the 32 server-chosen challenge bytes, then the 34 raw accountId bytes (27 + 32 + 34). A handle
+/// alone attaches nothing: only this signature shows that whoever registered the genesis held its key
 /// and was present in this login session.
 enum GenesisProofs {
     /// 28 ASCII bytes.
     static let genesisProofDomain = "gua-account-genesis-proof.v1"
 
-    /// 27 ASCII bytes, as ADM-008 decision 6 states.
+    /// 27 ASCII bytes.
     static let attachProofDomain = "gua-account-attach-proof.v1"
 
     /// Server-chosen challenge length, in bytes.
@@ -399,12 +373,8 @@ enum GenesisProofs {
         Array(genesisProofDomain.utf8) + canonicalBytes
     }
 
-    /// Domain bytes, then the challenge, then the raw accountId bytes. Fixed length throughout.
-    ///
-    /// - Parameters:
-    ///   - challenge: the 32 server-chosen bytes held against the login session
-    ///   - accountID: the accountId this device registered; the server derives its own from the stored
-    ///     genesis and reads none from the request, so a mismatch simply fails to verify
+    /// Domain bytes, then the challenge, then the raw accountId bytes. The server derives its own
+    /// accountId from the stored genesis, so a mismatched one simply fails to verify.
     static func attachProofPreimage(challenge: [UInt8], accountID: AccountID) throws -> [UInt8] {
         guard challenge.count == attachChallengeLength else { throw AccountGenesisError.wrongLength }
         return Array(attachProofDomain.utf8) + challenge + accountID.rawBytes
@@ -413,16 +383,11 @@ enum GenesisProofs {
 
 // MARK: - Ed25519 point validation
 
-/// Ed25519 public-key point decoding, which ADM-008 decision 1 requires a decoder to perform.
+/// Ed25519 public-key point decoding. CryptoKit accepts any 32 bytes as a public key and only fails
+/// at verification, so the decompression is done here.
 ///
-/// CryptoKit cannot stand in for this: `Curve25519.Signing.PublicKey(rawRepresentation:)` accepts any
-/// 32 bytes, including a `y` larger than the field prime and a `y` that is on no curve point, and only
-/// fails later at verification time. The golden vectors require both to be refused at decode, so the
-/// decompression is done here.
-///
-/// Arithmetic is mod `p = 2^255 - 19` over four 64-bit limbs, little endian. It runs twice per genesis
-/// decode, so it is written for clarity rather than speed, and it is never given secret input: these
-/// are public keys.
+/// Arithmetic is mod `p = 2^255 - 19` over four 64-bit limbs, little endian, written for clarity
+/// rather than speed. Inputs are public keys, so it is not constant time.
 enum Ed25519PublicKeyValidator {
     static func isValid(_ raw: [UInt8]) -> Bool {
         guard raw.count == 32 else { return false }
@@ -557,8 +522,7 @@ enum Ed25519PublicKeyValidator {
                     index += 1
                 }
             }
-            // Fold the high half back in: 2^256 == 38 (mod p). The carry shrinks by orders of magnitude
-            // each round, so this converges immediately; the bound is a belt-and-braces stop.
+            // Fold the high half back in: 2^256 == 38 (mod p).
             var accumulator = Field(limbs: Array(product[0..<4]))
             var overflowWords = Array(product[4..<8])
             for _ in 0..<4 {
@@ -603,7 +567,7 @@ enum Ed25519PublicKeyValidator {
             return result
         }
 
-        /// Wrapping subtract, no modular correction. Only called when the result is known non-negative.
+        /// Wrapping subtract, no modular correction. The caller guarantees `lhs >= rhs`.
         private static func subtractRaw(_ lhs: Field, _ rhs: Field) -> Field {
             var out = [UInt64](repeating: 0, count: 4)
             var borrow: UInt64 = 0

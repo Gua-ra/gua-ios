@@ -6,18 +6,12 @@
 
 import AuthenticationServices
 
-/// GUA FORK: runs the user-verifying passkey assertion that a privileged operation accepts as its
-/// step-up factor, currently the phone-number change.
+/// Runs the user-verifying passkey assertion that a privileged operation accepts as its step-up
+/// factor. Native rather than web: `POST /security/passkey/stepup/options` returns WebAuthn request
+/// options, not a page, and the assertion travels as JSON in the body of the operation.
 ///
-/// Native rather than web, unlike ``FactorEnrollmentPresenter``: `POST
-/// /security/passkey/stepup/options` hands back WebAuthn request options rather than a page, and
-/// the assertion has to come back as JSON so it can travel in the body of the operation being
-/// stepped up.
-///
-/// Everything this type can report is about THIS DEVICE, and none of it is ever sent anywhere. A
-/// failure here makes the caller ask for the next factor down, which is the PIN; the server is not
-/// told that a passkey was unavailable, because that claim costs an attacker nothing and could only
-/// ever be a request for the weaker factor.
+/// Failures stay on the device: the server is never told that a passkey was unavailable, and the
+/// caller asks for the next factor.
 @MainActor
 protocol PasskeyStepUpPresenting {
     /// Presents the system passkey sheet for `options` and returns the assertion to redeem.
@@ -36,7 +30,7 @@ enum PasskeyStepUpError: Error {
 @MainActor
 final class PasskeyStepUpPresenter: NSObject, PasskeyStepUpPresenting {
     private let presentationAnchor: ASPresentationAnchor
-    /// Retained for the lifetime of the ceremony so the sheet is not torn down early.
+    /// Retained so the sheet is not torn down early.
     private var controller: ASAuthorizationController?
     private var continuation: CheckedContinuation<PasskeyAssertion, Error>?
 
@@ -49,9 +43,7 @@ final class PasskeyStepUpPresenter: NSObject, PasskeyStepUpPresenting {
         guard !options.relyingPartyID.isEmpty, !options.challenge.isEmpty else {
             throw PasskeyStepUpError.unavailable
         }
-        // One ceremony at a time. The challenge behind it is burned by the server on first
-        // presentation, accepted or refused, so a second concurrent attempt could only spend a
-        // challenge that is already gone.
+        // One ceremony at a time: the server burns the challenge on first presentation.
         guard continuation == nil else { throw PasskeyStepUpError.unavailable }
 
         let provider = ASAuthorizationPlatformPublicKeyCredentialProvider(relyingPartyIdentifier: options.relyingPartyID)
@@ -59,10 +51,7 @@ final class PasskeyStepUpPresenter: NSObject, PasskeyStepUpPresenting {
         request.allowedCredentials = options.allowedCredentialIDs.map {
             ASAuthorizationPlatformPublicKeyCredentialDescriptor(credentialID: $0)
         }
-        // The step-up bar, restated on the client so the sheet asks for a real user verification
-        // rather than only for possession of an unlocked device. The server checks it again on the
-        // authenticator data it is handed and refuses the assertion if it did not happen, so this
-        // is the prompt, not the enforcement.
+        // The server enforces user verification; this only makes the sheet ask for it.
         request.userVerificationPreference = .required
 
         return try await withCheckedThrowingContinuation { continuation in

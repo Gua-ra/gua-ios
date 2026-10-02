@@ -41,7 +41,7 @@ final class ResolverClientTests: XCTestCase {
         XCTAssertEqual(resolution.homeserver.masIssuer, "https://mas.gua.global")
         XCTAssertNil(resolution.trace)
 
-        // A plain resolve must keep the legacy single-field body byte for byte.
+        // A plain resolve must keep the single-field body byte for byte.
         let body = try XCTUnwrap(ResolverStub.lastRequestBody)
         XCTAssertEqual(String(data: body, encoding: .utf8), #"{"phone":"+5511999999999"}"#)
     }
@@ -271,8 +271,7 @@ final class ResolverClientTests: XCTestCase {
 
 // MARK: - Stub transport
 
-/// Canned resolver responses plus capture of the outgoing request body. Tests run serially, so plain
-/// statics are safe here (same pattern as `BugReportServiceTests`).
+/// Tests run serially, so plain statics are safe.
 private enum ResolverStub {
     static var statusCode = 200
     static var responseBody = Data()

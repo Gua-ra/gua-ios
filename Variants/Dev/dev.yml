@@ -1,15 +1,13 @@
-# QA app variant: a SECOND installable app that talks to the dev backend, so
-# the shipping app (global.gua) can be a real production build.
+# QA app variant: a second installable app that talks to the dev backend, so the shipping app
+# (global.gua) can be a real production build.
 #
-# Applied by `fastlane config_dev` (appends this file to project.yml's include
-# list, then regenerates), mirroring the upstream Nightly variant.
+# Applied by `fastlane config_dev`, which appends this file to project.yml's include list and
+# regenerates, like the upstream Nightly variant.
 #
-# Why a separate bundle id rather than a build configuration: two apps must be
-# installable side by side and must register DIFFERENT custom URL schemes (iOS
-# routes a scheme to one app only). MAS's client-registration policy reverses
-# the redirect scheme and requires it to match the client_uri host as a prefix,
-# so `global.gua.dev:/oidc` still pairs with client_uri `https://gua.global`
-# and needs no new domain and no server-side change.
+# A separate bundle id rather than a build configuration: the two apps must install side by side
+# and register different custom URL schemes. MAS reverses the redirect scheme and requires it to
+# match the client_uri host as a prefix, so `global.gua.dev:/oidc` still pairs with client_uri
+# `https://gua.global` and needs no server-side change.
 settings:
   APP_GROUP_IDENTIFIER: group.global.gua.dev
   BASE_BUNDLE_IDENTIFIER: global.gua.dev
@@ -21,31 +19,22 @@ targets:
       - path: Resources
     settings:
       base:
-        # APP_DISPLAY_NAME has to be overridden per target, not in the settings
-        # block above: project.yml defines it directly and an including file wins
-        # over its includes, so a top-level override here would be ignored.
-        # It also becomes the OIDC client_name MAS sees, which usefully
-        # distinguishes the two apps in the consent/session UI.
+        # Must be overridden per target: project.yml sets it on the target, so a top-level override
+        # here is ignored. It also becomes the OIDC client_name MAS shows, which tells the two apps apart.
         APP_DISPLAY_NAME: Gua QA
-        # APP_NAME feeds PRODUCT_NAME and therefore CFBundleName, which is what
-        # Xcode prefills as the App Store Connect record name when it creates
-        # the app, so it must also say Gua QA.
+        # Feeds PRODUCT_NAME and so CFBundleName, which Xcode prefills as the App Store Connect
+        # record name.
         APP_NAME: Gua QA
-        # Own icon: the Gua icon with a peeled-back corner revealing an Apple
-        # style blueprint, so the QA app is distinguishable at a glance in every
-        # home screen mode. The bundle id family stays global.gua.dev (renaming
-        # identifiers would orphan the existing app record); only user-visible
-        # names say QA.
+        # Own icon, so the QA app is distinguishable at a glance. The bundle id family stays
+        # global.gua.dev: renaming identifiers would orphan the existing app record.
         ASSETCATALOG_COMPILER_APPICON_NAME: QAAppIcon
       configs:
         Release:
-          # Point Release archives of this variant back at the dev backend. The
-          # dev hosts are not committed; CI injects them into Secrets/Secrets.swift.
+          # Points Release archives of this variant at the dev backend. The dev hosts are not
+          # committed; CI injects them into Secrets/Secrets.swift.
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) GUA_DEVELOPMENT"
 
-  # The hosted test targets derive TEST_HOST from $(APP_NAME); without these
-  # overrides they would look for Gua.app inside a build that produces
-  # Gua QA.app and fail to load. (Codex review catch on this PR.)
+  # The hosted test targets derive TEST_HOST from $(APP_NAME) and would otherwise look for Gua.app.
   UnitTests:
     settings:
       base:

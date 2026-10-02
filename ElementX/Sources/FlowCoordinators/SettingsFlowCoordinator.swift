@@ -236,8 +236,7 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
         }
     }
 
-    /// GUA FORK: Find-friends-from-contacts entry-point.
-    /// GUA FORK: Two-step verification entry-point.
+    /// GUA FORK: Two-step verification entry point.
     private func presentTwoStepVerification(initialSetup: AuthFactor? = nil) {
         guard let identityServiceClient = IdentityServiceClient() else {
             MXLog.warning("Identity service is not configured; cannot show two-step verification screen.")
@@ -258,7 +257,7 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
         navigationStackCoordinator.push(coordinator)
     }
 
-    /// GUA FORK: Change-phone-number entry-point.
+    /// GUA FORK: Change-phone-number entry point.
     private func presentChangePhone() {
         guard let identityServiceClient = IdentityServiceClient() else {
             MXLog.warning("Identity service is not configured; cannot show change phone number screen.")
@@ -277,11 +276,8 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                 case .close:
                     navigationStackCoordinator.pop()
                 case .setUpStepUpFactor(let factor):
-                    // The account can produce no step-up factor. Route to the one the user picked,
-                    // not to a hardcoded PIN setup: a passkey is the preferred factor, and sending
-                    // a passkey user to create a PIN is what the old funnel did. The fresh-2FA hold
-                    // runs after either one is created, so there is no auto-return.
                     navigationStackCoordinator.pop()
+                    // Route to the factor the user picked, not to a hardcoded PIN setup.
                     presentTwoStepVerification(initialSetup: factor)
                 }
             }
@@ -312,8 +308,6 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                 guard let self else { return }
                 switch action {
                 case .startedChat:
-                    // The direct room now exists; close Settings so the user lands back on
-                    // their chat list where the new conversation appears.
                     actionsSubject.send(.dismiss)
                 case .showProfile(let userID):
                     presentFindFriendsUserProfile(userID: userID)
@@ -337,9 +331,6 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
             guard let self else { return }
             switch action {
             case .openDirectChat(let roomID):
-                // The direct room now exists; route to it the same way the in-row Find Friends
-                // handling does — close Settings so the user lands back on their chat list where
-                // the new conversation appears.
                 MXLog.info("Find Friends opened direct chat \(roomID); dismissing Settings.")
                 actionsSubject.send(.dismiss)
             case .startCall, .dismiss:

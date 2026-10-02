@@ -19,8 +19,8 @@ struct RoomEventStringBuilder {
     }
 
     func buildAttributedString(for content: TimelineItemContent, sender: TimelineItemSender, isOutgoing: Bool, isDirectOneToOneRoom: Bool = false) -> AttributedString? {
-        // GUA FORK: in a 1:1 chat the membership/creation events read like group noise,
-        // so the room-list preview suppresses them just like the in-room timeline does.
+        // GUA FORK: in a 1:1 chat the room-list preview suppresses membership and creation events,
+        // as the in-room timeline does.
         var stateEventStringBuilder = stateEventStringBuilder
         stateEventStringBuilder.isDirectOneToOneRoom = isDirectOneToOneRoom
 

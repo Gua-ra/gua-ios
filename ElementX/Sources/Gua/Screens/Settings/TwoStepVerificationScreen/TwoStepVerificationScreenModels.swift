@@ -9,27 +9,16 @@ import Foundation
 
 enum TwoStepVerificationScreenViewModelAction {
     case close
-    /// The user asked to set up a passkey. The coordinator presents the authenticated
-    /// web session; the view model can't present a sheet itself.
+    /// The coordinator presents the authenticated web session; the view model cannot present a sheet.
     case setUpPasskey
-    /// The user asked to set up their first PIN, which goes through the same authenticated web
-    /// session. A bearer token alone must not add a durable factor, so there is no native path
-    /// here any more: the web session confirms the account before the PIN is stored.
+    /// The first PIN goes through the same web session: a bearer token alone must not add a factor.
     case setUpPin
 }
 
-/// Drives the screen between the overview state and the multi-step PIN flow.
+/// Setting the first PIN is not here: it runs in the enrollment web session, as a passkey does.
 ///
-/// Setting the FIRST PIN is not here: it runs in the enrollment web session the coordinator opens,
-/// exactly as a passkey does.
-///
-/// Change flow (existing PIN, OTP-protected):
-/// ``enteringPhone`` → ``enteringCurrent`` (verified live with the backend) →
-/// ``enteringOtp`` → ``enteringNew`` → ``confirmingNew`` → ``submitting``.
-///
-/// GUA FORK: there is one overview phase, not one per PIN state. What the account holds is read
-/// from the server's factor report and rendered from ``TwoStepVerificationScreenViewState/factors``,
-/// so a passkey holder is not shown the screen of somebody with nothing.
+/// Change flow (existing PIN): `enteringPhone` → `enteringCurrent` (verified with the backend) →
+/// `enteringOtp` → `enteringNew` → `confirmingNew` → `submitting`.
 enum TwoStepVerificationScreenPhase: Equatable {
     case loading
     case overview
@@ -46,9 +35,7 @@ struct TwoStepVerificationScreenViewState: BindableState {
     static let otpLength = 6
 
     var phase: TwoStepVerificationScreenPhase = .loading
-    /// What the account has registered, as reported by the identity service. `nil` means the report
-    /// could not be read, which is deliberately not the same as "nothing registered": the overview
-    /// says so and offers a retry rather than inviting the user to set up a factor it cannot see.
+    /// `nil` means the status could not be read, never that nothing is registered.
     var factors: AccountSecurityStatus?
     var phone = ""
     var selectedCountry: Country = .deviceDefault
@@ -59,7 +46,6 @@ struct TwoStepVerificationScreenViewState: BindableState {
     var errorMessage: String?
     var bindings = TwoStepVerificationScreenViewStateBindings()
 
-    /// True only when the account is known to have a PIN. An unknown report never reads as "no PIN".
     var hasPin: Bool {
         factors?.hasPin ?? false
     }
@@ -119,12 +105,10 @@ struct TwoStepVerificationScreenViewState: BindableState {
         phase == .submitting
     }
 
-    /// Local subscriber digits typed by the user, stripped of any formatting characters.
     var localDigits: String {
         bindings.localPhoneNumber.filter(\.isNumber)
     }
 
-    /// Full E.164 phone number to send to the backend (e.g. "+15551234567").
     var e164PhoneNumber: String {
         "+" + selectedCountry.dialCode + localDigits
     }
@@ -146,9 +130,8 @@ struct TwoStepVerificationScreenViewState: BindableState {
 }
 
 struct TwoStepVerificationScreenViewStateBindings {
-    /// Used for any of the 6-digit fields (current PIN, OTP, new PIN, confirmation).
+    /// Shared by every 6-digit field, including the OTP.
     var pin = ""
-    /// Country-formatted local phone digits typed during the change flow (dial code excluded).
     var localPhoneNumber = ""
     var isCountryPickerPresented = false
 }

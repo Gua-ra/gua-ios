@@ -1,25 +1,16 @@
 name: Feedback fix
 
-# GUA FORK: the "approve it and it gets worked on" half of the feedback pipeline.
+# The "approve it and it gets worked on" half of the feedback pipeline.
 #
-# feedback-bot (in gua-deploy) files every crash and every piece of tester feedback
-# as an issue here. A human reads it, and if it is worth acting on adds the
-# `feedback:approved` label. That is what this workflow waits for.
+# feedback-bot (in gua-deploy) files crashes and tester feedback as issues here. A human reads
+# each one and adds the `feedback:approved` label if it is worth acting on. This workflow then
+# runs a coding agent headlessly against this repository to investigate, fix and build the
+# change, and to open a pull request that links back to the issue. Review happens on that pull
+# request; shipping it to QA is still the `release-qa` label, and production is still gated on
+# the `production` environment.
 #
-# It then runs Claude Code headlessly against this repository to investigate,
-# fix, build and QA the change on a simulator, and open a pull request that links
-# back to the issue with its evidence attached. Review happens on that pull
-# request; shipping it to QA is still the `release-qa` label, and production is
-# still gated on the `production` environment. Nothing here bypasses either.
-#
-# Claude runs on a Claude subscription token, not API credits.
-#
-# WHERE THIS RUNS: a fix is only worth as much as its verification, and verifying
-# an iOS change means an iOS simulator, which GitHub's hosted runners do not give
-# us in a form worth trusting. FIX_RUNNER selects the runner; point it at a
-# self-hosted macOS runner to get the simulator QA steps. Until one exists it
-# falls back to macos-latest, which can build and run unit tests but cannot be
-# asked to drive the app.
+# FIX_RUNNER selects the runner; simulator QA needs a self-hosted macOS runner. Without one the
+# job falls back to macos-latest, which can build and run unit tests but cannot drive the app.
 
 on:
   issues:
@@ -31,8 +22,7 @@ on:
         required: true
         type: string
 
-# One fix at a time per issue. Two runs on the same issue would race on the same
-# branch name and produce a confusing pull request.
+# One run per issue: two would race on the same branch name.
 concurrency:
   group: feedback-fix-${{ github.event.issue.number || inputs.issue }}
   cancel-in-progress: false
@@ -42,9 +32,8 @@ permissions:
 
 jobs:
   fix:
-    # `labeled` fires for every label, so gate on the one that means "approved".
-    # Manual dispatch skips the label check on purpose: that path is already a
-    # deliberate human action.
+    # `labeled` fires for every label, so gate on the one that means approved. Manual dispatch
+    # skips the label check: it is already a deliberate human action.
     if: >-
       github.event_name == 'workflow_dispatch' ||
       github.event.label.name == 'feedback:approved'
@@ -61,15 +50,14 @@ jobs:
           persist-credentials: false
           lfs: true
 
-      # Fail on the missing prerequisite rather than 20 minutes later inside the
-      # model call, where the cause would be unrecognisable.
+      # Fail on the missing prerequisite here rather than 20 minutes later inside the agent call.
       - name: Check the credentials this needs are present
         run: |
           missing=""
           [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] && missing="$missing CLAUDE_CODE_OAUTH_TOKEN"
           [ -z "${GH_TOKEN:-}" ] && missing="$missing FEEDBACK_BOT_GH_TOKEN"
           if [ -n "$missing" ]; then
-            echo "::error::Missing repository secret(s):$missing. Both live in gua-deploy today and must also exist here (or as organisation secrets) for this workflow to run. CLAUDE_CODE_OAUTH_TOKEN comes from 'claude setup-token' and keeps this on a Claude subscription rather than API billing."
+            echo "::error::Missing repository secret(s):$missing. Both live in gua-deploy today and must also exist here (or as organisation secrets) for this workflow to run. The agent CLI token comes from its 'setup-token' command and keeps this on a subscription rather than API billing."
             exit 1
           fi
 
@@ -78,7 +66,7 @@ jobs:
           gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" \
             --body "Working on this now: [run]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID). A pull request will be linked here if a fix lands, and I will say so here if one does not."
 
-      - name: Install Claude Code
+      - name: Install the agent CLI
         run: npm install -g @anthropic-ai/claude-code
 
       - name: Configure git identity
@@ -86,17 +74,14 @@ jobs:
           gh auth setup-git
           git config --global user.name "gua-feedback-bot"
           git config --global user.email "feedback-bot@users.noreply.github.com"
-          # Gua commits carry no AI attribution: no Co-Authored-By trailer and no
-          # "Generated with Claude Code" footer.
+          # Commits carry no co-author trailer and no generated-by footer.
           mkdir -p "$HOME/.claude"
           printf '{ "includeCoAuthoredBy": false }\n' > "$HOME/.claude/settings.json"
 
       - name: Read the issue
         id: issue
         run: |
-          # The issue body quotes an unverified report. It is written to a file and
-          # handed to the model as data rather than interpolated into the prompt,
-          # so nothing inside it can terminate the prompt and start giving orders.
+          # The issue body is untrusted: it is passed as a file, never interpolated into the prompt.
           gh issue view "$ISSUE" --repo "$GITHUB_REPOSITORY" \
             --json number,title,body,labels > /tmp/issue.json
           jq -r '.title' /tmp/issue.json > /tmp/issue-title.txt
@@ -156,7 +141,7 @@ jobs:
           claude -p "$(cat /tmp/prompt.md)" \
             --allowedTools "Read,Grep,Glob,Edit,Write,Bash(git:*),Bash(gh:*),Bash(xcodebuild:*),Bash(xcrun:*),Bash(swift:*),Bash(bundle:*),Bash(fastlane:*)" \
             --permission-mode acceptEdits \
-            | tee /tmp/claude-output.txt
+            | tee /tmp/agent-output.txt
 
       - name: Report back on the issue
         if: always()
