@@ -153,6 +153,80 @@ class PreviewTests: XCTestCase {
     }
 }
 
+// MARK: - Gua localized screens
+
+extension PreviewTests {
+    /// GUA FORK: Gua's own screens in each shipped translation, on iPhone 16 only, recorded as
+    /// `<screen>.iPhone-16-<locale>.png`. `Bundle.overrideLocalizations` drives `L10n` and
+    /// `UntranslatedL10n`, while a SwiftUI literal ignores it, so any English left on these screens
+    /// shows in the image. The preview picked for each screen is the one that shows Gua's strings.
+    func testGuaLocalizedScreens() async throws {
+        if UserDefaults.standard.bool(forKey: "NSDoubleLocalizedStrings") {
+            throw XCTSkip("The pseudolanguage run doubles every string, so it cannot show a translation.")
+        }
+        defer { Bundle.overrideLocalizations = nil }
+
+        for locale in ["pt-BR", "es", "fr"] {
+            Bundle.overrideLocalizations = [locale]
+
+            // Built after the language is set, in case a preview passes a string in rather than
+            // reading it while it renders.
+            let screens: [(name: String, preview: _Preview)] = [
+                ("phoneEntryScreen", PhoneEntryScreen_Previews._allPreviews[0]),
+                // The variant that can restore from another device, which shows every Gua string.
+                ("encryptionResetScreen", EncryptionResetScreen_Previews._allPreviews[1]),
+                // The repair banner; the first preview is upstream's recovery prompt.
+                ("homeScreenRecoveryKeyConfirmationBanner", HomeScreenRecoveryKeyConfirmationBanner_Previews._allPreviews[1]),
+                ("twoStepVerificationScreen", TwoStepVerificationScreen_Previews._allPreviews[0])
+            ]
+            for screen in screens {
+                try await assertLocalizedSnapshot(of: screen.preview, screen: screen.name, locale: locale)
+            }
+        }
+    }
+
+    private func assertLocalizedSnapshot(of preview: _Preview, screen: String, locale: String) async throws {
+        let preferences = SnapshotPreferences()
+
+        let preferenceReadingView = preview.content
+            .onPreferenceChange(SnapshotPrecisionPreferenceKey.self) { preferences.precision = $0 }
+            .onPreferenceChange(SnapshotPerceptualPrecisionPreferenceKey.self) { preferences.perceptualPrecision = $0 }
+            .onPreferenceChange(SnapshotFulfillmentPreferenceKey.self) { preferences.fulfillmentSource = $0?.source }
+
+        // Render once so the preferences arrive, then wait for any state the preview expects.
+        _ = ImageRenderer(content: preferenceReadingView).uiImage
+
+        switch preferences.fulfillmentSource {
+        case .publisher(let publisher):
+            try await deferFulfillment(publisher) { $0 == true }.fulfill()
+        case .stream(let stream):
+            try await deferFulfillment(stream) { $0 == true }.fulfill()
+        case .none:
+            break
+        }
+
+        guard var device = PreviewDevice(rawValue: "iPhone 16").snapshotDevice() else {
+            fatalError("Unknown device name: iPhone 16")
+        }
+        device.safeArea = .one
+
+        let isScreen = switch preview.layout {
+        case .device: true
+        default: false
+        }
+        let content = AnyView(preview.content.environment(\.locale, Locale(identifier: locale)))
+        if let failure = assertSnapshots(matching: content,
+                                         name: "iPhone-16-\(locale)",
+                                         isScreen: isScreen,
+                                         device: device,
+                                         testName: screen,
+                                         traits: UITraitCollection(displayScale: 2.0),
+                                         preferences: preferences) {
+            XCTFail(failure)
+        }
+    }
+}
+
 private class SnapshotPreferences: @unchecked Sendable {
     var precision: Float = 1
     var perceptualPrecision: Float = 1
