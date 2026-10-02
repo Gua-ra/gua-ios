@@ -410,28 +410,16 @@ jobs:
             echo "::error::ASC_KEY_ID / ASC_PRIVATE_KEY secrets are not set. See docs/TESTFLIGHT.md"
             exit 1
           fi
-          # Two copies, because the two tools disagree about how to be told.
-          #
-          # xcodebuild takes an explicit -authenticationKeyPath, so it reads the copy
-          # under $RUNNER_TEMP.
-          #
-          # altool does NOT. It accepts --apiKeyPath without complaint and then ignores
-          # it, searching only a fixed list of directories and failing with "Failed to
-          # load AuthKey file (-43)" listing them. $RUNNER_TEMP is not on that list, so
-          # the key is also written to ~/.appstoreconnect/private_keys, which is.
-          #
-          # Both copies are removed by the always-run cleanup step at the end of the job.
-          KEY_DIR="$RUNNER_TEMP/private_keys"
-          mkdir -p "$KEY_DIR"
-          KEY_PATH="$KEY_DIR/AuthKey_${ASC_KEY_ID}.p8"
-          printf '%s\n' "$ASC_PRIVATE_KEY" > "$KEY_PATH"
-          chmod 600 "$KEY_PATH"
-          echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
-
+          # For altool only: nothing signs with this key. altool accepts --apiKeyPath
+          # without complaint and then ignores it, searching only a fixed list of
+          # directories and failing with "Failed to load AuthKey file (-43)" listing them,
+          # so the key goes in ~/.appstoreconnect/private_keys, which is on that list.
+          # The always-run cleanup step at the end of the job removes it.
           ALTOOL_KEY_DIR="$HOME/.appstoreconnect/private_keys"
           mkdir -p "$ALTOOL_KEY_DIR"
-          cp "$KEY_PATH" "$ALTOOL_KEY_DIR/AuthKey_${ASC_KEY_ID}.p8"
-          chmod 600 "$ALTOOL_KEY_DIR/AuthKey_${ASC_KEY_ID}.p8"
+          KEY_PATH="$ALTOOL_KEY_DIR/AuthKey_${ASC_KEY_ID}.p8"
+          printf '%s\n' "$ASC_PRIVATE_KEY" > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
 
       - name: Install the distribution certificate
         # The keychain is created per run and deleted in the cleanup step, so nothing is
