@@ -22,7 +22,8 @@ name: TestFlight
 #                               merged. Pushing more commits rebuilds it automatically.
 #   - merge develop to main  -> stages the PROD upload, which waits for an approver on
 #                               the `production` environment. Merging never publishes
-#                               on its own.
+#                               on its own. An approved prod build is also sent to the
+#                               external testers group and submitted for Beta App Review.
 #   - workflow_dispatch      -> the same two paths by hand, for either app.
 #
 # An unlabelled PR does nothing here on purpose: an archive costs ~25 minutes of a
@@ -80,7 +81,7 @@ on:
         required: false
         type: string
       whats_new:
-        description: "Optional 'What to Test' note for this TestFlight build"
+        description: "Optional 'What to Test' note for external testers (production builds)"
         required: false
         type: string
 
@@ -188,7 +189,9 @@ jobs:
     # required to exist at compile time), and macos-15 tops out at Xcode 16.4.
     # unit_tests.yml already runs here for the same reason.
     runs-on: macos-26
-    timeout-minutes: 90
+    # Archive and upload take about 30 minutes; processing before external distribution
+    # can take another 40.
+    timeout-minutes: 120
     permissions:
       contents: read
       # So a labelled PR can be told which build number its testers should install.
@@ -664,14 +667,23 @@ jobs:
             exit 1
           fi
 
-      - name: Record 'What to Test' note
-        # Only a manual run carries this input; the other triggers have no such field.
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.whats_new != '' }}
+      - name: Send the build to external testers
+        # Production only. Internal groups that have access to all builds get each build
+        # automatically; the external group does not, so this adds the build to it, sets
+        # What to Test and submits it for Beta App Review. Apple notifies the group once the
+        # review passes. Safe to re-run: a build already in the group or already submitted
+        # is left alone.
+        if: needs.gate.outputs.target != 'dev'
         env:
-          WHATS_NEW: ${{ inputs.whats_new }}
-        run: |
-          echo "What to Test:"
-          printf '%s\n' "$WHATS_NEW"
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+          ASC_APP_ID: ${{ secrets.ASC_APP_ID }}
+          EXTERNAL_GROUP: ${{ vars.TESTFLIGHT_EXTERNAL_GROUP || 'External Testers' }}
+          WHATS_NEW: ${{ inputs.whats_new || '' }}
+          # Read-only use: finds the release PR's Summary for What to Test.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node .github/scripts/testflight-external.mjs
 
       - name: Tell the PR where it went
         # Testers need the build number to know which of several QA builds is this PR's;
