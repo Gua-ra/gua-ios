@@ -50,15 +50,15 @@ internal enum UntranslatedL10n {
   internal static var guaEncryptionRepairAction: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_repair_action") }
   /// Setting up…
   internal static var guaEncryptionRepairActionInProgress: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_repair_action_in_progress") }
-  /// Complete setup to access encrypted chats and message history available on this device.
+  /// Finish setup to see your encrypted chats and message history on this device.
   internal static var guaEncryptionRepairMessage: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_repair_message") }
   /// Finish setting up this device
   internal static var guaEncryptionRepairTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_repair_title") }
-  /// Couldn’t finish setup. Tap Reset and finish setup to try again.
+  /// Couldn’t finish setup. Please try again.
   internal static var guaEncryptionResetFailed: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_failed") }
   /// Finishing setup…
   internal static var guaEncryptionResetFinishing: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_finishing") }
-  /// Setup wasn’t approved. Tap Reset and finish setup to try again.
+  /// Setup wasn’t approved. Please try again.
   internal static var guaEncryptionResetNotApproved: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_not_approved") }
   /// Reset and finish setup
   internal static var guaEncryptionResetRequiredAction: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_required_action") }
@@ -66,7 +66,7 @@ internal enum UntranslatedL10n {
   internal static var guaEncryptionResetRequiredMessage: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_required_message") }
   /// Some previous messages can’t be recovered
   internal static var guaEncryptionResetRequiredTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_required_title") }
-  /// Setup is taking longer than expected. It continues in the background; you can wait here or come back later.
+  /// Still finishing setup in the background. You can keep using Gua.
   internal static var guaEncryptionResetStillFinishing: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_still_finishing") }
   /// Too many attempts. Please wait a moment and try again.
   internal static var guaErrorRateLimited: String { return UntranslatedL10n.tr("Untranslated", "gua_error_rate_limited") }
@@ -106,7 +106,7 @@ internal enum UntranslatedL10n {
   }
   /// This message can’t be opened because the sender’s security details changed.
   internal static var guaIdentityChangeUndecryptable: String { return UntranslatedL10n.tr("Untranslated", "gua_identity_change_undecryptable") }
-  /// Paste the room address you were given.
+  /// Paste the address you were given.
   internal static var guaJoinRoomByAddressHint: String { return UntranslatedL10n.tr("Untranslated", "gua_join_room_by_address_hint") }
   /// Your passkey can’t be used for this right now.
   internal static var guaPasskeyUnavailable: String { return UntranslatedL10n.tr("Untranslated", "gua_passkey_unavailable") }
@@ -124,11 +124,11 @@ internal enum UntranslatedL10n {
   }
   /// Your verification expired. Please request a new code.
   internal static var guaReauthExpired: String { return UntranslatedL10n.tr("Untranslated", "gua_reauth_expired") }
-  /// We couldn't confirm your organization details. Please try again.
+  /// We couldn’t confirm your account details. Please try again.
   internal static var guaResolverClaimsInvalid: String { return UntranslatedL10n.tr("Untranslated", "gua_resolver_claims_invalid") }
-  /// We can't set up new accounts right now. Please try again later.
+  /// We can’t set up new accounts right now. Please try again later.
   internal static var guaResolverRegistrationClosed: String { return UntranslatedL10n.tr("Untranslated", "gua_resolver_registration_closed") }
-  /// We're having trouble connecting right now. Please try again in a moment.
+  /// We’re having trouble connecting right now. Please try again in a moment.
   internal static var guaResolverRoutingUnavailable: String { return UntranslatedL10n.tr("Untranslated", "gua_resolver_routing_unavailable") }
   /// We couldn’t sign you back in. Please sign in again.
   internal static var guaRestoreSigninFailed: String { return UntranslatedL10n.tr("Untranslated", "gua_restore_signin_failed") }
@@ -138,7 +138,7 @@ internal enum UntranslatedL10n {
   internal static var guaSignoutLastDeviceMessage: String { return UntranslatedL10n.tr("Untranslated", "gua_signout_last_device_message") }
   /// Signing out will remove your messages from this device
   internal static var guaSignoutLastDeviceTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_signout_last_device_title") }
-  /// You were signed out of your Gua account. Sign in again to carry on.
+  /// You were signed out of your Gua account. Sign in again to continue.
   internal static var guaSoftLogoutSigninNotice: String { return UntranslatedL10n.tr("Untranslated", "gua_soft_logout_signin_notice") }
   /// You’ll need two-step verification before you can change your number.
   internal static var guaStepUpRequired: String { return UntranslatedL10n.tr("Untranslated", "gua_step_up_required") }

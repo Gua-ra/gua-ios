@@ -1406,7 +1406,7 @@
 "screen_phone_login_button_title" = "Continuer avec le numéro de téléphone";
 
 "screen_otp_code_placeholder" = "Code à 6 chiffres";
-"screen_otp_invalid_code" = "Le code est incorrect ou a expiré.";
+"screen_otp_invalid_code" = "Ce code est erroné ou a expiré. Veuillez réessayer.";
 
 // GUA FORK: Gua-custom keys missing from fr.lproj, ported from en/pt-BR so the
 // onboarding, two-step verification, PIN, profile-setup and re-auth flows render
@@ -1468,7 +1468,7 @@
 "screen_two_step_verification_phone_footer" = "Nous enverrons un code de vérification par SMS au téléphone associé à votre compte.";
 "screen_two_step_verification_otp_header" = "Saisissez le code SMS";
 "screen_two_step_verification_otp_footer" = "Saisissez le code à 6 chiffres que nous venons d'envoyer sur votre téléphone.";
-"screen_two_step_verification_otp_invalid" = "Ce code est invalide ou a expiré. Veuillez réessayer.";
+"screen_two_step_verification_otp_invalid" = "Ce code est erroné ou a expiré. Veuillez réessayer.";
 "screen_two_step_verification_cooldown" = "Pour des raisons de sécurité, vous ne pouvez modifier votre code PIN qu'une fois par jour. Veuillez réessayer plus tard.";
 "screen_account_recovery_banner_title" = "Quelqu'un a commencé à récupérer votre compte";
 "screen_account_recovery_banner_message_later" = "La récupération pourra être finalisée à partir du %1$@. Si c'était vous, vous pouvez ignorer ce message. Sinon, annulez-la depuis un appareil sur lequel vous êtes encore connecté.";
@@ -1503,15 +1503,15 @@
 "screen_change_phone_cooldown_message_generic" = "Pour des raisons de sécurité, vous ne pouvez pas encore modifier votre numéro. Veuillez réessayer plus tard.";
 "screen_change_phone_pin_header" = "Saisissez votre code PIN";
 "screen_change_phone_pin_footer" = "Confirmez votre code PIN à 6 chiffres pour autoriser cette modification.";
-"screen_change_phone_pin_incorrect" = "Ce code PIN est incorrect. Veuillez réessayer.";
+"screen_change_phone_pin_incorrect" = "Ce code PIN est incorrect. Pour des raisons de sécurité, saisissez le nouveau code que nous venons d’envoyer à votre numéro actuel.";
 "screen_change_phone_otp_header" = "Vérifiez votre nouveau numéro";
 "screen_change_phone_otp_footer" = "Saisissez le code à 6 chiffres que nous avons envoyé à votre nouveau numéro.";
-"screen_change_phone_otp_invalid" = "Ce code est invalide ou a expiré. Veuillez réessayer.";
+"screen_change_phone_otp_invalid" = "Ce code est erroné ou a expiré. Veuillez réessayer.";
 "screen_change_phone_success" = "Votre numéro de téléphone a été mis à jour.";
 "screen_change_phone_done_header" = "C'est fait";
 "screen_change_phone_done_message" = "Votre numéro de téléphone a été mis à jour. Vous utiliserez votre nouveau numéro pour vous connecter à partir de maintenant.";
 
 /* GUA FORK - App lock */
 "screen_app_lock_unlock_with_biometrics_ios" = "Déverrouiller avec %1$@";
-"screen_pin_setup_weak_error" = "Choisissez un code PIN moins prévisible (évitez 000000, 123456, etc.).";
+"screen_pin_setup_weak_error" = "Ce code PIN est trop facile à deviner. Choisissez-en un autre.";
 "screen_pin_setup_mismatch_error" = "Les codes PIN ne correspondent pas. Veuillez réessayer.";

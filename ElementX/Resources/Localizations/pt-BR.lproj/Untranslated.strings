@@ -2,8 +2,8 @@
   Gua fork strings for this locale. English source lives in en.lproj/Untranslated.strings.
 */
 
-"gua_encryption_repair_title" = "Termine de configurar este dispositivo";
-"gua_encryption_repair_message" = "Conclua a configuração para acessar as conversas criptografadas e o histórico de mensagens disponíveis neste dispositivo.";
+"gua_encryption_repair_title" = "Conclua a configuração deste dispositivo";
+"gua_encryption_repair_message" = "Conclua a configuração para ver suas conversas criptografadas e o histórico de mensagens neste dispositivo.";
 "gua_encryption_repair_action" = "Concluir configuração";
 "gua_encryption_reset_required_title" = "Algumas mensagens anteriores não podem ser recuperadas";
 "gua_encryption_reset_required_message" = "Para terminar de configurar as conversas criptografadas neste dispositivo, seu backup criptografado precisa ser redefinido. As mensagens guardadas apenas nesse backup serão perdidas. As mensagens já presentes nos seus dispositivos não serão afetadas.";
@@ -11,8 +11,8 @@
 "gua_signout_last_device_title" = "Sair vai remover suas mensagens deste dispositivo";
 "gua_signout_last_device_message" = "As mensagens guardadas apenas aqui não estarão disponíveis quando você entrar novamente.";
 "gua_encryption_reset_finishing" = "Concluindo a configuração…";
-"gua_encryption_reset_failed" = "Não foi possível concluir a configuração. Toque em Redefinir e concluir para tentar novamente.";
-"gua_encryption_reset_still_finishing" = "A configuração está demorando mais que o esperado. Ela continua em segundo plano; você pode aguardar aqui ou voltar mais tarde.";
+"gua_encryption_reset_failed" = "Não foi possível concluir a configuração. Tente novamente.";
+"gua_encryption_reset_still_finishing" = "Ainda concluindo a configuração em segundo plano. Você pode continuar usando o Gua.";
 "gua_encryption_recover_from_other_device_title" = "Recupere suas mensagens anteriores";
 "gua_encryption_recover_from_other_device_message" = "Use seu outro dispositivo para recuperar as mensagens que ainda não estão disponíveis aqui.\n\nSe você não tiver acesso a ele, pode redefinir e concluir a configuração, mas as mensagens guardadas apenas no seu backup serão perdidas para sempre.";
 "gua_encryption_recover_from_other_device_action" = "Usar meu outro dispositivo";
@@ -21,17 +21,17 @@
 "gua_verification_other_device_subtitle" = "Mantenha o Gua aberto. Você vai comparar alguns emojis nos dois dispositivos para confirmar que é você.";
 "gua_verification_waiting_other_device_title" = "Aguardando seu outro dispositivo";
 "gua_verification_compare_emojis_subtitle" = "Confirme se os emojis abaixo correspondem aos mostrados no seu outro dispositivo.";
-"gua_encryption_reset_not_approved" = "A configuração não foi aprovada. Toque em Redefinir e concluir para tentar novamente.";
+"gua_encryption_reset_not_approved" = "A configuração não foi aprovada. Tente novamente.";
 "gua_verification_complete_subtitle" = "Agora suas mensagens vão aparecer neste dispositivo.";
 "gua_identity_change_banner_description" = "Os dados de segurança de %1$@ mudaram. Isso acontece quando a pessoa reinstala o Gua ou troca de celular. %2$@";
 "gua_identity_change_undecryptable" = "Não é possível abrir esta mensagem porque os dados de segurança de quem enviou mudaram.";
 "gua_identity_change_profile" = "Os dados de segurança de %1$@ mudaram. Isso acontece quando a pessoa reinstala o Gua ou troca de celular.";
 "gua_soft_logout_signin_notice" = "Você foi desconectado da sua conta Gua. Entre novamente para continuar.";
-"gua_join_room_by_address_hint" = "Cole o endereço da sala que você recebeu.";
+"gua_join_room_by_address_hint" = "Cole o endereço que você recebeu.";
 "gua_sign_in_with_passkey" = "Entrar com chave de acesso";
 "gua_account_genesis_setup_failed" = "Não foi possível concluir a configuração da sua conta neste dispositivo. Tente novamente.";
 "gua_encryption_repair_action_in_progress" = "Configurando…";
-"gua_resolver_claims_invalid" = "Não foi possível confirmar os dados da sua organização. Tente novamente.";
+"gua_resolver_claims_invalid" = "Não foi possível confirmar os dados da sua conta. Tente novamente.";
 "gua_resolver_routing_unavailable" = "Estamos com problemas de conexão no momento. Tente novamente em instantes.";
 "gua_resolver_registration_closed" = "No momento, não é possível criar novas contas. Tente novamente mais tarde.";
 "soft_logout_signin_title" = "Entrar";

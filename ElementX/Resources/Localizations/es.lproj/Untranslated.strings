@@ -3,7 +3,7 @@
 */
 
 "gua_encryption_repair_title" = "Termina de configurar este dispositivo";
-"gua_encryption_repair_message" = "Completa la configuración para acceder a los chats cifrados y al historial de mensajes disponibles en este dispositivo.";
+"gua_encryption_repair_message" = "Completa la configuración para ver tus chats cifrados y el historial de mensajes en este dispositivo.";
 "gua_encryption_repair_action" = "Finalizar configuración";
 "gua_encryption_reset_required_title" = "Algunos mensajes anteriores no se pueden recuperar";
 "gua_encryption_reset_required_message" = "Para terminar de configurar los chats cifrados en este dispositivo, es necesario restablecer tu copia de seguridad cifrada. Los mensajes guardados solo en esa copia se perderán. Los mensajes que ya están en tus dispositivos no se verán afectados.";
@@ -11,7 +11,7 @@
 "gua_signout_last_device_title" = "Cerrar sesión eliminará tus mensajes de este dispositivo";
 "gua_signout_last_device_message" = "Los mensajes guardados solo aquí no estarán disponibles cuando vuelvas a iniciar sesión.";
 "gua_encryption_reset_finishing" = "Finalizando la configuración…";
-"gua_encryption_reset_failed" = "No se pudo finalizar la configuración. Pulsa «Restablecer y finalizar» para volver a intentarlo.";
+"gua_encryption_reset_failed" = "No se pudo finalizar la configuración. Inténtalo de nuevo.";
 "gua_encryption_recover_from_other_device_title" = "Recupera tus mensajes anteriores";
 "gua_encryption_recover_from_other_device_message" = "Usa tu otro dispositivo para recuperar los mensajes que aún no están disponibles en este dispositivo.\n\nSi no tienes acceso a él, puedes restablecer y finalizar la configuración, pero los mensajes guardados solo en tu copia de seguridad se perderán para siempre.";
 "gua_encryption_recover_from_other_device_action" = "Usar mi otro dispositivo";
@@ -20,18 +20,18 @@
 "gua_verification_other_device_subtitle" = "Déjalo abierto. Compararás unos emojis en ambos dispositivos para confirmar que eres tú.";
 "gua_verification_waiting_other_device_title" = "A la espera de tu otro dispositivo";
 "gua_verification_compare_emojis_subtitle" = "Asegúrate de que los emojis que aparecen a continuación coinciden con los de tu otro dispositivo.";
-"gua_encryption_reset_not_approved" = "No se aprobó la configuración. Pulsa «Restablecer y finalizar» para volver a intentarlo.";
+"gua_encryption_reset_not_approved" = "No se aprobó la configuración. Inténtalo de nuevo.";
 "gua_verification_complete_subtitle" = "Ahora tus mensajes aparecerán en este dispositivo.";
 "gua_identity_change_banner_description" = "Los datos de seguridad de %1$@ han cambiado. Esto puede ocurrir cuando reinstala Gua o cambia de teléfono. %2$@";
 "gua_identity_change_undecryptable" = "Este mensaje no se puede abrir porque los datos de seguridad del remitente han cambiado.";
 "gua_identity_change_profile" = "Los datos de seguridad de %1$@ han cambiado. Esto puede ocurrir cuando reinstala Gua o cambia de teléfono.";
 "gua_soft_logout_signin_notice" = "Se cerró tu sesión en la cuenta de Gua. Vuelve a iniciar sesión para continuar.";
-"gua_join_room_by_address_hint" = "Pega la dirección de la sala que te han dado.";
-"gua_sign_in_with_passkey" = "Entrar con clave de acceso";
+"gua_join_room_by_address_hint" = "Pega la dirección que te dieron.";
+"gua_sign_in_with_passkey" = "Entrar con llave de acceso";
 "gua_account_genesis_setup_failed" = "No se pudo finalizar la configuración de tu cuenta en este dispositivo. Inténtalo de nuevo.";
 "gua_encryption_repair_action_in_progress" = "Configurando…";
-"gua_encryption_reset_still_finishing" = "La configuración está tardando más de lo esperado. Continúa en segundo plano; puedes esperar aquí o volver más tarde.";
-"gua_resolver_claims_invalid" = "No pudimos confirmar los datos de tu organización. Inténtalo de nuevo.";
+"gua_encryption_reset_still_finishing" = "Todavía se está terminando la configuración en segundo plano. Puedes seguir usando Gua.";
+"gua_resolver_claims_invalid" = "No pudimos confirmar los datos de tu cuenta. Inténtalo de nuevo.";
 "gua_resolver_routing_unavailable" = "Estamos teniendo problemas de conexión. Inténtalo de nuevo en unos instantes.";
 "gua_resolver_registration_closed" = "En este momento no podemos crear cuentas nuevas. Inténtalo de nuevo más tarde.";
 "soft_logout_signin_title" = "Iniciar sesión";
@@ -48,8 +48,8 @@
 "gua_flow_expired" = "Esto tardó demasiado. Vuelve a empezar.";
 "gua_reauth_expired" = "Tu verificación ha caducado. Solicita un nuevo código.";
 "gua_step_up_required" = "Necesitas activar la verificación en dos pasos antes de cambiar tu número.";
-"gua_passkey_unavailable" = "Ahora mismo no se puede usar tu clave de acceso para esto.";
-"gua_passkey_verification_failed" = "Esa clave de acceso no confirmó que eres tú. Inténtalo de nuevo.";
+"gua_passkey_unavailable" = "Ahora mismo no se puede usar tu llave de acceso para esto.";
+"gua_passkey_verification_failed" = "Esa llave de acceso no confirmó que eres tú. Inténtalo de nuevo.";
 "gua_restore_signin_failed" = "No pudimos volver a conectarte. Inicia sesión de nuevo.";
 "gua_country_picker_title" = "Seleccionar país";
 "gua_country_picker_search_prompt" = "Buscar país o código";
