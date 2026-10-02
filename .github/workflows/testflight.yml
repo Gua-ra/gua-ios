@@ -6,14 +6,15 @@ name: TestFlight
 #
 # Signing is entirely manual, because cloud signing is refused for this App Store
 # Connect key. -allowProvisioningUpdates fails with "Cloud signing permission error"
-# for BOTH certificate and profile creation, so the archive is built unsigned and
-# exportArchive does all the signing:
+# for BOTH certificate and profile creation, so it is never used:
 #   - the distribution CERTIFICATE comes from a .p12 secret, imported into a keychain
 #     created for the run, since minting one needs Admin on the account
 #   - the PROFILES for all three signed targets are fetched (and created if absent) with
 #     sigh, through the ordinary provisioning API, which this key IS allowed to use
-#   - the archive sets CODE_SIGNING_ALLOWED=NO; signing there would mean cloud signing,
-#     which passed once and then failed on a byte-identical workflow
+#   - the ARCHIVE is signed with them, per target, through a generated xcconfig. Export
+#     cannot add entitlements the archive signature lacks, so an unsigned archive ships
+#     without push, the app group and the keychain group.
+#   - a gate after export fails the run unless the app and both extensions carry them
 # One .p12 to manage, no .mobileprovision files in the repo, no Match repo.
 #
 # Release paths, in order of how often they are used:
@@ -441,7 +442,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${DIST_CERT_P12:-}" ] || [ -z "${DIST_CERT_PASSWORD:-}" ]; then
-            echo "::error::GUA_DIST_CERT_P12 / GUA_DIST_CERT_PASSWORD are not set. The runner has no signing identity, so exportArchive cannot sign. See docs/TESTFLIGHT.md for how to export the Apple Distribution identity as a .p12 and store it."
+            echo "::error::GUA_DIST_CERT_P12 / GUA_DIST_CERT_PASSWORD are not set. The runner has no signing identity, so the archive cannot be signed. See docs/TESTFLIGHT.md for how to export the Apple Distribution identity as a .p12 and store it."
             exit 1
           fi
           KEYCHAIN="$RUNNER_TEMP/gua-signing.keychain-db"
@@ -512,6 +513,28 @@ jobs:
             | plutil -extract TeamIdentifier.0 raw -)"
           echo "Team: $TEAM_ID"
 
+          # Archive signing, one profile per target. Resolved through TARGET_NAME so each
+          # target gets its own profile and package targets get none; a single global
+          # PROVISIONING_PROFILE_SPECIFIER would put the app's profile on the extensions.
+          # Scoped to iphoneos so host tools built during the archive keep their defaults.
+          SIGNING_XCCONFIG="$RUNNER_TEMP/signing.xcconfig"
+          {
+            echo "CODE_SIGN_STYLE[sdk=iphoneos*] = Manual"
+            echo "CODE_SIGN_IDENTITY[sdk=iphoneos*] = Apple Distribution"
+            echo "OTHER_CODE_SIGN_FLAGS[sdk=iphoneos*] = --keychain ${GUA_SIGNING_KEYCHAIN}"
+            echo "DEVELOPMENT_TEAM = ${TEAM_ID}"
+            # shellcheck disable=SC2016 # an xcconfig macro, expanded by Xcode
+            echo 'PROVISIONING_PROFILE_SPECIFIER = $(GUA_PROFILE_$(TARGET_NAME))'
+            for entry in ElementX: NSE:.nse ShareExtension:.shareextension; do
+              target="${entry%%:*}"
+              id="${BUNDLE_ID}${entry#*:}"
+              uuid="$(security cms -D -i "$RUNNER_TEMP/${id}.mobileprovision" | plutil -extract UUID raw -)"
+              echo "GUA_PROFILE_${target} = ${uuid}"
+            done
+          } > "$SIGNING_XCCONFIG"
+          echo "SIGNING_XCCONFIG=$SIGNING_XCCONFIG" >> "$GITHUB_ENV"
+          echo "Archive signing:"; cat "$SIGNING_XCCONFIG"
+
           # Map each bundle id to the profile NAME Apple returned, which is what the export
           # plist keys off. Reading it back from the installed profile avoids guessing at a
           # naming convention that Apple, not us, decides.
@@ -519,9 +542,7 @@ jobs:
             echo '<?xml version="1.0" encoding="UTF-8"?>'
             echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
             echo '<plist version="1.0"><dict>'
-            # The archive is unsigned, so it records no team and export cannot infer
-            # one: it fails with "No Team Found in Archive". Take it from a profile,
-            # rather than hardcoding an id that would silently rot.
+            # Taken from a profile rather than hardcoded, so it cannot silently rot.
             echo "<key>teamID</key><string>${TEAM_ID}</string>"
             echo '<key>method</key><string>app-store-connect</string>'
             echo '<key>destination</key><string>export</string>'
@@ -544,15 +565,10 @@ jobs:
           echo "Export options:"; plutil -p "$RUNNER_TEMP/exportOptions.plist"
 
       - name: Archive
-        # Deliberately UNSIGNED. Signing here meant CODE_SIGN_STYLE=Automatic with
-        # -allowProvisioningUpdates, which is cloud signing, and this App Store Connect
-        # key is refused on that path. It is not merely slow or occasionally refused:
-        # the identical step passed once and then failed on a byte-identical workflow,
-        # so relying on it was a coin toss rather than a build.
-        #
-        # exportArchive re-signs the app and both extensions anyway, manually, against
-        # the profiles fetched above. Letting it do all of the signing removes the
-        # gamble instead of retrying it.
+        # Signed manually with the certificate and per-target profiles installed above
+        # (SIGNING_XCCONFIG), so the entitlements files are applied here. No
+        # -allowProvisioningUpdates and no API key: that is cloud signing, which this key
+        # is refused.
         # The unique build number is injected as a CURRENT_PROJECT_VERSION build-setting
         # override (the project doesn't use apple-generic versioning, so agvtool is not
         # reliable). MARKETING_VERSION stays as defined in project.yml.
@@ -563,8 +579,7 @@ jobs:
             -scheme "$SCHEME" \
             -configuration "$CONFIGURATION" \
             -destination "generic/platform=iOS" \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
+            -xcconfig "$SIGNING_XCCONFIG" \
             -archivePath "$ARCHIVE_PATH" \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
             COMPILER_INDEX_STORE_ENABLE=NO \
@@ -582,6 +597,57 @@ jobs:
             -exportOptionsPlist "$EXPORT_OPTIONS" \
             | xcbeautify || exit ${PIPESTATUS[0]}
           echo "IPA_PATH=$(ls "$EXPORT_PATH"/*.ipa | head -n1)" >> "$GITHUB_ENV"
+
+      - name: Verify entitlements
+        # The app and both extensions must be signed with the app group and keychain group
+        # their own Info.plist asks for at runtime, and the app with production APNs and
+        # associated domains. altool accepts a build without them.
+        run: |
+          set -euo pipefail
+          WORK="$(mktemp -d "$RUNNER_TEMP/ipa-entitlements.XXXXXX")"
+          ditto -x -k "$IPA_PATH" "$WORK"
+          python3 - "$WORK/Payload" <<'PY'
+          import glob, os, plistlib, subprocess, sys
+
+          apps = glob.glob(os.path.join(sys.argv[1], "*.app"))
+          if len(apps) != 1:
+              print(f"::error::Expected one .app in the IPA, found {len(apps)}")
+              sys.exit(1)
+          app = apps[0]
+          bundles = [
+              (app, True),
+              (os.path.join(app, "PlugIns", "NSE.appex"), False),
+              (os.path.join(app, "PlugIns", "ShareExtension.appex"), False),
+          ]
+          failures = []
+          for bundle, is_app in bundles:
+              name = os.path.basename(bundle)
+              if not os.path.isdir(bundle):
+                  failures.append(f"{name}: missing from the IPA")
+                  continue
+              with open(os.path.join(bundle, "Info.plist"), "rb") as f:
+                  info = plistlib.load(f)
+              out = subprocess.run(["codesign", "-d", "--entitlements", "-", "--xml", bundle], capture_output=True)
+              if out.returncode != 0 or not out.stdout.strip():
+                  failures.append(f"{name}: no entitlements in the signature")
+                  continue
+              ents = plistlib.loads(out.stdout)
+              print(f"{name}: {sorted(ents)}")
+              group = info.get("appGroupIdentifier")
+              keychain = info.get("keychainAccessGroupIdentifier")
+              if not group or group not in ents.get("com.apple.security.application-groups", []):
+                  failures.append(f"{name}: com.apple.security.application-groups lacks {group!r}")
+              if not keychain or keychain not in ents.get("keychain-access-groups", []):
+                  failures.append(f"{name}: keychain-access-groups lacks {keychain!r}")
+              if is_app:
+                  if ents.get("aps-environment") != "production":
+                      failures.append(f"{name}: aps-environment is {ents.get('aps-environment')!r}, expected 'production'")
+                  if not ents.get("com.apple.developer.associated-domains"):
+                      failures.append(f"{name}: com.apple.developer.associated-domains is missing")
+          for failure in failures:
+              print(f"::error::{failure}")
+          sys.exit(1 if failures else 0)
+          PY
 
       - name: Validate IPA
         # Fail fast on signing/entitlement/Info.plist problems App Store Connect
