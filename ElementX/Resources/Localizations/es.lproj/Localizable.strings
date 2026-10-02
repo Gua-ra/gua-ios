@@ -724,8 +724,8 @@
 "screen_change_account_provider_subtitle" = "Usa un proveedor de cuentas diferente, como tu propio servidor privado o una cuenta de trabajo.";
 "screen_change_account_provider_title" = "Cambiar proveedor de cuentas";
 "screen_change_server_error_element_pro_required_action_ios" = "App Store";
-"screen_change_server_error_element_pro_required_message" = "The Element Pro app is required on %1$@. Please download it from the store.";
-"screen_change_server_error_element_pro_required_title" = "Element Pro required";
+"screen_change_server_error_element_pro_required_message" = "%1$@ requiere la aplicación Element Pro. Descárgala de la tienda.";
+"screen_change_server_error_element_pro_required_title" = "Se requiere Element Pro";
 "screen_change_server_error_invalid_homeserver" = "No hemos podido acceder a este servidor base. Comprueba que has introducido correctamente la dirección. Si es correcta, ponte en contacto con el administrador de tu servidor base para obtener más ayuda.";
 "screen_change_server_error_invalid_well_known" = "El servidor no está disponible debido a un problema en el archivo .well-known:\n%1$@";
 "screen_change_server_error_no_sliding_sync_message" = "El proveedor de cuentas seleccionado no admite sliding sync. Es necesario actualizar el servidor para usar %1$@.";
