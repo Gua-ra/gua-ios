@@ -142,7 +142,7 @@ class LocalizationTests: XCTestCase {
 
         Bundle.overrideLocalizations = ["pt-BR"]
         XCTAssertEqual(IdentityServiceError.pinLocked(retryAfterSeconds: 120).errorDescription,
-                       "Muitas tentativas erradas de PIN. Tente novamente em 2 minutos.")
+                       "Você errou o PIN muitas vezes. Tente novamente em 2 minutos.")
     }
 
     /// Durations use plural rules of the app language rather than an English "minute(s)".

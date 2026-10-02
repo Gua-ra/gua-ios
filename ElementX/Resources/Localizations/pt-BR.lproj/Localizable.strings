@@ -360,14 +360,14 @@
 "dialog_permission_photo_library_title_ios" = "%1$@ não tem acesso à sua biblioteca de fotos.";
 "dialog_room_reported" = "Sala denunciada";
 "dialog_room_reported_and_left" = "Denunciou e deixou a sala";
-"dialog_default_video_quality_selector_subtitle" = "Selecione a qualidade padrão dos videos que você envia.";
+"dialog_default_video_quality_selector_subtitle" = "Selecione a qualidade padrão dos vídeos que você envia.";
 "dialog_default_video_quality_selector_title" = "Qualidade de envio de vídeos";
 "dialog_title_confirmation" = "Confirmação";
 "dialog_title_warning" = "Alerta";
 "dialog_unsaved_changes_description_ios" = "Suas alterações não serão salvas";
 "dialog_unsaved_changes_title" = "Salvar alterações?";
 "dialog_video_quality_selector_subtitle_file_size" = "O tamanho máximo permitido de arquivos é: %1$@";
-"dialog_video_quality_selector_subtitle_no_file_size" = "Selecione a qualidade do video que quer enviar.";
+"dialog_video_quality_selector_subtitle_no_file_size" = "Selecione a qualidade do vídeo que você quer enviar.";
 "dialog_video_quality_selector_title" = "Selecione a qualidade de envio dos vídeos";
 "emoji_picker_category_activity" = "Atividades";
 "emoji_picker_category_flags" = "Bandeiras";
@@ -578,7 +578,7 @@
 "screen_media_upload_preview_error_failed_sending" = "Falha ao enviar mídia. Tente novamente.";
 "screen_media_upload_preview_error_too_large_message" = "O tamanho de arquivo máximo permitido é %1$@.";
 "screen_media_upload_preview_error_too_large_title" = "O arquivo é muito grande para enviar";
-"screen_media_upload_preview_item_count" = "%1$d de %2$d itens";
+"screen_media_upload_preview_item_count" = "Item %1$d de %2$d";
 "screen_media_upload_preview_optimize_image_quality_title" = "Otimizar qualidade da imagem";
 "screen_media_upload_preview_processing" = "Processando...";
 "screen_pinned_timeline_empty_state_description" = "Pressione em uma mensagem e escolha \"%1$@\" para incluir aqui.";
@@ -1434,7 +1434,7 @@
 
 /* GUA FORK - Two-step verification (missing translations) */
 "screen_two_step_verification_overview_header" = "Status";
-"screen_two_step_verification_overview_footer_on" = "Seu PIN é solicitado ao entrar em um novo dispositivo. Mantenha-o em segredo. Qualquer pessoa com seu PIN e seu código SMS pode acessar sua conta.";
+"screen_two_step_verification_overview_footer_on" = "Seu PIN é solicitado ao entrar em um novo dispositivo. Mantenha-o em segredo. Qualquer pessoa com seu PIN e o código do SMS pode acessar sua conta.";
 "screen_two_step_verification_overview_footer_off" = "Adicione uma chave de acesso ou um PIN de 6 dígitos para proteger sua conta contra ataques de troca de chip (SIM swap). Eles serão solicitados ao entrar em um novo dispositivo.";
 "screen_two_step_verification_overview_footer_passkey" = "Sua chave de acesso confirma que é você ao entrar em um novo dispositivo e ao alterar seu número.";
 "screen_two_step_verification_status_on" = "PIN ativado";
