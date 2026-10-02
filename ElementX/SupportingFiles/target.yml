@@ -87,11 +87,11 @@ targets:
           NSAllowsLocalNetworking: true
         ITSAppUsesNonExemptEncryption: false
         NSUserActivityTypes: [INSendMessageIntent, INStartCallIntent]
-        NSCameraUsageDescription: To take pictures or videos and send them as a message $(APP_DISPLAY_NAME) needs access to the camera.
-        NSMicrophoneUsageDescription: To record and send messages with audio, $(APP_DISPLAY_NAME) needs to access the microphone.
+        NSCameraUsageDescription: To take photos or videos and send them as messages, $(APP_DISPLAY_NAME) needs access to the camera.
+        NSMicrophoneUsageDescription: To record and send messages with audio, $(APP_DISPLAY_NAME) needs access to the microphone.
         NSPhotoLibraryAddUsageDescription: This lets you save images and videos to your photo library.
-        NSLocationWhenInUseUsageDescription: Grant location access so that $(APP_DISPLAY_NAME) can share your location.
-        NSFaceIDUsageDescription: $(APP_DISPLAY_NAME) uses Face ID to unlock the app, so you don't have to type your PIN every time.
+        NSLocationWhenInUseUsageDescription: Allow location access so that $(APP_DISPLAY_NAME) can share your location.
+        NSFaceIDUsageDescription: $(APP_DISPLAY_NAME) uses Face ID to unlock the app, so you don’t have to type your passcode every time.
         NSContactsUsageDescription: $(APP_DISPLAY_NAME) checks your contacts privately to find which of them are already here. Your contacts are never stored.
         UIBackgroundModes: [audio, fetch, processing, voip]
         BGTaskSchedulerPermittedIdentifiers:

@@ -9,7 +9,7 @@
 "gua_encryption_reset_required_message" = "Pour terminer la configuration des conversations chiffrées sur cet appareil, votre sauvegarde chiffrée doit être réinitialisée. Les messages stockés uniquement dans cette sauvegarde seront perdus. Les messages déjà présents sur vos appareils ne seront pas affectés.";
 "gua_encryption_reset_required_action" = "Réinitialiser et terminer";
 "gua_signout_last_device_title" = "Se déconnecter supprimera vos messages de cet appareil";
-"gua_signout_last_device_message" = "C'est votre seul appareil. Les messages conservés uniquement ici ne seront pas disponibles à votre prochaine connexion.";
+"gua_signout_last_device_message" = "Les messages conservés uniquement ici ne seront plus disponibles à votre prochaine connexion.";
 "gua_encryption_reset_finishing" = "Finalisation de la configuration…";
 "gua_encryption_reset_failed" = "Impossible de terminer la configuration. Appuyez sur « Réinitialiser et terminer » pour réessayer.";
 "gua_encryption_recover_from_other_device_title" = "Restaurez vos messages précédents";
@@ -29,3 +29,15 @@
 "gua_join_room_by_address_hint" = "Collez l'adresse du salon qui vous a été communiquée.";
 "gua_sign_in_with_passkey" = "Connexion avec clé d’accès";
 "gua_account_genesis_setup_failed" = "Impossible de terminer la configuration de votre compte sur cet appareil. Veuillez réessayer.";
+"gua_encryption_repair_action_in_progress" = "Configuration…";
+"gua_encryption_reset_still_finishing" = "La configuration prend plus de temps que prévu. Elle se poursuit en arrière-plan ; vous pouvez attendre ici ou revenir plus tard.";
+"gua_resolver_claims_invalid" = "Nous n’avons pas pu confirmer les informations de votre organisation. Veuillez réessayer.";
+"gua_resolver_routing_unavailable" = "Nous rencontrons des problèmes de connexion. Veuillez réessayer dans un instant.";
+"gua_resolver_registration_closed" = "Nous ne pouvons pas créer de nouveaux comptes pour le moment. Veuillez réessayer plus tard.";
+"soft_logout_signin_title" = "Se connecter";
+"soft_logout_signin_e2e_warning_notice" = "Connectez-vous pour récupérer les clés de chiffrement stockées uniquement sur cet appareil. Vous en avez besoin pour lire tous vos messages sécurisés sur n’importe quel appareil.";
+"soft_logout_clear_data_title" = "Effacer les données personnelles";
+"soft_logout_clear_data_notice" = "Attention : vos données personnelles (y compris les clés de chiffrement) sont toujours stockées sur cet appareil.\n\nEffacez-les si vous n’utilisez plus cet appareil ou si vous voulez vous connecter à un autre compte.";
+"soft_logout_clear_data_submit" = "Effacer toutes les données";
+"soft_logout_clear_data_dialog_title" = "Effacer les données";
+"soft_logout_clear_data_dialog_content" = "Effacer toutes les données stockées sur cet appareil ?\nReconnectez-vous pour accéder aux données de votre compte et à vos messages.";

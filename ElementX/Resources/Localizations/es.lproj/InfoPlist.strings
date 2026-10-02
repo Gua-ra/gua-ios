@@ -1,5 +1,6 @@
-"NSCameraUsageDescription" = "Para tomar fotografías o vídeos y enviarlos como un mensaje, Element X necesita acceder a la cámara.";
-"NSFaceIDUsageDescription" = "Face ID se utiliza para acceder a tu aplicación.";
-"NSLocationWhenInUseUsageDescription" = "Otorga acceso a la ubicación para que Element X pueda compartir tu ubicación.";
-"NSMicrophoneUsageDescription" = "Para grabar y enviar mensajes con audio, Element X necesita acceder al micrófono.";
-"NSPhotoLibraryUsageDescription" = "Permite guardar fotos y vídeos en tu biblioteca de fotos.";
+"NSCameraUsageDescription" = "Para tomar fotos o grabar vídeos y enviarlos como mensajes, Gua necesita acceder a la cámara.";
+"NSContactsUsageDescription" = "Gua revisa tus contactos de forma privada para encontrar quiénes ya están aquí. Tus contactos nunca se guardan.";
+"NSFaceIDUsageDescription" = "Gua usa Face ID para desbloquear la app, así no tienes que escribir tu código cada vez.";
+"NSLocationWhenInUseUsageDescription" = "Permite el acceso a la ubicación para que Gua pueda compartir tu ubicación.";
+"NSMicrophoneUsageDescription" = "Para grabar y enviar mensajes de audio, Gua necesita acceder al micrófono.";
+"NSPhotoLibraryAddUsageDescription" = "Permite guardar imágenes y vídeos en tu biblioteca de fotos.";

@@ -9,7 +9,7 @@
 "gua_encryption_reset_required_message" = "Para terminar de configurar as conversas criptografadas neste dispositivo, seu backup criptografado precisa ser redefinido. As mensagens guardadas apenas nesse backup serão perdidas. As mensagens já presentes nos seus dispositivos não serão afetadas.";
 "gua_encryption_reset_required_action" = "Redefinir e concluir";
 "gua_signout_last_device_title" = "Sair vai remover suas mensagens deste dispositivo";
-"gua_signout_last_device_message" = "Este é o seu único dispositivo. As mensagens guardadas apenas aqui não estarão disponíveis quando você entrar novamente.";
+"gua_signout_last_device_message" = "As mensagens guardadas apenas aqui não estarão disponíveis quando você entrar novamente.";
 "gua_encryption_reset_finishing" = "Concluindo a configuração…";
 "gua_encryption_reset_failed" = "Não foi possível concluir a configuração. Toque em Redefinir e concluir para tentar novamente.";
 "gua_encryption_reset_still_finishing" = "A configuração está demorando mais que o esperado. Ela continua em segundo plano; você pode aguardar aqui ou voltar mais tarde.";
@@ -30,3 +30,14 @@
 "gua_join_room_by_address_hint" = "Cole o endereço da sala que você recebeu.";
 "gua_sign_in_with_passkey" = "Entrar com chave de acesso";
 "gua_account_genesis_setup_failed" = "Não foi possível concluir a configuração da sua conta neste dispositivo. Tente novamente.";
+"gua_encryption_repair_action_in_progress" = "Configurando…";
+"gua_resolver_claims_invalid" = "Não foi possível confirmar os dados da sua organização. Tente novamente.";
+"gua_resolver_routing_unavailable" = "Estamos com problemas de conexão no momento. Tente novamente em instantes.";
+"gua_resolver_registration_closed" = "No momento, não é possível criar novas contas. Tente novamente mais tarde.";
+"soft_logout_signin_title" = "Entrar";
+"soft_logout_signin_e2e_warning_notice" = "Entre para recuperar as chaves de criptografia guardadas apenas neste dispositivo. Você precisa delas para ler todas as suas mensagens seguras em qualquer dispositivo.";
+"soft_logout_clear_data_title" = "Apagar dados pessoais";
+"soft_logout_clear_data_notice" = "Atenção: seus dados pessoais (incluindo as chaves de criptografia) ainda estão guardados neste dispositivo.\n\nApague esses dados se você não vai mais usar este dispositivo ou se quiser entrar em outra conta.";
+"soft_logout_clear_data_submit" = "Apagar todos os dados";
+"soft_logout_clear_data_dialog_title" = "Apagar dados";
+"soft_logout_clear_data_dialog_content" = "Apagar todos os dados guardados neste dispositivo?\nEntre novamente para acessar os dados da sua conta e suas mensagens.";
