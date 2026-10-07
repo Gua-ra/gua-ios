@@ -14,9 +14,11 @@ import Foundation
 @MainActor
 final class IdentityServiceClientMock: IdentityServiceClientProtocol {
     var status: AccountSecurityStatus
+    var passkeyStepUpOptions: PasskeyStepUpOptions?
 
-    init(status: AccountSecurityStatus) {
+    init(status: AccountSecurityStatus, passkeyStepUpOptions: PasskeyStepUpOptions? = nil) {
         self.status = status
+        self.passkeyStepUpOptions = passkeyStepUpOptions
     }
 
     func securityStatus(accessToken: String) async throws -> AccountSecurityStatus {
@@ -51,7 +53,8 @@ final class IdentityServiceClientMock: IdentityServiceClientProtocol {
     }
 
     func startPasskeyStepUp(accessToken: String) async throws -> PasskeyStepUpOptions {
-        throw IdentityServiceError.passkeyStepUpUnavailable
+        guard let passkeyStepUpOptions else { throw IdentityServiceError.passkeyStepUpUnavailable }
+        return passkeyStepUpOptions
     }
 
     func startPhoneChange(accessToken: String,

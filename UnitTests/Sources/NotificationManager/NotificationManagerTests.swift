@@ -185,8 +185,8 @@ final class NotificationManagerTests: XCTestCase {
     }
 
     func test_whenWillPresentNotificationsDelegateNotSet_CorrectPresentationOptionsReturned() async throws {
-        let archiver = MockCoder(requiringSecureCoding: false)
-        let notification = try XCTUnwrap(UNNotification(coder: archiver))
+        // GUA FORK: MockCoder yields a notification whose `request` cannot be read, so the shared helper builds it.
+        let notification = try UNNotification.with(userInfo: [AnyHashable: Any]())
         let options = await notificationManager.userNotificationCenter(UNUserNotificationCenter.current(), willPresent: notification)
         XCTAssertEqual(options, [.badge, .sound, .list, .banner])
     }
@@ -207,6 +207,58 @@ final class NotificationManagerTests: XCTestCase {
         let notification = try UNNotification.with(userInfo: [AnyHashable: Any]())
         let options = await notificationManager.userNotificationCenter(UNUserNotificationCenter.current(), willPresent: notification)
         XCTAssertEqual(options, [.badge, .sound, .list, .banner])
+    }
+
+    func test_whenWillPresentAuthorityAlertWithInAppNotificationsOff_alertIsPresented() async throws {
+        appSettings.enableInAppNotifications = false
+        shouldDisplayInAppNotificationReturnValue = false
+        notificationManager.delegate = self
+
+        let notification = try UNNotification.with(userInfo: [NotificationConstants.UserInfoKey.guaAuthorityAlert: "1"])
+        let options = await notificationManager.userNotificationCenter(UNUserNotificationCenter.current(), willPresent: notification)
+        XCTAssertEqual(options, [.badge, .sound, .list, .banner])
+    }
+
+    func test_whenWillPresentChatNotificationWithInAppNotificationsOff_nothingIsPresented() async throws {
+        appSettings.enableInAppNotifications = false
+        shouldDisplayInAppNotificationReturnValue = false
+        notificationManager.delegate = self
+
+        let notification = try UNNotification.with(userInfo: [AnyHashable: Any]())
+        let options = await notificationManager.userNotificationCenter(UNUserNotificationCenter.current(), willPresent: notification)
+        XCTAssertEqual(options, [])
+    }
+
+    func test_whenWillPresentAuthorityAlertWithAnotherMarkerValue_nothingIsPresented() async throws {
+        appSettings.enableInAppNotifications = false
+        shouldDisplayInAppNotificationReturnValue = false
+        notificationManager.delegate = self
+
+        for value in ["0", "", "true", "yes"] {
+            let notification = try UNNotification.with(userInfo: [NotificationConstants.UserInfoKey.guaAuthorityAlert: value])
+            let options = await notificationManager.userNotificationCenter(UNUserNotificationCenter.current(), willPresent: notification)
+            XCTAssertEqual(options, [], "a marker of \(value) should not present")
+        }
+    }
+
+    func test_whenWillPresentAuthorityAlertAndFeatureFlagOff_alertIsStillPresented() async throws {
+        appSettings.guaAccountAuthorityEnabled = false
+        appSettings.enableInAppNotifications = false
+        shouldDisplayInAppNotificationReturnValue = false
+        notificationManager.delegate = self
+
+        let notification = try UNNotification.with(userInfo: [NotificationConstants.UserInfoKey.guaAuthorityAlert: "1"])
+        let options = await notificationManager.userNotificationCenter(UNUserNotificationCenter.current(), willPresent: notification)
+        XCTAssertEqual(options, [.badge, .sound, .list, .banner])
+    }
+
+    func test_whenNotificationCenterReceivedResponseForAuthorityAlert_delegateIsCalled() async throws {
+        notificationTappedDelegateCalled = false
+        notificationManager.delegate = self
+        let response = try UNTextInputNotificationResponse.with(userInfo: [NotificationConstants.UserInfoKey.guaAuthorityAlert: "1"],
+                                                                actionIdentifier: UNNotificationDefaultActionIdentifier)
+        await notificationManager.userNotificationCenter(UNUserNotificationCenter.current(), didReceive: response)
+        XCTAssertTrue(notificationTappedDelegateCalled)
     }
 
     func test_whenNotificationCenterReceivedResponseInLineReply_delegateIsCalled() async throws {
