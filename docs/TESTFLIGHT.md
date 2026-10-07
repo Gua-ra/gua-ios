@@ -17,23 +17,24 @@ Actions UI. No local Xcode, no Match repo, no manual certificate juggling.
 Each run uses `github.run_number` as the build number, so every upload is unique
 and monotonically increasing: TestFlight never rejects a duplicate.
 
-## Signing approach: cloud-managed automatic signing
+## Signing: manual, at archive time
 
-The app and both app extensions (`global.gua`, `global.gua.nse`,
-`global.gua.shareextension`) all use `CODE_SIGN_STYLE = Automatic` with team
-`BSLR4D6L28` (set in `app.yml` as `DEVELOPMENT_TEAM`, inherited by every signed target).
+Cloud signing (`-allowProvisioningUpdates` with the API key) is refused for this App
+Store Connect key, so the workflow never passes that flag or the key to `xcodebuild`.
 
-The workflow hands an **App Store Connect API key** to `xcodebuild` via
-`-allowProvisioningUpdates -authenticationKeyPath/-authenticationKeyID/-authenticationKeyIssuerID`.
-Xcode then fetches or creates, on the fly:
+- **Certificate:** the Apple Distribution identity comes from `GUA_DIST_CERT_P12` and
+  is imported into a keychain that exists only for the run.
+- **Profiles:** `sigh` fetches (or creates) an App Store profile for the app and both
+  extensions through the provisioning API, which this key may use.
+- **Archive:** signed per target (`ElementX`, `NSE`, `ShareExtension`) through a
+  generated xcconfig. `exportArchive` cannot add entitlements the archive lacks.
+- **Gate:** "Verify entitlements" fails the run unless the app and both extensions
+  carry the app group and keychain group named in their Info.plist, and the app
+  carries production `aps-environment` and associated domains.
 
-- the iOS Distribution certificate, and
-- the App Store provisioning profiles for all three bundle ids (including the app
-  group and keychain-access-group entitlements).
-
-That is why there is **no** `.p12`, `.mobileprovision`, keychain import, or
-Fastlane Match in this pipeline: the single API key replaces all of it. The same
-key is reused by `xcrun altool` for the TestFlight upload.
+To produce the `.p12`, export the Apple Distribution certificate together with its
+private key from Keychain Access, then store `base64 -i dist.p12` as
+`GUA_DIST_CERT_P12` and the export password as `GUA_DIST_CERT_PASSWORD`.
 
 ## Required GitHub secrets
 
@@ -48,6 +49,8 @@ feedback bot.
 | `ASC_PRIVATE_KEY` | The full contents of the `AuthKey_<KEY_ID>.p8` file | Downloaded once when the key was created. Paste the whole PEM block, `-----BEGIN PRIVATE KEY-----` through `-----END PRIVATE KEY-----`, including newlines. |
 | `ASC_APP_ID_DEV` | The **dev** app record's numeric Apple ID (only needed for `environment=dev`) | Same place, on the `Gua Dev` app record. |
 | `ASC_APP_ID` | The app's **numeric Apple ID** | App Store Connect -> Apps -> (the Gua app) -> App Information -> "Apple ID". The upload pins this so the build can't be routed to the wrong app record on a multi-app account. |
+| `GUA_DIST_CERT_P12` | Base64 of the Apple Distribution certificate and private key, as a `.p12` | See "Signing" above. |
+| `GUA_DIST_CERT_PASSWORD` | The `.p12` export password | Chosen when exporting. |
 | `GUA_DEV_RESOLVER_BASE_URL` | **HTTPS** base URL of the dev **resolver** (resolver routing) | The dev cluster's resolver ingress, e.g. `https://resolver.dev.gua.<dev-zone>` |
 | `GUA_DEV_IDENTITY_SERVICE_BASE_URL` | **HTTPS** base URL of the dev **identity-service** (phone/OTP IdP) | The dev cluster's identity ingress, e.g. `https://identity.dev.gua.<dev-zone>` |
 | `GUA_DEV_ACCOUNT_PROVIDER` | The dev **homeserver server-name** offered at login (host, no scheme) | The `serverName` the resolver returns, e.g. `dev.gua.<dev-zone>` |
@@ -92,21 +95,11 @@ The API key needs the **App Manager** role (or at least access to certificates,
 identifiers & profiles + TestFlight) so it can manage signing assets and upload
 builds.
 
-> **First-run precondition (App IDs must already exist).** Cloud-managed signing
-> reliably *updates* existing App IDs, but is flaky at *creating* App-Group-bearing
-> ones on a cold portal. Before the first run, make sure the three App IDs
-> `global.gua`, `global.gua.nse`, and `global.gua.shareextension` are already
-> registered in the Developer portal **with the Push, Associated Domains, App Groups
-> (`group.global.gua`), and Keychain Sharing capabilities enabled**, and that the
-> App Group `group.global.gua` itself exists. The simplest way to seed all of this
-> is a one-time manual archive from Xcode (which creates the identifiers, the App
-> Group, and the App Store profiles); after that, CI's `-allowProvisioningUpdates`
-> keeps them current. If you skip this, the very first CI run can fail at the
-> archive's signing phase.
-
-No secrets beyond the table above are required. There is **no** manual-signing fallback configured,
-because all targets already use automatic signing (see "Fallback" below if that
-ever changes).
+> **Precondition (App IDs must already exist).** `sigh` builds each profile from its
+> App ID, so `global.gua`, `global.gua.nse` and `global.gua.shareextension` must be
+> registered with App Groups (`group.global.gua`) assigned, and the app also with Push
+> and Associated Domains. A profile missing an entitlement the target asks for fails
+> the archive, which is the intended failure.
 
 ## What the workflow does
 
@@ -116,9 +109,12 @@ checkout (with LFS)
   -> cache SwiftPM + Homebrew
   -> brew install xcodegen (+ xcbeautify if missing)
   -> xcodegen generate            # regenerate Gua.xcodeproj from project.yml
-  -> write AuthKey_<id>.p8 from ASC_PRIVATE_KEY into $RUNNER_TEMP/private_keys
-  -> xcodebuild archive  -allowProvisioningUpdates  CURRENT_PROJECT_VERSION=<run #>
-  -> xcodebuild -exportArchive  (fastlane/exportOptions.plist, method app-store-connect)
+  -> write AuthKey_<id>.p8 from ASC_PRIVATE_KEY where altool looks for it
+  -> import GUA_DIST_CERT_P12 into a temporary keychain
+  -> sigh: one App Store profile per bundle id, plus the signing xcconfig and export options
+  -> xcodebuild archive  -xcconfig <per-target signing>  CURRENT_PROJECT_VERSION=<build #>
+  -> xcodebuild -exportArchive  (generated export options, manual, app-store-connect)
+  -> verify the IPA's entitlements (app, NSE, share extension)
   -> xcrun altool --validate-app  (fail fast on signing/entitlement/plist rejects)
   -> xcrun altool --upload-package <ipa> --apple-id ASC_APP_ID --bundle-id <prod|dev bundle id>
        (output grepped for "No errors uploading"; altool can exit 0 on failure)
@@ -147,7 +143,7 @@ Key build facts the workflow relies on:
   accordingly or use a self-hosted Mac runner. **If you use a self-hosted runner,**
   note that `$HOME`/`$RUNNER_TEMP` can persist across jobs, so the App Store Connect
   `.p8` key must not be left on disk. The workflow writes the key under
-  `$RUNNER_TEMP/private_keys` and an always-run "Clean up API key" step shreds it at
+  `~/.appstoreconnect/private_keys` and an always-run "Clean up API key" step shreds it at
   the end of every run (including on failure). Keep that step intact.
 - **Xcode version:** the project requires Xcode 16+. The workflow selects
   `Xcode_16.4` if present, else the newest `Xcode_16*`. If no `Xcode_16*` is found
@@ -168,22 +164,3 @@ Key build facts the workflow relies on:
 - **Marketing version:** `MARKETING_VERSION` comes from `project.yml`
   (currently `25.09.12`). Only the build number auto-increments. Bump the marketing
   version in `project.yml` when you want a new TestFlight version string.
-
-## Fallback: manual signing (only if automatic ever fails)
-
-Automatic signing should work for this project as-is. If Apple ever blocks
-cloud-managed signing for these bundle ids, switch to importing assets from
-secrets:
-
-1. Add secrets `BUILD_CERTIFICATE_BASE64` (base64 of the distribution `.p12`),
-   `P12_PASSWORD`, and one `*_PROVISION_PROFILE_BASE64` per bundle id.
-2. In the workflow, before archiving: create a temp keychain, import the `.p12`,
-   and install each `.mobileprovision` into
-   `~/Library/MobileDevice/Provisioning Profiles/`.
-3. Set `signingStyle` to `manual` in `fastlane/exportOptions.plist` and add a
-   `provisioningProfiles` dictionary mapping each bundle id to its profile name.
-4. Flip `CODE_SIGN_STYLE` to `Manual` (and set `CODE_SIGN_IDENTITY` /
-   `PROVISIONING_PROFILE_SPECIFIER`) for the three targets.
-
-This is intentionally not wired up. Keep the single-API-key path unless you have
-to.
