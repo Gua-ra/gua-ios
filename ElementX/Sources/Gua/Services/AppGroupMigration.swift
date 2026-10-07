@@ -7,19 +7,16 @@
 
 import Foundation
 
-/// Moves state written without the app group entitlement into the app group container.
+/// Moves data written by builds without the app group entitlement into the app group container.
 ///
-/// Builds signed without `com.apple.security.application-groups` fall back to the app's own
-/// container (see `URL.appGroupContainerDirectory`), so the settings suite and the session stores
-/// live there and restoration tokens hold those absolute paths. Keychain items need no move: an
-/// app without `keychain-access-groups` writes to its application identifier, which is the same
-/// string as the shared access group.
+/// Keychain items stay put: without `keychain-access-groups` the app writes to its application
+/// identifier, which equals the shared access group.
 struct AppGroupMigration {
     enum Outcome: Equatable {
         case nothingToMigrate
         case migrated
-        /// Legacy state exists but could not be moved, for example before the first unlock.
-        /// The settings suite is not authoritative until a later launch completes the move.
+        /// Legacy state could not be moved yet, for example before first unlock. The settings
+        /// suite is not authoritative until a later launch moves it.
         case deferred
     }
 
@@ -35,8 +32,6 @@ struct AppGroupMigration {
     let suiteName: String
     let keychainController: KeychainControllerProtocol
 
-    /// Runs against the live containers. A no-op while the process has no app group container,
-    /// because the legacy paths are then still the ones in use.
     static func runIfNeeded() -> Outcome {
         let suiteName = InfoPlistReader.main.appGroupIdentifier
         guard FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: suiteName) != nil else {
@@ -96,8 +91,7 @@ struct AppGroupMigration {
         return .migrated
     }
 
-    /// Session directories are found by name, so a token from a previous container path still
-    /// matches. Both containers are on the data volume, so each move is an atomic rename.
+    /// Both containers are on the data volume, so each move is an atomic rename.
     private func migrateSessions() -> Outcome {
         var outcome = Outcome.nothingToMigrate
 
@@ -136,8 +130,8 @@ struct AppGroupMigration {
                                                  pusherNotificationClientIdentifier: token.pusherNotificationClientIdentifier)
             keychainController.setRestorationToken(migratedToken, forUsername: credentials.userID)
 
-            // A failed restore deletes the token, so the data has to stay where the stored token
-            // points. Data left in the group is adopted by a later run whichever token it finds.
+            // A failed restore deletes the token, so the data must stay where the stored token
+            // points. Without a stored token, a later run adopts the data left in the group.
             let stored = keychainController.restorationTokens().first { $0.userID == credentials.userID }?.restorationToken
             guard let stored, isSameLocation(stored.sessionDirectories.dataDirectory, data) else {
                 MXLog.error("Failed updating the restoration token")

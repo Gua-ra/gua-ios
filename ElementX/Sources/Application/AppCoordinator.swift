@@ -142,8 +142,8 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
             fatalError("The app's version number **must** use semver for migration purposes.")
         }
         
-        // GUA FORK: a deferred app group migration leaves this to a later launch, and data it moved
-        // proves the app was not deleted since the previous run.
+        // GUA FORK: migrated data means the app was not deleted, so it must not trigger the
+        // fresh-install wipe.
         if appGroupMigration != .deferred {
             if let previousVersion = appSettings.lastVersionLaunched.flatMap(Version.init) {
                 performMigrationsIfNecessary(from: previousVersion, to: currentVersion)
