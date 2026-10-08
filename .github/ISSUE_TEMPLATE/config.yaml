@@ -1,8 +1,8 @@
 blank_issues_enabled: true
 contact_links:
- - name: Matrix Community Support
-   url: "https://matrix.to/#/#matrix:matrix.org"
-   about: General support questions can be asked here.
- - name: Matrix Security Policy
-   url: https://www.matrix.org/security-disclosure-policy/
-   about: Learn more about our security disclosure policy.
+ - name: Support and beta access
+   url: https://gua.global/support
+   about: Get help with the app or request access to the beta.
+ - name: Security policy
+   url: https://github.com/Gua-ra/gua-ios/blob/develop/SECURITY.md
+   about: How to report a vulnerability privately.

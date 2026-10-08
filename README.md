@@ -9,9 +9,13 @@
 
 **Gua** is a private messenger built on the open [Matrix](https://matrix.org/) protocol. Conversations are end-to-end encrypted and run on a federated network. The app feels like the messengers people already use: sign in with something you already have, find your friends privately, and start talking.
 
-Sign-in is deliberately simple. Today it uses your phone number. The account model is designed to stay flexible, and institutional SSO is planned for organizations that bring their own identity.
+Sign-in is simple. Today it uses your phone number. The account model is designed to stay flexible, and institutional SSO is planned for organizations that bring their own identity.
 
 This repository is the Gua iOS client. It began as a fork of [`element-hq/element-x-ios`](https://github.com/element-hq/element-x-ios) and keeps its Matrix core: the Matrix Rust SDK, timelines, calls, and encryption. On top of that core, Gua adds its own product layer: routing, onboarding, account security, contact discovery, and the day-to-day experience.
+
+## Get the app
+
+Gua for iOS is in an invite-only beta on TestFlight. Request access with the beta form at [gua.global/support](https://gua.global/support#beta-form). Approved testers receive a TestFlight invitation by email. The Android app lives in [`gua-android`](https://github.com/Gua-ra/gua-android).
 
 ---
 
@@ -32,7 +36,7 @@ Beyond sign-in, the Gua product layer adds:
 - **Two-step verification (account PIN).** A six-digit account PIN is the account's second factor. It is set during onboarding and required for sensitive operations. It can be changed or reset with verification. The client mirrors the server's PIN strength policy: no repeated, sequential, or common PINs.
 - **Private contact discovery.** Find Friends shows which of your contacts are already on Gua. It needs address-book permission to run. The app normalizes numbers on the device and sends hashed identifiers in capped batches, never the address book itself. Hashing is a privacy-hardening step. It does not make the numbers impossible to recover.
 - **Phone number changes.** The number linked to an account can be changed from Settings. The new number is verified with a one-time code, and the account PIN acts as the second factor.
-- **Welcome experience.** A polished, localized welcome screen (en, fr, es, pt, pt-BR) with the animated glass Gua logo.
+- **Welcome experience.** A localized welcome screen (en, fr, es, pt, pt-BR) with the animated glass Gua logo.
 - **Safe defaults.** End-to-end encryption stays on with sensible defaults, and advanced encryption controls are hidden. The app-lock code is called a passcode so it is never confused with the account PIN.
 
 ### Architecture
@@ -79,14 +83,22 @@ cd gua-ios
 open Gua.xcodeproj
 ```
 
-Select the **Gua** scheme and run. Use `Gua.xcodeproj`; the `ElementX.xcodeproj` next to it is an upstream leftover scheduled for removal.
+Select the **Gua** scheme and run. Use `Gua.xcodeproj`; the `ElementX.xcodeproj` next to it is an upstream leftover and is not maintained.
 
 Things to know:
 
 - **Secrets.** `Secrets/Secrets.swift` is committed with placeholder values, so the project always compiles. The placeholders are localhost development endpoints and dummy analytics keys. Debug builds read their development backend endpoints from this file. Point them at your own backend locally and keep those edits out of your commits. Release builds use the production configuration instead.
 - **Project generation.** The Xcode project is generated from `project.yml` / `app.yml` with XcodeGen. If you change project configuration, run `xcodegen` and rebuild.
-- **Forking.** Bundle identifiers, app groups, team configuration, and the OIDC client requirements are covered in [docs/FORKING.md](docs/FORKING.md).
-- **Everything else.** Code generation, tests, and tooling are described in the [contribution guide](CONTRIBUTING.md).
+- **Forking.** Bundle identifiers, app groups and team configuration are covered in [docs/FORKING.md](docs/FORKING.md). Gua's OIDC settings live in `ElementX/Sources/Gua/AppHooks/AppHooks+Gua.swift`.
+- **Everything else.** Setup tooling, checks and tests are described in the [contribution guide](CONTRIBUTING.md).
+
+---
+
+## Reporting problems
+
+- Bugs and requests: [open an issue](https://github.com/Gua-ra/gua-ios/issues).
+- Security problems: follow [SECURITY.md](SECURITY.md). Never put them in a public issue.
+- Anything else: the [support form](https://gua.global/support) or [support@gua.global](mailto:support@gua.global).
 
 ---
 
@@ -94,12 +106,14 @@ Things to know:
 
 This fork tracks [`element-hq/element-x-ios`](https://github.com/element-hq/element-x-ios) as its upstream but does not share git history with it. Catching up with upstream means re-porting Gua's changes onto a new upstream snapshot, not running `git merge`. See [docs/FORKING.md](docs/FORKING.md) for the fork configuration itself.
 
+Element X iOS is the Matrix client made by [Element](https://element.io/), built on the [Matrix Rust SDK](https://github.com/matrix-org/matrix-rust-sdk). Gua inherits its code, tooling and tests. Element X's own App Store listing, translation project, community rooms and support channels are Element's and do not cover Gua.
+
 ---
 
 ## License
 
 Copyright (c) 2022-2025 New Vector Ltd (upstream code)
-Copyright (c) 2025 Gua (Gua modifications)
+Copyright (c) 2025-2026 Gua (Gua modifications)
 
 Licensed under the GNU Affero General Public License v3.0 (AGPL-3.0), see [LICENSE](LICENSE).
 
