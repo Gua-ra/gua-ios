@@ -2,20 +2,22 @@
 
 ### Project Configuration
 
-To create a fork, the first step is to update some of the project's configuration options such as the bundle identifier and the app's display name. To do this, open the `app.yml` file in the project root folder and at a minimum change these settings:
+This is upstream Element X's forking guide. The project configuration steps apply to Gua. Gua's runtime overrides, including its `global.gua:/oidc` redirect, live in [AppHooks+Gua.swift](../ElementX/Sources/Gua/AppHooks/AppHooks+Gua.swift).
+
+To create a fork, the first step is to update some of the project's configuration options such as the bundle identifier and the app's display name. To do this, open the `app.yml` file in the project root folder and at a minimum change these settings (shown with Gua's values; the team id is your own):
 
 ```
-APP_DISPLAY_NAME: Element X
-APP_GROUP_IDENTIFIER: group.io.element
-BASE_BUNDLE_IDENTIFIER: io.element.elementx
-DEVELOPMENT_TEAM: 7J4U792NQT
+APP_DISPLAY_NAME: Gua
+APP_GROUP_IDENTIFIER: group.global.gua
+BASE_BUNDLE_IDENTIFIER: global.gua
+DEVELOPMENT_TEAM: <your Apple developer team id>
 ```
 
 After making the changes, run `xcodegen` to regenerate the project.
 
 ### Runtime Configuration
 
-Once your project is configured and compiles, you'll likely want to tweak how the app works. [AppSettings.swift](../ElementX/Sources/Application/AppSettings.swift) contains all of the settings used by the app at runtime.
+Once your project is configured and compiles, you'll likely want to tweak how the app works. [AppSettings.swift](../ElementX/Sources/Application/Settings/AppSettings.swift) contains all of the settings used by the app at runtime.
 
 ### Authentication
 
