@@ -164,6 +164,13 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                 clearRoute(animated: animated)
             }
             
+            // GUA FORK: provisioning parameters only apply to the start screen. The phone-entry flow and a
+            // web authentication session that is still closing have no route for them.
+            guard stateMachine.state == .initial || stateMachine.state == .startScreen else {
+                MXLog.warning("Ignoring a provisioning link in state `\(stateMachine.state)`.")
+                return
+            }
+            
             stateMachine.tryEvent(.applyProvisioningParameters, userInfo: provisioningParameters)
         default:
             fatalError()

@@ -26,4 +26,24 @@ final class AuthenticationFlowCoordinatorTests: XCTestCase {
         XCTAssertFalse(AuthenticationFlowCoordinator.ignoresUnroutedEvent(.startPhoneAuth, from: .oidcAuthentication))
         XCTAssertFalse(AuthenticationFlowCoordinator.ignoresUnroutedEvent(nil, from: .oidcAuthentication))
     }
+
+    func testProvisioningLinkOnThePhoneEntryScreenIsIgnored() throws {
+        XCTAssertTrue(ServiceLocator.shared.settings.allowOtherAccountProviders)
+        XCTAssertFalse(ServiceLocator.shared.settings.legacyAuthEnabled)
+        let navigationRootCoordinator = NavigationRootCoordinator()
+        let coordinator = AuthenticationFlowCoordinator(authenticationService: AuthenticationService.mock,
+                                                        bugReportService: BugReportServiceMock(.init()),
+                                                        navigationRootCoordinator: navigationRootCoordinator,
+                                                        appMediator: AppMediatorMock.default,
+                                                        appSettings: ServiceLocator.shared.settings,
+                                                        analytics: ServiceLocator.shared.analytics,
+                                                        userIndicatorController: UserIndicatorControllerMock(),
+                                                        usesPhoneLoginHint: true)
+        coordinator.start()
+
+        coordinator.handleAppRoute(.accountProvisioningLink(.init(accountProvider: "example.com", loginHint: nil)), animated: false)
+
+        let navigationStackCoordinator = try XCTUnwrap(navigationRootCoordinator.rootCoordinator as? NavigationStackCoordinator)
+        XCTAssertTrue(navigationStackCoordinator.rootCoordinator is PhoneEntryScreenCoordinator)
+    }
 }
