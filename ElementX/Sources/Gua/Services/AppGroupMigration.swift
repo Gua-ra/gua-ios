@@ -5,22 +5,31 @@
 // Please see LICENSE files in the repository root for full details.
 //
 
+import CryptoKit
 import Foundation
 
-/// Moves state written without the app group entitlement into the app group container.
-///
-/// Builds signed without `com.apple.security.application-groups` fall back to the app's own
-/// container (see `URL.appGroupContainerDirectory`), so the settings suite and the session stores
-/// live there and restoration tokens hold those absolute paths. Keychain items need no move: an
-/// app without `keychain-access-groups` writes to its application identifier, which is the same
-/// string as the shared access group.
+/// Keychain items stay put: without `keychain-access-groups` the app writes to its application
+/// identifier, which equals the shared access group.
 struct AppGroupMigration {
     enum Outcome: Equatable {
         case nothingToMigrate
         case migrated
-        /// Legacy state exists but could not be moved, for example before the first unlock.
-        /// The settings suite is not authoritative until a later launch completes the move.
+        /// Legacy state could not be moved yet, for example before first unlock. The settings
+        /// suite is not authoritative until a later launch moves it.
         case deferred
+    }
+
+    /// MXLog drops messages until it is configured, so an early caller buffers these.
+    enum LogEntry: Equatable {
+        case info(String)
+        case error(String)
+
+        func writeToMXLog() {
+            switch self {
+            case .info(let message): MXLog.info(message)
+            case .error(let message): MXLog.error(message)
+            }
+        }
     }
 
     struct Directories {
@@ -34,13 +43,14 @@ struct AppGroupMigration {
     let directories: Directories
     let suiteName: String
     let keychainController: KeychainControllerProtocol
+    let log: (LogEntry) -> Void
 
-    /// Runs against the live containers. A no-op while the process has no app group container,
-    /// because the legacy paths are then still the ones in use.
-    static func runIfNeeded() -> Outcome {
+    private static let appliedLegacyPreferencesDigestKey = "guaAppGroupMigration.appliedLegacyPreferencesDigest"
+
+    static func live(log: @escaping (LogEntry) -> Void) -> AppGroupMigration? {
         let suiteName = InfoPlistReader.main.appGroupIdentifier
         guard FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: suiteName) != nil else {
-            return .nothingToMigrate
+            return nil
         }
 
         let legacyRoot = URL.applicationSupportDirectory.deletingLastPathComponent().deletingLastPathComponent()
@@ -52,52 +62,71 @@ struct AppGroupMigration {
                                       sessionCaches: .sessionCachesBaseDirectory)
         let keychainController = KeychainController(service: .sessions, accessGroup: InfoPlistReader.main.keychainAccessGroupIdentifier)
 
-        let outcome = AppGroupMigration(directories: directories, suiteName: suiteName, keychainController: keychainController).run()
+        return AppGroupMigration(directories: directories, suiteName: suiteName, keychainController: keychainController, log: log)
+    }
+
+    func run() -> Outcome {
+        finish(preferences: migratePreferences())
+    }
+
+    func finish(preferences: Outcome) -> Outcome {
+        let sessions = preferences == .deferred ? .deferred : migrateSessions()
+        var outcome = Outcome.nothingToMigrate
+        if preferences == .deferred || sessions == .deferred {
+            outcome = .deferred
+        } else if preferences == .migrated || sessions == .migrated {
+            outcome = .migrated
+        }
         if outcome != .nothingToMigrate {
-            MXLog.info("App group migration: \(outcome)")
+            log(.info("App group migration: \(outcome)"))
         }
         return outcome
     }
 
-    func run() -> Outcome {
-        let preferences = migratePreferences()
-        guard preferences != .deferred else { return .deferred }
-        let sessions = migrateSessions()
-        guard sessions != .deferred else { return .deferred }
-        return preferences == .migrated || sessions == .migrated ? .migrated : .nothingToMigrate
-    }
-
-    // MARK: - Private
-
-    /// The legacy suite replaces the group one: it only exists when an unentitled build ran after
-    /// the group suite was last written.
-    private func migratePreferences() -> Outcome {
+    /// The legacy suite replaces the group one: a file not applied before only exists when an
+    /// unentitled build ran after the group suite was last written.
+    func migratePreferences() -> Outcome {
         let url = directories.legacyPreferences
         guard fileManager.fileExists(atPath: url.path(percentEncoded: false)) else { return .nothingToMigrate }
         guard let data = try? Data(contentsOf: url) else { return .deferred }
 
         guard let values = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],
               let suite = UserDefaults(suiteName: suiteName) else {
-            MXLog.error("Legacy settings are not a property list, leaving them in place")
+            log(.error("Legacy settings are not a property list, leaving them in place"))
+            return .nothingToMigrate
+        }
+
+        // A file that outlived its removal must not overwrite settings changed since it was
+        // applied. A different file means an unentitled build ran again, so it still wins.
+        let digest = Data(SHA256.hash(data: data))
+        guard suite.data(forKey: Self.appliedLegacyPreferencesDigestKey) != digest else {
+            removeLegacyPreferences()
             return .nothingToMigrate
         }
 
         suite.setPersistentDomain(values, forName: suiteName)
         guard NSDictionary(dictionary: suite.persistentDomain(forName: suiteName) ?? [:]).isEqual(to: values) else {
-            MXLog.error("Copying the legacy settings into the app group failed")
+            log(.error("Copying the legacy settings into the app group failed"))
             return .deferred
         }
+        // Only after the comparison above, which needs the domain to hold exactly `values`.
+        suite.set(digest, forKey: Self.appliedLegacyPreferencesDigestKey)
 
-        do {
-            try fileManager.removeItem(at: url)
-        } catch {
-            MXLog.error("Failed removing the legacy settings: \(error)")
-        }
+        removeLegacyPreferences()
         return .migrated
     }
 
-    /// Session directories are found by name, so a token from a previous container path still
-    /// matches. Both containers are on the data volume, so each move is an atomic rename.
+    // MARK: - Private
+
+    private func removeLegacyPreferences() {
+        do {
+            try fileManager.removeItem(at: directories.legacyPreferences)
+        } catch {
+            log(.error("Failed removing the legacy settings: \(error)"))
+        }
+    }
+
+    /// Both containers are on the data volume, so each move is an atomic rename.
     private func migrateSessions() -> Outcome {
         var outcome = Outcome.nothingToMigrate
 
@@ -118,7 +147,7 @@ struct AppGroupMigration {
                     try fileManager.createDirectoryIfNeeded(at: directories.sessions)
                     try fileManager.moveItem(at: legacyData, to: data)
                 } catch {
-                    MXLog.error("Failed moving session data into the app group: \(error)")
+                    log(.error("Failed moving session data into the app group: \(error)"))
                     return .deferred
                 }
             }
@@ -136,11 +165,11 @@ struct AppGroupMigration {
                                                  pusherNotificationClientIdentifier: token.pusherNotificationClientIdentifier)
             keychainController.setRestorationToken(migratedToken, forUsername: credentials.userID)
 
-            // A failed restore deletes the token, so the data has to stay where the stored token
-            // points. Data left in the group is adopted by a later run whichever token it finds.
+            // A failed restore deletes the token, so the data must stay where the stored token
+            // points. Without a stored token, a later run adopts the data left in the group.
             let stored = keychainController.restorationTokens().first { $0.userID == credentials.userID }?.restorationToken
             guard let stored, isSameLocation(stored.sessionDirectories.dataDirectory, data) else {
-                MXLog.error("Failed updating the restoration token")
+                log(.error("Failed updating the restoration token"))
                 if stored != nil, needsMove {
                     try? fileManager.moveItem(at: data, to: legacyData)
                 }

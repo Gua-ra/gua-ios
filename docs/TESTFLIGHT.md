@@ -27,9 +27,7 @@ Store Connect key, so the workflow never passes that flag or the key to `xcodebu
 - **Profiles:** `sigh` fetches (or creates) an App Store profile for the app and both
   extensions through the provisioning API, which this key may use.
 - **Archive:** signed per target (`ElementX`, `NSE`, `ShareExtension`) through a
-  generated xcconfig, so the entitlements files are applied here. `exportArchive`
-  keeps the archive's entitlements and cannot add any: an unsigned archive ships
-  without push, the app group and the keychain group.
+  generated xcconfig. `exportArchive` cannot add entitlements the archive lacks.
 - **Gate:** "Verify entitlements" fails the run unless the app and both extensions
   carry the app group and keychain group named in their Info.plist, and the app
   carries production `aps-environment` and associated domains.

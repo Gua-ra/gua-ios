@@ -17,9 +17,12 @@ final class AppGroupMigrationTests: XCTestCase {
     private var suiteName: String!
     private var keychainController: KeychainControllerMock!
     private var storedTokens: [String: RestorationToken] = [:]
+    private var logEntries: [AppGroupMigration.LogEntry] = []
 
     private var migration: AppGroupMigration {
-        AppGroupMigration(directories: directories, suiteName: suiteName, keychainController: keychainController)
+        AppGroupMigration(directories: directories, suiteName: suiteName, keychainController: keychainController) { [unowned self] in
+            logEntries.append($0)
+        }
     }
 
     private var suite: UserDefaults {
@@ -38,6 +41,7 @@ final class AppGroupMigrationTests: XCTestCase {
         suiteName = "AppGroupMigrationTests.\(UUID().uuidString)"
 
         storedTokens = [:]
+        logEntries = []
         keychainController = KeychainControllerMock()
         keychainController.restorationTokensClosure = { [unowned self] in
             storedTokens.map { KeychainCredentials(userID: $0.key, restorationToken: $0.value) }
@@ -49,6 +53,7 @@ final class AppGroupMigrationTests: XCTestCase {
 
     override func tearDown() {
         suite.removePersistentDomain(forName: suiteName)
+        try? setLegacyPreferencesRemovable(true)
         try? FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: directories.legacyPreferences.path(percentEncoded: false))
         try? FileManager.default.removeItem(at: root)
     }
@@ -90,6 +95,84 @@ final class AppGroupMigrationTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: directories.legacyPreferences.path(percentEncoded: false)))
         XCTAssertTrue(FileManager.default.directoryExists(at: legacyData))
         XCTAssertFalse(keychainController.setRestorationTokenForUsernameCalled)
+    }
+
+    func testSettingsAreNotReappliedWhenTheLegacyFileCannotBeRemoved() throws {
+        try writeLegacyPreferences(["lastVersionLaunched": "25.09.12", "enableNotifications": false])
+        try setLegacyPreferencesRemovable(false)
+        XCTAssertEqual(migration.run(), .migrated)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: directories.legacyPreferences.path(percentEncoded: false)))
+        suite.set("25.10.0", forKey: "lastVersionLaunched")
+        suite.set(true, forKey: "enableNotifications")
+
+        XCTAssertEqual(migration.run(), .nothingToMigrate)
+
+        XCTAssertEqual(suite.string(forKey: "lastVersionLaunched"), "25.10.0")
+        XCTAssertEqual(suite.object(forKey: "enableNotifications") as? Bool, true)
+    }
+
+    func testALeftoverLegacyFileIsRemovedWithoutTouchingSettings() throws {
+        try writeLegacyPreferences(["lastVersionLaunched": "25.09.12"])
+        try setLegacyPreferencesRemovable(false)
+        XCTAssertEqual(migration.run(), .migrated)
+        suite.set("25.10.0", forKey: "lastVersionLaunched")
+        try setLegacyPreferencesRemovable(true)
+
+        XCTAssertEqual(migration.run(), .nothingToMigrate)
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: directories.legacyPreferences.path(percentEncoded: false)))
+        XCTAssertEqual(suite.string(forKey: "lastVersionLaunched"), "25.10.0")
+    }
+
+    func testALegacyFileRewrittenAfterItWasAppliedIsAppliedAgain() throws {
+        try writeLegacyPreferences(["lastVersionLaunched": "25.09.12"])
+        try setLegacyPreferencesRemovable(false)
+        XCTAssertEqual(migration.run(), .migrated)
+        suite.set("25.10.0", forKey: "lastVersionLaunched")
+        // An unentitled build ran again and wrote over the file that could not be removed.
+        try setLegacyPreferencesRemovable(true)
+        try writeLegacyPreferences(["lastVersionLaunched": "25.10.0", "enableNotifications": false])
+        try setLegacyPreferencesRemovable(false)
+
+        XCTAssertEqual(migration.run(), .migrated)
+
+        XCTAssertEqual(suite.string(forKey: "lastVersionLaunched"), "25.10.0")
+        XCTAssertEqual(suite.object(forKey: "enableNotifications") as? Bool, false)
+
+        suite.set("25.10.2", forKey: "lastVersionLaunched")
+        XCTAssertEqual(migration.run(), .nothingToMigrate)
+        XCTAssertEqual(suite.string(forKey: "lastVersionLaunched"), "25.10.2")
+    }
+
+    func testLogEntriesGoToTheInjectedSink() throws {
+        try writeLegacyPreferences(["lastVersionLaunched": "25.09.12"])
+        try setLegacyPreferencesRemovable(false)
+
+        XCTAssertEqual(migration.run(), .migrated)
+
+        XCTAssertEqual(logEntries.count, 2)
+        guard case .error(let message) = logEntries.first else { return XCTFail("Expected an error entry, got \(logEntries)") }
+        XCTAssertTrue(message.hasPrefix("Failed removing the legacy settings"), message)
+        XCTAssertEqual(logEntries.last, .info("App group migration: migrated"))
+    }
+
+    func testThePreferencesStepLeavesSessionsForTheSecondStep() throws {
+        try writeLegacyPreferences(["lastVersionLaunched": "25.09.12"])
+        let legacyData = try makeStore(in: directories.legacySessions)
+        storedTokens[userID] = makeToken(dataDirectory: legacyData)
+
+        let preferences = migration.migratePreferences()
+
+        XCTAssertEqual(preferences, .migrated)
+        XCTAssertEqual(suite.string(forKey: "lastVersionLaunched"), "25.09.12")
+        XCTAssertTrue(FileManager.default.directoryExists(at: legacyData))
+        XCTAssertFalse(keychainController.setRestorationTokenForUsernameCalled)
+        XCTAssertEqual(logEntries, [])
+
+        XCTAssertEqual(migration.finish(preferences: preferences), .migrated)
+
+        XCTAssertFalse(FileManager.default.directoryExists(at: legacyData))
+        XCTAssertEqual(logEntries, [.info("App group migration: migrated")])
     }
 
     // MARK: - Sessions
@@ -149,7 +232,7 @@ final class AppGroupMigrationTests: XCTestCase {
         let legacyData = try makeStore(in: directories.legacySessions)
         keychain.setRestorationToken(makeToken(dataDirectory: legacyData), forUsername: userID)
 
-        let outcome = AppGroupMigration(directories: directories, suiteName: suiteName, keychainController: keychain).run()
+        let outcome = AppGroupMigration(directories: directories, suiteName: suiteName, keychainController: keychain) { _ in }.run()
 
         XCTAssertEqual(outcome, .migrated)
         XCTAssertEqual(keychain.restorationTokenForUsername(userID)?.sessionDirectories.dataDirectory,
@@ -163,6 +246,8 @@ final class AppGroupMigrationTests: XCTestCase {
         storedTokens[userID] = token
 
         XCTAssertEqual(migration.run(), .deferred)
+
+        XCTAssertEqual(logEntries, [.error("Failed updating the restoration token"), .info("App group migration: deferred")])
 
         XCTAssertTrue(FileManager.default.fileExists(atPath: legacyData.appending(component: "matrix-sdk-crypto.sqlite3").path(percentEncoded: false)))
         XCTAssertFalse(FileManager.default.directoryExists(at: directories.sessions.appending(component: legacyData.lastPathComponent)))
@@ -178,6 +263,8 @@ final class AppGroupMigrationTests: XCTestCase {
         }
 
         XCTAssertEqual(migration.run(), .deferred)
+
+        XCTAssertEqual(logEntries, [.error("Failed updating the restoration token"), .info("App group migration: deferred")])
 
         let data = directories.sessions.appending(component: legacyData.lastPathComponent, directoryHint: .isDirectory)
         XCTAssertTrue(FileManager.default.fileExists(atPath: data.appending(component: "matrix-sdk-crypto.sqlite3").path(percentEncoded: false)))
@@ -230,6 +317,12 @@ final class AppGroupMigrationTests: XCTestCase {
     private func writeLegacyPreferences(_ values: [String: Any]) throws {
         try FileManager.default.createDirectory(at: directories.legacyPreferences.deletingLastPathComponent(), withIntermediateDirectories: true)
         try PropertyListSerialization.data(fromPropertyList: values, format: .binary, options: 0).write(to: directories.legacyPreferences)
+    }
+
+    /// Removing a file needs write access to its directory, so this toggles the parent's.
+    private func setLegacyPreferencesRemovable(_ removable: Bool) throws {
+        try FileManager.default.setAttributes([.posixPermissions: removable ? 0o755 : 0o555],
+                                              ofItemAtPath: directories.legacyPreferences.deletingLastPathComponent().path(percentEncoded: false))
     }
 
     private func makeStore(in sessions: URL) throws -> URL {

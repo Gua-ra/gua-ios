@@ -64,6 +64,11 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
     @Consumable private var storedRoomsToAwait: Set<String>?
 
     init(appDelegate: AppDelegate) {
+        // GUA FORK: legacy settings move before AppSettings and the tracing configuration read the
+        // suite. MXLog is not configured yet, so the entries are replayed below.
+        var appGroupMigrationLog = [AppGroupMigration.LogEntry]()
+        let preferencesMigration = AppGroupMigration.live { appGroupMigrationLog.append($0) }?.migratePreferences() ?? .nothingToMigrate
+        
         let appHooks = AppHooks()
         appHooks.setUp()
         
@@ -87,8 +92,9 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         let appBuild = InfoPlistReader.main.bundleVersion
         MXLog.info("\(appName) \(appVersion) (\(appBuild))")
         
-        // GUA FORK: must run before anything reads the settings suite or restores a session.
-        let appGroupMigration = AppGroupMigration.runIfNeeded()
+        // GUA FORK: session stores move before any session is restored.
+        appGroupMigrationLog.forEach { $0.writeToMXLog() }
+        let appGroupMigration = AppGroupMigration.live { $0.writeToMXLog() }?.finish(preferences: preferencesMigration) ?? .nothingToMigrate
         
         if ProcessInfo.processInfo.environment["RESET_APP_SETTINGS"].map(Bool.init) == true {
             AppSettings.resetAllSettings()
@@ -142,8 +148,8 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
             fatalError("The app's version number **must** use semver for migration purposes.")
         }
         
-        // GUA FORK: a deferred app group migration leaves this to a later launch, and data it moved
-        // proves the app was not deleted since the previous run.
+        // GUA FORK: migrated data means the app was not deleted, so it must not trigger the
+        // fresh-install wipe.
         if appGroupMigration != .deferred {
             if let previousVersion = appSettings.lastVersionLaunched.flatMap(Version.init) {
                 performMigrationsIfNecessary(from: previousVersion, to: currentVersion)

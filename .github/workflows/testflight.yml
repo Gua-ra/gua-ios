@@ -11,10 +11,6 @@ name: TestFlight
 #     created for the run, since minting one needs Admin on the account
 #   - the PROFILES for all three signed targets are fetched (and created if absent) with
 #     sigh, through the ordinary provisioning API, which this key IS allowed to use
-#   - the ARCHIVE is signed with them, per target, through a generated xcconfig. Export
-#     cannot add entitlements the archive signature lacks, so an unsigned archive ships
-#     without push, the app group and the keychain group.
-#   - a gate after export fails the run unless the app and both extensions carry them
 # One .p12 to manage, no .mobileprovision files in the repo, no Match repo.
 #
 # Release paths, in order of how often they are used:
@@ -410,11 +406,7 @@ jobs:
             echo "::error::ASC_KEY_ID / ASC_PRIVATE_KEY secrets are not set. See docs/TESTFLIGHT.md"
             exit 1
           fi
-          # For altool only: nothing signs with this key. altool accepts --apiKeyPath
-          # without complaint and then ignores it, searching only a fixed list of
-          # directories and failing with "Failed to load AuthKey file (-43)" listing them,
-          # so the key goes in ~/.appstoreconnect/private_keys, which is on that list.
-          # The always-run cleanup step at the end of the job removes it.
+          # altool only finds API keys in its fixed search paths, ~/.appstoreconnect/private_keys among them.
           ALTOOL_KEY_DIR="$HOME/.appstoreconnect/private_keys"
           mkdir -p "$ALTOOL_KEY_DIR"
           KEY_PATH="$ALTOOL_KEY_DIR/AuthKey_${ASC_KEY_ID}.p8"
@@ -501,10 +493,8 @@ jobs:
             | plutil -extract TeamIdentifier.0 raw -)"
           echo "Team: $TEAM_ID"
 
-          # Archive signing, one profile per target. Resolved through TARGET_NAME so each
-          # target gets its own profile and package targets get none; a single global
-          # PROVISIONING_PROFILE_SPECIFIER would put the app's profile on the extensions.
-          # Scoped to iphoneos so host tools built during the archive keep their defaults.
+          # Profiles are per target: a global specifier would sign the extensions with the app
+          # profile. Scoped to iphoneos so host tools built during the archive keep default signing.
           SIGNING_XCCONFIG="$RUNNER_TEMP/signing.xcconfig"
           {
             echo "CODE_SIGN_STYLE[sdk=iphoneos*] = Manual"
@@ -530,7 +520,6 @@ jobs:
             echo '<?xml version="1.0" encoding="UTF-8"?>'
             echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
             echo '<plist version="1.0"><dict>'
-            # Taken from a profile rather than hardcoded, so it cannot silently rot.
             echo "<key>teamID</key><string>${TEAM_ID}</string>"
             echo '<key>method</key><string>app-store-connect</string>'
             echo '<key>destination</key><string>export</string>'
@@ -553,10 +542,7 @@ jobs:
           echo "Export options:"; plutil -p "$RUNNER_TEMP/exportOptions.plist"
 
       - name: Archive
-        # Signed manually with the certificate and per-target profiles installed above
-        # (SIGNING_XCCONFIG), so the entitlements files are applied here. No
-        # -allowProvisioningUpdates and no API key: that is cloud signing, which this key
-        # is refused.
+        # Signed at archive time: export cannot add entitlements the archive lacks.
         # The unique build number is injected as a CURRENT_PROJECT_VERSION build-setting
         # override (the project doesn't use apple-generic versioning, so agvtool is not
         # reliable). MARKETING_VERSION stays as defined in project.yml.
@@ -587,9 +573,7 @@ jobs:
           echo "IPA_PATH=$(ls "$EXPORT_PATH"/*.ipa | head -n1)" >> "$GITHUB_ENV"
 
       - name: Verify entitlements
-        # The app and both extensions must be signed with the app group and keychain group
-        # their own Info.plist asks for at runtime, and the app with production APNs and
-        # associated domains. altool accepts a build without them.
+        # altool accepts builds that lack these entitlements.
         run: |
           set -euo pipefail
           WORK="$(mktemp -d "$RUNNER_TEMP/ipa-entitlements.XXXXXX")"
