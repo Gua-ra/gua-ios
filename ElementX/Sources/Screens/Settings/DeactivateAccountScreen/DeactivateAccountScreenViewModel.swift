@@ -68,7 +68,7 @@ class DeactivateAccountScreenViewModel: DeactivateAccountScreenViewModelType, De
         do {
             try await identityServiceClient.startAccountReauth(accessToken: accessToken,
                                                                phone: phone,
-                                                               language: Locale.guaLanguageTag())
+                                                               language: Bundle.guaAppLanguage)
             state.reauthPhase = .awaitingCode
         } catch {
             // A number that is not this account's arrives here as the server's own refusal, which
@@ -147,9 +147,10 @@ class DeactivateAccountScreenViewModel: DeactivateAccountScreenViewModelType, De
                 MXLog.error("identity-service deactivate failed: \(error)")
                 self.reauthToken = nil
                 state.reauthPhase = .error((error as? LocalizedError)?.errorDescription ?? L10n.errorUnknown)
+                let message = (error as? LocalizedError)?.errorDescription
                 state.bindings.alertInfo = .init(id: .deactivationFailed,
                                                  title: L10n.errorUnknown,
-                                                 message: (error as? LocalizedError)?.errorDescription ?? String(describing: error))
+                                                 message: message == L10n.errorUnknown ? nil : message)
                 return
             }
         }

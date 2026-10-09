@@ -395,7 +395,9 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                 break
             case .failure(let error):
                 MXLog.error("Failed configuring OIDC login from phone hint: \(error)")
-                coordinator.displayError(error.localizedDescription)
+                // `AuthenticationServiceError` is not a `LocalizedError`, so its description is
+                // Foundation's English sentence naming the type. None of its cases is the reader's to fix.
+                coordinator.displayError(L10n.errorUnknown)
                 return
             }
             
@@ -430,7 +432,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
             case .failure(let error):
                 MXLog.error("Failed creating OIDC login URL from phone hint: \(error)")
                 discardPendingAccountGenesis()
-                coordinator.displayError(error.localizedDescription)
+                coordinator.displayError(L10n.errorUnknown)
             }
         }
     }
@@ -531,7 +533,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                 break
             case .failure(let error):
                 MXLog.error("Failed configuring OIDC login for passkey sign-in: \(error)")
-                coordinator.displayError(error.localizedDescription)
+                coordinator.displayError(L10n.errorUnknown)
                 return
             }
 
@@ -550,7 +552,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                 stateMachine.tryEvent(.continueWithOIDC, userInfo: (oidcData, window))
             case .failure(let error):
                 MXLog.error("Failed creating OIDC login URL for passkey sign-in: \(error)")
-                coordinator.displayError(error.localizedDescription)
+                coordinator.displayError(L10n.errorUnknown)
             }
         }
     }

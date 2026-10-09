@@ -1049,7 +1049,7 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
     }
     
     private func showLoginErrorToast() {
-        ServiceLocator.shared.userIndicatorController.submitIndicator(UserIndicator(title: "Failed logging in"))
+        ServiceLocator.shared.userIndicatorController.submitIndicator(UserIndicator(title: UntranslatedL10n.guaRestoreSigninFailed))
     }
 
     // MARK: - Application State

@@ -21,14 +21,14 @@ struct FindFriendsScreen: View {
         switch context.viewState.phase {
         case .loading:
             messageState(systemImage: nil,
-                         title: "Looking for your contacts on Gua…",
+                         title: UntranslatedL10n.guaFindFriendsLoading,
                          message: nil,
                          showsSpinner: true)
         case .needsPermission:
             messageState(systemImage: "person.crop.circle.badge.questionmark",
-                         title: "Allow access to Contacts",
-                         message: "Gua checks your contacts privately to find which of them are already here. Your contacts are never stored.",
-                         actionTitle: "Open Settings") {
+                         title: UntranslatedL10n.guaFindFriendsPermissionTitle,
+                         message: UntranslatedL10n.guaFindFriendsPermissionMessage,
+                         actionTitle: UntranslatedL10n.guaFindFriendsOpenSettings) {
                 context.send(viewAction: .openSystemSettings)
             }
         case .empty:
@@ -40,9 +40,9 @@ struct FindFriendsScreen: View {
             }
         case .error:
             messageState(systemImage: "exclamationmark.triangle",
-                         title: "Something went wrong",
+                         title: L10n.commonSomethingWentWrong,
                          message: context.viewState.errorMessage,
-                         actionTitle: "Try again") {
+                         actionTitle: L10n.actionTryAgain) {
                 context.send(viewAction: .retry)
             }
         case .loaded:
@@ -64,8 +64,7 @@ struct FindFriendsScreen: View {
     }
 
     private var headerText: String {
-        let count = context.viewState.contacts.count
-        return count == 1 ? "1 contact is on Gua" : "\(count) contacts are on Gua"
+        UntranslatedL10n.guaFindFriendsResultsHeader(context.viewState.contacts.count)
     }
 
     private func contactRow(_ contact: DiscoveredContact) -> some View {
@@ -77,7 +76,7 @@ struct FindFriendsScreen: View {
                 avatar(for: contact)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("View \(contact.localName)'s profile")
+            .accessibilityLabel(UntranslatedL10n.guaFindFriendsViewProfileA11y(contact.localName))
 
             // Tapping the rest of the row starts (or opens) the chat.
             Button {

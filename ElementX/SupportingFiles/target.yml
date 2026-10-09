@@ -87,11 +87,11 @@ targets:
           NSAllowsLocalNetworking: true
         ITSAppUsesNonExemptEncryption: false
         NSUserActivityTypes: [INSendMessageIntent, INStartCallIntent]
-        NSCameraUsageDescription: To take pictures or videos and send them as a message $(APP_DISPLAY_NAME) needs access to the camera.
-        NSMicrophoneUsageDescription: To record and send messages with audio, $(APP_DISPLAY_NAME) needs to access the microphone.
+        NSCameraUsageDescription: To take photos or videos and send them as messages, $(APP_DISPLAY_NAME) needs access to the camera.
+        NSMicrophoneUsageDescription: To record and send messages with audio, $(APP_DISPLAY_NAME) needs access to the microphone.
         NSPhotoLibraryAddUsageDescription: This lets you save images and videos to your photo library.
-        NSLocationWhenInUseUsageDescription: Grant location access so that $(APP_DISPLAY_NAME) can share your location.
-        NSFaceIDUsageDescription: $(APP_DISPLAY_NAME) uses Face ID to unlock the app, so you don't have to type your PIN every time.
+        NSLocationWhenInUseUsageDescription: Allow location access so that $(APP_DISPLAY_NAME) can share your location.
+        NSFaceIDUsageDescription: $(APP_DISPLAY_NAME) uses Face ID to unlock the app, so you don’t have to type your passcode every time.
         NSContactsUsageDescription: $(APP_DISPLAY_NAME) checks your contacts privately to find which of them are already here. Your contacts are never stored.
         UIBackgroundModes: [audio, fetch, processing, voip]
         BGTaskSchedulerPermittedIdentifiers:
@@ -272,6 +272,44 @@ targets:
           - Other/Extensions/XCUIElement.swift
       - path: ../../Secrets/Secrets.swift
       - path: ../Resources
+        # Gua ships en, pt-BR, es and fr only. The other folders stay on disk for the upstream
+        # Localazy sync, but are left out of the bundle so iOS never picks a half translated
+        # language: pt and pt-PT resolve to pt-BR, anything else to en.
+        # Tools/Scripts/check_translations.py fails if a new folder gets into the project.
+        excludes:
+          - Localizations/be.lproj
+          - Localizations/bg.lproj
+          - Localizations/cs.lproj
+          - Localizations/cy.lproj
+          - Localizations/da.lproj
+          - Localizations/de.lproj
+          - Localizations/el.lproj
+          - Localizations/en-US.lproj
+          - Localizations/eo.lproj
+          - Localizations/et.lproj
+          - Localizations/eu.lproj
+          - Localizations/fa.lproj
+          - Localizations/fi.lproj
+          - Localizations/hu.lproj
+          - Localizations/id.lproj
+          - Localizations/it.lproj
+          - Localizations/ka.lproj
+          - Localizations/ko.lproj
+          - Localizations/lt.lproj
+          - Localizations/nb.lproj
+          - Localizations/nl.lproj
+          - Localizations/pl.lproj
+          - Localizations/pt.lproj
+          - Localizations/ro.lproj
+          - Localizations/ru.lproj
+          - Localizations/sk.lproj
+          - Localizations/sv.lproj
+          - Localizations/tr.lproj
+          - Localizations/uk.lproj
+          - Localizations/ur.lproj
+          - Localizations/uz.lproj
+          - Localizations/zh-Hans.lproj
+          - Localizations/zh-Hant-TW.lproj
       - path: ../SupportingFiles
       - path: ../../Tools/Scripts/Templates/SimpleScreenExample/ElementX
       - path: ../../DevelopmentAssets/Media
