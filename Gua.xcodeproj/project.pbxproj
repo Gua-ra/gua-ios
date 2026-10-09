@@ -1267,6 +1267,7 @@
 		DC2A52C1B8DF7E6ED1C7B6C9 /* Version in Frameworks */ = {isa = PBXBuildFile; productRef = F8263E2BA0E57327197FF29B /* Version */; };
 		DC3FCB0D453F3EADFBD0363C /* PhishingDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = B55392E4CB83DCB698CDF460 /* PhishingDetector.swift */; };
 		DC7BAA2A059975FD5F4FD083 /* LoginHomeserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 580ABFF6611F1F78F4454357 /* LoginHomeserver.swift */; };
+		DCBEE90E421225C68A73FD93 /* FindFriendsScreenViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8817738139071A8E08A12499 /* FindFriendsScreenViewModelTests.swift */; };
 		DCD78798B14EF7ECDEA578E7 /* RoomChangePermissionsScreenCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC9F8427919E68211F5CC925 /* RoomChangePermissionsScreenCoordinator.swift */; };
 		DCDC1066FB95B22936E89ADB /* Secrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97F9862233A16ADAD401A548 /* Secrets.swift */; };
 		DD0EEEE4F1D4C5BC9B4117B2 /* ServerConfirmationScreenModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3CFBC87DF33C47BFAFF63D5 /* ServerConfirmationScreenModels.swift */; };
@@ -2308,6 +2309,7 @@
 		8710E6BE047C93299782E083 /* RoomDetailsScreenCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomDetailsScreenCoordinator.swift; sourceTree = "<group>"; };
 		8717702F8E55396E87C96FE1 /* RoundedCornerShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoundedCornerShape.swift; sourceTree = "<group>"; };
 		877B4F0772D921AC5D841E2E /* NoticeRoomTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoticeRoomTimelineView.swift; sourceTree = "<group>"; };
+		8817738139071A8E08A12499 /* FindFriendsScreenViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindFriendsScreenViewModelTests.swift; sourceTree = "<group>"; };
 		88268A1B531A19572763FE84 /* FileRoomTimelineItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileRoomTimelineItem.swift; sourceTree = "<group>"; };
 		8880D903BF7125C1857807BD /* MediaSourceProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaSourceProxy.swift; sourceTree = "<group>"; };
 		88A708208123E098CFCFD964 /* TimelineStartRoomTimelineItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineStartRoomTimelineItem.swift; sourceTree = "<group>"; };
@@ -5256,6 +5258,7 @@
 				45E3B374DBD635987ACCBD23 /* EncryptionResetScreenViewModelTests.swift */,
 				F6BB482626D8F630FA178C7E /* ExpiringTaskRunnerTests.swift */,
 				032763A4B37AB6F58569E216 /* FederatedUserSearchTests.swift */,
+				8817738139071A8E08A12499 /* FindFriendsScreenViewModelTests.swift */,
 				23A79D5AE6CC355829801341 /* GeoURITests.swift */,
 				E1BF884F947CC75E0A84DB11 /* GlobalSearchScreenViewModelTests.swift */,
 				9379997EFD8A33F518809AD8 /* HomeScreenRoomTests.swift */,
@@ -8671,6 +8674,7 @@
 				8C3EC2D3F75EDFD12B939852 /* EncryptionResetScreenViewModelTests.swift in Sources */,
 				EAA17FCBC74A86DD64380699 /* ExpiringTaskRunnerTests.swift in Sources */,
 				3B4B913B0B423B7C12E52119 /* FederatedUserSearchTests.swift in Sources */,
+				DCBEE90E421225C68A73FD93 /* FindFriendsScreenViewModelTests.swift in Sources */,
 				3BEA37683C818EFB408170FE /* GeoURITests.swift in Sources */,
 				35A59F6910A28E538294B265 /* GlobalSearchScreenViewModelTests.swift in Sources */,
 				23A20E1F15AE8E72105D5377 /* HomeScreenRoomTests.swift in Sources */,

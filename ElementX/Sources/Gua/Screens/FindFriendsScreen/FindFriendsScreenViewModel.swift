@@ -13,7 +13,6 @@ typealias FindFriendsScreenViewModelType = StateStoreViewModelV2<FindFriendsScre
 class FindFriendsScreenViewModel: FindFriendsScreenViewModelType, FindFriendsScreenViewModelProtocol {
     private let contactDiscoveryService: ContactDiscoveryServiceProtocol
     private let clientProxy: ClientProxyProtocol
-    private let accessToken: String
 
     private let actionsSubject: PassthroughSubject<FindFriendsScreenViewModelAction, Never> = .init()
     var actionsPublisher: AnyPublisher<FindFriendsScreenViewModelAction, Never> {
@@ -21,11 +20,9 @@ class FindFriendsScreenViewModel: FindFriendsScreenViewModelType, FindFriendsScr
     }
 
     init(contactDiscoveryService: ContactDiscoveryServiceProtocol,
-         clientProxy: ClientProxyProtocol,
-         accessToken: String) {
+         clientProxy: ClientProxyProtocol) {
         self.contactDiscoveryService = contactDiscoveryService
         self.clientProxy = clientProxy
-        self.accessToken = accessToken
 
         super.init(initialViewState: FindFriendsScreenViewState())
 
@@ -62,7 +59,7 @@ class FindFriendsScreenViewModel: FindFriendsScreenViewModelType, FindFriendsScr
         }
 
         do {
-            let contacts = try await contactDiscoveryService.discover(accessToken: accessToken)
+            let contacts = try await discoverWithFreshAccessToken()
                 // Defence in depth: never list the signed-in user among their own friends.
                 .filter { $0.userId != clientProxy.userID }
             state.contacts = contacts
@@ -76,6 +73,24 @@ class FindFriendsScreenViewModel: FindFriendsScreenViewModelType, FindFriendsScr
             state.errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             state.phase = .error
         }
+    }
+
+    /// The SDK replaces an expired access token only once one of its own requests is refused, so a
+    /// bare 401 is answered with one authenticated SDK request and a single retry.
+    private func discoverWithFreshAccessToken() async throws -> [DiscoveredContact] {
+        do {
+            return try await discoverWithCurrentAccessToken()
+        } catch ContactDiscoveryError.lookupFailed(IdentityServiceError.server(status: 401, _)) {
+            _ = await clientProxy.fetchMediaPreviewConfiguration()
+            return try await discoverWithCurrentAccessToken()
+        }
+    }
+
+    private func discoverWithCurrentAccessToken() async throws -> [DiscoveredContact] {
+        guard let accessToken = clientProxy.accessToken else {
+            throw ContactDiscoveryError.lookupFailed(IdentityServiceError.server(status: 401, message: nil))
+        }
+        return try await contactDiscoveryService.discover(accessToken: accessToken)
     }
 
     private func startChat(with contact: DiscoveredContact) async {

@@ -88,16 +88,10 @@ final class StartChatScreenCoordinator: CoordinatorProtocol {
             MXLog.warning("Identity service is not configured; cannot show Find Friends.")
             return
         }
-        guard let accessToken = parameters.userSession.clientProxy.accessToken else {
-            MXLog.warning("No access token available; cannot run contact discovery.")
-            return
-        }
-
         let contactDiscoveryService = ContactDiscoveryService(identityServiceClient: identityServiceClient,
                                                               currentUserID: parameters.userSession.clientProxy.userID)
         let coordinatorParameters = FindFriendsScreenCoordinatorParameters(contactDiscoveryService: contactDiscoveryService,
-                                                                           clientProxy: parameters.userSession.clientProxy,
-                                                                           accessToken: accessToken)
+                                                                           clientProxy: parameters.userSession.clientProxy)
         let coordinator = FindFriendsScreenCoordinator(parameters: coordinatorParameters)
         coordinator.actionsPublisher.sink { [weak self] action in
             guard let self else { return }
