@@ -47,6 +47,19 @@ class PhoneEntryScreenViewModelTests: XCTestCase {
         try await deferred.fulfill()
     }
 
+    func testRepeatedContinueWhileSubmittingEmitsNothing() async throws {
+        viewModel = PhoneEntryScreenViewModel(isLegacyAuthEnabled: false, initialPhoneNumber: "+15551234567")
+        let firstContinue = deferFulfillment(viewModel.actionsPublisher) { _ in true }
+        context.send(viewAction: .continueTapped)
+        try await firstContinue.fulfill()
+        XCTAssertFalse(context.viewState.canContinue)
+
+        let repeatedAction = deferFailure(viewModel.actionsPublisher, timeout: 1) { _ in true }
+        context.send(viewAction: .continueTapped)
+        context.send(viewAction: .signInWithPasskeyTapped)
+        try await repeatedAction.fulfill()
+    }
+
     func testSignInWithPasskeyTappedEmitsAction() async throws {
         // No number is needed: the credential identifies the account by itself.
         XCTAssertTrue(context.viewState.bindings.localPhoneNumber.isEmpty)

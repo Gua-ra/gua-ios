@@ -249,7 +249,9 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
             }
             self?.showOIDCAuthentication(oidcData: oidcData, presentationAnchor: window, fromState: context.fromState)
         }
-        stateMachine.addRoutes(event: .cancelledOIDCAuthentication(previousState: .phoneEntryScreen), transitions: [.oidcAuthentication => .phoneEntryScreen])
+        stateMachine.addRoutes(event: .cancelledOIDCAuthentication(previousState: .phoneEntryScreen), transitions: [.oidcAuthentication => .phoneEntryScreen]) { [weak self] _ in
+            self?.phoneEntryScreenCoordinator?.setSubmitting(false)
+        }
         stateMachine.addRoutes(event: .cancelledOIDCAuthentication(previousState: .serverConfirmationScreen), transitions: [.oidcAuthentication => .serverConfirmationScreen])
         stateMachine.addRoutes(event: .cancelledOIDCAuthentication(previousState: .startScreen), transitions: [.oidcAuthentication => .startScreen])
         
@@ -286,12 +288,21 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         // Unhandled
         
         stateMachine.addErrorHandler { context in
-            switch (context.fromState, context.toState) {
-            case (.complete, .complete):
-                break // Ignore all events triggered by
-            default:
+            guard Self.ignoresUnroutedEvent(context.event, from: context.fromState) else {
                 fatalError("Unexpected transition: \(context)")
             }
+            MXLog.info("Ignoring event `\(String(describing: context.event))` in state `\(context.fromState)`.")
+        }
+    }
+    
+    /// Whether an event with no route from `state` is dropped instead of trapping. A repeated
+    /// `continueWithOIDC` can arrive before the web authentication session covers the screen.
+    static func ignoresUnroutedEvent(_ event: Event?, from state: State) -> Bool {
+        switch (state, event) {
+        case (.complete, _), (.oidcAuthentication, .continueWithOIDC?):
+            true
+        default:
+            false
         }
     }
     
@@ -362,15 +373,12 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     }
     
     private func handlePhoneSubmission(phoneNumber: String, coordinator: PhoneEntryScreenCoordinator) {
-        guard !isHandlingPhoneSubmission else { return }
+        guard !isHandlingPhoneSubmission, stateMachine.state == .phoneEntryScreen else { return }
         isHandlingPhoneSubmission = true
         coordinator.setSubmitting(true)
         Task { [weak self] in
             guard let self else { return }
-            defer {
-                coordinator.setSubmitting(false)
-                self.isHandlingPhoneSubmission = false
-            }
+            defer { endPhoneEntrySubmission(coordinator: coordinator) }
             
             // GUA FORK: ask the resolver which homeserver this phone belongs to (login) or should be
             // created on (register), instead of hardcoding a single account provider.
@@ -500,15 +508,12 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     /// here. The passkey signs in to the deployment's default account provider instead, so someone
     /// whose account lives elsewhere still has to sign in by number.
     private func handlePasskeySignIn(coordinator: PhoneEntryScreenCoordinator) {
-        guard !isHandlingPhoneSubmission else { return }
+        guard !isHandlingPhoneSubmission, stateMachine.state == .phoneEntryScreen else { return }
         isHandlingPhoneSubmission = true
         coordinator.setSubmitting(true)
         Task { [weak self] in
             guard let self else { return }
-            defer {
-                coordinator.setSubmitting(false)
-                self.isHandlingPhoneSubmission = false
-            }
+            defer { endPhoneEntrySubmission(coordinator: coordinator) }
 
             // GUA FORK: signing in with a passkey abandons any genesis a signup on this screen had
             // already registered, so its keys go with it.
@@ -553,6 +558,15 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                 coordinator.displayError(error.localizedDescription)
             }
         }
+    }
+
+    /// The phone-entry screen stays disabled while the web authentication session is up and is
+    /// enabled again when that session is cancelled.
+    private func endPhoneEntrySubmission(coordinator: PhoneEntryScreenCoordinator) {
+        if stateMachine.state != .oidcAuthentication {
+            coordinator.setSubmitting(false)
+        }
+        isHandlingPhoneSubmission = false
     }
 
     /// GUA FORK: resolve a phone to its homeserver via the Gua resolver. The resolver is required for
