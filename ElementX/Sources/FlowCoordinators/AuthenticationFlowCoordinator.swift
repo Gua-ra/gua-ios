@@ -144,8 +144,13 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         configureStateMachine()
     }
     
+    /// GUA FORK: the phone flow starts on the phone-entry screen and never shows the start screen.
+    private var usesPhoneFlow: Bool {
+        usesPhoneLoginHint && !appSettings.legacyAuthEnabled
+    }
+    
     func start() {
-        if usesPhoneLoginHint, !appSettings.legacyAuthEnabled {
+        if usesPhoneFlow {
             stateMachine.tryEvent(.startPhoneAuth)
         } else {
             stateMachine.tryEvent(.start)
@@ -160,12 +165,18 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                 return
             }
             
+            // GUA FORK: the phone flow takes its account provider from the resolver, so a provisioning
+            // link must not cancel a sign-in or leave the phone-entry screen.
+            guard !usesPhoneFlow else {
+                MXLog.warning("Ignoring a provisioning link in the phone flow.")
+                return
+            }
+            
             if stateMachine.state != .startScreen {
                 clearRoute(animated: animated)
             }
             
-            // GUA FORK: provisioning parameters only apply to the start screen. The phone-entry flow and a
-            // web authentication session that is still closing have no route for them.
+            // GUA FORK: a cancelled web authentication session leaves `.oidcAuthentication` asynchronously.
             guard stateMachine.state == .initial || stateMachine.state == .startScreen else {
                 MXLog.warning("Ignoring a provisioning link in state `\(stateMachine.state)`.")
                 return
