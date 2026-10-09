@@ -380,7 +380,6 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
             }
             .store(in: &cancellables)
         
-        coordinator.start()
         phoneEntryScreenCoordinator = coordinator
 
         navigationStackCoordinator.setRootCoordinator(coordinator)
