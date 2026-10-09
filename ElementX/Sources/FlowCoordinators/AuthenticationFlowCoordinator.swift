@@ -26,6 +26,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     private let resolverClient: ResolverClientProtocol? // GUA FORK: phone -> homeserver routing
     private let accountGenesisService: AccountGenesisServiceProtocol? // GUA FORK: ADM-008 account genesis
     private let usesPhoneLoginHint: Bool // GUA FORK
+    private let signInStepTimeout: Duration // GUA FORK
     
     enum State: StateType {
         /// The state machine hasn't started.
@@ -128,7 +129,8 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
          userIndicatorController: UserIndicatorControllerProtocol,
          resolverClient: ResolverClientProtocol? = nil,
          accountGenesisService: AccountGenesisServiceProtocol? = nil,
-         usesPhoneLoginHint: Bool = false) {
+         usesPhoneLoginHint: Bool = false,
+         signInStepTimeout: Duration = GuaSignInError.stepTimeout) {
         self.authenticationService = authenticationService
         self.bugReportService = bugReportService
         self.navigationRootCoordinator = navigationRootCoordinator
@@ -139,6 +141,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         self.resolverClient = resolverClient
         self.accountGenesisService = accountGenesisService
         self.usesPhoneLoginHint = usesPhoneLoginHint
+        self.signInStepTimeout = signInStepTimeout
         
         navigationStackCoordinator = NavigationStackCoordinator()
         
@@ -563,7 +566,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         return try await resolverClient.resolve(phoneNumber: phoneNumber)
     }
 
-    /// GUA FORK: `configure`, given up on after `GuaSignInError.stepTimeout`. Each call replaces the
+    /// GUA FORK: `configure`, given up on after `signInStepTimeout`. Each call replaces the
     /// service's session directory, so a new one starts only once the previous one has returned.
     private func configureAuthenticationService(for accountProvider: String, flow: AuthenticationFlow) async -> Result<Void, Error> {
         let previous = pendingConfiguration
@@ -572,18 +575,18 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
             return await authenticationService.configure(for: accountProvider, flow: flow)
         }
         pendingConfiguration = configuration
-        guard let result = await GuaSignInError.value(of: configuration, within: GuaSignInError.stepTimeout) else {
+        guard let result = await GuaSignInError.value(of: configuration, within: signInStepTimeout) else {
             return .failure(GuaSignInError.timedOut)
         }
         return result.mapError { $0 }
     }
 
-    /// GUA FORK: `urlForOIDCLogin`, given up on after `GuaSignInError.stepTimeout`.
+    /// GUA FORK: `urlForOIDCLogin`, given up on after `signInStepTimeout`.
     private func oidcLoginURL(loginHint: String) async -> Result<OIDCAuthorizationDataProxy, Error> {
         let request = Task { [authenticationService] in
             await authenticationService.urlForOIDCLogin(loginHint: loginHint)
         }
-        guard let result = await GuaSignInError.value(of: request, within: GuaSignInError.stepTimeout) else {
+        guard let result = await GuaSignInError.value(of: request, within: signInStepTimeout) else {
             return .failure(GuaSignInError.timedOut)
         }
         return result.mapError { $0 }
