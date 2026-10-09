@@ -152,9 +152,10 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
     /// Recomputes `selectedCountry` from the typed digits (e.g. typing a Canadian area code
     /// flips the flag from US to CA), matching the sign-up phone screen's behaviour.
     private func autoDetectCountry() {
-        if let detected = Country.detect(localDigits: state.localDigits,
-                                         current: state.selectedCountry) {
-            state.selectedCountry = detected
+        guard let detected = Country.detectSwitch(localDigits: state.localDigits, current: state.selectedCountry) else { return }
+        state.selectedCountry = detected.country
+        if detected.localDigits != state.localDigits {
+            state.bindings.localPhoneNumber = detected.localDigits
         }
     }
 

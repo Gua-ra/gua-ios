@@ -93,9 +93,10 @@ class PhoneEntryScreenViewModel: PhoneEntryScreenViewModelType, PhoneEntryScreen
     /// WhatsApp's behaviour: typing a Canadian area code (e.g. 343) flips the flag
     /// from US to CA; typing a Bahamian local number on US flips to BS; etc.
     private func autoDetectCountry() {
-        if let detected = Country.detect(localDigits: state.localDigits,
-                                         current: state.selectedCountry) {
-            state.selectedCountry = detected
+        guard let detected = Country.detectSwitch(localDigits: state.localDigits, current: state.selectedCountry) else { return }
+        state.selectedCountry = detected.country
+        if detected.localDigits != state.localDigits {
+            state.bindings.localPhoneNumber = detected.localDigits
         }
     }
 
