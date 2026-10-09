@@ -47,7 +47,7 @@ class PhoneEntryScreenViewModelTests: XCTestCase {
         try await deferred.fulfill()
     }
 
-    func testRepeatedContinueWhileSubmittingEmitsNothing() async throws {
+    func testActionsWhileSubmittingEmitNothing() async throws {
         viewModel = PhoneEntryScreenViewModel(isLegacyAuthEnabled: false, initialPhoneNumber: "+15551234567")
         let firstContinue = deferFulfillment(viewModel.actionsPublisher) { _ in true }
         context.send(viewAction: .continueTapped)
@@ -57,6 +57,7 @@ class PhoneEntryScreenViewModelTests: XCTestCase {
         let repeatedAction = deferFailure(viewModel.actionsPublisher, timeout: 1) { _ in true }
         context.send(viewAction: .continueTapped)
         context.send(viewAction: .signInWithPasskeyTapped)
+        context.send(viewAction: .useLegacyAuthTapped)
         try await repeatedAction.fulfill()
     }
 
