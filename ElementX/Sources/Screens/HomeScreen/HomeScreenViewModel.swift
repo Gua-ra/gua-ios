@@ -76,16 +76,17 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             .store(in: &cancellables)
         
         userSession.sessionSecurityStatePublisher
+            .combineLatest(userSession.clientProxy.secureBackupController.isBootstrappingKeyStorage)
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] securityState in
+            .sink { [weak self] securityState, isBootstrappingKeyStorage in
                 guard let self else { return }
                 
-                switch securityState.recoveryState {
+                switch (securityState.recoveryState, isBootstrappingKeyStorage) {
                 // GUA FORK: both broken states get the same banner, the one that finishes setup
                 // silently. Upstream sends .disabled to a "set up recovery" banner whose flow
                 // hands the user a recovery key to write down, and .disabled is exactly what an
                 // identity reset leaves behind, so that was the second half of the reset dead end.
-                case .disabled, .incomplete:
+                case (.disabled, false), (.incomplete, false):
                     state.requiresExtraAccountSetup = true
                     if !state.securityBannerMode.isDismissed {
                         state.securityBannerMode = .show(.recoveryOutOfSync)

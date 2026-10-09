@@ -21,6 +21,7 @@ extension SecureBackupControllerMock {
         underlyingRecoveryState = .init(recoveryStateSubject)
         // GUA FORK: the banner binds to this; a mock without it crashed every screen that shows it.
         underlyingIsProvisioningKeyStorage = .init(.init(false))
+        underlyingIsBootstrappingKeyStorage = .init(.init(false))
         
         let keyBackupStateSubject = CurrentValueSubject<SecureBackupKeyBackupState, Never>(configuration.keyBackupState)
         underlyingKeyBackupState = .init(keyBackupStateSubject)
