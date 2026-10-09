@@ -46,5 +46,7 @@ extension SecureBackupControllerMock {
             recoveryStateSubject.send(.enabled)
             return .success(())
         }
+
+        confirmCurrentBackupWithStoredKeyReturnValue = true
     }
 }
