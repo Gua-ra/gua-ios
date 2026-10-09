@@ -26,6 +26,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     private let resolverClient: ResolverClientProtocol? // GUA FORK: phone -> homeserver routing
     private let accountGenesisService: AccountGenesisServiceProtocol? // GUA FORK: ADM-008 account genesis
     private let usesPhoneLoginHint: Bool // GUA FORK
+    private let oidcPresenterFactory: ((UIWindow) -> OIDCAuthenticationPresenterProtocol)? // GUA FORK
     
     enum State: StateType {
         /// The state machine hasn't started.
@@ -104,7 +105,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     private let stateMachine: StateMachine<State, Event>
     private var cancellables = Set<AnyCancellable>()
     
-    private var oidcPresenter: OIDCAuthenticationPresenter?
+    private var oidcPresenter: OIDCAuthenticationPresenterProtocol?
     
     // periphery:ignore - retaining purpose
     private var bugReportFlowCoordinator: BugReportFlowCoordinator?
@@ -126,7 +127,8 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
          userIndicatorController: UserIndicatorControllerProtocol,
          resolverClient: ResolverClientProtocol? = nil,
          accountGenesisService: AccountGenesisServiceProtocol? = nil,
-         usesPhoneLoginHint: Bool = false) {
+         usesPhoneLoginHint: Bool = false,
+         oidcPresenterFactory: ((UIWindow) -> OIDCAuthenticationPresenterProtocol)? = nil) {
         self.authenticationService = authenticationService
         self.bugReportService = bugReportService
         self.navigationRootCoordinator = navigationRootCoordinator
@@ -137,6 +139,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         self.resolverClient = resolverClient
         self.accountGenesisService = accountGenesisService
         self.usesPhoneLoginHint = usesPhoneLoginHint
+        self.oidcPresenterFactory = oidcPresenterFactory
         
         navigationStackCoordinator = NavigationStackCoordinator()
         
@@ -686,10 +689,10 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     }
     
     private func showOIDCAuthentication(oidcData: OIDCAuthorizationDataProxy, presentationAnchor: UIWindow, fromState: State) {
-        let presenter = OIDCAuthenticationPresenter(authenticationService: authenticationService,
-                                                    oidcRedirectURL: appSettings.oidcRedirectURL,
-                                                    presentationAnchor: presentationAnchor,
-                                                    userIndicatorController: userIndicatorController)
+        let presenter = oidcPresenterFactory?(presentationAnchor) ?? OIDCAuthenticationPresenter(authenticationService: authenticationService,
+                                                                                                 oidcRedirectURL: appSettings.oidcRedirectURL,
+                                                                                                 presentationAnchor: presentationAnchor,
+                                                                                                 userIndicatorController: userIndicatorController)
         oidcPresenter = presenter
         
         Task {

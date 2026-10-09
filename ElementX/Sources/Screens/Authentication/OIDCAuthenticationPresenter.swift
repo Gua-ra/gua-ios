@@ -7,9 +7,16 @@
 
 import AuthenticationServices
 
+/// GUA FORK: lets tests replace the web authentication session.
+@MainActor
+protocol OIDCAuthenticationPresenterProtocol: AnyObject {
+    func authenticate(using oidcData: OIDCAuthorizationDataProxy) async -> Result<UserSessionProtocol, AuthenticationServiceError>
+    func cancel()
+}
+
 /// Presents a web authentication session for an OIDC request.
 @MainActor
-class OIDCAuthenticationPresenter: NSObject {
+class OIDCAuthenticationPresenter: NSObject, OIDCAuthenticationPresenterProtocol {
     private let authenticationService: AuthenticationServiceProtocol
     private let oidcRedirectURL: URL
     private let presentationAnchor: UIWindow
