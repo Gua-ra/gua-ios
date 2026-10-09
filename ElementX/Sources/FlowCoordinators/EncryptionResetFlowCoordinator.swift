@@ -202,10 +202,9 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
     // MARK: - Recovery from another device
 
     /// GUA FORK: verifies this device with another device of the account. Once the two agree on
-    /// the emojis, the SDK asks that device for the keys and it hands them over; nothing is reset
-    /// and no recovery key is involved. The verdict is the recovery state: enabled means the keys
-    /// (and the backup key with them) arrived; anything else within the bound is an honest "not
-    /// yet", and the reset screen stays with both options.
+    /// the emojis, the SDK asks that device for the keys this one is missing; nothing is reset and
+    /// no recovery key is involved. Unless the outcome is `.recovered`, the reset screen stays with
+    /// both options.
     private func presentRecoveryFromOtherDevice() {
         guard let sessionVerificationController = userSession.clientProxy.sessionVerificationController else {
             MXLog.error("GUA-KEYSTORE: no session verification controller yet, cannot recover from another device.")
@@ -218,6 +217,10 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
                                                                         appSettings: appSettings,
                                                                         mediaProvider: userSession.mediaProvider)
         let coordinator = SessionVerificationScreenCoordinator(parameters: parameters)
+        if Self.holdsDeletedBackupKey(keyBackupState: userSession.clientProxy.secureBackupController.keyBackupState.value,
+                                      verificationState: userSession.clientProxy.verificationStatePublisher.value) {
+            holdsDeletedBackupKey = true
+        }
         coordinator.actions
             .sink { [weak self] action in
                 guard let self else { return }
@@ -236,17 +239,42 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
                                                               type: .modal,
                                                               title: UntranslatedL10n.guaEncryptionResetFinishing,
                                                               persistent: true))
-        let recovered = await waitForRecoveryEnabled(timeout: Self.recoveryFromOtherDeviceCeiling)
+        let recoveryEnabled = await waitForRecoveryEnabled(timeout: Self.recoveryFromOtherDeviceCeiling)
         userIndicatorController.retractIndicatorWithId(Self.finishingIndicatorID)
 
-        if recovered {
+        switch Self.recoveryFromOtherDeviceOutcome(recoveryEnabled: recoveryEnabled, holdsDeletedBackupKey: holdsDeletedBackupKey) {
+        case .recovered:
             MXLog.info("GUA-KEYSTORE: keys arrived from the other device.")
             userIndicatorController.submitIndicator(UserIndicator(title: L10n.commonSuccess))
             actionsSubject.send(.resetComplete)
-        } else {
+        case .backupNotRestored:
+            MXLog.error("GUA-KEYSTORE: the identity arrived from the other device, but this device kept the key of a deleted backup.")
+            userIndicatorController.submitIndicator(UserIndicator(title: UntranslatedL10n.guaEncryptionRecoverFromOtherDeviceBackupFailed))
+        case .keysDidNotArrive:
             MXLog.warning("GUA-KEYSTORE: keys did not arrive from the other device within the bound.")
             userIndicatorController.submitIndicator(UserIndicator(title: UntranslatedL10n.guaEncryptionRecoverFromOtherDeviceFailed))
         }
+    }
+
+    enum RecoveryFromOtherDeviceOutcome: Equatable {
+        case recovered
+        case backupNotRestored
+        case keysDidNotArrive
+    }
+
+    /// Backup on while this device is no longer signed by the account's identity means the identity was
+    /// reset elsewhere, and a reset deletes the backup this device holds the key of. The SDK requests a
+    /// backup key from another device only when it holds none, so that key survives the recovery.
+    static func holdsDeletedBackupKey(keyBackupState: SecureBackupKeyBackupState,
+                                      verificationState: SessionVerificationState) -> Bool {
+        keyBackupState == .enabled && verificationState == .unverified
+    }
+
+    /// The SDK reports recovery enabled from the local backup alone, so with a deleted backup's key
+    /// `.enabled` only means the identity arrived.
+    static func recoveryFromOtherDeviceOutcome(recoveryEnabled: Bool, holdsDeletedBackupKey: Bool) -> RecoveryFromOtherDeviceOutcome {
+        guard recoveryEnabled else { return .keysDidNotArrive }
+        return holdsDeletedBackupKey ? .backupNotRestored : .recovered
     }
 
     private func waitForRecoveryEnabled(timeout: Duration) async -> Bool {
@@ -290,6 +318,9 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
     private static let recoveryFromOtherDeviceCeiling: Duration = .seconds(60)
 
     private static let finishingIndicatorID = "\(EncryptionResetFlowCoordinator.self)-Finishing"
+
+    /// Latched: once the identity arrives, the device is signed again and the signal is gone.
+    private var holdsDeletedBackupKey = false
 
     private var accountSettingsPresenter: OIDCAccountSettingsPresenter?
     /// GUA FORK: tells MAS which app scheme to hand control back to when the reset is approved.
