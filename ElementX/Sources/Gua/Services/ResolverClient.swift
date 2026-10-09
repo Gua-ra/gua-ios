@@ -248,6 +248,8 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
         guard let url = URL(string: "/resolve", relativeTo: baseURL) else { throw ResolverError.invalidURL }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
+        // Phone entry waits on this answer, so give up well before URLSession's 60 second default.
+        request.timeoutInterval = 15
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         do {

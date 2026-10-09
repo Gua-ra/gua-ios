@@ -34,6 +34,7 @@
 		00C19405C29A9450832B119C /* SettingsScreenViewModelProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = F44B7ABD833A1B5C38798FC0 /* SettingsScreenViewModelProtocol.swift */; };
 		0113E80A131AA935EC37D1E3 /* BugReportServiceMock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EECB3FC3259C1032E35FFBA /* BugReportServiceMock.swift */; };
 		01524D1A6200C7790B01E9ED /* BugReportScreenModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93CC0BD256B66A49814AC5BA /* BugReportScreenModels.swift */; };
+		0193D1AC29E84ADED4691E6B /* GuaSignInErrorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B4189125FBD9E16B4FE41D8 /* GuaSignInErrorTests.swift */; };
 		01DEB6FFC5DC30D377326BA4 /* UserDiscoverySection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DF62A8FBB1033A8D822C8B8 /* UserDiscoverySection.swift */; };
 		01F2FA069B6C63E818893DBC /* FileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89254AC8A3E482B8497684EF /* FileManager.swift */; };
 		0236F7029D00CC8AAF55C3FA /* ServerConfirmationScreenCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C71A41C8B5B1B1616BD68479 /* ServerConfirmationScreenCoordinator.swift */; };
@@ -1868,6 +1869,7 @@
 		3A9121A13C9DE42E999AF82E /* PHGPostHogConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PHGPostHogConfiguration.swift; sourceTree = "<group>"; };
 		3ACDBCA851BA933301AA0563 /* UserSessionStoreProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSessionStoreProtocol.swift; sourceTree = "<group>"; };
 		3B2500C5C6BEFFBBAFE5294C /* target.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = target.yml; sourceTree = "<group>"; };
+		3B4189125FBD9E16B4FE41D8 /* GuaSignInErrorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuaSignInErrorTests.swift; sourceTree = "<group>"; };
 		3B8CC38D2368BEBB10331355 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		3BAB80A5333E2AA71D13BBA0 /* MessageComposerTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageComposerTextField.swift; sourceTree = "<group>"; };
 		3BAE8A784AC05DF17ED4A3F2 /* SecureBackupLogoutConfirmationScreenModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureBackupLogoutConfirmationScreenModels.swift; sourceTree = "<group>"; };
@@ -5261,6 +5263,7 @@
 				8817738139071A8E08A12499 /* FindFriendsScreenViewModelTests.swift */,
 				23A79D5AE6CC355829801341 /* GeoURITests.swift */,
 				E1BF884F947CC75E0A84DB11 /* GlobalSearchScreenViewModelTests.swift */,
+				3B4189125FBD9E16B4FE41D8 /* GuaSignInErrorTests.swift */,
 				9379997EFD8A33F518809AD8 /* HomeScreenRoomTests.swift */,
 				E57FD82C256FB937A9B81386 /* HomeScreenViewModelTests.swift */,
 				1FEC2BC5E307F56EF0C869C9 /* IdentityResetGuardTests.swift */,
@@ -8677,6 +8680,7 @@
 				DCBEE90E421225C68A73FD93 /* FindFriendsScreenViewModelTests.swift in Sources */,
 				3BEA37683C818EFB408170FE /* GeoURITests.swift in Sources */,
 				35A59F6910A28E538294B265 /* GlobalSearchScreenViewModelTests.swift in Sources */,
+				0193D1AC29E84ADED4691E6B /* GuaSignInErrorTests.swift in Sources */,
 				23A20E1F15AE8E72105D5377 /* HomeScreenRoomTests.swift in Sources */,
 				1B0A0B0FD5B661739C5A63E6 /* HomeScreenViewModelTests.swift in Sources */,
 				2AA0418E36D86BC46B5F268E /* IdentityResetGuardTests.swift in Sources */,

@@ -114,6 +114,8 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     /// GUA FORK: the genesis this signup registered, held for the length of that signup and no longer.
     /// The attach proof is signed against it when the sign-in page asks for one.
     private var pendingAccountGenesis: PendingAccountGenesis?
+    /// GUA FORK: the last `configure` a phone or passkey sign-in started, which may outlive the wait for it.
+    private var pendingConfiguration: Task<Result<Void, AuthenticationServiceError>, Never>?
     
     weak var delegate: AuthenticationFlowCoordinatorDelegate?
     
@@ -382,25 +384,24 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                 resolution = try await resolveHomeserver(forPhone: phoneNumber)
             } catch {
                 MXLog.error("Resolver lookup failed: \(error)")
-                let message = (error as? ResolverError)?.userFacingMessage ?? L10n.errorUnknown
-                coordinator.displayError(message)
+                coordinator.displayError(GuaSignInError.message(for: error))
                 return
             }
 
             let accountProvider = resolution.homeserver.baseURL
             let flow: AuthenticationFlow = resolution.exists ? .login : .register
 
-            switch await authenticationService.configure(for: accountProvider, flow: flow) {
+            switch await configureAuthenticationService(for: accountProvider, flow: flow) {
             case .success:
                 break
             case .failure(let error):
                 MXLog.error("Failed configuring OIDC login from phone hint: \(error)")
-                coordinator.displayError(error.localizedDescription)
+                coordinator.displayError(GuaSignInError.message(for: error))
                 return
             }
             
             guard authenticationService.homeserver.value.loginMode.supportsOIDCFlow else {
-                coordinator.displayError(L10n.screenLoginErrorUnsupportedAuthentication)
+                coordinator.displayError(L10n.errorUnknown)
                 return
             }
             
@@ -424,13 +425,13 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                 return
             }
 
-            switch await authenticationService.urlForOIDCLogin(loginHint: loginHint) {
+            switch await oidcLoginURL(loginHint: loginHint) {
             case .success(let oidcData):
                 stateMachine.tryEvent(.continueWithOIDC, userInfo: (oidcData, window))
             case .failure(let error):
                 MXLog.error("Failed creating OIDC login URL from phone hint: \(error)")
                 discardPendingAccountGenesis()
-                coordinator.displayError(error.localizedDescription)
+                coordinator.displayError(GuaSignInError.message(for: error))
             }
         }
     }
@@ -526,17 +527,17 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                 return
             }
 
-            switch await authenticationService.configure(for: accountProvider, flow: .login) {
+            switch await configureAuthenticationService(for: accountProvider, flow: .login) {
             case .success:
                 break
             case .failure(let error):
                 MXLog.error("Failed configuring OIDC login for passkey sign-in: \(error)")
-                coordinator.displayError(error.localizedDescription)
+                coordinator.displayError(GuaSignInError.message(for: error))
                 return
             }
 
             guard authenticationService.homeserver.value.loginMode.supportsOIDCFlow else {
-                coordinator.displayError(L10n.screenLoginErrorUnsupportedAuthentication)
+                coordinator.displayError(L10n.errorUnknown)
                 return
             }
 
@@ -545,12 +546,12 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                 return
             }
 
-            switch await authenticationService.urlForOIDCLogin(loginHint: AuthenticationService.passkeyLoginHint) {
+            switch await oidcLoginURL(loginHint: AuthenticationService.passkeyLoginHint) {
             case .success(let oidcData):
                 stateMachine.tryEvent(.continueWithOIDC, userInfo: (oidcData, window))
             case .failure(let error):
                 MXLog.error("Failed creating OIDC login URL for passkey sign-in: \(error)")
-                coordinator.displayError(error.localizedDescription)
+                coordinator.displayError(GuaSignInError.message(for: error))
             }
         }
     }
@@ -560,6 +561,32 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     private func resolveHomeserver(forPhone phoneNumber: String) async throws -> HomeserverResolution {
         guard let resolverClient else { throw ResolverError.notConfigured }
         return try await resolverClient.resolve(phoneNumber: phoneNumber)
+    }
+
+    /// GUA FORK: `configure`, given up on after `GuaSignInError.stepTimeout`. Each call replaces the
+    /// service's session directory, so a new one starts only once the previous one has returned.
+    private func configureAuthenticationService(for accountProvider: String, flow: AuthenticationFlow) async -> Result<Void, Error> {
+        let previous = pendingConfiguration
+        let configuration = Task { [authenticationService] in
+            _ = await previous?.value
+            return await authenticationService.configure(for: accountProvider, flow: flow)
+        }
+        pendingConfiguration = configuration
+        guard let result = await GuaSignInError.value(of: configuration, within: GuaSignInError.stepTimeout) else {
+            return .failure(GuaSignInError.timedOut)
+        }
+        return result.mapError { $0 }
+    }
+
+    /// GUA FORK: `urlForOIDCLogin`, given up on after `GuaSignInError.stepTimeout`.
+    private func oidcLoginURL(loginHint: String) async -> Result<OIDCAuthorizationDataProxy, Error> {
+        let request = Task { [authenticationService] in
+            await authenticationService.urlForOIDCLogin(loginHint: loginHint)
+        }
+        guard let result = await GuaSignInError.value(of: request, within: GuaSignInError.stepTimeout) else {
+            return .failure(GuaSignInError.timedOut)
+        }
+        return result.mapError { $0 }
     }
 
     // MARK: - QR Code
