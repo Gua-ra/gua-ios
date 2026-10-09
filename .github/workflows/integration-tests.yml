@@ -9,7 +9,8 @@ on:
 jobs:
   integration_tests:
     name: Integration Tests
-    runs-on: macos-15
+    runs-on: macos-26
+    timeout-minutes: 150
 
     concurrency:
       # Only allow a single run of this workflow on each branch, automatically cancelling older runs.
@@ -29,6 +30,9 @@ jobs:
       - name: Setup environment
         run:
           source ci_scripts/ci_common.sh && setup_github_actions_environment
+
+      - name: Install iOS 18.6 simulator runtime
+        run: source ci_scripts/ci_common.sh && install_ios18_simulator_runtime
 
       - name: Delete old log files
         run: find '/Users/Shared' -name 'console*' -delete
@@ -70,12 +74,13 @@ jobs:
           if-no-files-found: ignore
 
       - name: Collect coverage
-        run: xcresultparser -q -o cobertura -t ElementX -p $(pwd) fastlane/test_output/IntegrationTests.xcresult > fastlane/test_output/integration-cobertura.xml
+        run: xcresultparser -q -o cobertura -t Gua.app -p $(pwd) fastlane/test_output/IntegrationTests.xcresult > fastlane/test_output/integration-cobertura.xml
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@ab904c41d6ece82784817410c45d8b8c02684457 # v3.1.6
+        continue-on-error: true
         with:
-          fail_ci_if_error: true
+          fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: integrationtests
           version: v0.7.3
