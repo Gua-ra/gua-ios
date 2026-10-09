@@ -96,6 +96,11 @@
 "gua_resolver_claims_invalid" = "We couldn't confirm your organization details. Please try again.";
 "gua_resolver_routing_unavailable" = "We're having trouble connecting right now. Please try again in a moment.";
 "gua_resolver_registration_closed" = "We can't set up new accounts right now. Please try again later.";
+/* %@ is a duration such as "30 seconds" or "2 minutes". */
+"gua_resolver_routing_unavailable_retry_in" = "We're having trouble connecting right now. Please try again in %@.";
+"gua_resolver_rate_limited" = "Too many attempts. Please wait a moment and try again.";
+/* %@ is a duration such as "30 seconds" or "2 minutes". */
+"gua_resolver_rate_limited_retry_in" = "Too many attempts. Please try again in %@.";
 
 // MARK: - Gua: account genesis
 
