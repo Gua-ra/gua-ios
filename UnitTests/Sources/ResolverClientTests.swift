@@ -320,7 +320,7 @@ final class ResolverClientTests: XCTestCase {
     }
 
     func testUnreadableRetryAfterFallsBackToAMoment() async {
-        ResolverStub.respond(status: 503, body: "", headers: ["Retry-After": "Wed, 21 Oct 2026 07:28:00 GMT"])
+        ResolverStub.respond(status: 503, body: "", headers: ["Retry-After": "soon"])
 
         await assertResolveThrows("+15551234567") { error in
             guard case .temporarilyUnavailable(retryAfter: nil) = error else {
@@ -328,6 +328,38 @@ final class ResolverClientTests: XCTestCase {
             }
             XCTAssertEqual(error.userFacingMessage, UntranslatedL10n.guaResolverRoutingUnavailable)
         }
+    }
+
+    func testHTTPDateRetryAfterIsMeasuredFromTheDateHeader() async {
+        ResolverStub.respond(status: 429, body: "", headers: ["Date": "Wed, 21 Oct 2026 07:26:30 GMT",
+                                                              "Retry-After": "Wed, 21 Oct 2026 07:28:00 GMT"])
+
+        await assertResolveThrows("+15551234567") { error in
+            guard case .rateLimited(retryAfter: 90?) = error else {
+                return XCTFail("Expected rateLimited with a 90 s wait, got \(error)")
+            }
+            XCTAssertEqual(error.userFacingMessage, UntranslatedL10n.guaResolverRateLimitedRetryIn("2 minutes"))
+        }
+    }
+
+    func testRetryAfterParsing() throws {
+        let retryAt = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-10-21T07:28:00Z"))
+        let fortyFiveSecondsEarlier = retryAt.addingTimeInterval(-45)
+
+        XCTAssertEqual(try retryAfter(["Retry-After": "120"], now: retryAt), 120)
+        XCTAssertEqual(try retryAfter(["Retry-After": " 0 "], now: retryAt), 0)
+        XCTAssertNil(try retryAfter([:], now: retryAt))
+        XCTAssertNil(try retryAfter(["Retry-After": ""], now: retryAt))
+        XCTAssertNil(try retryAfter(["Retry-After": "-5"], now: retryAt))
+        XCTAssertNil(try retryAfter(["Retry-After": "1.5"], now: retryAt))
+        XCTAssertNil(try retryAfter(["Retry-After": "99999999999999999999999"], now: retryAt))
+
+        XCTAssertEqual(try retryAfter(["Retry-After": "Wed, 21 Oct 2026 07:28:00 GMT"], now: fortyFiveSecondsEarlier), 45)
+        XCTAssertEqual(try retryAfter(["Retry-After": "Wednesday, 21-Oct-26 07:28:00 GMT"], now: fortyFiveSecondsEarlier), 45)
+        XCTAssertEqual(try retryAfter(["Retry-After": "Wed Oct 21 07:28:00 2026"], now: fortyFiveSecondsEarlier), 45)
+        XCTAssertEqual(try retryAfter(["Retry-After": "Thu Oct  1 07:28:00 2026"], now: retryAt.addingTimeInterval(-20 * 86400 - 45)), 45)
+        XCTAssertNil(try retryAfter(["Retry-After": "Wed, 21 Oct 2026 07:28:00 GMT"], now: retryAt))
+        XCTAssertNil(try retryAfter(["Retry-After": "Wed, 21 Oct 2026 07:28:00 GMT"], now: retryAt.addingTimeInterval(60)))
     }
 
     func testOnlyInvalidPhoneAsksToFixTheNumber() async {
@@ -343,16 +375,27 @@ final class ResolverClientTests: XCTestCase {
         }
     }
 
-    func testFormattedWaitRoundsUp() throws {
+    func testFormattedWaitRoundsUpInEnglish() {
         XCTAssertNil(ResolverError.formattedWait(nil))
         XCTAssertNil(ResolverError.formattedWait(0))
         XCTAssertEqual(ResolverError.formattedWait(0.4), ResolverError.formattedWait(1))
         XCTAssertEqual(ResolverError.formattedWait(61), ResolverError.formattedWait(120))
         XCTAssertNotEqual(ResolverError.formattedWait(60), ResolverError.formattedWait(61))
-        XCTAssertTrue(try XCTUnwrap(ResolverError.formattedWait(30)).contains("30"))
+        XCTAssertEqual(ResolverError.formattedWait(1), "1 second")
+        XCTAssertEqual(ResolverError.formattedWait(30), "30 seconds")
+        XCTAssertEqual(ResolverError.formattedWait(60), "1 minute")
+        XCTAssertNil(ResolverError.formattedWait(.infinity))
     }
 
     // MARK: - Private
+
+    private func retryAfter(_ headers: [String: String], now: Date) throws -> TimeInterval? {
+        let response = try XCTUnwrap(HTTPURLResponse(url: XCTUnwrap(URL(string: "https://resolver.example")),
+                                                     statusCode: 429,
+                                                     httpVersion: nil,
+                                                     headerFields: headers))
+        return ResolverClient.retryAfter(of: response, now: now)
+    }
 
     private func assertResolveThrows(_ phoneNumber: String,
                                      file: StaticString = #filePath,

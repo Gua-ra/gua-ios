@@ -132,7 +132,7 @@ enum ResolverError: Error, LocalizedError {
     /// No homeserver is currently accepting new accounts (`code: "no_placement_available"`, HTTP 503).
     case noPlacementAvailable
     /// The resolver or its ingress is rate limiting this client (HTTP 429). `retryAfter` is the
-    /// `Retry-After` header in seconds, when one was sent.
+    /// `Retry-After` delay in seconds, when the response gave a usable one.
     case rateLimited(retryAfter: TimeInterval?)
     /// The resolver is temporarily unavailable (HTTP 503 without a recognized problem code).
     case temporarilyUnavailable(retryAfter: TimeInterval?)
@@ -174,11 +174,15 @@ enum ResolverError: Error, LocalizedError {
         }
     }
 
-    /// A localized wait such as "30 seconds" or "2 minutes". Waits of a minute or more are rounded up
-    /// to whole minutes so the user is never told to retry early.
+    /// A wait such as "30 seconds" or "2 minutes". Waits of a minute or more are rounded up to whole
+    /// minutes so the user is never told to retry early. It is formatted in English because
+    /// `UntranslatedL10n` always reads the English table, and the wait must match its sentence.
     static func formattedWait(_ retryAfter: TimeInterval?) -> String? {
-        guard let seconds = retryAfter?.rounded(.up), seconds >= 1 else { return nil }
+        guard let seconds = retryAfter?.rounded(.up), seconds.isFinite, seconds >= 1 else { return nil }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = Locale(identifier: "en")
         let formatter = DateComponentsFormatter()
+        formatter.calendar = calendar
         formatter.unitsStyle = .full
         if seconds < 60 {
             formatter.allowedUnits = [.second]
@@ -338,15 +342,36 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
         }
     }
 
-    /// The `Retry-After` delay in seconds. Only the delta-seconds form is read; the resolver and its
-    /// ingress send that form.
-    private static func retryAfter(of response: HTTPURLResponse) -> TimeInterval? {
-        guard let value = response.value(forHTTPHeaderField: "Retry-After"),
-              let seconds = Int(value.trimmingCharacters(in: .whitespaces)),
-              seconds >= 0 else {
+    /// The `Retry-After` delay in seconds, from delta-seconds or an HTTP-date. An HTTP-date is measured
+    /// from the response's `Date` header when there is one, so client clock skew does not change the wait.
+    static func retryAfter(of response: HTTPURLResponse, now: Date = .now) -> TimeInterval? {
+        guard let value = response.value(forHTTPHeaderField: "Retry-After")?.trimmingCharacters(in: .whitespaces),
+              !value.isEmpty else {
             return nil
         }
-        return TimeInterval(seconds)
+        if let seconds = Int(value) {
+            return seconds >= 0 ? TimeInterval(seconds) : nil
+        }
+        guard let retryDate = httpDate(from: value) else { return nil }
+        let reference = response.value(forHTTPHeaderField: "Date").flatMap(httpDate(from:)) ?? now
+        let delay = retryDate.timeIntervalSince(reference)
+        return delay > 0 ? delay : nil
+    }
+
+    /// Parses an RFC 9110 HTTP-date: IMF-fixdate, or the obsolete RFC 850 and asctime forms that
+    /// recipients must still accept.
+    private static func httpDate(from value: String) -> Date? {
+        let normalized = value.split(separator: " ").joined(separator: " ")
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "GMT")
+        for format in ["EEE, dd MMM yyyy HH:mm:ss zzz", "EEEE, dd-MMM-yy HH:mm:ss zzz", "EEE MMM d HH:mm:ss yyyy"] {
+            formatter.dateFormat = format
+            if let date = formatter.date(from: normalized) {
+                return date
+            }
+        }
+        return nil
     }
 
     func fetchRoster() async throws -> FederationRoster {
