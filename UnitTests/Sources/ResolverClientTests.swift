@@ -71,13 +71,14 @@ final class ResolverClientTests: XCTestCase {
     }
 
     func testServerErrorIsSurfacedWithTheStatusCode() async {
-        ResolverStub.respond(status: 503, body: "")
+        ResolverStub.respond(status: 502, body: "")
 
         await assertResolveThrows("+15551234567") { error in
             guard case let .server(status) = error else {
                 return XCTFail("Expected server error, got \(error)")
             }
-            XCTAssertEqual(status, 503)
+            XCTAssertEqual(status, 502)
+            XCTAssertEqual(error.userFacingMessage, L10n.errorUnknown)
         }
     }
 
@@ -215,10 +216,24 @@ final class ResolverClientTests: XCTestCase {
         ResolverStub.respond(status: 503, body: #"{ "code": "directory_unavailable", "message": "routing directory is temporarily unavailable" }"#)
 
         await assertResolveThrows("+15551234567") { error in
-            guard case .directoryUnavailable = error else {
+            guard case .directoryUnavailable(retryAfter: nil) = error else {
                 return XCTFail("Expected directoryUnavailable, got \(error)")
             }
             XCTAssertEqual(error.userFacingMessage, UntranslatedL10n.guaResolverRoutingUnavailable)
+        }
+    }
+
+    func testDirectoryUnavailableHonoursRetryAfter() async throws {
+        ResolverStub.respond(status: 503,
+                             body: #"{ "code": "directory_unavailable", "message": "routing directory is temporarily unavailable" }"#,
+                             headers: ["Retry-After": "20"])
+        let wait = try XCTUnwrap(ResolverError.formattedWait(20))
+
+        await assertResolveThrows("+15551234567") { error in
+            guard case .directoryUnavailable(retryAfter: 20?) = error else {
+                return XCTFail("Expected directoryUnavailable with a 20 s wait, got \(error)")
+            }
+            XCTAssertEqual(error.userFacingMessage, UntranslatedL10n.guaResolverRoutingUnavailableRetryIn(wait))
         }
     }
 
@@ -245,11 +260,96 @@ final class ResolverClientTests: XCTestCase {
     }
 
     func testProblemCopyIsDistinctPerCode() {
-        let messages = [ResolverError.invalidRoutingClaims.userFacingMessage,
-                        ResolverError.directoryUnavailable.userFacingMessage,
-                        ResolverError.noPlacementAvailable.userFacingMessage]
+        let messages = [ResolverError.invalidPhone.userFacingMessage,
+                        ResolverError.invalidRoutingClaims.userFacingMessage,
+                        ResolverError.directoryUnavailable(retryAfter: nil).userFacingMessage,
+                        ResolverError.noPlacementAvailable.userFacingMessage,
+                        ResolverError.rateLimited(retryAfter: nil).userFacingMessage]
         XCTAssertEqual(Set(messages).count, messages.count)
         XCTAssertFalse(messages.contains(L10n.errorUnknown))
+    }
+
+    // MARK: - Rate limiting and unavailability
+
+    func testRateLimitedFromTheIngressHonoursRetryAfter() async throws {
+        ResolverStub.respond(status: 429, body: "Too Many Requests", headers: ["Retry-After": "30"])
+        let wait = try XCTUnwrap(ResolverError.formattedWait(30))
+
+        await assertResolveThrows("+15551234567") { error in
+            guard case .rateLimited(retryAfter: 30?) = error else {
+                return XCTFail("Expected rateLimited with a 30 s wait, got \(error)")
+            }
+            XCTAssertEqual(error.userFacingMessage, UntranslatedL10n.guaResolverRateLimitedRetryIn(wait))
+            XCTAssertNotEqual(error.userFacingMessage, L10n.screenPhoneLoginInvalidNumber)
+        }
+    }
+
+    func testRateLimitedFromTheResolverHonoursRetryAfter() async {
+        ResolverStub.respond(status: 429,
+                             body: #"{"code":"rate_limited","message":"too many requests, retry after the Retry-After interval"}"#,
+                             headers: ["Retry-After": "1"])
+
+        await assertResolveThrows("+15551234567") { error in
+            guard case .rateLimited(retryAfter: 1?) = error else {
+                return XCTFail("Expected rateLimited with a 1 s wait, got \(error)")
+            }
+        }
+    }
+
+    func testRateLimitedWithoutRetryAfterAsksToWaitAMoment() async {
+        ResolverStub.respond(status: 429, body: "")
+
+        await assertResolveThrows("+15551234567") { error in
+            guard case .rateLimited(retryAfter: nil) = error else {
+                return XCTFail("Expected rateLimited without a wait, got \(error)")
+            }
+            XCTAssertEqual(error.userFacingMessage, UntranslatedL10n.guaResolverRateLimited)
+        }
+    }
+
+    func testUnavailableWithoutACodeHonoursRetryAfter() async throws {
+        ResolverStub.respond(status: 503, body: "Service Unavailable", headers: ["Retry-After": "90"])
+        let wait = try XCTUnwrap(ResolverError.formattedWait(90))
+
+        await assertResolveThrows("+15551234567") { error in
+            guard case .temporarilyUnavailable(retryAfter: 90?) = error else {
+                return XCTFail("Expected temporarilyUnavailable with a 90 s wait, got \(error)")
+            }
+            XCTAssertEqual(error.userFacingMessage, UntranslatedL10n.guaResolverRoutingUnavailableRetryIn(wait))
+        }
+    }
+
+    func testUnreadableRetryAfterFallsBackToAMoment() async {
+        ResolverStub.respond(status: 503, body: "", headers: ["Retry-After": "Wed, 21 Oct 2026 07:28:00 GMT"])
+
+        await assertResolveThrows("+15551234567") { error in
+            guard case .temporarilyUnavailable(retryAfter: nil) = error else {
+                return XCTFail("Expected temporarilyUnavailable without a wait, got \(error)")
+            }
+            XCTAssertEqual(error.userFacingMessage, UntranslatedL10n.guaResolverRoutingUnavailable)
+        }
+    }
+
+    func testOnlyInvalidPhoneAsksToFixTheNumber() async {
+        for (status, body) in [(400, ""), (403, ""), (404, #"{ "code": "not_found" }"#), (422, "")] {
+            ResolverStub.respond(status: status, body: body)
+
+            await assertResolveThrows("+15551234567") { error in
+                guard case .server(status) = error else {
+                    return XCTFail("Expected a plain server error for \(status), got \(error)")
+                }
+                XCTAssertEqual(error.userFacingMessage, L10n.errorUnknown)
+            }
+        }
+    }
+
+    func testFormattedWaitRoundsUp() throws {
+        XCTAssertNil(ResolverError.formattedWait(nil))
+        XCTAssertNil(ResolverError.formattedWait(0))
+        XCTAssertEqual(ResolverError.formattedWait(0.4), ResolverError.formattedWait(1))
+        XCTAssertEqual(ResolverError.formattedWait(61), ResolverError.formattedWait(120))
+        XCTAssertNotEqual(ResolverError.formattedWait(60), ResolverError.formattedWait(61))
+        XCTAssertTrue(try XCTUnwrap(ResolverError.formattedWait(30)).contains("30"))
     }
 
     // MARK: - Private
@@ -276,16 +376,19 @@ final class ResolverClientTests: XCTestCase {
 private enum ResolverStub {
     static var statusCode = 200
     static var responseBody = Data()
+    static var responseHeaders: [String: String] = [:]
     static var lastRequestBody: Data?
 
-    static func respond(status: Int, body: String) {
+    static func respond(status: Int, body: String, headers: [String: String] = [:]) {
         statusCode = status
         responseBody = Data(body.utf8)
+        responseHeaders = headers
     }
 
     static func reset() {
         statusCode = 200
         responseBody = Data()
+        responseHeaders = [:]
         lastRequestBody = nil
     }
 }
@@ -306,7 +409,7 @@ private class ResolverStubURLProtocol: URLProtocol {
         guard let response = HTTPURLResponse(url: url,
                                              statusCode: ResolverStub.statusCode,
                                              httpVersion: nil,
-                                             headerFields: ["Content-Type": "application/json"]) else { return }
+                                             headerFields: ["Content-Type": "application/json"].merging(ResolverStub.responseHeaders) { $1 }) else { return }
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: ResolverStub.responseBody)
         client?.urlProtocolDidFinishLoading(self)

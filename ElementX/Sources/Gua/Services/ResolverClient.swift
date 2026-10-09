@@ -128,9 +128,14 @@ enum ResolverError: Error, LocalizedError {
     /// The signed routing-claims envelope failed verification (`code: "invalid_routing_claims"`, HTTP 400).
     case invalidRoutingClaims
     /// The routing directory is temporarily unavailable (`code: "directory_unavailable"`, HTTP 503).
-    case directoryUnavailable
+    case directoryUnavailable(retryAfter: TimeInterval?)
     /// No homeserver is currently accepting new accounts (`code: "no_placement_available"`, HTTP 503).
     case noPlacementAvailable
+    /// The resolver or its ingress is rate limiting this client (HTTP 429). `retryAfter` is the
+    /// `Retry-After` header in seconds, when one was sent.
+    case rateLimited(retryAfter: TimeInterval?)
+    /// The resolver is temporarily unavailable (HTTP 503 without a recognized problem code).
+    case temporarilyUnavailable(retryAfter: TimeInterval?)
 
     var errorDescription: String? {
         switch self {
@@ -144,28 +149,43 @@ enum ResolverError: Error, LocalizedError {
         case .invalidRoutingClaims: "The routing service rejected the signed routing claims."
         case .directoryUnavailable: "The routing directory is temporarily unavailable."
         case .noPlacementAvailable: "No homeserver is currently accepting new accounts."
+        case .rateLimited: "The routing service is rate limiting requests."
+        case .temporarilyUnavailable: "The routing service is temporarily unavailable."
         }
     }
 
     /// A short, user-facing message for the phone-entry screen. `errorDescription` stays technical for
-    /// logs; this is what the user actually reads. A known problem code gets its own copy; a plain 4xx
-    /// means the number we sent was rejected as invalid (the user can fix it); anything else is a
-    /// service/network problem (retry).
+    /// logs; this is what the user actually reads. Only `invalidPhone` asks the user to fix the number;
+    /// rate limiting and unavailability ask them to retry, after the server's `Retry-After` when given.
     var userFacingMessage: String {
         switch self {
         case .invalidPhone:
             L10n.screenPhoneLoginInvalidNumber
         case .invalidRoutingClaims:
             UntranslatedL10n.guaResolverClaimsInvalid
-        case .directoryUnavailable:
-            UntranslatedL10n.guaResolverRoutingUnavailable
         case .noPlacementAvailable:
             UntranslatedL10n.guaResolverRegistrationClosed
-        case let .server(status) where (400...499).contains(status):
-            L10n.screenPhoneLoginInvalidNumber
+        case let .rateLimited(retryAfter):
+            Self.formattedWait(retryAfter).map { UntranslatedL10n.guaResolverRateLimitedRetryIn($0) } ?? UntranslatedL10n.guaResolverRateLimited
+        case let .directoryUnavailable(retryAfter), let .temporarilyUnavailable(retryAfter):
+            Self.formattedWait(retryAfter).map { UntranslatedL10n.guaResolverRoutingUnavailableRetryIn($0) } ?? UntranslatedL10n.guaResolverRoutingUnavailable
         case .server, .transport, .decoding, .malformedResponse, .invalidURL, .notConfigured:
             L10n.errorUnknown
         }
+    }
+
+    /// A localized wait such as "30 seconds" or "2 minutes". Waits of a minute or more are rounded up
+    /// to whole minutes so the user is never told to retry early.
+    static func formattedWait(_ retryAfter: TimeInterval?) -> String? {
+        guard let seconds = retryAfter?.rounded(.up), seconds >= 1 else { return nil }
+        let formatter = DateComponentsFormatter()
+        formatter.unitsStyle = .full
+        if seconds < 60 {
+            formatter.allowedUnits = [.second]
+            return formatter.string(from: seconds)
+        }
+        formatter.allowedUnits = [.minute]
+        return formatter.string(from: (seconds / 60).rounded(.up) * 60)
     }
 }
 
@@ -273,7 +293,7 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
         }
         guard let httpResponse = response as? HTTPURLResponse else { throw ResolverError.malformedResponse }
         guard httpResponse.statusCode == 200 else {
-            throw resolveError(status: httpResponse.statusCode, body: data)
+            throw resolveError(response: httpResponse, body: data)
         }
 
         let parsed: Response
@@ -296,19 +316,37 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
 
     /// Map a non-success `/resolve` response to a typed error. The resolver's error body is
     /// `{code, message}` (its `ProblemResponse`); a recognized code produces its dedicated case so the
-    /// phone-entry screen can show distinct human copy, anything else stays a plain server error.
-    private func resolveError(status: Int, body: Data) -> ResolverError {
+    /// phone-entry screen can show distinct human copy. A 429 is rate limiting whatever its body, since
+    /// the ingress answers it in plain text.
+    private func resolveError(response: HTTPURLResponse, body: Data) -> ResolverError {
         struct ProblemResponse: Decodable {
             let code: String?
             let message: String?
         }
+        let status = response.statusCode
+        let retryAfter = Self.retryAfter(of: response)
+        if status == 429 {
+            return .rateLimited(retryAfter: retryAfter)
+        }
         return switch (try? decoder.decode(ProblemResponse.self, from: body))?.code {
         case "invalid_phone": .invalidPhone
         case "invalid_routing_claims": .invalidRoutingClaims
-        case "directory_unavailable": .directoryUnavailable
+        case "directory_unavailable": .directoryUnavailable(retryAfter: retryAfter)
         case "no_placement_available": .noPlacementAvailable
+        case _ where status == 503: .temporarilyUnavailable(retryAfter: retryAfter)
         default: .server(status: status)
         }
+    }
+
+    /// The `Retry-After` delay in seconds. Only the delta-seconds form is read; the resolver and its
+    /// ingress send that form.
+    private static func retryAfter(of response: HTTPURLResponse) -> TimeInterval? {
+        guard let value = response.value(forHTTPHeaderField: "Retry-After"),
+              let seconds = Int(value.trimmingCharacters(in: .whitespaces)),
+              seconds >= 0 else {
+            return nil
+        }
+        return TimeInterval(seconds)
     }
 
     func fetchRoster() async throws -> FederationRoster {

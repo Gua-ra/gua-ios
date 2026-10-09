@@ -58,10 +58,20 @@ internal enum UntranslatedL10n {
   internal static var guaJoinRoomByAddressHint: String { return UntranslatedL10n.tr("Untranslated", "gua_join_room_by_address_hint") }
   /// We couldn't confirm your organization details. Please try again.
   internal static var guaResolverClaimsInvalid: String { return UntranslatedL10n.tr("Untranslated", "gua_resolver_claims_invalid") }
+  /// Too many attempts. Please wait a moment and try again.
+  internal static var guaResolverRateLimited: String { return UntranslatedL10n.tr("Untranslated", "gua_resolver_rate_limited") }
+  /// Too many attempts. Please try again in %@.
+  internal static func guaResolverRateLimitedRetryIn(_ p1: Any) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_resolver_rate_limited_retry_in", String(describing: p1))
+  }
   /// We can't set up new accounts right now. Please try again later.
   internal static var guaResolverRegistrationClosed: String { return UntranslatedL10n.tr("Untranslated", "gua_resolver_registration_closed") }
   /// We're having trouble connecting right now. Please try again in a moment.
   internal static var guaResolverRoutingUnavailable: String { return UntranslatedL10n.tr("Untranslated", "gua_resolver_routing_unavailable") }
+  /// We're having trouble connecting right now. Please try again in %@.
+  internal static func guaResolverRoutingUnavailableRetryIn(_ p1: Any) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_resolver_routing_unavailable_retry_in", String(describing: p1))
+  }
   /// Sign in with a passkey
   internal static var guaSignInWithPasskey: String { return UntranslatedL10n.tr("Untranslated", "gua_sign_in_with_passkey") }
   /// Messages kept only here will not be available when you sign back in.
