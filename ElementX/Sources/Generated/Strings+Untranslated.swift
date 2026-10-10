@@ -62,6 +62,8 @@ internal enum UntranslatedL10n {
   internal static var guaResolverRegistrationClosed: String { return UntranslatedL10n.tr("Untranslated", "gua_resolver_registration_closed") }
   /// We're having trouble connecting right now. Please try again in a moment.
   internal static var guaResolverRoutingUnavailable: String { return UntranslatedL10n.tr("Untranslated", "gua_resolver_routing_unavailable") }
+  /// Couldn’t connect to Gua. Check your connection and try again.
+  internal static var guaSignInConnectionFailed: String { return UntranslatedL10n.tr("Untranslated", "gua_sign_in_connection_failed") }
   /// Sign in with a passkey
   internal static var guaSignInWithPasskey: String { return UntranslatedL10n.tr("Untranslated", "gua_sign_in_with_passkey") }
   /// Messages kept only here will not be available when you sign back in.

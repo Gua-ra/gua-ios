@@ -47,6 +47,15 @@ final class ContactDiscoveryServiceTests: XCTestCase {
     func testNormalizeToE164DropsNationalTrunkPrefix() {
         XCTAssertEqual(ContactDiscoveryService.normalizeToE164("011 98765 4321", defaultDialCode: "55"), "+5511987654321")
     }
+
+    func testNormalizeToE164ReadsBrazilianArea55AsNational() {
+        XCTAssertEqual(ContactDiscoveryService.normalizeToE164("(55) 98765-4321", defaultDialCode: "55"), "+5555987654321")
+        XCTAssertEqual(ContactDiscoveryService.normalizeToE164("(55) 3222-1234", defaultDialCode: "55"), "+555532221234")
+        XCTAssertEqual(ContactDiscoveryService.normalizeToE164("055 98765-4321", defaultDialCode: "55"), "+5555987654321")
+        XCTAssertEqual(ContactDiscoveryService.normalizeToE164("+55 55 98765-4321", defaultDialCode: "55"), "+5555987654321")
+        XCTAssertEqual(ContactDiscoveryService.normalizeToE164("55 55 98765 4321", defaultDialCode: "55"), "+5555987654321")
+        XCTAssertEqual(ContactDiscoveryService.normalizeToE164("55 11 3222 1234", defaultDialCode: "55"), "+551132221234")
+    }
 }
 
 private final class IdentityServiceClientStub: IdentityServiceClientProtocol {

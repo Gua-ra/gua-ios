@@ -58,6 +58,11 @@ protocol SecureBackupControllerProtocol {
     /// reads as an untouched call to action for the whole of that window, so the user presses it,
     /// and the press appears to be what fixed things. It is not; it just arrived after the work.
     var isProvisioningKeyStorage: CurrentValuePublisher<Bool, Never> { get }
+
+    /// GUA FORK: true while the first-login key storage bootstrap runs. A fresh account reads
+    /// `.disabled` until it finishes, which is not a broken account, so the setup banner waits.
+    var isBootstrappingKeyStorage: CurrentValuePublisher<Bool, Never> { get }
+    func setBootstrappingKeyStorage(_ isBootstrapping: Bool)
     
     func enable() async -> Result<Void, SecureBackupControllerError>
     func disable() async -> Result<Void, SecureBackupControllerError>

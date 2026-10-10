@@ -15436,7 +15436,53 @@ class SecureBackupControllerMock: SecureBackupControllerProtocol, @unchecked Sen
         set(value) { underlyingIsProvisioningKeyStorage = value }
     }
     var underlyingIsProvisioningKeyStorage: CurrentValuePublisher<Bool, Never>!
+    var isBootstrappingKeyStorage: CurrentValuePublisher<Bool, Never> {
+        get { return underlyingIsBootstrappingKeyStorage }
+        set(value) { underlyingIsBootstrappingKeyStorage = value }
+    }
+    var underlyingIsBootstrappingKeyStorage: CurrentValuePublisher<Bool, Never>!
 
+    //MARK: - setBootstrappingKeyStorage
+
+    var setBootstrappingKeyStorageUnderlyingCallsCount = 0
+    var setBootstrappingKeyStorageCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return setBootstrappingKeyStorageUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = setBootstrappingKeyStorageUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                setBootstrappingKeyStorageUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    setBootstrappingKeyStorageUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var setBootstrappingKeyStorageCalled: Bool {
+        return setBootstrappingKeyStorageCallsCount > 0
+    }
+    var setBootstrappingKeyStorageReceivedIsBootstrapping: Bool?
+    var setBootstrappingKeyStorageReceivedInvocations: [Bool] = []
+    var setBootstrappingKeyStorageClosure: ((Bool) -> Void)?
+
+    func setBootstrappingKeyStorage(_ isBootstrapping: Bool) {
+        setBootstrappingKeyStorageCallsCount += 1
+        setBootstrappingKeyStorageReceivedIsBootstrapping = isBootstrapping
+        DispatchQueue.main.async {
+            self.setBootstrappingKeyStorageReceivedInvocations.append(isBootstrapping)
+        }
+        setBootstrappingKeyStorageClosure?(isBootstrapping)
+    }
     //MARK: - enable
 
     var enableUnderlyingCallsCount = 0

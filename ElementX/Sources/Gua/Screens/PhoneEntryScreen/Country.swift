@@ -380,6 +380,15 @@ extension Country {
         return nil
     }
 
+    /// `detect`, with the local digits that remain once the detected dial code has taken its share.
+    /// A NANP territory's dial code includes its area code, so on US "787 555 1234" becomes Puerto
+    /// Rico (+1 787) with "555 1234" left to type.
+    static func detectSwitch(localDigits: String, current: Country) -> (country: Country, localDigits: String)? {
+        guard let detected = detect(localDigits: localDigits, current: current) else { return nil }
+        let absorbed = detected.dialCode.hasPrefix(current.dialCode) ? detected.dialCode.count - current.dialCode.count : 0
+        return (detected, String(localDigits.dropFirst(absorbed)))
+    }
+
     /// Number of digits in a national-format subscriber number for this country, inferred
     /// from its `nationalExample` (e.g. US `"555 123 4567"` → 10, BR `"11 91234 5678"` → 11).
     /// Returns `nil` when no curated example exists, so callers can stay conservative.

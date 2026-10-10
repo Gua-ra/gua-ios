@@ -139,6 +139,28 @@ class KeyStorageBootstrapTests: XCTestCase {
         XCTAssertEqual(secureBackup.generateRecoveryKeyCallsCount, 0)
     }
 
+    /// The home screen can appear as soon as the session is handed out, so the flag that holds back the
+    /// setup banner has to be up before the bootstrap returns, and down once it ends.
+    func testTheBootstrapIsAnnouncedBeforeItReturnsAndUntilItEnds() async {
+        givenAFreshAccount()
+
+        store.bootstrapKeyStorageIfNeeded(clientProxy)
+        XCTAssertEqual(secureBackup.setBootstrappingKeyStorageReceivedIsBootstrapping, true)
+
+        try? await Task.sleep(for: .milliseconds(400))
+        XCTAssertEqual(secureBackup.setBootstrappingKeyStorageCallsCount, 2)
+        XCTAssertEqual(secureBackup.setBootstrappingKeyStorageReceivedIsBootstrapping, false)
+    }
+
+    func testAnAlreadyBootstrappedAccountAnnouncesNothing() async {
+        givenAFreshAccount()
+        appSettings.setHasBootstrappedKeyStorage(true, forUserID: Self.userID)
+
+        await whenBootstrapping()
+
+        XCTAssertEqual(secureBackup.setBootstrappingKeyStorageCallsCount, 0)
+    }
+
     /// Recovery reporting enabled is not on its own evidence that key storage is finished.
     func testRecoveryEnabledButBackupNotEnabledIsNotLatched() async {
         givenAFreshAccount()

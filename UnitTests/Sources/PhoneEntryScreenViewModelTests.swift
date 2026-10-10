@@ -191,4 +191,30 @@ class PhoneEntryScreenViewModelTests: XCTestCase {
         XCTAssertEqual(Country.find(isoCode: "US")?.nationalDigitLength, 10)
         XCTAssertEqual(Country.find(isoCode: "BR")?.nationalDigitLength, 11)
     }
+
+    // MARK: - NANP territories
+
+    func testATerritoryAreaCodeMovesIntoTheDialCode() throws {
+        try context.send(viewAction: .countrySelected(XCTUnwrap(Country.find(isoCode: "US"))))
+        enterPhone("7875551234")
+        XCTAssertEqual(context.viewState.selectedCountry.isoCode, "PR")
+        XCTAssertEqual(context.viewState.localDigits, "5551234")
+        XCTAssertEqual(context.viewState.e164PhoneNumber, "+17875551234")
+    }
+
+    func testATerritoryNumberTypedDigitByDigitKeepsOneAreaCode() throws {
+        try context.send(viewAction: .countrySelected(XCTUnwrap(Country.find(isoCode: "US"))))
+        for digit in "2425551234" {
+            enterPhone(context.viewState.bindings.localPhoneNumber + String(digit))
+        }
+        XCTAssertEqual(context.viewState.selectedCountry.isoCode, "BS")
+        XCTAssertEqual(context.viewState.e164PhoneNumber, "+12425551234")
+    }
+
+    func testDetectSwitchKeepsTheDigitsBetweenUSAndCanada() throws {
+        let us = try XCTUnwrap(Country.find(isoCode: "US"))
+        let result = try XCTUnwrap(Country.detectSwitch(localDigits: "4165551234", current: us))
+        XCTAssertEqual(result.country.isoCode, "CA")
+        XCTAssertEqual(result.localDigits, "4165551234")
+    }
 }
