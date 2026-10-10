@@ -34,7 +34,7 @@ class SecureBackupControllerKeyPersistenceTests: XCTestCase {
         events = []
 
         controller = SecureBackupController(encryption: encryption,
-                                            userID: "@persist:dev.gua.sarahlacerda.me",
+                                            userID: "@persist:example.org",
                                             e2eeInitialization: Task { },
                                             persistRecoveryKey: { [weak self] key in
                                                 self?.persisted.append(key)
