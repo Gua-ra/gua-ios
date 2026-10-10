@@ -14,6 +14,8 @@ internal enum UntranslatedL10n {
   internal static var guaAccountGenesisSetupFailed: String { return UntranslatedL10n.tr("Untranslated", "gua_account_genesis_setup_failed") }
   /// Use my other device
   internal static var guaEncryptionRecoverFromOtherDeviceAction: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_recover_from_other_device_action") }
+  /// This device is set up, but some previous messages may not be available on it.
+  internal static var guaEncryptionRecoverFromOtherDeviceBackupUnconfirmed: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_recover_from_other_device_backup_unconfirmed") }
   /// Couldn’t get your messages from the other device. Make sure it’s open and try again, or reset.
   internal static var guaEncryptionRecoverFromOtherDeviceFailed: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_recover_from_other_device_failed") }
   /// Use your other device to restore messages that aren’t available on this device yet.

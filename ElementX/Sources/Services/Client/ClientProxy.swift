@@ -163,7 +163,8 @@ class ClientProxy: ClientProxyProtocol {
     init(client: ClientProtocol,
          networkMonitor: NetworkMonitorProtocol,
          appSettings: AppSettings,
-         persistRecoveryKey: @escaping (String) -> Void) async throws {
+         persistRecoveryKey: @escaping (String) -> Void,
+         storedRecoveryKey: @escaping () -> String?) async throws {
         self.client = client
         self.networkMonitor = networkMonitor
         self.appSettings = appSettings
@@ -177,11 +178,12 @@ class ClientProxy: ClientProxyProtocol {
         notificationSettings = await NotificationSettingsProxy(notificationSettings: client.getNotificationSettings())
         
         // GUA FORK: the keychain stays with `UserSessionStore`; the controller only gets a way to
-        // store the recovery keys it mints.
+        // read the stored recovery key and to store the ones it mints.
         secureBackupController = SecureBackupController(encryption: client.encryption(),
                                                         userID: (try? client.userId()) ?? "",
                                                         e2eeInitialization: e2eeInitialization,
-                                                        persistRecoveryKey: persistRecoveryKey)
+                                                        persistRecoveryKey: persistRecoveryKey,
+                                                        storedRecoveryKey: storedRecoveryKey)
         
         spaceService = await SpaceServiceProxy(spaceService: client.spaceService())
         

@@ -190,6 +190,15 @@ class HomeScreenViewModelTests: XCTestCase {
         XCTAssertEqual(roomSummaryProvider.roomListPublisher.value.count, 1)
     }
     
+    func testNamedRoomWithoutPreviewStaysInTheChatList() {
+        setupViewModel(extraRooms: [makeRoomWithoutPreview(id: "named", hasExplicitName: true),
+                                    makeRoomWithoutPreview(id: "orphan", hasExplicitName: false)])
+
+        let roomIDs = context.viewState.rooms.map(\.id)
+        XCTAssertTrue(roomIDs.contains("named"))
+        XCTAssertFalse(roomIDs.contains("orphan"))
+    }
+
     func testFiltersEmptyState() async throws {
         setupViewModel()
         
@@ -697,6 +706,30 @@ class HomeScreenViewModelTests: XCTestCase {
                               pendingAccountRecovery: pendingAccountRecovery)
     }
     
+    private func makeRoomWithoutPreview(id: String, hasExplicitName: Bool) -> RoomSummary {
+        RoomSummary(room: RoomSDKMock(),
+                    id: id,
+                    joinRequestType: nil,
+                    name: id,
+                    isDirect: false,
+                    avatarURL: nil,
+                    heroes: [],
+                    activeMembersCount: 2,
+                    lastMessage: nil,
+                    lastMessageDate: nil,
+                    unreadMessagesCount: 0,
+                    unreadMentionsCount: 0,
+                    unreadNotificationsCount: 0,
+                    notificationMode: nil,
+                    canonicalAlias: nil,
+                    alternativeAliases: [],
+                    hasOngoingCall: false,
+                    isMarkedUnread: false,
+                    isFavourite: false,
+                    isTombstoned: false,
+                    hasExplicitName: hasExplicitName)
+    }
+
     /// For state that is not published: polls until `condition` holds or a second has passed.
     private func waitUntil(file: StaticString = #filePath, line: UInt = #line, _ condition: () -> Bool) async throws {
         for _ in 0..<100 {
@@ -713,8 +746,9 @@ class HomeScreenViewModelTests: XCTestCase {
                                                                                                       preferredFactor: .pin,
                                                                                                       phoneChangeStepUpFactors: [],
                                                                                                       pinStepUpHoldRemainingSeconds: nil),
-                                securityStatusRetryDelay: Duration = .seconds(30)) {
-        var rooms: [RoomSummary] = .mockRooms
+                                securityStatusRetryDelay: Duration = .seconds(30),
+                                extraRooms: [RoomSummary] = []) {
+        var rooms: [RoomSummary] = .mockRooms + extraRooms
         if withInvites {
             rooms += .mockInvites
         }
