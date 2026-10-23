@@ -79,7 +79,7 @@ jobs:
             --body "Working on this now: [run]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID). A pull request will be linked here if a fix lands, and I will say so here if one does not."
 
       - name: Install Claude Code
-        run: npm install -g @anthropic-ai/claude-code
+        run: npm install -g @anthropic-ai/claude-code@2.1.185
 
       - name: Configure git identity
         run: |
@@ -89,7 +89,7 @@ jobs:
           # Gua commits carry no AI attribution: no Co-Authored-By trailer and no
           # "Generated with Claude Code" footer.
           mkdir -p "$HOME/.claude"
-          printf '{ "includeCoAuthoredBy": false }\n' > "$HOME/.claude/settings.json"
+          printf '{"attribution":{"commit":"","pr":"","sessionUrl":false},"includeCoAuthoredBy":false}\n' > "$HOME/.claude/settings.json"
 
       - name: Read the issue
         id: issue
