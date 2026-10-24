@@ -28,7 +28,7 @@ enum PhoneEntryScreenCoordinatorAction {
 
 final class PhoneEntryScreenCoordinator: CoordinatorProtocol {
     private let parameters: PhoneEntryScreenCoordinatorParameters
-    private let viewModel: PhoneEntryScreenViewModel
+    let viewModel: PhoneEntryScreenViewModel
 
     private var cancellables = Set<AnyCancellable>()
 

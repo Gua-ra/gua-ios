@@ -7,15 +7,23 @@
 
 import AuthenticationServices
 
+/// GUA FORK: lets tests replace the web authentication session.
+@MainActor
+protocol OIDCAuthenticationPresenterProtocol: AnyObject {
+    func authenticate(using oidcData: OIDCAuthorizationDataProxy) async -> Result<UserSessionProtocol, AuthenticationServiceError>
+    func cancel()
+}
+
 /// Presents a web authentication session for an OIDC request.
 @MainActor
-class OIDCAuthenticationPresenter: NSObject {
+class OIDCAuthenticationPresenter: NSObject, OIDCAuthenticationPresenterProtocol {
     private let authenticationService: AuthenticationServiceProtocol
     private let oidcRedirectURL: URL
     private let presentationAnchor: UIWindow
     private let userIndicatorController: UserIndicatorControllerProtocol
     
     private var activeSession: ASWebAuthenticationSession?
+    private var sessionContinuation: CheckedContinuation<(URL?, Error?), Never>?
     
     init(authenticationService: AuthenticationServiceProtocol,
          oidcRedirectURL: URL,
@@ -31,8 +39,9 @@ class OIDCAuthenticationPresenter: NSObject {
     /// Presents a web authentication session for the supplied data.
     func authenticate(using oidcData: OIDCAuthorizationDataProxy) async -> Result<UserSessionProtocol, AuthenticationServiceError> {
         let (url, error) = await withCheckedContinuation { continuation in
-            let session = ASWebAuthenticationSession(url: oidcData.url, callback: .oidcRedirectURL(oidcRedirectURL)) { url, error in
-                continuation.resume(returning: (url, error))
+            sessionContinuation = continuation
+            let session = ASWebAuthenticationSession(url: oidcData.url, callback: .oidcRedirectURL(oidcRedirectURL)) { [weak self] url, error in
+                Task { @MainActor in self?.completeSession(url: url, error: error) }
             }
             
             // GUA FORK: Use an ephemeral web session so the MAS session cookie is
@@ -93,6 +102,13 @@ class OIDCAuthenticationPresenter: NSObject {
     
     func cancel() {
         activeSession?.cancel()
+        // GUA FORK: ASWebAuthenticationSession does not call its completion handler after a programmatic cancel.
+        completeSession(url: nil, error: ASWebAuthenticationSessionError(.canceledLogin))
+    }
+    
+    private func completeSession(url: URL?, error: Error?) {
+        sessionContinuation?.resume(returning: (url, error))
+        sessionContinuation = nil
     }
     
     private static let loadingIndicatorID = "\(OIDCAuthenticationPresenter.self)-Loading"

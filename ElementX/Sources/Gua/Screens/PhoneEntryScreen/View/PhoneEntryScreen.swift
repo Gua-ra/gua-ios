@@ -156,6 +156,7 @@ struct PhoneEntryScreen: View {
                     Label(L10n.screenPhoneLoginLegacy, icon: \.lock)
                 }
                 .buttonStyle(.compound(.tertiary))
+                .disabled(context.viewState.isSubmitting)
             }
         }
     }
