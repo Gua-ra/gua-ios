@@ -91,3 +91,12 @@ enum MatrixEntityRegex: String {
         return true
     }
 }
+
+extension String {
+    /// A user ID without its server part, for display only (`@alice:example.org` becomes `@alice`).
+    /// Kept in this file because every target that compiles `PillUtilities.swift` also compiles this one.
+    var guaDisplayHandle: String {
+        guard hasPrefix("@") else { return self }
+        return "@" + dropFirst().prefix { $0 != ":" }
+    }
+}
