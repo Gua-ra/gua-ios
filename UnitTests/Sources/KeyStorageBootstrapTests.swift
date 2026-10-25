@@ -23,7 +23,7 @@ class KeyStorageBootstrapTests: XCTestCase {
     private var appSettings: AppSettings!
     private var store: UserSessionStore!
 
-    private static let userID = "@fresh:dev.gua.sarahlacerda.me"
+    private static let userID = "@fresh:example.org"
 
     override func setUp() {
         AppSettings.resetAllSettings()
