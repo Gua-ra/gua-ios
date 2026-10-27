@@ -1,111 +1,44 @@
-# Contributing code to Matrix
+# Contributing to Gua for iOS
 
-Please read https://github.com/matrix-org/synapse/blob/master/CONTRIBUTING.md.
+Gua for iOS is a fork of [Element X iOS](https://github.com/element-hq/element-x-ios). Upstream's tooling and project layout still apply. This guide covers what is specific to Gua.
 
-Element X iOS support can be found in this room: [![Element X iOS Matrix room #element-x-ios:matrix.org](https://img.shields.io/matrix/element-x-ios:matrix.org.svg?label=%23element-x-ios:matrix.org&logo=matrix&server_fqdn=matrix.org)](https://matrix.to/#/#element-x-ios:matrix.org).
+Upstream's CLA, Localazy and pull request instructions do not apply here. There is no CLA, and pull requests go to `Gua-ra/gua-ios`.
 
-## Setting up a development environment
+## Where the Gua code lives
 
-### Setup Project
+- `ElementX/Sources/Gua/`: services, screens, common views and app hooks that make up the Gua product layer. New Gua screens follow the existing pattern (coordinator, models, view model, protocol, view); copy an existing Gua screen as a template.
+- Upstream files that Gua changed keep their place.
+- Fork strings live in `ElementX/Resources/Localizations/<locale>.lproj/Untranslated.strings` and are generated into `UntranslatedL10n`. Do not add Gua strings to `Localizable.strings`, which comes from upstream.
 
-It's mandatory to have [homebrew](https://brew.sh/) installed on your mac, and run after the checkout:
+Keeping Gua changes in these places makes the next upstream re-port smaller.
 
-```
-swift run tools setup-project
-```
+## Setup
 
-This will:
-- Install various brew dependencies required for the project (like xcodegen).
-- Set up git to use the shared githooks from the repo, instead of the default ones.
-- Automatically run xcodegen for the first time.
+Build as described in the README's [Building](README.md#building) section. Run this once first:
 
-### Xcode
-
-We suggest using an Xcode version later than 15.0.1.
-
-The Xcode project can be directly compiled through the shared ElementX scheme which includes the main application as well as the unit and UI tests.
-
-The Xcode project itself is generated through [xcodegen](https://github.com/yonaskolb/XcodeGen) so any changes shouldn't be made directly to it but to the configuration files.
-
-### Dependencies
-
-Dependencies will be automatically fetched through the Swift Package Manager, including a release version of the MatrixRustSDK. If you encounter issues while resolving the package graph please attempt a cache reset through `File -> Packages -> Reset Package Caches`.
-
-To setup the RustSDK in local development mode run the following command
-
-```
-swift run tools build-sdk
+```bash
+swift run tools setup-project   # brew dependencies, shared git hooks, git LFS, xcodegen
 ```
 
-This will clone a copy of the SDK if needed, build it for all supported architectures and configure ElementX to use the built framework. To learn about additional options run
+Dependencies come through Swift Package Manager, including a release build of the Matrix Rust SDK. `swift run tools build-sdk` builds the SDK locally instead; see `swift run tools build-sdk --help`.
 
-```
-swift run tools build-sdk --help
-```
+## Before opening a pull request
 
-### Tools
-
-The project depends on some tools for the build process which are normally installed through `swift run tools setup-project`. Installing them manually though is as easy as copying what the [script does](https://github.com/element-hq/element-x-ios/blob/develop/Tools/Sources/SetupProject.swift)
-
-```
-brew install [...]
-```
-
-Git LFS is used to store UI and Preview test snapshots. `swift run tools setup-project` will already install it, however it can also be installed after a checkout by running:
-
-```
-git lfs install
-```
-
-### Snapshot Tests
-
-If you make changes to the UI you may cause existing UI and Preview test snapshots to fail. The UITests run user flows and record snapshots while doing so using the settings defined under [checkEnvironments](https://github.com/element-hq/element-x-ios/blob/c29175d1f924e58b9646a200dbab0301fce3c258/UITests/Sources/Application.swift#L35-L37) while the PreviewTests use the settings defined in [PreviewTests.swift](https://github.com/element-hq/element-x-ios/blob/c29175d1f924e58b9646a200dbab0301fce3c258/PreviewTests/Sources/PreviewTests.swift#L18-L20). The snapshots are stored under `Sources/__Snapshots__` in their respective target's folder. 
-
-### Githooks
-
-The project uses its own shared githooks stored in the .githooks folder, you will need to configure git to use such folder, this is already done if you have run the setup tool with `swift run tools setup-project` otherwise you would need to run:
-
-```
-git config core.hooksPath .githooks
-```
-
-### Strings and Translations
-
-The project uses Localazy and is sharing its translations with the ElementX Android project: https://localazy.com/p/element 
-
-Please read the [Android docs](https://github.com/element-hq/element-x-android/blob/develop/tools/localazy/README.md) for more information about how this works. Note: On iOS we don't have the additional step of filtering strings per module.
-
-### Continuous Integration
-
-ElementX uses Fastlane for running actions on the CI and tries to keep the configuration confined to either [fastlane](fastlane/Fastfile) or [xcodegen](project.yml). 
-
-Please run `bundle exec fastlane` to see available options.
-
-### Network debugging proxy
-
-It's possible to debug the app's network traffic with a proxy server by setting the `HTTPS_PROXY` environment variable in the ElementX scheme to the proxy's address (e.g. localhost:8080 for mitmproxy).
+- SwiftLint and SwiftFormat run as build phases and on CI, with the rules in `.swiftlint.yml` and `.swiftformat`.
+- Unit tests: the **Gua** scheme. Preview snapshots: the **PreviewTests** scheme on the simulator pinned in `PreviewTests/Sources/PreviewTests.swift`. Snapshots are stored under `__Snapshots__` in each test target and tracked with git LFS; `swift run tools setup-project` installs it.
+- A changed screen needs its preview snapshots re-recorded. Delete the stale PNGs for that screen only and run the PreviewTests scheme; the run records them as missing.
+- UI tests run nightly on CI, not on pull requests.
+- License headers: a new Gua file starts with `Copyright <year> Gua` followed by the repository's SPDX line. A file generated from upstream's screen template (`Tools/Scripts/createScreen.sh`) keeps the template's New Vector line above the Gua line. A modified upstream file keeps its New Vector notice.
 
 ## Pull requests
 
-Please see our [pull request guide](https://github.com/element-hq/element-android/blob/develop/docs/pull_request.md).
+Branch from `develop`. Commits, pull request text and writing follow the [org contribution guide](https://github.com/Gua-ra/.github/blob/main/CONTRIBUTING.md#pull-requests).
 
-## Implementing a new screen
+## Reporting problems
 
-New screen flows are currently using the MVVM-Coordinator pattern. Please refer to the [create screen template](Tools/Scripts/README.md#create-screen-templates) section.
+- Bugs and requests: [GitHub issues](https://github.com/Gua-ra/gua-ios/issues).
+- Security problems: [SECURITY.md](SECURITY.md), never a public issue.
 
-## Changelog
+## Upstream
 
-Our [changelog](CHANGES.md) is automatically generated by GitHub, based on the PR title that you use when opening the issue. The changelog can be categorised by applying on of the [`pr-` labels](https://github.com/element-hq/element-x-ios/labels?q=pr-) to your PR. The mapping of Label → Section can be found in the [release.yml](.github/release.yml) file. The contribution will be automatically credited to your GitHub username.
-
-## Coding style
-
-For Swift coding style we use [SwiftLint](https://github.com/realm/SwiftLint) to check some conventions at compile time (rules are located in the `.swiftlint.yml` file). 
-Otherwise please have a look to [Apple Swift conventions](https://swift.org/documentation/api-design-guidelines.html#conventions). We are also using some of the conventions of [raywenderlich.com Swift style guide](https://github.com/raywenderlich/swift-style-guide).
-
-We enforce the coding style by running checks on the CI for every PR through [Danger](Dangerfile.swift), [SwiftLint](.swiftlint.yml), [SwiftFormat](.swiftformat) and [SonarCloud](https://sonarcloud.io/project/overview?id=element-x-ios)
-
-We also gather coverage reports on every PR through [Codecov](https://app.codecov.io/gh/element-hq/element-x-ios) and will eventually start enforcing minimums.
-
-## Thanks
-
-Thank your for contributing to Matrix projects!
+See the README's [Upstream relationship](README.md#upstream-relationship).
