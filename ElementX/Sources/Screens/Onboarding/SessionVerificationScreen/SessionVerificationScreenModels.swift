@@ -10,6 +10,8 @@ import SwiftUI
 
 enum SessionVerificationScreenViewModelAction {
     case finished
+    /// The user ignored a request from another device of their own account.
+    case ignoredOwnDeviceRequest(deviceID: String)
 }
 
 enum SessionVerificationScreenViewAction {
@@ -76,7 +78,9 @@ struct SessionVerificationScreenViewState: BindableState {
                 return UntranslatedL10n.guaVerificationOtherDeviceTitle
             case .userInitiator:
                 return L10n.screenSessionVerificationUserInitiatorTitle
-            case .deviceResponder, .userResponder:
+            case .deviceResponder:
+                return UntranslatedL10n.guaVerificationNewSignInTitle
+            case .userResponder:
                 return L10n.screenSessionVerificationRequestTitle
             }
         case .acceptingVerificationRequest:
@@ -122,7 +126,7 @@ struct SessionVerificationScreenViewState: BindableState {
             case .userInitiator:
                 return L10n.screenSessionVerificationUserInitiatorSubtitle
             case .deviceResponder:
-                return L10n.screenSessionVerificationRequestSubtitle
+                return UntranslatedL10n.guaVerificationNewSignInSubtitle
             case .userResponder:
                 return L10n.screenSessionVerificationUserResponderSubtitle
             }
@@ -136,10 +140,13 @@ struct SessionVerificationScreenViewState: BindableState {
             return waitingMessage
         case .sasVerificationStarted:
             return waitingMessage
-        case .acceptingChallenge:
-            return L10n.screenSessionVerificationCompareEmojisSubtitle
-        case .decliningChallenge:
-            return L10n.screenSessionVerificationCompareEmojisSubtitle
+        case .acceptingChallenge, .decliningChallenge:
+            switch flow {
+            case .deviceInitiator, .deviceResponder:
+                return UntranslatedL10n.guaVerificationCompareEmojisSubtitle
+            case .userInitiator, .userResponder:
+                return L10n.screenSessionVerificationCompareEmojisSubtitle
+            }
         case .cancelling:
             return waitingMessage
         case .showingChallenge:
@@ -151,8 +158,10 @@ struct SessionVerificationScreenViewState: BindableState {
             }
         case .verified:
             switch flow {
-            case .deviceInitiator, .deviceResponder:
+            case .deviceInitiator:
                 return UntranslatedL10n.guaVerificationCompleteSubtitle
+            case .deviceResponder:
+                return UntranslatedL10n.guaVerificationCompleteOtherDeviceSubtitle
             case .userInitiator, .userResponder:
                 return L10n.screenSessionVerificationCompleteUserSubtitle
             }

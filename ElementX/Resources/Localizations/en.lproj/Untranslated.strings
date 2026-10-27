@@ -85,6 +85,17 @@
 "gua_verification_compare_emojis_subtitle" = "Make sure the emojis below match the ones on your other device.";
 "gua_verification_complete_subtitle" = "Your messages will now show up on this device.";
 
+// MARK: - Gua: confirming a new sign-in from this device
+
+/* Title of the sheet shown when another device of the same account asks this one to confirm it.
+   Replaces upstream's "Verification requested". */
+"gua_verification_new_sign_in_title" = "New sign-in to your account";
+/* Body under that title. Replaces upstream's "Verify the other device to keep your message history secure." */
+"gua_verification_new_sign_in_subtitle" = "If this was you, confirm it to show your messages there. You’ll compare a few emojis on both screens.";
+/* Shown on this device once it has confirmed the other one. gua_verification_complete_subtitle is the
+   wording on the device that was confirmed. */
+"gua_verification_complete_other_device_subtitle" = "Your messages will now show up on your other device.";
+
 // MARK: - Gua: sign in with a passkey
 
 /* Button on the phone-entry screen. The passkey is a discoverable credential, so it

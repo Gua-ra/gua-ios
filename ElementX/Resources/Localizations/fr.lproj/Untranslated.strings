@@ -22,6 +22,9 @@
 "gua_verification_compare_emojis_subtitle" = "Assurez-vous que les émojis ci-dessous correspondent à ceux affichés sur votre autre appareil.";
 "gua_encryption_reset_not_approved" = "La configuration n’a pas été approuvée. Appuyez sur « Réinitialiser et terminer » pour réessayer.";
 "gua_verification_complete_subtitle" = "Vos messages apparaîtront désormais sur cet appareil.";
+"gua_verification_new_sign_in_title" = "Nouvelle connexion à votre compte";
+"gua_verification_new_sign_in_subtitle" = "Si c’était vous, confirmez-la pour y afficher vos messages. Vous comparerez quelques émojis sur les deux écrans.";
+"gua_verification_complete_other_device_subtitle" = "Vos messages apparaîtront désormais sur votre autre appareil.";
 "gua_identity_change_banner_description" = "Les informations de sécurité de %1$@ ont changé. Cela arrive lorsqu’une personne réinstalle Gua ou change de téléphone. %2$@";
 "gua_identity_change_undecryptable" = "Ce message ne peut pas être ouvert, car les informations de sécurité de l’expéditeur ont changé.";
 "gua_identity_change_profile" = "Les informations de sécurité de %1$@ ont changé. Cela arrive quand la personne réinstalle Gua ou change de téléphone.";

@@ -41,6 +41,7 @@ final class AppSettings {
         case hasRunIdentityConfirmationOnboarding
         case hasBootstrappedKeyStorage
         case identityResetStartedAt
+        case dismissedSignInDeviceIDs
 
         case frequentlyUsedSystemEmojis
         
@@ -103,11 +104,12 @@ final class AppSettings {
     static func resetSessionSpecificSettings() {
         MXLog.warning("Resetting the user session specific AppSettings.")
         store.removeObject(forKey: UserDefaultsKeys.hasRunIdentityConfirmationOnboarding.rawValue)
-        // GUA FORK: the bootstrap flag is now per account, so clear every account's copy along
-        // with the pre-migration global one.
-        let bootstrapPrefix = UserDefaultsKeys.hasBootstrappedKeyStorage.rawValue
-        let resetPrefix = UserDefaultsKeys.identityResetStartedAt.rawValue
-        for key in store.dictionaryRepresentation().keys where key.hasPrefix(bootstrapPrefix) || key.hasPrefix(resetPrefix) {
+        // GUA FORK: these keys are per account, so clear every account's copy, along with the
+        // pre-migration global bootstrap flag.
+        let prefixes = [UserDefaultsKeys.hasBootstrappedKeyStorage.rawValue,
+                        UserDefaultsKeys.identityResetStartedAt.rawValue,
+                        UserDefaultsKeys.dismissedSignInDeviceIDs.rawValue]
+        for key in store.dictionaryRepresentation().keys where prefixes.contains(where: key.hasPrefix) {
             store.removeObject(forKey: key)
         }
     }
@@ -380,6 +382,21 @@ final class AppSettings {
 
     private static func identityResetKey(forUserID userID: String) -> String {
         "\(UserDefaultsKeys.identityResetStartedAt.rawValue).\(userID)"
+    }
+
+    /// GUA FORK: the account's own devices whose verification request was ignored on this device.
+    /// The new sign-in monitor never asks them to send another one.
+    func dismissedSignInDeviceIDs(forUserID userID: String) -> Set<String> {
+        Set(Self.store.stringArray(forKey: Self.dismissedSignInDevicesKey(forUserID: userID)) ?? [])
+    }
+
+    func addDismissedSignInDeviceID(_ deviceID: String, forUserID userID: String) {
+        let deviceIDs = dismissedSignInDeviceIDs(forUserID: userID).union([deviceID])
+        Self.store.set(deviceIDs.sorted(), forKey: Self.dismissedSignInDevicesKey(forUserID: userID))
+    }
+
+    private static func dismissedSignInDevicesKey(forUserID userID: String) -> String {
+        "\(UserDefaultsKeys.dismissedSignInDeviceIDs.rawValue).\(userID)"
     }
 
     @UserPreference(key: UserDefaultsKeys.frequentlyUsedSystemEmojis, defaultValue: [FrequentlyUsedEmoji](), storageType: .userDefaults(store))

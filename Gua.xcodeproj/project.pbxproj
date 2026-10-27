@@ -692,6 +692,7 @@
 		722BCAD25D93EF90B5B85C27 /* AppLockSetupSettingsScreenCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C77B9B5C573968C09C44A3D /* AppLockSetupSettingsScreenCoordinator.swift */; };
 		725AB888065F38990179DC12 /* DeactivateAccountScreenViewModelProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C88A88637237C8549DF889E6 /* DeactivateAccountScreenViewModelProtocol.swift */; };
 		72CF7FF9D94A40F0A5A51111 /* StickerRoomTimelineItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6662DF9A58B5DA397D03F393 /* StickerRoomTimelineItem.swift */; };
+		731597CFC50805B796B87302 /* NewSignInNudgeMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3731638F40A933FCB7B5BA58 /* NewSignInNudgeMonitor.swift */; };
 		731ADE8EBCA179813D435A6E /* CustomStringConvertible.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADF5F00329DD0F02B4B956DB /* CustomStringConvertible.swift */; };
 		732A318D2367DD4C12A8FCB8 /* LogViewerScreenViewModelProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B551AB8F0D768216CD9672C /* LogViewerScreenViewModelProtocol.swift */; };
 		733F82B5524D61A118B11F41 /* PinnedEventsBannerStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72012AA54C823A2E656BDDF2 /* PinnedEventsBannerStateTests.swift */; };
@@ -1249,6 +1250,7 @@
 		D8FC8F1789B3B76B4C25FDC0 /* UserProfileListRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D8DCC91512432774FEEB537 /* UserProfileListRow.swift */; };
 		D907C060D13BBBE27EAE846E /* AttributedStringBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 506EA5B92C5A10785C2B6C3E /* AttributedStringBuilder.swift */; };
 		D91FB3156DEC30C793A70D02 /* PhotoLibraryManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7194830B0759EFF4805E5106 /* PhotoLibraryManager.swift */; };
+		D979CB621339C919918A2565 /* OwnDevicesClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30AC7F738F328FFC021ED0D3 /* OwnDevicesClient.swift */; };
 		D9B372AACC1A78AE28F39C2D /* UnsupportedRoomTimelineItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27DACF0A3615FFE4A58766B5 /* UnsupportedRoomTimelineItem.swift */; };
 		D9D80DC3D70B74A2E1B01182 /* RoomChangeRolesScreenCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 912DAE2E9BD4F3A9644BC52C /* RoomChangeRolesScreenCoordinator.swift */; };
 		DA0AEE5E74DF9ED823A3A3A3 /* UITestsScreenIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEC49CDE4AC394CD519959C4 /* UITestsScreenIdentifier.swift */; };
@@ -1806,6 +1808,7 @@
 		2FDDFD3E00B38A7AA3B4FCC2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		3048F94081F1FA170352B1C0 /* RoomMembersListScreenViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomMembersListScreenViewModel.swift; sourceTree = "<group>"; };
 		30704581C17821400CEC2F76 /* uz */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = uz; path = uz.lproj/Localizable.strings; sourceTree = "<group>"; };
+		30AC7F738F328FFC021ED0D3 /* OwnDevicesClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OwnDevicesClient.swift; sourceTree = "<group>"; };
 		30E6851180BA224FA0807321 /* UserProfileScreenModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileScreenModels.swift; sourceTree = "<group>"; };
 		30F0D3147EFC06E0E3002BA7 /* SpaceFlowCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpaceFlowCoordinator.swift; sourceTree = "<group>"; };
 		30F39BAB8FBC2550392768E1 /* ImageCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCache.swift; sourceTree = "<group>"; };
@@ -1850,6 +1853,7 @@
 		36FF8521E0A5A852E48F74DE /* UserDetailsEditScreenModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDetailsEditScreenModels.swift; sourceTree = "<group>"; };
 		370AB62280D93E1DD6919003 /* VerificationBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerificationBadge.swift; sourceTree = "<group>"; };
 		3715356D538AB9C6546098E8 /* HomeScreenRecoveryKeyConfirmationBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeScreenRecoveryKeyConfirmationBanner.swift; sourceTree = "<group>"; };
+		3731638F40A933FCB7B5BA58 /* NewSignInNudgeMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewSignInNudgeMonitor.swift; sourceTree = "<group>"; };
 		374049283E015F5AD44A8A1C /* DeactivateAccountScreenModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeactivateAccountScreenModels.swift; sourceTree = "<group>"; };
 		37410E0714CEB115487E08D1 /* LinkMetadataProviderProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkMetadataProviderProtocol.swift; sourceTree = "<group>"; };
 		37E5440C7E4FFD572428C17F /* pt */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = pt; path = pt.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
@@ -3748,6 +3752,7 @@
 				F3B8565C69E96BD619586FC1 /* ContactDiscoveryService.swift */,
 				336FB49551A4972328D98853 /* FederatedUserSearch.swift */,
 				BA1FC4218C8D1345BEF6FC97 /* IdentityServiceClient.swift */,
+				30AC7F738F328FFC021ED0D3 /* OwnDevicesClient.swift */,
 				086A56B0C59D26A6A8C4E832 /* ResolverClient.swift */,
 			);
 			path = Services;
@@ -6462,6 +6467,7 @@
 			isa = PBXGroup;
 			children = (
 				B5DDBC32C06A2B3046B79AE4 /* IdentityResetPendingStore.swift */,
+				3731638F40A933FCB7B5BA58 /* NewSignInNudgeMonitor.swift */,
 			);
 			path = Encryption;
 			sourceTree = "<group>";
@@ -8068,6 +8074,7 @@
 				DEAECB39BEF54B0F09B463A3 /* NetworkMonitor.swift in Sources */,
 				77E1C23DC1AFC8E8C4E1B09D /* NetworkMonitorMock.swift in Sources */,
 				D8CFCFFF65D6DD0A33FDF803 /* NetworkMonitorProtocol.swift in Sources */,
+				731597CFC50805B796B87302 /* NewSignInNudgeMonitor.swift in Sources */,
 				F0C3C02F0F741E9EB5F509C1 /* NoticeRoomTimelineItem.swift in Sources */,
 				2F2FB49AD81EA9B95FF43AAF /* NoticeRoomTimelineItemContent.swift in Sources */,
 				E306C00444E8D13629FF9953 /* NoticeRoomTimelineView.swift in Sources */,
@@ -8104,6 +8111,7 @@
 				DC0E4EA61D40EEEA037877BE /* OrderedSet.swift in Sources */,
 				F3CD1EEBB072FF9F5AC513DE /* OrientationManagerProtocol.swift in Sources */,
 				C33A5B257AE58E5933A46ED8 /* OverridableAvatarImage.swift in Sources */,
+				D979CB621339C919918A2565 /* OwnDevicesClient.swift in Sources */,
 				B5928CA1BA26A527C177EED8 /* PHGPostHogConfiguration.swift in Sources */,
 				0EEEDF0A2DC05D2530B96AB7 /* PHGPostHogMock.swift in Sources */,
 				22B04F46592131742FDD8CEF /* PHGPostHogProtocol.swift in Sources */,

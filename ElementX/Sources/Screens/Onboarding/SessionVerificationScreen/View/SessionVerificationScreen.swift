@@ -252,6 +252,9 @@ struct SessionVerification_Previews: PreviewProvider, TestablePreview {
         sessionVerificationScreen(state: .verified)
             .previewDisplayName("Verified")
         
+        sessionVerificationScreen(state: .verified, flow: .deviceResponder(requestDetails: details))
+            .previewDisplayName("Verified - Device Responder")
+        
         sessionVerificationScreen(state: .cancelled)
             .previewDisplayName("Cancelled")
     }

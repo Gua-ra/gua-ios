@@ -287,6 +287,8 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
                 switch action {
                 case .done:
                     break // Moving to next state is handled by the global session verification listener
+                case .ignoredOwnDeviceRequest:
+                    break // Only a responder flow can ignore a request.
                 }
             }
             .store(in: &cancellables)
