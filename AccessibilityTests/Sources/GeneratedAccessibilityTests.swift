@@ -7,6 +7,10 @@
 
 extension AccessibilityTests {
 
+    func testAccountAuthorityScreen() async throws {
+        try await performAccessibilityAudit(named: "AccountAuthorityScreen_Previews")
+    }
+
     func testAdvancedSettingsScreen() async throws {
         try await performAccessibilityAudit(named: "AdvancedSettingsScreen_Previews")
     }
@@ -45,6 +49,10 @@ extension AccessibilityTests {
 
     func testAuthenticationStartScreen() async throws {
         try await performAccessibilityAudit(named: "AuthenticationStartScreen_Previews")
+    }
+
+    func testAuthorityApprovalScreen() async throws {
+        try await performAccessibilityAudit(named: "AuthorityApprovalScreen_Previews")
     }
 
     func testAvatarHeaderView() async throws {

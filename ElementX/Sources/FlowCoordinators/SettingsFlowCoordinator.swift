@@ -115,6 +115,8 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                     presentChangePhone()
                 case .findFriends:
                     presentFindFriends()
+                case .accountAuthority:
+                    presentAccountAuthority()
                 }
             }
             .store(in: &cancellables)
@@ -255,6 +257,56 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
             .sink { _ in }
             .store(in: &cancellables)
 
+        navigationStackCoordinator.push(coordinator)
+    }
+
+    private func presentAccountAuthority() {
+        guard flowParameters.appSettings.guaAccountAuthorityEnabled else { return }
+        guard let identityServiceClient = IdentityServiceClient(),
+              let authorityService = AccountAuthorityService(appSettings: flowParameters.appSettings) else {
+            MXLog.warning("Identity service is not configured; cannot show the trusted devices screen.")
+            return
+        }
+        let parameters = AccountAuthorityScreenCoordinatorParameters(authorityService: authorityService,
+                                                                     identityServiceClient: identityServiceClient,
+                                                                     clientProxy: flowParameters.userSession.clientProxy,
+                                                                     userIndicatorController: flowParameters.userIndicatorController,
+                                                                     windowManager: flowParameters.windowManager,
+                                                                     appSettings: flowParameters.appSettings)
+        let coordinator = AccountAuthorityScreenCoordinator(parameters: parameters)
+
+        coordinator.actionsPublisher
+            .sink { [weak self] action in
+                guard let self else { return }
+                switch action {
+                case .close:
+                    navigationStackCoordinator.pop()
+                case .showApprovals:
+                    presentAuthorityApprovals(authorityService: authorityService)
+                }
+            }
+            .store(in: &cancellables)
+
+        coordinator.start()
+        navigationStackCoordinator.push(coordinator)
+    }
+
+    private func presentAuthorityApprovals(authorityService: AccountAuthorityServiceProtocol) {
+        let parameters = AuthorityApprovalScreenCoordinatorParameters(authorityService: authorityService,
+                                                                      clientProxy: flowParameters.userSession.clientProxy,
+                                                                      userIndicatorController: flowParameters.userIndicatorController)
+        let coordinator = AuthorityApprovalScreenCoordinator(parameters: parameters)
+
+        coordinator.actionsPublisher
+            .sink { [weak self] action in
+                switch action {
+                case .close:
+                    self?.navigationStackCoordinator.pop()
+                }
+            }
+            .store(in: &cancellables)
+
+        coordinator.start()
         navigationStackCoordinator.push(coordinator)
     }
 

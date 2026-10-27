@@ -36,6 +36,11 @@ class SettingsScreenViewModelTests: XCTestCase {
         try await deferred.fulfill()
     }
     
+    func testTheTrustedDevicesRowIsAbsentWhileTheFlagIsOff() {
+        XCTAssertFalse(ServiceLocator.shared.settings.guaAccountAuthorityEnabled)
+        XCTAssertFalse(context.viewState.showAccountAuthority)
+    }
+
     func testAnalytics() async throws {
         let deferred = deferFulfillment(viewModel.actions) { $0 == .analytics }
         context.send(viewAction: .analytics)
