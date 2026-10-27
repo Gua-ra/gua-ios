@@ -397,6 +397,9 @@ class UserSessionStore: UserSessionStoreProtocol {
                                          appSettings: appSettings,
                                          persistRecoveryKey: { [keychainController] key in
                                              keychainController.setRecoveryKey(key, forUsername: userID)
+                                         },
+                                         storedRecoveryKey: { [keychainController] in
+                                             keychainController.recoveryKey(forUsername: userID)
                                          })
         } catch {
             throw UserSessionStoreError.failedSettingUpClientProxy(error)

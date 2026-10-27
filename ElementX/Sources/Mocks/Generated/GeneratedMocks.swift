@@ -15769,6 +15769,70 @@ class SecureBackupControllerMock: SecureBackupControllerProtocol, @unchecked Sen
             return repairRecoveryWithReturnValue
         }
     }
+    //MARK: - confirmCurrentBackupWithStoredKey
+
+    var confirmCurrentBackupWithStoredKeyUnderlyingCallsCount = 0
+    var confirmCurrentBackupWithStoredKeyCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return confirmCurrentBackupWithStoredKeyUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = confirmCurrentBackupWithStoredKeyUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                confirmCurrentBackupWithStoredKeyUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    confirmCurrentBackupWithStoredKeyUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var confirmCurrentBackupWithStoredKeyCalled: Bool {
+        return confirmCurrentBackupWithStoredKeyCallsCount > 0
+    }
+
+    var confirmCurrentBackupWithStoredKeyUnderlyingReturnValue: Bool!
+    var confirmCurrentBackupWithStoredKeyReturnValue: Bool! {
+        get {
+            if Thread.isMainThread {
+                return confirmCurrentBackupWithStoredKeyUnderlyingReturnValue
+            } else {
+                var returnValue: Bool? = nil
+                DispatchQueue.main.sync {
+                    returnValue = confirmCurrentBackupWithStoredKeyUnderlyingReturnValue
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                confirmCurrentBackupWithStoredKeyUnderlyingReturnValue = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    confirmCurrentBackupWithStoredKeyUnderlyingReturnValue = newValue
+                }
+            }
+        }
+    }
+    var confirmCurrentBackupWithStoredKeyClosure: (() async -> Bool)?
+
+    func confirmCurrentBackupWithStoredKey() async -> Bool {
+        confirmCurrentBackupWithStoredKeyCallsCount += 1
+        if let confirmCurrentBackupWithStoredKeyClosure = confirmCurrentBackupWithStoredKeyClosure {
+            return await confirmCurrentBackupWithStoredKeyClosure()
+        } else {
+            return confirmCurrentBackupWithStoredKeyReturnValue
+        }
+    }
     //MARK: - provisionRecoveryWithoutKey
 
     var provisionRecoveryWithoutKeyUnderlyingCallsCount = 0

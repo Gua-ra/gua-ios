@@ -16,6 +16,7 @@
 "gua_encryption_recover_from_other_device_message" = "Usa tu otro dispositivo para recuperar los mensajes que aún no están disponibles en este dispositivo.\n\nSi no tienes acceso a él, puedes restablecer y finalizar la configuración, pero los mensajes guardados solo en tu copia de seguridad se perderán para siempre.";
 "gua_encryption_recover_from_other_device_action" = "Usar mi otro dispositivo";
 "gua_encryption_recover_from_other_device_failed" = "No se pudieron recuperar tus mensajes desde el otro dispositivo. Asegúrate de que esté abierto y vuelve a intentarlo, o restablece y finaliza.";
+"gua_encryption_recover_from_other_device_backup_unconfirmed" = "Este dispositivo ya está configurado, pero es posible que algunos mensajes anteriores no estén disponibles en él.";
 "gua_verification_other_device_title" = "Abre Gua en tu otro dispositivo";
 "gua_verification_other_device_subtitle" = "Déjalo abierto. Compararás unos emojis en ambos dispositivos para confirmar que eres tú.";
 "gua_verification_waiting_other_device_title" = "A la espera de tu otro dispositivo";

@@ -35,7 +35,8 @@ class SecureBackupControllerStateTests: XCTestCase {
         controller = SecureBackupController(encryption: encryption,
                                             userID: "@state:gua.example",
                                             e2eeInitialization: Task { },
-                                            persistRecoveryKey: { _ in })
+                                            persistRecoveryKey: { _ in },
+                                            storedRecoveryKey: { nil })
         published = []
         cancellables = []
 

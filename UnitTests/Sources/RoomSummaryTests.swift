@@ -67,8 +67,54 @@ class RoomSummaryTests: XCTestCase {
         
         XCTAssertEqual(details.avatar, .tombstoned)
     }
-    
+
+    func testUnnamedRoomWithNobodyElseAndNothingToPreviewIsAnOrphan() {
+        XCTAssertTrue(makeOrphanCandidate(activeMembersCount: 1).isEmptyOrphanRoom)
+        XCTAssertTrue(makeOrphanCandidate(activeMembersCount: 2).isEmptyOrphanRoom)
+    }
+
+    func testNamedRoomWithoutPreviewIsNotAnOrphan() {
+        // Messages this device cannot decrypt leave no preview, and the server sends no heroes for a named room.
+        XCTAssertFalse(makeOrphanCandidate(activeMembersCount: 1, hasExplicitName: true).isEmptyOrphanRoom)
+        XCTAssertFalse(makeOrphanCandidate(activeMembersCount: 2, hasExplicitName: true).isEmptyOrphanRoom)
+    }
+
+    func testRoomWithSomethingToShowIsNotAnOrphan() {
+        XCTAssertFalse(makeOrphanCandidate(activeMembersCount: 2, heroes: heroes).isEmptyOrphanRoom)
+        XCTAssertFalse(makeOrphanCandidate(activeMembersCount: 1, lastMessage: "Hello").isEmptyOrphanRoom)
+        XCTAssertFalse(makeOrphanCandidate(activeMembersCount: 3).isEmptyOrphanRoom)
+        XCTAssertFalse(makeOrphanCandidate(activeMembersCount: 1, joinRequestType: .knock).isEmptyOrphanRoom)
+    }
+
     // MARK: - Helpers
+
+    func makeOrphanCandidate(activeMembersCount: UInt,
+                             heroes: [UserProfileProxy] = [],
+                             lastMessage: AttributedString? = nil,
+                             joinRequestType: RoomSummary.JoinRequestType? = nil,
+                             hasExplicitName: Bool = false) -> RoomSummary {
+        RoomSummary(room: .init(noHandle: .init()),
+                    id: roomDetails.id,
+                    joinRequestType: joinRequestType,
+                    name: roomDetails.name,
+                    isDirect: false,
+                    avatarURL: nil,
+                    heroes: heroes,
+                    activeMembersCount: activeMembersCount,
+                    lastMessage: lastMessage,
+                    lastMessageDate: nil,
+                    unreadMessagesCount: 0,
+                    unreadMentionsCount: 0,
+                    unreadNotificationsCount: 0,
+                    notificationMode: nil,
+                    canonicalAlias: nil,
+                    alternativeAliases: [],
+                    hasOngoingCall: false,
+                    isMarkedUnread: false,
+                    isFavourite: false,
+                    isTombstoned: false,
+                    hasExplicitName: hasExplicitName)
+    }
     
     func makeSummary(isDirect: Bool, hasRoomAvatar: Bool, isTombstoned: Bool) -> RoomSummary {
         RoomSummary(room: .init(noHandle: .init()),

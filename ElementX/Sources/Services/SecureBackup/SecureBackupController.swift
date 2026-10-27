@@ -14,8 +14,10 @@ class SecureBackupController: SecureBackupControllerProtocol {
     /// GUA FORK: which account this controller serves, for the identity-reset-pending marker.
     private let userID: String
     /// GUA FORK: stores a recovery key this controller minted, replacing the account's previous
-    /// one. The keychain stays with `UserSessionStore`; this is the one capability it lends out.
+    /// one. The keychain stays with `UserSessionStore`, which lends out only this and `storedRecoveryKey`.
     private let persistRecoveryKey: (String) -> Void
+    /// GUA FORK: the recovery key held for this account, if any.
+    private let storedRecoveryKey: () -> String?
     /// GUA FORK: the SDK's own end-to-end encryption initialisation. See `e2eeInitializationCompleted`.
     private let e2eeInitialization: Task<Void, Never>
     
@@ -50,11 +52,13 @@ class SecureBackupController: SecureBackupControllerProtocol {
     init(encryption: Encryption,
          userID: String,
          e2eeInitialization: Task<Void, Never>,
-         persistRecoveryKey: @escaping (String) -> Void) {
+         persistRecoveryKey: @escaping (String) -> Void,
+         storedRecoveryKey: @escaping () -> String?) {
         self.e2eeInitialization = e2eeInitialization
         self.encryption = encryption
         self.userID = userID
         self.persistRecoveryKey = persistRecoveryKey
+        self.storedRecoveryKey = storedRecoveryKey
         
         backupStateListenerTaskHandle = encryption.backupStateListener(listener: SDKListener { [weak self] state in
             guard let self else { return }
@@ -296,6 +300,19 @@ class SecureBackupController: SecureBackupControllerProtocol {
             MXLog.error("Failed repairing recovery with error: \(error)")
             return .failure(.failedConfirmingRecoveryKey)
         }
+    }
+
+    /// Opening key storage makes the SDK compare the local backup version with the server's current
+    /// one, and install the stored backup key when the versions differ and that key matches. A
+    /// backup key that matches neither makes `recover` throw.
+    func confirmCurrentBackupWithStoredKey() async -> Bool {
+        guard let key = storedRecoveryKey() else {
+            MXLog.info("GUA-KEYSTORE: no stored recovery key to confirm the backup with.")
+            return false
+        }
+
+        guard case .success = await repairRecovery(with: key) else { return false }
+        return sdkRecoveryState() == .enabled
     }
 
     /// GUA FORK: repairs an account that is `.incomplete` with NO recovery key available.

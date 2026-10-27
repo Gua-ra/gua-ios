@@ -66,6 +66,9 @@ protocol SecureBackupControllerProtocol {
     func confirmRecoveryKey(_ key: String) async -> Result<Void, SecureBackupControllerError>
     /// GUA FORK: pull the secrets this device is missing, using a key we already hold.
     func repairRecovery(with key: String) async -> Result<Void, SecureBackupControllerError>
+    /// GUA FORK: whether this device's key backup is the account's current one, judged with the
+    /// stored recovery key. Replaces a stale local backup key; deletes and rotates nothing.
+    func confirmCurrentBackupWithStoredKey() async -> Bool
     /// GUA FORK: repair an `.incomplete` account when no recovery key exists anywhere.
     func provisionRecoveryWithoutKey() async -> Result<String, SecureBackupControllerError>
     /// GUA FORK: everything that can finish encryption setup WITHOUT destroying anything.

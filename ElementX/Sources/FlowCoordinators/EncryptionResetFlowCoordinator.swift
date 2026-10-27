@@ -202,16 +202,18 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
     // MARK: - Recovery from another device
 
     /// GUA FORK: verifies this device with another device of the account. Once the two agree on
-    /// the emojis, the SDK asks that device for the keys and it hands them over; nothing is reset
-    /// and no recovery key is involved. The verdict is the recovery state: enabled means the keys
-    /// (and the backup key with them) arrived; anything else within the bound is an honest "not
-    /// yet", and the reset screen stays with both options.
-    private func presentRecoveryFromOtherDevice() {
+    /// the emojis, the SDK asks that device for the keys this one is missing; nothing is reset and
+    /// no recovery key is involved. Only `.keysDidNotArrive` keeps the reset screen up.
+    func presentRecoveryFromOtherDevice() {
         guard let sessionVerificationController = userSession.clientProxy.sessionVerificationController else {
             MXLog.error("GUA-KEYSTORE: no session verification controller yet, cannot recover from another device.")
             userIndicatorController.submitIndicator(UserIndicator(title: UntranslatedL10n.guaEncryptionRecoverFromOtherDeviceFailed))
             return
         }
+
+        // The SDK asks the other device for a backup key only when this one holds none, so a backup
+        // enabled now is not refreshed by the verification and may be one a reset elsewhere deleted.
+        heldBackupBeforeVerification = userSession.clientProxy.secureBackupController.keyBackupState.value == .enabled
 
         let parameters = SessionVerificationScreenCoordinatorParameters(sessionVerificationControllerProxy: sessionVerificationController,
                                                                         flow: .deviceInitiator,
@@ -231,22 +233,47 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
         navigationStackCoordinator.push(coordinator)
     }
 
-    private func finishRecoveryFromOtherDevice() async {
+    func finishRecoveryFromOtherDevice() async {
         userIndicatorController.submitIndicator(UserIndicator(id: Self.finishingIndicatorID,
                                                               type: .modal,
                                                               title: UntranslatedL10n.guaEncryptionResetFinishing,
                                                               persistent: true))
-        let recovered = await waitForRecoveryEnabled(timeout: Self.recoveryFromOtherDeviceCeiling)
+        let recoveryEnabled = await waitForRecoveryEnabled(timeout: Self.recoveryFromOtherDeviceCeiling)
+        // The SDK reports recovery enabled from the local backup alone, so a backup held before the
+        // verification is checked against the server.
+        let backupConfirmed = if recoveryEnabled, heldBackupBeforeVerification {
+            await userSession.clientProxy.secureBackupController.confirmCurrentBackupWithStoredKey()
+        } else {
+            true
+        }
         userIndicatorController.retractIndicatorWithId(Self.finishingIndicatorID)
 
-        if recovered {
+        switch Self.recoveryFromOtherDeviceOutcome(recoveryEnabled: recoveryEnabled, backupConfirmed: backupConfirmed) {
+        case .recovered:
             MXLog.info("GUA-KEYSTORE: keys arrived from the other device.")
             userIndicatorController.submitIndicator(UserIndicator(title: L10n.commonSuccess))
             actionsSubject.send(.resetComplete)
-        } else {
+        case .backupUnconfirmed:
+            // Close the flow: the reset offered on this screen would delete the account's current backup.
+            MXLog.warning("GUA-KEYSTORE: keys arrived from the other device, but the backup held before could not be confirmed as current.")
+            userIndicatorController.submitIndicator(UserIndicator(title: UntranslatedL10n.guaEncryptionRecoverFromOtherDeviceBackupUnconfirmed))
+            actionsSubject.send(.resetComplete)
+        case .keysDidNotArrive:
             MXLog.warning("GUA-KEYSTORE: keys did not arrive from the other device within the bound.")
             userIndicatorController.submitIndicator(UserIndicator(title: UntranslatedL10n.guaEncryptionRecoverFromOtherDeviceFailed))
         }
+    }
+
+    enum RecoveryFromOtherDeviceOutcome: Equatable {
+        case recovered
+        /// The identity arrived, but the backup this device held before could not be confirmed as current.
+        case backupUnconfirmed
+        case keysDidNotArrive
+    }
+
+    static func recoveryFromOtherDeviceOutcome(recoveryEnabled: Bool, backupConfirmed: Bool) -> RecoveryFromOtherDeviceOutcome {
+        guard recoveryEnabled else { return .keysDidNotArrive }
+        return backupConfirmed ? .recovered : .backupUnconfirmed
     }
 
     private func waitForRecoveryEnabled(timeout: Duration) async -> Bool {
@@ -290,6 +317,8 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
     private static let recoveryFromOtherDeviceCeiling: Duration = .seconds(60)
 
     private static let finishingIndicatorID = "\(EncryptionResetFlowCoordinator.self)-Finishing"
+
+    private var heldBackupBeforeVerification = false
 
     private var accountSettingsPresenter: OIDCAccountSettingsPresenter?
     /// GUA FORK: tells MAS which app scheme to hand control back to when the reset is approved.

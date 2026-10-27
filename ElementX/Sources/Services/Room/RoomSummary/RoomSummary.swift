@@ -56,6 +56,8 @@ struct RoomSummary {
     let isMarkedUnread: Bool
     let isFavourite: Bool
     let isTombstoned: Bool
+    /// GUA FORK: the room has an `m.room.name` of its own.
+    var hasExplicitName = false
     
     var hasUnreadMessages: Bool {
         unreadMessagesCount > 0
@@ -73,16 +75,11 @@ struct RoomSummary {
         notificationMode == .mute
     }
 
-    /// GUA FORK: a stray "Empty Room" the SDK surfaces when a chat is created but the other member
-    /// never joins (or a creation half-failed) — it has no joined members and no messages. We match
-    /// any room (direct OR not, since these orphans aren't always flagged `isDirect`) that has no
-    /// visible joined member (`heroes`), no last message, and at most the local user
-    /// (`activeMembersCount <= 1`) OR a single invited-but-never-joined peer (count 2 while `heroes`
-    /// is still empty). A genuine conversation always has either a joined hero or a `lastMessage`, so
-    /// it is never hidden. Rooms with a pending join request (an invite or knock) are never orphans:
-    /// they can look identical (no heroes/messages/members yet) but the user must see them to act.
+    /// GUA FORK: the unnamed "Empty Room" left behind when a chat is created and the other person never
+    /// joins. A named room is never one: the server sends heroes only for unnamed rooms, and messages
+    /// this device cannot decrypt leave no preview. Invites and knocks always show.
     var isEmptyOrphanRoom: Bool {
-        joinRequestType == nil && heroes.isEmpty && lastMessage == nil && activeMembersCount <= 2
+        joinRequestType == nil && !hasExplicitName && heroes.isEmpty && lastMessage == nil && activeMembersCount <= 2
     }
 }
 

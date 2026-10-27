@@ -39,7 +39,8 @@ class SecureBackupControllerKeyPersistenceTests: XCTestCase {
                                             persistRecoveryKey: { [weak self] key in
                                                 self?.persisted.append(key)
                                                 self?.events.append("persist")
-                                            })
+                                            },
+                                            storedRecoveryKey: { nil })
 
         // The account starts `.disabled`, the one state that provisions without a reset.
         givenTheSDKReports(.disabled)
