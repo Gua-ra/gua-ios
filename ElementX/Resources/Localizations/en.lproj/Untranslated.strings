@@ -108,3 +108,9 @@
    and could not. Deliberately a failure rather than a silent fallback: an account created without
    the genesis it intended would be indistinguishable afterwards. */
 "gua_account_genesis_setup_failed" = "We couldn’t finish setting up your account on this device. Please try again.";
+
+// MARK: - Gua: message menu
+
+"gua_action_select" = "Select";
+"gua_action_more" = "More";
+"gua_message_text_selection_title" = "Select text";

@@ -18,6 +18,7 @@ enum TimelineInteractionHandlerAction {
     case displayPollForm(mode: PollFormMode)
     
     case showActionMenu(TimelineItemActionMenuInfo)
+    case showTextSelection(TimelineItemTextSelectionInfo)
     case showDebugInfo(TimelineItemDebugInfo)
     
     case displayAudioRecorderPermissionError
@@ -89,7 +90,7 @@ class TimelineInteractionHandler {
     
     // MARK: Timeline Item Action Menu
     
-    func displayTimelineItemActionMenu(for itemID: TimelineItemIdentifier) {
+    func displayTimelineItemActionMenu(for itemID: TimelineItemIdentifier, presentation: TimelineItemMenuPresentation = .sheet) {
         Task {
             guard let timelineItem = timelineController.timelineItems.firstUsingStableID(itemID),
                   let eventTimelineItem = timelineItem as? EventBasedTimelineItemProtocol else {
@@ -98,7 +99,7 @@ class TimelineInteractionHandler {
             }
 
             actionsSubject.send(.composer(action: .removeFocus))
-            actionsSubject.send(.showActionMenu(.init(item: eventTimelineItem)))
+            actionsSubject.send(.showActionMenu(.init(item: eventTimelineItem, presentation: presentation)))
         }
     }
 
@@ -113,6 +114,9 @@ class TimelineInteractionHandler {
         case .copy:
             guard let messageTimelineItem = timelineItem as? EventBasedMessageTimelineItemProtocol else { return }
             UIPasteboard.general.string = messageTimelineItem.body
+        case .select:
+            guard let messageTimelineItem = timelineItem as? EventBasedMessageTimelineItemProtocol else { return }
+            actionsSubject.send(.showTextSelection(.init(id: itemID, text: messageTimelineItem.body)))
         case .copyCaption:
             guard let messageTimelineItem = timelineItem as? EventBasedMessageTimelineItemProtocol,
                   let caption = messageTimelineItem.mediaCaption else {

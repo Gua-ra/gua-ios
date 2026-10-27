@@ -176,8 +176,8 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
             paginateForwards()
         case .scrollToBottom:
             scrollToBottom()
-        case .displayTimelineItemMenu(let itemID):
-            timelineInteractionHandler.displayTimelineItemActionMenu(for: itemID)
+        case .displayTimelineItemMenu(let itemID, let presentation):
+            timelineInteractionHandler.displayTimelineItemActionMenu(for: itemID, presentation: presentation)
         case .handleTimelineItemMenuAction(let itemID, let action):
             timelineInteractionHandler.handleTimelineItemMenuAction(action, itemID: itemID)
         case .tappedOnSenderDetails(let sender):
@@ -488,6 +488,8 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
                     }
                 case .showDebugInfo(let debugInfo):
                     state.bindings.debugInfo = debugInfo
+                case .showTextSelection(let textSelectionInfo):
+                    state.bindings.textSelectionInfo = textSelectionInfo
                 case .viewInRoomTimeline(let eventID):
                     actionsSubject.send(.viewInRoomTimeline(eventID: eventID))
                 case .displayThread(let itemID):

@@ -11,6 +11,8 @@ import WysiwygComposer
 struct TimelineView: View {
     @ObservedObject var timelineContext: TimelineViewModel.Context
     @State private var dragOver = false
+    /// The message menu drawn over the timeline. Mirrors `actionMenuInfo` so it can be shown without the cover's slide animation.
+    @State private var messageMenuInfo: TimelineItemActionMenuInfo?
     
     var body: some View {
         TimelineViewRepresentable()
@@ -25,23 +27,34 @@ struct TimelineView: View {
                 ManageRoomMemberSheetView(context: $0.context)
             }
             .sheet(item: $timelineContext.debugInfo) { TimelineItemDebugView(info: $0) }
-            .sheet(item: $timelineContext.actionMenuInfo) { info in
-                let actions = TimelineItemMenuActionProvider(timelineItem: info.item,
-                                                             canCurrentUserSendMessage: timelineContext.viewState.canCurrentUserSendMessage,
-                                                             canCurrentUserRedactSelf: timelineContext.viewState.canCurrentUserRedactSelf,
-                                                             canCurrentUserRedactOthers: timelineContext.viewState.canCurrentUserRedactOthers,
-                                                             canCurrentUserPin: timelineContext.viewState.canCurrentUserPin,
-                                                             pinnedEventIDs: timelineContext.viewState.pinnedEventIDs,
-                                                             isDM: timelineContext.viewState.isDirectOneToOneRoom,
-                                                             isViewSourceEnabled: timelineContext.viewState.isViewSourceEnabled,
-                                                             areThreadsEnabled: timelineContext.viewState.areThreadsEnabled,
-                                                             timelineKind: timelineContext.viewState.timelineKind,
-                                                             emojiProvider: timelineContext.viewState.emojiProvider)
-                    .makeActions()
-                if let actions {
+            .sheet(item: actionMenuSheetInfo) { info in
+                if let actions = menuActions(for: info.item) {
                     TimelineItemMenu(item: info.item, actions: actions)
                         .environmentObject(timelineContext)
                 }
+            }
+            .fullScreenCover(item: $messageMenuInfo) { info in
+                if let actions = menuActions(for: info.item) {
+                    MessageMenuOverlay(item: info.item,
+                                       actions: actions,
+                                       presentation: info.presentation,
+                                       groupStyle: timelineContext.viewState.timelineState.itemsDictionary[info.item.id.uniqueID]?.groupStyle ?? .single) {
+                        timelineContext.actionMenuInfo = nil
+                    }
+                    .environmentObject(timelineContext)
+                    .environment(\.timelineContext, timelineContext)
+                    .presentationBackground(.clear)
+                }
+            }
+            .onChange(of: timelineContext.actionMenuInfo) { _, info in
+                let menuInfo = info?.presentation.sourceFrame == nil ? nil : info
+                guard menuInfo != messageMenuInfo else { return }
+                withTransaction(\.disablesAnimations, true) {
+                    messageMenuInfo = menuInfo
+                }
+            }
+            .sheet(item: $timelineContext.textSelectionInfo) { info in
+                MessageTextSelectionSheet(info: info)
             }
             .sheet(item: $timelineContext.reactionSummaryInfo) {
                 ReactionsSummaryView(reactions: $0.reactions,
@@ -64,6 +77,29 @@ struct TimelineView: View {
                 timelineContext.send(viewAction: .handlePasteOrDrop(providers: supportedProviders))
                 return true
             }
+    }
+    
+    private var actionMenuSheetInfo: Binding<TimelineItemActionMenuInfo?> {
+        Binding {
+            timelineContext.actionMenuInfo?.presentation == .sheet ? timelineContext.actionMenuInfo : nil
+        } set: { info in
+            timelineContext.actionMenuInfo = info
+        }
+    }
+    
+    private func menuActions(for item: EventBasedTimelineItemProtocol) -> TimelineItemMenuActions? {
+        TimelineItemMenuActionProvider(timelineItem: item,
+                                       canCurrentUserSendMessage: timelineContext.viewState.canCurrentUserSendMessage,
+                                       canCurrentUserRedactSelf: timelineContext.viewState.canCurrentUserRedactSelf,
+                                       canCurrentUserRedactOthers: timelineContext.viewState.canCurrentUserRedactOthers,
+                                       canCurrentUserPin: timelineContext.viewState.canCurrentUserPin,
+                                       pinnedEventIDs: timelineContext.viewState.pinnedEventIDs,
+                                       isDM: timelineContext.viewState.isDirectOneToOneRoom,
+                                       isViewSourceEnabled: timelineContext.viewState.isViewSourceEnabled,
+                                       areThreadsEnabled: timelineContext.viewState.areThreadsEnabled,
+                                       timelineKind: timelineContext.viewState.timelineKind,
+                                       emojiProvider: timelineContext.viewState.emojiProvider)
+            .makeActions()
     }
 }
 
