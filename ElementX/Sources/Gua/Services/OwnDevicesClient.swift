@@ -9,35 +9,30 @@ import Foundation
 
 enum OwnDevicesClientError: Error {
     case invalidURL
-    /// 401: the access token expired or was revoked. The SDK refreshes it on its own, so the caller
-    /// only skips this attempt; it is never a reason to sign out.
+    /// The SDK refreshes the token on its own, so a 401 only skips this attempt and never signs out.
     case unauthorized
     case server(status: Int)
     case transport(Error)
     case decoding(Error)
 }
 
-/// One entry of `GET /_matrix/client/v3/devices`.
 struct OwnDevice: Equatable {
     let deviceID: String
     let lastSeen: Date?
 }
 
-/// What `POST /_matrix/client/v3/keys/query` reports about the account's own devices.
 struct OwnDeviceKeys: Equatable {
     struct Device: Equatable {
         let isDehydrated: Bool
-        /// Key ids of the account owner's signatures on this device's keys.
         let ownerSignatureKeyIDs: Set<String>
     }
 
-    /// `ed25519:<public key>` ids of the account's self-signing key. Empty when the account has none.
+    /// `ed25519:<public key>` ids, the same form as the key ids in a device's signatures.
     let selfSigningKeyIDs: Set<String>
     let devices: [String: Device]
 }
 
-/// Raw client-server calls the SDK does not expose: the account's device list, its own device keys,
-/// and the Gua verification retry nudge sent to one device.
+/// Client-server calls the SDK does not expose.
 final class OwnDevicesClient {
     static let verificationRetryEventType = "global.gua.verification.retry_request"
 
@@ -113,7 +108,6 @@ final class OwnDevicesClient {
         return OwnDeviceKeys(selfSigningKeyIDs: selfSigningKeyIDs, devices: devices)
     }
 
-    /// Unencrypted to-device event asking `targetDeviceID` to send its verification request again.
     func sendVerificationRetryRequest(homeserver: String,
                                       accessToken: String,
                                       userID: String,

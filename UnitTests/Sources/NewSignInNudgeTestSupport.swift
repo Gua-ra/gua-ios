@@ -9,7 +9,6 @@ import Combine
 @testable import ElementX
 import Foundation
 
-/// Answers the client-server calls `OwnDevicesClient` makes and records every request it receives.
 final class OwnDevicesHTTPStub: URLProtocol {
     struct Request {
         let method: String
@@ -53,7 +52,6 @@ final class OwnDevicesHTTPStub: URLProtocol {
         return URLSession(configuration: configuration)
     }
 
-    /// Serves `/devices` and `/keys/query` from the fixtures and accepts every nudge.
     static func serve(devices: @escaping () -> String, keys: @escaping () -> String) {
         respond { request in
             switch (request.method, request.path) {
@@ -114,7 +112,6 @@ final class OwnDevicesHTTPStub: URLProtocol {
     }
 }
 
-/// Builds `/devices` and `/keys/query` bodies for one account.
 struct OwnDevicesFixture {
     struct Device {
         var id: String
@@ -176,7 +173,6 @@ struct OwnDevicesFixture {
     }
 }
 
-/// Runs scheduled work only when a test fires it.
 @MainActor
 final class ManualNewSignInNudgeScheduler: NewSignInNudgeScheduling {
     final class Entry {
@@ -211,7 +207,6 @@ final class ManualNewSignInNudgeScheduler: NewSignInNudgeScheduling {
         schedule(Entry(delay: interval, repeats: true, work: work))
     }
 
-    /// Runs every live entry scheduled with `delay`, as if that much time had passed for it.
     func fire(_ delay: Duration) {
         for entry in liveEntries where entry.delay == delay {
             entry.hasFired = true

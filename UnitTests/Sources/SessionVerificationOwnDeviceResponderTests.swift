@@ -9,7 +9,6 @@ import Combine
 @testable import ElementX
 import XCTest
 
-/// The responder screen for a request from another device of the same account.
 @MainActor
 final class SessionVerificationOwnDeviceResponderTests: XCTestCase {
     private var controller: SessionVerificationControllerProxyMock!
@@ -40,7 +39,6 @@ final class SessionVerificationOwnDeviceResponderTests: XCTestCase {
         let context = viewModel.context
         let deferred = deferFulfillment(context.$viewState) { $0.verificationState == .showingChallenge(emojis: SessionVerificationControllerProxyMock.emojis) }
 
-        // What the Start button on the request sends.
         context.send(viewAction: .acceptVerificationRequest)
         try await deferred.fulfill()
 
@@ -62,7 +60,6 @@ final class SessionVerificationOwnDeviceResponderTests: XCTestCase {
     }
 
     func testOwnDeviceDoesNotStartTwiceWhenTheOtherSideStartedFirst() async throws {
-        // The new device starts the emoji check before our accept call has returned.
         let actions = controller.actions
         controller.acceptVerificationRequestClosure = {
             actions.send(.startedSasVerification)
@@ -88,13 +85,11 @@ final class SessionVerificationOwnDeviceResponderTests: XCTestCase {
         let finishedCount = countFinished(viewModel)
         let deferred = deferFulfillment(viewModel.context.$viewState) { $0.verificationState == .verified }
 
-        // What the "They match" button sends.
         viewModel.context.send(viewAction: .accept)
         try await deferred.fulfill()
         try await Task.sleep(for: .milliseconds(100))
         XCTAssertEqual(finishedCount(), 0)
 
-        // What the Done button sends.
         viewModel.context.send(viewAction: .done)
         XCTAssertEqual(finishedCount(), 1)
     }
@@ -125,7 +120,6 @@ final class SessionVerificationOwnDeviceResponderTests: XCTestCase {
             }
             .store(in: &cancellables)
 
-        // What the Ignore button sends.
         viewModel.context.send(viewAction: .ignoreVerificationRequest)
 
         XCTAssertEqual(actions, ["ignored WEB", "finished"])

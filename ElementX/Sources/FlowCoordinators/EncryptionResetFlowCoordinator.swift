@@ -130,23 +130,12 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
             case .recoverFromOtherDevice:
                 presentRecoveryFromOtherDevice()
             case .resetFinished:
-                // GUA FORK: hold the user here, visibly, until the account is actually finished.
-                //
-                // The reset has landed but recovery is still disabled, and provisioning it is what
-                // clears the setup banner. Dismissing before that put people back on the chat list
-                // with the banner still up -- a phantom, since nothing was wrong any more except
-                // that the work had not finished -- so they pressed it, and the press looked like
-                // what fixed the account.
-                //
-                // So: one blocking wait that says wait, then a confirmation that says it worked,
-                // and only then back to the chat list, by which point the banner is genuinely gone.
-                // It takes about a second, and there is nothing here for the user to get wrong.
+                // GUA FORK: stay until key storage is provisioned, which is what clears the setup banner.
                 Task { [weak self] in
                     guard let self else { return }
 
-                    // The reset has landed on the server: the SDK call returned normally and was
-                    // never cancelled, which is the only signal that proves the upload. Only now
-                    // may the pending marker go and key storage be provisioned.
+                    // Only a reset that returned normally proves the upload, so the pending marker is
+                    // cleared here and nowhere earlier.
                     IdentityResetPendingStore.clear(for: userSession.clientProxy.userID)
 
                     userIndicatorController.submitIndicator(UserIndicator(id: Self.finishingIndicatorID,
@@ -162,7 +151,7 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
                         MXLog.info("GUA-KEYSTORE: provisioned key storage after the reset.")
                         userIndicatorController.submitIndicator(UserIndicator(title: L10n.commonSuccess))
                     case .notYet, .resetRequired:
-                        // The banner is still up and is now the retry, so this is not a dead end.
+                        // The setup banner stays up as the retry.
                         MXLog.error("GUA-KEYSTORE: could not provision key storage after the reset.")
                         userIndicatorController.submitIndicator(UserIndicator(title: L10n.errorUnknown))
                     case .identityIncompleteAfterReset:
@@ -201,11 +190,8 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
     
     // MARK: - Recovery from another device
 
-    /// GUA FORK: verifies this device with another device of the account. Once the two agree on
-    /// the emojis, the SDK asks that device for the keys and it hands them over; nothing is reset
-    /// and no recovery key is involved. The verdict is the recovery state: enabled means the keys
-    /// (and the backup key with them) arrived; anything else within the bound is an honest "not
-    /// yet", and the reset screen stays with both options.
+    /// GUA FORK: once the emojis match, the other device sends the keys, so success is the
+    /// recovery state turning enabled.
     private func presentRecoveryFromOtherDevice() {
         guard let sessionVerificationController = userSession.clientProxy.sessionVerificationController else {
             MXLog.error("GUA-KEYSTORE: no session verification controller yet, cannot recover from another device.")
@@ -285,31 +271,22 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
         }
     }
 
-    /// The other device answers within a second or two once the emojis match, but the keys ride
-    /// on the encryption sync, which polls every 30 s at rest. The bound covers one poll with
-    /// margin; it only exists so that a device that never answers cannot hold the user on a
-    /// spinner. If the keys arrive after it, the banner still clears by itself.
+    /// Covers one 30 s encryption sync poll with margin; keys that arrive later still clear the banner.
     private static let recoveryFromOtherDeviceCeiling: Duration = .seconds(60)
 
     private static let finishingIndicatorID = "\(EncryptionResetFlowCoordinator.self)-Finishing"
 
     private var accountSettingsPresenter: OIDCAccountSettingsPresenter?
-    /// GUA FORK: tells MAS which app scheme to hand control back to when the reset is approved.
-    ///
-    /// MAS's success page used to be a dead end -- it said "go back to the app" and the user had to
-    /// close the sheet by hand. Given this, it navigates to the scheme instead, which is what makes
-    /// ASWebAuthenticationSession dismiss itself. MAS compares the value against a fixed allow-list
-    /// and builds the URL itself, so this names an app rather than supplying a destination.
+    /// GUA FORK: on approval MAS navigates to the scheme passed in `gua_return`, which dismisses the web session.
+    /// MAS checks it against an allow-list and builds the URL itself.
     private func approvalURL(_ url: URL) -> URL {
         guard let scheme = appSettings.oidcRedirectURL.scheme,
               var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
             return url
         }
 
-        // GUA FORK: name the account this app is signed in as. The sheet shares cookies with the
-        // system browser, so the page can otherwise open under some other account's session and
-        // approve the reset for that account while ours keeps being refused. The server compares
-        // and, on a mismatch, signs that session out and asks for a login as this account first.
+        // GUA FORK: the sheet shares browser cookies, so name this account or MAS may approve the
+        // reset for another one.
         let userID = userSession.clientProxy.userID
         let localpart = String(userID.dropFirst().prefix { $0 != ":" })
 
@@ -329,8 +306,7 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
                                                      presentationAnchor: windowManager.mainWindow,
                                                      appSettings: appSettings)
         accountSettingsPresenter = presenter
-        // Wait for the approval sheet to be dismissed before signalling the view model,
-        // so the reset runs only once the user has approved it in MAS.
+        // The reset must only run after the approval sheet closes.
         Task { @MainActor in
             let outcome = await presenter.start()
             completionPublisher.send(outcome)

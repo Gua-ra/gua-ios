@@ -9,7 +9,6 @@ import Combine
 import Foundation
 import UIKit
 
-/// Delayed and repeating work for `NewSignInNudgeMonitor`, injectable so tests fire it by hand.
 @MainActor
 protocol NewSignInNudgeScheduling {
     func after(_ delay: Duration, _ work: @escaping @MainActor () -> Void) -> AnyCancellable
@@ -38,8 +37,7 @@ struct TaskNewSignInNudgeScheduler: NewSignInNudgeScheduling {
     }
 }
 
-/// Nudges sent and verification requests received, per account and device. Process-wide because
-/// the nudge limit counts from app launch, not from session start.
+/// Process-wide so the per-device nudge limit counts from app launch, not from session start.
 @MainActor
 final class NewSignInNudgeHistory {
     static let shared = NewSignInNudgeHistory()
@@ -69,9 +67,8 @@ final class NewSignInNudgeHistory {
     }
 }
 
-/// Asks a new, unverified sign-in of this account to send its verification request again. The SDK
-/// drops a request that arrives with the new device's key change, and it only sends requests to
-/// devices that are already cross-signed, so the phone cannot start the verification itself.
+/// The SDK drops a verification request that arrives with the new device's key change and only sends
+/// requests to cross-signed devices, so the new device is asked to send its request again.
 @MainActor
 final class NewSignInNudgeMonitor {
     @MainActor
@@ -106,8 +103,6 @@ final class NewSignInNudgeMonitor {
 
     private(set) var currentRound: Task<Void, Never>?
 
-    /// - Parameter isIdle: whether nothing modal is presented and no flow is running, so the request
-    ///   the nudge provokes can be shown straight away.
     init(clientProxy: ClientProxyProtocol,
          appSettings: AppSettings,
          environment: Environment? = nil,

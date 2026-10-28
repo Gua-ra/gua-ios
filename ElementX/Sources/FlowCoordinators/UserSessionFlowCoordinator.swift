@@ -388,8 +388,8 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
             }
     }
     
-    /// GUA FORK: the new sign-in nudge makes the other device send a request, which this flow then
-    /// presents as a sheet. Nudge only when nothing else is on screen to collide with it.
+    /// GUA FORK: the nudged device's request is presented as a sheet, so nudge only when nothing
+    /// else is on screen.
     private var isIdleForNewSignInNudge: Bool {
         guard stateMachine.state == .tabBar,
               navigationTabCoordinator.sheetCoordinator == nil,
@@ -533,11 +533,7 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
             return
         }
         
-        // GUA FORK: one warning, and no route into the recovery-key console. Upstream shows two
-        // alerts here, both saying the user will need a recovery key to restore their chats, and
-        // both offering a "Settings" button through to the screen that generates and displays one.
-        // Signing out of your only device is the moment this fork most needs not to hand out a key,
-        // so the warning names the real consequence and offers only the two real choices.
+        // GUA FORK: one warning with no route to a recovery key.
         guard secureBackupController.recoveryState.value == .enabled,
               secureBackupController.keyBackupState.value == .enabled else {
             flowParameters.userIndicatorController.alertInfo = .init(id: .init(),

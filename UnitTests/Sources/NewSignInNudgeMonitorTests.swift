@@ -494,7 +494,6 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
                               isIdle: { [unowned self] in isIdle })
     }
 
-    /// Devices named in the nudges sent so far, in order.
     private var nudgedDevices: [String] {
         OwnDevicesHTTPStub.nudges.flatMap { nudge in
             let messages = nudge.json?["messages"] as? [String: [String: Any]]

@@ -9,7 +9,6 @@ import Combine
 @testable import ElementX
 import XCTest
 
-/// The new sign-in nudge and the verification responder as the session flow drives them.
 @MainActor
 final class UserSessionFlowCoordinatorNewSignInTests: XCTestCase {
     private let userID = "@alice:gua.test"
@@ -156,7 +155,6 @@ final class UserSessionFlowCoordinatorNewSignInTests: XCTestCase {
         verificationController.actions.send(.receivedVerificationRequest(details: requestDetails(from: userID, deviceID: "WEB")))
         let screen = try await presentedScreen()
 
-        // What the Ignore button sends.
         screen.viewModel.context.send(viewAction: .ignoreVerificationRequest)
 
         XCTAssertNil(tabCoordinator?.sheetCoordinator)
@@ -197,7 +195,6 @@ final class UserSessionFlowCoordinatorNewSignInTests: XCTestCase {
         verificationController.actions.send(.receivedVerificationRequest(details: requestDetails(from: userID, deviceID: "WEB")))
         _ = try await presentedScreen()
 
-        // The other side cancels; the responder sheet closes on its own.
         verificationController.actions.send(.cancelled)
         try await waitUntil { self.tabCoordinator?.sheetCoordinator == nil }
 
