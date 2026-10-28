@@ -33,3 +33,8 @@
 "gua_resolver_routing_unavailable_retry_in" = "Estamos teniendo problemas para conectarnos. Vuelve a intentarlo en %@.";
 "gua_resolver_rate_limited" = "Demasiados intentos. Espera un momento y vuelve a intentarlo.";
 "gua_resolver_rate_limited_retry_in" = "Demasiados intentos. Vuelve a intentarlo en %@.";
+
+"gua_settings_spaces_title" = "Espacios";
+"gua_settings_spaces_footer" = "Agrupa chats bajo un nombre común. Se sincroniza con tus otros teléfonos.";
+"gua_join_space_action" = "Activar Espacios y unirse";
+"gua_join_space_turns_on_spaces" = "Este es un espacio. Al unirte, se activan los Espacios para que veas sus chats.";
