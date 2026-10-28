@@ -1067,6 +1067,12 @@ extension PreviewTests {
         }
     }
 
+    func testToolbarButton() async throws {
+        for (index, preview) in ToolbarButton_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
     func testTwoStepVerificationScreen() async throws {
         for (index, preview) in TwoStepVerificationScreen_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)
