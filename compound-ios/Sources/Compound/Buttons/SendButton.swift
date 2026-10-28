@@ -1,4 +1,4 @@
-// 
+//
 // Copyright 2024 New Vector Ltd
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
@@ -20,7 +20,9 @@ public struct SendButton: View {
         return colorScheme == .light ? .compound.iconOnSolidPrimary : .compound.iconPrimary
     }
     
-    private var gradient: Gradient { isEnabled ? .compound.action : .init(colors: [.clear]) }
+    private var gradient: Gradient {
+        isEnabled ? .compound.action : .init(colors: [.clear])
+    }
     
     /// Creates a send button that performs the provided action.
     public init(action: @escaping () -> Void) {

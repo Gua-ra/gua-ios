@@ -143,7 +143,7 @@ public struct ListRow<Icon: View, DetailsIcon: View, CustomContent: View, Select
 
 // MARK: - Initialisers
 
-// Normal row with a details icon
+/// Normal row with a details icon
 public extension ListRow where CustomContent == EmptyView {
     init(label: ListRowLabel<Icon>,
          details: ListRowDetails<DetailsIcon>? = nil,
@@ -162,7 +162,7 @@ public extension ListRow where CustomContent == EmptyView {
     }
 }
 
-// Normal row without a details icon.
+/// Normal row without a details icon.
 public extension ListRow where DetailsIcon == EmptyView, CustomContent == EmptyView {
     init(label: ListRowLabel<Icon>,
          details: ListRowDetails<DetailsIcon>? = nil,
@@ -181,17 +181,17 @@ public extension ListRow where DetailsIcon == EmptyView, CustomContent == EmptyV
     }
 }
 
-// Custom row without a label or details label.
+/// Custom row without a label or details label.
 public extension ListRow where Icon == EmptyView, DetailsIcon == EmptyView {
     init(kind: Kind<CustomContent, SelectionValue>) {
-        self.label = ListRowLabel()
-        self.details = nil
+        label = ListRowLabel()
+        details = nil
         self.kind = kind
     }
     
     init(kind: Kind<CustomContent, SelectionValue>) where SelectionValue == String {
-        self.label = ListRowLabel()
-        self.details = nil
+        label = ListRowLabel()
+        details = nil
         self.kind = kind
     }
 }
@@ -249,6 +249,7 @@ private extension Button {
 
 // MARK: - Previews
 
+// swiftlint:disable print_deprecation
 public struct ListRow_Previews: PreviewProvider, TestablePreview {
     public static var previews: some View {
         Form {
@@ -348,14 +349,14 @@ public struct ListRow_Previews: PreviewProvider, TestablePreview {
                                 systemIcon: .squareDashed),
                 details: .title("Content"),
                 kind: .selection(isSelected: true) {
-            print("I was tapped!")
-        })
+                    print("I was tapped!")
+                })
         ListRow(label: .default(title: "Title",
                                 systemIcon: .squareDashed),
                 details: .title("Content"),
                 kind: .selection(isSelected: true) {
-            print("I was tapped!")
-        })
+                    print("I was tapped!")
+                })
         
         ListRow(label: .plain(title: "Title"),
                 kind: .inlinePicker(selection: .constant("Item 1"),
@@ -375,7 +376,7 @@ public struct ListRow_Previews: PreviewProvider, TestablePreview {
         ListRow(label: .action(title: "Title",
                                systemIcon: .squareDashed),
                 kind: .button { print("I was tapped!") })
-        .disabled(true)
+            .disabled(true)
     }
     
     static var plainButton: some View {
@@ -401,7 +402,7 @@ public struct ListRow_Previews: PreviewProvider, TestablePreview {
             ListRow(label: .centeredAction(title: "Title",
                                            systemIcon: .squareDashed),
                     kind: .button { print("I was tapped!") })
-            .disabled(true)
+                .disabled(true)
         }
     }
     
@@ -436,7 +437,7 @@ public struct ListRow_Previews: PreviewProvider, TestablePreview {
         }
     }
     
-    @ViewBuilder static var othersSection: some View {
+    static var othersSection: some View {
         Section {
             ListRow(kind: .custom {
                 Text("This is a custom row")
@@ -445,10 +446,10 @@ public struct ListRow_Previews: PreviewProvider, TestablePreview {
             })
             ListRow(label: .plain(title: "Placeholder"),
                     kind: .textField(text: .constant("This is a disabled text field")))
-            .disabled(true)
+                .disabled(true)
             ListRow(label: .plain(title: "Placeholder"),
                     kind: .textField(text: .constant(""), axis: .vertical))
-            .lineLimit(4...)
+                .lineLimit(4...)
             ListRow(label: .plain(title: "Password"),
                     kind: .secureField(text: .constant("p4ssw0rd")))
         }
@@ -474,3 +475,5 @@ struct ListRowLoadingSelection_Previews: PreviewProvider, TestablePreview {
         .compoundList()
     }
 }
+
+// swiftlint:enable print_deprecation

@@ -5,9 +5,8 @@
 // Please see LICENSE files in the repository root for full details.
 //
 
-import Foundation
-
 @testable import Compound
+import Foundation
 import XCTest
 
 class OverrideColorTests: XCTestCase {

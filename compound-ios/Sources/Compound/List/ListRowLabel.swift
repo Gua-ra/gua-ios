@@ -68,7 +68,7 @@ public struct ListRowLabel<Icon: View>: View {
     }
     
     var iconAlignment: VerticalAlignment = .center
-    var hideIconBackground: Bool = false
+    var hideIconBackground = false
     
     enum Layout { case `default`, centered, avatar }
     var layout: Layout = .default
@@ -77,7 +77,10 @@ public struct ListRowLabel<Icon: View>: View {
         guard isEnabled else { return .compound.textDisabled }
         return role == .destructive ? .compound.textCriticalPrimary : .compound.textPrimary
     }
-    var titleLineLimit: Int? { layout == .avatar ? 1 : lineLimit }
+
+    var titleLineLimit: Int? {
+        layout == .avatar ? 1 : lineLimit
+    }
     
     var statusColor: Color {
         isEnabled ? .compound.textSecondary : .compound.textDisabled
@@ -86,6 +89,7 @@ public struct ListRowLabel<Icon: View>: View {
     var descriptionColor: Color {
         isEnabled ? .compound.textSecondary : .compound.textDisabled
     }
+
     var descriptionLineLimit: Int? {
         guard layout == .avatar else { return lineLimit }
         return role != .error ? 1 : lineLimit
