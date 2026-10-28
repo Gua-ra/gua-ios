@@ -27,3 +27,6 @@
 "gua_identity_change_profile" = "%1$@ 的安全信息已更改。对方重新安装 Gua 或更换手机时可能会这样。";
 "gua_soft_logout_signin_notice" = "你已退出 Gua 账号。请重新登录以继续。";
 "gua_join_room_by_address_hint" = "粘贴你收到的房间地址。";
+
+"common_account_settings" = "账户设置";
+"common_app_settings" = "应用设置";
