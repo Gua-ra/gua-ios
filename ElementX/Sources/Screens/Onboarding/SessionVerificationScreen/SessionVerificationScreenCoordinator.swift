@@ -11,7 +11,6 @@ import SwiftUI
 
 enum SessionVerificationScreenCoordinatorAction {
     case done
-    /// The user ignored a request from another device of their own account.
     case ignoredOwnDeviceRequest(deviceID: String)
 }
 

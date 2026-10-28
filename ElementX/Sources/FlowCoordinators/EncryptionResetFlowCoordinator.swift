@@ -226,7 +226,7 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
                     navigationStackCoordinator.pop()
                     Task { await self.finishRecoveryFromOtherDevice() }
                 case .ignoredOwnDeviceRequest:
-                    break // Only a responder flow can ignore a request.
+                    break
                 }
             }
             .store(in: &cancellables)

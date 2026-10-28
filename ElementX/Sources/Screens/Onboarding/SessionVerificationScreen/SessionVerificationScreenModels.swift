@@ -10,7 +10,6 @@ import SwiftUI
 
 enum SessionVerificationScreenViewModelAction {
     case finished
-    /// The user ignored a request from another device of their own account.
     case ignoredOwnDeviceRequest(deviceID: String)
 }
 

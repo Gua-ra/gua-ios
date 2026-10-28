@@ -363,8 +363,7 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
     
     // MARK: - Session Verification
     
-    /// GUA FORK: the security state emits on every recovery change, and subscribing on each emission
-    /// presented one request once per subscription. The controller is only built once per session.
+    /// GUA FORK: subscribe once per session; the security state re-emits on every recovery change.
     private func setupSessionVerificationRequestsObserverIfNeeded() {
         guard sessionVerificationRequestsCancellable == nil,
               let sessionVerificationController = userSession.clientProxy.sessionVerificationController else {

@@ -104,13 +104,10 @@ final class NewSignInNudgeMonitor {
     private var hasSeenVerified = false
     private var roundsStarted = 0
 
-    /// The round in flight, if any.
     private(set) var currentRound: Task<Void, Never>?
 
-    /// - Parameters:
-    ///   - isAppActive: whether the app is in the foreground and active.
-    ///   - isIdle: whether nothing modal is presented and no flow is running, so the request the
-    ///     nudge provokes can be shown straight away.
+    /// - Parameter isIdle: whether nothing modal is presented and no flow is running, so the request
+    ///   the nudge provokes can be shown straight away.
     init(clientProxy: ClientProxyProtocol,
          appSettings: AppSettings,
          environment: Environment? = nil,
@@ -158,12 +155,10 @@ final class NewSignInNudgeMonitor {
         cancelRounds()
     }
 
-    /// A verification request arrived from one of this account's devices.
     func recordVerificationRequest(fromDeviceID deviceID: String) {
         environment.history.recordIncomingRequest(userID: clientProxy.userID, deviceID: deviceID, at: environment.now())
     }
 
-    /// The user ignored a verification request from one of this account's devices.
     func recordDismissal(ofDeviceID deviceID: String) {
         appSettings.addDismissedSignInDeviceID(deviceID, forUserID: clientProxy.userID)
     }
