@@ -192,8 +192,10 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
     }
     
     /// Media, files, polls and locations handle single taps themselves, so only text reacts to a double tap.
+    /// The Mac keeps double-click for selecting words in place.
     private var canDoubleTapToReact: Bool {
-        guard timelineItem.isCopyable, timelineItem.isReactable, !timelineItem.isRedacted else { return false }
+        guard !ProcessInfo.processInfo.isiOSAppOnMac,
+              timelineItem.isCopyable, timelineItem.isReactable, !timelineItem.isRedacted else { return false }
         
         switch context.viewState.timelineKind {
         case .live, .detached, .thread: return true
@@ -209,7 +211,8 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
             return
         }
         
-        let presentation: TimelineItemMenuPresentation = showsActions ? .reactionsAndActions(sourceFrame: sourceFrame) : .reactions(sourceFrame: sourceFrame)
+        let anchor = MessageMenuAnchor(frame: sourceFrame, reader: bubbleFrameReader)
+        let presentation: TimelineItemMenuPresentation = showsActions ? .reactionsAndActions(anchor) : .reactions(anchor)
         context.send(viewAction: .displayTimelineItemMenu(itemID: timelineItem.id, presentation: presentation))
     }
     

@@ -18,7 +18,7 @@ enum TimelineInteractionHandlerAction {
     case displayPollForm(mode: PollFormMode)
     
     case showActionMenu(TimelineItemActionMenuInfo)
-    case showTextSelection(TimelineItemTextSelectionInfo)
+    case showTextSelection(EventBasedMessageTimelineItemProtocol)
     case showDebugInfo(TimelineItemDebugInfo)
     
     case displayAudioRecorderPermissionError
@@ -116,7 +116,7 @@ class TimelineInteractionHandler {
             UIPasteboard.general.string = messageTimelineItem.body
         case .select:
             guard let messageTimelineItem = timelineItem as? EventBasedMessageTimelineItemProtocol else { return }
-            actionsSubject.send(.showTextSelection(.init(id: itemID, text: messageTimelineItem.body)))
+            actionsSubject.send(.showTextSelection(messageTimelineItem))
         case .copyCaption:
             guard let messageTimelineItem = timelineItem as? EventBasedMessageTimelineItemProtocol,
                   let caption = messageTimelineItem.mediaCaption else {

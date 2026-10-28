@@ -19,16 +19,15 @@ class MessageMenuTests: XCTestCase {
     func testQuickReactionsStartWithTheGuaSet() throws {
         let actions = try XCTUnwrap(makeActions(for: makeTextItem(isOutgoing: false)))
 
-        XCTAssertEqual(actions.reactions.map(\.key), ["❤️", "👍️", "👎️", "😂", "‼️", "❓"])
         XCTAssertEqual(actions.reactions.map { Array($0.key.unicodeScalars).map(\.value) },
-                       [[0x2764, 0xFE0F], [0x1F44D, 0xFE0F], [0x1F44E, 0xFE0F], [0x1F602], [0x203C, 0xFE0F], [0x2753]])
+                       [[0x2764, 0xFE0F], [0x1F44D, 0xFE0F], [0x1F44E, 0xFE0F], [0x1F602], [0x203C, 0xFE0F], [0x2753, 0xFE0F]])
     }
 
     func testFrequentlyUsedReactionsFollowWithoutDuplicates() throws {
         let emojiProvider = EmojiProviderStub(frequentlyUsed: ["🔥", "❤️", "🙏", "😮", "😢", "🎉", "🥳"])
         let actions = try XCTUnwrap(makeActions(for: makeTextItem(isOutgoing: false), emojiProvider: emojiProvider))
 
-        XCTAssertEqual(actions.reactions.map(\.key), ["❤️", "👍️", "👎️", "😂", "‼️", "❓", "🔥", "🙏", "😮", "😢"])
+        XCTAssertEqual(actions.reactions.map(\.key), ["❤️", "👍️", "👎️", "😂", "‼️", "❓\u{FE0F}", "🔥", "🙏", "😮", "😢"])
     }
 
     func testNoReactionsInThePinnedTimeline() throws {
@@ -97,7 +96,7 @@ class MessageMenuTests: XCTestCase {
 
     func testBubbleWithRoomStaysWhereItWas() {
         let source = CGRect(x: 16, y: 300, width: 250, height: 80)
-        let layout = MessageMenuLayout(sourceFrame: source, isOutgoing: false, container: container,
+        let layout = MessageMenuLayout(sourceFrame: source, alignsRight: false, container: container,
                                        reactionBarSize: CGSize(width: 330, height: 56), detailsSize: CGSize(width: 250, height: 200))
 
         XCTAssertEqual(layout.bubbleFrame, source)
@@ -107,7 +106,7 @@ class MessageMenuTests: XCTestCase {
 
     func testBubbleNearTheTopMovesDownForTheReactions() {
         let source = CGRect(x: 16, y: 70, width: 250, height: 80)
-        let layout = MessageMenuLayout(sourceFrame: source, isOutgoing: false, container: container,
+        let layout = MessageMenuLayout(sourceFrame: source, alignsRight: false, container: container,
                                        reactionBarSize: CGSize(width: 330, height: 56), detailsSize: nil)
 
         XCTAssertEqual(layout.bubbleFrame.minY, 60 + 56 + 8)
@@ -117,7 +116,7 @@ class MessageMenuTests: XCTestCase {
 
     func testOutgoingBubbleNearTheBottomMovesUpAndAlignsTrailing() {
         let source = CGRect(x: 200, y: 760, width: 180, height: 44)
-        let layout = MessageMenuLayout(sourceFrame: source, isOutgoing: true, container: container,
+        let layout = MessageMenuLayout(sourceFrame: source, alignsRight: true, container: container,
                                        reactionBarSize: CGSize(width: 330, height: 56), detailsSize: CGSize(width: 250, height: 300))
 
         XCTAssertEqual(layout.bubbleFrame.maxY, container.maxY - 300 - 8)
@@ -127,7 +126,7 @@ class MessageMenuTests: XCTestCase {
 
     func testMenuStaysClearOfTheScreenEdges() {
         let source = CGRect(x: 230, y: 300, width: 168, height: 44)
-        let layout = MessageMenuLayout(sourceFrame: source, isOutgoing: true, container: container,
+        let layout = MessageMenuLayout(sourceFrame: source, alignsRight: true, container: container,
                                        reactionBarSize: CGSize(width: 514, height: 56), detailsSize: CGSize(width: 250, height: 200))
 
         XCTAssertEqual(layout.reactionBarFrame, CGRect(x: 12, y: 236, width: 376, height: 56))
@@ -136,13 +135,33 @@ class MessageMenuTests: XCTestCase {
 
     func testTallBubbleIsClippedToTheSpaceLeft() {
         let source = CGRect(x: 16, y: 0, width: 300, height: 2000)
-        let layout = MessageMenuLayout(sourceFrame: source, isOutgoing: false, container: container,
+        let layout = MessageMenuLayout(sourceFrame: source, alignsRight: false, container: container,
                                        reactionBarSize: CGSize(width: 330, height: 56), detailsSize: CGSize(width: 250, height: 300))
 
         XCTAssertEqual(layout.bubbleFrame.minY, 60 + 56 + 8)
         XCTAssertEqual(layout.bubbleFrame.height, 760 - 56 - 8 - 300 - 8)
     }
 
+    func testLandscapeKeepsTheBubbleVisibleAndScrollsTheCard() {
+        let landscape = CGRect(x: 0, y: 8, width: 850, height: 356)
+        let source = CGRect(x: 600, y: 250, width: 200, height: 44)
+        let layout = MessageMenuLayout(sourceFrame: source, alignsRight: true, container: landscape,
+                                       reactionBarSize: CGSize(width: 330, height: 56), detailsSize: CGSize(width: 250, height: 342))
+        
+        XCTAssertEqual(layout.bubbleFrame.height, 44)
+        XCTAssertEqual(layout.reactionBarFrame?.minY, landscape.minY)
+        XCTAssertEqual(layout.detailsFrame?.height, 356 - 56 - 8 - 44 - 8)
+        XCTAssertEqual(layout.detailsFrame?.maxY, landscape.maxY)
+    }
+    
+    func testBubbleOutsideTheScreenIsPulledBackIn() {
+        let source = CGRect(x: 500, y: 300, width: 200, height: 44)
+        let layout = MessageMenuLayout(sourceFrame: source, alignsRight: true, container: container,
+                                       reactionBarSize: nil, detailsSize: nil)
+        
+        XCTAssertEqual(layout.bubbleFrame, CGRect(x: 200, y: 300, width: 200, height: 44))
+    }
+    
     // MARK: - Who reacted
     
     func testWhoReactedListsTheCurrentUserFirstThenOldestFirst() {
@@ -169,6 +188,13 @@ class MessageMenuTests: XCTestCase {
                               MessageReactionSummaryRow(id: "@rafa:gua", isOwnUser: false, keys: ["❤️"])])
     }
     
+    func testWhoReactedShortensLongTextReactions() {
+        let reactions = [AggregatedReaction(accountOwnerID: "@me:gua", key: "this is the best news I have heard all year", senders: [sender("@rafa:gua", 1)])]
+        
+        XCTAssertEqual(MessageReactionSummaryRow.rows(for: reactions).first?.keys, [reactions[0].displayKey])
+        XCTAssertLessThan(reactions[0].displayKey.count, reactions[0].key.count)
+    }
+    
     func testNoReactionsMeansNobodyToList() {
         XCTAssertEqual(MessageReactionSummaryRow.rows(for: []), [])
     }
@@ -178,30 +204,47 @@ class MessageMenuTests: XCTestCase {
     func testDoubleTapShowsReactionsOverTheBubble() async throws {
         let item = makeTextItem(isOutgoing: false)
         let viewModel = makeViewModel(items: [item])
-        let sourceFrame = CGRect(x: 16, y: 300, width: 250, height: 80)
+        let anchor = MessageMenuAnchor(frame: CGRect(x: 16, y: 300, width: 250, height: 80))
 
         let deferred = deferFulfillment(viewModel.context.$viewState) { $0.bindings.actionMenuInfo != nil }
-        viewModel.context.send(viewAction: .displayTimelineItemMenu(itemID: item.id, presentation: .reactions(sourceFrame: sourceFrame)))
+        viewModel.context.send(viewAction: .displayTimelineItemMenu(itemID: item.id, presentation: .reactions(anchor)))
         try await deferred.fulfill()
 
         XCTAssertEqual(viewModel.context.actionMenuInfo?.id, item.id)
-        XCTAssertEqual(viewModel.context.actionMenuInfo?.presentation, .reactions(sourceFrame: sourceFrame))
+        XCTAssertEqual(viewModel.context.actionMenuInfo?.presentation, .reactions(anchor))
         XCTAssertEqual(viewModel.context.actionMenuInfo?.presentation.showsActions, false)
     }
 
     func testLongPressShowsReactionsAndActions() async throws {
         let item = makeTextItem(isOutgoing: true)
         let viewModel = makeViewModel(items: [item])
-        let sourceFrame = CGRect(x: 120, y: 500, width: 250, height: 44)
+        let anchor = MessageMenuAnchor(frame: CGRect(x: 120, y: 500, width: 250, height: 44))
 
         let deferred = deferFulfillment(viewModel.context.$viewState) { $0.bindings.actionMenuInfo != nil }
-        viewModel.context.send(viewAction: .displayTimelineItemMenu(itemID: item.id, presentation: .reactionsAndActions(sourceFrame: sourceFrame)))
+        viewModel.context.send(viewAction: .displayTimelineItemMenu(itemID: item.id, presentation: .reactionsAndActions(anchor)))
         try await deferred.fulfill()
 
-        XCTAssertEqual(viewModel.context.actionMenuInfo?.presentation, .reactionsAndActions(sourceFrame: sourceFrame))
+        XCTAssertEqual(viewModel.context.actionMenuInfo?.presentation, .reactionsAndActions(anchor))
         XCTAssertEqual(viewModel.context.actionMenuInfo?.presentation.showsActions, true)
     }
 
+    func testLongPressOnARemovedMessageOpensNothing() async throws {
+        let item = RedactedRoomTimelineItem(id: .randomEvent,
+                                            body: "Message removed",
+                                            timestamp: .mock,
+                                            isOutgoing: false,
+                                            isEditable: false,
+                                            canBeRepliedTo: false,
+                                            sender: .init(id: "@camila:gua"))
+        ServiceLocator.shared.settings.viewSourceEnabled = false
+        let viewModel = makeViewModel(items: [item])
+        
+        viewModel.context.send(viewAction: .displayTimelineItemMenu(itemID: item.id, presentation: .reactionsAndActions(MessageMenuAnchor(frame: .zero))))
+        try await Task.sleep(for: .milliseconds(300))
+        
+        XCTAssertNil(viewModel.context.actionMenuInfo)
+    }
+    
     func testAccessibilityStillUsesTheSheet() async throws {
         let item = makeTextItem(isOutgoing: false)
         let viewModel = makeViewModel(items: [item])
@@ -224,6 +267,29 @@ class MessageMenuTests: XCTestCase {
         XCTAssertEqual(viewModel.context.textSelectionInfo, TimelineItemTextSelectionInfo(id: item.id, text: "Que paz nesse lugar 😍"))
     }
 
+    func testSelectWritesMentionsOutLikeTheirPills() async throws {
+        let formattedBody = AttributedStringBuilder(mentionBuilder: MentionBuilder())
+            .fromHTML("Oi <a href=\"https://matrix.to/#/@camila:gua.global\">Camila</a>, tudo bem?")
+        let item = TextRoomTimelineItem(id: .randomEvent,
+                                        timestamp: .mock,
+                                        isOutgoing: false,
+                                        isEditable: false,
+                                        canBeRepliedTo: true,
+                                        sender: .init(id: "@rafa:gua"),
+                                        content: .init(body: "Oi [Camila](https://matrix.to/#/@camila:gua.global), tudo bem?", formattedBody: formattedBody))
+        let viewModel = makeViewModel(items: [item])
+
+        let deferred = deferFulfillment(viewModel.context.$viewState) { $0.bindings.textSelectionInfo != nil }
+        viewModel.context.send(viewAction: .handleTimelineItemMenuAction(itemID: item.id, action: .select))
+        try await deferred.fulfill()
+
+        XCTAssertEqual(viewModel.context.textSelectionInfo?.text, "Oi @camila, tudo bem?")
+    }
+    
+    func testSelectionTextKeepsPlainBodiesAsTheyAre() {
+        XCTAssertEqual(MessageSelectionText.make(body: "**not markdown here**", formattedBody: nil) { _ in "" }, "**not markdown here**")
+    }
+    
     // MARK: - Helpers
     
     private func sender(_ id: String, _ minute: Double) -> ReactionSender {

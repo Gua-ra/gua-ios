@@ -34,24 +34,26 @@ struct TimelineView: View {
                 }
             }
             .fullScreenCover(item: $messageMenuInfo) { info in
-                if let actions = menuActions(for: info.item) {
-                    MessageMenuOverlay(item: info.item,
-                                       actions: actions,
-                                       presentation: info.presentation,
-                                       groupStyle: timelineContext.viewState.timelineState.itemsDictionary[info.item.id.uniqueID]?.groupStyle ?? .single) {
-                        timelineContext.actionMenuInfo = nil
+                Group {
+                    if let actions = menuActions(for: info.item) {
+                        MessageMenuOverlay(item: info.item,
+                                           actions: actions,
+                                           presentation: info.presentation,
+                                           groupStyle: timelineContext.viewState.timelineState.itemsDictionary[info.item.id.uniqueID]?.groupStyle ?? .single) {
+                            timelineContext.actionMenuInfo = nil
+                        }
+                        .environmentObject(timelineContext)
+                        .environment(\.timelineContext, timelineContext)
+                    } else {
+                        Color.clear
+                            .contentShape(.rect)
+                            .onTapGesture { timelineContext.actionMenuInfo = nil }
                     }
-                    .environmentObject(timelineContext)
-                    .environment(\.timelineContext, timelineContext)
-                    .presentationBackground(.clear)
                 }
+                .presentationBackground(.clear)
             }
             .onChange(of: timelineContext.actionMenuInfo) { _, info in
-                let menuInfo = info?.presentation.sourceFrame == nil ? nil : info
-                guard menuInfo != messageMenuInfo else { return }
-                withTransaction(\.disablesAnimations, true) {
-                    messageMenuInfo = menuInfo
-                }
+                setMessageMenuInfo(info?.presentation.anchor == nil ? nil : info)
             }
             .sheet(item: $timelineContext.textSelectionInfo) { info in
                 MessageTextSelectionSheet(info: info)
@@ -79,6 +81,14 @@ struct TimelineView: View {
             }
     }
     
+    /// The overlay animates itself, so the cover is presented and removed without the system slide.
+    private func setMessageMenuInfo(_ info: TimelineItemActionMenuInfo?) {
+        guard info != messageMenuInfo else { return }
+        withTransaction(\.disablesAnimations, true) {
+            messageMenuInfo = info
+        }
+    }
+    
     private var actionMenuSheetInfo: Binding<TimelineItemActionMenuInfo?> {
         Binding {
             timelineContext.actionMenuInfo?.presentation == .sheet ? timelineContext.actionMenuInfo : nil
@@ -88,18 +98,7 @@ struct TimelineView: View {
     }
     
     private func menuActions(for item: EventBasedTimelineItemProtocol) -> TimelineItemMenuActions? {
-        TimelineItemMenuActionProvider(timelineItem: item,
-                                       canCurrentUserSendMessage: timelineContext.viewState.canCurrentUserSendMessage,
-                                       canCurrentUserRedactSelf: timelineContext.viewState.canCurrentUserRedactSelf,
-                                       canCurrentUserRedactOthers: timelineContext.viewState.canCurrentUserRedactOthers,
-                                       canCurrentUserPin: timelineContext.viewState.canCurrentUserPin,
-                                       pinnedEventIDs: timelineContext.viewState.pinnedEventIDs,
-                                       isDM: timelineContext.viewState.isDirectOneToOneRoom,
-                                       isViewSourceEnabled: timelineContext.viewState.isViewSourceEnabled,
-                                       areThreadsEnabled: timelineContext.viewState.areThreadsEnabled,
-                                       timelineKind: timelineContext.viewState.timelineKind,
-                                       emojiProvider: timelineContext.viewState.emojiProvider)
-            .makeActions()
+        timelineContext.viewState.menuActionProvider(for: item).makeActions()
     }
 }
 

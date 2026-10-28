@@ -8,9 +8,11 @@
 import Compound
 import SwiftUI
 
-/// The message lifted above a dimmed timeline, with quick reactions above it and, after a long press, its actions below it.
+/// The message lifted above a dimmed timeline, with quick reactions above it and a card below it:
+/// who reacted after a double tap, the actions after a long press.
 struct MessageMenuOverlay: View {
     @EnvironmentObject private var context: TimelineViewModel.Context
+    @Environment(\.layoutDirection) private var layoutDirection
 
     let item: EventBasedTimelineItemProtocol
     let actions: TimelineItemMenuActions
@@ -21,8 +23,9 @@ struct MessageMenuOverlay: View {
 
     @State private var isVisible: Bool
     @State private var isShowingMore: Bool
-    @State private var detailsHeight: CGFloat = 0
-    @State private var reactionSummaryHeight: CGFloat = 0
+    /// The bubble in window coordinates.
+    @State private var sourceFrame: CGRect
+    @State private var detailsContentHeight: CGFloat = 0
 
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .heavy)
 
@@ -40,6 +43,7 @@ struct MessageMenuOverlay: View {
         self.dismiss = dismiss
         _isVisible = State(initialValue: !animatesIn)
         _isShowingMore = State(initialValue: isShowingMore)
+        _sourceFrame = State(initialValue: presentation.anchor?.frame ?? .zero)
     }
 
     private var sections: MessageMenuSections {
@@ -58,47 +62,70 @@ struct MessageMenuOverlay: View {
         showsActions || (!presentation.showsActions && !reactionRows.isEmpty)
     }
 
+    /// The bubble's visual side. Outgoing bubbles sit on the right, or on the left in right-to-left layouts.
+    private var alignsRight: Bool {
+        item.isOutgoing != (layoutDirection == .rightToLeft)
+    }
+
+    /// The card's full height. The who-reacted card shows five and a half rows at most, then scrolls.
+    private var detailsSize: CGSize? {
+        guard showsDetails else { return nil }
+        let height = showsActions ? detailsContentHeight : min(detailsContentHeight, 5.5 * Self.summaryRowHeight)
+        return CGSize(width: Self.detailsWidth, height: height)
+    }
+
     var body: some View {
         ZStack {
             backdrop
 
             GeometryReader { geometry in
                 let container = geometry.frame(in: .global)
-                let sourceFrame = (presentation.sourceFrame ?? .zero).offsetBy(dx: -container.minX, dy: -container.minY)
-                let layout = MessageMenuLayout(sourceFrame: sourceFrame,
-                                               isOutgoing: item.isOutgoing,
+                let source = sourceFrame.offsetBy(dx: -container.minX, dy: -container.minY)
+                let layout = MessageMenuLayout(sourceFrame: source,
+                                               alignsRight: alignsRight,
                                                container: CGRect(origin: .zero, size: geometry.size).insetBy(dx: 0, dy: MessageMenuLayout.spacing),
                                                reactionBarSize: actions.reactions.isEmpty ? nil : reactionBarSize(in: geometry.size),
-                                               detailsSize: showsDetails ? CGSize(width: Self.detailsWidth, height: detailsHeight) : nil)
+                                               detailsSize: detailsSize)
 
                 ZStack(alignment: .topLeading) {
-                    bubble(width: sourceFrame.width)
+                    bubble(width: source.width)
                         .frame(width: layout.bubbleFrame.width, height: layout.bubbleFrame.height, alignment: .top)
                         .clipped()
                         .shadow(color: .black.opacity(isVisible ? 0.15 : 0), radius: 12, y: 4)
-                        .offset(x: layout.bubbleFrame.minX, y: isVisible ? layout.bubbleFrame.minY : sourceFrame.minY)
+                        .offset(x: layout.bubbleFrame.minX, y: isVisible ? layout.bubbleFrame.minY : source.minY)
 
                     if let frame = layout.reactionBarFrame {
                         reactionBar
                             .frame(width: frame.width, height: frame.height)
-                            .scaleEffect(isVisible ? 1 : 0.5, anchor: item.isOutgoing ? .bottomTrailing : .bottomLeading)
+                            .scaleEffect(isVisible ? 1 : 0.5, anchor: alignsRight ? .bottomTrailing : .bottomLeading)
                             .opacity(isVisible ? 1 : 0)
                             .offset(x: frame.minX, y: frame.minY)
                     }
 
                     if let frame = layout.detailsFrame {
-                        details
+                        detailsCard(height: frame.height)
                             .frame(width: frame.width)
-                            .readHeight($detailsHeight)
-                            .scaleEffect(isVisible ? 1 : 0.5, anchor: item.isOutgoing ? .topTrailing : .topLeading)
-                            .opacity(isVisible && detailsHeight > 0 ? 1 : 0)
+                            .scaleEffect(isVisible ? 1 : 0.5, anchor: alignsRight ? .topTrailing : .topLeading)
+                            .opacity(isVisible && detailsContentHeight > 0 ? 1 : 0)
                             .offset(x: frame.minX, y: frame.minY)
                     }
+                }
+                .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
+                // The anchor's frame is measured from the left, so positions are too. Contents keep the real direction.
+                .environment(\.layoutDirection, .leftToRight)
+                .onChange(of: geometry.size.width) {
+                    close()
                 }
             }
         }
         .accessibilityAddTraits(.isModal)
         .accessibilityAction(.escape) { close() }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidChangeFrameNotification)) { _ in
+            guard let anchor = presentation.anchor else { return }
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8).disabledDuringTests()) {
+                sourceFrame = anchor.frame
+            }
+        }
         .onAppear {
             guard !isVisible else { return }
             withAnimation(.spring(response: 0.35, dampingFraction: 0.8).disabledDuringTests()) {
@@ -124,6 +151,7 @@ struct MessageMenuOverlay: View {
     private func bubble(width: CGFloat) -> some View {
         RoomTimelineItemView(viewState: RoomTimelineItemViewState(item: item, groupStyle: groupStyle))
             .environment(\.isMessageMenuPreview, true)
+            .environment(\.layoutDirection, layoutDirection)
             .frame(width: width)
             .fixedSize(horizontal: false, vertical: true)
             .allowsHitTesting(false)
@@ -170,6 +198,7 @@ struct MessageMenuOverlay: View {
         }
         .background(.regularMaterial, in: Capsule())
         .shadow(color: .black.opacity(0.12), radius: 10, y: 3)
+        .environment(\.layoutDirection, layoutDirection)
     }
 
     private func reactionButton(for key: String) -> some View {
@@ -193,13 +222,23 @@ struct MessageMenuOverlay: View {
 
     private static let detailsWidth: CGFloat = 250
 
-    @ViewBuilder
-    private var details: some View {
-        if showsActions {
-            actionList
-        } else {
-            reactionSummary
+    private func detailsCard(height: CGFloat) -> some View {
+        ScrollView {
+            Group {
+                if showsActions {
+                    actionList
+                } else {
+                    reactionSummaryRows
+                }
+            }
+            .readHeight($detailsContentHeight)
         }
+        .scrollBounceBehavior(.basedOnSize)
+        .frame(height: height)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.12), radius: 10, y: 3)
+        .environment(\.layoutDirection, layoutDirection)
     }
 
     private var actionList: some View {
@@ -208,8 +247,13 @@ struct MessageMenuOverlay: View {
                 Button {
                     withAnimation(.easeInOut(duration: 0.2).disabledDuringTests()) { isShowingMore = false }
                 } label: {
-                    Label(UntranslatedL10n.guaActionMore, icon: \.chevronLeft)
-                        .font(.compound.bodyLGSemibold)
+                    Label {
+                        Text(UntranslatedL10n.guaActionMore)
+                    } icon: {
+                        CompoundIcon(\.chevronLeft)
+                            .flipsForRightToLeftLayoutDirection(true)
+                    }
+                    .font(.compound.bodyLGSemibold)
                 }
                 .buttonStyle(MessageMenuButtonStyle())
 
@@ -237,9 +281,6 @@ struct MessageMenuOverlay: View {
                 }
             }
         }
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.12), radius: 10, y: 3)
     }
 
     private func actionButton(for action: TimelineItemMenuAction) -> some View {
@@ -256,18 +297,6 @@ struct MessageMenuOverlay: View {
     // MARK: - Who reacted
 
     private static let summaryRowHeight: CGFloat = 48
-
-    private var reactionSummary: some View {
-        ScrollView {
-            reactionSummaryRows
-                .readHeight($reactionSummaryHeight)
-        }
-        .scrollBounceBehavior(.basedOnSize)
-        .frame(height: min(reactionSummaryHeight, 5.5 * Self.summaryRowHeight))
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.12), radius: 10, y: 3)
-    }
 
     private var reactionSummaryRows: some View {
         VStack(spacing: 0) {
@@ -337,6 +366,7 @@ private struct MessageMenuButtonStyle: ButtonStyle {
 
             if showsChevron {
                 CompoundIcon(\.chevronRight, size: .small, relativeTo: .compound.bodyLG)
+                    .flipsForRightToLeftLayoutDirection(true)
                     .foregroundStyle(.compound.iconTertiary)
             }
         }
@@ -399,20 +429,20 @@ struct MessageMenuOverlay_Previews: PreviewProvider, TestablePreview {
     }()
     
     static var previews: some View {
-        overlay(item: incomingItem, presentation: .reactions(sourceFrame: CGRect(x: 16, y: 320, width: 300, height: 82)))
+        overlay(item: incomingItem, presentation: .reactions(MessageMenuAnchor(frame: CGRect(x: 16, y: 320, width: 300, height: 82))))
             .previewDisplayName("Double tap")
         
-        overlay(item: reactedItem, presentation: .reactions(sourceFrame: CGRect(x: 16, y: 240, width: 300, height: 82)))
+        overlay(item: reactedItem, presentation: .reactions(MessageMenuAnchor(frame: CGRect(x: 16, y: 240, width: 300, height: 82))))
             .previewDisplayName("Double tap with reactions")
 
-        overlay(item: incomingItem, presentation: .reactionsAndActions(sourceFrame: CGRect(x: 16, y: 240, width: 300, height: 82)))
+        overlay(item: incomingItem, presentation: .reactionsAndActions(MessageMenuAnchor(frame: CGRect(x: 16, y: 240, width: 300, height: 82))))
             .previewDisplayName("Long press")
 
-        overlay(item: outgoingItem, presentation: .reactionsAndActions(sourceFrame: CGRect(x: 120, y: 620, width: 240, height: 58)))
+        overlay(item: outgoingItem, presentation: .reactionsAndActions(MessageMenuAnchor(frame: CGRect(x: 120, y: 620, width: 240, height: 58))))
             .previewDisplayName("Long press near the bottom")
 
         overlay(item: incomingItem,
-                presentation: .reactionsAndActions(sourceFrame: CGRect(x: 16, y: 240, width: 300, height: 82)),
+                presentation: .reactionsAndActions(MessageMenuAnchor(frame: CGRect(x: 16, y: 240, width: 300, height: 82))),
                 isShowingMore: true)
             .previewDisplayName("More")
     }
