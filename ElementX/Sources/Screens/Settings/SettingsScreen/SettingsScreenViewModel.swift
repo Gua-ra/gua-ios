@@ -28,7 +28,8 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
                                            showDeveloperOptions: appSettings.developerOptionsEnabled,
                                            hidesAdvancedEncryption: appSettings.guaHidesAdvancedEncryption,
                                            showAnalyticsSettings: appSettings.canPromptForAnalytics,
-                                           isBugReportServiceEnabled: isBugReportServiceEnabled),
+                                           isBugReportServiceEnabled: isBugReportServiceEnabled,
+                                           bindings: .init(appSettings: appSettings)),
                    mediaProvider: userSession.mediaProvider)
         
         appSettings.$developerOptionsEnabled

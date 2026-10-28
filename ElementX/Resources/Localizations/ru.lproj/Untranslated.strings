@@ -27,3 +27,6 @@
 "gua_identity_change_profile" = "Данные безопасности %1$@ изменились. Это бывает, когда человек переустанавливает Gua или меняет телефон.";
 "gua_soft_logout_signin_notice" = "Вы вышли из аккаунта Gua. Войдите снова, чтобы продолжить.";
 "gua_join_room_by_address_hint" = "Вставьте полученный адрес комнаты.";
+
+"common_account_settings" = "Настройки аккаунта";
+"common_app_settings" = "Настройки приложения";

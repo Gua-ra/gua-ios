@@ -14,10 +14,6 @@ struct AdvancedSettingsScreen: View {
     var body: some View {
         Form {
             Section {
-                ListRow(label: .plain(title: L10n.commonAppearance),
-                        kind: .picker(selection: $context.appAppearance,
-                                      items: AppAppearance.allCases.map { (title: $0.name, tag: $0) }))
-                
                 ListRow(label: .plain(title: L10n.actionViewSource,
                                       description: L10n.screenAdvancedSettingsViewSourceDescription),
                         kind: .toggle($context.viewSourceEnabled))
@@ -81,19 +77,6 @@ struct AdvancedSettingsScreen: View {
         } footer: {
             Text(L10n.screenAdvancedSettingsShowMediaTimelineSubtitle)
                 .compoundListSectionFooter()
-        }
-    }
-}
-
-private extension AppAppearance {
-    var name: String {
-        switch self {
-        case .system:
-            return L10n.commonSystem
-        case .light:
-            return L10n.commonLight
-        case .dark:
-            return L10n.commonDark
         }
     }
 }

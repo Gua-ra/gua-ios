@@ -65,11 +65,22 @@ struct SettingsScreenViewState: BindableState {
     
     let isBugReportServiceEnabled: Bool
     
-    var bindings = SettingsScreenViewStateBindings()
+    var bindings: SettingsScreenViewStateBindings
 }
 
 struct SettingsScreenViewStateBindings {
+    private let appSettings: AppSettings
+    
     var isPresentingAccountDeactivationConfirmation = false
+    
+    var appAppearance: AppAppearance {
+        get { appSettings.appAppearance }
+        set { appSettings.appAppearance = newValue }
+    }
+    
+    init(appSettings: AppSettings) {
+        self.appSettings = appSettings
+    }
 }
 
 enum SettingsScreenViewAction {

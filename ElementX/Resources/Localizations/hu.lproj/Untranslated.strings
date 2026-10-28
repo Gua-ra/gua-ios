@@ -24,3 +24,6 @@
 "gua_encryption_repair_action" = "Beállítás befejezése";
 "gua_soft_logout_signin_notice" = "Kijelentkeztették a Gua-fiókjából. A folytatáshoz jelentkezzen be újra.";
 "gua_join_room_by_address_hint" = "Illessze be a kapott szobacímet.";
+
+"common_account_settings" = "Fiókbeállítások";
+"common_app_settings" = "Alkalmazásbeállítások";

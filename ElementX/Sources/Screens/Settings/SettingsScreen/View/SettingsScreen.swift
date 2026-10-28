@@ -10,22 +10,17 @@ import SFSafeSymbols
 import SwiftUI
 
 struct SettingsScreen: View {
-    let context: SettingsScreenViewModel.Context
-    
-    private var shouldHideManageAccountSection: Bool {
-        // Always shown: the Two-step verification row lives in this section.
-        false
-    }
+    @Bindable var context: SettingsScreenViewModel.Context
     
     var body: some View {
         Form {
             userSection
             
-            manageMyAppSection
+            findFriendsSection
             
-            if !shouldHideManageAccountSection {
-                manageAccountSection
-            }
+            accountSettingsSection
+            
+            appSettingsSection
             
             generalSection
             
@@ -75,7 +70,7 @@ struct SettingsScreen: View {
         }
     }
     
-    private var manageMyAppSection: some View {
+    private var findFriendsSection: some View {
         Section {
             // GUA FORK: Find which of the user's phone contacts are already on Gua.
             ListRow(label: .default(title: L10n.screenFindFriendsTitle,
@@ -83,7 +78,11 @@ struct SettingsScreen: View {
                     kind: .navigationLink {
                         context.send(viewAction: .findFriends)
                     })
-
+        }
+    }
+    
+    private var appSettingsSection: some View {
+        Section {
             ListRow(label: .default(title: L10n.screenNotificationSettingsTitle,
                                     icon: \.notifications),
                     kind: .navigationLink {
@@ -117,10 +116,25 @@ struct SettingsScreen: View {
                     EmptyView()
                 }
             }
+            
+            ListRow(label: .default(title: L10n.commonAppearance,
+                                    icon: \.darkMode),
+                    kind: .picker(selection: $context.appAppearance,
+                                  items: AppAppearance.allCases.map { (title: $0.name, tag: $0) }))
+            
+            ListRow(label: .default(title: L10n.commonAdvancedSettings,
+                                    icon: \.settings),
+                    kind: .navigationLink {
+                        context.send(viewAction: .advancedSettings)
+                    })
+                    .accessibilityIdentifier(A11yIdentifiers.settingsScreen.advancedSettings)
+        } header: {
+            Text(UntranslatedL10n.commonAppSettings)
+                .compoundListSectionHeader()
         }
     }
     
-    private var manageAccountSection: some View {
+    private var accountSettingsSection: some View {
         Section {
             if let url = context.viewState.accountProfileURL {
                 ListRow(label: .default(title: L10n.actionManageAccount,
@@ -161,6 +175,9 @@ struct SettingsScreen: View {
                         })
                         .accessibilityIdentifier(A11yIdentifiers.settingsScreen.blockedUsers)
             }
+        } header: {
+            Text(UntranslatedL10n.commonAccountSettings)
+                .compoundListSectionHeader()
         }
     }
     
@@ -190,13 +207,6 @@ struct SettingsScreen: View {
                         })
                         .accessibilityIdentifier(A11yIdentifiers.settingsScreen.analytics)
             }
-            
-            ListRow(label: .default(title: L10n.commonAdvancedSettings,
-                                    icon: \.settings),
-                    kind: .navigationLink {
-                        context.send(viewAction: .advancedSettings)
-                    })
-                    .accessibilityIdentifier(A11yIdentifiers.settingsScreen.advancedSettings)
         }
     }
     
@@ -260,8 +270,8 @@ struct SettingsScreen: View {
     }
     
     private var toolbar: some ToolbarContent {
-        ToolbarItem(placement: .confirmationAction) {
-            Button(L10n.actionDone) { context.send(viewAction: .close) }
+        ToolbarItem(placement: .primaryAction) {
+            ToolbarButton(role: .close) { context.send(viewAction: .close) }
                 .accessibilityIdentifier(A11yIdentifiers.settingsScreen.done)
         }
     }
@@ -270,6 +280,19 @@ struct SettingsScreen: View {
     private var securitySectionBadge: some View {
         if context.viewState.showSecuritySectionBadge {
             BadgeView(size: 10)
+        }
+    }
+}
+
+private extension AppAppearance {
+    var name: String {
+        switch self {
+        case .system:
+            return L10n.commonSystem
+        case .light:
+            return L10n.commonLight
+        case .dark:
+            return L10n.commonDark
         }
     }
 }

@@ -33,3 +33,6 @@
 "gua_resolver_routing_unavailable_retry_in" = "Nous avons du mal à nous connecter pour le moment. Veuillez réessayer dans %@.";
 "gua_resolver_rate_limited" = "Trop de tentatives. Veuillez patienter un moment, puis réessayer.";
 "gua_resolver_rate_limited_retry_in" = "Trop de tentatives. Veuillez réessayer dans %@.";
+
+"common_account_settings" = "Paramètres du compte";
+"common_app_settings" = "Paramètres de l'application";
