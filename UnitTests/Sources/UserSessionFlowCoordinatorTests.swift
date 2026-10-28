@@ -63,7 +63,8 @@ class UserSessionFlowCoordinatorTests: XCTestCase {
                                                   analytics: ServiceLocator.shared.analytics,
                                                   userIndicatorController: userIndicatorController,
                                                   notificationManager: NotificationManagerMock(),
-                                                  stateMachineFactory: stateMachineFactory)
+                                                  stateMachineFactory: stateMachineFactory,
+                                                  spacesSetting: SpacesSetting(clientProxy: clientProxy, appSettings: ServiceLocator.shared.settings))
         
         userSessionFlowCoordinator = UserSessionFlowCoordinator(isNewLogin: false,
                                                                 navigationRootCoordinator: rootCoordinator,
@@ -71,6 +72,10 @@ class UserSessionFlowCoordinatorTests: XCTestCase {
                                                                 flowParameters: flowParameters)
         
         userSessionFlowCoordinator.start()
+    }
+    
+    override func tearDown() {
+        ServiceLocator.shared.settings.spacesEnabled = false
     }
     
     // MARK: Navigation
@@ -171,6 +176,15 @@ class UserSessionFlowCoordinatorTests: XCTestCase {
         XCTAssertTrue(detailNavigationStack?.rootCoordinator is RoomScreenCoordinator)
         XCTAssertNil(tabCoordinator?.sheetCoordinator)
         XCTAssertNil(chatsSplitCoordinator?.sheetCoordinator, "The media upload sheet shouldn't be shown when sharing text.")
+    }
+    
+    func testTurningSpacesOffLeavesTheSpacesTab() {
+        ServiceLocator.shared.settings.spacesEnabled = true
+        tabCoordinator?.selectedTab = .spaces
+        
+        ServiceLocator.shared.settings.spacesEnabled = false
+        
+        XCTAssertEqual(tabCoordinator?.selectedTab, .chats)
     }
     
     // MARK: Indicators

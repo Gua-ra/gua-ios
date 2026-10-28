@@ -57,9 +57,15 @@ struct JoinRoomScreenViewState: BindableState {
     
     var isSpacesEnabled = true
     
-    /// GUA FORK: joining a space while the Spaces switch is off turns it on.
+    /// GUA FORK: joining a space, or accepting its invite, while the Spaces switch is off turns it on.
     var joiningTurnsOnSpaces: Bool {
-        !isSpacesEnabled && roomDetails?.isSpace == true
+        guard !isSpacesEnabled, roomDetails?.isSpace == true else { return false }
+        switch mode {
+        case .joinable, .restricted, .invited:
+            return true
+        case .loading, .unknown, .inviteRequired, .knockable, .knocked, .banned, .forbidden:
+            return false
+        }
     }
         
     var bindings = JoinRoomScreenViewStateBindings()

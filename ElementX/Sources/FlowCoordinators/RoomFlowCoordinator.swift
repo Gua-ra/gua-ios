@@ -709,7 +709,8 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
                                                                       via: via,
                                                                       userSession: userSession,
                                                                       userIndicatorController: flowParameters.userIndicatorController,
-                                                                      appSettings: flowParameters.appSettings))
+                                                                      appSettings: flowParameters.appSettings,
+                                                                      spacesSetting: flowParameters.spacesSetting))
         
         joinRoomScreenCoordinator = coordinator
         

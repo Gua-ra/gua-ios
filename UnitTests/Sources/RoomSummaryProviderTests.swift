@@ -84,9 +84,43 @@ final class RoomSummaryProviderTests: XCTestCase {
                                                                                                       .nonLowPriority]))
     }
     
+    func testSearchKeepsSpaceInvites() {
+        setupProvider()
+        
+        appSettings.fuzzyRoomListSearchEnabled = true
+        roomSummaryProvider.setFilter(.search(query: "Family"))
+        XCTAssertEqual(dynamicEntriesController.setFilterKindReceivedKind, .all(filters: [.fuzzyMatchRoomName(pattern: "Family"),
+                                                                                          .nonLeft,
+                                                                                          .any(filters: [.nonSpace, .invite]),
+                                                                                          .deduplicateVersions]))
+        
+        appSettings.fuzzyRoomListSearchEnabled = false
+        roomSummaryProvider.setFilter(.search(query: "Family"))
+        XCTAssertEqual(dynamicEntriesController.setFilterKindReceivedKind, .all(filters: [.normalizedMatchRoomName(pattern: "Family"),
+                                                                                          .nonLeft,
+                                                                                          .any(filters: [.nonSpace, .invite]),
+                                                                                          .deduplicateVersions]))
+    }
+    
+    func testOtherProvidersHideAllSpaces() {
+        // Given a provider that isn't the home list, such as the forward, share and global search pickers.
+        setupProvider(includesSpaceInvites: false)
+        
+        XCTAssertEqual(dynamicEntriesController.setFilterKindReceivedKind, .all(filters: [.nonLeft,
+                                                                                          .nonSpace,
+                                                                                          .deduplicateVersions]))
+        
+        appSettings.fuzzyRoomListSearchEnabled = true
+        roomSummaryProvider.setFilter(.search(query: "Family"))
+        XCTAssertEqual(dynamicEntriesController.setFilterKindReceivedKind, .all(filters: [.fuzzyMatchRoomName(pattern: "Family"),
+                                                                                          .nonLeft,
+                                                                                          .nonSpace,
+                                                                                          .deduplicateVersions]))
+    }
+    
     // MARK: - Helpers
     
-    private func setupProvider(isLowPriorityFilterEnabled: Bool = false) {
+    private func setupProvider(isLowPriorityFilterEnabled: Bool = false, includesSpaceInvites: Bool = true) {
         appSettings.lowPriorityFilterEnabled = isLowPriorityFilterEnabled
         
         let stateEventStringBuilder = RoomStateEventStringBuilder(userID: "@me:matrix.org")
@@ -101,7 +135,8 @@ final class RoomSummaryProviderTests: XCTestCase {
                                                   eventStringBuilder: eventStringBuilder,
                                                   name: "Test",
                                                   notificationSettings: NotificationSettingsProxyMock(with: .init()),
-                                                  appSettings: appSettings)
+                                                  appSettings: appSettings,
+                                                  includesSpaceInvites: includesSpaceInvites)
         
         dynamicEntriesController = RoomListDynamicEntriesControllerSDKMock()
         dynamicEntriesController.setFilterKindReturnValue = true

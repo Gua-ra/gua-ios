@@ -118,6 +118,8 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
     }
     
     func stop() {
+        // GUA FORK: runs before sign-out resets the session settings.
+        flowParameters.spacesSetting.invalidate()
         chatsFlowCoordinator.stop()
     }
     
@@ -300,8 +302,13 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
     /// this device after sync updates, which also turns it on for an account already in a space.
     private func setupSpacesObservers() {
         flowParameters.appSettings.$spacesEnabled
-            .map { $0 ? nil : .hidden }
-            .weakAssign(to: \.chatsTabDetails.barVisibilityOverride, on: self)
+            .sink { [weak self] isEnabled in
+                guard let self else { return }
+                if !isEnabled, navigationTabCoordinator.selectedTab == .spaces {
+                    navigationTabCoordinator.selectedTab = .chats
+                }
+                chatsTabDetails.barVisibilityOverride = isEnabled ? nil : .hidden
+            }
             .store(in: &cancellables)
         
         userSession.clientProxy.actionsPublisher
@@ -310,7 +317,7 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
             .sink { [weak self] _ in
                 guard let self else { return }
                 let isInSpace = !userSession.clientProxy.spaceService.joinedSpacesPublisher.value.isEmpty
-                Task { await SpacesSetting(clientProxy: self.userSession.clientProxy, appSettings: self.flowParameters.appSettings).refresh(isInSpace: isInSpace) }
+                Task { await self.flowParameters.spacesSetting.refresh(isInSpace: isInSpace) }
             }
             .store(in: &cancellables)
     }

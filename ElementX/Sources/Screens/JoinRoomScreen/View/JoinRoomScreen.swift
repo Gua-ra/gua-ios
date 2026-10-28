@@ -191,6 +191,15 @@ struct JoinRoomScreen: View {
                 .buttonStyle(.compound(.secondary))
         case .inviteRequired:
             bottomNoticeMessage(L10n.screenJoinRoomInviteRequiredMessage)
+        case .invited where context.viewState.joiningTurnsOnSpaces:
+            // GUA FORK: accepting a space invite while Spaces is off also turns it on.
+            VStack(spacing: 16) {
+                Button(UntranslatedL10n.guaJoinSpaceAction) { context.send(viewAction: .acceptInvite) }
+                    .buttonStyle(.compound(.primary))
+                Button(L10n.actionDecline) { context.send(viewAction: .declineInvite) }
+                    .buttonStyle(.compound(.secondary))
+                declineAndBlockButton
+            }
         case .invited:
             ViewThatFits {
                 VStack(spacing: 24) {
@@ -429,6 +438,7 @@ struct JoinRoomScreen_Previews: PreviewProvider, TestablePreview {
         return JoinRoomScreenViewModel(roomID: "1",
                                        via: [],
                                        appSettings: appSettings,
+                                       spacesSetting: SpacesSetting(clientProxy: clientProxy, appSettings: appSettings),
                                        userSession: UserSessionMock(.init(clientProxy: clientProxy)),
                                        userIndicatorController: ServiceLocator.shared.userIndicatorController)
     }

@@ -722,7 +722,8 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
                                                   analytics: ServiceLocator.shared.analytics,
                                                   userIndicatorController: ServiceLocator.shared.userIndicatorController,
                                                   notificationManager: notificationManager,
-                                                  stateMachineFactory: StateMachineFactory())
+                                                  stateMachineFactory: StateMachineFactory(),
+                                                  spacesSetting: SpacesSetting(clientProxy: userSession.clientProxy, appSettings: appSettings))
         
         let userSessionFlowCoordinator = UserSessionFlowCoordinator(isNewLogin: isNewLogin,
                                                                     navigationRootCoordinator: navigationRootCoordinator,

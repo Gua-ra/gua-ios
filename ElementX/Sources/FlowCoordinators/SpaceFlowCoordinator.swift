@@ -227,7 +227,8 @@ class SpaceFlowCoordinator: FlowCoordinatorProtocol {
                                                              via: [],
                                                              userSession: flowParameters.userSession,
                                                              userIndicatorController: flowParameters.userIndicatorController,
-                                                             appSettings: flowParameters.appSettings)
+                                                             appSettings: flowParameters.appSettings,
+                                                             spacesSetting: flowParameters.spacesSetting)
         let coordinator = JoinRoomScreenCoordinator(parameters: parameters)
         coordinator.actionsPublisher
             .sink { [weak self] action in

@@ -111,6 +111,6 @@
 
 // MARK: - Gua: Spaces switch
 "gua_settings_spaces_title" = "Spaces";
-"gua_settings_spaces_footer" = "Group chats under a shared name. Syncs to your other phones.";
+"gua_settings_spaces_footer" = "Keep related chats together under one name. Syncs to your other phones.";
 "gua_join_space_action" = "Turn on Spaces and join";
 "gua_join_space_turns_on_spaces" = "This is a space. Joining turns on Spaces so you can see its chats.";

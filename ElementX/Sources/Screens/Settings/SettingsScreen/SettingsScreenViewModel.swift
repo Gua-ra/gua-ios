@@ -12,7 +12,7 @@ typealias SettingsScreenViewModelType = StateStoreViewModelV2<SettingsScreenView
 
 class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewModelProtocol {
     private let appSettings: AppSettings
-    private let clientProxy: ClientProxyProtocol
+    private let spacesSetting: SpacesSetting
     
     private var actionsSubject: PassthroughSubject<SettingsScreenViewModelAction, Never> = .init()
     
@@ -20,9 +20,9 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
         actionsSubject.eraseToAnyPublisher()
     }
     
-    init(userSession: UserSessionProtocol, appSettings: AppSettings, isBugReportServiceEnabled: Bool) {
+    init(userSession: UserSessionProtocol, appSettings: AppSettings, spacesSetting: SpacesSetting, isBugReportServiceEnabled: Bool) {
         self.appSettings = appSettings
-        clientProxy = userSession.clientProxy
+        self.spacesSetting = spacesSetting
         
         super.init(initialViewState: .init(deviceID: userSession.clientProxy.deviceID,
                                            userID: userSession.clientProxy.userID,
@@ -113,7 +113,7 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
         case .toggleSpaces:
             let isEnabled = state.bindings.isSpacesEnabled
             guard isEnabled != appSettings.spacesEnabled else { return }
-            Task { await SpacesSetting(clientProxy: clientProxy, appSettings: appSettings).setEnabled(isEnabled) }
+            Task { await spacesSetting.setEnabled(isEnabled) }
         case .advancedSettings:
             actionsSubject.send(.advancedSettings)
         case .enableDeveloperOptions:

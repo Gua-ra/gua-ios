@@ -15,6 +15,7 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
     private let roomID: String
     private let via: [String]
     private let appSettings: AppSettings
+    private let spacesSetting: SpacesSetting
     private let clientProxy: ClientProxyProtocol
     private let userIndicatorController: UserIndicatorControllerProtocol
     
@@ -31,11 +32,13 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
     init(roomID: String,
          via: [String],
          appSettings: AppSettings,
+         spacesSetting: SpacesSetting,
          userSession: UserSessionProtocol,
          userIndicatorController: UserIndicatorControllerProtocol) {
         self.roomID = roomID
         self.via = via
         self.appSettings = appSettings
+        self.spacesSetting = spacesSetting
         clientProxy = userSession.clientProxy
         self.userIndicatorController = userIndicatorController
         
@@ -240,10 +243,6 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
     private func joinRoom() async {
         showLoadingIndicator()
         
-        if state.joiningTurnsOnSpaces {
-            await SpacesSetting(clientProxy: clientProxy, appSettings: appSettings).setEnabled(true)
-        }
-        
         defer {
             hideLoadingIndicator()
         }
@@ -292,6 +291,12 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
         guard state.roomDetails?.isSpace == true else {
             actionsSubject.send(.joined(.roomID(roomID)))
             return
+        }
+        
+        // GUA FORK: a joined space only shows with the Spaces switch on.
+        if !appSettings.spacesEnabled, case .failure(let error) = await spacesSetting.setEnabled(true, updatesDeviceCopyFirst: false) {
+            MXLog.error("Failed turning on Spaces after joining a space: \(error)")
+            userIndicatorController.submitIndicator(.init(title: L10n.errorUnknown))
         }
         
         switch await clientProxy.spaceService.spaceRoomList(spaceID: roomID) {

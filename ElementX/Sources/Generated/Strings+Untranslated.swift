@@ -76,7 +76,7 @@ internal enum UntranslatedL10n {
   internal static func guaResolverRoutingUnavailableRetryIn(_ p1: Any) -> String {
     return UntranslatedL10n.tr("Untranslated", "gua_resolver_routing_unavailable_retry_in", String(describing: p1))
   }
-  /// Group chats under a shared name. Syncs to your other phones.
+  /// Keep related chats together under one name. Syncs to your other phones.
   internal static var guaSettingsSpacesFooter: String { return UntranslatedL10n.tr("Untranslated", "gua_settings_spaces_footer") }
   /// Spaces
   internal static var guaSettingsSpacesTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_settings_spaces_title") }
