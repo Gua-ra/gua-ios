@@ -144,7 +144,12 @@ class SessionVerificationScreenViewModel: SessionVerificationViewModelType, Sess
             case (_, .cancel, .cancelling):
                 cancelVerification()
             case (_, _, .verified):
-                actionsSubject.send(.finished)
+                switch flow {
+                case .deviceResponder:
+                    break // GUA FORK: stays on the confirmation until the user taps Done.
+                case .deviceInitiator, .userInitiator, .userResponder:
+                    actionsSubject.send(.finished)
+                }
             case (.initial, _, .cancelled):
                 switch flow {
                 case .deviceResponder, .userResponder:

@@ -164,6 +164,22 @@ final class UserSessionFlowCoordinatorNewSignInTests: XCTestCase {
         XCTAssertEqual(appSettings.dismissedSignInDeviceIDs(forUserID: userID), [])
     }
 
+    func testOwnDeviceConfirmationStaysOnScreenUntilDone() async throws {
+        verificationController.actions.send(.receivedVerificationRequest(details: requestDetails(from: userID, deviceID: "WEB")))
+        let context = try await presentedScreen().viewModel.context
+
+        context.send(viewAction: .acceptVerificationRequest)
+        try await waitUntil { context.viewState.verificationState == .showingChallenge(emojis: SessionVerificationControllerProxyMock.emojis) }
+        context.send(viewAction: .accept)
+        try await waitUntil { context.viewState.verificationState == .verified }
+        try await Task.sleep(for: .milliseconds(100))
+
+        XCTAssertNotNil(presentedVerificationScreen, "The confirmation stays on screen until the user taps Done.")
+
+        context.send(viewAction: .done)
+        XCTAssertNil(tabCoordinator?.sheetCoordinator)
+    }
+
     func testARequestFromADeviceHoldsBackItsNudge() async throws {
         verificationController.actions.send(.receivedVerificationRequest(details: requestDetails(from: userID, deviceID: "WEB")))
         _ = try await presentedScreen()

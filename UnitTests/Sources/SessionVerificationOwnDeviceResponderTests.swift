@@ -80,6 +80,37 @@ final class SessionVerificationOwnDeviceResponderTests: XCTestCase {
         XCTAssertEqual(controller.startSasVerificationCallsCount, 0)
     }
 
+    // MARK: - Verified
+
+    func testOwnDeviceConfirmationStaysOpenUntilDone() async throws {
+        let viewModel = makeViewModel(flow: .deviceResponder(requestDetails: ownDeviceRequest),
+                                      verificationState: .showingChallenge(emojis: SessionVerificationControllerProxyMock.emojis))
+        let finishedCount = countFinished(viewModel)
+        let deferred = deferFulfillment(viewModel.context.$viewState) { $0.verificationState == .verified }
+
+        // What the "They match" button sends.
+        viewModel.context.send(viewAction: .accept)
+        try await deferred.fulfill()
+        try await Task.sleep(for: .milliseconds(100))
+        XCTAssertEqual(finishedCount(), 0)
+
+        // What the Done button sends.
+        viewModel.context.send(viewAction: .done)
+        XCTAssertEqual(finishedCount(), 1)
+    }
+
+    func testAnotherUsersVerificationStillFinishesOnItsOwn() async throws {
+        let viewModel = makeViewModel(flow: .userResponder(requestDetails: otherUserRequest),
+                                      verificationState: .showingChallenge(emojis: SessionVerificationControllerProxyMock.emojis))
+        let finishedCount = countFinished(viewModel)
+        let deferred = deferFulfillment(viewModel.context.$viewState) { $0.verificationState == .verified }
+
+        viewModel.context.send(viewAction: .accept)
+        try await deferred.fulfill()
+
+        XCTAssertEqual(finishedCount(), 1)
+    }
+
     // MARK: - Ignore
 
     func testIgnoringAnOwnDeviceRequestReportsTheDevice() {
@@ -155,11 +186,25 @@ final class SessionVerificationOwnDeviceResponderTests: XCTestCase {
 
     // MARK: - Helpers
 
-    private func makeViewModel(flow: SessionVerificationScreenFlow) -> SessionVerificationScreenViewModel {
+    private func makeViewModel(flow: SessionVerificationScreenFlow,
+                               verificationState: SessionVerificationScreenStateMachine.State = .initial) -> SessionVerificationScreenViewModel {
         SessionVerificationScreenViewModel(sessionVerificationControllerProxy: controller,
                                            flow: flow,
                                            appSettings: AppSettings(),
-                                           mediaProvider: MediaProviderMock(configuration: .init()))
+                                           mediaProvider: MediaProviderMock(configuration: .init()),
+                                           verificationState: verificationState)
+    }
+
+    private func countFinished(_ viewModel: SessionVerificationScreenViewModel) -> () -> Int {
+        var count = 0
+        viewModel.actions
+            .sink { action in
+                if case .finished = action {
+                    count += 1
+                }
+            }
+            .store(in: &cancellables)
+        return { count }
     }
 
     private func state(_ verificationState: SessionVerificationScreenStateMachine.State, _ flow: SessionVerificationScreenFlow) -> SessionVerificationScreenViewState {
