@@ -241,6 +241,32 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
         XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 3)
     }
 
+    func testAFailedNudgeDoesNotCountTowardsTheLimits() async throws {
+        fixture.devices = [.init(id: phoneID, lastSeen: start, signedBySelfSigningKey: true),
+                           .init(id: "WEB", lastSeen: start)]
+        let base = try XCTUnwrap(fixture)
+        OwnDevicesHTTPStub.respond { request in
+            switch request.method {
+            case "GET": return (200, base.devicesJSON)
+            case "POST": return (200, base.keysJSON)
+            default: return (500, #"{"errcode":"M_UNKNOWN"}"#)
+            }
+        }
+        monitor.start()
+
+        await runRound(at: 0)
+        await runRound(at: 60)
+        await runRound(at: 119)
+        XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 3, "A failed send leaves the cooldown and the limit untouched.")
+
+        OwnDevicesHTTPStub.serve(devices: { base.devicesJSON }, keys: { base.keysJSON })
+        await runRound(at: 180)
+        XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 4)
+
+        await runRound(at: 240)
+        XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 4)
+    }
+
     // MARK: - Gating
 
     func testDoesNothingWhileThisDeviceIsNotVerified() async {

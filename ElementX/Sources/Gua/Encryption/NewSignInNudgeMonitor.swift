@@ -233,7 +233,6 @@ final class NewSignInNudgeMonitor {
         guard let target = candidate(devices: devices, keys: keys, userID: userID, ownDeviceID: ownDeviceID) else { return }
         guard !Task.isCancelled, mayRunRound(), let accessToken = clientProxy.accessToken else { return }
 
-        environment.history.recordNudge(userID: userID, deviceID: target.deviceID, at: environment.now())
         MXLog.info("Asking device \(target.deviceID) to send its verification request to \(ownDeviceID) again.")
         do {
             try await client.sendVerificationRetryRequest(homeserver: homeserver,
@@ -242,6 +241,7 @@ final class NewSignInNudgeMonitor {
                                                           targetDeviceID: target.deviceID,
                                                           fromDeviceID: ownDeviceID,
                                                           transactionID: "gua-\(UUID().uuidString)")
+            environment.history.recordNudge(userID: userID, deviceID: target.deviceID, at: environment.now())
         } catch {
             MXLog.warning("Could not ask device \(target.deviceID) to send its verification request again: \(error)")
         }
