@@ -14,7 +14,7 @@ struct ListRowLabelStyle: LabelStyle {
     let iconAlignment: VerticalAlignment
     
     func makeBody(configuration: Configuration) -> some View {
-        HStack(alignment: iconAlignment, spacing: 16) {
+        HStack(alignment: iconAlignment, spacing: ListRowPadding.labelIconSpacing) {
             configuration.icon
             configuration.title
         }
@@ -38,7 +38,7 @@ struct ListRowAvatarLabelStyle: LabelStyle {
     @ScaledMetric private var avatarSize = 32.0
     
     func makeBody(configuration: Configuration) -> some View {
-        HStack(alignment: .center, spacing: 16) {
+        HStack(alignment: .center, spacing: ListRowPadding.labelIconSpacing) {
             configuration.icon
                 .frame(width: avatarSize, height: avatarSize)
                 .padding(.vertical, -5) // Don't allow the avatar to size the row.
@@ -50,7 +50,7 @@ struct ListRowAvatarLabelStyle: LabelStyle {
 public struct ListRowLabel<Icon: View>: View {
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.lineLimit) private var lineLimit
-    @ScaledMetric private var iconSize = 30.0
+    @ScaledMetric private var iconSize = Compound.supportsGlass ? CompoundIcon.Size.medium.value : 30 // Pre-iOS 26 includes space for a background.
     
     var title: String?
     var status: String?
@@ -67,7 +67,11 @@ public struct ListRowLabel<Icon: View>: View {
         case error
     }
     
-    var iconAlignment: VerticalAlignment = .center
+    @usableFromInline static var defaultIconAlignment: VerticalAlignment {
+        Compound.supportsGlass ? .top : .center
+    }
+    
+    var iconAlignment: VerticalAlignment = ListRowLabel.defaultIconAlignment
     var hideIconBackground = false
     
     enum Layout { case `default`, centered, avatar }
@@ -97,14 +101,26 @@ public struct ListRowLabel<Icon: View>: View {
     
     var iconForegroundColor: Color {
         guard isEnabled else { return .compound.iconTertiaryAlpha }
-        if role == .destructive { return .compound.textCriticalPrimary }
-        return hideIconBackground ? .compound.iconPrimary : .compound.iconTertiaryAlpha
+        if role == .destructive {
+            return .compound.iconCriticalPrimary
+        }
+        if #available(iOS 26, *) {
+            return hideIconBackground ? .compound.iconTertiaryAlpha : .compound.iconSecondary
+        } else {
+            return hideIconBackground ? .compound.iconPrimary : .compound.iconTertiaryAlpha
+        }
     }
     
     var iconBackgroundColor: Color {
-        if hideIconBackground { return .clear }
-        guard isEnabled else { return .compound._bgSubtleSecondaryAlpha }
-        return role == .destructive ? .compound._bgCriticalSubtleAlpha : .compound._bgSubtleSecondaryAlpha
+        if hideIconBackground {
+            return .clear
+        }
+        if #available(iOS 26, *) {
+            return .clear
+        } else {
+            guard isEnabled else { return .compound._bgSubtleSecondaryAlpha }
+            return role == .destructive ? .compound._bgCriticalSubtleAlpha : .compound._bgSubtleSecondaryAlpha
+        }
     }
     
     public var body: some View {
@@ -130,8 +146,8 @@ public struct ListRowLabel<Icon: View>: View {
                 .foregroundColor(iconForegroundColor)
                 .frame(width: iconSize, height: iconSize)
                 .background(iconBackgroundColor)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .padding(.vertical, -4) // Don't allow the background to size the row.
+                .clipShape(RoundedRectangle(cornerRadius: Compound.supportsGlass ? 0 : 8))
+                .padding(.vertical, Compound.supportsGlass ? -1 : -4) // Don't allow the background to size the row.
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .labelStyle(ListRowLabelStyle(iconAlignment: iconAlignment))
@@ -206,7 +222,7 @@ public struct ListRowLabel<Icon: View>: View {
                                  description: String? = nil,
                                  icon: Icon,
                                  role: ListRowLabel.Role? = nil,
-                                 iconAlignment: VerticalAlignment = .center) -> ListRowLabel {
+                                 iconAlignment: VerticalAlignment = defaultIconAlignment) -> ListRowLabel {
         ListRowLabel(title: title,
                      description: description,
                      icon: icon,
@@ -218,7 +234,7 @@ public struct ListRowLabel<Icon: View>: View {
                                  description: String? = nil,
                                  icon: KeyPath<CompoundIcons, Image>,
                                  role: ListRowLabel.Role? = nil,
-                                 iconAlignment: VerticalAlignment = .center) -> ListRowLabel where Icon == CompoundIcon {
+                                 iconAlignment: VerticalAlignment = defaultIconAlignment) -> ListRowLabel where Icon == CompoundIcon {
         .default(title: title,
                  description: description,
                  icon: CompoundIcon(icon),
@@ -230,7 +246,7 @@ public struct ListRowLabel<Icon: View>: View {
                                  description: String? = nil,
                                  systemIcon: SFSymbol,
                                  role: ListRowLabel.Role? = nil,
-                                 iconAlignment: VerticalAlignment = .center) -> ListRowLabel where Icon == Image {
+                                 iconAlignment: VerticalAlignment = defaultIconAlignment) -> ListRowLabel where Icon == Image {
         .default(title: title,
                  description: description,
                  icon: Image(systemSymbol: systemIcon),
@@ -302,6 +318,7 @@ public struct ListRowLabel<Icon: View>: View {
                      description: description,
                      icon: icon,
                      role: role,
+                     iconAlignment: .center,
                      layout: .avatar)
     }
 }
