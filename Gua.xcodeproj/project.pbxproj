@@ -2692,6 +2692,7 @@
 		CAD228DC78FC9A960BBAE443 /* ReactionsSummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReactionsSummaryView.swift; sourceTree = "<group>"; };
 		CB0A8DD0086B2A7A186A5952 /* RoomListFiltersStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomListFiltersStateTests.swift; sourceTree = "<group>"; };
 		CB51B6740893D50EC6FB93DD /* MediaEventsTimelineScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaEventsTimelineScreen.swift; sourceTree = "<group>"; };
+		CB728FD3BF06E399980578E5 /* compound-ios */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "compound-ios"; path = "compound-ios"; sourceTree = SOURCE_ROOT; };
 		CB7F5CC44EBCE0B6568E01BF /* TimelineItemReplyDetails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineItemReplyDetails.swift; sourceTree = "<group>"; };
 		CB8E93B0F2BCD47CF81B2A2D /* RoomTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomTests.swift; sourceTree = "<group>"; };
 		CB9AFA3732D9E7B7A82C375D /* UTType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UTType.swift; sourceTree = "<group>"; };
@@ -3801,6 +3802,14 @@
 				37410E0714CEB115487E08D1 /* LinkMetadataProviderProtocol.swift */,
 			);
 			path = LinkMetadata;
+			sourceTree = "<group>";
+		};
+		3533B7A3B09E80942563AB6C /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				CB728FD3BF06E399980578E5 /* compound-ios */,
+			);
+			name = Packages;
 			sourceTree = "<group>";
 		};
 		36B127B2A64DE390791A7B7C /* View */ = {
@@ -5397,6 +5406,7 @@
 				1FA8BD0D9136287C23DE1CD9 /* DevelopmentAssets */,
 				325DF3130FF7CEB223311FF1 /* Secrets */,
 				E229DF42CA2905EB16C4E99C /* Tools */,
+				3533B7A3B09E80942563AB6C /* Packages */,
 				D0868E82B55862D2C8433789 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -7257,7 +7267,6 @@
 				64584F7B9E358D2C1BE320F8 /* XCRemoteSwiftPackageReference "matrix-analytics-events" */,
 				62E9E457EA2889B41B8E8F19 /* XCRemoteSwiftPackageReference "swift-async-algorithms" */,
 				BC078CD063A73074EA040077 /* XCRemoteSwiftPackageReference "swift-collections" */,
-				25CA2743DA1FED15D7CF035D /* XCRemoteSwiftPackageReference "compound-ios" */,
 				82048B82464EFBE62271AC56 /* XCRemoteSwiftPackageReference "DSWaveformImage" */,
 				3DEF956A62411A67DBD94A3C /* XCRemoteSwiftPackageReference "DTCoreText" */,
 				C06F9F95C0E27BD0C719C6E3 /* XCRemoteSwiftPackageReference "DeviceKit" */,
@@ -7280,6 +7289,7 @@
 				054E5DE859D7F5432E5DBAA5 /* XCRemoteSwiftPackageReference "SwiftState" */,
 				B569C546A4EF338B0EF0F37C /* XCRemoteSwiftPackageReference "Version" */,
 				83903BCBD6656665AFD3182D /* XCRemoteSwiftPackageReference "matrix-rich-text-editor-swift" */,
+				DFC3F43FC0C71B1888C31695 /* XCLocalSwiftPackageReference "compound-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
@@ -9798,6 +9808,13 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		DFC3F43FC0C71B1888C31695 /* XCLocalSwiftPackageReference "compound-ios" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "compound-ios";
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
 		03297AFB091F31FB6FBC0592 /* XCRemoteSwiftPackageReference "swift-ogg" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -9845,14 +9862,6 @@
 			requirement = {
 				kind = upToNextMinorVersion;
 				minimumVersion = 1.2.1;
-			};
-		};
-		25CA2743DA1FED15D7CF035D /* XCRemoteSwiftPackageReference "compound-ios" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/element-hq/compound-ios";
-			requirement = {
-				kind = revision;
-				revision = a1db8e1b61db70417af406bdf9f8d324b079041f;
 			};
 		};
 		2D731837E7BCB499D337E2C5 /* XCRemoteSwiftPackageReference "SwiftSoup" */ = {
@@ -10030,7 +10039,6 @@
 		};
 		09186B85BCA2935A74F1E29F /* Compound */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 25CA2743DA1FED15D7CF035D /* XCRemoteSwiftPackageReference "compound-ios" */;
 			productName = Compound;
 		};
 		09C649A0AD56364626BBBAD4 /* DeviceKit */ = {
@@ -10170,7 +10178,6 @@
 		};
 		5E4635EAF17C1DDFD82DE6EE /* Compound */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 25CA2743DA1FED15D7CF035D /* XCRemoteSwiftPackageReference "compound-ios" */;
 			productName = Compound;
 		};
 		61C9BAB93F79AFA124BB8962 /* MatrixRustSDK */ = {
@@ -10275,7 +10282,6 @@
 		};
 		A7D5EB6B117A6517C3043C02 /* Compound */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 25CA2743DA1FED15D7CF035D /* XCRemoteSwiftPackageReference "compound-ios" */;
 			productName = Compound;
 		};
 		A9DFFAD6791D5886F79E7BE6 /* Sentry */ = {
