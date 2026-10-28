@@ -342,7 +342,7 @@ jobs:
               static let identityServiceBaseURL: String? = "${GUA_DEV_IDENTITY_SERVICE_BASE_URL}"
               static let resolverBaseURL: String? = "${GUA_DEV_RESOLVER_BASE_URL}"
               static let defaultAccountProvider: String? = "${GUA_DEV_ACCOUNT_PROVIDER}"
-              // Resolver trust roots as `keyId:spkiBase64` pairs separated by commas; empty keeps the verifier inert.
+              // Resolver trust roots as keyId:spkiBase64 pairs separated by commas; empty keeps the verifier inert.
               static let resolverTrustRoots: String? = "${GUA_DEV_RESOLVER_TRUST_ROOTS:-}"
           }
           EOF

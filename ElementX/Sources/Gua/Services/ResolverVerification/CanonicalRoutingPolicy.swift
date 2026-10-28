@@ -161,9 +161,3 @@ enum RoutingPolicyVerifier {
         return verified
     }
 }
-
-private extension String {
-    var isBlank: Bool {
-        trimmingCharacters(in: .whitespaces).isEmpty
-    }
-}

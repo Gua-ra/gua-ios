@@ -77,8 +77,8 @@ struct ResolverVerificationReport: Equatable {
     let durationMs: Int
 
     /// `verified` when every applicable check passed, `failed` on the first check that found an input wrong,
-    /// otherwise `unverifiable` on the first check that could not run. An `indeterminate` placement is not
-    /// applicable: a directory hit cannot be reproduced.
+    /// otherwise `unverifiable` on the first check that could not run. An `indeterminate` placement (a
+    /// directory hit, which cannot be reproduced) counts as unverifiable, never as verified.
     var overall: Overall {
         let verdicts: [(Check, Verdict)] = [(.rosterSignature, rosterSignature.verdict),
                                             (.homeserverMatch, homeserverMatch.verdict),
@@ -94,7 +94,7 @@ struct ResolverVerificationReport: Equatable {
     /// The report as one log line of codes.
     var logDescription: String {
         ["environment=\(environment)",
-         "rosterVersion=\(rosterVersion.map(String.init) ?? "none")",
+         "rosterVersion=\(rosterVersion.map { String($0) } ?? "none")",
          "rosterForm=\(rosterForm ?? "none")",
          "rosterSignature=\(rosterSignature.code)",
          "homeserverMatch=\(homeserverMatch.code)",
@@ -212,7 +212,8 @@ private extension ResolverVerificationReport.Placement {
         switch self {
         case .match: .passed
         case .mismatch: .failed
-        case .indeterminate, .notApplicable: .notApplicable
+        case .indeterminate: .unverifiable
+        case .notApplicable: .notApplicable
         case .unverifiable: .unverifiable
         }
     }

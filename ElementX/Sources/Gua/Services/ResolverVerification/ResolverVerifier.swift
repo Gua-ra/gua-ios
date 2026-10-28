@@ -197,11 +197,11 @@ final class ResolverVerifier: ResolverVerifying, @unchecked Sendable {
             return served.merkleRoot == pinned.merkleRoot ? .consistent : .inconsistent
         }
         if served.size < pinned.size { return .rollback }
-        guard pinned.size <= Int.max, served.size <= Int.max else { return .unverifiable(reason: "parse_error") }
+        guard let first = Int(exactly: pinned.size), let second = Int(exactly: served.size) else { return .unverifiable(reason: "parse_error") }
         let proof: ConsistencyProofDocument
         do {
             let data = try await fetch("/roster/log/consistency",
-                                       query: [URLQueryItem(name: "first", value: String(pinned.size)), URLQueryItem(name: "second", value: String(served.size))],
+                                       query: [URLQueryItem(name: "first", value: String(first)), URLQueryItem(name: "second", value: String(second))],
                                        deadline: deadline)
             proof = try JSONDecoder().decode(ConsistencyProofDocument.self, from: data)
         } catch is DecodingError {
@@ -209,7 +209,7 @@ final class ResolverVerifier: ResolverVerifying, @unchecked Sendable {
         } catch {
             return .unverifiable(reason: (error as? FetchError)?.logReason ?? "log_unavailable")
         }
-        guard MerkleTree.verifyConsistency(first: Int(pinned.size), second: Int(served.size),
+        guard MerkleTree.verifyConsistency(first: first, second: second,
                                            oldRoot: pinned.merkleRoot, newRoot: served.merkleRoot, proof: proof.proof) else {
             return .inconsistent
         }
@@ -272,15 +272,15 @@ final class ResolverVerifier: ResolverVerifying, @unchecked Sendable {
                                            payloadHash: event.payloadHash, recordedAtEpochMilliseconds: recordedAt.epochMilliseconds)
             leaves.append(MerkleTree.leafHash(Array(data.utf8)))
         }
-        guard checkpoint.size >= 0, checkpoint.size <= leaves.count,
-              let root = MerkleTree.root(leafHashes: Array(leaves.prefix(Int(checkpoint.size)))), root == checkpoint.merkleRoot else {
+        guard let size = Int(exactly: checkpoint.size), size >= 0, size <= leaves.count,
+              let root = MerkleTree.root(leafHashes: Array(leaves.prefix(size))), root == checkpoint.merkleRoot else {
             return .invalid(reason: "log_root_mismatch")
         }
         guard let published = events.firstIndex(where: { $0.type == "POLICY_PUBLISH" && $0.payloadHash == contentHash }) else {
             return .invalid(reason: "policy_not_logged")
         }
         // Only the leaves under the signed checkpoint are authenticated; a newer leaf waits for the next roster.
-        return published < Int(checkpoint.size) ? nil : .unverifiable(reason: "policy_newer_than_checkpoint")
+        return published < size ? nil : .unverifiable(reason: "policy_newer_than_checkpoint")
     }
 
     private func placement(resolution: HomeserverResolution, phoneNumber: String, roster: SignedRosterDocument,
@@ -323,6 +323,7 @@ final class ResolverVerifier: ResolverVerifying, @unchecked Sendable {
         }
     }
 
+    /// Each fetch is bounded by the time left in the budget, so one slow response cannot stretch the run past it.
     private func fetch(_ path: String, query: [URLQueryItem] = [], deadline: Date) async throws -> Data {
         let remaining = deadline.timeIntervalSinceNow
         guard remaining > 0 else { throw FetchError.timeout }
@@ -334,18 +335,30 @@ final class ResolverVerifier: ResolverVerifying, @unchecked Sendable {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.timeoutInterval = min(budget, remaining)
+        request.timeoutInterval = remaining
         let data: Data
-        let response: URLResponse
+        let status: Int
         do {
-            (data, response) = try await session.data(for: request)
+            (data, status) = try await withThrowingTaskGroup(of: (Data, Int).self) { [session, request] group in
+                group.addTask {
+                    let (body, response) = try await session.data(for: request)
+                    guard let httpResponse = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
+                    return (body, httpResponse.statusCode)
+                }
+                group.addTask {
+                    try await Task.sleep(for: .seconds(remaining))
+                    throw URLError(.timedOut)
+                }
+                defer { group.cancelAll() }
+                guard let first = try await group.next() else { throw URLError(.unknown) }
+                return first
+            }
         } catch let error as URLError where error.code == .timedOut {
             throw FetchError.timeout
         } catch {
             throw FetchError.transport
         }
-        guard let httpResponse = response as? HTTPURLResponse else { throw FetchError.transport }
-        guard httpResponse.statusCode == 200 else { throw FetchError.status(httpResponse.statusCode) }
+        guard status == 200 else { throw FetchError.status(status) }
         return data
     }
 

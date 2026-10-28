@@ -279,7 +279,9 @@ final class ResolverVerificationVectorsTests: XCTestCase {
             let name = vector.string("name")
             let homeserver = try vector.decode(RosterHomeserver.self, at: "homeserver")
             guard let member = try? vector.decode(RosterMemberAttestation.self, at: "member") else {
-                continue // The strict reader refused the block, which is the rejection.
+                // Only the vector carrying an unknown field is refused by the strict reader; every other block decodes.
+                XCTAssertTrue(name.contains("unknown field"), "\(name): the member block should decode")
+                continue
             }
             let outcome = MemberEntryVerifier.verify(homeserver: homeserver, member: member, atEpochMilliseconds: now, prior: Self.prior(vector))
             guard case .invalid = outcome else {

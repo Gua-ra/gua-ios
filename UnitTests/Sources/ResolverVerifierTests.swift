@@ -51,7 +51,7 @@ final class ResolverVerifierTests: XCTestCase {
     }
 
     func testNoTrustRootsIsUnverifiableAndFetchesNothing() async throws {
-        let report = try await XCTUnwrap(makeVerifier(trustRoots: .empty).verify(resolution: answer(.br), phoneNumber: "+5511987654321"))
+        let report = try await verified(makeVerifier(trustRoots: .empty), answer(.br))
 
         XCTAssertEqual(report.rosterSignature, .unverifiable(reason: "no_trust_roots"))
         XCTAssertEqual(report.policy, .unverifiable(reason: "no_trust_roots"))
@@ -73,7 +73,7 @@ final class ResolverVerifierTests: XCTestCase {
 
     func testRosterUnavailableIsUnverifiable() async throws {
         VerifierStub.respond(path: "/roster", status: 503, body: "{}")
-        let report = try await XCTUnwrap(makeVerifier(trustRoots: trustRoots(ofRoster: 0)).verify(resolution: answer(.br), phoneNumber: "+5511987654321"))
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: 0)), answer(.br))
 
         XCTAssertEqual(report.rosterSignature, .unverifiable(reason: "roster_unavailable"))
         XCTAssertEqual(report.homeserverMatch, .unverifiable)
@@ -83,7 +83,7 @@ final class ResolverVerifierTests: XCTestCase {
 
     func testTransportFailureIsUnverifiable() async throws {
         VerifierStub.failsTransport = true
-        let report = try await XCTUnwrap(makeVerifier(trustRoots: trustRoots(ofRoster: 0)).verify(resolution: answer(.br), phoneNumber: "+5511987654321"))
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: 0)), answer(.br))
 
         XCTAssertEqual(report.rosterSignature, .unverifiable(reason: "roster_unavailable"))
         XCTAssertEqual(report.overall, .unverifiable(.rosterSignature))
@@ -92,7 +92,7 @@ final class ResolverVerifierTests: XCTestCase {
     func testMixedRosterFormIsRefusedBeforeAnySignatureCheck() async throws {
         let mixed = try XCTUnwrap(rosterRejections.first { $0["clientOnly"] as? Bool == true })
         try VerifierStub.respond(path: "/roster", status: 200, body: json(mixed["roster"]))
-        let report = try await XCTUnwrap(makeVerifier(trustRoots: trustRoots(ofRoster: 1)).verify(resolution: answer(.br), phoneNumber: "+5511987654321"))
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: 1)), answer(.br))
 
         XCTAssertEqual(report.rosterForm, "mixed")
         XCTAssertEqual(report.rosterSignature, .unverifiable(reason: "mixed_roster_form"))
@@ -102,7 +102,7 @@ final class ResolverVerifierTests: XCTestCase {
 
     func testTamperedRosterIsInvalidAndStopsTheDependentChecks() async throws {
         try VerifierStub.respond(path: "/roster", status: 200, body: json(rosterRejections[0]["roster"]))
-        let report = try await XCTUnwrap(makeVerifier(trustRoots: trustRoots(of: rosterRejections[0])).verify(resolution: answer(.br), phoneNumber: "+5511987654321"))
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(of: rosterRejections[0])), answer(.br))
 
         XCTAssertEqual(report.rosterSignature, .invalid(reason: "bad_signature"))
         XCTAssertEqual(report.logConsistency, .unverifiable(reason: "roster_unverified"))
@@ -115,7 +115,7 @@ final class ResolverVerifierTests: XCTestCase {
     func testFirstCheckpointIsPinned() async throws {
         try serveRoster(0)
         VerifierStub.respond(path: "/policy/routing", status: 404, body: "{}")
-        let report = try await XCTUnwrap(makeVerifier(trustRoots: trustRoots(ofRoster: 0)).verify(resolution: answer(.br), phoneNumber: "+5511987654321"))
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: 0)), answer(.br))
 
         XCTAssertEqual(report.logConsistency, .firstSeen)
         XCTAssertEqual(checkpoints.checkpoint(for: Self.baseURL), RosterLogCheckpoint(merkleRoot: logRoot(size: 3), size: 3))
@@ -127,7 +127,7 @@ final class ResolverVerifierTests: XCTestCase {
         try VerifierStub.respond(path: "/roster/log/consistency", status: 200,
                                  body: json(["first": 3, "second": 7, "proof": consistencyProof(first: 3, second: 7)]))
         VerifierStub.respond(path: "/policy/routing", status: 404, body: "{}")
-        let report = try await XCTUnwrap(makeVerifier(trustRoots: trustRoots(ofRoster: 1)).verify(resolution: answer(.br), phoneNumber: "+5511987654321"))
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: 1)), answer(.br))
 
         XCTAssertEqual(report.logConsistency, .consistent)
         XCTAssertEqual(checkpoints.checkpoint(for: Self.baseURL), RosterLogCheckpoint(merkleRoot: logRoot(size: 7), size: 7))
@@ -141,7 +141,7 @@ final class ResolverVerifierTests: XCTestCase {
         try VerifierStub.respond(path: "/roster/log/consistency", status: 200,
                                  body: json(["first": 3, "second": 7, "proof": consistencyProof(first: 3, second: 7)]))
         VerifierStub.respond(path: "/policy/routing", status: 404, body: "{}")
-        let report = try await XCTUnwrap(makeVerifier(trustRoots: trustRoots(ofRoster: 1)).verify(resolution: answer(.br), phoneNumber: "+5511987654321"))
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: 1)), answer(.br))
 
         XCTAssertEqual(report.logConsistency, .inconsistent)
         XCTAssertEqual(report.overall, .failed(.logConsistency))
@@ -154,7 +154,7 @@ final class ResolverVerifierTests: XCTestCase {
         try serveRoster(1)
         VerifierStub.respond(path: "/roster/log/consistency", status: 404, body: "{}")
         VerifierStub.respond(path: "/policy/routing", status: 404, body: "{}")
-        let report = try await XCTUnwrap(makeVerifier(trustRoots: trustRoots(ofRoster: 1)).verify(resolution: answer(.br), phoneNumber: "+5511987654321"))
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: 1)), answer(.br))
 
         XCTAssertEqual(report.logConsistency, .unverifiable(reason: "log_unavailable"))
         XCTAssertEqual(checkpoints.checkpoint(for: Self.baseURL), pinned)
@@ -165,7 +165,7 @@ final class ResolverVerifierTests: XCTestCase {
         checkpoints.store(pinned, for: Self.baseURL)
         try serveRoster(0)
         VerifierStub.respond(path: "/policy/routing", status: 404, body: "{}")
-        let report = try await XCTUnwrap(makeVerifier(trustRoots: trustRoots(ofRoster: 0)).verify(resolution: answer(.br), phoneNumber: "+5511987654321"))
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: 0)), answer(.br))
 
         XCTAssertEqual(report.logConsistency, .rollback)
         XCTAssertEqual(report.overall, .failed(.logConsistency))
@@ -178,7 +178,7 @@ final class ResolverVerifierTests: XCTestCase {
     func testNoPolicyServedIsNotPresentAndThePlacementReproduces() async throws {
         try serveRoster(0)
         VerifierStub.respond(path: "/policy/routing", status: 404, body: "{}")
-        let report = try await XCTUnwrap(makeVerifier(trustRoots: trustRoots(ofRoster: 0)).verify(resolution: answer(.br), phoneNumber: "+5511987654321"))
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: 0)), answer(.br))
 
         XCTAssertEqual(report.rosterVersion, 3)
         XCTAssertEqual(report.rosterForm, "v1")
@@ -195,7 +195,7 @@ final class ResolverVerifierTests: XCTestCase {
         try serveRoster(1)
         try VerifierStub.respond(path: "/policy/routing", status: 200, body: json(policies[0]["bundle"]))
         try VerifierStub.respond(path: "/roster/log", status: 200, body: logDocument())
-        let report = try await XCTUnwrap(makeVerifier(trustRoots: trustRoots(ofRoster: 1, policy: 0)).verify(resolution: answer(.br), phoneNumber: "+5511987654321"))
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: 1, policy: 0)), answer(.br))
 
         XCTAssertEqual(report.rosterVersion, 7)
         XCTAssertEqual(report.rosterSignature, .valid)
@@ -208,7 +208,7 @@ final class ResolverVerifierTests: XCTestCase {
     func testPolicySignedByAnUntrustedKeyIsInvalid() async throws {
         try serveRoster(1)
         try VerifierStub.respond(path: "/policy/routing", status: 200, body: json(policyRejections[0]["bundle"]))
-        let report = try await XCTUnwrap(makeVerifier(trustRoots: trustRoots(ofRoster: 1, policy: 0)).verify(resolution: answer(.br), phoneNumber: "+5511987654321"))
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: 1, policy: 0)), answer(.br))
 
         XCTAssertEqual(report.policy, .invalid(reason: "unknown_key_id"))
         XCTAssertEqual(report.placement, .unverifiable(reason: "policy_unverified"))
@@ -218,7 +218,7 @@ final class ResolverVerifierTests: XCTestCase {
     func testPolicyWithoutPolicyKeysIsUnverifiable() async throws {
         try serveRoster(1)
         try VerifierStub.respond(path: "/policy/routing", status: 200, body: json(policies[0]["bundle"]))
-        let report = try await XCTUnwrap(makeVerifier(trustRoots: trustRoots(ofRoster: 1)).verify(resolution: answer(.br), phoneNumber: "+5511987654321"))
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: 1)), answer(.br))
 
         XCTAssertEqual(report.policy, .unverifiable(reason: "no_policy_keys"))
         XCTAssertEqual(report.overall, .unverifiable(.policy))
@@ -228,7 +228,7 @@ final class ResolverVerifierTests: XCTestCase {
         try serveRoster(1)
         VerifierStub.respond(path: "/policy/routing", status: 404, body: "{}")
         // Without the policy the fallback places +5511987654321 on hs-ca, so an answer naming hs-br is unjustified.
-        let report = try await XCTUnwrap(makeVerifier(trustRoots: trustRoots(ofRoster: 1)).verify(resolution: answer(.br), phoneNumber: "+5511987654321"))
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: 1)), answer(.br))
 
         XCTAssertEqual(report.placement, .mismatch)
         XCTAssertEqual(report.overall, .failed(.placement))
@@ -239,10 +239,10 @@ final class ResolverVerifierTests: XCTestCase {
         VerifierStub.respond(path: "/policy/routing", status: 404, body: "{}")
         var resolution = answer(.br)
         resolution.existsIsServed = false
-        let report = try await XCTUnwrap(makeVerifier(trustRoots: trustRoots(ofRoster: 1)).verify(resolution: resolution, phoneNumber: "+5511987654321"))
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: 1)), resolution)
 
         XCTAssertEqual(report.placement, .indeterminate)
-        XCTAssertEqual(report.overall, .verified)
+        XCTAssertEqual(report.overall, .unverifiable(.placement))
     }
 
     func testResolveAnswerWithoutTheExistsFieldSelectsTheServedHomeserver() async throws {
@@ -270,10 +270,10 @@ final class ResolverVerifierTests: XCTestCase {
     func testExistingAccountPlacementIsIndeterminate() async throws {
         try serveRoster(1)
         VerifierStub.respond(path: "/policy/routing", status: 404, body: "{}")
-        let report = try await XCTUnwrap(makeVerifier(trustRoots: trustRoots(ofRoster: 1)).verify(resolution: answer(.br, exists: true), phoneNumber: "+5511987654321"))
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: 1)), answer(.br, exists: true))
 
         XCTAssertEqual(report.placement, .indeterminate)
-        XCTAssertEqual(report.overall, .verified)
+        XCTAssertEqual(report.overall, .unverifiable(.placement))
     }
 
     func testRedirectedHomeserverIsAFieldMismatch() async throws {
@@ -282,11 +282,41 @@ final class ResolverVerifierTests: XCTestCase {
         let redirected = HomeserverResolution(exists: true,
                                               homeserver: ResolvedHomeserver(serverName: "br.gua.test", baseURL: "https://matrix.evil.test",
                                                                              masIssuer: "https://account.br.gua.test", region: nil))
-        let report = try await XCTUnwrap(makeVerifier(trustRoots: trustRoots(ofRoster: 1)).verify(resolution: redirected, phoneNumber: "+5511987654321"))
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: 1)), redirected)
 
         XCTAssertEqual(report.homeserverMatch, .fieldMismatch)
         XCTAssertEqual(report.memberEntry, .unverifiable)
         XCTAssertEqual(report.overall, .failed(.homeserverMatch))
+    }
+
+    // MARK: - Member block
+
+    func testMemberBlockWithADuplicateKeyIsRefusedAsAParseError() async throws {
+        let roster = try XCTUnwrap(rosters[0]["roster"] as? [String: Any])
+        let member = try XCTUnwrap((roster["entries"] as? [[String: Any]])?.first?["member"] as? [String: Any])
+        let keyId = try XCTUnwrap(member["keyId"] as? String)
+        var document = try String(decoding: json(roster), as: UTF8.self)
+        let memberText = try String(decoding: json(member), as: UTF8.self)
+        let range = try XCTUnwrap(document.range(of: memberText))
+        // The same `keyId` twice: Foundation keeps the last one and decodes the block as if it were well formed.
+        document.replaceSubrange(range, with: "{\"keyId\":\"\(keyId)\"," + String(memberText.dropFirst()))
+        VerifierStub.respond(path: "/roster", status: 200, body: document)
+        VerifierStub.respond(path: "/policy/routing", status: 404, body: "{}")
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: 0)), answer(.br))
+
+        XCTAssertEqual(report.rosterSignature, .valid)
+        XCTAssertEqual(report.memberEntry, .invalid(reason: "parse_error"))
+        XCTAssertEqual(report.overall, .failed(.memberEntry))
+    }
+
+    func testTheScannerFlagsOnlyDuplicateKeysInsideAMemberBlock() {
+        let escaped = #"{"entries":[{"member":{"keyId":"a","k\u0065yId":"b"}}]}"#
+        XCTAssertEqual(StrictJSONScanner.entriesWithDuplicateMemberKeys(in: Data(escaped.utf8)), Set([0]))
+        let nested = #"{"entries":[{"status":"ACTIVE"},{"member":{"signatures":[{"keyId":"a","keyId":"a"}]}}]}"#
+        XCTAssertEqual(StrictJSONScanner.entriesWithDuplicateMemberKeys(in: Data(nested.utf8)), Set([1]))
+        let outside = #"{"version":1,"version":2,"entries":[{"status":"ACTIVE","status":"ACTIVE","member":{"keyId":"a"}}]}"#
+        XCTAssertEqual(StrictJSONScanner.entriesWithDuplicateMemberKeys(in: Data(outside.utf8)), Set<Int>())
+        XCTAssertNil(StrictJSONScanner.entriesWithDuplicateMemberKeys(in: Data(#"{"entries":[}"#.utf8)))
     }
 
     // MARK: - The sign-in path
@@ -326,7 +356,7 @@ final class ResolverVerifierTests: XCTestCase {
                                                             appSettings: ServiceLocator.shared.settings,
                                                             analytics: ServiceLocator.shared.analytics,
                                                             userIndicatorController: UserIndicatorControllerMock(),
-                                                            resolverClient: ResolverClientFake(resolution: answer(.br, exists: true)),
+                                                            resolverClient: ResolverClientFake(resolution: mockServiceAnswer),
                                                             resolverVerifier: verifier,
                                                             usesPhoneLoginHint: true) { _ in oidcPresenter }
         defer { oidcPresenter.finish() }
@@ -336,11 +366,17 @@ final class ResolverVerifierTests: XCTestCase {
         let phoneEntry = try XCTUnwrap(navigationStackCoordinator.rootCoordinator as? PhoneEntryScreenCoordinator)
         phoneEntry.viewModel.context.localPhoneNumber = "5551234567"
 
+        let rosterRequested = expectation(description: "the verifier asked for the roster")
+        VerifierStub.onRequest = { path in
+            if path == "/roster" { rosterRequested.fulfill() }
+        }
         let signInStarted = deferFulfillment(oidcPresenter.authenticationStarted) { _ in true }
         phoneEntry.viewModel.context.send(viewAction: .continueTapped)
         try await signInStarted.fulfill()
 
         XCTAssertNil(verifier.lastReport, "sign-in reached the web session while the roster request was still hanging")
+        // The detached fetch starts on its own schedule, so wait for it before reading what was requested.
+        await fulfillment(of: [rosterRequested], timeout: 5)
         XCTAssertEqual(VerifierStub.requestedPaths, ["/roster"])
     }
 
@@ -355,8 +391,20 @@ final class ResolverVerifierTests: XCTestCase {
                                 clock: { now })
     }
 
+    /// The report of one run; the kill switch is on in these tests, so a missing report is a failure.
+    private func verified(_ verifier: ResolverVerifier, _ resolution: HomeserverResolution) async throws -> ResolverVerificationReport {
+        let report = await verifier.verify(resolution: resolution, phoneNumber: "+5511987654321")
+        return try XCTUnwrap(report)
+    }
+
     private enum Answer {
         case br
+    }
+
+    /// The one homeserver the mocked authentication service configures; the verifier under test only needs an answer to start on.
+    private var mockServiceAnswer: HomeserverResolution {
+        HomeserverResolution(exists: true,
+                             homeserver: ResolvedHomeserver(serverName: "matrix.org", baseURL: "matrix.org", masIssuer: nil, region: nil))
     }
 
     private func answer(_ answer: Answer, exists: Bool = false) -> HomeserverResolution {
@@ -422,8 +470,9 @@ final class ResolverVerifierTests: XCTestCase {
         return try json(["head": ["merkleRoot": logRoot(size: 7), "size": 7], "events": events])
     }
 
+    /// Sorted keys, so a sub-object serialized on its own is byte-identical to its occurrence in the whole document.
     private func json(_ object: Any?) throws -> Data {
-        try JSONSerialization.data(withJSONObject: object as Any)
+        try JSONSerialization.data(withJSONObject: object as Any, options: .sortedKeys)
     }
 }
 
@@ -488,6 +537,7 @@ private enum VerifierStub {
     static var requestedQueries = [String: String]()
     static var failsTransport = false
     static var hangs = false
+    static var onRequest: ((String) -> Void)?
 
     static func respond(path: String, status: Int, body: String) {
         responses[path] = Response(status: status, body: Data(body.utf8))
@@ -503,6 +553,7 @@ private enum VerifierStub {
         requestedQueries = [:]
         failsTransport = false
         hangs = false
+        onRequest = nil
     }
 }
 
@@ -519,6 +570,7 @@ private class VerifierStubURLProtocol: URLProtocol {
         guard let url = request.url else { return }
         VerifierStub.requestedPaths.append(url.path)
         if let query = url.query { VerifierStub.requestedQueries[url.path] = query }
+        VerifierStub.onRequest?(url.path)
         if VerifierStub.hangs { return }
         if VerifierStub.failsTransport {
             client?.urlProtocol(self, didFailWithError: URLError(.cannotConnectToHost))

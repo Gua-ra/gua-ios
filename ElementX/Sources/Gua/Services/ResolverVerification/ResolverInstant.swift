@@ -15,10 +15,11 @@ struct ResolverInstant: Equatable {
     /// Whether the string carried digits below the millisecond, which the member entry window refuses.
     let hasSubMillisecondDigits: Bool
 
-    private static let pattern = try! Regex(#"^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\.([0-9]{1,9}))?Z$"#)
+    /// Fixed and valid; kept optional so that no force try is needed and a failure reads as "not an instant".
+    private static let pattern = try? Regex(#"^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\.([0-9]{1,9}))?Z$"#)
 
     init?(iso: String) {
-        guard let match = iso.wholeMatch(of: Self.pattern) else { return nil }
+        guard let pattern = Self.pattern, let match = iso.wholeMatch(of: pattern) else { return nil }
         func number(_ index: Int) -> Int64? {
             match.output[index].substring.flatMap { Int64($0) }
         }
