@@ -26,17 +26,12 @@ struct TimelineItemMenuActions {
         self.actions = actions
         self.secondaryActions = secondaryActions
         
-        var frequentlyUsed: OrderedSet<TimelineItemMenuReaction> = [
-            .init(key: "👍️", symbol: .handThumbsup),
-            .init(key: "👎️", symbol: .handThumbsdown),
-            .init(key: "🎉", symbol: .partyPopper),
-            .init(key: "❤️", symbol: .heart)
-        ]
+        var frequentlyUsed = OrderedSet(MessageQuickReactions.defaults)
         
         frequentlyUsed.append(contentsOf: emojiProvider.frequentlyUsedSystemEmojis().map { TimelineItemMenuReaction(key: $0, symbol: .heart) })
         
         reactions = if isReactable {
-            Array(frequentlyUsed.elements.prefix(10))
+            Array(frequentlyUsed.elements.prefix(MessageQuickReactions.maximumCount))
         } else {
             []
         }
@@ -77,6 +72,7 @@ enum TimelineItemMenuAction: Identifiable, Hashable {
     case viewInRoomTimeline
     case share
     case save
+    case select
     
     var id: Self {
         self
@@ -95,7 +91,7 @@ enum TimelineItemMenuAction: Identifiable, Hashable {
     /// Whether the action should be shown for an item that failed to send.
     var canAppearInFailedEcho: Bool {
         switch self {
-        case .copy, .edit, .redact, .viewSource, .editPoll:
+        case .copy, .select, .edit, .redact, .viewSource, .editPoll:
             true
         default:
             false
@@ -189,6 +185,8 @@ enum TimelineItemMenuAction: Identifiable, Hashable {
             Label(L10n.actionShare, icon: \.shareIos)
         case .save:
             Label(L10n.actionSave, icon: \.downloadIos)
+        case .select:
+            Label(UntranslatedL10n.guaActionSelect, systemImage: "selection.pin.in.out")
         }
     }
 }

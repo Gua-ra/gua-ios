@@ -307,6 +307,14 @@ extension AccessibilityTests {
         try await performAccessibilityAudit(named: "MessageForwardingScreen_Previews")
     }
 
+    func testMessageMenuOverlay() async throws {
+        try await performAccessibilityAudit(named: "MessageMenuOverlay_Previews")
+    }
+
+    func testMessageTextSelectionSheet() async throws {
+        try await performAccessibilityAudit(named: "MessageTextSelectionSheet_Previews")
+    }
+
     func testMessageText() async throws {
         try await performAccessibilityAudit(named: "MessageText_Previews")
     }

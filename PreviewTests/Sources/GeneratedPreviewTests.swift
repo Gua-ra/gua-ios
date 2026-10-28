@@ -461,6 +461,18 @@ extension PreviewTests {
         }
     }
 
+    func testMessageMenuOverlay() async throws {
+        for (index, preview) in MessageMenuOverlay_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    func testMessageTextSelectionSheet() async throws {
+        for (index, preview) in MessageTextSelectionSheet_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
     func testMessageText() async throws {
         for (index, preview) in MessageText_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)

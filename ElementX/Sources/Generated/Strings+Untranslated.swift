@@ -12,6 +12,10 @@ import Foundation
 internal enum UntranslatedL10n {
   /// We couldn’t finish setting up your account on this device. Please try again.
   internal static var guaAccountGenesisSetupFailed: String { return UntranslatedL10n.tr("Untranslated", "gua_account_genesis_setup_failed") }
+  /// More
+  internal static var guaActionMore: String { return UntranslatedL10n.tr("Untranslated", "gua_action_more") }
+  /// Select
+  internal static var guaActionSelect: String { return UntranslatedL10n.tr("Untranslated", "gua_action_select") }
   /// Use my other device
   internal static var guaEncryptionRecoverFromOtherDeviceAction: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_recover_from_other_device_action") }
   /// Couldn’t get your messages from the other device. Make sure it’s open and try again, or reset.
@@ -56,6 +60,8 @@ internal enum UntranslatedL10n {
   internal static var guaIdentityChangeUndecryptable: String { return UntranslatedL10n.tr("Untranslated", "gua_identity_change_undecryptable") }
   /// Paste the room address you were given.
   internal static var guaJoinRoomByAddressHint: String { return UntranslatedL10n.tr("Untranslated", "gua_join_room_by_address_hint") }
+  /// Select text
+  internal static var guaMessageTextSelectionTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_message_text_selection_title") }
   /// We couldn't confirm your organization details. Please try again.
   internal static var guaResolverClaimsInvalid: String { return UntranslatedL10n.tr("Untranslated", "gua_resolver_claims_invalid") }
   /// Too many attempts. Please wait a moment and try again.
