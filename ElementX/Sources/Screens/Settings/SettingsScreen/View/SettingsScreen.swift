@@ -72,7 +72,6 @@ struct SettingsScreen: View {
     
     private var findFriendsSection: some View {
         Section {
-            // GUA FORK: Find which of the user's phone contacts are already on Gua.
             ListRow(label: .default(title: L10n.screenFindFriendsTitle,
                                     icon: \.userAdd),
                     kind: .navigationLink {
@@ -96,26 +95,6 @@ struct SettingsScreen: View {
                         context.send(viewAction: .appLock)
                     })
                     .accessibilityIdentifier(A11yIdentifiers.settingsScreen.screenLock)
-            
-            // GUA FORK: The Encryption (secure backup / key storage / recovery)
-            // entry point is intentionally hidden when `hidesAdvancedEncryption`
-            // is set. End-to-end encryption stays fully on with safe defaults —
-            // key storage and recovery are managed automatically — but the advanced
-            // cryptographic controls are not surfaced to non-technical users.
-            // (Engine logic in the view model is left untouched so encryption
-            // keeps working in the background.)
-            if !context.viewState.hidesAdvancedEncryption {
-                switch context.viewState.securitySectionMode {
-                case .secureBackup:
-                    ListRow(label: .default(title: L10n.commonEncryption,
-                                            icon: \.key),
-                            details: context.viewState.showSecuritySectionBadge ? .icon(securitySectionBadge) : nil,
-                            kind: .navigationLink { context.send(viewAction: .secureBackup) })
-                        .accessibilityIdentifier(A11yIdentifiers.settingsScreen.secureBackup)
-                default:
-                    EmptyView()
-                }
-            }
             
             ListRow(label: .default(title: L10n.commonAppearance,
                                     icon: \.darkMode),
@@ -153,14 +132,12 @@ struct SettingsScreen: View {
                         })
             }
             
-            // GUA FORK: Two-step verification entry point
             ListRow(label: .default(title: L10n.screenTwoStepVerificationTitle,
                                     icon: \.lockSolid),
                     kind: .navigationLink {
                         context.send(viewAction: .twoStepVerification)
                     })
 
-            // GUA FORK: Change phone number entry point
             ListRow(label: .default(title: L10n.screenChangePhoneTitle,
                                     icon: \.edit),
                     kind: .navigationLink {
@@ -273,13 +250,6 @@ struct SettingsScreen: View {
         ToolbarItem(placement: .primaryAction) {
             ToolbarButton(role: .close) { context.send(viewAction: .close) }
                 .accessibilityIdentifier(A11yIdentifiers.settingsScreen.done)
-        }
-    }
-    
-    @ViewBuilder
-    private var securitySectionBadge: some View {
-        if context.viewState.showSecuritySectionBadge {
-            BadgeView(size: 10)
         }
     }
 }

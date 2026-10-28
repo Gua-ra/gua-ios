@@ -70,7 +70,6 @@ final class AppSettings {
         case linkPreviewsEnabled
         case latestEventSorterEnabled
         case legacyAuthEnabled
-        case guaHidesAdvancedEncryption
         case guaAccountGenesisEnabled
         
         // Doug's tweaks 🔧
@@ -481,14 +480,6 @@ final class AppSettings {
     /// this from developer options to fall back to the original flow.
     @UserPreference(key: UserDefaultsKeys.legacyAuthEnabled, defaultValue: false, storageType: .userDefaults(store))
     var legacyAuthEnabled
-
-    /// GUA FORK: When `true` (the default), the advanced Encryption entry point in
-    /// Settings (secure backup / key storage / recovery / cryptographic identity)
-    /// is hidden. End-to-end encryption itself stays fully enabled with safe
-    /// defaults; this only abstracts the advanced controls away from non-technical
-    /// users. Gov / advanced users can reveal it from developer options.
-    @UserPreference(key: UserDefaultsKeys.guaHidesAdvancedEncryption, defaultValue: true, storageType: .userDefaults(store))
-    var guaHidesAdvancedEncryption
 
     /// GUA FORK: when `true`, a new account is given an on-device `AccountGenesis` at signup: the
     /// account authority key is created in the keychain, the genesis is registered with
