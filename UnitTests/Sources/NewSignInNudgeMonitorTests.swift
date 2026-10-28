@@ -97,7 +97,7 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
     func testEachNudgeUsesAFreshTransactionID() async {
         monitor.start()
         await runRound()
-        clock.now = start.addingTimeInterval(NewSignInNudgeMonitor.nudgeCooldown)
+        clock.now = start.addingTimeInterval(120)
         await runRound()
 
         let paths = OwnDevicesHTTPStub.nudges.map(\.path)
@@ -134,7 +134,7 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
 
     func testDoesNotNudgeADeviceNotSeenInTheLastTenMinutes() async {
         fixture.devices = [.init(id: phoneID, lastSeen: start, signedBySelfSigningKey: true),
-                           .init(id: "STALE", lastSeen: start.addingTimeInterval(-NewSignInNudgeMonitor.recentSignInWindow - 1)),
+                           .init(id: "STALE", lastSeen: start.addingTimeInterval(-601)),
                            .init(id: "NEVERSEEN", lastSeen: nil),
                            .init(id: "NOTLISTED", lastSeen: start, listedInDevices: false)]
         monitor.start()
@@ -145,7 +145,7 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
 
     func testNudgesADeviceSeenExactlyTenMinutesAgo() async {
         fixture.devices = [.init(id: phoneID, lastSeen: start, signedBySelfSigningKey: true),
-                           .init(id: "WEB", lastSeen: start.addingTimeInterval(-NewSignInNudgeMonitor.recentSignInWindow))]
+                           .init(id: "WEB", lastSeen: start.addingTimeInterval(-600))]
         monitor.start()
         await runRound()
 
@@ -188,12 +188,12 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
         XCTAssertEqual(nudgedDevices, ["OLDWEB"])
 
         fixture.devices = [.init(id: phoneID, lastSeen: start, signedBySelfSigningKey: true),
-                           .init(id: "NEWWEB", lastSeen: start.addingTimeInterval(NewSignInNudgeMonitor.recentRequestWindow - 1))]
-        clock.now = start.addingTimeInterval(NewSignInNudgeMonitor.recentRequestWindow - 1)
+                           .init(id: "NEWWEB", lastSeen: start.addingTimeInterval(599))]
+        clock.now = start.addingTimeInterval(599)
         await runRound()
         XCTAssertEqual(nudgedDevices, ["OLDWEB"])
 
-        clock.now = start.addingTimeInterval(NewSignInNudgeMonitor.recentRequestWindow)
+        clock.now = start.addingTimeInterval(600)
         await runRound()
         XCTAssertEqual(nudgedDevices, ["OLDWEB", "NEWWEB"])
     }
@@ -239,6 +239,7 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
         await runRound(at: 480)
 
         XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 3)
+        XCTAssertIdentical(NewSignInNudgeMonitor.Environment().history, NewSignInNudgeHistory.shared)
     }
 
     func testAFailedNudgeDoesNotCountTowardsTheLimits() async throws {
@@ -343,9 +344,9 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
         isAppActive = false
         monitor.start()
         await settle()
-        XCTAssertEqual(scheduler.liveEntries.map(\.delay), [NewSignInNudgeMonitor.settleDelay])
+        XCTAssertEqual(scheduler.liveEntries.map(\.delay), [.seconds(5)])
 
-        scheduler.fire(NewSignInNudgeMonitor.settleDelay)
+        scheduler.fire(.seconds(5))
         await monitor.currentRound?.value
 
         XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
@@ -369,6 +370,26 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
         let retried = OwnDevicesHTTPStub.requests.dropFirst()
         XCTAssertEqual(retried.map(\.method), ["GET", "POST", "PUT"])
         XCTAssertEqual(retried.map(\.authorization), Array(repeating: "Bearer token-2", count: 3))
+    }
+
+    func testEachCallReadsAFreshAccessToken() async throws {
+        let base = try XCTUnwrap(fixture)
+        OwnDevicesHTTPStub.respond { [unowned self] request in
+            switch request.method {
+            case "GET":
+                DispatchQueue.main.sync { self.clientProxy.accessToken = "token-2" }
+                return (200, base.devicesJSON)
+            case "POST":
+                DispatchQueue.main.sync { self.clientProxy.accessToken = "token-3" }
+                return (200, base.keysJSON)
+            default:
+                return (200, "{}")
+            }
+        }
+        monitor.start()
+        await runRound()
+
+        XCTAssertEqual(OwnDevicesHTTPStub.requests.map(\.authorization), ["Bearer token-1", "Bearer token-2", "Bearer token-3"])
     }
 
     func testUnauthorizedKeyQuerySendsNoNudge() async {
@@ -405,7 +426,7 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
         verificationState.send(.unverified)
         monitor.start()
         await settle()
-        XCTAssertTrue(scheduler.liveEntries.filter { $0.delay == NewSignInNudgeMonitor.settleDelay }.isEmpty)
+        XCTAssertTrue(scheduler.liveEntries.filter { $0.delay == .seconds(5) }.isEmpty)
 
         verificationState.send(.verified)
         await settle()
@@ -413,11 +434,11 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
         verificationState.send(.verified)
         await settle()
 
-        let settled = scheduler.entries.filter { $0.delay == NewSignInNudgeMonitor.settleDelay }
+        let settled = scheduler.entries.filter { $0.delay == .seconds(5) }
         XCTAssertEqual(settled.count, 1, "Only the first verification in the session schedules a round.")
         XCTAssertFalse(settled[0].repeats)
 
-        scheduler.fire(NewSignInNudgeMonitor.settleDelay)
+        scheduler.fire(.seconds(5))
         await monitor.currentRound?.value
         XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 1)
     }
@@ -425,17 +446,17 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
     func testRoundsRepeatEveryMinuteOnlyWhileTheAppIsActive() async {
         monitor.start()
         await settle()
-        XCTAssertEqual(scheduler.liveEntries.filter(\.repeats).map(\.delay), [NewSignInNudgeMonitor.roundInterval])
+        XCTAssertEqual(scheduler.liveEntries.filter(\.repeats).map(\.delay), [.seconds(60)])
 
         notificationCenter.post(name: UIApplication.willResignActiveNotification, object: nil)
         XCTAssertTrue(scheduler.liveEntries.isEmpty, "Nothing runs while the app is inactive or in the background.")
 
         notificationCenter.post(name: UIApplication.didBecomeActiveNotification, object: nil)
         let live = scheduler.liveEntries
-        XCTAssertEqual(live.filter(\.repeats).map(\.delay), [NewSignInNudgeMonitor.roundInterval])
-        XCTAssertEqual(live.filter { !$0.repeats }.map(\.delay), [NewSignInNudgeMonitor.settleDelay])
+        XCTAssertEqual(live.filter(\.repeats).map(\.delay), [.seconds(60)])
+        XCTAssertEqual(live.filter { !$0.repeats }.map(\.delay), [.seconds(5)])
 
-        scheduler.fire(NewSignInNudgeMonitor.settleDelay)
+        scheduler.fire(.seconds(5))
         await monitor.currentRound?.value
         XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 1)
     }
@@ -485,7 +506,7 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
         if let offset {
             clock.now = start.addingTimeInterval(offset)
         }
-        scheduler.fire(NewSignInNudgeMonitor.roundInterval)
+        scheduler.fire(.seconds(60))
         await monitor.currentRound?.value
     }
 

@@ -22,6 +22,8 @@ final class UserSessionFlowCoordinatorNewSignInTests: XCTestCase {
     private var verificationController: SessionVerificationControllerProxyMock!
     private var securityState: CurrentValueSubject<SessionSecurityState, Never>!
     private var userIndicatorController: UserIndicatorControllerMock!
+    private var ongoingCallRoomID: CurrentValueSubject<String?, Never>!
+    private var windowManager: WindowManagerMock!
     private var appSettings: AppSettings!
     private var scheduler: ManualNewSignInNudgeScheduler!
     private var clock: NewSignInNudgeTestClock!
@@ -33,6 +35,10 @@ final class UserSessionFlowCoordinatorNewSignInTests: XCTestCase {
 
     private var chatsSplitCoordinator: NavigationSplitCoordinator? {
         tabCoordinator?.tabCoordinators.first as? NavigationSplitCoordinator
+    }
+
+    private var spacesSplitCoordinator: NavigationSplitCoordinator? {
+        tabCoordinator?.tabCoordinators.last as? NavigationSplitCoordinator
     }
 
     private var presentedVerificationScreen: SessionVerificationScreenCoordinator? {
@@ -73,13 +79,20 @@ final class UserSessionFlowCoordinatorNewSignInTests: XCTestCase {
         userIndicatorController = UserIndicatorControllerMock()
         rootCoordinator = NavigationRootCoordinator()
 
+        ongoingCallRoomID = .init(nil)
+        let elementCallService = ElementCallServiceMock(.init())
+        elementCallService.underlyingOngoingCallRoomIDPublisher = ongoingCallRoomID.asCurrentValuePublisher()
+        windowManager = WindowManagerMock()
+        let appMediator = AppMediatorMock.default
+        appMediator.underlyingWindowManager = windowManager
+
         let flowParameters = CommonFlowParameters(userSession: userSession,
                                                   bugReportService: BugReportServiceMock(.init()),
-                                                  elementCallService: ElementCallServiceMock(.init()),
+                                                  elementCallService: elementCallService,
                                                   timelineControllerFactory: TimelineControllerFactoryMock(.init()),
                                                   emojiProvider: EmojiProvider(appSettings: appSettings),
                                                   linkMetadataProvider: LinkMetadataProvider(),
-                                                  appMediator: AppMediatorMock.default,
+                                                  appMediator: appMediator,
                                                   appSettings: appSettings,
                                                   appHooks: AppHooks(),
                                                   analytics: ServiceLocator.shared.analytics,
@@ -149,7 +162,7 @@ final class UserSessionFlowCoordinatorNewSignInTests: XCTestCase {
         XCTAssertNil(tabCoordinator?.sheetCoordinator)
         XCTAssertEqual(appSettings.dismissedSignInDeviceIDs(forUserID: userID), ["WEB"])
 
-        clock.now = start.addingTimeInterval(NewSignInNudgeMonitor.recentRequestWindow)
+        clock.now = start.addingTimeInterval(600)
         await runRound()
         XCTAssertEqual(OwnDevicesHTTPStub.requests.map(\.method), ["GET", "POST"], "A dismissed device is never nudged.")
     }
@@ -191,7 +204,7 @@ final class UserSessionFlowCoordinatorNewSignInTests: XCTestCase {
         await runRound()
         XCTAssertTrue(OwnDevicesHTTPStub.nudges.isEmpty)
 
-        clock.now = start.addingTimeInterval(NewSignInNudgeMonitor.recentRequestWindow)
+        clock.now = start.addingTimeInterval(600)
         await runRound()
         XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 1)
     }
@@ -233,6 +246,45 @@ final class UserSessionFlowCoordinatorNewSignInTests: XCTestCase {
         split.setFullScreenCoverCoordinator(PlaceholderScreenCoordinator(), animated: false)
         await runRound()
         XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
+    }
+
+    func testDoesNotNudgeWhileASheetIsPresentedInTheSpacesTab() async throws {
+        let split = try XCTUnwrap(spacesSplitCoordinator)
+        XCTAssertNotIdentical(split, chatsSplitCoordinator)
+        split.setSheetCoordinator(PlaceholderScreenCoordinator(), animated: false)
+        await runRound()
+        XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
+
+        split.setSheetCoordinator(nil)
+        split.setFullScreenCoverCoordinator(PlaceholderScreenCoordinator(), animated: false)
+        await runRound()
+        XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
+
+        split.setFullScreenCoverCoordinator(nil)
+        await runRound()
+        XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 1)
+    }
+
+    func testDoesNotNudgeDuringACall() async {
+        ongoingCallRoomID.send("!call:gua.test")
+        await runRound()
+        XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
+
+        ongoingCallRoomID.send(nil)
+        await runRound()
+        XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 1)
+    }
+
+    func testDoesNotNudgeWhileTheAppLockScreenIsShown() async {
+        let appLockWindow = UIWindow()
+        appLockWindow.isHidden = false
+        windowManager.alternateWindow = appLockWindow
+        await runRound()
+        XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
+
+        appLockWindow.isHidden = true
+        await runRound()
+        XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 1)
     }
 
     func testDoesNotNudgeWhileAFullScreenCoverOrOverlayIsPresented() async throws {
@@ -281,7 +333,7 @@ final class UserSessionFlowCoordinatorNewSignInTests: XCTestCase {
     }
 
     private func runRound() async {
-        scheduler.fire(NewSignInNudgeMonitor.roundInterval)
+        scheduler.fire(.seconds(60))
         await flowCoordinator.newSignInNudgeMonitor?.currentRound?.value
     }
 
