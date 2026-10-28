@@ -82,8 +82,14 @@ internal enum UntranslatedL10n {
   internal static var guaSoftLogoutSigninNotice: String { return UntranslatedL10n.tr("Untranslated", "gua_soft_logout_signin_notice") }
   /// Make sure the emojis below match the ones on your other device.
   internal static var guaVerificationCompareEmojisSubtitle: String { return UntranslatedL10n.tr("Untranslated", "gua_verification_compare_emojis_subtitle") }
+  /// Your messages will now show up on your other device.
+  internal static var guaVerificationCompleteOtherDeviceSubtitle: String { return UntranslatedL10n.tr("Untranslated", "gua_verification_complete_other_device_subtitle") }
   /// Your messages will now show up on this device.
   internal static var guaVerificationCompleteSubtitle: String { return UntranslatedL10n.tr("Untranslated", "gua_verification_complete_subtitle") }
+  /// If this was you, confirm it to show your messages there. You’ll compare a few emojis on both screens.
+  internal static var guaVerificationNewSignInSubtitle: String { return UntranslatedL10n.tr("Untranslated", "gua_verification_new_sign_in_subtitle") }
+  /// New sign-in to your account
+  internal static var guaVerificationNewSignInTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_verification_new_sign_in_title") }
   /// Keep it open. You’ll compare a few emojis on both devices to confirm it’s you.
   internal static var guaVerificationOtherDeviceSubtitle: String { return UntranslatedL10n.tr("Untranslated", "gua_verification_other_device_subtitle") }
   /// Open Gua on your other device

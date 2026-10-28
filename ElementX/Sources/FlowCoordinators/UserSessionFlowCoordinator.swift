@@ -41,6 +41,9 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
     // periphery:ignore - retaining purpose
     private var settingsFlowCoordinator: SettingsFlowCoordinator?
     
+    private(set) var newSignInNudgeMonitor: NewSignInNudgeMonitor?
+    private var sessionVerificationRequestsCancellable: AnyCancellable?
+    
     enum State: StateType {
         /// The state machine hasn't started.
         case initial
@@ -71,7 +74,8 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
     init(isNewLogin: Bool,
          navigationRootCoordinator: NavigationRootCoordinator,
          appLockService: AppLockServiceProtocol,
-         flowParameters: CommonFlowParameters) {
+         flowParameters: CommonFlowParameters,
+         newSignInNudgeEnvironment: NewSignInNudgeMonitor.Environment? = nil) {
         self.navigationRootCoordinator = navigationRootCoordinator
         self.appLockService = appLockService
         self.flowParameters = flowParameters
@@ -111,6 +115,12 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
         configureStateMachine()
         
         setupObservers()
+        
+        newSignInNudgeMonitor = NewSignInNudgeMonitor(clientProxy: flowParameters.userSession.clientProxy,
+                                                      appSettings: flowParameters.appSettings,
+                                                      environment: newSignInNudgeEnvironment,
+                                                      isAppActive: { [weak self] in self?.flowParameters.appMediator.appState == .active },
+                                                      isIdle: { [weak self] in self?.isIdleForNewSignInNudge ?? false })
     }
     
     func start() {
@@ -118,6 +128,7 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
     }
     
     func stop() {
+        newSignInNudgeMonitor?.stop()
         chatsFlowCoordinator.stop()
     }
     
@@ -180,6 +191,7 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
             chatsFlowCoordinator.start()
             spaceExplorerFlowCoordinator.start()
             attemptStartingOnboarding()
+            newSignInNudgeMonitor?.start()
         }
         
         stateMachine.addRoutes(event: .showSettingsScreen, transitions: [.tabBar => .settingsScreen]) { [weak self] _ in
@@ -239,7 +251,7 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
                 guard let self else { return }
                 
                 attemptStartingOnboarding()
-                setupSessionVerificationRequestsObserver()
+                setupSessionVerificationRequestsObserverIfNeeded()
             }
             .store(in: &cancellables)
         
@@ -351,8 +363,14 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
     
     // MARK: - Session Verification
     
-    private func setupSessionVerificationRequestsObserver() {
-        userSession.clientProxy.sessionVerificationController?.actions
+    /// GUA FORK: subscribe once per session; the security state re-emits on every recovery change.
+    private func setupSessionVerificationRequestsObserverIfNeeded() {
+        guard sessionVerificationRequestsCancellable == nil,
+              let sessionVerificationController = userSession.clientProxy.sessionVerificationController else {
+            return
+        }
+        
+        sessionVerificationRequestsCancellable = sessionVerificationController.actions
             .receive(on: DispatchQueue.main)
             .sink { [weak self] action in
                 guard let self, case .receivedVerificationRequest(let details) = action else {
@@ -362,12 +380,29 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
                 MXLog.info("Received session verification request")
                 
                 if details.senderProfile.userID == userSession.clientProxy.userID {
+                    newSignInNudgeMonitor?.recordVerificationRequest(fromDeviceID: details.deviceID)
                     presentSessionVerificationScreen(flow: .deviceResponder(requestDetails: details))
                 } else {
                     presentSessionVerificationScreen(flow: .userResponder(requestDetails: details))
                 }
             }
-            .store(in: &cancellables)
+    }
+    
+    /// GUA FORK: the nudged device's request is presented as a sheet, so nudge only when nothing
+    /// else is on screen.
+    private var isIdleForNewSignInNudge: Bool {
+        guard stateMachine.state == .tabBar,
+              navigationTabCoordinator.sheetCoordinator == nil,
+              navigationTabCoordinator.fullScreenCoverCoordinator == nil,
+              navigationTabCoordinator.overlayCoordinator == nil,
+              flowParameters.ongoingCallRoomIDPublisher.value == nil,
+              flowParameters.userIndicatorController.alertInfo == nil,
+              flowParameters.windowManager.alternateWindow?.isHidden ?? true else {
+            return false
+        }
+        
+        let splitCoordinators = [chatsTabDetails.navigationSplitCoordinator, spacesTabDetails.navigationSplitCoordinator].compactMap { $0 }
+        return splitCoordinators.allSatisfy { $0.sheetCoordinator == nil && $0.fullScreenCoverCoordinator == nil }
     }
     
     private func presentSessionVerificationScreen(flow: SessionVerificationScreenFlow) {
@@ -389,6 +424,8 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
                 switch action {
                 case .done:
                     self?.navigationTabCoordinator.setSheetCoordinator(nil)
+                case .ignoredOwnDeviceRequest(let deviceID):
+                    self?.newSignInNudgeMonitor?.recordDismissal(ofDeviceID: deviceID)
                 }
             }
             .store(in: &cancellables)
@@ -496,11 +533,7 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
             return
         }
         
-        // GUA FORK: one warning, and no route into the recovery-key console. Upstream shows two
-        // alerts here, both saying the user will need a recovery key to restore their chats, and
-        // both offering a "Settings" button through to the screen that generates and displays one.
-        // Signing out of your only device is the moment this fork most needs not to hand out a key,
-        // so the warning names the real consequence and offers only the two real choices.
+        // GUA FORK: one warning with no route to a recovery key.
         guard secureBackupController.recoveryState.value == .enabled,
               secureBackupController.keyBackupState.value == .enabled else {
             flowParameters.userIndicatorController.alertInfo = .init(id: .init(),

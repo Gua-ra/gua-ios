@@ -41,6 +41,7 @@ final class AppSettings {
         case hasRunIdentityConfirmationOnboarding
         case hasBootstrappedKeyStorage
         case identityResetStartedAt
+        case dismissedSignInDeviceIDs
 
         case frequentlyUsedSystemEmojis
         
@@ -103,11 +104,11 @@ final class AppSettings {
     static func resetSessionSpecificSettings() {
         MXLog.warning("Resetting the user session specific AppSettings.")
         store.removeObject(forKey: UserDefaultsKeys.hasRunIdentityConfirmationOnboarding.rawValue)
-        // GUA FORK: the bootstrap flag is now per account, so clear every account's copy along
-        // with the pre-migration global one.
-        let bootstrapPrefix = UserDefaultsKeys.hasBootstrappedKeyStorage.rawValue
-        let resetPrefix = UserDefaultsKeys.identityResetStartedAt.rawValue
-        for key in store.dictionaryRepresentation().keys where key.hasPrefix(bootstrapPrefix) || key.hasPrefix(resetPrefix) {
+        // GUA FORK: matches every account's copy and the legacy global bootstrap flag.
+        let prefixes = [UserDefaultsKeys.hasBootstrappedKeyStorage.rawValue,
+                        UserDefaultsKeys.identityResetStartedAt.rawValue,
+                        UserDefaultsKeys.dismissedSignInDeviceIDs.rawValue]
+        for key in store.dictionaryRepresentation().keys where prefixes.contains(where: key.hasPrefix) {
             store.removeObject(forKey: key)
         }
     }
@@ -205,8 +206,6 @@ final class AppSettings {
     /// A URL where users can go read more about the app.
     private(set) var websiteURL: URL = "https://github.com/Gua-ra"
     /// A URL that contains the app's logo that may be used when showing content in a web view.
-    /// GUA FORK: Points at the Gua icon so the session/device list (e.g. MAS "Where
-    /// you're signed in") shows Gua branding instead of the generic Element icon.
     private(set) var logoURL: URL = "https://raw.githubusercontent.com/Gua-ra/gua-branding/main/icons/500x500.png"
     /// A URL that contains that app's copyright notice.
     private(set) var copyrightURL: URL = "https://element.io/copyright"
@@ -221,8 +220,6 @@ final class AppSettings {
     /// A URL where users can go read more about the chat backup.
     private(set) var chatBackupDetailsURL: URL = "https://element.io/help#encryption5"
     /// A URL where users can go read more about identity pinning violations
-    /// GUA FORK: the identity change banner's "Learn more" must point at Gua's own help,
-    /// never at element.io.
     private(set) var identityPinningViolationDetailsURL: URL = "https://gua.global/help#security-changes"
     /// Any domains that Element web may be hosted on - used for handling links.
     private(set) var elementWebHosts = ["app.element.io", "staging.element.io", "develop.element.io"]
@@ -246,9 +243,7 @@ final class AppSettings {
     /// The number of attempts the user has made to unlock the app with a PIN code (resets when unlocked).
     @UserPreference(key: UserDefaultsKeys.appLockNumberOfPINAttempts, defaultValue: 0, storageType: .userDefaults(store))
     var appLockNumberOfPINAttempts: Int
-    /// GUA FORK: whether the user has explicitly turned off Touch ID/Face ID unlock. Biometric
-    /// unlock is enabled by default whenever a PIN code is set, so this records the opt-out and
-    /// stops us from switching it back on behind the user's back.
+    /// GUA FORK: biometric unlock defaults on with a PIN, so only the user's opt-out is stored.
     @UserPreference(key: UserDefaultsKeys.appLockBiometricUnlockOptOut, defaultValue: false, storageType: .userDefaults(store))
     var appLockBiometricUnlockOptOut: Bool
     
@@ -344,15 +339,11 @@ final class AppSettings {
     @UserPreference(key: UserDefaultsKeys.hasRunIdentityConfirmationOnboarding, defaultValue: false, storageType: .userDefaults(store))
     var hasRunIdentityConfirmationOnboarding
 
-    /// GUA FORK: whether key storage has been fully bootstrapped for a specific account.
-    ///
-    /// This used to be one global flag. On a device with more than one account, the first
-    /// bootstrap silenced it for every other account, and a half-finished bootstrap could never
-    /// retry because the flag was set on attempt rather than on success.
     func hasBootstrappedKeyStorage(forUserID userID: String) -> Bool {
         Self.store.bool(forKey: Self.bootstrappedKeyStorageKey(forUserID: userID))
     }
 
+    /// GUA FORK: set only on success, so a half-finished bootstrap retries.
     func setHasBootstrappedKeyStorage(_ value: Bool, forUserID userID: String) {
         if value {
             Self.store.set(true, forKey: Self.bootstrappedKeyStorageKey(forUserID: userID))
@@ -382,6 +373,19 @@ final class AppSettings {
         "\(UserDefaultsKeys.identityResetStartedAt.rawValue).\(userID)"
     }
 
+    func dismissedSignInDeviceIDs(forUserID userID: String) -> Set<String> {
+        Set(Self.store.stringArray(forKey: Self.dismissedSignInDevicesKey(forUserID: userID)) ?? [])
+    }
+
+    func addDismissedSignInDeviceID(_ deviceID: String, forUserID userID: String) {
+        let deviceIDs = dismissedSignInDeviceIDs(forUserID: userID).union([deviceID])
+        Self.store.set(deviceIDs.sorted(), forKey: Self.dismissedSignInDevicesKey(forUserID: userID))
+    }
+
+    private static func dismissedSignInDevicesKey(forUserID userID: String) -> String {
+        "\(UserDefaultsKeys.dismissedSignInDeviceIDs.rawValue).\(userID)"
+    }
+
     @UserPreference(key: UserDefaultsKeys.frequentlyUsedSystemEmojis, defaultValue: [FrequentlyUsedEmoji](), storageType: .userDefaults(store))
     var frequentlyUsedSystemEmojis
     
@@ -390,7 +394,6 @@ final class AppSettings {
     @UserPreference(key: UserDefaultsKeys.hideUnreadMessagesBadge, defaultValue: false, storageType: .userDefaults(store))
     var hideUnreadMessagesBadge
 
-    /// GUA FORK: Snooze timestamp for the home-screen two-step-verification PIN setup reminder.
     @UserPreference(key: UserDefaultsKeys.pinSetupReminderSnoozedUntil, defaultValue: nil, storageType: .userDefaults(store))
     var pinSetupReminderSnoozedUntil: Date?
 
@@ -476,33 +479,16 @@ final class AppSettings {
     @UserPreference(key: UserDefaultsKeys.latestEventSorterEnabled, defaultValue: false, storageType: .userDefaults(store))
     var latestEventSorterEnabled
     
-    /// When `true`, the legacy ElementX authentication screens (QR / manual server / OIDC create-account)
-    /// are exposed. Defaults to `false` for the Gua phone-OTP onboarding; gov / special users can enable
-    /// this from developer options to fall back to the original flow.
+    /// Shows the upstream sign-in screens instead of phone sign-in.
     @UserPreference(key: UserDefaultsKeys.legacyAuthEnabled, defaultValue: false, storageType: .userDefaults(store))
     var legacyAuthEnabled
 
-    /// GUA FORK: When `true` (the default), the advanced Encryption entry point in
-    /// Settings (secure backup / key storage / recovery / cryptographic identity)
-    /// is hidden. End-to-end encryption itself stays fully enabled with safe
-    /// defaults; this only abstracts the advanced controls away from non-technical
-    /// users. Gov / advanced users can reveal it from developer options.
+    /// GUA FORK: hides only the advanced encryption settings; encryption itself stays on.
     @UserPreference(key: UserDefaultsKeys.guaHidesAdvancedEncryption, defaultValue: true, storageType: .userDefaults(store))
     var guaHidesAdvancedEncryption
 
-    /// GUA FORK: when `true`, a new account is given an on-device `AccountGenesis` at signup: the
-    /// account authority key is created in the keychain, the genesis is registered with
-    /// identity-service, and its single-use attach handle rides the reserved `login_hint` grammar
-    /// (ADM-008 Phase 3).
-    ///
-    /// Off by default, and off is a hard off: with the flag down no key is created, no registration
-    /// call is made, and the phone number is sent as the login hint exactly as before. Sign-in is
-    /// unaffected either way, since only a signup registers a genesis.
-    ///
-    /// It must stay off everywhere for now. The attach step is not wired end to end yet: the sign-in
-    /// page issues no attach challenge and asks for no proof, and a handle that is presented and does
-    /// not attach fails the signup by design (ADM-008 decision 6). Turning this on where genesis is
-    /// enabled and issuing would therefore break account creation there.
+    /// GUA FORK: must stay off until the sign-in page can attach a genesis, since a handle that
+    /// fails to attach fails the signup.
     @UserPreference(key: UserDefaultsKeys.guaAccountGenesisEnabled, defaultValue: false, storageType: .userDefaults(store))
     var guaAccountGenesisEnabled
 
