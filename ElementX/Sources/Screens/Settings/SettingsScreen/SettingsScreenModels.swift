@@ -70,6 +70,7 @@ struct SettingsScreenViewState: BindableState {
 
 struct SettingsScreenViewStateBindings {
     var isPresentingAccountDeactivationConfirmation = false
+    var isSpacesEnabled = false
 }
 
 enum SettingsScreenViewAction {
@@ -83,6 +84,7 @@ enum SettingsScreenViewAction {
     case secureBackup
     case manageAccount(url: URL)
     case notifications
+    case toggleSpaces
     case enableDeveloperOptions
     case developerOptions
     case advancedSettings

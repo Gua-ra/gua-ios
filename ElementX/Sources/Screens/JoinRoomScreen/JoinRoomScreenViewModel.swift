@@ -47,6 +47,10 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
             .weakAssign(to: \.state.hideInviteAvatars, on: self)
             .store(in: &cancellables)
         
+        appSettings.$spacesEnabled
+            .weakAssign(to: \.state.isSpacesEnabled, on: self)
+            .store(in: &cancellables)
+        
         context.$viewState.map(\.mode)
             .removeDuplicates()
             .sink { mode in
@@ -235,6 +239,10 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
     
     private func joinRoom() async {
         showLoadingIndicator()
+        
+        if state.joiningTurnsOnSpaces {
+            await SpacesSetting(clientProxy: clientProxy, appSettings: appSettings).setEnabled(true)
+        }
         
         defer {
             hideLoadingIndicator()

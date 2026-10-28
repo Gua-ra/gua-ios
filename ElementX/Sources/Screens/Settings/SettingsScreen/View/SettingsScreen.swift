@@ -10,7 +10,7 @@ import SFSafeSymbols
 import SwiftUI
 
 struct SettingsScreen: View {
-    let context: SettingsScreenViewModel.Context
+    @Bindable var context: SettingsScreenViewModel.Context
     
     private var shouldHideManageAccountSection: Bool {
         // Always shown: the Two-step verification row lives in this section.
@@ -22,6 +22,8 @@ struct SettingsScreen: View {
             userSection
             
             manageMyAppSection
+            
+            spacesSection
             
             if !shouldHideManageAccountSection {
                 manageAccountSection
@@ -117,6 +119,21 @@ struct SettingsScreen: View {
                     EmptyView()
                 }
             }
+        }
+    }
+    
+    /// GUA FORK: account-wide Spaces switch, stored in account data so it follows the account to every phone.
+    private var spacesSection: some View {
+        Section {
+            ListRow(label: .default(title: UntranslatedL10n.guaSettingsSpacesTitle,
+                                    icon: \.space),
+                    kind: .toggle($context.isSpacesEnabled))
+                .onChange(of: context.isSpacesEnabled) {
+                    context.send(viewAction: .toggleSpaces)
+                }
+        } footer: {
+            Text(UntranslatedL10n.guaSettingsSpacesFooter)
+                .compoundListSectionFooter()
         }
     }
     

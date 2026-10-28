@@ -54,6 +54,13 @@ struct JoinRoomScreenViewState: BindableState {
     var mode: JoinRoomScreenMode = .loading
     
     var hideInviteAvatars = false
+    
+    var isSpacesEnabled = true
+    
+    /// GUA FORK: joining a space while the Spaces switch is off turns it on.
+    var joiningTurnsOnSpaces: Bool {
+        !isSpacesEnabled && roomDetails?.isSpace == true
+    }
         
     var bindings = JoinRoomScreenViewStateBindings()
     

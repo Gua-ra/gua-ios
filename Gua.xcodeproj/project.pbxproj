@@ -340,6 +340,7 @@
 		365C06F490F0AE5312659737 /* Collections in Frameworks */ = {isa = PBXBuildFile; productRef = 9D6F319CC3E047AD332D8234 /* Collections */; };
 		3684350D065695818AAA7280 /* SecureBackupKeyBackupScreenViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EAA6CFBF5C324689347F520 /* SecureBackupKeyBackupScreenViewModelTests.swift */; };
 		368718102E2CD99221B0F8E3 /* test_pdf.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 806E734353CB98B360527F84 /* test_pdf.pdf */; };
+		3688293F0C51E5353670EB2E /* SpacesSettingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AFC6F242938C92353B82F09 /* SpacesSettingTests.swift */; };
 		36A14C36BDEE41401AA83A51 /* UserSessionScreenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE427D291E4669D206439E6D /* UserSessionScreenTests.swift */; };
 		36C495B1F9D99E7B658C201B /* RoomChangeRolesScreenViewModelProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABBAC218BEE66CEE1C1DE72E /* RoomChangeRolesScreenViewModelProtocol.swift */; };
 		36C7C507998EBC91AAD6CC8C /* RoomChangePermissionsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = D901610B5524F3FE27ABA092 /* RoomChangePermissionsScreen.swift */; };
@@ -802,6 +803,7 @@
 		85CD57E1BF26A77E35E210E3 /* ComposerToolbarModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CE25F97E295B73BBE05554D /* ComposerToolbarModels.swift */; };
 		85E55F9D5EA9F7423BAFD5D8 /* VoiceMessageRoomTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 753792BFD39FD25D7849108D /* VoiceMessageRoomTimelineView.swift */; };
 		8603E692A79530C2B4A3014C /* TimelineReadReceiptsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B35027896A6D3B40F88E9D02 /* TimelineReadReceiptsView.swift */; };
+		863E92164385EFF840FEADF8 /* SpacesSetting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47009EE6C1CA1E9A576F0B8A /* SpacesSetting.swift */; };
 		866FCEF472E0DD2FA0CE6F26 /* UserIndicatorPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E2262F2E2E4BE82D185E2B8 /* UserIndicatorPresenter.swift */; };
 		86A861EBA25F1D7D803962F9 /* MatrixEntityRegexTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F5BD5A9FE7FEC43E1F3EB01 /* MatrixEntityRegexTests.swift */; };
 		86EBC1F6A56839C9711FDA6B /* TraceLogPack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 931DABDFEBF38930762C9E41 /* TraceLogPack.swift */; };
@@ -1918,6 +1920,7 @@
 		46C7FE81BCD6E424309ADFBA /* CompoundIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompoundIcon.swift; sourceTree = "<group>"; };
 		46E3CC9165CFB83C0F95363D /* MediaUploadPreviewScreenViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaUploadPreviewScreenViewModel.swift; sourceTree = "<group>"; };
 		46E8CDBF82C9DD4D5D0E27BD /* NotificationSettingsChatType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSettingsChatType.swift; sourceTree = "<group>"; };
+		47009EE6C1CA1E9A576F0B8A /* SpacesSetting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpacesSetting.swift; sourceTree = "<group>"; };
 		4701F658A0F92EC3FEE809DA /* UserProfileScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileScreen.swift; sourceTree = "<group>"; };
 		4723E3E5A0A13912C3535F55 /* TimelineProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineProxy.swift; sourceTree = "<group>"; };
 		4763178D1395342B73601CE8 /* WindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowManager.swift; sourceTree = "<group>"; };
@@ -2233,6 +2236,7 @@
 		7A8A12015FB5D686C036B025 /* BlockedUsersScreenCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlockedUsersScreenCoordinator.swift; sourceTree = "<group>"; };
 		7ACE5A7898273FBDDE5A1806 /* LocationSharingScreenModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationSharingScreenModels.swift; sourceTree = "<group>"; };
 		7AEFD8DB08324B3D282D9C4C /* DocumentPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentPicker.swift; sourceTree = "<group>"; };
+		7AFC6F242938C92353B82F09 /* SpacesSettingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpacesSettingTests.swift; sourceTree = "<group>"; };
 		7B360D969201A101B62BA90F /* RoomChangeRolesScreenModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomChangeRolesScreenModels.swift; sourceTree = "<group>"; };
 		7B5CE4E92CC018F02036477A /* MockImageCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockImageCache.swift; sourceTree = "<group>"; };
 		7B7564EB5E131464F76E042D /* RoomMembersListScreenCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomMembersListScreenCoordinator.swift; sourceTree = "<group>"; };
@@ -3749,6 +3753,7 @@
 				336FB49551A4972328D98853 /* FederatedUserSearch.swift */,
 				BA1FC4218C8D1345BEF6FC97 /* IdentityServiceClient.swift */,
 				086A56B0C59D26A6A8C4E832 /* ResolverClient.swift */,
+				47009EE6C1CA1E9A576F0B8A /* SpacesSetting.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -5339,6 +5344,7 @@
 				D61E0350985221B9127CDE70 /* SoftLogoutScreenViewModelTests.swift */,
 				EA5C33D576C32E15B0233FF2 /* SpaceListScreenViewModelTests.swift */,
 				B4B1F3CB3449C40DAD2C922F /* SpaceScreenViewModelTests.swift */,
+				7AFC6F242938C92353B82F09 /* SpacesSettingTests.swift */,
 				B87FC725EBDA6F27CA8AC591 /* StartChatViewModelTests.swift */,
 				6EA3F4BDB684E94A193700FB /* StaticLocationScreenViewModelTests.swift */,
 				0BCC495F90A21857EF42DEFC /* StringTests.swift */,
@@ -8420,6 +8426,7 @@
 				9219E07947071B796FC7D61C /* SpaceServiceProxy.swift in Sources */,
 				F9237D1B0A4898011851722F /* SpaceServiceProxyMock.swift in Sources */,
 				FC4DDB06CD572DEDBA94ABE0 /* SpaceServiceProxyProtocol.swift in Sources */,
+				863E92164385EFF840FEADF8 /* SpacesSetting.swift in Sources */,
 				AC71F34D68937CE399F31699 /* SplashScreenCoordinator.swift in Sources */,
 				E76072EC5E4922C841C263D8 /* StackedAvatarsView.swift in Sources */,
 				0263BB2FF1FEA0FAB6F7ED52 /* StartChatScreen.swift in Sources */,
@@ -8765,6 +8772,7 @@
 				81C2C68FFE03FDFADEC3E478 /* SoftLogoutScreenViewModelTests.swift in Sources */,
 				84D2B1AEA0B80D040A71526D /* SpaceListScreenViewModelTests.swift in Sources */,
 				344C4E430BE9C843A9C2195C /* SpaceScreenViewModelTests.swift in Sources */,
+				3688293F0C51E5353670EB2E /* SpacesSettingTests.swift in Sources */,
 				A53F0A706940BF66DC9E1A5C /* StartChatViewModelTests.swift in Sources */,
 				D5052D8130D0A3AAACEFAEB0 /* StaticLocationScreenViewModelTests.swift in Sources */,
 				8BD900A651B830C85D81EDB6 /* StringTests.swift in Sources */,

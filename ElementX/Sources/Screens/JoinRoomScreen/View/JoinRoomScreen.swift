@@ -107,6 +107,13 @@ struct JoinRoomScreen: View {
                         .lineLimit(3)
                 }
                 
+                if context.viewState.joiningTurnsOnSpaces {
+                    Text(UntranslatedL10n.guaJoinSpaceTurnsOnSpaces)
+                        .font(.compound.bodyMD)
+                        .foregroundStyle(.compound.textSecondary)
+                        .multilineTextAlignment(.center)
+                }
+                
                 if context.viewState.mode == .knockable {
                     knockMessage
                         .padding(.top, 19)
@@ -281,8 +288,10 @@ struct JoinRoomScreen: View {
     }
     
     var joinButton: some View {
-        Button(L10n.screenJoinRoomJoinAction) { context.send(viewAction: .join) }
-            .buttonStyle(.compound(.super))
+        Button(context.viewState.joiningTurnsOnSpaces ? UntranslatedL10n.guaJoinSpaceAction : L10n.screenJoinRoomJoinAction) {
+            context.send(viewAction: .join)
+        }
+        .buttonStyle(.compound(.super))
     }
     
     @ToolbarContentBuilder

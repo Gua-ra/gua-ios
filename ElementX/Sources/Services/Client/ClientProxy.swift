@@ -874,6 +874,27 @@ class ClientProxy: ClientProxyProtocol {
         }
     }
         
+    // MARK: Account data
+    
+    func accountData(type: String) async -> Result<String?, ClientProxyError> {
+        do {
+            return try await .success(client.accountData(eventType: type))
+        } catch {
+            MXLog.error("Failed reading account data \(type) with error: \(error)")
+            return .failure(.sdkError(error))
+        }
+    }
+    
+    func setAccountData(type: String, content: String) async -> Result<Void, ClientProxyError> {
+        do {
+            try await client.setAccountData(eventType: type, content: content)
+            return .success(())
+        } catch {
+            MXLog.error("Failed setting account data \(type) with error: \(error)")
+            return .failure(.sdkError(error))
+        }
+    }
+    
     // MARK: Ignored users
     
     func ignoreUser(_ userID: String) async -> Result<Void, ClientProxyError> {

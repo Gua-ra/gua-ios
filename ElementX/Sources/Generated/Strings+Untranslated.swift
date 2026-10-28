@@ -56,6 +56,10 @@ internal enum UntranslatedL10n {
   internal static var guaIdentityChangeUndecryptable: String { return UntranslatedL10n.tr("Untranslated", "gua_identity_change_undecryptable") }
   /// Paste the room address you were given.
   internal static var guaJoinRoomByAddressHint: String { return UntranslatedL10n.tr("Untranslated", "gua_join_room_by_address_hint") }
+  /// Turn on Spaces and join
+  internal static var guaJoinSpaceAction: String { return UntranslatedL10n.tr("Untranslated", "gua_join_space_action") }
+  /// This is a space. Joining turns on Spaces so you can see its chats.
+  internal static var guaJoinSpaceTurnsOnSpaces: String { return UntranslatedL10n.tr("Untranslated", "gua_join_space_turns_on_spaces") }
   /// We couldn't confirm your organization details. Please try again.
   internal static var guaResolverClaimsInvalid: String { return UntranslatedL10n.tr("Untranslated", "gua_resolver_claims_invalid") }
   /// Too many attempts. Please wait a moment and try again.
@@ -72,6 +76,10 @@ internal enum UntranslatedL10n {
   internal static func guaResolverRoutingUnavailableRetryIn(_ p1: Any) -> String {
     return UntranslatedL10n.tr("Untranslated", "gua_resolver_routing_unavailable_retry_in", String(describing: p1))
   }
+  /// Group chats under a shared name. Syncs to your other phones.
+  internal static var guaSettingsSpacesFooter: String { return UntranslatedL10n.tr("Untranslated", "gua_settings_spaces_footer") }
+  /// Spaces
+  internal static var guaSettingsSpacesTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_settings_spaces_title") }
   /// Sign in with a passkey
   internal static var guaSignInWithPasskey: String { return UntranslatedL10n.tr("Untranslated", "gua_sign_in_with_passkey") }
   /// Messages kept only here will not be available when you sign back in.

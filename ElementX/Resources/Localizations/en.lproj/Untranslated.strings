@@ -108,3 +108,9 @@
    and could not. Deliberately a failure rather than a silent fallback: an account created without
    the genesis it intended would be indistinguishable afterwards. */
 "gua_account_genesis_setup_failed" = "We couldn’t finish setting up your account on this device. Please try again.";
+
+// MARK: - Gua: Spaces switch
+"gua_settings_spaces_title" = "Spaces";
+"gua_settings_spaces_footer" = "Group chats under a shared name. Syncs to your other phones.";
+"gua_join_space_action" = "Turn on Spaces and join";
+"gua_join_space_turns_on_spaces" = "This is a space. Joining turns on Spaces so you can see its chats.";

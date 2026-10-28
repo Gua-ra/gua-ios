@@ -4534,6 +4534,146 @@ class ClientProxyMock: ClientProxyProtocol, @unchecked Sendable {
             return fetchMediaPreviewConfigurationReturnValue
         }
     }
+    //MARK: - accountData
+
+    var accountDataTypeUnderlyingCallsCount = 0
+    var accountDataTypeCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return accountDataTypeUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = accountDataTypeUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                accountDataTypeUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    accountDataTypeUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var accountDataTypeCalled: Bool {
+        return accountDataTypeCallsCount > 0
+    }
+    var accountDataTypeReceivedType: String?
+    var accountDataTypeReceivedInvocations: [String] = []
+
+    var accountDataTypeUnderlyingReturnValue: Result<String?, ClientProxyError>!
+    var accountDataTypeReturnValue: Result<String?, ClientProxyError>! {
+        get {
+            if Thread.isMainThread {
+                return accountDataTypeUnderlyingReturnValue
+            } else {
+                var returnValue: Result<String?, ClientProxyError>? = nil
+                DispatchQueue.main.sync {
+                    returnValue = accountDataTypeUnderlyingReturnValue
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                accountDataTypeUnderlyingReturnValue = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    accountDataTypeUnderlyingReturnValue = newValue
+                }
+            }
+        }
+    }
+    var accountDataTypeClosure: ((String) async -> Result<String?, ClientProxyError>)?
+
+    func accountData(type: String) async -> Result<String?, ClientProxyError> {
+        accountDataTypeCallsCount += 1
+        accountDataTypeReceivedType = type
+        DispatchQueue.main.async {
+            self.accountDataTypeReceivedInvocations.append(type)
+        }
+        if let accountDataTypeClosure = accountDataTypeClosure {
+            return await accountDataTypeClosure(type)
+        } else {
+            return accountDataTypeReturnValue
+        }
+    }
+    //MARK: - setAccountData
+
+    var setAccountDataTypeContentUnderlyingCallsCount = 0
+    var setAccountDataTypeContentCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return setAccountDataTypeContentUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = setAccountDataTypeContentUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                setAccountDataTypeContentUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    setAccountDataTypeContentUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var setAccountDataTypeContentCalled: Bool {
+        return setAccountDataTypeContentCallsCount > 0
+    }
+    var setAccountDataTypeContentReceivedArguments: (type: String, content: String)?
+    var setAccountDataTypeContentReceivedInvocations: [(type: String, content: String)] = []
+
+    var setAccountDataTypeContentUnderlyingReturnValue: Result<Void, ClientProxyError>!
+    var setAccountDataTypeContentReturnValue: Result<Void, ClientProxyError>! {
+        get {
+            if Thread.isMainThread {
+                return setAccountDataTypeContentUnderlyingReturnValue
+            } else {
+                var returnValue: Result<Void, ClientProxyError>? = nil
+                DispatchQueue.main.sync {
+                    returnValue = setAccountDataTypeContentUnderlyingReturnValue
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                setAccountDataTypeContentUnderlyingReturnValue = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    setAccountDataTypeContentUnderlyingReturnValue = newValue
+                }
+            }
+        }
+    }
+    var setAccountDataTypeContentClosure: ((String, String) async -> Result<Void, ClientProxyError>)?
+
+    func setAccountData(type: String, content: String) async -> Result<Void, ClientProxyError> {
+        setAccountDataTypeContentCallsCount += 1
+        setAccountDataTypeContentReceivedArguments = (type: type, content: content)
+        DispatchQueue.main.async {
+            self.setAccountDataTypeContentReceivedInvocations.append((type: type, content: content))
+        }
+        if let setAccountDataTypeContentClosure = setAccountDataTypeContentClosure {
+            return await setAccountDataTypeContentClosure(type, content)
+        } else {
+            return setAccountDataTypeContentReturnValue
+        }
+    }
     //MARK: - ignoreUser
 
     var ignoreUserUnderlyingCallsCount = 0

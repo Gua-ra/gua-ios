@@ -129,7 +129,9 @@ class RoomSummaryProvider: RoomSummaryProviderProtocol {
             _ = listUpdatesSubscriptionResult?.controller().setFilter(kind: .all(filters: filters))
         case let .all(filters):
             var rustFilters = filters.map(\.rustFilter)
-            rustFilters.append(contentsOf: [.nonLeft, .nonSpace, .deduplicateVersions])
+            // GUA FORK: joined spaces live in the Spaces tab; space invites stay in Chats so they can be accepted
+            // while the Spaces switch is off.
+            rustFilters.append(contentsOf: [.nonLeft, .any(filters: [.nonSpace, .invite]), .deduplicateVersions])
             
             if !filters.contains(.lowPriority), appSettings.lowPriorityFilterEnabled {
                 rustFilters.append(.nonLowPriority)

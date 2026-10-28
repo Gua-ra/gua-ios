@@ -32,7 +32,7 @@ final class RoomSummaryProviderTests: XCTestCase {
         // Then it should have the default Rust filters enabled.
         XCTAssertEqual(dynamicEntriesController.setFilterKindCallsCount, 1)
         XCTAssertEqual(dynamicEntriesController.setFilterKindReceivedInvocations.last, .all(filters: [.nonLeft,
-                                                                                                      .nonSpace,
+                                                                                                      .any(filters: [.nonSpace, .invite]),
                                                                                                       .deduplicateVersions]))
         
         // When setting one our user filters.
@@ -43,7 +43,7 @@ final class RoomSummaryProviderTests: XCTestCase {
         XCTAssertEqual(dynamicEntriesController.setFilterKindCallsCount, 2)
         XCTAssertEqual(dynamicEntriesController.setFilterKindReceivedInvocations.last, .all(filters: [.all(filters: [.favourite, .joined]),
                                                                                                       .nonLeft,
-                                                                                                      .nonSpace,
+                                                                                                      .any(filters: [.nonSpace, .invite]),
                                                                                                       .deduplicateVersions]))
     }
     
@@ -56,7 +56,7 @@ final class RoomSummaryProviderTests: XCTestCase {
         // so that low priority rooms are hidden from the top of the room list.
         XCTAssertEqual(dynamicEntriesController.setFilterKindCallsCount, 1)
         XCTAssertEqual(dynamicEntriesController.setFilterKindReceivedInvocations.last, .all(filters: [.nonLeft,
-                                                                                                      .nonSpace,
+                                                                                                      .any(filters: [.nonSpace, .invite]),
                                                                                                       .deduplicateVersions,
                                                                                                       .nonLowPriority]))
         
@@ -68,7 +68,7 @@ final class RoomSummaryProviderTests: XCTestCase {
         XCTAssertEqual(dynamicEntriesController.setFilterKindCallsCount, 2)
         XCTAssertEqual(dynamicEntriesController.setFilterKindReceivedInvocations.last, .all(filters: [.all(filters: [.lowPriority, .joined]),
                                                                                                       .nonLeft,
-                                                                                                      .nonSpace,
+                                                                                                      .any(filters: [.nonSpace, .invite]),
                                                                                                       .deduplicateVersions]))
         
         // When setting another one of our filters.
@@ -79,7 +79,7 @@ final class RoomSummaryProviderTests: XCTestCase {
         XCTAssertEqual(dynamicEntriesController.setFilterKindCallsCount, 3)
         XCTAssertEqual(dynamicEntriesController.setFilterKindReceivedInvocations.last, .all(filters: [.all(filters: [.category(expect: .group), .joined]),
                                                                                                       .nonLeft,
-                                                                                                      .nonSpace,
+                                                                                                      .any(filters: [.nonSpace, .invite]),
                                                                                                       .deduplicateVersions,
                                                                                                       .nonLowPriority]))
     }

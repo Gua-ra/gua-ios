@@ -12,6 +12,7 @@ typealias SettingsScreenViewModelType = StateStoreViewModelV2<SettingsScreenView
 
 class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewModelProtocol {
     private let appSettings: AppSettings
+    private let clientProxy: ClientProxyProtocol
     
     private var actionsSubject: PassthroughSubject<SettingsScreenViewModelAction, Never> = .init()
     
@@ -21,6 +22,7 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
     
     init(userSession: UserSessionProtocol, appSettings: AppSettings, isBugReportServiceEnabled: Bool) {
         self.appSettings = appSettings
+        clientProxy = userSession.clientProxy
         
         super.init(initialViewState: .init(deviceID: userSession.clientProxy.deviceID,
                                            userID: userSession.clientProxy.userID,
@@ -33,6 +35,10 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
         
         appSettings.$developerOptionsEnabled
             .weakAssign(to: \.state.showDeveloperOptions, on: self)
+            .store(in: &cancellables)
+        
+        appSettings.$spacesEnabled
+            .weakAssign(to: \.state.bindings.isSpacesEnabled, on: self)
             .store(in: &cancellables)
         
         userSession.clientProxy.userAvatarURLPublisher
@@ -104,6 +110,10 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
             actionsSubject.send(.secureBackup)
         case .notifications:
             actionsSubject.send(.notifications)
+        case .toggleSpaces:
+            let isEnabled = state.bindings.isSpacesEnabled
+            guard isEnabled != appSettings.spacesEnabled else { return }
+            Task { await SpacesSetting(clientProxy: clientProxy, appSettings: appSettings).setEnabled(isEnabled) }
         case .advancedSettings:
             actionsSubject.send(.advancedSettings)
         case .enableDeveloperOptions:

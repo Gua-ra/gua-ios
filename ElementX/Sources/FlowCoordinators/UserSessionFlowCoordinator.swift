@@ -293,10 +293,25 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
             }
             .store(in: &cancellables)
         
+        setupSpacesObservers()
+    }
+    
+    /// GUA FORK: the tab bar is the Spaces switch. Its value lives in account data and is copied to
+    /// this device after sync updates, which also turns it on for an account already in a space.
+    private func setupSpacesObservers() {
         flowParameters.appSettings.$spacesEnabled
-            .combineLatest(userSession.clientProxy.spaceService.joinedSpacesPublisher)
-            .map { $0 && !$1.isEmpty ? nil : .hidden }
+            .map { $0 ? nil : .hidden }
             .weakAssign(to: \.chatsTabDetails.barVisibilityOverride, on: self)
+            .store(in: &cancellables)
+        
+        userSession.clientProxy.actionsPublisher
+            .filter(\.isSyncUpdate)
+            .throttle(for: .seconds(5), scheduler: DispatchQueue.main, latest: true)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                let isInSpace = !userSession.clientProxy.spaceService.joinedSpacesPublisher.value.isEmpty
+                Task { await SpacesSetting(clientProxy: self.userSession.clientProxy, appSettings: self.flowParameters.appSettings).refresh(isInSpace: isInSpace) }
+            }
             .store(in: &cancellables)
     }
     
