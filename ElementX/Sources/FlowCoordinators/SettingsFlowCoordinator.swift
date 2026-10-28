@@ -81,8 +81,6 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                     actionsSubject.send(.dismiss)
                 case .logout:
                     actionsSubject.send(.runLogoutFlow)
-                case .secureBackup:
-                    startEncryptionSettingsFlow(animated: true)
                 case .userDetails:
                     presentUserDetailsEditScreen()
                 case let .manageAccount(url):
@@ -99,8 +97,8 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                     bugReportFlowCoordinator?.start()
                 case .about:
                     presentLegalInformationScreen()
-                case .blockedUsers:
-                    presentBlockedUsersScreen()
+                case .moderationAndSafety:
+                    presentModerationAndSafetyScreen()
                 case .notifications:
                     presentNotificationSettings()
                 case .advancedSettings:
@@ -181,6 +179,21 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
         navigationStackCoordinator.push(LegalInformationScreenCoordinator(appSettings: flowParameters.appSettings))
     }
     
+    private func presentModerationAndSafetyScreen() {
+        let coordinator = ModerationAndSafetySettingsScreenCoordinator(parameters: .init(userSession: flowParameters.userSession,
+                                                                                         userIndicatorController: flowParameters.userIndicatorController))
+        coordinator.actionsPublisher
+            .sink { [weak self] action in
+                switch action {
+                case .blockedUsers:
+                    self?.presentBlockedUsersScreen()
+                }
+            }
+            .store(in: &cancellables)
+        
+        navigationStackCoordinator.push(coordinator)
+    }
+    
     private func presentBlockedUsersScreen() {
         let coordinator = BlockedUsersScreenCoordinator(parameters: .init(hideProfiles: flowParameters.appSettings.hideIgnoredUserProfiles,
                                                                           userSession: flowParameters.userSession,
@@ -200,9 +213,7 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
     
     private func presentAdvancedSettings() {
         let coordinator = AdvancedSettingsScreenCoordinator(parameters: .init(appSettings: flowParameters.appSettings,
-                                                                              analytics: flowParameters.analytics,
-                                                                              clientProxy: flowParameters.userSession.clientProxy,
-                                                                              userIndicatorController: flowParameters.userIndicatorController))
+                                                                              analytics: flowParameters.analytics))
         navigationStackCoordinator.push(coordinator)
     }
     

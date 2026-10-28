@@ -8,10 +8,6 @@
 import Foundation
 
 struct AdvancedSettingsScreenViewState: BindableState {
-    var timelineMediaVisibility: TimelineMediaVisibility
-    var hideInviteAvatars: Bool
-    var isWaitingTimelineMediaVisibility = false
-    var isWaitingHideInviteAvatars = false
     var bindings: AdvancedSettingsScreenViewStateBindings
 }
 
@@ -32,13 +28,10 @@ struct AdvancedSettingsScreenViewStateBindings {
 
 enum AdvancedSettingsScreenViewAction {
     case optimizeMediaUploadsChanged
-    case updateTimelineMediaVisibility(TimelineMediaVisibility)
-    case updateHideInviteAvatars(Bool)
 }
 
 protocol AdvancedSettingsProtocol: AnyObject {
     var viewSourceEnabled: Bool { get set }
-    var appAppearance: AppAppearance { get set }
     var sharePresence: Bool { get set }
     var optimizeMediaUploads: Bool { get set }
 }

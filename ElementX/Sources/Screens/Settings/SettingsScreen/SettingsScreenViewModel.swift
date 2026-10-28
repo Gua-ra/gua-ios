@@ -26,9 +26,9 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
                                            userID: userSession.clientProxy.userID,
                                            showAccountDeactivation: userSession.clientProxy.canDeactivateAccount,
                                            showDeveloperOptions: appSettings.developerOptionsEnabled,
-                                           hidesAdvancedEncryption: appSettings.guaHidesAdvancedEncryption,
                                            showAnalyticsSettings: appSettings.canPromptForAnalytics,
-                                           isBugReportServiceEnabled: isBugReportServiceEnabled),
+                                           isBugReportServiceEnabled: isBugReportServiceEnabled,
+                                           bindings: .init(appSettings: appSettings)),
                    mediaProvider: userSession.mediaProvider)
         
         appSettings.$developerOptionsEnabled
@@ -43,34 +43,6 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
         userSession.clientProxy.userDisplayNamePublisher
             .receive(on: DispatchQueue.main)
             .weakAssign(to: \.state.userDisplayName, on: self)
-            .store(in: &cancellables)
-        
-        userSession.sessionSecurityStatePublisher
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] securityState in
-                guard let self else { return }
-                
-                // GUA FORK: the secure-backup section is upstream's recovery-key console, with
-                // a key-storage toggle, "set up recovery", "change recovery key" and "confirm
-                // recovery key". Every one of those is a thing Gua promises never to put in front
-                // of anyone, and the home-screen banner now repairs a broken account silently and
-                // escalates to a reset by itself, so nothing here is a user's last way out.
-                _ = securityState
-                state.showSecuritySectionBadge = false
-                state.securitySectionMode = .none
-            }
-            .store(in: &cancellables)
-        
-        userSession.clientProxy.ignoredUsersPublisher
-            .receive(on: DispatchQueue.main)
-            .map {
-                guard let blockedUsers = $0 else {
-                    return false
-                }
-                
-                return !blockedUsers.isEmpty
-            }
-            .weakAssign(to: \.state.showBlockedUsers, on: self)
             .store(in: &cancellables)
         
         Task {
@@ -96,12 +68,10 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
             actionsSubject.send(.reportBug)
         case .about:
             actionsSubject.send(.about)
-        case .blockedUsers:
-            actionsSubject.send(.blockedUsers)
+        case .moderationAndSafety:
+            actionsSubject.send(.moderationAndSafety)
         case .logout:
             actionsSubject.send(.logout)
-        case .secureBackup:
-            actionsSubject.send(.secureBackup)
         case .notifications:
             actionsSubject.send(.notifications)
         case .advancedSettings:

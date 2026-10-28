@@ -24,3 +24,5 @@
 "gua_encryption_repair_action" = "Dokončiť nastavenie";
 "gua_soft_logout_signin_notice" = "Boli ste odhlásení zo svojho účtu Gua. Prihláste sa znova a pokračujte.";
 "gua_join_room_by_address_hint" = "Vložte adresu miestnosti, ktorú ste dostali.";
+
+"common_app_settings" = "Nastavenia aplikácie";

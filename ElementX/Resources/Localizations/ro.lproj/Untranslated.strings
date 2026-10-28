@@ -24,3 +24,9 @@
 "gua_encryption_repair_action" = "Finalizează configurarea";
 "gua_soft_logout_signin_notice" = "Ai fost deconectat de la contul tău Gua. Conectează-te din nou pentru a continua.";
 "gua_join_room_by_address_hint" = "Lipește adresa camerei pe care ai primit-o.";
+
+"common_account_settings" = "Setări cont";
+"common_app_settings" = "Setările aplicației";
+
+"common_moderation_and_safety" = "Moderare și siguranță";
+"screen_moderation_and_safety_invites_heading" = "Invitații";

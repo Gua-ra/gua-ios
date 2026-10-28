@@ -467,6 +467,12 @@ extension PreviewTests {
         }
     }
 
+    func testModerationAndSafetySettingsScreen() async throws {
+        for (index, preview) in ModerationAndSafetySettingsScreen_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
     func testNoticeRoomTimelineView() async throws {
         for (index, preview) in NoticeRoomTimelineView_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)
@@ -1063,6 +1069,12 @@ extension PreviewTests {
 
     func testTombstonedAvatarImage() async throws {
         for (index, preview) in TombstonedAvatarImage_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    func testToolbarButton() async throws {
+        for (index, preview) in ToolbarButton_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)
         }
     }

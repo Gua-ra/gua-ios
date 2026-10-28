@@ -24,3 +24,9 @@
 "gua_encryption_repair_action" = "Selesaikan penyiapan";
 "gua_soft_logout_signin_notice" = "Anda telah keluar dari akun Gua. Masuk lagi untuk melanjutkan.";
 "gua_join_room_by_address_hint" = "Tempelkan alamat ruang yang Anda terima.";
+
+"common_account_settings" = "Pengaturan Akun";
+"common_app_settings" = "Pengaturan aplikasi";
+
+"common_moderation_and_safety" = "Moderasi & keamanan";
+"screen_moderation_and_safety_invites_heading" = "Undangan";

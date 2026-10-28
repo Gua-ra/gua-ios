@@ -311,6 +311,10 @@ extension AccessibilityTests {
         try await performAccessibilityAudit(named: "MessageText_Previews")
     }
 
+    func testModerationAndSafetySettingsScreen() async throws {
+        try await performAccessibilityAudit(named: "ModerationAndSafetySettingsScreen_Previews")
+    }
+
     func testNoticeRoomTimelineView() async throws {
         try await performAccessibilityAudit(named: "NoticeRoomTimelineView_Previews")
     }
@@ -709,6 +713,10 @@ extension AccessibilityTests {
 
     func testTombstonedAvatarImage() async throws {
         try await performAccessibilityAudit(named: "TombstonedAvatarImage_Previews")
+    }
+
+    func testToolbarButton() async throws {
+        try await performAccessibilityAudit(named: "ToolbarButton_Previews")
     }
 
     func testTwoStepVerificationScreen() async throws {

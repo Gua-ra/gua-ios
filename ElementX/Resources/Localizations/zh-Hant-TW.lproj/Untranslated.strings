@@ -24,3 +24,8 @@
 "gua_encryption_repair_action" = "完成設定";
 "gua_soft_logout_signin_notice" = "你已登出 Gua 帳號。請重新登入以繼續。";
 "gua_join_room_by_address_hint" = "貼上你收到的聊天室位址。";
+
+"common_account_settings" = "帳號設定";
+"common_app_settings" = "應用程式設定";
+
+"common_moderation_and_safety" = "內容審核與安全";
