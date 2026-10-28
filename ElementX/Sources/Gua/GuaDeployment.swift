@@ -42,6 +42,17 @@ enum GuaDeployment {
         }
     }
 
+    /// Keys the resolver's signed roster and routing policy are verified under. Development roots are
+    /// injected like the endpoints above; a build without any leaves the verifier inert.
+    var resolverTrustRoots: ResolverTrustRoots {
+        switch self {
+        case .production:
+            return .production
+        case .development:
+            return ResolverTrustRoots(developmentSecret: Secrets.resolverTrustRoots)
+        }
+    }
+
     /// identity-service base URL (phone/OTP IdP), or `nil` when unconfigured.
     var identityServiceBaseURL: URL? {
         switch self {

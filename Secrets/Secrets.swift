@@ -13,5 +13,7 @@ enum Secrets {
     static let identityServiceBaseURL: String? = "http://localhost:8080"
     static let resolverBaseURL: String? = "http://localhost:8095"
     static let defaultAccountProvider: String? = "localhost:8008"
+    // Resolver trust roots as `keyId:spkiBase64` pairs separated by commas; empty keeps the verifier inert.
+    static let resolverTrustRoots: String? = ""
 
 }

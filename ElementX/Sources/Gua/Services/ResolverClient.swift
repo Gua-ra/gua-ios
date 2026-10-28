@@ -28,6 +28,8 @@ struct HomeserverResolution: Equatable {
     /// Why the resolver decided what it did. Present only when the caller asked for a trace
     /// (`ResolveOptions.trace`); for debug and support tooling, never shown in the UI.
     var trace: DecisionTrace?
+    /// Whether the answer carried `exists` at all; without it a placement cannot be told from a directory hit.
+    var existsIsServed = true
 }
 
 /// Optional `POST /resolve` request fields of the resolver v1 contract. Every field is omitted from the
@@ -263,7 +265,7 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
             let region: String?
         }
         struct Response: Decodable {
-            let exists: Bool
+            let exists: Bool?
             let homeserver: HomeserverRef?
             let registerAt: HomeserverRef?
             let trace: DecisionTrace?
@@ -307,15 +309,17 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
             throw ResolverError.decoding(error)
         }
 
-        guard let ref = parsed.exists ? parsed.homeserver : parsed.registerAt else {
+        let exists = parsed.exists ?? (parsed.homeserver != nil)
+        guard let ref = exists ? parsed.homeserver : parsed.registerAt else {
             throw ResolverError.malformedResponse
         }
-        return HomeserverResolution(exists: parsed.exists,
+        return HomeserverResolution(exists: exists,
                                     homeserver: ResolvedHomeserver(serverName: ref.serverName,
                                                                    baseURL: ref.baseUrl,
                                                                    masIssuer: ref.masIssuer,
                                                                    region: ref.region),
-                                    trace: parsed.trace)
+                                    trace: parsed.trace,
+                                    existsIsServed: parsed.exists != nil)
     }
 
     /// Map a non-success `/resolve` response to a typed error. The resolver's error body is

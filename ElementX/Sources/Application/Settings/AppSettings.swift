@@ -72,6 +72,7 @@ final class AppSettings {
         case legacyAuthEnabled
         case guaHidesAdvancedEncryption
         case guaAccountGenesisEnabled
+        case guaResolverVerificationEnabled
         
         // Doug's tweaks 🔧
         case hideUnreadMessagesBadge
@@ -505,6 +506,12 @@ final class AppSettings {
     /// enabled and issuing would therefore break account creation there.
     @UserPreference(key: UserDefaultsKeys.guaAccountGenesisEnabled, defaultValue: false, storageType: .userDefaults(store))
     var guaAccountGenesisEnabled
+
+    /// GUA FORK: when `true` (the default), every resolver answer is verified in the background against the
+    /// signed roster, log and policy and the outcome is logged. Report-only: it never changes what the app
+    /// connects to. `false` is the kill switch.
+    @UserPreference(key: UserDefaultsKeys.guaResolverVerificationEnabled, defaultValue: true, storageType: .userDefaults(store))
+    var guaResolverVerificationEnabled
 
     @UserPreference(key: UserDefaultsKeys.developerOptionsEnabled, defaultValue: isDevelopmentBuild, storageType: .userDefaults(store))
     var developerOptionsEnabled
