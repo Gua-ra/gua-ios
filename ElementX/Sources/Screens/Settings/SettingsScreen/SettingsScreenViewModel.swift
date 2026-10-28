@@ -45,18 +45,6 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
             .weakAssign(to: \.state.userDisplayName, on: self)
             .store(in: &cancellables)
         
-        userSession.clientProxy.ignoredUsersPublisher
-            .receive(on: DispatchQueue.main)
-            .map {
-                guard let blockedUsers = $0 else {
-                    return false
-                }
-                
-                return !blockedUsers.isEmpty
-            }
-            .weakAssign(to: \.state.showBlockedUsers, on: self)
-            .store(in: &cancellables)
-        
         Task {
             await userSession.clientProxy.loadUserAvatarURL()
             await userSession.clientProxy.loadUserDisplayName()
@@ -80,8 +68,8 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
             actionsSubject.send(.reportBug)
         case .about:
             actionsSubject.send(.about)
-        case .blockedUsers:
-            actionsSubject.send(.blockedUsers)
+        case .moderationAndSafety:
+            actionsSubject.send(.moderationAndSafety)
         case .logout:
             actionsSubject.send(.logout)
         case .notifications:

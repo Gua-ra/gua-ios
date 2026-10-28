@@ -11,8 +11,6 @@ import SwiftUI
 struct AdvancedSettingsScreenCoordinatorParameters {
     let appSettings: AppSettings
     let analytics: AnalyticsService
-    let clientProxy: ClientProxyProtocol
-    let userIndicatorController: UserIndicatorControllerProtocol
 }
 
 final class AdvancedSettingsScreenCoordinator: CoordinatorProtocol {
@@ -20,9 +18,7 @@ final class AdvancedSettingsScreenCoordinator: CoordinatorProtocol {
     
     init(parameters: AdvancedSettingsScreenCoordinatorParameters) {
         viewModel = AdvancedSettingsScreenViewModel(advancedSettings: parameters.appSettings,
-                                                    analytics: parameters.analytics,
-                                                    clientProxy: parameters.clientProxy,
-                                                    userIndicatorController: parameters.userIndicatorController)
+                                                    analytics: parameters.analytics)
     }
             
     func toPresentable() -> AnyView {

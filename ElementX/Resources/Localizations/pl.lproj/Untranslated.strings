@@ -30,3 +30,6 @@
 
 "common_account_settings" = "Ustawienia konta";
 "common_app_settings" = "Ustawienia aplikacji";
+
+"common_moderation_and_safety" = "Moderacja i bezpieczeństwo";
+"screen_moderation_and_safety_invites_heading" = "Zaproszenia";

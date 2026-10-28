@@ -467,6 +467,12 @@ extension PreviewTests {
         }
     }
 
+    func testModerationAndSafetySettingsScreen() async throws {
+        for (index, preview) in ModerationAndSafetySettingsScreen_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
     func testNoticeRoomTimelineView() async throws {
         for (index, preview) in NoticeRoomTimelineView_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)

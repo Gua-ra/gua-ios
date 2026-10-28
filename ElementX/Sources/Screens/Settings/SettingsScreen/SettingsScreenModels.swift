@@ -16,7 +16,7 @@ enum SettingsScreenViewModelAction: Equatable {
     case appLock
     case reportBug
     case about
-    case blockedUsers
+    case moderationAndSafety
     case notifications
     case advancedSettings
     case developerOptions
@@ -41,7 +41,6 @@ struct SettingsScreenViewState: BindableState {
         userID.hasPrefix("@") ? String(userID.dropFirst().prefix { $0 != ":" }) : userID
     }
     
-    var showBlockedUsers = false
     let showAnalyticsSettings: Bool
     
     let isBugReportServiceEnabled: Bool
@@ -71,7 +70,7 @@ enum SettingsScreenViewAction {
     case appLock
     case reportBug
     case about
-    case blockedUsers
+    case moderationAndSafety
     case manageAccount(url: URL)
     case notifications
     case enableDeveloperOptions

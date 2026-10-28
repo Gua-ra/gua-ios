@@ -111,3 +111,6 @@
 
 "common_account_settings" = "Account settings";
 "common_app_settings" = "App settings";
+
+"common_moderation_and_safety" = "Moderation & safety";
+"screen_moderation_and_safety_invites_heading" = "Invites";

@@ -30,3 +30,6 @@
 
 "common_account_settings" = "账户设置";
 "common_app_settings" = "应用设置";
+
+"common_moderation_and_safety" = "尺度与安全";
+"screen_moderation_and_safety_invites_heading" = "邀请";

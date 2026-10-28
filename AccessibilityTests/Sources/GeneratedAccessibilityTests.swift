@@ -311,6 +311,10 @@ extension AccessibilityTests {
         try await performAccessibilityAudit(named: "MessageText_Previews")
     }
 
+    func testModerationAndSafetySettingsScreen() async throws {
+        try await performAccessibilityAudit(named: "ModerationAndSafetySettingsScreen_Previews")
+    }
+
     func testNoticeRoomTimelineView() async throws {
         try await performAccessibilityAudit(named: "NoticeRoomTimelineView_Previews")
     }
