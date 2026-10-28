@@ -108,7 +108,8 @@ struct MessageMenuLayout: Equatable {
     /// The bubble's frame, moved to fit and clipped if taller than the space left.
     let bubbleFrame: CGRect
     let reactionBarFrame: CGRect?
-    let actionsFrame: CGRect?
+    /// The card under the bubble: the actions after a long press, who reacted after a double tap.
+    let detailsFrame: CGRect?
 
     static let spacing: CGFloat = 8
     static let margin: CGFloat = 12
@@ -118,9 +119,9 @@ struct MessageMenuLayout: Equatable {
          isOutgoing: Bool,
          container: CGRect,
          reactionBarSize: CGSize?,
-         actionsSize: CGSize?) {
+         detailsSize: CGSize?) {
         let top = container.minY + (reactionBarSize.map { $0.height + Self.spacing } ?? 0)
-        let bottom = container.maxY - (actionsSize.map { $0.height + Self.spacing } ?? 0)
+        let bottom = container.maxY - (detailsSize.map { $0.height + Self.spacing } ?? 0)
         let height = max(0, min(sourceFrame.height, bottom - top))
         let y = min(max(sourceFrame.minY, top), bottom - height)
         let bubble = CGRect(x: sourceFrame.minX, y: y, width: sourceFrame.width, height: height)
@@ -134,6 +135,46 @@ struct MessageMenuLayout: Equatable {
         
         bubbleFrame = bubble
         reactionBarFrame = reactionBarSize.map { aligned($0, y: bubble.minY - Self.spacing - $0.height) }
-        actionsFrame = actionsSize.map { aligned($0, y: bubble.maxY + Self.spacing) }
+        detailsFrame = detailsSize.map { aligned($0, y: bubble.maxY + Self.spacing) }
+    }
+}
+
+/// One person in the list of who reacted, shown under the bubble after a double tap.
+struct MessageReactionSummaryRow: Equatable, Identifiable {
+    /// The user ID of the person who reacted.
+    let id: String
+    let isOwnUser: Bool
+    /// In the order the message shows its reactions.
+    let keys: [String]
+    
+    /// The current user first, then everyone else by their earliest reaction, oldest first.
+    static func rows(for reactions: [AggregatedReaction]) -> [MessageReactionSummaryRow] {
+        var keys: [String: [String]] = [:]
+        var earliest: [String: Date] = [:]
+        var ownUserID: String?
+        
+        for reaction in reactions {
+            for sender in reaction.senders {
+                if keys[sender.id]?.contains(reaction.key) != true {
+                    keys[sender.id, default: []].append(reaction.key)
+                }
+                earliest[sender.id] = min(earliest[sender.id] ?? sender.timestamp, sender.timestamp)
+                if sender.id == reaction.accountOwnerID {
+                    ownUserID = sender.id
+                }
+            }
+        }
+        
+        let userIDs = keys.keys.sorted { lhs, rhs in
+            if lhs == ownUserID || rhs == ownUserID {
+                return lhs == ownUserID
+            }
+            if earliest[lhs] != earliest[rhs] {
+                return earliest[lhs] ?? .distantFuture < earliest[rhs] ?? .distantFuture
+            }
+            return lhs < rhs
+        }
+        
+        return userIDs.map { MessageReactionSummaryRow(id: $0, isOwnUser: $0 == ownUserID, keys: keys[$0] ?? []) }
     }
 }

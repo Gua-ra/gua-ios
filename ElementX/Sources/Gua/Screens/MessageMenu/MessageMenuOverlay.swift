@@ -21,7 +21,8 @@ struct MessageMenuOverlay: View {
 
     @State private var isVisible: Bool
     @State private var isShowingMore: Bool
-    @State private var actionsHeight: CGFloat = 0
+    @State private var detailsHeight: CGFloat = 0
+    @State private var reactionSummaryHeight: CGFloat = 0
 
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .heavy)
 
@@ -49,6 +50,14 @@ struct MessageMenuOverlay: View {
         presentation.showsActions && !(sections.primary.isEmpty && sections.more.isEmpty && sections.destructive.isEmpty)
     }
 
+    private var reactionRows: [MessageReactionSummaryRow] {
+        MessageReactionSummaryRow.rows(for: item.properties.reactions)
+    }
+
+    private var showsDetails: Bool {
+        showsActions || (!presentation.showsActions && !reactionRows.isEmpty)
+    }
+
     var body: some View {
         ZStack {
             backdrop
@@ -60,7 +69,7 @@ struct MessageMenuOverlay: View {
                                                isOutgoing: item.isOutgoing,
                                                container: CGRect(origin: .zero, size: geometry.size).insetBy(dx: 0, dy: MessageMenuLayout.spacing),
                                                reactionBarSize: actions.reactions.isEmpty ? nil : reactionBarSize(in: geometry.size),
-                                               actionsSize: showsActions ? CGSize(width: Self.actionsWidth, height: actionsHeight) : nil)
+                                               detailsSize: showsDetails ? CGSize(width: Self.detailsWidth, height: detailsHeight) : nil)
 
                 ZStack(alignment: .topLeading) {
                     bubble(width: sourceFrame.width)
@@ -77,12 +86,12 @@ struct MessageMenuOverlay: View {
                             .offset(x: frame.minX, y: frame.minY)
                     }
 
-                    if let frame = layout.actionsFrame {
-                        actionList
+                    if let frame = layout.detailsFrame {
+                        details
                             .frame(width: frame.width)
-                            .readHeight($actionsHeight)
+                            .readHeight($detailsHeight)
                             .scaleEffect(isVisible ? 1 : 0.5, anchor: item.isOutgoing ? .topTrailing : .topLeading)
-                            .opacity(isVisible && actionsHeight > 0 ? 1 : 0)
+                            .opacity(isVisible && detailsHeight > 0 ? 1 : 0)
                             .offset(x: frame.minX, y: frame.minY)
                     }
                 }
@@ -182,7 +191,16 @@ struct MessageMenuOverlay: View {
 
     // MARK: - Actions
 
-    private static let actionsWidth: CGFloat = 250
+    private static let detailsWidth: CGFloat = 250
+
+    @ViewBuilder
+    private var details: some View {
+        if showsActions {
+            actionList
+        } else {
+            reactionSummary
+        }
+    }
 
     private var actionList: some View {
         VStack(spacing: 0) {
@@ -233,6 +251,59 @@ struct MessageMenuOverlay: View {
             action.label
         }
         .buttonStyle(MessageMenuButtonStyle())
+    }
+
+    // MARK: - Who reacted
+
+    private static let summaryRowHeight: CGFloat = 48
+
+    private var reactionSummary: some View {
+        ScrollView {
+            reactionSummaryRows
+                .readHeight($reactionSummaryHeight)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .frame(height: min(reactionSummaryHeight, 5.5 * Self.summaryRowHeight))
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.12), radius: 10, y: 3)
+    }
+
+    private var reactionSummaryRows: some View {
+        VStack(spacing: 0) {
+            ForEach(reactionRows) { row in
+                reactionSummaryRow(row)
+            }
+        }
+    }
+
+    private func reactionSummaryRow(_ row: MessageReactionSummaryRow) -> some View {
+        let member = context.viewState.members[row.id]
+        let memberName = member?.displayName ?? row.id.guaDisplayHandle
+
+        return HStack(spacing: 12) {
+            LoadableAvatarImage(url: member?.avatarURL,
+                                name: memberName,
+                                contentID: row.id,
+                                avatarSize: .user(on: .timeline),
+                                mediaProvider: context.mediaProvider)
+                .accessibilityHidden(true)
+
+            Text(row.isOwnUser ? L10n.commonYou : memberName)
+                .font(.compound.bodyLG)
+                .foregroundStyle(.compound.textPrimary)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text(row.keys.joined(separator: " "))
+                .font(.system(size: 20))
+                .multilineTextAlignment(.trailing)
+                .frame(maxWidth: 110, alignment: .trailing)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 16)
+        .frame(minHeight: Self.summaryRowHeight)
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - Dismissal
@@ -313,9 +384,26 @@ struct MessageMenuOverlay_Previews: PreviewProvider, TestablePreview {
                                                    sender: .init(id: "@voce:gua", displayName: "Você"),
                                                    content: .init(body: "Que paz nesse lugar 😍"))
 
+    static let reactedItem = {
+        let me = RoomMemberProxyMock.mockMe.userID
+        func sender(_ id: String, _ minute: Double) -> ReactionSender {
+            ReactionSender(id: id, timestamp: Date(timeIntervalSince1970: minute * 60))
+        }
+        
+        var item = incomingItem
+        item.properties.reactions = [
+            AggregatedReaction(accountOwnerID: me, key: "❤️", senders: [sender("@camila:gua", 1), sender(me, 3), sender("@rafa:gua", 4)]),
+            AggregatedReaction(accountOwnerID: me, key: "😂", senders: [sender("@rafa:gua", 2)])
+        ]
+        return item
+    }()
+    
     static var previews: some View {
         overlay(item: incomingItem, presentation: .reactions(sourceFrame: CGRect(x: 16, y: 320, width: 300, height: 82)))
             .previewDisplayName("Double tap")
+        
+        overlay(item: reactedItem, presentation: .reactions(sourceFrame: CGRect(x: 16, y: 240, width: 300, height: 82)))
+            .previewDisplayName("Double tap with reactions")
 
         overlay(item: incomingItem, presentation: .reactionsAndActions(sourceFrame: CGRect(x: 16, y: 240, width: 300, height: 82)))
             .previewDisplayName("Long press")

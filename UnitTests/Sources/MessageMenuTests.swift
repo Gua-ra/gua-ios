@@ -98,51 +98,81 @@ class MessageMenuTests: XCTestCase {
     func testBubbleWithRoomStaysWhereItWas() {
         let source = CGRect(x: 16, y: 300, width: 250, height: 80)
         let layout = MessageMenuLayout(sourceFrame: source, isOutgoing: false, container: container,
-                                       reactionBarSize: CGSize(width: 330, height: 56), actionsSize: CGSize(width: 250, height: 200))
+                                       reactionBarSize: CGSize(width: 330, height: 56), detailsSize: CGSize(width: 250, height: 200))
 
         XCTAssertEqual(layout.bubbleFrame, source)
         XCTAssertEqual(layout.reactionBarFrame, CGRect(x: 16, y: 236, width: 330, height: 56))
-        XCTAssertEqual(layout.actionsFrame, CGRect(x: 16, y: 388, width: 250, height: 200))
+        XCTAssertEqual(layout.detailsFrame, CGRect(x: 16, y: 388, width: 250, height: 200))
     }
 
     func testBubbleNearTheTopMovesDownForTheReactions() {
         let source = CGRect(x: 16, y: 70, width: 250, height: 80)
         let layout = MessageMenuLayout(sourceFrame: source, isOutgoing: false, container: container,
-                                       reactionBarSize: CGSize(width: 330, height: 56), actionsSize: nil)
+                                       reactionBarSize: CGSize(width: 330, height: 56), detailsSize: nil)
 
         XCTAssertEqual(layout.bubbleFrame.minY, 60 + 56 + 8)
         XCTAssertEqual(layout.reactionBarFrame?.minY, 60)
-        XCTAssertNil(layout.actionsFrame)
+        XCTAssertNil(layout.detailsFrame)
     }
 
     func testOutgoingBubbleNearTheBottomMovesUpAndAlignsTrailing() {
         let source = CGRect(x: 200, y: 760, width: 180, height: 44)
         let layout = MessageMenuLayout(sourceFrame: source, isOutgoing: true, container: container,
-                                       reactionBarSize: CGSize(width: 330, height: 56), actionsSize: CGSize(width: 250, height: 300))
+                                       reactionBarSize: CGSize(width: 330, height: 56), detailsSize: CGSize(width: 250, height: 300))
 
         XCTAssertEqual(layout.bubbleFrame.maxY, container.maxY - 300 - 8)
-        XCTAssertEqual(layout.actionsFrame?.maxX, source.maxX)
+        XCTAssertEqual(layout.detailsFrame?.maxX, source.maxX)
         XCTAssertEqual(layout.reactionBarFrame?.maxX, source.maxX)
     }
 
     func testMenuStaysClearOfTheScreenEdges() {
         let source = CGRect(x: 230, y: 300, width: 168, height: 44)
         let layout = MessageMenuLayout(sourceFrame: source, isOutgoing: true, container: container,
-                                       reactionBarSize: CGSize(width: 514, height: 56), actionsSize: CGSize(width: 250, height: 200))
+                                       reactionBarSize: CGSize(width: 514, height: 56), detailsSize: CGSize(width: 250, height: 200))
 
         XCTAssertEqual(layout.reactionBarFrame, CGRect(x: 12, y: 236, width: 376, height: 56))
-        XCTAssertEqual(layout.actionsFrame?.maxX, container.maxX - MessageMenuLayout.margin)
+        XCTAssertEqual(layout.detailsFrame?.maxX, container.maxX - MessageMenuLayout.margin)
     }
 
     func testTallBubbleIsClippedToTheSpaceLeft() {
         let source = CGRect(x: 16, y: 0, width: 300, height: 2000)
         let layout = MessageMenuLayout(sourceFrame: source, isOutgoing: false, container: container,
-                                       reactionBarSize: CGSize(width: 330, height: 56), actionsSize: CGSize(width: 250, height: 300))
+                                       reactionBarSize: CGSize(width: 330, height: 56), detailsSize: CGSize(width: 250, height: 300))
 
         XCTAssertEqual(layout.bubbleFrame.minY, 60 + 56 + 8)
         XCTAssertEqual(layout.bubbleFrame.height, 760 - 56 - 8 - 300 - 8)
     }
 
+    // MARK: - Who reacted
+    
+    func testWhoReactedListsTheCurrentUserFirstThenOldestFirst() {
+        let reactions = [
+            AggregatedReaction(accountOwnerID: "@me:gua", key: "❤️", senders: [sender("@rafa:gua", 3), sender("@me:gua", 5), sender("@camila:gua", 1)]),
+            AggregatedReaction(accountOwnerID: "@me:gua", key: "😂", senders: [sender("@bia:gua", 2)])
+        ]
+        
+        let rows = MessageReactionSummaryRow.rows(for: reactions)
+        
+        XCTAssertEqual(rows.map(\.id), ["@me:gua", "@camila:gua", "@bia:gua", "@rafa:gua"])
+        XCTAssertEqual(rows.map(\.isOwnUser), [true, false, false, false])
+    }
+    
+    func testWhoReactedGroupsEachPersonsEmojiInMessageOrder() {
+        let reactions = [
+            AggregatedReaction(accountOwnerID: "@me:gua", key: "👍️", senders: [sender("@camila:gua", 4)]),
+            AggregatedReaction(accountOwnerID: "@me:gua", key: "❤️", senders: [sender("@camila:gua", 1), sender("@rafa:gua", 1)])
+        ]
+        
+        let rows = MessageReactionSummaryRow.rows(for: reactions)
+        
+        XCTAssertEqual(rows, [MessageReactionSummaryRow(id: "@camila:gua", isOwnUser: false, keys: ["👍️", "❤️"]),
+                              MessageReactionSummaryRow(id: "@rafa:gua", isOwnUser: false, keys: ["❤️"])])
+    }
+    
+    func testNoReactionsMeansNobodyToList() {
+        XCTAssertEqual(MessageReactionSummaryRow.rows(for: []), [])
+    }
+    
     // MARK: - View model
 
     func testDoubleTapShowsReactionsOverTheBubble() async throws {
@@ -195,6 +225,10 @@ class MessageMenuTests: XCTestCase {
     }
 
     // MARK: - Helpers
+    
+    private func sender(_ id: String, _ minute: Double) -> ReactionSender {
+        ReactionSender(id: id, timestamp: Date(timeIntervalSince1970: minute * 60))
+    }
 
     private func makeTextItem(isOutgoing: Bool, body: String = "Me mudei pra Floripa ano passado") -> TextRoomTimelineItem {
         TextRoomTimelineItem(id: .randomEvent,
