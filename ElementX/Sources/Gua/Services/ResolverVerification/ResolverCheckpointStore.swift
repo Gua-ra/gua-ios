@@ -10,8 +10,8 @@ import Foundation
 /// The last transparency-log checkpoint this install accepted, per resolver base URL. It moves forward only
 /// after a consistency proof verified, so a rewritten history is caught against it.
 protocol ResolverCheckpointStoring: Sendable {
-    func checkpoint(for baseURL: URL) -> RosterLogCheckpoint?
-    func store(_ checkpoint: RosterLogCheckpoint, for baseURL: URL)
+    func checkpoint(for baseURL: URL) throws -> RosterLogCheckpoint?
+    func store(_ checkpoint: RosterLogCheckpoint, for baseURL: URL) throws
 }
 
 final class UserDefaultsResolverCheckpointStore: ResolverCheckpointStoring, @unchecked Sendable {
@@ -21,14 +21,13 @@ final class UserDefaultsResolverCheckpointStore: ResolverCheckpointStoring, @unc
         self.defaults = defaults
     }
 
-    func checkpoint(for baseURL: URL) -> RosterLogCheckpoint? {
+    func checkpoint(for baseURL: URL) throws -> RosterLogCheckpoint? {
         guard let data = defaults.data(forKey: key(for: baseURL)) else { return nil }
-        return try? JSONDecoder().decode(RosterLogCheckpoint.self, from: data)
+        return try JSONDecoder().decode(RosterLogCheckpoint.self, from: data)
     }
 
-    func store(_ checkpoint: RosterLogCheckpoint, for baseURL: URL) {
-        guard let data = try? JSONEncoder().encode(checkpoint) else { return }
-        defaults.set(data, forKey: key(for: baseURL))
+    func store(_ checkpoint: RosterLogCheckpoint, for baseURL: URL) throws {
+        try defaults.set(JSONEncoder().encode(checkpoint), forKey: key(for: baseURL))
     }
 
     private func key(for baseURL: URL) -> String {

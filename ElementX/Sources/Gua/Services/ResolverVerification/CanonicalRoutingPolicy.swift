@@ -48,12 +48,14 @@ enum CanonicalRoutingPolicy {
         return Array(text.utf8)
     }
 
-    /// The rule order shared by the bundle and the per-zone form: priority, then id with nulls last.
+    /// The rule order of the bundle, the per-zone form and placement: priority, then id with nulls last.
     static func sortedRules(_ rules: [RoutingPolicyRule]) -> [RoutingPolicyRule] {
-        rules.stableSorted { lhs, rhs in
-            if lhs.priority != rhs.priority { return lhs.priority < rhs.priority ? -1 : 1 }
-            return JavaStringOrder.compare(lhs.id, rhs.id)
-        }
+        rules.stableSorted(by: compareRules)
+    }
+
+    static func compareRules(_ lhs: RoutingPolicyRule, _ rhs: RoutingPolicyRule) -> Int {
+        if lhs.priority != rhs.priority { return lhs.priority < rhs.priority ? -1 : 1 }
+        return JavaStringOrder.compare(lhs.id, rhs.id)
     }
 
     private static func zoneLine(_ zone: DelegationZone) -> String? {

@@ -17,10 +17,10 @@ enum ResolverSignatureCounter {
         let known: Int
 
         /// Why the signatures fall short of `threshold`, or `nil` when they meet it.
-        func failureReason(threshold: Int) -> String? {
+        func failureReason(threshold: Int) -> ResolverVerificationReason? {
             guard valid < threshold else { return nil }
-            if known == 0 { return "unknown_key_id" }
-            return valid == 0 ? "bad_signature" : "threshold_not_met"
+            if known == 0 { return .unknownKeyId }
+            return valid == 0 ? .badSignature : .thresholdNotMet
         }
     }
 

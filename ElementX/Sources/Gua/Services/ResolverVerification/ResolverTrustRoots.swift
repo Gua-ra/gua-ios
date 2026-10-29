@@ -22,10 +22,6 @@ struct ResolverTrustRoots: Equatable {
     let policyKeys: [ResolverTrustedKey]
     let policyThreshold: Int
 
-    var hasAuthorityKeys: Bool {
-        !authorityKeys.isEmpty
-    }
-
     /// No keys at all: the verifier reports every answer as unverifiable and fetches nothing.
     static let empty = ResolverTrustRoots(authorityKeys: [], authorityThreshold: 1, policyKeys: [], policyThreshold: 1)
 

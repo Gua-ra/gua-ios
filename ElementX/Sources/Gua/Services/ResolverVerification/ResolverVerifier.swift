@@ -15,56 +15,63 @@ protocol ResolverVerifying: Sendable {
     func startVerification(of resolution: HomeserverResolution, phoneNumber: String)
 }
 
-/// Report-only verification of the resolver's answer against its signed artifacts: the roster under the pinned
-/// authority keys, the returned homeserver as an ACTIVE entry, the member self-signature, the log checkpoint
-/// against the last one accepted, the routing policy when served, and the placement reproduced locally.
+/// Report-only verification of a resolver answer: the signed roster, the answer's entry and its member signature,
+/// the log checkpoint against the last one accepted, the routing policy, and the placement reproduced locally.
 final class ResolverVerifier: ResolverVerifying {
-    private let baseURL: URL
-    private let trustRoots: ResolverTrustRoots
-    private let environment: String
-    private let isEnabled: @Sendable () -> Bool
-    private let session: URLSession
-    private let checkpointStore: ResolverCheckpointStoring
-    private let budget: TimeInterval
-    private let clock: @Sendable () -> Int64
-    private let authorityKeys: [String: Curve25519.Signing.PublicKey]
-    private let policyKeys: [String: Curve25519.Signing.PublicKey]
+    typealias Report = ResolverVerificationReport
+    typealias Reason = ResolverVerificationReason
 
-    private let latestReport = OSAllocatedUnfairLock<ResolverVerificationReport?>(initialState: nil)
+    /// The largest checkpoint whose log is fetched to bind the policy to it.
+    static let maxLogSize = 4096
+
+    private let baseURL: URL
+    private let environment: String
+    private let authorityKeys: [String: Curve25519.Signing.PublicKey]
+    private let authorityThreshold: Int
+    private let policyKeys: [String: Curve25519.Signing.PublicKey]
+    private let policyThreshold: Int
+    private let checkpointStore: ResolverCheckpointStoring
+    private let fetcher: ResolverDocumentFetcher
+    private let budget: Duration
+    private let now: @Sendable () -> Int64
+    private let isEnabled: @Sendable () -> Bool
+    private let latestReport = OSAllocatedUnfairLock<Report?>(initialState: nil)
 
     /// The most recent report, for tests and diagnostics.
-    var lastReport: ResolverVerificationReport? {
+    var lastReport: Report? {
         latestReport.withLock { $0 }
     }
 
+    /// `now` is the wall clock in epoch milliseconds, for validity windows; the budget runs on a monotonic clock.
     init(baseURL: URL,
          trustRoots: ResolverTrustRoots,
          environment: String,
          checkpointStore: ResolverCheckpointStoring = UserDefaultsResolverCheckpointStore(),
          session: URLSession? = nil,
-         budget: TimeInterval = 10,
-         clock: @escaping @Sendable () -> Int64 = { Int64(Date().timeIntervalSince1970 * 1000) },
+         budget: Duration = .seconds(10),
+         now: @escaping @Sendable () -> Int64 = { Int64(Date().timeIntervalSince1970 * 1000) },
          isEnabled: @escaping @Sendable () -> Bool) {
         self.baseURL = baseURL
-        self.trustRoots = trustRoots
         self.environment = environment
-        self.isEnabled = isEnabled
+        authorityKeys = ResolverSignatureCounter.keys(trustRoots.authorityKeys)
+        authorityThreshold = trustRoots.authorityThreshold
+        policyKeys = ResolverSignatureCounter.keys(trustRoots.policyKeys)
+        policyThreshold = trustRoots.policyThreshold
         self.checkpointStore = checkpointStore
         self.budget = budget
-        self.clock = clock
-        authorityKeys = ResolverSignatureCounter.keys(trustRoots.authorityKeys)
-        policyKeys = ResolverSignatureCounter.keys(trustRoots.policyKeys)
+        self.now = now
+        self.isEnabled = isEnabled
         if let session {
-            self.session = session
+            fetcher = ResolverDocumentFetcher(baseURL: baseURL, session: session)
         } else {
             let configuration = URLSessionConfiguration.ephemeral
-            configuration.timeoutIntervalForRequest = budget
-            configuration.timeoutIntervalForResource = budget
-            self.session = URLSession(configuration: configuration)
+            configuration.timeoutIntervalForRequest = budget / .seconds(1)
+            configuration.timeoutIntervalForResource = budget / .seconds(1)
+            fetcher = ResolverDocumentFetcher(baseURL: baseURL, session: URLSession(configuration: configuration))
         }
     }
 
-    /// Convenience initializer for the app. Returns `nil` when the deployment has no resolver.
+    /// `nil` when the deployment has no resolver.
     convenience init?(appSettings: AppSettings) {
         let deployment = GuaDeployment.current
         guard let baseURL = deployment.resolverBaseURL else { return nil }
@@ -81,301 +88,289 @@ final class ResolverVerifier: ResolverVerifying {
     }
 
     /// Runs every check and returns the report, or `nil` when the kill switch is off.
-    func verify(resolution: HomeserverResolution, phoneNumber: String) async -> ResolverVerificationReport? {
+    func verify(resolution: HomeserverResolution, phoneNumber: String) async -> Report? {
         guard isEnabled() else { return nil }
-        let started = Date()
-        var draft = Draft()
-        await run(resolution: resolution, phoneNumber: phoneNumber, deadline: started.addingTimeInterval(budget), draft: &draft)
-        let report = draft.report(environment: environment, durationMs: Int(Date().timeIntervalSince(started) * 1000))
+        let report = await ResolverRunQueue.shared.run(for: baseURL) { [self] in
+            await run(resolution, phoneNumber: phoneNumber)
+        }
         latestReport.withLock { $0 = report }
         MXLog.info("Resolver verification \(report.logDescription)")
         return report
     }
 
-    // MARK: - Checks
-
-    private func run(resolution: HomeserverResolution, phoneNumber: String, deadline: Date, draft: inout Draft) async {
-        guard trustRoots.hasAuthorityKeys else {
-            draft.failEarly(unverifiable: "no_trust_roots")
-            return
-        }
-        guard !authorityKeys.isEmpty else {
-            draft.failEarly(unverifiable: "crypto_unsupported")
-            return
-        }
-
-        let roster: SignedRosterDocument
-        let malformedMembers: Set<Int>
+    private func run(_ resolution: HomeserverResolution, phoneNumber: String) async -> Report {
+        let started = ContinuousClock.now
+        let deadline = started + budget
+        let roster: VerifiedRoster
         do {
-            let data = try await fetch("/roster", deadline: deadline)
-            guard let flagged = StrictJSONScanner.entriesWithDuplicateMemberKeys(in: data) else {
-                draft.failEarly(unverifiable: "parse_error")
-                return
-            }
-            malformedMembers = flagged
-            roster = try JSONDecoder().decode(SignedRosterDocument.self, from: data)
-        } catch let error as FetchError {
-            draft.failEarly(unverifiable: error.reason(unavailable: "roster_unavailable"))
-            return
+            roster = try await verifyRoster(deadline: deadline)
         } catch {
-            draft.failEarly(unverifiable: "parse_error")
-            return
+            return report(stoppedAt: error, started: started)
         }
-        draft.rosterVersion = roster.version
+        let checkpoint = roster.document.logCheckpoint
+        let logConsistency = await checkLogConsistency(of: checkpoint, deadline: deadline)
+        let policy = await checkPolicy(under: checkpoint, deadline: deadline)
+        let located = Self.locate(resolution.homeserver, in: roster.document)
+        return Report(environment: environment, rosterVersion: roster.document.version, rosterForm: roster.form.rawValue,
+                      rosterSignature: .valid, homeserverMatch: located.match, memberEntry: checkMember(of: located),
+                      logConsistency: logConsistency, policy: policy.outcome,
+                      placement: checkPlacement(of: resolution, phoneNumber: phoneNumber, roster: roster.document, policy: policy),
+                      durationMs: Self.milliseconds(since: started))
+    }
 
-        guard let form = CanonicalRoster.form(of: roster) else {
-            draft.rosterForm = "mixed"
-            draft.failEarly(unverifiable: "mixed_roster_form")
-            return
+    // MARK: - Roster
+
+    private struct VerifiedRoster {
+        let document: SignedRosterDocument
+        let form: RosterForm
+    }
+
+    /// Why a run stopped at the roster. An invalid roster leaves the other checks `roster_unverified`; an
+    /// unverifiable one passes its own reason on.
+    private struct RosterStop: Error {
+        let rosterSignature: Report.RosterSignature
+        let dependentReason: Reason
+        let rosterForm: String?
+
+        static func unverifiable(_ reason: Reason, rosterForm: String? = nil) -> RosterStop {
+            RosterStop(rosterSignature: .unverifiable(reason), dependentReason: reason, rosterForm: rosterForm)
         }
-        draft.rosterForm = form.rawValue
+
+        static func invalid(_ reason: Reason, rosterForm: RosterForm) -> RosterStop {
+            RosterStop(rosterSignature: .invalid(reason), dependentReason: .rosterUnverified, rosterForm: rosterForm.rawValue)
+        }
+    }
+
+    private func verifyRoster(deadline: ContinuousClock.Instant) async throws(RosterStop) -> VerifiedRoster {
+        guard !authorityKeys.isEmpty else { throw .unverifiable(.noTrustRoots) }
+        let roster = try await loadRoster(deadline: deadline)
+        guard let form = CanonicalRoster.form(of: roster) else { throw .unverifiable(.mixedRosterForm, rosterForm: "mixed") }
         guard let canonical = CanonicalRoster.bytes(of: roster, form: form) else {
-            draft.failEarly(unverifiable: "parse_error")
-            return
+            throw .unverifiable(.parseError, rosterForm: form.rawValue)
         }
-
         let count = ResolverSignatureCounter.count(signatures: roster.authoritySignatures.map { ($0.authorityKeyId, $0.signatureB64) },
                                                    over: canonical, keys: authorityKeys)
-        if let failure = count.failureReason(threshold: trustRoots.authorityThreshold) {
-            draft.failEarly(invalid: failure)
-            return
-        }
-        draft.rosterSignature = .valid
-
-        let answer = resolution.homeserver
-        draft.homeserverMatch = Self.locate(serverName: answer.serverName, baseUrl: answer.baseURL, masIssuer: answer.masIssuer, in: roster)
-        draft.memberEntry = memberEntry(for: answer, in: roster, malformedMembers: malformedMembers)
-        draft.logConsistency = await logConsistency(of: roster.logCheckpoint, deadline: deadline)
-
-        let policy = await verifyPolicy(roster: roster, deadline: deadline)
-        draft.policy = policy.outcome
-
-        draft.placement = await placement(resolution: resolution, phoneNumber: phoneNumber, roster: roster, policy: policy)
+        if let failure = count.failureReason(threshold: authorityThreshold) { throw .invalid(failure, rosterForm: form) }
+        return VerifiedRoster(document: roster, form: form)
     }
 
-    /// How the answer relates to the roster. Only an ACTIVE entry with exactly these fields may be connected to:
-    /// a known server name with another base URL or issuer is the shape of a redirect to another host.
-    static func locate(serverName: String, baseUrl: String, masIssuer: String?, in roster: SignedRosterDocument) -> ResolverVerificationReport.HomeserverMatch {
-        var best = ResolverVerificationReport.HomeserverMatch.notInRoster
-        for entry in roster.entries where entry.homeserver.serverName == serverName {
-            let sameEndpoint = entry.homeserver.baseUrl == baseUrl && entry.homeserver.masIssuer == masIssuer
-            if sameEndpoint, entry.isActive { return .activeMatch }
-            best = sameEndpoint ? .inactive : .fieldMismatch
-        }
-        return best
-    }
-
-    private func memberEntry(for answer: ResolvedHomeserver, in roster: SignedRosterDocument, malformedMembers: Set<Int>) -> ResolverVerificationReport.MemberEntry {
-        guard let index = roster.entries.firstIndex(where: { $0.homeserver.hasEndpoint(of: answer) }) else {
-            return .unverifiable
-        }
-        let entry = roster.entries[index]
-        if entry.memberIsMalformed || malformedMembers.contains(index) { return .invalid(reason: "parse_error") }
-        switch MemberEntryVerifier.verify(homeserver: entry.homeserver, member: entry.member, atEpochMilliseconds: clock()) {
-        case .valid: return .valid
-        case .unattested: return .unattested
-        case .invalid(let reason): return .invalid(reason: reason)
+    private func loadRoster(deadline: ContinuousClock.Instant) async throws(RosterStop) -> SignedRosterDocument {
+        do {
+            return try await fetcher.document(SignedRosterDocument.self, at: "/roster", deadline: deadline)
+        } catch {
+            throw .unverifiable(error.reason(unavailable: .rosterUnavailable))
         }
     }
 
-    private func logConsistency(of served: RosterLogCheckpoint, deadline: Date) async -> ResolverVerificationReport.LogConsistency {
-        guard let pinned = checkpointStore.checkpoint(for: baseURL), pinned.size > 0 else {
-            checkpointStore.store(served, for: baseURL)
-            return .firstSeen
+    private func report(stoppedAt stop: RosterStop, started: ContinuousClock.Instant) -> Report {
+        let reason = stop.dependentReason
+        return Report(environment: environment, rosterVersion: nil, rosterForm: stop.rosterForm, rosterSignature: stop.rosterSignature,
+                      homeserverMatch: .unverifiable(reason), memberEntry: .unverifiable(reason), logConsistency: .unverifiable(reason),
+                      policy: .unverifiable(reason), placement: .unverifiable(reason), durationMs: Self.milliseconds(since: started))
+    }
+
+    // MARK: - Answer in the roster
+
+    /// Where an answer sits in the roster: the strongest match wins whatever the entry order, and a tie goes to the
+    /// entry served first. Only an ACTIVE entry with all three fields of the answer may be connected to.
+    static func locate(_ answer: ResolvedHomeserver, in roster: SignedRosterDocument) -> (match: Report.HomeserverMatch, entry: SignedRosterEntry?) {
+        let named = roster.entries.filter { $0.homeserver.serverName == answer.serverName }
+        let sameEndpoint = named.filter { $0.homeserver.hasEndpoint(of: answer) }
+        if let entry = sameEndpoint.first(where: \.isActive) { return (.activeMatch, entry) }
+        if let entry = sameEndpoint.first { return (.inactive, entry) }
+        if let entry = named.first { return (.fieldMismatch, entry) }
+        return (.notInRoster, nil)
+    }
+
+    private func checkMember(of located: (match: Report.HomeserverMatch, entry: SignedRosterEntry?)) -> Report.MemberEntry {
+        guard let entry = located.entry, located.match == .activeMatch || located.match == .inactive else {
+            return .unverifiable(.noMatchingEntry)
         }
-        if served.size == pinned.size {
-            return served.merkleRoot == pinned.merkleRoot ? .consistent : .inconsistent
+        if entry.memberIsMalformed { return .invalid(.parseError) }
+        return MemberEntryVerifier.verify(homeserver: entry.homeserver, member: entry.member, atEpochMilliseconds: now())
+    }
+
+    // MARK: - Log
+
+    private func checkLogConsistency(of served: RosterLogCheckpoint, deadline: ContinuousClock.Instant) async -> Report.LogConsistency {
+        let pinned: RosterLogCheckpoint?
+        do {
+            pinned = try checkpointStore.checkpoint(for: baseURL)
+        } catch {
+            return .unverifiable(.storageUnavailable)
         }
+        guard let pinned, pinned.size > 0 else { return pin(served, as: .firstSeen) }
         if served.size < pinned.size { return .rollback }
-        guard let first = Int(exactly: pinned.size), let second = Int(exactly: served.size) else { return .unverifiable(reason: "parse_error") }
+        if served.size == pinned.size { return served.merkleRoot == pinned.merkleRoot ? .consistent : .inconsistent }
         let proof: ConsistencyProofDocument
         do {
-            let data = try await fetch("/roster/log/consistency",
-                                       query: [URLQueryItem(name: "first", value: String(first)), URLQueryItem(name: "second", value: String(second))],
-                                       deadline: deadline)
-            proof = try JSONDecoder().decode(ConsistencyProofDocument.self, from: data)
-        } catch let error as FetchError {
-            return .unverifiable(reason: error.reason(unavailable: "log_unavailable"))
+            let query = [URLQueryItem(name: "first", value: String(pinned.size)), URLQueryItem(name: "second", value: String(served.size))]
+            proof = try await fetcher.document(ConsistencyProofDocument.self, at: "/roster/log/consistency", query: query, deadline: deadline)
         } catch {
-            return .unverifiable(reason: "parse_error")
+            return .unverifiable(error.reason(unavailable: .logUnavailable))
         }
-        guard MerkleTree.verifyConsistency(first: first, second: second,
-                                           oldRoot: pinned.merkleRoot, newRoot: served.merkleRoot, proof: proof.proof) else {
+        guard MerkleTree.verifyConsistency(first: pinned.size, second: served.size, oldRoot: pinned.merkleRoot,
+                                           newRoot: served.merkleRoot, proof: proof.proof) else {
             return .inconsistent
         }
-        checkpointStore.store(served, for: baseURL)
-        return .consistent
+        return pin(served, as: .consistent)
     }
 
-    private struct PolicyResult {
-        let outcome: ResolverVerificationReport.Policy
-        let verified: VerifiedRoutingPolicy?
-    }
-
-    private func verifyPolicy(roster: SignedRosterDocument, deadline: Date) async -> PolicyResult {
-        let bundle: RoutingPolicyBundle
+    private func pin(_ checkpoint: RosterLogCheckpoint, as outcome: Report.LogConsistency) -> Report.LogConsistency {
         do {
-            let data = try await fetch("/policy/routing", deadline: deadline)
-            bundle = try JSONDecoder().decode(RoutingPolicyBundle.self, from: data)
-        } catch FetchError.status(404) {
-            return PolicyResult(outcome: .notPresent, verified: nil)
-        } catch let error as FetchError {
-            return PolicyResult(outcome: .unverifiable(reason: error.reason(unavailable: "policy_unavailable")), verified: nil)
+            try checkpointStore.store(checkpoint, for: baseURL)
+            return outcome
         } catch {
-            return PolicyResult(outcome: .unverifiable(reason: "parse_error"), verified: nil)
+            return .unverifiable(.storageUnavailable)
         }
-        guard !trustRoots.policyKeys.isEmpty else { return PolicyResult(outcome: .unverifiable(reason: "no_policy_keys"), verified: nil) }
-        guard !policyKeys.isEmpty else { return PolicyResult(outcome: .unverifiable(reason: "crypto_unsupported"), verified: nil) }
-        guard let canonical = CanonicalRoutingPolicy.bytes(of: bundle) else {
-            return PolicyResult(outcome: .unverifiable(reason: "parse_error"), verified: nil)
+    }
+
+    // MARK: - Policy
+
+    private enum PolicyStage {
+        case notPresent
+        case verified(VerifiedRoutingPolicy)
+        case failed(Report.Policy)
+
+        var outcome: Report.Policy {
+            switch self {
+            case .notPresent: .notPresent
+            case .verified: .valid
+            case .failed(let outcome): outcome
+            }
         }
+    }
+
+    private struct PolicyFailure: Error {
+        let outcome: Report.Policy
+
+        static func invalid(_ reason: Reason) -> PolicyFailure {
+            PolicyFailure(outcome: .invalid(reason))
+        }
+
+        static func unverifiable(_ reason: Reason) -> PolicyFailure {
+            PolicyFailure(outcome: .unverifiable(reason))
+        }
+    }
+
+    private func checkPolicy(under checkpoint: RosterLogCheckpoint, deadline: ContinuousClock.Instant) async -> PolicyStage {
+        do {
+            return try await verifyPolicy(under: checkpoint, deadline: deadline)
+        } catch {
+            return .failed(error.outcome)
+        }
+    }
+
+    private func verifyPolicy(under checkpoint: RosterLogCheckpoint, deadline: ContinuousClock.Instant) async throws(PolicyFailure) -> PolicyStage {
+        let bundle: RoutingPolicyBundle?
+        do {
+            bundle = try await fetcher.document(RoutingPolicyBundle.self, at: "/policy/routing", deadline: deadline)
+        } catch .status(404) {
+            bundle = nil
+        } catch {
+            throw .unverifiable(error.reason(unavailable: .policyUnavailable))
+        }
+        var served: ServedPolicy?
+        if let bundle {
+            served = try ServedPolicy(policyId: bundle.policyId, version: bundle.version,
+                                      contentHash: ResolverVerificationCrypto.sha256Hex(verifiedBytes(of: bundle)))
+        }
+        let outcome = try await Self.logOutcome(for: served, checkpoint: checkpoint, events: fetchLog(under: checkpoint, deadline: deadline))
+        if outcome == .notPresent { return .notPresent }
+        guard outcome == .valid, let bundle else { throw PolicyFailure(outcome: outcome) }
+        return .verified(VerifiedRoutingPolicy(bundle: bundle, delegateVerifiedZones: RoutingPolicyVerifier.delegateVerifiedZones(of: bundle)))
+    }
+
+    /// The canonical bytes of a bundle signed by enough policy keys and in effect now.
+    private func verifiedBytes(of bundle: RoutingPolicyBundle) throws(PolicyFailure) -> [UInt8] {
+        guard !policyKeys.isEmpty else { throw .unverifiable(.noPolicyKeys) }
+        guard let canonical = CanonicalRoutingPolicy.bytes(of: bundle) else { throw .unverifiable(.parseError) }
         let count = RoutingPolicyVerifier.validSignatureCount(of: bundle, canonical: canonical, keys: policyKeys)
-        if let failure = count.failureReason(threshold: trustRoots.policyThreshold) {
-            return PolicyResult(outcome: .invalid(reason: failure), verified: nil)
-        }
-        if let failure = await policyPublishFailure(contentHash: ResolverVerificationCrypto.sha256Hex(canonical),
-                                                    checkpoint: roster.logCheckpoint, deadline: deadline) {
-            return PolicyResult(outcome: failure, verified: nil)
-        }
-        let verified = VerifiedRoutingPolicy(bundle: bundle, delegateVerifiedZones: RoutingPolicyVerifier.delegateVerifiedZones(of: bundle))
-        return PolicyResult(outcome: .valid, verified: verified)
+        if let failure = count.failureReason(threshold: policyThreshold) { throw .invalid(failure) }
+        guard bundle.isInEffect(atEpochMilliseconds: now()) else { throw .invalid(.outsideWindow) }
+        return canonical
     }
 
-    /// The served policy must be the publicly logged one: a `POLICY_PUBLISH` leaf carries its content hash and
-    /// the leaves recompute to the roster's checkpoint root.
-    private func policyPublishFailure(contentHash: String, checkpoint: RosterLogCheckpoint, deadline: Date) async -> ResolverVerificationReport.Policy? {
-        let log: TransparencyLogDocument
+    private func fetchLog(under checkpoint: RosterLogCheckpoint, deadline: ContinuousClock.Instant) async throws(PolicyFailure) -> [TransparencyLogEvent] {
+        guard checkpoint.size <= Self.maxLogSize else { throw .unverifiable(.logTooLarge) }
         do {
-            let data = try await fetch("/roster/log", deadline: deadline)
-            log = try JSONDecoder().decode(TransparencyLogDocument.self, from: data)
-        } catch let error as FetchError {
-            return .unverifiable(reason: error.reason(unavailable: "log_unavailable"))
+            return try await fetcher.document(TransparencyLogDocument.self, at: "/roster/log", deadline: deadline).events
         } catch {
-            return .unverifiable(reason: "parse_error")
+            throw .unverifiable(error.reason(unavailable: .logUnavailable))
         }
-        let events = log.events.sorted { $0.index < $1.index }
+    }
+
+    /// The policy outcome of the log: the checkpoint's leaves must hash to its signed root, and the served bundle,
+    /// `nil` for a 404, must be the latest policy published under it.
+    static func logOutcome(for served: ServedPolicy?, checkpoint: RosterLogCheckpoint, events: [TransparencyLogEvent]) -> Report.Policy {
         var leaves = [String]()
         for event in events {
-            guard let recordedAt = ResolverInstant(iso: event.recordedAt) else { return .unverifiable(reason: "parse_error") }
+            guard let recordedAt = ResolverInstant(iso: event.recordedAt) else { return .unverifiable(.parseError) }
             let data = MerkleTree.leafData(index: event.index, type: event.type, homeserverId: event.homeserverId,
                                            payloadHash: event.payloadHash, recordedAtEpochMilliseconds: recordedAt.epochMilliseconds)
             leaves.append(MerkleTree.leafHash(Array(data.utf8)))
         }
-        guard let size = Int(exactly: checkpoint.size), size >= 0, size <= leaves.count,
-              let root = MerkleTree.root(leafHashes: Array(leaves.prefix(size))), root == checkpoint.merkleRoot else {
-            return .invalid(reason: "log_root_mismatch")
+        guard (0...leaves.count).contains(checkpoint.size),
+              MerkleTree.root(leafHashes: Array(leaves.prefix(checkpoint.size))) == checkpoint.merkleRoot else {
+            return .invalid(.logMismatch)
         }
-        guard let published = events.firstIndex(where: { $0.type == "POLICY_PUBLISH" && $0.payloadHash == contentHash }) else {
-            return .invalid(reason: "policy_not_logged")
+        let signed = events.prefix(checkpoint.size)
+        guard let served else {
+            // A resolver that withholds a published policy must not pass for one that never had one.
+            return signed.contains(where: \.isPolicyPublication) ? .unverifiable(.policyNotServed) : .notPresent
         }
-        // Only the leaves under the signed checkpoint are authenticated; a newer leaf waits for the next roster.
-        return published < size ? nil : .unverifiable(reason: "policy_newer_than_checkpoint")
+        guard let published = events.firstIndex(where: { $0.isPolicyPublication && $0.payloadHash == served.contentHash }) else {
+            return .invalid(.policyNotLogged)
+        }
+        if signed.contains(where: { $0.publishesLaterVersion(of: served) }) { return .unverifiable(.policySuperseded) }
+        // Only leaves under the signed checkpoint are authenticated; an honest publish waits for the next roster.
+        return published < checkpoint.size ? .valid : .unverifiable(.policyNewerThanCheckpoint)
     }
 
-    private func placement(resolution: HomeserverResolution, phoneNumber: String, roster: SignedRosterDocument,
-                           policy: PolicyResult) async -> ResolverVerificationReport.Placement {
-        // A directory hit cannot be reproduced: the phone graph is private and no inclusion proof is served.
-        guard resolution.existsIsServed, !resolution.exists else { return .indeterminate }
+    // MARK: - Placement
+
+    private func checkPlacement(of resolution: HomeserverResolution, phoneNumber: String, roster: SignedRosterDocument,
+                                policy: PolicyStage) -> Report.Placement {
+        // A directory lookup cannot be reproduced: the phone graph is private and no inclusion proof is served.
+        guard resolution.existsIsServed, !resolution.exists else { return .indeterminate(.existingAccount) }
         let verifiedPolicy: VerifiedRoutingPolicy?
-        switch policy.outcome {
+        switch policy {
         case .notPresent: verifiedPolicy = nil
-        case .valid: verifiedPolicy = policy.verified
-        case .invalid, .unverifiable: return .unverifiable(reason: "policy_unverified")
+        case .verified(let verified): verifiedPolicy = verified
+        case .failed: return .unverifiable(.policyUnverified)
         }
         let context = PlacementContext(phone: phoneNumber)
-        guard let decision = PlacementReproducer.decide(context: context, roster: roster, policy: verifiedPolicy, nowEpochMilliseconds: clock()),
-              let entry = roster.entries.first(where: { $0.homeserver.id == decision.homeserverId }) else {
-            return .mismatch
+        let evaluatedAt = now()
+        let decision = PlacementReproducer.decide(context: context, roster: roster, policy: verifiedPolicy, nowEpochMilliseconds: evaluatedAt)
+        if let verifiedPolicy,
+           PlacementReproducer.unsignedRuleRanksAbove(decision, context: context, policy: verifiedPolicy, nowEpochMilliseconds: evaluatedAt) {
+            return .indeterminate(.unsignedRule)
         }
-        return entry.homeserver.hasEndpoint(of: resolution.homeserver) ? .match : .mismatch
+        guard let decision else { return .indeterminate(.unattributed) }
+        if decision.homeserver.hasEndpoint(of: resolution.homeserver) { return .match }
+        // The resolver may have decided against another roster, so only the same version makes a difference a misroute.
+        return resolution.rosterVersion == roster.version ? .mismatch : .indeterminate(.unattributed)
     }
 
-    // MARK: - Transport
-
-    private enum FetchError: Error, Equatable {
-        case status(Int)
-        case transport
-        case timeout
-
-        func reason(unavailable: String) -> String {
-            self == .timeout ? "timeout" : unavailable
-        }
+    private static func milliseconds(since start: ContinuousClock.Instant) -> Int {
+        Int((ContinuousClock.now - start) / .milliseconds(1))
     }
+}
 
-    /// Each fetch is bounded by the time left in the budget, so one slow response cannot stretch the run past it.
-    private func fetch(_ path: String, query: [URLQueryItem] = [], deadline: Date) async throws -> Data {
-        let remaining = deadline.timeIntervalSinceNow
-        guard remaining > 0 else { throw FetchError.timeout }
-        guard var components = URL(string: path, relativeTo: baseURL).flatMap({ URLComponents(url: $0, resolvingAgainstBaseURL: true) }) else {
-            throw FetchError.transport
+/// Runs against one resolver base URL take turns across every verifier in the process, so a run reads and writes
+/// the pin with no other run in between and the pin only moves forward.
+private actor ResolverRunQueue {
+    static let shared = ResolverRunQueue()
+
+    private var lastRuns = [URL: Task<ResolverVerificationReport, Never>]()
+
+    func run(for baseURL: URL, _ operation: @escaping @Sendable () async -> ResolverVerificationReport) async -> ResolverVerificationReport {
+        let previous = lastRuns[baseURL]
+        let run = Task {
+            _ = await previous?.value
+            return await operation()
         }
-        if !query.isEmpty { components.queryItems = query }
-        guard let url = components.url else { throw FetchError.transport }
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.timeoutInterval = remaining
-        let data: Data
-        let status: Int
-        do {
-            (data, status) = try await withThrowingTaskGroup(of: (Data, Int).self) { [session, request] group in
-                group.addTask {
-                    let (body, response) = try await session.data(for: request)
-                    guard let httpResponse = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
-                    return (body, httpResponse.statusCode)
-                }
-                group.addTask {
-                    try await Task.sleep(for: .seconds(remaining))
-                    throw URLError(.timedOut)
-                }
-                defer { group.cancelAll() }
-                guard let first = try await group.next() else { throw URLError(.unknown) }
-                return first
-            }
-        } catch let error as URLError where error.code == .timedOut {
-            throw FetchError.timeout
-        } catch {
-            throw FetchError.transport
-        }
-        guard status == 200 else { throw FetchError.status(status) }
-        return data
-    }
-
-    // MARK: - Draft
-
-    /// The checks as they complete; whatever is left unset when a step stops early is `unverifiable`.
-    private struct Draft {
-        var rosterVersion: Int64?
-        var rosterForm: String?
-        var rosterSignature = ResolverVerificationReport.RosterSignature.unverifiable(reason: "roster_unavailable")
-        var homeserverMatch = ResolverVerificationReport.HomeserverMatch.unverifiable
-        var memberEntry = ResolverVerificationReport.MemberEntry.unverifiable
-        var logConsistency = ResolverVerificationReport.LogConsistency.unverifiable(reason: "roster_unavailable")
-        var policy = ResolverVerificationReport.Policy.unverifiable(reason: "roster_unavailable")
-        var placement = ResolverVerificationReport.Placement.unverifiable(reason: "roster_unavailable")
-
-        /// The roster could not be checked: the checks that depend on it carry the same reason.
-        mutating func failEarly(unverifiable reason: String) {
-            rosterSignature = .unverifiable(reason: reason)
-            settleDependentChecks(reason)
-        }
-
-        /// The roster's signatures fell short: the checks that depend on it are `roster_unverified`.
-        mutating func failEarly(invalid reason: String) {
-            rosterSignature = .invalid(reason: reason)
-            settleDependentChecks("roster_unverified")
-        }
-
-        private mutating func settleDependentChecks(_ reason: String) {
-            logConsistency = .unverifiable(reason: reason)
-            policy = .unverifiable(reason: reason)
-            placement = .unverifiable(reason: reason)
-        }
-
-        func report(environment: String, durationMs: Int) -> ResolverVerificationReport {
-            ResolverVerificationReport(environment: environment, rosterVersion: rosterVersion, rosterForm: rosterForm,
-                                       rosterSignature: rosterSignature, homeserverMatch: homeserverMatch, memberEntry: memberEntry,
-                                       logConsistency: logConsistency, policy: policy, placement: placement, durationMs: durationMs)
-        }
+        lastRuns[baseURL] = run
+        return await run.value
     }
 }

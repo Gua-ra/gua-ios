@@ -71,30 +71,27 @@ final class ResolverVerificationVectorsTests: XCTestCase {
         }
     }
 
-    func testEveryRosterRejectionIsRefused() throws {
+    func testEveryRosterRejectionIsRefusedWithItsOutcome() throws {
         for vector in vectors.section("rosterRejections") {
             let name = vector.string("name")
             let roster = try vector.decode(SignedRosterDocument.self, at: "roster")
-            if vector.boolIfPresent("clientOnly") == true {
-                XCTAssertEqual(vector.string("form"), "mixed", name)
+            XCTAssertFalse(vector.bool("verified"), name)
+            guard let offeredForm = RosterForm(rawValue: vector.string("form")) else {
                 XCTAssertNil(CanonicalRoster.form(of: roster), name)
+                XCTAssertEqual(ResolverVerificationReport.RosterSignature.unverifiable(.mixedRosterForm).summary.code, vector.string("expectedOutcome"), name)
                 continue
             }
-            let offeredForm = try XCTUnwrap(RosterForm(rawValue: vector.string("form")), name)
             let canonical = try XCTUnwrap(CanonicalRoster.bytes(of: roster, form: offeredForm), name)
             XCTAssertEqual(ResolverVerificationHex.string(canonical), vector.string("canonicalHex"), name)
             let count = Self.authorityCount(roster, canonical: canonical, vector: vector)
             XCTAssertEqual(count.valid, vector.int("validSignatures"), name)
-            XCTAssertLessThan(count.valid, vector.int("threshold"), name)
-            XCTAssertFalse(vector.bool("verified"), name)
-            // The port follows the served JSON, so a roster that fails only under the other form verifies.
+            let outcome: ResolverVerificationReport.RosterSignature = count.failureReason(threshold: vector.int("threshold")).map { .invalid($0) } ?? .valid
+            XCTAssertEqual(outcome.summary.code, vector.string("expectedOutcome"), name)
+            // The app follows the served JSON, so a roster that fails only under the other form verifies.
             let servedForm = try XCTUnwrap(CanonicalRoster.form(of: roster), name)
-            let servedCanonical = try XCTUnwrap(CanonicalRoster.bytes(of: roster, form: servedForm), name)
-            let servedCount = Self.authorityCount(roster, canonical: servedCanonical, vector: vector).valid
-            if servedForm == offeredForm {
-                XCTAssertLessThan(servedCount, vector.int("threshold"), name)
-            } else {
-                XCTAssertGreaterThanOrEqual(servedCount, vector.int("threshold"), name)
+            if servedForm != offeredForm {
+                let servedCanonical = try XCTUnwrap(CanonicalRoster.bytes(of: roster, form: servedForm), name)
+                XCTAssertNil(Self.authorityCount(roster, canonical: servedCanonical, vector: vector).failureReason(threshold: vector.int("threshold")), name)
             }
         }
     }
@@ -161,25 +158,57 @@ final class ResolverVerificationVectorsTests: XCTestCase {
             XCTAssertEqual(count.valid >= vector.int("threshold"), vector.bool("verified"), name)
             XCTAssertEqual(RoutingPolicyVerifier.delegateVerifiedZones(of: bundle), Set(vector.stringArray("delegateVerifiedZones")), name)
         }
+    }
+
+    func testEveryPolicyRejectionIsRefusedWithItsOutcome() throws {
         for vector in vectors.section("policyRejections") {
-            XCTAssertFalse(vector.bool("verified"), vector.string("name"))
+            let name = vector.string("name")
+            let bundle = try vector.decode(RoutingPolicyBundle.self, at: "bundle")
+            let canonical = try XCTUnwrap(CanonicalRoutingPolicy.bytes(of: bundle), name)
+            let keys = ResolverSignatureCounter.keys(vector.trustedKeys)
+            let failure = keys.isEmpty ? nil : RoutingPolicyVerifier.validSignatureCount(of: bundle, canonical: canonical, keys: keys)
+                .failureReason(threshold: vector.int("threshold"))
+            let outcome: ResolverVerificationReport.Policy = keys.isEmpty ? .unverifiable(.noPolicyKeys) : failure.map { .invalid($0) } ?? .valid
+            XCTAssertFalse(vector.bool("verified"), name)
+            XCTAssertEqual(outcome.summary.code, vector.string("expectedOutcome"), name)
+        }
+    }
+
+    func testEveryPolicyValidityEdgeIsInEffectAsListed() throws {
+        let policies = vectors.byRef("policies")
+        for vector in vectors.section("policyValidity") {
+            let name = vector.string("name")
+            let bundle = try XCTUnwrap(policies[vector.string("policyRef")], name).decode(RoutingPolicyBundle.self, at: "bundle")
+            let evaluatedAt = try XCTUnwrap(ResolverInstant(iso: vector.string("evaluatedAt")), name)
+            XCTAssertEqual(bundle.isInEffect(atEpochMilliseconds: evaluatedAt.epochMilliseconds), vector.bool("inEffect"), name)
+        }
+    }
+
+    func testEveryPolicyLogCaseGivesItsOutcome() throws {
+        let events = try vectors.object("log").decode([TransparencyLogEvent].self, at: "events")
+        for vector in vectors.section("policyLog") {
+            let name = vector.string("name")
+            let served = vector.objectIfPresent("servedPolicy").map { policy in
+                ServedPolicy(policyId: policy.stringIfPresent("policyId"), version: Int64(policy.int("version")), contentHash: policy.string("sha256Hex"))
+            }
+            let checkpoint = vector.object("checkpoint")
+            let outcome = ResolverVerifier.logOutcome(for: served, checkpoint: RosterLogCheckpoint(merkleRoot: checkpoint.string("rootHex"), size: checkpoint.int("size")),
+                                                      events: events)
+            XCTAssertEqual(outcome.summary.code, vector.string("expected"), name)
         }
     }
 
     // MARK: - Placements
 
     func testEveryPlacementVectorReproducesTheReferenceDecision() throws {
-        let rosters = ["r1": JSONObject(vectors.array("rosters")[0]), "r2": JSONObject(vectors.array("rosters")[1])]
-        let policies = Dictionary(uniqueKeysWithValues: vectors.section("policies").map { ($0.string("name"), $0) })
-        let policyRefs = ["br-policy v3": "governance-signed bundle, both delegated zones signed, one zone unsigned",
-                          "br-policy v3 without the sp-zone delegate signature": "delegate signature missing for sp-zone: the bundle verifies, its sp rules do not apply"]
+        let rosters = vectors.byRef("rosters")
+        let policies = vectors.byRef("policies")
         for vector in vectors.section("placements") {
             let name = vector.string("name")
-            let rosterVector = try XCTUnwrap(rosters[vector.string("rosterRef")], name)
-            let roster = try rosterVector.decode(SignedRosterDocument.self, at: "roster")
+            let roster = try XCTUnwrap(rosters[vector.string("rosterRef")], name).decode(SignedRosterDocument.self, at: "roster")
             var policy: VerifiedRoutingPolicy?
             if let policyRef = vector.stringIfPresent("policyRef") {
-                let policyVector = try XCTUnwrap(policyRefs[policyRef].flatMap { policies[$0] }, name)
+                let policyVector = try XCTUnwrap(policies[policyRef], name)
                 let bundle = try policyVector.decode(RoutingPolicyBundle.self, at: "bundle")
                 let canonical = try XCTUnwrap(CanonicalRoutingPolicy.bytes(of: bundle), name)
                 let count = RoutingPolicyVerifier.validSignatureCount(of: bundle, canonical: canonical,
@@ -187,26 +216,29 @@ final class ResolverVerificationVectorsTests: XCTestCase {
                 XCTAssertGreaterThanOrEqual(count.valid, policyVector.int("threshold"), name)
                 policy = VerifiedRoutingPolicy(bundle: bundle, delegateVerifiedZones: RoutingPolicyVerifier.delegateVerifiedZones(of: bundle))
             }
+            // Affiliations and attributes stated without proof are left out, as the server leaves them out.
             let contextJSON = vector.object("context")
             let context = PlacementContext(phone: contextJSON.stringIfPresent("phone"),
                                            country: contextJSON.stringIfPresent("country"),
                                            mccmnc: contextJSON.stringIfPresent("mccmnc"),
                                            carrier: contextJSON.stringIfPresent("carrier"),
-                                           regionHint: contextJSON.stringIfPresent("regionHint"),
-                                           affiliations: contextJSON.stringArrayIfPresent("affiliations") ?? [],
-                                           attributes: contextJSON.stringDictionaryIfPresent("attributes") ?? [:],
-                                           claimsVerified: false)
-            let evaluatedAt = try XCTUnwrap(ResolverInstant(iso: vector.string("evaluatedAt")), name)
+                                           regionHint: contextJSON.stringIfPresent("regionHint"))
+            let evaluatedAt = try XCTUnwrap(ResolverInstant(iso: vector.string("evaluatedAt")), name).epochMilliseconds
             let decision = try XCTUnwrap(PlacementReproducer.decide(context: context, roster: roster, policy: policy,
-                                                                    nowEpochMilliseconds: evaluatedAt.epochMilliseconds), name)
-            XCTAssertEqual(decision.homeserverId, vector.string("expectedHomeserverId"), name)
-            XCTAssertEqual(decision.rule, vector.string("expectedRule"), name)
-            XCTAssertEqual(decision.ruleId, vector.string("expectedRuleId"), name)
+                                                                    nowEpochMilliseconds: evaluatedAt), name)
+            let reference = Self.reference(of: decision)
+            XCTAssertEqual(decision.homeserver.id, vector.string("expectedHomeserverId"), name)
+            XCTAssertEqual(reference.rule, vector.string("expectedRule"), name)
+            XCTAssertEqual(reference.ruleId, vector.string("expectedRuleId"), name)
+            let unsignedRuleAbove = policy.map {
+                PlacementReproducer.unsignedRuleRanksAbove(decision, context: context, policy: $0, nowEpochMilliseconds: evaluatedAt)
+            } ?? false
+            XCTAssertEqual(unsignedRuleAbove, vector.bool("unsignedRuleAbove"), name)
             if let fallback = vector.objectIfPresent("fallback") {
                 XCTAssertEqual(context.canonicalRoutingKey, fallback.string("routingKeyUtf8"), name)
                 let candidates = PlacementReproducer.fallbackCandidates(in: roster)
                 XCTAssertEqual(candidates.map(\.id), fallback.array("candidates").map { JSONObject($0).string("id") }, name)
-                XCTAssertEqual(candidates.map(\.weight), fallback.array("candidates").map { JSONObject($0).int("weight") }, name)
+                XCTAssertEqual(candidates.map { Int($0.weight) }, fallback.array("candidates").map { JSONObject($0).int("weight") }, name)
                 XCTAssertEqual(PlacementReproducer.stableHash(context: context, rosterVersion: roster.version, candidates: candidates),
                                Int32(fallback.int("stableHash")), name)
                 XCTAssertEqual(roster.version, Int64(fallback.int("rosterVersion")), name)
@@ -214,24 +246,28 @@ final class ResolverVerificationVectorsTests: XCTestCase {
         }
     }
 
+    /// The reference verifier's name and id for the rule that decided.
+    private static func reference(of decision: PlacementDecision) -> (rule: String, ruleId: String) {
+        switch decision.rule {
+        case .policy(let rule): ("PolicyRoutingRule", rule.id ?? "")
+        case .rosterClaim(let priority): ("ClaimRule", "roster-claim:\(decision.homeserver.id):\(priority)")
+        case .weightedFallback: ("WeightedFallbackRule", "weighted-fallback")
+        }
+    }
+
     // MARK: - Resolve answers
 
     func testEveryResolveAnswerVectorLocatesAsExpected() throws {
-        let rosters = ["r2": JSONObject(vectors.array("rosters")[1]), "prod-2026-10-27": JSONObject(vectors.array("rosters")[3])]
+        let rosters = vectors.byRef("rosters")
         for vector in vectors.section("resolveAnswers") {
             let name = vector.string("name")
             let roster = try XCTUnwrap(rosters[vector.string("rosterRef")], name).decode(SignedRosterDocument.self, at: "roster")
             let answer = vector.object("answer")
-            let match = ResolverVerifier.locate(serverName: answer.string("serverName"), baseUrl: answer.string("baseUrl"),
-                                                masIssuer: answer.stringIfPresent("masIssuer"), in: roster)
-            let code = switch match {
-            case .activeMatch: "ACTIVE_MATCH"
-            case .inactive: "INACTIVE"
-            case .fieldMismatch: "FIELD_MISMATCH"
-            case .notInRoster: "NOT_IN_ROSTER"
-            case .unverifiable: "unverifiable"
-            }
-            XCTAssertEqual(code, vector.string("expected"), name)
+            let located = ResolverVerifier.locate(ResolvedHomeserver(serverName: answer.string("serverName"), baseURL: answer.string("baseUrl"),
+                                                                     masIssuer: answer.stringIfPresent("masIssuer"), region: nil),
+                                                  in: roster)
+            XCTAssertEqual(located.match.summary.code, vector.string("expected"), name)
+            XCTAssertEqual(located.entry?.homeserver.id, vector.stringIfPresent("expectedEntryId"), name)
         }
     }
 
@@ -358,6 +394,11 @@ private struct JSONObject {
         let items = array(key).map(JSONObject.init)
         XCTAssertFalse(items.isEmpty, "the \(key) section is empty", file: file, line: line)
         return items
+    }
+
+    /// A section's objects by their `ref`, the key vectors join on.
+    func byRef(_ key: String) -> [String: JSONObject] {
+        Dictionary(section(key).compactMap { vector in vector.stringIfPresent("ref").map { ($0, vector) } }) { first, _ in first }
     }
 
     var trustedKeys: [ResolverTrustedKey] {
