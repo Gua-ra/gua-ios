@@ -18,6 +18,8 @@ class UserSessionFlowCoordinatorTests: XCTestCase {
     
     let networkReachabilitySubject: CurrentValueSubject<NetworkMonitorReachability, Never> = .init(.reachable)
     let homeserverReachabilitySubject: CurrentValueSubject<NetworkMonitorReachability, Never> = .init(.reachable)
+    let clientActionsSubject = PassthroughSubject<ClientProxyAction, Never>()
+    var clientProxy: ClientProxyMock!
     var cancellables = Set<AnyCancellable>()
     
     var tabCoordinator: NavigationTabCoordinator<UserSessionFlowCoordinator.HomeTab>? {
@@ -41,8 +43,9 @@ class UserSessionFlowCoordinatorTests: XCTestCase {
         
         rootCoordinator = NavigationRootCoordinator()
         
-        let clientProxy = ClientProxyMock(.init(userID: "hi@bob", roomSummaryProvider: RoomSummaryProviderMock(.init(state: .loaded(.mockRooms)))))
+        clientProxy = ClientProxyMock(.init(userID: "hi@bob", roomSummaryProvider: RoomSummaryProviderMock(.init(state: .loaded(.mockRooms)))))
         clientProxy.homeserverReachabilityPublisher = homeserverReachabilitySubject.asCurrentValuePublisher()
+        clientProxy.actionsPublisher = clientActionsSubject.eraseToAnyPublisher()
         
         let networkMonitor = NetworkMonitorMock.default
         networkMonitor.reachabilityPublisher = networkReachabilitySubject.asCurrentValuePublisher()
@@ -75,6 +78,7 @@ class UserSessionFlowCoordinatorTests: XCTestCase {
     }
     
     override func tearDown() {
+        userSessionFlowCoordinator = nil
         ServiceLocator.shared.settings.spacesEnabled = false
     }
     
@@ -185,6 +189,17 @@ class UserSessionFlowCoordinatorTests: XCTestCase {
         ServiceLocator.shared.settings.spacesEnabled = false
         
         XCTAssertEqual(tabCoordinator?.selectedTab, .chats)
+    }
+    
+    func testASyncResponseCopiesTheStoredSpacesValue() async throws {
+        clientProxy.accountDataTypeReturnValue = .success(#"{"enabled":true}"#)
+        let deferred = deferFulfillment(ServiceLocator.shared.settings.$spacesEnabled) { $0 }
+        
+        // The room list sends an update for every stored response, Running to Running included.
+        clientActionsSubject.send(.receivedSyncUpdate)
+        clientActionsSubject.send(.receivedSyncUpdate)
+        
+        try await deferred.fulfill()
     }
     
     // MARK: Indicators

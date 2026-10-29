@@ -247,6 +247,21 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
             hideLoadingIndicator()
         }
         
+        // GUA FORK: turn Spaces on before joining, so a joined space is never left hidden.
+        if state.joiningTurnsOnSpaces {
+            state.isTurningOnSpaces = true
+            if case .failure(let error) = await spacesSetting.setEnabled(true, updatesDeviceCopyFirst: false) {
+                MXLog.error("Failed turning on Spaces before joining a space: \(error)")
+                state.isTurningOnSpaces = false
+                userIndicatorController.submitIndicator(.init(title: L10n.errorUnknown))
+                return
+            }
+        }
+        
+        defer {
+            state.isTurningOnSpaces = false
+        }
+        
         // Prioritise joining by the alias and letting the homeserver do the right thing
         if let alias = state.roomDetails?.canonicalAlias {
             switch await clientProxy.joinRoomAlias(alias) {
@@ -291,12 +306,6 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
         guard state.roomDetails?.isSpace == true else {
             actionsSubject.send(.joined(.roomID(roomID)))
             return
-        }
-        
-        // GUA FORK: a joined space only shows with the Spaces switch on.
-        if !appSettings.spacesEnabled, case .failure(let error) = await spacesSetting.setEnabled(true, updatesDeviceCopyFirst: false) {
-            MXLog.error("Failed turning on Spaces after joining a space: \(error)")
-            userIndicatorController.submitIndicator(.init(title: L10n.errorUnknown))
         }
         
         switch await clientProxy.spaceService.spaceRoomList(spaceID: roomID) {

@@ -15,6 +15,7 @@ class SettingsScreenViewModelTests: XCTestCase {
     var context: SettingsScreenViewModelType.Context!
     var clientProxy: ClientProxyMock!
     var appSettings: AppSettings!
+    var userIndicatorController: UserIndicatorControllerMock!
     var cancellables = Set<AnyCancellable>()
     
     @MainActor override func setUpWithError() throws {
@@ -22,10 +23,15 @@ class SettingsScreenViewModelTests: XCTestCase {
         AppSettings.resetAllSettings()
         appSettings = AppSettings()
         clientProxy = ClientProxyMock(.init(userID: ""))
-        let userSession = UserSessionMock(.init(clientProxy: clientProxy))
-        viewModel = SettingsScreenViewModel(userSession: userSession,
+        userIndicatorController = UserIndicatorControllerMock()
+        makeViewModel()
+    }
+    
+    private func makeViewModel() {
+        viewModel = SettingsScreenViewModel(userSession: UserSessionMock(.init(clientProxy: clientProxy)),
                                             appSettings: appSettings,
                                             spacesSetting: SpacesSetting(clientProxy: clientProxy, appSettings: appSettings),
+                                            userIndicatorController: userIndicatorController,
                                             isBugReportServiceEnabled: true)
         context = viewModel.context
     }
@@ -71,5 +77,45 @@ class SettingsScreenViewModelTests: XCTestCase {
         XCTAssertEqual(clientProxy.setAccountDataTypeContentCallsCount, 1)
         XCTAssertEqual(clientProxy.setAccountDataTypeContentReceivedArguments?.type, SpacesSetting.accountDataType)
         XCTAssertEqual(clientProxy.setAccountDataTypeContentReceivedArguments?.content, #"{"enabled":true}"#)
+    }
+    
+    func testOpeningSettingsCopiesTheStoredSpacesValue() async throws {
+        clientProxy.accountDataTypeReturnValue = .success(#"{"enabled":true}"#)
+        let deferred = deferFulfillment(appSettings.$spacesEnabled) { $0 }
+        
+        makeViewModel()
+        
+        try await deferred.fulfill()
+        XCTAssertFalse(clientProxy.setAccountDataTypeContentCalled)
+    }
+    
+    func testOpeningSettingsDoesNotDecideTheSpacesDefault() async {
+        clientProxy.spaceService = SpaceServiceProxyMock(.init(joinedSpaces: .mockJoinedSpaces))
+        let read = expectation(description: "The stored value is read")
+        read.assertForOverFulfill = false
+        clientProxy.accountDataTypeClosure = { _ in
+            read.fulfill()
+            return .success(nil)
+        }
+        
+        makeViewModel()
+        await fulfillment(of: [read], timeout: 1)
+        try? await Task.sleep(for: .milliseconds(100))
+        
+        XCTAssertFalse(appSettings.spacesEnabled)
+        XCTAssertFalse(clientProxy.setAccountDataTypeContentCalled, "Only a sync response can prove the value is absent.")
+    }
+    
+    func testFailedSpacesToggleMovesBackAndSaysSo() async throws {
+        clientProxy.setAccountDataTypeContentReturnValue = .failure(.forbiddenAccess)
+        
+        let deferred = deferFulfillment(appSettings.$spacesEnabled, keyPath: \.self, transitionValues: [false, true, false])
+        context.isSpacesEnabled = true
+        context.send(viewAction: .toggleSpaces)
+        try await deferred.fulfill()
+        
+        try await Task.sleep(for: .milliseconds(100))
+        XCTAssertFalse(context.isSpacesEnabled)
+        XCTAssertTrue(userIndicatorController.submitIndicatorDelayReceivedInvocations.contains { $0.indicator.title == L10n.errorUnknown })
     }
 }

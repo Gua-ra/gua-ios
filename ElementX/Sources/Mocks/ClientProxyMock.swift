@@ -36,6 +36,9 @@ extension ClientProxyMock {
     convenience init(_ configuration: ClientProxyMockConfiguration) {
         self.init()
         
+        accountDataTypeReturnValue = .success(nil)
+        setAccountDataTypeContentReturnValue = .success(())
+        
         userID = configuration.userID
         deviceID = configuration.deviceID
         

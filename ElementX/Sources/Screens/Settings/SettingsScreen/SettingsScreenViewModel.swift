@@ -13,6 +13,7 @@ typealias SettingsScreenViewModelType = StateStoreViewModelV2<SettingsScreenView
 class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewModelProtocol {
     private let appSettings: AppSettings
     private let spacesSetting: SpacesSetting
+    private let userIndicatorController: UserIndicatorControllerProtocol
     
     private var actionsSubject: PassthroughSubject<SettingsScreenViewModelAction, Never> = .init()
     
@@ -20,9 +21,14 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
         actionsSubject.eraseToAnyPublisher()
     }
     
-    init(userSession: UserSessionProtocol, appSettings: AppSettings, spacesSetting: SpacesSetting, isBugReportServiceEnabled: Bool) {
+    init(userSession: UserSessionProtocol,
+         appSettings: AppSettings,
+         spacesSetting: SpacesSetting,
+         userIndicatorController: UserIndicatorControllerProtocol,
+         isBugReportServiceEnabled: Bool) {
         self.appSettings = appSettings
         self.spacesSetting = spacesSetting
+        self.userIndicatorController = userIndicatorController
         
         super.init(initialViewState: .init(deviceID: userSession.clientProxy.deviceID,
                                            userID: userSession.clientProxy.userID,
@@ -41,6 +47,9 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
             .weakAssign(to: \.state.bindings.isSpacesEnabled, on: self)
             .store(in: &cancellables)
         
+        // GUA FORK: re-read the stored value; this never decides the default before a sync response.
+        Task { await spacesSetting.refresh() }
+
         userSession.clientProxy.userAvatarURLPublisher
             .receive(on: DispatchQueue.main)
             .weakAssign(to: \.state.userAvatarURL, on: self)
@@ -113,7 +122,13 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
         case .toggleSpaces:
             let isEnabled = state.bindings.isSpacesEnabled
             guard isEnabled != appSettings.spacesEnabled else { return }
-            Task { await spacesSetting.setEnabled(isEnabled) }
+            Task {
+                // The switch moves back when the write fails; the toast says why, also for VoiceOver.
+                if case .failure(let error) = await spacesSetting.setEnabled(isEnabled) {
+                    MXLog.error("Failed changing the Spaces switch: \(error)")
+                    userIndicatorController.submitIndicator(.init(title: L10n.errorUnknown))
+                }
+            }
         case .advancedSettings:
             actionsSubject.send(.advancedSettings)
         case .enableDeveloperOptions:

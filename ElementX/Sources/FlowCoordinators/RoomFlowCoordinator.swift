@@ -800,6 +800,19 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
             }
             .store(in: &cancellables)
 
+        // GUA FORK: a space opened from Chats closes when Spaces is turned off.
+        if !isChildFlow {
+            flowParameters.appSettings.$spacesEnabled
+                .removeDuplicates()
+                .dropFirst()
+                .filter { !$0 }
+                .sink { [weak self] _ in
+                    guard let self, stateMachine.state != .complete else { return }
+                    stateMachine.tryEvent(.dismissFlow)
+                }
+                .store(in: &cancellables)
+        }
+
         spaceFlowCoordinator = coordinator
 
         if isChildFlow, joinRoomScreenCoordinator != nil {

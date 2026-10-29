@@ -39,6 +39,11 @@ class SpaceServiceProxy: SpaceServiceProxyProtocol {
         }
     }
     
+    /// GUA FORK: reads the joined spaces now, unlike joinedSpacesPublisher which can lag behind sync.
+    func topLevelJoinedSpaces() async -> [SpaceRoomProxyProtocol] {
+        await spaceService.topLevelJoinedSpaces().map(SpaceRoomProxy.init)
+    }
+    
     // MARK: - Private
     
     private func handleUpdates(_ updates: [SpaceListUpdate]) {

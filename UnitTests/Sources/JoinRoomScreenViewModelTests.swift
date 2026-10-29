@@ -195,25 +195,44 @@ class JoinRoomScreenViewModelTests: XCTestCase {
         XCTAssertEqual(clientProxy.setAccountDataTypeContentReceivedArguments?.content, #"{"enabled":true}"#)
     }
     
-    func testSpaceJoinShowsAnErrorWhenSpacesCannotBeTurnedOn() async throws {
+    func testSpaceIsNotJoinedWhenSpacesCannotBeTurnedOn() async throws {
         setupViewModel(mode: .joinableSpace)
         clientProxy.setAccountDataTypeContentReturnValue = .failure(.forbiddenAccess)
         try await deferFulfillment(viewModel.context.$viewState) { $0.mode == .joinable }.fulfill()
         
-        let deferred = deferFulfillment(viewModel.actionsPublisher) { $0 == .joined(.space(SpaceRoomListProxyMock(.init(spaceRoomProxy: SpaceRoomProxyMock(.init(id: "1", isSpace: true)))))) }
+        let deferred = deferFulfillment(viewModel.context.$viewState, keyPath: \.isTurningOnSpaces, transitionValues: [false, true, false])
         context.send(viewAction: .join)
         try await deferred.fulfill()
         
         XCTAssertFalse(appSettings.spacesEnabled)
+        XCTAssertFalse(clientProxy.joinRoomAliasCalled)
+        XCTAssertFalse(clientProxy.joinRoomViaCalled)
+        XCTAssertTrue(context.viewState.joiningTurnsOnSpaces, "The offer stays so the user can try again.")
         XCTAssertTrue(userIndicatorController.submitIndicatorDelayReceivedInvocations.contains { $0.indicator.title == L10n.errorUnknown })
     }
     
-    func testFailedSpaceJoinLeavesSpacesOff() async throws {
+    func testSpacesIsTurnedOnBeforeTheJoin() async throws {
         setupViewModel(mode: .joinableSpace)
-        clientProxy.joinRoomAliasReturnValue = .failure(.forbiddenAccess)
+        let appSettings = try XCTUnwrap(appSettings)
+        clientProxy.joinRoomAliasClosure = { _ in
+            XCTAssertTrue(appSettings.spacesEnabled, "Spaces must be on before the join starts.")
+            return .failure(.forbiddenAccess)
+        }
         try await deferFulfillment(viewModel.context.$viewState) { $0.mode == .joinable }.fulfill()
         
         let deferred = deferFulfillment(viewModel.context.$viewState) { $0.mode == .forbidden }
+        context.send(viewAction: .join)
+        try await deferred.fulfill()
+        
+        XCTAssertTrue(appSettings.spacesEnabled, "The user chose to turn Spaces on, so a failed join keeps it on.")
+        XCTAssertEqual(clientProxy.setAccountDataTypeContentCallsCount, 1)
+    }
+    
+    func testJoiningARoomNeverTouchesTheSpacesSwitch() async throws {
+        setupViewModel()
+        try await deferFulfillment(viewModel.context.$viewState) { $0.mode == .joinable }.fulfill()
+        
+        let deferred = deferFulfillment(viewModel.actionsPublisher) { $0 == .joined(.roomID("1")) }
         context.send(viewAction: .join)
         try await deferred.fulfill()
         

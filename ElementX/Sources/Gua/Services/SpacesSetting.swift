@@ -34,7 +34,8 @@ final class SpacesSetting {
 
     private var isRefreshing = false
     private var needsRefresh = false
-    private var isInSpace = false
+    /// Set once a sync response has been stored in this session, so a missing value is really absent from the account.
+    private var hasSynced = false
 
     init(clientProxy: ClientProxyProtocol, appSettings: AppSettings, echoTimeout: TimeInterval = 30) {
         self.clientProxy = clientProxy
@@ -49,10 +50,11 @@ final class SpacesSetting {
         await requestWrite(enabled, updatesDeviceCopyFirst: updatesDeviceCopyFirst)
     }
 
-    /// Copies the account's value to this device. An account already in a space with no stored value starts with Spaces on.
-    func refresh(isInSpace: Bool) async {
+    /// Copies the account's value to this device. With no stored value, the default is decided only after a sync
+    /// response (`afterSync`) in this session: on for an account already in a space, off otherwise.
+    func refresh(afterSync: Bool = false) async {
         guard !isInvalidated else { return }
-        self.isInSpace = isInSpace
+        hasSynced = hasSynced || afterSync
         guard !isRefreshing else {
             needsRefresh = true
             return
@@ -61,7 +63,8 @@ final class SpacesSetting {
         isRefreshing = true
         repeat {
             needsRefresh = false
-            await applyStoredValue()
+            // Taken before the read, so a sync that lands during it reruns the read instead of deciding from a stale one.
+            await applyStoredValue(canDecideDefault: hasSynced)
         } while needsRefresh && !isInvalidated
         isRefreshing = false
     }
@@ -136,7 +139,7 @@ final class SpacesSetting {
         return result
     }
 
-    private func applyStoredValue() async {
+    private func applyStoredValue(canDecideDefault: Bool) async {
         guard case let .success(content) = await clientProxy.accountData(type: Self.accountDataType), !isInvalidated else {
             return
         }
@@ -154,11 +157,14 @@ final class SpacesSetting {
         } else if hasConfirmedWrite {
             // The written value has not synced yet; the device copy already holds it.
             return
-        } else if isInSpace {
-            // The device copy changes only once the account holds the value, so repeated failures do not flap it.
-            _ = await requestWrite(true, updatesDeviceCopyFirst: false)
-        } else {
-            appSettings.spacesEnabled = false
+        } else if canDecideDefault {
+            // Read now: the joined spaces publisher can lag behind the stored sync response.
+            let joinedSpaces = await clientProxy.spaceService.topLevelJoinedSpaces()
+            // A switch change made during the read wins over the default.
+            guard !isInvalidated, pendingValue == nil, !hasConfirmedWrite else { return }
+            // Stored so that a space joined later, here or elsewhere, never turns Spaces on by itself. The device copy
+            // changes only once the account holds the value, so repeated failures do not flap it.
+            _ = await requestWrite(!joinedSpaces.isEmpty, updatesDeviceCopyFirst: false)
         }
     }
 }

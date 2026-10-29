@@ -23,8 +23,6 @@ struct SettingsScreen: View {
             
             manageMyAppSection
             
-            spacesSection
-            
             if !shouldHideManageAccountSection {
                 manageAccountSection
             }
@@ -85,6 +83,16 @@ struct SettingsScreen: View {
                     kind: .navigationLink {
                         context.send(viewAction: .findFriends)
                     })
+            
+            // GUA FORK: account-wide Spaces switch. It only shows or hides Spaces; memberships are untouched.
+            ListRow(label: .default(title: L10n.screenHomeTabSpaces,
+                                    description: UntranslatedL10n.guaSettingsSpacesDescription,
+                                    icon: \.space),
+                    kind: .toggle($context.isSpacesEnabled))
+                .onChange(of: context.isSpacesEnabled) {
+                    context.send(viewAction: .toggleSpaces)
+                }
+                .accessibilityIdentifier(A11yIdentifiers.settingsScreen.spaces)
 
             ListRow(label: .default(title: L10n.screenNotificationSettingsTitle,
                                     icon: \.notifications),
@@ -119,21 +127,6 @@ struct SettingsScreen: View {
                     EmptyView()
                 }
             }
-        }
-    }
-    
-    /// GUA FORK: account-wide Spaces switch, stored in account data so it follows the account to every phone.
-    private var spacesSection: some View {
-        Section {
-            ListRow(label: .default(title: UntranslatedL10n.guaSettingsSpacesTitle,
-                                    icon: \.space),
-                    kind: .toggle($context.isSpacesEnabled))
-                .onChange(of: context.isSpacesEnabled) {
-                    context.send(viewAction: .toggleSpaces)
-                }
-        } footer: {
-            Text(UntranslatedL10n.guaSettingsSpacesFooter)
-                .compoundListSectionFooter()
         }
     }
     
@@ -331,6 +324,7 @@ struct SettingsScreen_Previews: PreviewProvider, TestablePreview {
         return SettingsScreenViewModel(userSession: userSession,
                                        appSettings: ServiceLocator.shared.settings,
                                        spacesSetting: SpacesSetting(clientProxy: clientProxy, appSettings: ServiceLocator.shared.settings),
+                                       userIndicatorController: UserIndicatorControllerMock(),
                                        isBugReportServiceEnabled: isBugReportServiceEnabled)
     }
 }

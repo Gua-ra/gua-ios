@@ -17004,6 +17004,70 @@ class SpaceServiceProxyMock: SpaceServiceProxyProtocol, @unchecked Sendable {
             return spaceRoomListSpaceIDReturnValue
         }
     }
+    //MARK: - topLevelJoinedSpaces
+
+    var topLevelJoinedSpacesUnderlyingCallsCount = 0
+    var topLevelJoinedSpacesCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return topLevelJoinedSpacesUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = topLevelJoinedSpacesUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                topLevelJoinedSpacesUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    topLevelJoinedSpacesUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var topLevelJoinedSpacesCalled: Bool {
+        return topLevelJoinedSpacesCallsCount > 0
+    }
+
+    var topLevelJoinedSpacesUnderlyingReturnValue: [SpaceRoomProxyProtocol]!
+    var topLevelJoinedSpacesReturnValue: [SpaceRoomProxyProtocol]! {
+        get {
+            if Thread.isMainThread {
+                return topLevelJoinedSpacesUnderlyingReturnValue
+            } else {
+                var returnValue: [SpaceRoomProxyProtocol]? = nil
+                DispatchQueue.main.sync {
+                    returnValue = topLevelJoinedSpacesUnderlyingReturnValue
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                topLevelJoinedSpacesUnderlyingReturnValue = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    topLevelJoinedSpacesUnderlyingReturnValue = newValue
+                }
+            }
+        }
+    }
+    var topLevelJoinedSpacesClosure: (() async -> [SpaceRoomProxyProtocol])?
+
+    func topLevelJoinedSpaces() async -> [SpaceRoomProxyProtocol] {
+        topLevelJoinedSpacesCallsCount += 1
+        if let topLevelJoinedSpacesClosure = topLevelJoinedSpacesClosure {
+            return await topLevelJoinedSpacesClosure()
+        } else {
+            return topLevelJoinedSpacesReturnValue
+        }
+    }
 }
 class StaticRoomSummaryProviderMock: StaticRoomSummaryProviderProtocol, @unchecked Sendable {
     var roomListPublisher: CurrentValuePublisher<[RoomSummary], Never> {
