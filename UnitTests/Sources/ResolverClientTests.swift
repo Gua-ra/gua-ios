@@ -331,6 +331,8 @@ final class ResolverClientTests: XCTestCase {
     }
 
     func testHTTPDateRetryAfterIsMeasuredFromTheDateHeader() async {
+        defer { Bundle.overrideLocalizations = nil }
+        Bundle.overrideLocalizations = ["en"]
         ResolverStub.respond(status: 429, body: "", headers: ["Date": "Wed, 21 Oct 2026 07:26:30 GMT",
                                                               "Retry-After": "Wed, 21 Oct 2026 07:28:00 GMT"])
 
@@ -376,6 +378,8 @@ final class ResolverClientTests: XCTestCase {
     }
 
     func testFormattedWaitRoundsUpInEnglish() {
+        defer { Bundle.overrideLocalizations = nil }
+        Bundle.overrideLocalizations = ["en"]
         XCTAssertNil(ResolverError.formattedWait(nil))
         XCTAssertNil(ResolverError.formattedWait(0))
         XCTAssertEqual(ResolverError.formattedWait(0.4), ResolverError.formattedWait(1))
@@ -385,6 +389,14 @@ final class ResolverClientTests: XCTestCase {
         XCTAssertEqual(ResolverError.formattedWait(30), "30 seconds")
         XCTAssertEqual(ResolverError.formattedWait(60), "1 minute")
         XCTAssertNil(ResolverError.formattedWait(.infinity))
+    }
+
+    func testFormattedWaitUsesTheAppLanguage() {
+        defer { Bundle.overrideLocalizations = nil }
+        Bundle.overrideLocalizations = ["pt-BR"]
+
+        XCTAssertEqual(ResolverError.formattedWait(30), "30 segundos")
+        XCTAssertEqual(ResolverError.formattedWait(90), "2 minutos")
     }
 
     // MARK: - Private

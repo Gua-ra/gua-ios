@@ -77,15 +77,15 @@
 		<true/>
 	</dict>
 	<key>NSCameraUsageDescription</key>
-	<string>To take pictures or videos and send them as a message $(APP_DISPLAY_NAME) needs access to the camera.</string>
+	<string>To take photos or videos and send them as messages, $(APP_DISPLAY_NAME) needs access to the camera.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>$(APP_DISPLAY_NAME) checks your contacts privately to find which of them are already here. Your contacts are never stored.</string>
 	<key>NSFaceIDUsageDescription</key>
-	<string>$(APP_DISPLAY_NAME) uses Face ID to unlock the app, so you don't have to type your PIN every time.</string>
+	<string>$(APP_DISPLAY_NAME) uses Face ID to unlock the app, so you don’t have to type your passcode every time.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Grant location access so that $(APP_DISPLAY_NAME) can share your location.</string>
+	<string>Allow location access so that $(APP_DISPLAY_NAME) can share your location.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>To record and send messages with audio, $(APP_DISPLAY_NAME) needs to access the microphone.</string>
+	<string>To record and send messages with audio, $(APP_DISPLAY_NAME) needs access to the microphone.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>This lets you save images and videos to your photo library.</string>
 	<key>NSUserActivityTypes</key>

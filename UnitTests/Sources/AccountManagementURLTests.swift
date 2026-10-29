@@ -48,4 +48,14 @@ final class AccountManagementURLTests: XCTestCase {
 
         XCTAssertEqual(components.percentEncodedQuery, "login_hint=%2B15551234567&ui_locales=pt")
     }
+
+    func testUILocalesDefaultsToTheAppLanguage() throws {
+        defer { Bundle.overrideLocalizations = nil }
+        Bundle.overrideLocalizations = ["pt-BR"]
+        var components = try XCTUnwrap(URLComponents(string: "https://auth.example/authorize?login_hint=%2B15551234567"))
+
+        components.appendUILocalesPreservingEncoding()
+
+        XCTAssertEqual(components.percentEncodedQuery, "login_hint=%2B15551234567&ui_locales=pt-BR")
+    }
 }

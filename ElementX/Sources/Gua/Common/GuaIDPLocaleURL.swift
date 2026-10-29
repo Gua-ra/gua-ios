@@ -8,10 +8,6 @@
 import Foundation
 
 extension URLComponents {
-    /// Appends a `ui_locales` query parameter for the current device language so the IDP (MAS)
-    /// renders in the user's language, **without disturbing the percent-encoding of the query
-    /// that is already present**.
-    ///
     /// Why not `queryItems.append(...)`: assigning through `URLComponents.queryItems` re-serializes
     /// the whole query and, in doing so, decodes an already-encoded `%2B` back to a bare `+`. A
     /// bare `+` in a query value is `application/x-www-form-urlencoded` shorthand for a space, so
@@ -19,11 +15,9 @@ extension URLComponents {
     /// `login_hint=<space><digits>` — no longer a valid E.164. idp-web then fails to pre-fill and
     /// re-prompts for the phone number instead of jumping straight to the OTP step. Appending to the
     /// raw `percentEncodedQuery` string leaves the existing `%2B` (and every other escape) untouched.
-    mutating func appendUILocalesPreservingEncoding(languageCode: String? = Locale.current.language.languageCode?.identifier) {
+    mutating func appendUILocalesPreservingEncoding(languageCode: String? = Bundle.guaAppLanguage) {
         guard let languageCode, !languageCode.isEmpty else { return }
 
-        // Language codes are ASCII letters, so the encoding is effectively a passthrough, but it is
-        // applied defensively.
         appendQueryItemPreservingEncoding(name: "ui_locales", value: languageCode)
     }
 
