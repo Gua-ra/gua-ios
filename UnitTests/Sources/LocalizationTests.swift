@@ -68,13 +68,17 @@ class LocalizationTests: XCTestCase {
         XCTAssertEqual(L10n.commonMemberCount(2), "2 Members")
     }
 
-    /// Gua ships en, pt-BR, es and fr. Any Portuguese resolves to pt-BR and an unsupported language to English.
-    func testShippedLanguagesResolve() {
-        XCTAssertEqual(Set(Bundle.app.localizations), ["en", "pt-BR", "es", "fr"])
+    /// Gua ships en, pt-BR, es and fr, plus pt as a build-time copy of pt-BR. Any Portuguese stays
+    /// Portuguese even with English second, and an unsupported language resolves to English.
+    func testShippedLanguagesResolve() throws {
+        XCTAssertEqual(Set(Bundle.app.localizations), ["en", "pt-BR", "pt", "es", "fr"])
 
         let expectations: [(preferences: [String], language: String)] = [(["pt-BR"], "pt-BR"),
-                                                                         (["pt"], "pt-BR"),
-                                                                         (["pt-PT"], "pt-BR"),
+                                                                         (["pt-BR", "en"], "pt-BR"),
+                                                                         (["pt"], "pt"),
+                                                                         (["pt-PT"], "pt"),
+                                                                         (["pt-PT", "en"], "pt"),
+                                                                         (["pt-PT", "en-CA"], "pt"),
                                                                          (["es-MX"], "es"),
                                                                          (["fr-CA"], "fr"),
                                                                          (["en-US"], "en"),
@@ -84,6 +88,9 @@ class LocalizationTests: XCTestCase {
             let resolved = Bundle.preferredLocalizations(from: Bundle.app.localizations, forPreferences: expectation.preferences)
             XCTAssertEqual(resolved.first, expectation.language, "\(expectation.preferences)")
         }
+
+        let brazilian = try XCTUnwrap(untranslatedValue("gua_sign_in_with_passkey", language: "pt-BR"))
+        XCTAssertEqual(untranslatedValue("gua_sign_in_with_passkey", language: "pt"), brazilian)
     }
 
     /// Test untranslated strings

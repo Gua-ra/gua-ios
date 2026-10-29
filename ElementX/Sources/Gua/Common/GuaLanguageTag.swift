@@ -14,8 +14,10 @@ extension Bundle {
     /// that asked for them. The device locale is the wrong source: a Brazilian phone set to the Canada
     /// region reports `pt-CA`, and a Portuguese one reports `pt-PT`, neither of which the server has a
     /// template for, while the app shows both of them Brazilian Portuguese. It follows
-    /// `overrideLocalizations` like `L10n` does, so tests see the language they set.
+    /// `overrideLocalizations` like `L10n` does, so tests see the language they set. The bundled
+    /// `pt` localization is a build-time copy of pt-BR, so it is reported as "pt-BR".
     static var guaAppLanguage: String {
-        (overrideLocalizations ?? app.preferredLocalizations).first ?? "en"
+        let language = (overrideLocalizations ?? app.preferredLocalizations).first ?? "en"
+        return language == "pt" ? "pt-BR" : language
     }
 }

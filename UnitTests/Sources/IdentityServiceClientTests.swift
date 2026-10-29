@@ -88,6 +88,8 @@ final class IdentityServiceClientTests: XCTestCase {
             Bundle.overrideLocalizations = [language]
             XCTAssertEqual(Bundle.guaAppLanguage, language)
         }
+        Bundle.overrideLocalizations = ["pt"]
+        XCTAssertEqual(Bundle.guaAppLanguage, "pt-BR")
         XCTAssertTrue(["en", "pt-BR", "es", "fr"].contains(Bundle.main.preferredLocalizations.first ?? ""))
     }
 

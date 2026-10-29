@@ -6938,6 +6938,7 @@
 				60605B8CCA5BDBDBCB48577D /* Embed Frameworks */,
 				2A26011C637F30DE7C6671FF /* ⚠️ SwiftLint */,
 				6A28B21BB6A89F75F0B1FB8D /* 🧹 SwiftFormat */,
+				6CA6233EDEC880EF8D1A97F9 /* Alias pt to pt-BR */,
 			);
 			buildRules = (
 			);
@@ -7331,6 +7332,25 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "export PATH=\"$PATH:/opt/homebrew/bin\"\nif which swiftformat >/dev/null; then\n    swiftformat --lint --lenient \"$PROJECT_DIR\"\nelse\n    echo \"warning: SwiftFormat not installed, download from https://github.com/nicklockwood/SwiftFormat\"\nfi\n";
+		};
+		6CA6233EDEC880EF8D1A97F9 /* Alias pt to pt-BR */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Alias pt to pt-BR";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# GUA FORK: iOS only falls back from pt-PT to pt-BR when no other listed language matches, so ship a pt copy too.\nresources=\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\nrm -rf \"$resources/pt.lproj\"\ncp -R \"$resources/pt-BR.lproj\" \"$resources/pt.lproj\"\n";
 		};
 		972ADF6FD4E07B1D593D65CA /* 🧙 Sourcery - Generate mocks */ = {
 			isa = PBXShellScriptBuildPhase;
