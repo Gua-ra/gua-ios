@@ -507,9 +507,7 @@ final class AppSettings {
     @UserPreference(key: UserDefaultsKeys.guaAccountGenesisEnabled, defaultValue: false, storageType: .userDefaults(store))
     var guaAccountGenesisEnabled
 
-    /// GUA FORK: when `true` (the default), every resolver answer is verified in the background against the
-    /// signed roster, log and policy and the outcome is logged. Report-only: it never changes what the app
-    /// connects to. `false` is the kill switch.
+    /// GUA FORK: report-only verification of resolver answers. It logs the outcome and never changes what the app connects to.
     @UserPreference(key: UserDefaultsKeys.guaResolverVerificationEnabled, defaultValue: true, storageType: .userDefaults(store))
     var guaResolverVerificationEnabled
 

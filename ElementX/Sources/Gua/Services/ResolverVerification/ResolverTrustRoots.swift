@@ -25,8 +25,7 @@ struct ResolverTrustRoots: Equatable {
     /// No keys at all: the verifier reports every answer as unverifiable and fetches nothing.
     static let empty = ResolverTrustRoots(authorityKeys: [], authorityThreshold: 1, policyKeys: [], policyThreshold: 1)
 
-    /// The production authority key. Production serves no policy today; the same key is listed as the
-    /// policy key so the development and production configurations have the same shape.
+    /// The production authority key, which is also trusted for routing policies.
     static let production: ResolverTrustRoots = {
         let authority = ResolverTrustedKey(id: "gua-authority-prod",
                                            publicKey: "MCowBQYDK2VwAyEAmrJntRXbxGkoPe92j1epyM3RBXcx4nmr2wIzL6eb0a0=")

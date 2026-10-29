@@ -8,9 +8,7 @@
 @testable import ElementX
 import XCTest
 
-/// The port against the resolver's golden vectors. The two files under `UnitTests/Resources` are byte-identical
-/// copies of `docs/specs/gua-client-verification-v1-vectors.json` and `docs/specs/gua-lp-v1-vectors.json` in
-/// gua-resolver; every section of both is walked and every assertion names the vector it belongs to.
+/// The resolver's golden vectors, byte-identical copies of gua-resolver's `docs/specs` files.
 final class ResolverVerificationVectorsTests: XCTestCase {
     private var vectors: JSONObject!
     private var lpVectors: JSONObject!
