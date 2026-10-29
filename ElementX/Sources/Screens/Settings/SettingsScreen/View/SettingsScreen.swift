@@ -77,7 +77,6 @@ struct SettingsScreen: View {
     
     private var manageMyAppSection: some View {
         Section {
-            // GUA FORK: account-wide Spaces switch. It only shows or hides Spaces; memberships are untouched.
             ListRow(label: .default(title: L10n.screenHomeTabSpaces,
                                     description: UntranslatedL10n.guaSettingsSpacesDescription,
                                     icon: \.space),

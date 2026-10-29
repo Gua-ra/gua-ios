@@ -515,7 +515,7 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             return
         }
         
-        // GUA FORK: a space invite opens its join screen, which turns the Spaces switch on and shows the space.
+        // GUA FORK: space invites are accepted on the join screen, which turns Spaces on first.
         if roomProxy.info.isSpace {
             actionsSubject.send(.presentRoom(roomIdentifier: roomID))
             return

@@ -18,6 +18,6 @@ protocol SpaceServiceProxyProtocol {
     
     func spaceRoomList(spaceID: String) async -> Result<SpaceRoomListProxyProtocol, SpaceServiceProxyError>
     
-    /// GUA FORK: computed on the spot, so unlike joinedSpacesPublisher it includes the latest stored sync response.
+    /// GUA FORK: unlike joinedSpacesPublisher, this never lags behind sync.
     func topLevelJoinedSpaces() async -> [SpaceRoomProxyProtocol]
 }

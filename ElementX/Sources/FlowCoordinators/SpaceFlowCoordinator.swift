@@ -124,7 +124,7 @@ class SpaceFlowCoordinator: FlowCoordinatorProtocol {
             }
         case .presentingChild:
             childSpaceFlowCoordinator?.clearRoute(animated: animated)
-            // GUA FORK: a child still loading ignores clearRoute, so only re-run once the state has moved on.
+            // GUA FORK: a child that is still loading ignores clearRoute, so re-running here would recurse forever.
             if case .presentingChild = stateMachine.state { return }
             clearRoute(animated: animated) // Re-run with the state machine back in the .space state.
         case .roomFlow:

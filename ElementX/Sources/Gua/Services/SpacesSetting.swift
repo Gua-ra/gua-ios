@@ -6,8 +6,6 @@
 
 import Foundation
 
-/// The account-wide Spaces switch. It is stored in account data so it follows the account to every phone;
-/// `AppSettings.spacesEnabled` is this device's copy, which the UI observes. One instance per user session.
 @MainActor
 final class SpacesSetting {
     static let accountDataType = "global.gua.spaces"
@@ -18,23 +16,18 @@ final class SpacesSetting {
 
     private let clientProxy: ClientProxyProtocol
     private let appSettings: AppSettings
-    /// How long a written value may wait for sync to bring it back before a disagreeing stored value wins.
     private let echoTimeout: TimeInterval
 
-    /// The latest value this phone asked for, until the store reads it back or its write fails.
     private var pendingValue: Bool?
-    /// Restored when the latest write fails: the last value known to be stored, or the device copy before `pendingValue`.
     private var fallbackValue = false
     private var echoDeadline: Date?
     private var latestRequest = 0
     private var writeTask: Task<Result<Void, ClientProxyError>, Never>?
-    /// Set once a write from this phone succeeds, after which the account always has a stored value.
     private var hasConfirmedWrite = false
     private var isInvalidated = false
 
     private var isRefreshing = false
     private var needsRefresh = false
-    /// Set once a sync response has been stored in this session, so a missing value is really absent from the account.
     private var hasSynced = false
 
     init(clientProxy: ClientProxyProtocol, appSettings: AppSettings, echoTimeout: TimeInterval = 30) {
@@ -43,15 +36,11 @@ final class SpacesSetting {
         self.echoTimeout = echoTimeout
     }
 
-    /// Writes run one at a time; a write that a newer request supersedes before it starts is skipped.
-    /// With `updatesDeviceCopyFirst` false, the device copy changes only once the account data write succeeds.
     @discardableResult
     func setEnabled(_ enabled: Bool, updatesDeviceCopyFirst: Bool = true) async -> Result<Void, ClientProxyError> {
         await requestWrite(enabled, updatesDeviceCopyFirst: updatesDeviceCopyFirst)
     }
 
-    /// Copies the account's value to this device. With no stored value, the default is decided only after a sync
-    /// response (`afterSync`) in this session: on for an account already in a space, off otherwise.
     func refresh(afterSync: Bool = false) async {
         guard !isInvalidated else { return }
         hasSynced = hasSynced || afterSync
@@ -63,13 +52,12 @@ final class SpacesSetting {
         isRefreshing = true
         repeat {
             needsRefresh = false
-            // Taken before the read, so a sync that lands during it reruns the read instead of deciding from a stale one.
+            // hasSynced is captured before the read, so a sync landing mid-read reruns it.
             await applyStoredValue(canDecideDefault: hasSynced)
         } while needsRefresh && !isInvalidated
         isRefreshing = false
     }
 
-    /// Ends the session: later writes and refreshes, and those still running, no longer touch the device copy.
     func invalidate() {
         isInvalidated = true
         latestRequest += 1
@@ -81,8 +69,6 @@ final class SpacesSetting {
         guard let data = content.data(using: .utf8) else { return false }
         return (try? JSONDecoder().decode(Content.self, from: data))?.enabled ?? false
     }
-
-    // MARK: - Private
 
     private func requestWrite(_ enabled: Bool, updatesDeviceCopyFirst: Bool) async -> Result<Void, ClientProxyError> {
         guard !isInvalidated else { return .success(()) }
@@ -155,15 +141,12 @@ final class SpacesSetting {
         if let storedValue {
             appSettings.spacesEnabled = storedValue
         } else if hasConfirmedWrite {
-            // The written value has not synced yet; the device copy already holds it.
+            // Nil here only means the confirmed write has not synced back yet.
             return
         } else if canDecideDefault {
-            // Read now: the joined spaces publisher can lag behind the stored sync response.
             let joinedSpaces = await clientProxy.spaceService.topLevelJoinedSpaces()
-            // A switch change made during the read wins over the default.
             guard !isInvalidated, pendingValue == nil, !hasConfirmedWrite else { return }
-            // Stored so that a space joined later, here or elsewhere, never turns Spaces on by itself. The device copy
-            // changes only once the account holds the value, so repeated failures do not flap it.
+            // Stored so a space joined later never turns Spaces on by itself.
             _ = await requestWrite(!joinedSpaces.isEmpty, updatesDeviceCopyFirst: false)
         }
     }

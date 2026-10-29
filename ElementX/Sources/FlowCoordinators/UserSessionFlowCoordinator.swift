@@ -118,7 +118,7 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
     }
     
     func stop() {
-        // GUA FORK: runs before sign-out resets the session settings.
+        // GUA FORK: runs before the sign-out reset so an in-flight write cannot undo it.
         flowParameters.spacesSetting.invalidate()
         chatsFlowCoordinator.stop()
     }
@@ -298,8 +298,6 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
         setupSpacesObservers()
     }
     
-    /// GUA FORK: the tab bar is the Spaces switch. Its value lives in account data and is copied to
-    /// this device after every stored sync response. With no stored value it decides the default once (see SpacesSetting).
     private func setupSpacesObservers() {
         flowParameters.appSettings.$spacesEnabled
             .sink { [weak self] isEnabled in

@@ -158,8 +158,6 @@ class JoinRoomScreenViewModelTests: XCTestCase {
         try await deferred.fulfill()
     }
     
-    // MARK: - Spaces switch
-    
     func testJoiningASpaceOffersToTurnOnSpaces() async throws {
         setupViewModel(mode: .joinableSpace)
         try await deferFulfillment(viewModel.context.$viewState) { $0.mode == .joinable }.fulfill()

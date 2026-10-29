@@ -587,7 +587,6 @@ class MockScreen: Identifiable {
             appSettings.hasRunIdentityConfirmationOnboarding = true
             appSettings.hasRunNotificationPermissionsOnboarding = true
             appSettings.analyticsConsentState = .optedOut
-            // GUA FORK: only the spaces flow turns the Spaces switch on, so only it shows the tab bar.
             appSettings.spacesEnabled = id == .userSessionSpacesFlow
             
             let clientProxy = ClientProxyMock(.init(userID: "@mock:client.com",

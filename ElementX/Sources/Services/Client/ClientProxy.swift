@@ -874,8 +874,6 @@ class ClientProxy: ClientProxyProtocol {
         }
     }
         
-    // MARK: Account data
-    
     func accountData(type: String) async -> Result<String?, ClientProxyError> {
         do {
             return try await .success(client.accountData(eventType: type))

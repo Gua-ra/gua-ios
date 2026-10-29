@@ -192,7 +192,6 @@ struct JoinRoomScreen: View {
         case .inviteRequired:
             bottomNoticeMessage(L10n.screenJoinRoomInviteRequiredMessage)
         case .invited where context.viewState.joiningTurnsOnSpaces:
-            // GUA FORK: accepting a space invite while Spaces is off also turns it on.
             VStack(spacing: 16) {
                 Button(UntranslatedL10n.guaJoinSpaceAction) { context.send(viewAction: .acceptInvite) }
                     .buttonStyle(.compound(.primary))

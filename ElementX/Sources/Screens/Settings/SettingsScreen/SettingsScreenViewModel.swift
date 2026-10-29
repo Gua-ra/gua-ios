@@ -47,7 +47,6 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
             .weakAssign(to: \.state.bindings.isSpacesEnabled, on: self)
             .store(in: &cancellables)
         
-        // GUA FORK: re-read the stored value; this never decides the default before a sync response.
         Task { await spacesSetting.refresh() }
 
         userSession.clientProxy.userAvatarURLPublisher
@@ -123,7 +122,6 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
             let isEnabled = state.bindings.isSpacesEnabled
             guard isEnabled != appSettings.spacesEnabled else { return }
             Task {
-                // The switch moves back when the write fails; the toast says why, also for VoiceOver.
                 if case .failure(let error) = await spacesSetting.setEnabled(isEnabled) {
                     MXLog.error("Failed changing the Spaces switch: \(error)")
                     userIndicatorController.submitIndicator(.init(title: L10n.errorUnknown))

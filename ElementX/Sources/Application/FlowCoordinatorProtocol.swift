@@ -33,7 +33,6 @@ struct CommonFlowParameters {
     let userIndicatorController: UserIndicatorControllerProtocol
     let notificationManager: NotificationManagerProtocol
     let stateMachineFactory: StateMachineFactoryProtocol
-    /// GUA FORK: the session's single writer of the account-wide Spaces switch.
     let spacesSetting: SpacesSetting
     
     var windowManager: WindowManagerProtocol {

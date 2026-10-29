@@ -800,7 +800,6 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
             }
             .store(in: &cancellables)
 
-        // GUA FORK: a space opened from Chats closes when Spaces is turned off.
         if !isChildFlow {
             flowParameters.appSettings.$spacesEnabled
                 .removeDuplicates()

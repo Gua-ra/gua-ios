@@ -103,7 +103,6 @@ final class RoomSummaryProviderTests: XCTestCase {
     }
     
     func testOtherProvidersHideAllSpaces() {
-        // Given a provider that isn't the home list, such as the forward, share and global search pickers.
         setupProvider(includesSpaceInvites: false)
         
         XCTAssertEqual(dynamicEntriesController.setFilterKindReceivedKind, .all(filters: [.nonLeft,

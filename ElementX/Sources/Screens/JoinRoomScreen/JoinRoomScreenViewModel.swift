@@ -247,7 +247,7 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
             hideLoadingIndicator()
         }
         
-        // GUA FORK: turn Spaces on before joining, so a joined space is never left hidden.
+        // GUA FORK: turn Spaces on first so a failed write never leaves a joined space hidden.
         if state.joiningTurnsOnSpaces {
             state.isTurningOnSpaces = true
             if case .failure(let error) = await spacesSetting.setEnabled(true, updatesDeviceCopyFirst: false) {

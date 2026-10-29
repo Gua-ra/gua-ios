@@ -16,8 +16,6 @@ class RoomSummaryProvider: RoomSummaryProviderProtocol {
     private let shouldUpdateVisibleRange: Bool
     private let notificationSettings: NotificationSettingsProxyProtocol
     private let appSettings: AppSettings
-    /// GUA FORK: joined spaces live in the Spaces tab; space invites stay in the home Chats list so they can be
-    /// accepted while the Spaces switch is off. Pickers keep hiding every space.
     private let spaceFilter: RoomListEntriesDynamicFilterKind
 
     private let roomListPageSize: UInt32

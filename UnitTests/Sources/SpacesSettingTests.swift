@@ -348,14 +348,11 @@ class SpacesSettingTests: XCTestCase {
         XCTAssertFalse(appSettings.spacesEnabled)
     }
     
-    // MARK: - Helpers
-    
     private func joinASpace() {
         spaceService.topLevelJoinedSpacesReturnValue = .mockJoinedSpaces
     }
 }
 
-/// Holds joined space reads until the test releases them.
 @MainActor
 private final class SpacesReadGate {
     private var waiting: [CheckedContinuation<[SpaceRoomProxyProtocol], Never>] = []
@@ -381,7 +378,6 @@ private final class SpacesReadGate {
     }
 }
 
-/// Holds account data writes until the test releases them, in order.
 @MainActor
 private final class WriteGate {
     private var waiting: [CheckedContinuation<Result<Void, ClientProxyError>, Never>] = []

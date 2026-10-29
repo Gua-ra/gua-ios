@@ -56,10 +56,8 @@ struct JoinRoomScreenViewState: BindableState {
     var hideInviteAvatars = false
     
     var isSpacesEnabled = true
-    /// Keeps the "Turn on Spaces and join" layout while that join is running.
     var isTurningOnSpaces = false
     
-    /// GUA FORK: joining a space, or accepting its invite, while the Spaces switch is off turns it on.
     var joiningTurnsOnSpaces: Bool {
         guard !isSpacesEnabled || isTurningOnSpaces, roomDetails?.isSpace == true else { return false }
         switch mode {
