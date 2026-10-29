@@ -110,6 +110,6 @@
 "gua_account_genesis_setup_failed" = "We couldn’t finish setting up your account on this device. Please try again.";
 
 // MARK: - Gua: Spaces switch
-"gua_settings_spaces_description" = "Organize related chats and communities in one place.";
+"gua_settings_spaces_description" = "Organize related chats and communities in one place";
 "gua_join_space_action" = "Turn on Spaces and join";
 "gua_join_space_turns_on_spaces" = "This is a space. Joining turns on Spaces so you can see its chats.";

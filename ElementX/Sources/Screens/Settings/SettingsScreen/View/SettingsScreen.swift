@@ -77,13 +77,6 @@ struct SettingsScreen: View {
     
     private var manageMyAppSection: some View {
         Section {
-            // GUA FORK: Find which of the user's phone contacts are already on Gua.
-            ListRow(label: .default(title: L10n.screenFindFriendsTitle,
-                                    icon: \.userAdd),
-                    kind: .navigationLink {
-                        context.send(viewAction: .findFriends)
-                    })
-            
             // GUA FORK: account-wide Spaces switch. It only shows or hides Spaces; memberships are untouched.
             ListRow(label: .default(title: L10n.screenHomeTabSpaces,
                                     description: UntranslatedL10n.guaSettingsSpacesDescription,
@@ -93,6 +86,13 @@ struct SettingsScreen: View {
                     context.send(viewAction: .toggleSpaces)
                 }
                 .accessibilityIdentifier(A11yIdentifiers.settingsScreen.spaces)
+
+            // GUA FORK: Find which of the user's phone contacts are already on Gua.
+            ListRow(label: .default(title: L10n.screenFindFriendsTitle,
+                                    icon: \.userAdd),
+                    kind: .navigationLink {
+                        context.send(viewAction: .findFriends)
+                    })
 
             ListRow(label: .default(title: L10n.screenNotificationSettingsTitle,
                                     icon: \.notifications),
