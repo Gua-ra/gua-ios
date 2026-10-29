@@ -90,7 +90,8 @@ final class IdentityServiceClientTests: XCTestCase {
         }
         Bundle.overrideLocalizations = ["pt"]
         XCTAssertEqual(Bundle.guaAppLanguage, "pt-BR")
-        XCTAssertTrue(["en", "pt-BR", "es", "fr"].contains(Bundle.main.preferredLocalizations.first ?? ""))
+        Bundle.overrideLocalizations = nil
+        XCTAssertTrue(["en", "pt-BR", "es", "fr"].contains(Bundle.guaAppLanguage))
     }
 
     // MARK: - The number the screens resolve before they spend an attempt

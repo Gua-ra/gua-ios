@@ -33,7 +33,7 @@
 "gua_encryption_reset_still_finishing" = "La configuration se poursuit en arrière-plan. Vous pouvez continuer à utiliser Gua.";
 "gua_resolver_claims_invalid" = "Nous n’avons pas pu confirmer les informations de votre compte. Veuillez réessayer.";
 "gua_resolver_routing_unavailable" = "Nous rencontrons des problèmes de connexion. Veuillez réessayer dans un instant.";
-"gua_resolver_routing_unavailable_retry_in" = "Nous avons du mal à nous connecter pour le moment. Veuillez réessayer dans %@.";
+"gua_resolver_routing_unavailable_retry_in" = "Nous rencontrons des problèmes de connexion. Veuillez réessayer dans %@.";
 "gua_resolver_rate_limited" = "Trop de tentatives. Veuillez patienter un moment, puis réessayer.";
 "gua_resolver_rate_limited_retry_in" = "Trop de tentatives. Veuillez réessayer dans %@.";
 "gua_resolver_registration_closed" = "Nous ne pouvons pas créer de nouveaux comptes pour le moment. Veuillez réessayer plus tard.";
