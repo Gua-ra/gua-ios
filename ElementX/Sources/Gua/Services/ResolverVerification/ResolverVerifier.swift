@@ -302,17 +302,11 @@ final class ResolverVerifier: ResolverVerifying {
     /// The policy outcome of the log: the checkpoint's leaves must hash to its signed root, and the served bundle,
     /// `nil` for a 404, must be the latest policy published under it.
     static func logOutcome(for served: ServedPolicy?, checkpoint: RosterLogCheckpoint, events: [TransparencyLogEvent]) -> Report.Policy {
-        guard checkpoint.size <= events.count else { return .invalid(.logMismatch) }
-        // Only the leaves under the signed checkpoint are authenticated, so nothing past them is hashed or trusted.
+        // Only the leaves under the signed checkpoint are authenticated, so only they are hashed.
         let signed = events.prefix(checkpoint.size)
-        var leaves = [String]()
-        for event in signed {
-            guard let recordedAt = ResolverInstant(iso: event.recordedAt) else { return .unverifiable(.parseError) }
-            let data = MerkleTree.leafData(index: event.index, type: event.type, homeserverId: event.homeserverId,
-                                           payloadHash: event.payloadHash, recordedAtEpochMilliseconds: recordedAt.epochMilliseconds)
-            leaves.append(MerkleTree.leafHash(Array(data.utf8)))
+        guard checkpoint.size <= events.count, MerkleTree.root(leafHashes: signed.map(\.leafHash)) == checkpoint.merkleRoot else {
+            return .invalid(.logMismatch)
         }
-        guard MerkleTree.root(leafHashes: leaves) == checkpoint.merkleRoot else { return .invalid(.logMismatch) }
         guard let served else {
             // A resolver that withholds a published policy must not pass for one that never had one.
             return signed.contains(where: \.isPolicyPublication) ? .unverifiable(.policyNotServed) : .notPresent

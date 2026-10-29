@@ -27,9 +27,9 @@ struct SignedRosterDocument: Decodable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         version = try container.decode(Int64.self, forKey: .version)
         issuedAt = try container.decode(String.self, forKey: .issuedAt)
-        entries = try container.decodeIfPresent([SignedRosterEntry].self, forKey: .entries) ?? []
+        entries = try container.decode([SignedRosterEntry].self, forKey: .entries)
         logCheckpoint = try container.decode(RosterLogCheckpoint.self, forKey: .logCheckpoint)
-        authoritySignatures = try container.decodeIfPresent([RosterAuthoritySignature].self, forKey: .authoritySignatures) ?? []
+        authoritySignatures = try container.decode([RosterAuthoritySignature].self, forKey: .authoritySignatures)
     }
 
     var activeEntries: [SignedRosterEntry] {
@@ -118,8 +118,8 @@ struct RosterHomeserver: Decodable {
         baseUrl = try container.decodeIfPresent(String.self, forKey: .baseUrl)
         masIssuer = try container.decodeIfPresent(String.self, forKey: .masIssuer)
         region = try container.decodeIfPresent(String.self, forKey: .region)
-        weight = try container.decodeIfPresent(Int32.self, forKey: .weight) ?? 0
-        acceptsNew = try container.decodeIfPresent(Bool.self, forKey: .acceptsNew) ?? false
+        weight = try container.decode(Int32.self, forKey: .weight)
+        acceptsNew = try container.decode(Bool.self, forKey: .acceptsNew)
         signingKey = try container.decodeIfPresent(String.self, forKey: .signingKey)
         hasSearchVisibilityField = container.contains(.searchVisibility)
         searchVisibility = try container.decodeIfPresent(String.self, forKey: .searchVisibility) ?? "GLOBAL"
@@ -392,7 +392,7 @@ struct TransparencyLogEvent: Decodable {
     let type: String
     let homeserverId: String?
     let payloadHash: String
-    let recordedAt: String
+    let recordedAt: ResolverInstant
 
     private enum CodingKeys: String, CodingKey {
         case index, type, homeserverId, payloadHash, recordedAt
@@ -400,6 +400,11 @@ struct TransparencyLogEvent: Decodable {
 
     var isPolicyPublication: Bool {
         type == "POLICY_PUBLISH"
+    }
+
+    var leafHash: String {
+        MerkleTree.leafHash(Array(MerkleTree.leafData(index: index, type: type, homeserverId: homeserverId, payloadHash: payloadHash,
+                                                      recordedAtEpochMilliseconds: recordedAt.epochMilliseconds).utf8))
     }
 
     /// Whether this leaf publishes a later version of the served policy. A publication's subject, carried in
@@ -420,7 +425,11 @@ extension TransparencyLogEvent {
         type = try container.decode(String.self, forKey: .type)
         homeserverId = try container.decodeIfPresent(String.self, forKey: .homeserverId)
         payloadHash = try container.decode(String.self, forKey: .payloadHash)
-        recordedAt = try container.decode(String.self, forKey: .recordedAt)
+        // Every served event must be well formed, past the checkpoint too, even though only the signed ones are hashed.
+        guard let recordedAt = try ResolverInstant(iso: container.decode(String.self, forKey: .recordedAt)) else {
+            throw DecodingError.dataCorruptedError(forKey: .recordedAt, in: container, debugDescription: "not a resolver timestamp")
+        }
+        self.recordedAt = recordedAt
     }
 }
 

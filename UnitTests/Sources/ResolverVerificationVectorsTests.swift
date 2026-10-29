@@ -308,7 +308,7 @@ final class ResolverVerificationVectorsTests: XCTestCase {
     func testEveryMemberEntryReproducesItsBytesAndVerifies() throws {
         for vector in lpVectors.section("memberEntries") {
             let name = vector.string("name")
-            let homeserver = try vector.decode(RosterHomeserver.self, at: "homeserver")
+            let homeserver = try vector.memberHomeserver()
             let member = try vector.decode(RosterMemberAttestation.self, at: "member")
             let notBefore = try XCTUnwrap(ResolverInstant(iso: XCTUnwrap(member.notBefore)), name)
             let notAfter = try XCTUnwrap(ResolverInstant(iso: XCTUnwrap(member.notAfter)), name)
@@ -326,7 +326,7 @@ final class ResolverVerificationVectorsTests: XCTestCase {
         // A rotation can only be refused against an entry accepted earlier, and the app keeps none.
         for vector in lpVectors.section("rejections") where vector.objectIfPresent("previous") == nil {
             let name = vector.string("name")
-            let homeserver = try vector.decode(RosterHomeserver.self, at: "homeserver")
+            let homeserver = try vector.memberHomeserver()
             guard let member = try? vector.decode(RosterMemberAttestation.self, at: "member") else {
                 // Only the vector carrying an unknown field is refused by the strict reader; every other block decodes.
                 XCTAssertTrue(name.contains("unknown field"), "\(name): the member block should decode")
@@ -421,6 +421,15 @@ private struct JSONObject {
         let items = array(key).map(JSONObject.init)
         XCTAssertFalse(items.isEmpty, "the \(key) section is empty", file: file, line: line)
         return items
+    }
+
+    /// A member vector's homeserver. It carries only the fields the member signs, so the roster's authority
+    /// attributes, which the member bytes leave out, are filled in for the decoder.
+    func memberHomeserver() throws -> RosterHomeserver {
+        var homeserver = object("homeserver").dictionary
+        homeserver["weight"] = homeserver["weight"] ?? 0
+        homeserver["acceptsNew"] = homeserver["acceptsNew"] ?? false
+        return try JSONDecoder().decode(RosterHomeserver.self, from: JSONSerialization.data(withJSONObject: homeserver))
     }
 
     /// A section's objects by their `ref`, the key vectors join on.

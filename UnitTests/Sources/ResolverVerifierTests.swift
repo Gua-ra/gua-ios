@@ -228,6 +228,63 @@ final class ResolverVerifierTests: XCTestCase {
         XCTAssertEqual(report.rosterSignature, .unverifiable(.parseError))
     }
 
+    func testNullEntriesListIsAParseError() async throws {
+        var roster = try rosterJSON("r1")
+        roster["entries"] = NSNull()
+        try VerifierStub.respond(path: "/roster", body: json(roster))
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: "r1")), answer())
+
+        XCTAssertEqual(report.rosterSignature, .unverifiable(.parseError))
+    }
+
+    func testRosterFieldsThatAreNeverNullRefuseNull() throws {
+        for field in ["version", "issuedAt", "logCheckpoint", "entries", "authoritySignatures"] {
+            var roster = try rosterJSON("r1")
+            roster[field] = NSNull()
+            XCTAssertThrowsError(try JSONDecoder().decode(SignedRosterDocument.self, from: json(roster)), field)
+        }
+        for field in ["homeserver", "status"] {
+            let roster = try editing(rosterJSON("r1"), entry: 0) { $0[field] = NSNull() }
+            XCTAssertThrowsError(try JSONDecoder().decode(SignedRosterDocument.self, from: json(roster)), field)
+        }
+        for field in ["weight", "acceptsNew"] {
+            let roster = try editing(rosterJSON("r1"), entry: 0) { entry in
+                var homeserver = entry["homeserver"] as? [String: Any] ?? [:]
+                homeserver[field] = NSNull()
+                entry["homeserver"] = homeserver
+            }
+            XCTAssertThrowsError(try JSONDecoder().decode(SignedRosterDocument.self, from: json(roster)), field)
+        }
+    }
+
+    func testNumberOrBooleanSentAsAStringIsAParseError() throws {
+        var version = try rosterJSON("r1")
+        version["version"] = "3"
+        var size = try rosterJSON("r1")
+        size["logCheckpoint"] = ["merkleRoot": logRoot(size: 3), "size": "3"]
+        let weight = try editing(rosterJSON("r1"), entry: 0) { entry in
+            var homeserver = entry["homeserver"] as? [String: Any] ?? [:]
+            homeserver["weight"] = "5"
+            entry["homeserver"] = homeserver
+        }
+        let acceptsNew = try editing(rosterJSON("r1"), entry: 0) { entry in
+            var homeserver = entry["homeserver"] as? [String: Any] ?? [:]
+            homeserver["acceptsNew"] = "true"
+            entry["homeserver"] = homeserver
+        }
+        for (name, roster) in [("version", version), ("size", size), ("weight", weight), ("acceptsNew", acceptsNew)] {
+            XCTAssertThrowsError(try JSONDecoder().decode(SignedRosterDocument.self, from: json(roster)), name)
+        }
+    }
+
+    func testTimestampsNeedFourYearDigitsWithoutASign() {
+        XCTAssertNotNil(ResolverInstant(iso: "2026-10-01T12:00:00Z"))
+        for text in ["+2026-10-01T12:00:00Z", "-2026-10-01T12:00:00Z", "02026-10-01T12:00:00Z", "226-10-01T12:00:00Z",
+                     "2026-10-01t12:00:00Z", "2026-10-01T12:00:00z", "2026-10-01T12:00:00+00:00"] {
+            XCTAssertNil(ResolverInstant(iso: text), text)
+        }
+    }
+
     func testRosterServedWithAnother2xxIsRead() async throws {
         try VerifierStub.respond(path: "/roster", status: 203, body: json(rosterJSON("r1")))
         let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: "r1")), answer())
@@ -526,21 +583,26 @@ final class ResolverVerifierTests: XCTestCase {
         XCTAssertFalse(VerifierStub.requestedPaths.contains("/roster/log"))
     }
 
-    func testLeafPastTheCheckpointIsNeitherHashedNorParsed() throws {
-        var events = try logEvents()
-        events[7] = TransparencyLogEvent(index: 7, type: "POLICY_PUBLISH", homeserverId: "br-policy:v4", payloadHash: "", recordedAt: "not a time")
+    func testMalformedEventPastTheCheckpointIsAParseError() async throws {
+        try serve(roster: "r2", policy: "br-policy v3")
+        var document = try XCTUnwrap(JSONSerialization.jsonObject(with: logDocument()) as? [String: Any])
+        var events = try XCTUnwrap(document["events"] as? [[String: Any]])
+        // r2 signs the first 7 leaves; event 7 is past its checkpoint.
+        events[7]["recordedAt"] = "not a time"
+        document["events"] = events
+        try VerifierStub.respond(path: "/roster/log", body: json(document))
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: "r2", policy: "br-policy v3")), answer())
 
-        XCTAssertEqual(ResolverVerifier.logOutcome(for: servedPolicy(), checkpoint: checkpoint(size: 7), events: events), .valid)
+        XCTAssertEqual(report.policy, .unverifiable(.parseError))
     }
 
     func testPolicyLoggedOnlyPastTheCheckpointIsNewerEvenWithALaterVersionWithinIt() throws {
-        let later = TransparencyLogEvent(index: 0, type: "POLICY_PUBLISH", homeserverId: "br-policy:v4", payloadHash: "", recordedAt: "2026-10-05T00:00:00Z")
         let served = servedPolicy()
-        let own = TransparencyLogEvent(index: 1, type: "POLICY_PUBLISH", homeserverId: "br-policy:v3", payloadHash: served.contentHash,
-                                       recordedAt: "2026-10-06T00:00:00Z")
-        let leaf = try MerkleTree.leafHash(Array(MerkleTree.leafData(index: 0, type: later.type, homeserverId: later.homeserverId, payloadHash: "",
-                                                                     recordedAtEpochMilliseconds: instant(later.recordedAt)).utf8))
-        let checkpoint = try RosterLogCheckpoint(merkleRoot: XCTUnwrap(MerkleTree.root(leafHashes: [leaf])), size: 1)
+        let later = try TransparencyLogEvent(index: 0, type: "POLICY_PUBLISH", homeserverId: "br-policy:v4", payloadHash: "",
+                                             recordedAt: XCTUnwrap(ResolverInstant(iso: "2026-10-05T00:00:00Z")))
+        let own = try TransparencyLogEvent(index: 1, type: "POLICY_PUBLISH", homeserverId: "br-policy:v3", payloadHash: served.contentHash,
+                                           recordedAt: XCTUnwrap(ResolverInstant(iso: "2026-10-06T00:00:00Z")))
+        let checkpoint = try RosterLogCheckpoint(merkleRoot: XCTUnwrap(MerkleTree.root(leafHashes: [later.leafHash])), size: 1)
 
         XCTAssertEqual(ResolverVerifier.logOutcome(for: served, checkpoint: checkpoint, events: [later, own]), .unverifiable(.policyNewerThanCheckpoint))
     }
@@ -786,10 +848,6 @@ final class ResolverVerifierTests: XCTestCase {
         ResolverVerificationReport(environment: "test", rosterVersion: nil, rosterForm: rosterForm, rosterSignature: rosterSignature,
                                    homeserverMatch: .unverifiable(reason), memberEntry: .unverifiable(reason), logConsistency: .unverifiable(reason),
                                    policy: .unverifiable(reason), placement: .unverifiable(reason), durationMs: durationMs)
-    }
-
-    private func logEvents() throws -> [TransparencyLogEvent] {
-        try JSONDecoder().decode([TransparencyLogEvent].self, from: json(log["events"]))
     }
 
     /// br-policy v3 as its log leaf names it.
