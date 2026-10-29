@@ -33,6 +33,9 @@
 "gua_encryption_reset_still_finishing" = "Estamos terminando la configuración en segundo plano. Puedes seguir usando Gua.";
 "gua_resolver_claims_invalid" = "No pudimos confirmar los datos de tu cuenta. Inténtalo de nuevo.";
 "gua_resolver_routing_unavailable" = "Estamos teniendo problemas para conectarnos. Inténtalo de nuevo en un momento.";
+"gua_resolver_routing_unavailable_retry_in" = "Estamos teniendo problemas para conectarnos. Inténtalo de nuevo en %@.";
+"gua_resolver_rate_limited" = "Demasiados intentos. Espera un momento y vuelve a intentarlo.";
+"gua_resolver_rate_limited_retry_in" = "Demasiados intentos. Inténtalo de nuevo en %@.";
 "gua_resolver_registration_closed" = "En este momento no podemos crear cuentas nuevas. Inténtalo de nuevo más tarde.";
 "soft_logout_signin_title" = "Iniciar sesión";
 "soft_logout_signin_e2e_warning_notice" = "Inicia sesión para recuperar las claves de cifrado guardadas solo en este dispositivo. Las necesitas para leer todos tus mensajes seguros en cualquier dispositivo.";

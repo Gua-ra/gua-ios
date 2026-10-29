@@ -24,7 +24,7 @@ class AppCoordinatorStateMachine {
         case signedIn
 
         /// Processing a sign out request
-        case signingOut(isSoft: Bool, disableAppLock: Bool)
+        case signingOut(isSoft: Bool)
     }
 
     /// Events that can be triggered on the AppCoordinator state machine
@@ -42,7 +42,7 @@ class AppCoordinatorStateMachine {
         case createdUserSession
                 
         /// Request sign out.
-        case signOut(isSoft: Bool, disableAppLock: Bool)
+        case signOut(isSoft: Bool)
         /// Request the soft logout screen.
         case showSoftLogout
         /// Signing out completed.
@@ -53,6 +53,9 @@ class AppCoordinatorStateMachine {
     }
     
     private let stateMachine: StateMachine<State, Event>
+    
+    /// A sign out received while the session is still being resolved, replayed once it is.
+    private var heldSignOut: Event?
     
     var state: AppCoordinatorStateMachine.State {
         stateMachine.state
@@ -71,17 +74,22 @@ class AppCoordinatorStateMachine {
         stateMachine.addRoutes(event: .createdUserSession, transitions: [.restoringSession => .signedIn])
         stateMachine.addRoutes(event: .failedRestoringSession, transitions: [.restoringSession => .signedOut])
                 
-        stateMachine.addRoutes(event: .completedSigningOut, transitions: [.signingOut(isSoft: false, disableAppLock: false) => .signedOut,
-                                                                          .signingOut(isSoft: false, disableAppLock: true) => .signedOut])
-        stateMachine.addRoutes(event: .showSoftLogout, transitions: [.signingOut(isSoft: true, disableAppLock: false) => .softLogout])
+        stateMachine.addRoutes(event: .completedSigningOut, transitions: [.signingOut(isSoft: false) => .signedOut])
+        stateMachine.addRoutes(event: .showSoftLogout, transitions: [.signingOut(isSoft: true) => .softLogout])
         
         stateMachine.addRoutes(event: .clearCache, transitions: [.signedIn => .initial])
 
         // Transitions with associated values need to be handled through `addRouteMapping`
         stateMachine.addRouteMapping { event, fromState, _ in
             switch (fromState, event) {
-            case (_, .signOut(let isSoft, let disableAppLock)):
-                return .signingOut(isSoft: isSoft, disableAppLock: disableAppLock)
+            case (.signingOut, .signOut):
+                // A sign out in progress keeps the options it started with.
+                return fromState
+            case (.signedOut, .signOut):
+                // There is no session to tear down, so the coordinator handles the request in place.
+                return fromState
+            case (_, .signOut(let isSoft)):
+                return .signingOut(isSoft: isSoft)
             default:
                 return nil
             }
@@ -99,7 +107,35 @@ class AppCoordinatorStateMachine {
     /// Attempt to move the state machine to another state through an event
     /// It will either invoke the `transitionHandler` or the `errorHandler` depending on its current state
     func processEvent(_ event: Event) {
+        if case .signOut = event, isResolvingSession {
+            MXLog.info("Holding `\(event)` until the session is resolved")
+            heldSignOut = event
+            return
+        }
+        
         stateMachine.tryEvent(event)
+        
+        if !isResolvingSession, let heldSignOut {
+            self.heldSignOut = nil
+            processEvent(heldSignOut)
+        }
+    }
+    
+    /// Whether a transition leaves the device without an account, which also removes the app lock.
+    static func removesAppLock(from fromState: State, event: Event?, to toState: State, hasSessions: @autoclosure () -> Bool) -> Bool {
+        switch (fromState, event, toState) {
+        case (.signingOut(isSoft: false), .completedSigningOut, .signedOut), (.signedOut, .signOut, .signedOut):
+            true
+        case (.restoringSession, .failedRestoringSession, .signedOut):
+            // The store deletes a session that fails to restore.
+            !hasSessions()
+        default:
+            false
+        }
+    }
+    
+    private var isResolvingSession: Bool {
+        state == .initial || state == .restoringSession
     }
     
     /// Registers a callback for processing state machine transitions

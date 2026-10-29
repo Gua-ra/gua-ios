@@ -1,13 +1,13 @@
-name: Bug report for the Element X iOS app
-description: Report any issues that you have found with the Element X app. Please [check open issues](https://github.com/element-hq/element-x-ios/issues) first, in case it has already been reported.
-labels: [T-Defect]
+name: Bug report for Gua for iOS
+description: Report a problem with the Gua iOS app. Please [check open issues](https://github.com/Gua-ra/gua-ios/issues) first, in case it has already been reported.
+labels: [bug]
 body:
   - type: markdown
     attributes:
       value: |
         Thanks for taking the time to fill out this bug report!
 
-        Please report security issues by email to security@matrix.org
+        Do not report security problems here. Follow [SECURITY.md](https://github.com/Gua-ra/gua-ios/blob/develop/SECURITY.md) instead.
   - type: textarea
     id: reproduction-steps
     attributes:
@@ -16,7 +16,7 @@ body:
       placeholder: Tell us what you see!
       value: |
         1. Where are you starting? What can you see?
-        2. What do you click?
+        2. What do you tap?
         3. More steps…
     validations:
       required: true
@@ -41,36 +41,16 @@ body:
   - type: input
     id: os
     attributes:
-      label: Operating system version
-      placeholder: e.g. iOS18.1.1, under "software version"
+      label: iOS version
+      placeholder: e.g. iOS 18.1.1, under "Software Version"
     validations:
       required: false
   - type: input
     id: version
     attributes:
       label: Application version
-      description: You can find the version information in the Settings of Element X. 
+      description: Shown at the bottom of the Settings screen.
       placeholder: |
         e.g. Version: 1.1.1 (48)
     validations:
       required: false
-  - type: input
-    id: homeserver
-    attributes:
-      label: Homeserver
-      description: |
-        Which server is your account registered on? If it is a local or non-public homeserver, please tell us what is the homeserver implementation (ex: Synapse/Dendrite/etc.) and the version.
-      placeholder: e.g. matrix.org or Synapse 1.121.1rc1
-    validations:
-      required: false
-  - type: dropdown
-    id: rageshake
-    attributes:
-      label: Will you send logs?
-      description:  |
-        You can submit logs for this issue from the login screen or the application settings by chosing `Report a problem`. Describe the issue, mentioning that you have also filed a bug (it's helpful if you can include a link to the bug). Send the report to submit anonymous logs to the developers.
-      options:
-        - 'Yes'
-        - 'No'
-    validations:
-      required: true

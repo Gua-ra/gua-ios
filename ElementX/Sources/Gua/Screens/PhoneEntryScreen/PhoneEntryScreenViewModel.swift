@@ -1,5 +1,6 @@
 //
-// Copyright 2025 Gua. All rights reserved.
+// Copyright 2022-2025 New Vector Ltd.
+// Copyright 2025 Gua
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
@@ -43,9 +44,11 @@ class PhoneEntryScreenViewModel: PhoneEntryScreenViewModelType, PhoneEntryScreen
             state.isSubmitting = true
             actionsSubject.send(.continue(phoneNumber: state.e164PhoneNumber))
         case .signInWithPasskeyTapped:
+            guard !state.isSubmitting else { return }
             state.isSubmitting = true
             actionsSubject.send(.signInWithPasskey)
         case .useLegacyAuthTapped:
+            guard !state.isSubmitting else { return }
             actionsSubject.send(.useLegacyAuth)
         case .countrySelected(let country):
             state.selectedCountry = country

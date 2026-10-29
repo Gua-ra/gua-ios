@@ -33,6 +33,9 @@
 "gua_encryption_repair_action_in_progress" = "Configurando…";
 "gua_resolver_claims_invalid" = "Não foi possível confirmar os dados da sua conta. Tente novamente.";
 "gua_resolver_routing_unavailable" = "Estamos com problemas de conexão no momento. Tente novamente em instantes.";
+"gua_resolver_routing_unavailable_retry_in" = "Estamos com problemas de conexão no momento. Tente novamente em %@.";
+"gua_resolver_rate_limited" = "Muitas tentativas. Aguarde um pouco e tente novamente.";
+"gua_resolver_rate_limited_retry_in" = "Muitas tentativas. Tente novamente em %@.";
 "gua_resolver_registration_closed" = "No momento, não é possível criar novas contas. Tente novamente mais tarde.";
 "soft_logout_signin_title" = "Entrar";
 "soft_logout_signin_e2e_warning_notice" = "Entre para recuperar as chaves de criptografia guardadas apenas neste dispositivo. Você precisa delas para ler todas as suas mensagens seguras em qualquer dispositivo.";

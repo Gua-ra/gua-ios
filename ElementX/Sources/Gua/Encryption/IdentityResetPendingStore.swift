@@ -1,5 +1,5 @@
 //
-// Copyright 2026 Gua. All rights reserved.
+// Copyright 2026 Gua
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 //

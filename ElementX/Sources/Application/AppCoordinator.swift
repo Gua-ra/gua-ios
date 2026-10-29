@@ -569,16 +569,25 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
                 // We can ignore signOut when already in the process of signing out,
                 // such as the SDK sending an authError due to token invalidation.
                 break
-            case (_, .signOut(let isSoft, _), .signingOut):
+            case (.signedOut, .signOut, .signedOut):
+                break
+            case (_, .signOut(let isSoft), .signingOut):
                 logout(isSoft: isSoft)
-            case (.signingOut(_, let disableAppLock), .completedSigningOut, .signedOut):
-                presentSplashScreen(isSoftLogout: false, disableAppLock: disableAppLock)
-            case (.signingOut(_, let disableAppLock), .showSoftLogout, .softLogout):
-                presentSplashScreen(isSoftLogout: true, disableAppLock: disableAppLock)
+            case (.signingOut, .completedSigningOut, .signedOut):
+                presentSplashScreen()
+            case (.signingOut, .showSoftLogout, .softLogout):
+                presentSplashScreen(isSoftLogout: true)
             case (.signedIn, .clearCache, .initial):
                 clearCache()
             default:
                 fatalError("Unknown transition: \(context)")
+            }
+            
+            if AppCoordinatorStateMachine.removesAppLock(from: context.fromState,
+                                                         event: context.event,
+                                                         to: context.toState,
+                                                         hasSessions: userSessionStore.hasSessions) {
+                removeAppLock()
             }
         }
         
@@ -687,7 +696,7 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
                         stateMachine.processEvent(.createdUserSession)
                     case .clearAllData:
                         self.softLogoutCoordinator = nil
-                        stateMachine.processEvent(.signOut(isSoft: false, disableAppLock: false))
+                        stateMachine.processEvent(.signOut(isSoft: false))
                     }
                 }
                 .store(in: &cancellables)
@@ -726,11 +735,11 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
                 
                 switch action {
                 case .logout:
-                    stateMachine.processEvent(.signOut(isSoft: false, disableAppLock: false))
+                    stateMachine.processEvent(.signOut(isSoft: false))
                 case .clearCache:
                     stateMachine.processEvent(.clearCache)
                 case .forceLogout:
-                    stateMachine.processEvent(.signOut(isSoft: false, disableAppLock: true))
+                    stateMachine.processEvent(.signOut(isSoft: false))
                 }
             }
             .store(in: &cancellables)
@@ -798,7 +807,7 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         notificationManager.setUserSession(nil)
     }
     
-    private func presentSplashScreen(isSoftLogout: Bool = false, disableAppLock: Bool = false) {
+    private func presentSplashScreen(isSoftLogout: Bool = false) {
         navigationRootCoordinator.setRootCoordinator(SplashScreenCoordinator())
         
         if isSoftLogout {
@@ -806,14 +815,15 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         } else {
             startAuthentication()
         }
-        
-        if disableAppLock {
-            Task {
-                // Ensure the navigation stack has settled.
-                try? await Task.sleep(for: .milliseconds(500))
-                appLockFlowCoordinator.appLockService.disable()
-                windowManager.switchToMain()
-            }
+    }
+    
+    private func removeAppLock() {
+        Task {
+            // Ensure the navigation stack has settled.
+            try? await Task.sleep(for: .milliseconds(500))
+            appLockFlowCoordinator.appLockService.disable()
+            // With the PIN gone the lock flow no longer changes state, so it cannot hide itself.
+            windowManager.switchToMain()
         }
     }
     
@@ -880,7 +890,7 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
                 guard let self else { return }
                 switch callback {
                 case .didReceiveAuthError(let isSoftLogout):
-                    stateMachine.processEvent(.signOut(isSoft: isSoftLogout, disableAppLock: false))
+                    stateMachine.processEvent(.signOut(isSoft: isSoftLogout))
                 }
             }
     }
@@ -894,7 +904,7 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
             case .unlockApp:
                 windowManager.switchToMain()
             case .forceLogout:
-                stateMachine.processEvent(.signOut(isSoft: false, disableAppLock: true))
+                stateMachine.processEvent(.signOut(isSoft: false))
             }
         }
         .store(in: &cancellables)
