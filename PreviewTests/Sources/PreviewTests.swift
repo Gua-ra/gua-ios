@@ -153,13 +153,7 @@ class PreviewTests: XCTestCase {
     }
 }
 
-// MARK: - Gua localized screens
-
 extension PreviewTests {
-    /// GUA FORK: Gua's own screens in each shipped translation, on iPhone 16 only, recorded as
-    /// `<screen>.iPhone-16-<locale>.png`. `Bundle.overrideLocalizations` drives `L10n` and
-    /// `UntranslatedL10n`, while a SwiftUI literal ignores it, so any English left on these screens
-    /// shows in the image. The preview picked for each screen is the one that shows Gua's strings.
     func testGuaLocalizedScreens() async throws {
         if UserDefaults.standard.bool(forKey: "NSDoubleLocalizedStrings") {
             throw XCTSkip("The pseudolanguage run doubles every string, so it cannot show a translation.")
@@ -169,13 +163,10 @@ extension PreviewTests {
         for locale in ["pt-BR", "es", "fr"] {
             Bundle.overrideLocalizations = [locale]
 
-            // Built after the language is set, in case a preview passes a string in rather than
-            // reading it while it renders.
+            // Built per language because a preview can read its strings at creation.
             let screens: [(name: String, preview: _Preview)] = [
                 ("phoneEntryScreen", PhoneEntryScreen_Previews._allPreviews[0]),
-                // The variant that can restore from another device, which shows every Gua string.
                 ("encryptionResetScreen", EncryptionResetScreen_Previews._allPreviews[1]),
-                // The repair banner; the first preview is upstream's recovery prompt.
                 ("homeScreenRecoveryKeyConfirmationBanner", HomeScreenRecoveryKeyConfirmationBanner_Previews._allPreviews[1]),
                 ("twoStepVerificationScreen", TwoStepVerificationScreen_Previews._allPreviews[0])
             ]
@@ -193,7 +184,7 @@ extension PreviewTests {
             .onPreferenceChange(SnapshotPerceptualPrecisionPreferenceKey.self) { preferences.perceptualPrecision = $0 }
             .onPreferenceChange(SnapshotFulfillmentPreferenceKey.self) { preferences.fulfillmentSource = $0?.source }
 
-        // Render once so the preferences arrive, then wait for any state the preview expects.
+        // Rendering once triggers the preference updates read below.
         _ = ImageRenderer(content: preferenceReadingView).uiImage
 
         switch preferences.fulfillmentSource {

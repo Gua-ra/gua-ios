@@ -78,9 +78,6 @@ final class IdentityServiceClientTests: XCTestCase {
 
     // MARK: - The language the code is written in
 
-    /// The tag the call sites send is the language the app is shown in, which is always one of the
-    /// server's templates, rather than the device locale, which can name a region nobody has a
-    /// template for (`pt-CA`, `pt-PT`).
     func testTheAppLanguageIsAskedForAsABCP47Tag() {
         defer { Bundle.overrideLocalizations = nil }
 

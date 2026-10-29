@@ -6,8 +6,7 @@
 
 import AuthenticationServices
 
-/// The enrollment page sent the reader back with an OAuth `error`. The code and the server's
-/// `error_description` are English for the log; the reader sees a translated generic message.
+/// The server's `error_description` is English, so it is logged and never shown.
 struct FactorEnrollmentRefusal: LocalizedError {
     let code: String
     let serverDescription: String?
@@ -50,8 +49,6 @@ class FactorEnrollmentPresenter: NSObject {
     /// `ASWebAuthenticationSession` fails for a reason other than user cancellation.
     /// User cancellation is treated as success (no error thrown).
     func start() async throws {
-        // Pass the app language so the page matches the screen that opened it. Appended to the raw
-        // query: rewriting `queryItems` would turn an escaped `%2B` in the token URL into a bare `+`.
         var urlToOpen = enrollURL
         if var components = URLComponents(url: enrollURL, resolvingAgainstBaseURL: true) {
             components.appendUILocalesPreservingEncoding()

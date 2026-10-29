@@ -45,7 +45,6 @@ STRINGSDICT_TABLES = ["Localizable.stringsdict", "Untranslated.stringsdict"]
 STRINGS_ENTRY = re.compile(r'^\s*"((?:[^"\\]|\\.)*)"\s*=\s*"((?:[^"\\]|\\.)*)"\s*;', re.MULTILINE)
 PLACEHOLDER = re.compile(r"%(?:\d+\$)?(?:#@[A-Za-z_]+@|l{0,2}[@dDuUxXoOfeEgGcCsSp])")
 
-# A string literal containing at least one letter, passed straight to a text-taking API.
 TEXT_APIS = (r'(?:\bText|\bLabel|\bButton|\bTextField|\bSecureField|\bToggle|\bSection|\bLink'
              r'|\.navigationTitle|\.accessibilityLabel|\.accessibilityHint|\.accessibilityValue'
              r'|\.alert|\.confirmationDialog|\bprompt:|\b(?:title|subtitle|message|placeholder):)')
@@ -70,7 +69,6 @@ def read_stringsdict(path):
 
     flattened = {}
     for key, entry in plist.items():
-        # Join every plural form so a missing or English form shows up as a difference.
         forms = []
         for variable, rules in sorted(entry.items()):
             if isinstance(rules, dict):
@@ -87,7 +85,7 @@ def placeholders(value):
 
 
 def plural_placeholders(value):
-    # Plural forms may drop the number ("one" often reads "a minute"), so compare the union only.
+    # A plural form may omit the number, as in "a minute", so only the set is compared.
     return sorted(set(PLACEHOLDER.findall(value.replace("%%", ""))))
 
 

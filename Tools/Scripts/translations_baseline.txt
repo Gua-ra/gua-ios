@@ -1,5 +1,4 @@
-# Strings that Tools/Scripts/check_translations.py accepts without a translation, as <locale>:<key>.
-# Only upstream sync PRs add lines here. A line that is no longer needed fails the check.
+# Strings accepted untranslated, as <locale>:<key>, added only in upstream sync PRs.
 
 # Test fixtures, English only by design.
 pt-BR:test_untranslated_default_language_identifier
@@ -125,7 +124,7 @@ fr:screen_bottom_sheet_leave_space_subtitle_admin
 pt-BR:screen_bottom_sheet_leave_space_title
 es:screen_bottom_sheet_leave_space_title
 fr:screen_bottom_sheet_leave_space_title
-# Upstream's soft logout notice names the homeserver; Gua shows gua_soft_logout_signin_notice instead.
+# Gua shows gua_soft_logout_signin_notice instead of upstream's soft logout notice.
 pt-BR:soft_logout_signin_notice
 es:soft_logout_signin_notice
 fr:soft_logout_signin_notice

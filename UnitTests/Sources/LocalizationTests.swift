@@ -68,8 +68,6 @@ class LocalizationTests: XCTestCase {
         XCTAssertEqual(L10n.commonMemberCount(2), "2 Members")
     }
 
-    /// Gua ships en, pt-BR, es and fr, plus pt as a build-time copy of pt-BR. Any Portuguese stays
-    /// Portuguese even with English second, and an unsupported language resolves to English.
     func testShippedLanguagesResolve() throws {
         XCTAssertEqual(Set(Bundle.app.localizations), ["en", "pt-BR", "pt", "es", "fr"])
 
@@ -100,7 +98,6 @@ class LocalizationTests: XCTestCase {
         XCTAssertEqual(UntranslatedL10n.untranslatedPlural(5), "5 untranslated items")
     }
 
-    /// Gua keeps its own translations in the Untranslated table, so it must follow the app language like L10n.
     func testUntranslatedFollowsAppLanguage() throws {
         let english = try XCTUnwrap(untranslatedValue("gua_sign_in_with_passkey", language: "en"))
 
@@ -116,7 +113,6 @@ class LocalizationTests: XCTestCase {
         XCTAssertEqual(UntranslatedL10n.guaSignInWithPasskey, english)
     }
 
-    /// A key the app language lacks falls back to English instead of showing the key.
     func testUntranslatedFallsBackForMissingKey() {
         Bundle.overrideLocalizations = ["pt-BR"]
 
@@ -125,8 +121,6 @@ class LocalizationTests: XCTestCase {
         XCTAssertEqual(UntranslatedL10n.untranslatedPlural(5), "5 untranslated items")
     }
 
-    /// Identity-service refusals are shown as they are, so none of them may fall back to English or
-    /// pass the server's English through.
     func testIdentityServiceErrorsFollowAppLanguage() {
         let errors: [IdentityServiceError] = [.rateLimited,
                                               .pinLocked(retryAfterSeconds: 120),
@@ -152,7 +146,6 @@ class LocalizationTests: XCTestCase {
                        "Você errou o PIN muitas vezes. Tente novamente em 2 minutos.")
     }
 
-    /// Durations use plural rules of the app language rather than an English "minute(s)".
     func testDurationsFollowAppLanguage() {
         Bundle.overrideLocalizations = ["pt-BR"]
         XCTAssertEqual(IdentityServiceError.humanReadableDuration(seconds: 30), "1 minuto")
@@ -167,9 +160,6 @@ class LocalizationTests: XCTestCase {
         XCTAssertEqual(IdentityServiceError.humanReadableDuration(seconds: 7 * 60), "7 minutes")
     }
 
-    // MARK: - Helpers
-
-    /// Reads a value straight from one language's Untranslated table, or nil when that table lacks the key.
     private func untranslatedValue(_ key: String, language: String) -> String? {
         guard let bundle = Bundle.lprojBundle(for: language) else { return nil }
         let value = bundle.localizedString(forKey: key, value: nil, table: "Untranslated")

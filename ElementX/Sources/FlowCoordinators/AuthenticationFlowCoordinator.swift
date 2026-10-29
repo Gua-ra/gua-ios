@@ -423,8 +423,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                 break
             case .failure(let error):
                 MXLog.error("Failed configuring OIDC login from phone hint: \(error)")
-                // `AuthenticationServiceError` is not a `LocalizedError`, so its description is
-                // Foundation's English sentence naming the type. None of its cases is the reader's to fix.
+                // `AuthenticationServiceError` has no localized description, so show a generic error.
                 coordinator.displayError(L10n.errorUnknown)
                 return
             }

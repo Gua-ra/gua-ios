@@ -235,7 +235,7 @@ targets:
         basedOnDependencyAnalysis: false
         shell: /bin/sh
         script: |
-          # GUA FORK: iOS only falls back from pt-PT to pt-BR when no other listed language matches, so ship a pt copy too.
+          # GUA FORK: iOS picks pt-BR for pt-PT only when no other listed language matches.
           resources="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH"
           rm -rf "$resources/pt.lproj"
           cp -R "$resources/pt-BR.lproj" "$resources/pt.lproj"
@@ -281,11 +281,7 @@ targets:
           - Other/Extensions/XCUIElement.swift
       - path: ../../Secrets/Secrets.swift
       - path: ../Resources
-        # Gua ships en, pt-BR, es and fr only. The other folders stay on disk for the upstream
-        # Localazy sync, but are left out of the bundle so iOS never picks a half translated
-        # language: anything else resolves to en. The bundled pt.lproj is a copy of pt-BR made by
-        # the "Alias pt to pt-BR" build script, so pt-PT users with en second still get Portuguese.
-        # Tools/Scripts/check_translations.py fails if a new folder gets into the project.
+        # Upstream's other languages stay on disk for the Localazy sync but never ship.
         excludes:
           - Localizations/be.lproj
           - Localizations/bg.lproj

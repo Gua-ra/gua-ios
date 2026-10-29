@@ -8,10 +8,6 @@
 import Foundation
 
 extension URLComponents {
-    /// Appends a `ui_locales` query parameter for the language the app is shown in
-    /// (`Bundle.guaAppLanguage`) so the IDP (MAS) renders in the same language, **without
-    /// disturbing the percent-encoding of the query that is already present**.
-    ///
     /// Why not `queryItems.append(...)`: assigning through `URLComponents.queryItems` re-serializes
     /// the whole query and, in doing so, decodes an already-encoded `%2B` back to a bare `+`. A
     /// bare `+` in a query value is `application/x-www-form-urlencoded` shorthand for a space, so
@@ -22,8 +18,6 @@ extension URLComponents {
     mutating func appendUILocalesPreservingEncoding(languageCode: String? = Bundle.guaAppLanguage) {
         guard let languageCode, !languageCode.isEmpty else { return }
 
-        // Language tags are ASCII letters and hyphens, so the encoding is effectively a passthrough,
-        // but it is applied defensively.
         appendQueryItemPreservingEncoding(name: "ui_locales", value: languageCode)
     }
 

@@ -75,8 +75,7 @@ enum IdentityServiceError: Error, LocalizedError {
     case transport(Error)
     case decoding(Error)
 
-    /// What the reader sees, in the app language. The server's own `message` is English and is kept
-    /// for logs only (`String(describing:)` of the case still carries it).
+    /// The server's `message` is English, so it is logged and never shown.
     var errorDescription: String? {
         switch self {
         case .rateLimited: UntranslatedL10n.guaErrorRateLimited
@@ -105,15 +104,13 @@ enum IdentityServiceError: Error, LocalizedError {
         case .pinAlreadySet: L10n.screenTwoStepVerificationPinAlreadySet
         case .passkeyAlreadyRegistered: L10n.screenTwoStepVerificationPasskeyAlreadySet
         case .stepUpUnavailable: L10n.screenTwoStepVerificationStepUpUnavailable
-        // Configuration, deployment and transport problems the reader can do nothing about.
         case .notConfigured, .invalidURL, .invalidRedirectURI, .genesisUnavailable, .genesisIssuanceNotPermitted,
              .server, .transport, .decoding:
             L10n.errorUnknown
         }
     }
 
-    /// Coarse rendering of a remaining duration in the app language, e.g. "7 days", "3 hours",
-    /// "5 minutes". Rounds up so we never under-promise availability.
+    /// Rounds up so the reader is never told to retry early.
     static func humanReadableDuration(seconds: Int) -> String {
         let seconds = max(0, seconds)
         let day = 86400, hour = 3600, minute = 60
@@ -689,8 +686,6 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        // Every call says which language the app is shown in, so whatever the server texts or
-        // renders for it matches the screen, not the device region.
         request.setValue(language ?? Bundle.guaAppLanguage, forHTTPHeaderField: "Accept-Language")
         do {
             request.httpBody = try encoder.encode(body)
