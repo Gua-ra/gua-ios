@@ -10,7 +10,7 @@ import Foundation
 /// RFC 6962 Merkle tree hashing behind the transparency log. Domain separated so a leaf and an interior node
 /// cannot be confused: `leaf = SHA-256(0x00 || data)`, `node = SHA-256(0x01 || left || right)`.
 enum MerkleTree {
-    static func leafData(index: Int64, type: String, homeserverId: String?, payloadHash: String, recordedAtEpochMilliseconds: Int64) -> String {
+    static func leafData(index: Int, type: String, homeserverId: String?, payloadHash: String, recordedAtEpochMilliseconds: Int64) -> String {
         "\(index)|\(type)|\(homeserverId ?? "")|\(payloadHash)|\(recordedAtEpochMilliseconds)"
     }
 
@@ -49,34 +49,27 @@ enum MerkleTree {
         return k
     }
 
-    /// Whether `newRoot` (of `second` leaves) is an append-only extension of `oldRoot` (of `first` leaves).
+    /// Whether `newRoot` (of `second` leaves) is an append-only extension of `oldRoot` (of `first` leaves), checked
+    /// as RFC 9162 section 2.1.4.2 describes.
     static func verifyConsistency(first: Int, second: Int, oldRoot: String, newRoot: String, proof: [String]) -> Bool {
         if first == 0 { return second >= 0 }
         if first == second { return proof.isEmpty && oldRoot == newRoot }
-        let path = proof.compactMap(ResolverVerificationHex.bytes)
+        var path = proof.compactMap(ResolverVerificationHex.bytes)
         guard first < second, !path.isEmpty, path.count == proof.count, let oldRootBytes = ResolverVerificationHex.bytes(oldRoot) else {
             return false
         }
-
-        var index = 0
-        let seed: [UInt8]
-        if first & (first - 1) == 0 {
-            seed = oldRootBytes
-        } else {
-            seed = path[index]
-            index += 1
-        }
-        var fr = seed
-        var sr = seed
+        if first & (first - 1) == 0 { path.insert(oldRootBytes, at: 0) }
         var fn = first - 1
         var sn = second - 1
         while fn & 1 == 1 {
             fn >>= 1
             sn >>= 1
         }
-        while index < path.count {
-            let node = path[index]
-            index += 1
+        var fr = path[0]
+        var sr = path[0]
+        for node in path.dropFirst() {
+            // Hashes left over once the path has reached the new root fail the proof.
+            guard sn != 0 else { return false }
             if fn & 1 == 1 || fn == sn {
                 fr = nodeHash(node, fr)
                 sr = nodeHash(node, sr)

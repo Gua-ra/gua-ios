@@ -25,20 +25,10 @@ struct ResolverTrustRoots: Equatable {
     /// No keys at all: the verifier reports every answer as unverifiable and fetches nothing.
     static let empty = ResolverTrustRoots(authorityKeys: [], authorityThreshold: 1, policyKeys: [], policyThreshold: 1)
 
-    /// The production authority key, which is also trusted for routing policies.
-    static let production: ResolverTrustRoots = {
-        let authority = ResolverTrustedKey(id: "gua-authority-prod",
-                                           publicKey: "MCowBQYDK2VwAyEAmrJntRXbxGkoPe92j1epyM3RBXcx4nmr2wIzL6eb0a0=")
-        return ResolverTrustRoots(authorityKeys: [authority], authorityThreshold: 1,
-                                  policyKeys: [authority], policyThreshold: 1)
-    }()
-
-    /// Development roots from the injected secret: `keyId:spkiBase64` pairs separated by commas, each key
-    /// listed as both an authority and a policy key with threshold 1. Empty or malformed yields `.empty`.
-    init(developmentSecret value: String?) {
-        let keys = Self.keys(from: value) ?? []
-        self.init(authorityKeys: keys, authorityThreshold: 1, policyKeys: keys, policyThreshold: 1)
-    }
+    /// Production lists no policy keys until governance keys exist, so a policy served there is `no_policy_keys`.
+    static let production = ResolverTrustRoots(authorityKeys: [ResolverTrustedKey(id: "gua-authority-prod",
+                                                                                  publicKey: "MCowBQYDK2VwAyEAmrJntRXbxGkoPe92j1epyM3RBXcx4nmr2wIzL6eb0a0=")],
+                                               authorityThreshold: 1, policyKeys: [], policyThreshold: 1)
 
     init(authorityKeys: [ResolverTrustedKey], authorityThreshold: Int,
          policyKeys: [ResolverTrustedKey], policyThreshold: Int) {
@@ -48,13 +38,39 @@ struct ResolverTrustRoots: Equatable {
         self.policyThreshold = max(1, policyThreshold)
     }
 
-    private static func keys(from value: String?) -> [ResolverTrustedKey]? {
-        var keys = [ResolverTrustedKey]()
-        for pair in (value ?? "").split(separator: ",") {
-            let parts = pair.split(separator: ":", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }
-            guard parts.count == 2, !parts[0].isEmpty, !parts[1].isEmpty else { return nil }
-            keys.append(ResolverTrustedKey(id: parts[0], publicKey: parts[1]))
+    /// Development roots in Android's format: whitespace-separated `authority:<keyId>:<spkiBase64>`,
+    /// `policy:<keyId>:<spkiBase64>`, `authority-threshold:<n>` and `policy-threshold:<n>`, thresholds 1 by default.
+    /// A value with any token that does not read is refused whole and gives `.empty`.
+    init(developmentSecret value: String?) {
+        var authorityKeys = [ResolverTrustedKey]()
+        var policyKeys = [ResolverTrustedKey]()
+        var authorityThreshold = 1
+        var policyThreshold = 1
+        for token in (value ?? "").split(whereSeparator: \.isWhitespace) {
+            let parts = token.split(separator: ":", omittingEmptySubsequences: false).map(String.init)
+            switch (parts[0], parts.count) {
+            case ("authority", 3):
+                guard let key = Self.key(id: parts[1], publicKey: parts[2]) else { self = .empty; return }
+                authorityKeys.append(key)
+            case ("policy", 3):
+                guard let key = Self.key(id: parts[1], publicKey: parts[2]) else { self = .empty; return }
+                policyKeys.append(key)
+            case ("authority-threshold", 2):
+                guard let threshold = Int(parts[1]), threshold >= 1 else { self = .empty; return }
+                authorityThreshold = threshold
+            case ("policy-threshold", 2):
+                guard let threshold = Int(parts[1]), threshold >= 1 else { self = .empty; return }
+                policyThreshold = threshold
+            default:
+                self = .empty
+                return
+            }
         }
-        return keys
+        self.init(authorityKeys: authorityKeys, authorityThreshold: authorityThreshold, policyKeys: policyKeys, policyThreshold: policyThreshold)
+    }
+
+    private static func key(id: String, publicKey: String) -> ResolverTrustedKey? {
+        guard !id.isEmpty, ResolverVerificationCrypto.publicKey(spkiBase64: publicKey) != nil else { return nil }
+        return ResolverTrustedKey(id: id, publicKey: publicKey)
     }
 }

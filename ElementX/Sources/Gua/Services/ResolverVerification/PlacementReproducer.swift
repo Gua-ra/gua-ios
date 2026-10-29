@@ -66,7 +66,8 @@ enum PlacementReproducer {
 
     private static func policyRule(context: PlacementContext, roster: SignedRosterDocument, policy: VerifiedRoutingPolicy,
                                    now: Int64) -> PlacementDecision? {
-        let targets = Dictionary(roster.activeEntries.map(\.homeserver).filter(\.acceptsNew).map { ($0.id, $0) }) { first, _ in first }
+        let candidates = roster.activeEntries.map(\.homeserver).filter(\.acceptsNew)
+        let targets = Dictionary(candidates.compactMap { homeserver in homeserver.id.map { ($0, homeserver) } }) { first, _ in first }
         for rule in phoneRules(of: policy, context: context, now: now, delegateSigned: true) {
             if let targetId = rule.targetHomeserverId, let target = targets[targetId] {
                 return PlacementDecision(homeserver: target, rule: .policy(rule))
@@ -101,7 +102,7 @@ enum PlacementReproducer {
             for claim in entry.claims where !claim.isRemote && matchesLocally(claim, context: context) {
                 let isBetter = best.map { current in
                     claim.priority < current.priority
-                        || (claim.priority == current.priority && JavaStringOrder.precedes(entry.homeserver.id, current.homeserver.id))
+                        || (claim.priority == current.priority && JavaStringOrder.compare(entry.homeserver.id, current.homeserver.id) < 0)
                 } ?? true
                 if isBetter { best = (claim.priority, entry.homeserver) }
             }
@@ -123,7 +124,7 @@ enum PlacementReproducer {
 
     static func fallbackCandidates(in roster: SignedRosterDocument) -> [RosterHomeserver] {
         roster.activeEntries.map(\.homeserver).filter(\.acceptsNew)
-            .stableSorted { JavaStringOrder.compare($0.id, $1.id) }
+            .sorted { JavaStringOrder.compare($0.id, $1.id) < 0 }
     }
 
     private static func weightedFallback(context: PlacementContext, roster: SignedRosterDocument) -> PlacementDecision? {
@@ -152,7 +153,7 @@ enum PlacementReproducer {
         var message = Array("weighted-fallback.v1\nroster=\(rosterVersion)\n".utf8)
         message += Array(context.canonicalRoutingKey.utf8)
         for candidate in candidates {
-            message += Array("\n\(candidate.id):\(max(0, candidate.weight))".utf8)
+            message += Array("\n\(candidate.id ?? "null"):\(max(0, candidate.weight))".utf8)
         }
         let digest = ResolverVerificationCrypto.sha256(message)
         let value = UInt32(digest[0]) << 24 | UInt32(digest[1]) << 16 | UInt32(digest[2]) << 8 | UInt32(digest[3])

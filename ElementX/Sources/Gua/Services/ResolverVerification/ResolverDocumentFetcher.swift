@@ -106,7 +106,7 @@ struct ResolverDocumentFetcher {
         let (stream, response) = try await session.bytes(for: request)
         defer { stream.task.cancel() }
         guard let status = (response as? HTTPURLResponse)?.statusCode else { throw Failure.unavailable }
-        guard status == 200 else { throw Failure.status(status) }
+        guard (200..<300).contains(status) else { throw Failure.status(status) }
         var body = [UInt8]()
         for try await byte in stream {
             // Stop at the cap instead of buffering an oversized body.

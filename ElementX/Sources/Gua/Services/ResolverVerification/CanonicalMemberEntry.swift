@@ -15,13 +15,7 @@ struct GuaLPEncoder {
         case missingRequiredValue
     }
 
-    private(set) var bytes = [UInt8]()
-
-    init() { }
-
-    init(schemaTag: String) {
-        string(schemaTag)
-    }
+    var bytes = [UInt8]()
 
     mutating func string(_ value: String) {
         let utf8 = Array(value.utf8)
@@ -31,10 +25,6 @@ struct GuaLPEncoder {
 
     mutating func int64(_ value: Int64) {
         bytes.append(contentsOf: withUnsafeBytes(of: value.bigEndian, Array.init))
-    }
-
-    mutating func bool(_ value: Bool) {
-        bytes.append(value ? 1 : 0)
     }
 
     mutating func optionalString(_ value: String?) {
@@ -48,13 +38,6 @@ struct GuaLPEncoder {
 
     mutating func enumName(_ name: String) {
         string(name)
-    }
-
-    mutating func stringList(_ values: [String]) {
-        u32(values.count)
-        for value in values {
-            string(value)
-        }
     }
 
     mutating func stringSet(_ values: [String]) throws {
@@ -74,6 +57,13 @@ struct GuaLPEncoder {
     }
 }
 
+extension GuaLPEncoder {
+    init(schemaTag: String) {
+        self.init()
+        string(schemaTag)
+    }
+}
+
 /// The `gua-member-entry.v1` bytes a homeserver signs about itself, in the resolver's field order. The authority
 /// attributes `weight`, `acceptsNew`, `claims`, `admittedAt` and `status` are not covered.
 enum CanonicalMemberEntry {
@@ -82,14 +72,15 @@ enum CanonicalMemberEntry {
 
     static func bytes(homeserver: RosterHomeserver, member: RosterMemberAttestation,
                       notBefore: Int64, notAfter: Int64) throws -> [UInt8] {
-        guard let masIssuer = homeserver.masIssuer, let alg = member.alg,
-              let signingKey = homeserver.signingKey, let keyId = member.keyId else {
+        guard let id = homeserver.id, let serverName = homeserver.serverName, let baseUrl = homeserver.baseUrl,
+              let masIssuer = homeserver.masIssuer, let alg = member.alg, let signingKey = homeserver.signingKey,
+              let keyId = member.keyId else {
             throw GuaLPEncoder.EncodingError.missingRequiredValue
         }
         var encoder = GuaLPEncoder(schemaTag: schema)
-        encoder.string(homeserver.id)
-        encoder.string(homeserver.serverName)
-        encoder.string(homeserver.baseUrl)
+        encoder.string(id)
+        encoder.string(serverName)
+        encoder.string(baseUrl)
         encoder.string(masIssuer)
         encoder.string(alg)
         encoder.string(signingKey)

@@ -40,6 +40,18 @@ struct SignedRosterDocument: Decodable {
 struct RosterLogCheckpoint: Codable, Equatable {
     let merkleRoot: String
     let size: Int
+
+    private enum CodingKeys: String, CodingKey {
+        case merkleRoot, size
+    }
+}
+
+extension RosterLogCheckpoint {
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        merkleRoot = try container.decode(String.self, forKey: .merkleRoot)
+        size = try container.decodeSizeOrIndex(forKey: .size)
+    }
 }
 
 struct RosterAuthoritySignature: Decodable {
@@ -82,9 +94,9 @@ struct SignedRosterEntry: Decodable {
 }
 
 struct RosterHomeserver: Decodable {
-    let id: String
-    let serverName: String
-    let baseUrl: String
+    let id: String?
+    let serverName: String?
+    let baseUrl: String?
     let masIssuer: String?
     let region: String?
     let weight: Int32
@@ -101,9 +113,9 @@ struct RosterHomeserver: Decodable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(String.self, forKey: .id)
-        serverName = try container.decode(String.self, forKey: .serverName)
-        baseUrl = try container.decode(String.self, forKey: .baseUrl)
+        id = try container.decodeIfPresent(String.self, forKey: .id)
+        serverName = try container.decodeIfPresent(String.self, forKey: .serverName)
+        baseUrl = try container.decodeIfPresent(String.self, forKey: .baseUrl)
         masIssuer = try container.decodeIfPresent(String.self, forKey: .masIssuer)
         region = try container.decodeIfPresent(String.self, forKey: .region)
         weight = try container.decodeIfPresent(Int32.self, forKey: .weight) ?? 0
@@ -152,7 +164,7 @@ struct RosterClaimPredicate: Decodable {
     }
 }
 
-/// The member-signed block, parsed strictly: an unknown field at either level refuses the block.
+/// The member-signed block, parsed strictly: an unknown field or a null at either level refuses the block.
 struct RosterMemberAttestation: Decodable {
     let schema: String?
     let alg: String?
@@ -169,14 +181,13 @@ struct RosterMemberAttestation: Decodable {
     init(from decoder: Decoder) throws {
         try StrictKeys.check(decoder, allowed: CodingKeys.self)
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        schema = try container.decodeIfPresent(String.self, forKey: .schema)
-        alg = try container.decodeIfPresent(String.self, forKey: .alg)
-        keyId = try container.decodeIfPresent(String.self, forKey: .keyId)
-        // Absent is a bad sequence; null or any other type fails the strict parse.
-        sequence = try container.contains(.sequence) ? container.decode(Int64.self, forKey: .sequence) : 0
-        notBefore = try container.decodeIfPresent(String.self, forKey: .notBefore)
-        notAfter = try container.decodeIfPresent(String.self, forKey: .notAfter)
-        signatures = try container.decodeIfPresent([RosterMemberSignature].self, forKey: .signatures) ?? []
+        schema = try container.decodeStrictly(String.self, forKey: .schema)
+        alg = try container.decodeStrictly(String.self, forKey: .alg)
+        keyId = try container.decodeStrictly(String.self, forKey: .keyId)
+        sequence = try container.decodeStrictly(Int64.self, forKey: .sequence) ?? 0
+        notBefore = try container.decodeStrictly(String.self, forKey: .notBefore)
+        notAfter = try container.decodeStrictly(String.self, forKey: .notAfter)
+        signatures = try container.decodeStrictly([RosterMemberSignature].self, forKey: .signatures) ?? []
     }
 }
 
@@ -191,8 +202,8 @@ struct RosterMemberSignature: Decodable {
     init(from decoder: Decoder) throws {
         try StrictKeys.check(decoder, allowed: CodingKeys.self)
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        keyId = try container.decodeIfPresent(String.self, forKey: .keyId)
-        signatureB64 = try container.decodeIfPresent(String.self, forKey: .signatureB64)
+        keyId = try container.decodeStrictly(String.self, forKey: .keyId)
+        signatureB64 = try container.decodeStrictly(String.self, forKey: .signatureB64)
     }
 }
 
@@ -221,6 +232,19 @@ private enum StrictKeys {
     }
 }
 
+private extension KeyedDecodingContainer {
+    /// A field that may be absent but, when present, must have the type, so a null is refused.
+    func decodeStrictly<Value: Decodable>(_ type: Value.Type, forKey key: Key) throws -> Value? {
+        try contains(key) ? decode(type, forKey: key) : nil
+    }
+
+    func decodeSizeOrIndex(forKey key: Key) throws -> Int {
+        let value = try decode(Int32.self, forKey: key)
+        guard value >= 0 else { throw DecodingError.dataCorruptedError(forKey: key, in: self, debugDescription: "does not fit in 31 bits") }
+        return Int(value)
+    }
+}
+
 // MARK: - Routing policy
 
 /// An artifact in effect from `notBefore`, inclusive, until `expiresAt`, exclusive. An absent bound is open and a
@@ -232,11 +256,14 @@ protocol ResolverValidityWindow {
 
 extension ResolverValidityWindow {
     func isInEffect(atEpochMilliseconds now: Int64) -> Bool {
+        // The signed bytes write a missing bound and one at the epoch alike, as 0, so both leave that side open.
         if let notBefore {
-            guard let start = ResolverInstant(iso: notBefore), start.epochMilliseconds <= now else { return false }
+            guard let start = ResolverInstant(iso: notBefore)?.epochMilliseconds else { return false }
+            if start != 0, now < start { return false }
         }
         if let expiresAt {
-            guard let end = ResolverInstant(iso: expiresAt), now < end.epochMilliseconds else { return false }
+            guard let end = ResolverInstant(iso: expiresAt)?.epochMilliseconds else { return false }
+            if end != 0, now >= end { return false }
         }
         return true
     }
@@ -361,11 +388,15 @@ struct TransparencyLogDocument: Decodable {
 }
 
 struct TransparencyLogEvent: Decodable {
-    let index: Int64
+    let index: Int
     let type: String
     let homeserverId: String?
     let payloadHash: String
     let recordedAt: String
+
+    private enum CodingKeys: String, CodingKey {
+        case index, type, homeserverId, payloadHash, recordedAt
+    }
 
     var isPolicyPublication: Bool {
         type == "POLICY_PUBLISH"
@@ -382,6 +413,17 @@ struct TransparencyLogEvent: Decodable {
     }
 }
 
+extension TransparencyLogEvent {
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        index = try container.decodeSizeOrIndex(forKey: .index)
+        type = try container.decode(String.self, forKey: .type)
+        homeserverId = try container.decodeIfPresent(String.self, forKey: .homeserverId)
+        payloadHash = try container.decode(String.self, forKey: .payloadHash)
+        recordedAt = try container.decode(String.self, forKey: .recordedAt)
+    }
+}
+
 /// A served policy bundle as its `POLICY_PUBLISH` leaf names it.
 struct ServedPolicy {
     let policyId: String?
@@ -392,4 +434,20 @@ struct ServedPolicy {
 
 struct ConsistencyProofDocument: Decodable {
     let proof: [String]
+
+    private enum CodingKeys: String, CodingKey {
+        case proof
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        proof = try container.decode([String].self, forKey: .proof)
+        guard proof.allSatisfy(Self.isHash) else {
+            throw DecodingError.dataCorruptedError(forKey: .proof, in: container, debugDescription: "a proof hash is not 64 lowercase hex characters")
+        }
+    }
+
+    private static func isHash(_ text: String) -> Bool {
+        text.utf8.count == 64 && text.utf8.allSatisfy { (UInt8(ascii: "0")...UInt8(ascii: "9")).contains($0) || (UInt8(ascii: "a")...UInt8(ascii: "f")).contains($0) }
+    }
 }

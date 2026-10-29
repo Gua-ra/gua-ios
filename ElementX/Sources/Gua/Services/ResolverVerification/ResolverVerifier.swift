@@ -125,32 +125,31 @@ final class ResolverVerifier: ResolverVerifying {
         let form: RosterForm
     }
 
-    /// Why a run stopped at the roster. An invalid roster leaves the other checks `roster_unverified`; an
-    /// unverifiable one passes its own reason on.
+    /// Why a run stopped at the roster. The other checks are `roster_unverified`, except that with no usable
+    /// authority key every check is `no_trust_roots`.
     private struct RosterStop: Error {
         let rosterSignature: Report.RosterSignature
-        let dependentReason: Reason
-        let rosterForm: String?
+        var rosterForm: String?
 
-        static func unverifiable(_ reason: Reason, rosterForm: String? = nil) -> RosterStop {
-            RosterStop(rosterSignature: .unverifiable(reason), dependentReason: reason, rosterForm: rosterForm)
-        }
-
-        static func invalid(_ reason: Reason, rosterForm: RosterForm) -> RosterStop {
-            RosterStop(rosterSignature: .invalid(reason), dependentReason: .rosterUnverified, rosterForm: rosterForm.rawValue)
+        var dependentReason: Reason {
+            rosterSignature == .unverifiable(.noTrustRoots) ? .noTrustRoots : .rosterUnverified
         }
     }
 
     private func verifyRoster(deadline: ContinuousClock.Instant) async throws(RosterStop) -> VerifiedRoster {
-        guard !authorityKeys.isEmpty else { throw .unverifiable(.noTrustRoots) }
+        guard !authorityKeys.isEmpty else { throw RosterStop(rosterSignature: .unverifiable(.noTrustRoots)) }
         let roster = try await loadRoster(deadline: deadline)
-        guard let form = CanonicalRoster.form(of: roster) else { throw .unverifiable(.mixedRosterForm, rosterForm: "mixed") }
+        guard let form = CanonicalRoster.form(of: roster) else {
+            throw RosterStop(rosterSignature: .unverifiable(.mixedRosterForm), rosterForm: "mixed")
+        }
         guard let canonical = CanonicalRoster.bytes(of: roster, form: form) else {
-            throw .unverifiable(.parseError, rosterForm: form.rawValue)
+            throw RosterStop(rosterSignature: .unverifiable(.parseError), rosterForm: form.rawValue)
         }
         let count = ResolverSignatureCounter.count(signatures: roster.authoritySignatures.map { ($0.authorityKeyId, $0.signatureB64) },
                                                    over: canonical, keys: authorityKeys)
-        if let failure = count.failureReason(threshold: authorityThreshold) { throw .invalid(failure, rosterForm: form) }
+        if let failure = count.failureReason(threshold: authorityThreshold) {
+            throw RosterStop(rosterSignature: .invalid(failure), rosterForm: form.rawValue)
+        }
         return VerifiedRoster(document: roster, form: form)
     }
 
@@ -158,7 +157,7 @@ final class ResolverVerifier: ResolverVerifying {
         do {
             return try await fetcher.document(SignedRosterDocument.self, at: "/roster", deadline: deadline)
         } catch {
-            throw .unverifiable(error.reason(unavailable: .rosterUnavailable))
+            throw RosterStop(rosterSignature: .unverifiable(error.reason(unavailable: .rosterUnavailable)))
         }
     }
 
@@ -283,8 +282,8 @@ final class ResolverVerifier: ResolverVerifying {
 
     /// The canonical bytes of a bundle signed by enough policy keys and in effect now.
     private func verifiedBytes(of bundle: RoutingPolicyBundle) throws(PolicyFailure) -> [UInt8] {
-        guard !policyKeys.isEmpty else { throw .unverifiable(.noPolicyKeys) }
         guard let canonical = CanonicalRoutingPolicy.bytes(of: bundle) else { throw .unverifiable(.parseError) }
+        guard !policyKeys.isEmpty else { throw .unverifiable(.noPolicyKeys) }
         let count = RoutingPolicyVerifier.validSignatureCount(of: bundle, canonical: canonical, keys: policyKeys)
         if let failure = count.failureReason(threshold: policyThreshold) { throw .invalid(failure) }
         guard bundle.isInEffect(atEpochMilliseconds: now()) else { throw .invalid(.outsideWindow) }
@@ -303,18 +302,17 @@ final class ResolverVerifier: ResolverVerifying {
     /// The policy outcome of the log: the checkpoint's leaves must hash to its signed root, and the served bundle,
     /// `nil` for a 404, must be the latest policy published under it.
     static func logOutcome(for served: ServedPolicy?, checkpoint: RosterLogCheckpoint, events: [TransparencyLogEvent]) -> Report.Policy {
+        guard checkpoint.size <= events.count else { return .invalid(.logMismatch) }
+        // Only the leaves under the signed checkpoint are authenticated, so nothing past them is hashed or trusted.
+        let signed = events.prefix(checkpoint.size)
         var leaves = [String]()
-        for event in events {
+        for event in signed {
             guard let recordedAt = ResolverInstant(iso: event.recordedAt) else { return .unverifiable(.parseError) }
             let data = MerkleTree.leafData(index: event.index, type: event.type, homeserverId: event.homeserverId,
                                            payloadHash: event.payloadHash, recordedAtEpochMilliseconds: recordedAt.epochMilliseconds)
             leaves.append(MerkleTree.leafHash(Array(data.utf8)))
         }
-        guard (0...leaves.count).contains(checkpoint.size),
-              MerkleTree.root(leafHashes: Array(leaves.prefix(checkpoint.size))) == checkpoint.merkleRoot else {
-            return .invalid(.logMismatch)
-        }
-        let signed = events.prefix(checkpoint.size)
+        guard MerkleTree.root(leafHashes: leaves) == checkpoint.merkleRoot else { return .invalid(.logMismatch) }
         guard let served else {
             // A resolver that withholds a published policy must not pass for one that never had one.
             return signed.contains(where: \.isPolicyPublication) ? .unverifiable(.policyNotServed) : .notPresent
@@ -322,9 +320,9 @@ final class ResolverVerifier: ResolverVerifying {
         guard let published = events.firstIndex(where: { $0.isPolicyPublication && $0.payloadHash == served.contentHash }) else {
             return .invalid(.policyNotLogged)
         }
-        if signed.contains(where: { $0.publishesLaterVersion(of: served) }) { return .unverifiable(.policySuperseded) }
-        // Only leaves under the signed checkpoint are authenticated; an honest publish waits for the next roster.
-        return published < checkpoint.size ? .valid : .unverifiable(.policyNewerThanCheckpoint)
+        // A leaf past the checkpoint is what an honest publish looks like until the roster is signed again.
+        guard published < checkpoint.size else { return .unverifiable(.policyNewerThanCheckpoint) }
+        return signed.contains { $0.publishesLaterVersion(of: served) } ? .unverifiable(.policySuperseded) : .valid
     }
 
     // MARK: - Placement
@@ -332,7 +330,7 @@ final class ResolverVerifier: ResolverVerifying {
     private func checkPlacement(of resolution: HomeserverResolution, phoneNumber: String, roster: SignedRosterDocument,
                                 policy: PolicyStage) -> Report.Placement {
         // A directory lookup cannot be reproduced: the phone graph is private and no inclusion proof is served.
-        guard resolution.existsIsServed, !resolution.exists else { return .indeterminate(.existingAccount) }
+        guard !resolution.exists else { return .indeterminate(.existingAccount) }
         let verifiedPolicy: VerifiedRoutingPolicy?
         switch policy {
         case .notPresent: verifiedPolicy = nil
@@ -346,8 +344,7 @@ final class ResolverVerifier: ResolverVerifying {
            PlacementReproducer.unsignedRuleRanksAbove(decision, context: context, policy: verifiedPolicy, nowEpochMilliseconds: evaluatedAt) {
             return .indeterminate(.unsignedRule)
         }
-        guard let decision else { return .indeterminate(.unattributed) }
-        if decision.homeserver.hasEndpoint(of: resolution.homeserver) { return .match }
+        if let decision, decision.homeserver.hasEndpoint(of: resolution.homeserver) { return .match }
         // The resolver may have decided against another roster, so only the same version makes a difference a misroute.
         return resolution.rosterVersion == roster.version ? .mismatch : .indeterminate(.unattributed)
     }

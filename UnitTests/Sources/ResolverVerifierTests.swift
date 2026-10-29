@@ -37,22 +37,43 @@ final class ResolverVerifierTests: XCTestCase {
 
     // MARK: - Trust roots
 
-    func testDevelopmentTrustRootsParseOrStayEmpty() {
-        let parsed = ResolverTrustRoots(developmentSecret: "gua-authority-dev:AAAA, other:BBBB")
-        XCTAssertEqual(parsed.authorityKeys, [ResolverTrustedKey(id: "gua-authority-dev", publicKey: "AAAA"),
-                                              ResolverTrustedKey(id: "other", publicKey: "BBBB")])
-        XCTAssertEqual(parsed.policyKeys, parsed.authorityKeys)
-        XCTAssertEqual(parsed.authorityThreshold, 1)
-        XCTAssertEqual(parsed.policyThreshold, 1)
+    func testDevelopmentTrustRootsReadTheTokenFormat() throws {
+        let first = try spki("rfc8032-test1")
+        let second = try spki("rfc8032-test2")
+        let roots = ResolverTrustRoots(developmentSecret: "authority:a:\(first)\nauthority:b:\(second)  authority-threshold:2 policy:g:\(second)")
+
+        XCTAssertEqual(roots.authorityKeys, [ResolverTrustedKey(id: "a", publicKey: first), ResolverTrustedKey(id: "b", publicKey: second)])
+        XCTAssertEqual(roots.authorityThreshold, 2)
+        XCTAssertEqual(roots.policyKeys, [ResolverTrustedKey(id: "g", publicKey: second)])
+        XCTAssertEqual(roots.policyThreshold, 1)
+    }
+
+    func testDevelopmentTrustRootsCopyNoKeyToTheOtherList() throws {
+        let roots = try ResolverTrustRoots(developmentSecret: "authority:a:\(spki("rfc8032-test1"))")
+
+        XCTAssertEqual(roots.authorityKeys.map(\.id), ["a"])
+        XCTAssertTrue(roots.policyKeys.isEmpty)
+    }
+
+    func testMalformedDevelopmentTrustRootsAreRefusedWhole() throws {
+        let key = try spki("rfc8032-test1")
+        for value in ["authority:a", "authority:a:not-base64", "authority::\(key)", "trusted:a:\(key)", "gua-authority-dev:\(key)",
+                      "authority-threshold:0", "authority:a:\(key) policy-threshold:two"] {
+            XCTAssertEqual(ResolverTrustRoots(developmentSecret: value), .empty, value)
+        }
+        XCTAssertEqual(ResolverTrustRoots(developmentSecret: "  "), .empty)
         XCTAssertEqual(ResolverTrustRoots(developmentSecret: nil), .empty)
-        XCTAssertEqual(ResolverTrustRoots(developmentSecret: ""), .empty)
-        XCTAssertEqual(ResolverTrustRoots(developmentSecret: "gua-authority-dev"), .empty)
+    }
+
+    func testProductionTrustRootsListNoPolicyKeys() {
+        XCTAssertEqual(ResolverTrustRoots.production.authorityKeys.map(\.id), ["gua-authority-prod"])
+        XCTAssertTrue(ResolverTrustRoots.production.policyKeys.isEmpty)
     }
 
     func testNoTrustRootsIsUnverifiableAndFetchesNothing() async throws {
         let report = try await verified(makeVerifier(trustRoots: .empty), answer())
 
-        XCTAssertEqual(report, stopped(rosterSignature: .unverifiable(.noTrustRoots), reason: .noTrustRoots, durationMs: report.durationMs))
+        XCTAssertEqual(report, stopped(rosterSignature: .unverifiable(.noTrustRoots), others: .noTrustRoots, durationMs: report.durationMs))
         XCTAssertEqual(report.overall, .unverifiable(.rosterSignature))
         XCTAssertTrue(VerifierStub.requestedPaths.isEmpty)
     }
@@ -62,7 +83,7 @@ final class ResolverVerifierTests: XCTestCase {
                                            policyKeys: [], policyThreshold: 1)
         let report = try await verified(makeVerifier(trustRoots: malformed), answer())
 
-        XCTAssertEqual(report, stopped(rosterSignature: .unverifiable(.noTrustRoots), reason: .noTrustRoots, durationMs: report.durationMs))
+        XCTAssertEqual(report, stopped(rosterSignature: .unverifiable(.noTrustRoots), others: .noTrustRoots, durationMs: report.durationMs))
         XCTAssertTrue(VerifierStub.requestedPaths.isEmpty)
     }
 
@@ -82,7 +103,7 @@ final class ResolverVerifierTests: XCTestCase {
         VerifierStub.respond(path: "/roster", status: 503, body: "{}")
         let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: "r1")), answer())
 
-        XCTAssertEqual(report, stopped(rosterSignature: .unverifiable(.rosterUnavailable), reason: .rosterUnavailable, durationMs: report.durationMs))
+        XCTAssertEqual(report, stopped(rosterSignature: .unverifiable(.rosterUnavailable), durationMs: report.durationMs))
         XCTAssertEqual(VerifierStub.requestedPaths, ["/roster"])
     }
 
@@ -99,8 +120,7 @@ final class ResolverVerifierTests: XCTestCase {
         try VerifierStub.respond(path: "/roster", body: json(mixed["roster"]))
         let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: "r2")), answer())
 
-        XCTAssertEqual(report, stopped(rosterForm: "mixed", rosterSignature: .unverifiable(.mixedRosterForm), reason: .mixedRosterForm,
-                                       durationMs: report.durationMs))
+        XCTAssertEqual(report, stopped(rosterForm: "mixed", rosterSignature: .unverifiable(.mixedRosterForm), durationMs: report.durationMs))
         XCTAssertEqual(VerifierStub.requestedPaths, ["/roster"])
     }
 
@@ -109,8 +129,7 @@ final class ResolverVerifierTests: XCTestCase {
         try VerifierStub.respond(path: "/roster", body: json(tampered["roster"]))
         let report = try await verified(makeVerifier(trustRoots: trustRoots(of: tampered)), answer())
 
-        XCTAssertEqual(report, stopped(rosterForm: "v1", rosterSignature: .invalid(.badSignature), reason: .rosterUnverified,
-                                       durationMs: report.durationMs))
+        XCTAssertEqual(report, stopped(rosterForm: "v1", rosterSignature: .invalid(.badSignature), durationMs: report.durationMs))
         XCTAssertEqual(report.overall, .failed(.rosterSignature))
         XCTAssertNil(try checkpoints.checkpoint(for: baseURL))
     }
@@ -133,9 +152,22 @@ final class ResolverVerifierTests: XCTestCase {
     }
 
     func testDeeplyNestedIgnoredFieldIsAParseError() async throws {
-        let roster = try XCTUnwrap(String(bytes: json(rosterJSON("r1")), encoding: .utf8))
-        let nested = String(repeating: "[", count: 100_000) + String(repeating: "]", count: 100_000)
-        VerifierStub.respond(path: "/roster", status: 200, body: "{\"pad\":\(nested)," + roster.dropFirst())
+        try VerifierStub.respond(path: "/roster", status: 200, body: rosterJSONText("r1", ignoredFieldNesting: 100_000))
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: "r1")), answer())
+
+        XCTAssertEqual(report.rosterSignature, .unverifiable(.parseError))
+    }
+
+    func testRosterNestedSixtyFourLevelsDeepVerifies() async throws {
+        try VerifierStub.respond(path: "/roster", status: 200, body: rosterJSONText("r1", ignoredFieldNesting: 63))
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: "r1")), answer())
+
+        XCTAssertEqual(report.rosterSignature, .valid)
+    }
+
+    func testRosterNestedSixtyFiveLevelsDeepIsAParseError() async throws {
+        // Past the verifier's cap of 64 but far inside JSONDecoder's own limit, so only the cap can refuse it.
+        try VerifierStub.respond(path: "/roster", status: 200, body: rosterJSONText("r1", ignoredFieldNesting: 64))
         let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: "r1")), answer())
 
         XCTAssertEqual(report.rosterSignature, .unverifiable(.parseError))
@@ -161,6 +193,19 @@ final class ResolverVerifierTests: XCTestCase {
         XCTAssertEqual(report.rosterSignature, .unverifiable(.parseError))
     }
 
+    func testNullHomeserverNamesAreSignedAsNull() throws {
+        let roster = try editing(rosterJSON("r1"), entry: 0) { entry in
+            var homeserver = entry["homeserver"] as? [String: Any] ?? [:]
+            homeserver["serverName"] = NSNull()
+            homeserver["baseUrl"] = NSNull()
+            entry["homeserver"] = homeserver
+        }
+        let document = try JSONDecoder().decode(SignedRosterDocument.self, from: json(roster))
+        let canonical = try XCTUnwrap(CanonicalRoster.bytes(of: document, form: .v1).flatMap { String(bytes: $0, encoding: .utf8) })
+
+        XCTAssertTrue(canonical.contains("\nhs-br\u{1F}null\u{1F}null\u{1F}https://account.br.gua.test\u{1F}"))
+    }
+
     func testWeightOutsideInt32IsAParseError() async throws {
         let roster = try editing(rosterJSON("r1"), entry: 0) { entry in
             var homeserver = entry["homeserver"] as? [String: Any] ?? [:]
@@ -172,6 +217,22 @@ final class ResolverVerifierTests: XCTestCase {
         let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: "r1")), answer())
 
         XCTAssertEqual(report.rosterSignature, .unverifiable(.parseError))
+    }
+
+    func testCheckpointSizeOutsideThirtyOneBitsIsAParseError() async throws {
+        var roster = try rosterJSON("r1")
+        roster["logCheckpoint"] = ["merkleRoot": logRoot(size: 3), "size": 2_147_483_648]
+        try VerifierStub.respond(path: "/roster", body: json(roster))
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: "r1")), answer())
+
+        XCTAssertEqual(report.rosterSignature, .unverifiable(.parseError))
+    }
+
+    func testRosterServedWithAnother2xxIsRead() async throws {
+        try VerifierStub.respond(path: "/roster", status: 203, body: json(rosterJSON("r1")))
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: "r1")), answer())
+
+        XCTAssertEqual(report.rosterSignature, .valid)
     }
 
     func testClaimPriorityOutsideInt32IsAParseError() async throws {
@@ -216,6 +277,19 @@ final class ResolverVerifierTests: XCTestCase {
         XCTAssertEqual(report.memberEntry, .invalid(.badSignature))
     }
 
+    func testMemberBlockWithANullFieldIsAParseError() async throws {
+        let roster = try editing(rosterJSON("r1"), entry: 0) { entry in
+            var member = entry["member"] as? [String: Any] ?? [:]
+            member["keyId"] = NSNull()
+            entry["member"] = member
+        }
+        try VerifierStub.respond(path: "/roster", body: json(roster))
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: "r1")), answer())
+
+        XCTAssertEqual(report.rosterSignature, .valid)
+        XCTAssertEqual(report.memberEntry, .invalid(.parseError))
+    }
+
     // MARK: - Log consistency
 
     func testFirstCheckpointIsPinned() async throws {
@@ -256,6 +330,18 @@ final class ResolverVerifierTests: XCTestCase {
         let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: "r2")), answer())
 
         XCTAssertEqual(report.logConsistency, .unverifiable(.logUnavailable))
+        XCTAssertEqual(try checkpoints.checkpoint(for: baseURL), checkpoint(size: 3))
+    }
+
+    func testProofHashThatIsNotLowercaseHexIsAParseError() async throws {
+        try checkpoints.store(checkpoint(size: 3), for: baseURL)
+        try serve(roster: "r2")
+        let proof = (log["consistencyProofs"] as? [[String: Any]] ?? []).first { $0["first"] as? Int == 3 && $0["second"] as? Int == 7 }
+        let uppercased = try XCTUnwrap(proof?["proof"] as? [String]).map { $0.uppercased() }
+        try VerifierStub.respond(path: "/roster/log/consistency", body: json(["first": 3, "second": 7, "proof": uppercased]))
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: "r2")), answer())
+
+        XCTAssertEqual(report.logConsistency, .unverifiable(.parseError))
         XCTAssertEqual(try checkpoints.checkpoint(for: baseURL), checkpoint(size: 3))
     }
 
@@ -354,6 +440,16 @@ final class ResolverVerifierTests: XCTestCase {
         XCTAssertEqual(report.overall, .unverifiable(.policy))
     }
 
+    func testPolicyWithABadTimestampIsAParseErrorEvenWithoutPolicyKeys() async throws {
+        try serve(roster: "r2")
+        var bundle = try policyBundle("br-policy v3")
+        bundle["notBefore"] = "2026-01-01"
+        try VerifierStub.respond(path: "/policy/routing", body: json(bundle))
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: "r2")), answer())
+
+        XCTAssertEqual(report.policy, .unverifiable(.parseError))
+    }
+
     func testMalformedPolicyKeysAreNoPolicyKeys() async throws {
         try serve(roster: "r2", policy: "br-policy v3")
         let authority = try trustRoots(ofRoster: "r2")
@@ -409,6 +505,18 @@ final class ResolverVerifierTests: XCTestCase {
         XCTAssertEqual(report.policy, .invalid(.logMismatch))
     }
 
+    func testLogEventIndexOutsideThirtyOneBitsIsAParseError() async throws {
+        try serve(roster: "r2", policy: "br-policy v3")
+        var document = try XCTUnwrap(JSONSerialization.jsonObject(with: logDocument()) as? [String: Any])
+        var events = try XCTUnwrap(document["events"] as? [[String: Any]])
+        events[0]["index"] = 2_147_483_648
+        document["events"] = events
+        try VerifierStub.respond(path: "/roster/log", body: json(document))
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: "r2", policy: "br-policy v3")), answer())
+
+        XCTAssertEqual(report.policy, .unverifiable(.parseError))
+    }
+
     func testCheckpointOverTheLogLimitIsNotFetched() async throws {
         try VerifierStub.respond(path: "/roster", body: json(roster("r2", checkpointSize: 4097)))
         try VerifierStub.respond(path: "/policy/routing", body: json(policyBundle("br-policy v3")))
@@ -416,6 +524,25 @@ final class ResolverVerifierTests: XCTestCase {
 
         XCTAssertEqual(report.policy, .unverifiable(.logTooLarge))
         XCTAssertFalse(VerifierStub.requestedPaths.contains("/roster/log"))
+    }
+
+    func testLeafPastTheCheckpointIsNeitherHashedNorParsed() throws {
+        var events = try logEvents()
+        events[7] = TransparencyLogEvent(index: 7, type: "POLICY_PUBLISH", homeserverId: "br-policy:v4", payloadHash: "", recordedAt: "not a time")
+
+        XCTAssertEqual(ResolverVerifier.logOutcome(for: servedPolicy(), checkpoint: checkpoint(size: 7), events: events), .valid)
+    }
+
+    func testPolicyLoggedOnlyPastTheCheckpointIsNewerEvenWithALaterVersionWithinIt() throws {
+        let later = TransparencyLogEvent(index: 0, type: "POLICY_PUBLISH", homeserverId: "br-policy:v4", payloadHash: "", recordedAt: "2026-10-05T00:00:00Z")
+        let served = servedPolicy()
+        let own = TransparencyLogEvent(index: 1, type: "POLICY_PUBLISH", homeserverId: "br-policy:v3", payloadHash: served.contentHash,
+                                       recordedAt: "2026-10-06T00:00:00Z")
+        let leaf = try MerkleTree.leafHash(Array(MerkleTree.leafData(index: 0, type: later.type, homeserverId: later.homeserverId, payloadHash: "",
+                                                                     recordedAtEpochMilliseconds: instant(later.recordedAt)).utf8))
+        let checkpoint = try RosterLogCheckpoint(merkleRoot: XCTUnwrap(MerkleTree.root(leafHashes: [leaf])), size: 1)
+
+        XCTAssertEqual(ResolverVerifier.logOutcome(for: served, checkpoint: checkpoint, events: [later, own]), .unverifiable(.policyNewerThanCheckpoint))
     }
 
     // MARK: - Placement
@@ -426,15 +553,6 @@ final class ResolverVerifierTests: XCTestCase {
 
         XCTAssertEqual(report.placement, .indeterminate(.existingAccount))
         XCTAssertEqual(report.overall, .unverifiable(.placement))
-    }
-
-    func testAnswerWithoutTheExistsFieldIsAnExistingAccount() async throws {
-        try serve(roster: "r1")
-        var resolution = answer()
-        resolution.existsIsServed = false
-        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: "r1")), resolution)
-
-        XCTAssertEqual(report.placement, .indeterminate(.existingAccount))
     }
 
     func testOtherEntryAtTheSameRosterVersionIsAMismatch() async throws {
@@ -471,16 +589,16 @@ final class ResolverVerifierTests: XCTestCase {
         XCTAssertEqual(report.placement, .match)
     }
 
-    func testNoPlacementDecisionIsUnattributed() async throws {
-        let roster = try editing(rosterJSON("r1"), entry: 0) { entry in
-            var homeserver = entry["homeserver"] as? [String: Any] ?? [:]
-            homeserver["acceptsNew"] = false
-            entry["homeserver"] = homeserver
-            entry.removeValue(forKey: "member")
-        }
-        try VerifierStub.respond(path: "/roster", body: json(signed(roster)))
-        try VerifierStub.respond(path: "/roster/log", body: logDocument())
+    func testNoPlacementAtTheSameRosterVersionIsAMismatch() async throws {
+        try serveRosterAcceptingNoNewAccounts()
         let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: "r1")), answer(rosterVersion: 3))
+
+        XCTAssertEqual(report.placement, .mismatch)
+    }
+
+    func testNoPlacementWithoutARosterVersionIsUnattributed() async throws {
+        try serveRosterAcceptingNoNewAccounts()
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: "r1")), answer())
 
         XCTAssertEqual(report.placement, .indeterminate(.unattributed))
     }
@@ -513,31 +631,23 @@ final class ResolverVerifierTests: XCTestCase {
         let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: "r1"), budget: .milliseconds(300)), answer())
         let elapsed = ContinuousClock.now - started
 
-        XCTAssertEqual(report, stopped(rosterSignature: .unverifiable(.timeout), reason: .timeout, durationMs: report.durationMs))
+        XCTAssertEqual(report, stopped(rosterSignature: .unverifiable(.timeout), durationMs: report.durationMs))
         XCTAssertLessThan(elapsed, .seconds(5))
         XCTAssertTrue((250..<5000).contains(report.durationMs), "durationMs \(report.durationMs)")
     }
 
     // MARK: - The resolve answer
 
-    func testResolveAnswerWithoutTheExistsFieldSelectsTheServedHomeserver() async throws {
+    func testResolveAnswerWithoutExistsIsRefused() async throws {
         let client = ResolverClient(baseURL: baseURL, session: stubSession())
-        let ref: [String: Any] = ["serverName": "br.gua.test", "baseUrl": "https://matrix.br.gua.test"]
+        try VerifierStub.respond(path: "/resolve", body: json(["registerAt": ["serverName": "br.gua.test", "baseUrl": "https://matrix.br.gua.test"]]))
 
-        try VerifierStub.respond(path: "/resolve", body: json(["registerAt": ref]))
-        let registration = try await client.resolve(phoneNumber: Self.phone)
-        XCTAssertFalse(registration.exists)
-        XCTAssertFalse(registration.existsIsServed)
-        XCTAssertEqual(registration.homeserver.baseURL, "https://matrix.br.gua.test")
-
-        try VerifierStub.respond(path: "/resolve", body: json(["homeserver": ref]))
-        let login = try await client.resolve(phoneNumber: Self.phone)
-        XCTAssertTrue(login.exists)
-        XCTAssertFalse(login.existsIsServed)
-
-        try VerifierStub.respond(path: "/resolve", body: json(["exists": false, "registerAt": ref]))
-        let served = try await client.resolve(phoneNumber: Self.phone)
-        XCTAssertTrue(served.existsIsServed)
+        do {
+            _ = try await client.resolve(phoneNumber: Self.phone)
+            XCTFail("an answer without exists was accepted")
+        } catch let error as ResolverError {
+            guard case .decoding = error else { return XCTFail("expected a decoding error, got \(error)") }
+        }
     }
 
     func testResolveAnswerCarriesItsRosterVersion() async throws {
@@ -670,12 +780,44 @@ final class ResolverVerifierTests: XCTestCase {
         return try XCTUnwrap(report)
     }
 
-    /// The report of a run that stopped at the roster, where every other check carries `reason`.
+    /// The report of a run that stopped at the roster, whose other checks all carry `reason`.
     private func stopped(rosterForm: String? = nil, rosterSignature: ResolverVerificationReport.RosterSignature,
-                         reason: ResolverVerificationReason, durationMs: Int) -> ResolverVerificationReport {
+                         others reason: ResolverVerificationReason = .rosterUnverified, durationMs: Int) -> ResolverVerificationReport {
         ResolverVerificationReport(environment: "test", rosterVersion: nil, rosterForm: rosterForm, rosterSignature: rosterSignature,
                                    homeserverMatch: .unverifiable(reason), memberEntry: .unverifiable(reason), logConsistency: .unverifiable(reason),
                                    policy: .unverifiable(reason), placement: .unverifiable(reason), durationMs: durationMs)
+    }
+
+    private func logEvents() throws -> [TransparencyLogEvent] {
+        try JSONDecoder().decode([TransparencyLogEvent].self, from: json(log["events"]))
+    }
+
+    /// br-policy v3 as its log leaf names it.
+    private func servedPolicy() -> ServedPolicy {
+        let hash = (log["events"] as? [[String: Any]] ?? []).first { $0["homeserverId"] as? String == "br-policy:v3" }?["payloadHash"] as? String
+        return ServedPolicy(policyId: "br-policy", version: 3, contentHash: hash ?? "")
+    }
+
+    private func spki(_ keyName: String) throws -> String {
+        let keys = try XCTUnwrap(vectors["keys"] as? [String: [String: Any]])
+        return try XCTUnwrap(keys[keyName]?["publicKeySpkiB64"] as? String)
+    }
+
+    /// A vector roster's JSON with an ignored top-level field nested `depth` arrays deep, below the top-level object.
+    private func rosterJSONText(_ ref: String, ignoredFieldNesting depth: Int) throws -> String {
+        let roster = try XCTUnwrap(String(bytes: json(rosterJSON(ref)), encoding: .utf8))
+        return "{\"pad\":" + String(repeating: "[", count: depth) + String(repeating: "]", count: depth) + "," + roster.dropFirst()
+    }
+
+    /// r1 with its one homeserver closed to new accounts, so no placement can be reproduced.
+    private func serveRosterAcceptingNoNewAccounts() throws {
+        let roster = try editing(rosterJSON("r1"), entry: 0) { entry in
+            var homeserver = entry["homeserver"] as? [String: Any] ?? [:]
+            homeserver["acceptsNew"] = false
+            entry["homeserver"] = homeserver
+        }
+        try VerifierStub.respond(path: "/roster", body: json(signed(roster)))
+        try VerifierStub.respond(path: "/roster/log", body: logDocument())
     }
 
     private func instant(_ iso: String) throws -> Int64 {

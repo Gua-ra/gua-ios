@@ -24,7 +24,7 @@ enum CanonicalRoutingPolicy {
         text += "issuedAt=\(issuedAt)\n"
         text += "notBefore=\(notBefore)\n"
         text += "expiresAt=\(expiresAt)\n"
-        for zone in bundle.delegationZones.stableSorted(by: { JavaStringOrder.compare($0.id, $1.id) }) {
+        for zone in bundle.delegationZones.sorted(by: { JavaStringOrder.compare($0.id, $1.id) < 0 }) {
             guard let line = zoneLine(zone) else { return nil }
             text += line + "\n"
         }
@@ -50,7 +50,7 @@ enum CanonicalRoutingPolicy {
 
     /// The rule order of the bundle, the per-zone form and placement: priority, then id with nulls last.
     static func sortedRules(_ rules: [RoutingPolicyRule]) -> [RoutingPolicyRule] {
-        rules.stableSorted(by: compareRules)
+        rules.sorted { compareRules($0, $1) < 0 }
     }
 
     static func compareRules(_ lhs: RoutingPolicyRule, _ rhs: RoutingPolicyRule) -> Int {

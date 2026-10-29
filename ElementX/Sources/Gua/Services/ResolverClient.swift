@@ -28,8 +28,6 @@ struct HomeserverResolution: Equatable {
     /// Why the resolver decided what it did. Present only when the caller asked for a trace
     /// (`ResolveOptions.trace`); for debug and support tooling, never shown in the UI.
     var trace: DecisionTrace?
-    /// Whether the answer carried `exists` at all; without it a placement cannot be told from a directory hit.
-    var existsIsServed = true
     /// The roster version the resolver answered from. Older resolvers omit it, and so does a current one when
     /// the roster changed during the request.
     var rosterVersion: Int64?
@@ -268,7 +266,7 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
             let region: String?
         }
         struct Response: Decodable {
-            let exists: Bool?
+            let exists: Bool
             let homeserver: HomeserverRef?
             let registerAt: HomeserverRef?
             let rosterVersion: Int64?
@@ -280,7 +278,7 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
 
             init(from decoder: Decoder) throws {
                 let container = try decoder.container(keyedBy: CodingKeys.self)
-                exists = try container.decodeIfPresent(Bool.self, forKey: .exists)
+                exists = try container.decode(Bool.self, forKey: .exists)
                 homeserver = try container.decodeIfPresent(HomeserverRef.self, forKey: .homeserver)
                 registerAt = try container.decodeIfPresent(HomeserverRef.self, forKey: .registerAt)
                 // Only the report-only verifier reads it, so a malformed value must not fail the sign-in.
@@ -327,17 +325,15 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
             throw ResolverError.decoding(error)
         }
 
-        let exists = parsed.exists ?? (parsed.homeserver != nil)
-        guard let ref = exists ? parsed.homeserver : parsed.registerAt else {
+        guard let ref = parsed.exists ? parsed.homeserver : parsed.registerAt else {
             throw ResolverError.malformedResponse
         }
-        return HomeserverResolution(exists: exists,
+        return HomeserverResolution(exists: parsed.exists,
                                     homeserver: ResolvedHomeserver(serverName: ref.serverName,
                                                                    baseURL: ref.baseUrl,
                                                                    masIssuer: ref.masIssuer,
                                                                    region: ref.region),
                                     trace: parsed.trace,
-                                    existsIsServed: parsed.exists != nil,
                                     rosterVersion: parsed.rosterVersion)
     }
 

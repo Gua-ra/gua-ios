@@ -34,7 +34,7 @@ enum CanonicalRoster {
         text += "version=\(roster.version)\n"
         text += "issuedAt=\(issuedAt.epochMilliseconds)\n"
         text += "log=\(roster.logCheckpoint.merkleRoot):\(roster.logCheckpoint.size)\n"
-        let entries = roster.entries.stableSorted { JavaStringOrder.compare($0.homeserver.id, $1.homeserver.id) }
+        let entries = roster.entries.sorted { JavaStringOrder.compare($0.homeserver.id, $1.homeserver.id) < 0 }
         for entry in entries {
             guard let line = entryLine(entry, searchFields: form == .v1) else { return nil }
             text += line + "\n"
@@ -49,9 +49,10 @@ enum CanonicalRoster {
             guard let instant = ResolverInstant(iso: iso) else { return nil }
             admittedAt = String(instant.epochMilliseconds)
         }
-        var fields = [homeserver.id,
-                      homeserver.serverName,
-                      homeserver.baseUrl,
+        // Java's StringJoiner writes a null as the text null.
+        var fields = [homeserver.id ?? "null",
+                      homeserver.serverName ?? "null",
+                      homeserver.baseUrl ?? "null",
                       homeserver.masIssuer ?? "null",
                       homeserver.region ?? "",
                       String(homeserver.weight),
@@ -69,13 +70,13 @@ enum CanonicalRoster {
 
     private static func claims(_ claims: [RosterClaimPredicate]) -> String {
         if claims.isEmpty { return "[]" }
-        let sorted = claims.stableSorted { lhs, rhs in
-            if lhs.priority != rhs.priority { return lhs.priority < rhs.priority ? -1 : 1 }
+        let sorted = claims.sorted { lhs, rhs in
+            if lhs.priority != rhs.priority { return lhs.priority < rhs.priority }
             let byCountry = JavaStringOrder.compare(lhs.country ?? "", rhs.country ?? "")
-            if byCountry != 0 { return byCountry }
+            if byCountry != 0 { return byCountry < 0 }
             let byMccmnc = JavaStringOrder.compare(lhs.mccmnc ?? "", rhs.mccmnc ?? "")
-            if byMccmnc != 0 { return byMccmnc }
-            return JavaStringOrder.compare(lhs.affiliation ?? "", rhs.affiliation ?? "")
+            if byMccmnc != 0 { return byMccmnc < 0 }
+            return JavaStringOrder.compare(lhs.affiliation ?? "", rhs.affiliation ?? "") < 0
         }
         return sorted.map(claim).joined(separator: ";")
     }
@@ -95,17 +96,5 @@ enum CanonicalRoster {
     private static func attributes(_ attributes: [String: String]?) -> String {
         guard let attributes else { return "" }
         return attributes.sorted { JavaStringOrder.precedes($0.key, $1.key) }.map { "\($0.key)=\($0.value)" }.joined(separator: "|")
-    }
-}
-
-extension Array {
-    /// Java's `sorted` is stable; Swift's documents no such guarantee, so equal keys keep their input order here.
-    func stableSorted(by compare: (Element, Element) -> Int) -> [Element] {
-        enumerated()
-            .sorted { lhs, rhs in
-                let order = compare(lhs.element, rhs.element)
-                return order != 0 ? order < 0 : lhs.offset < rhs.offset
-            }
-            .map(\.element)
     }
 }

@@ -107,7 +107,7 @@ final class ResolverVerificationVectorsTests: XCTestCase {
         for event in log.section("events") {
             let name = "event \(event.int("index"))"
             let recordedAt = try XCTUnwrap(ResolverInstant(iso: event.string("recordedAt")), name)
-            let leafData = MerkleTree.leafData(index: Int64(event.int("index")), type: event.string("type"),
+            let leafData = MerkleTree.leafData(index: event.int("index"), type: event.string("type"),
                                                homeserverId: event.stringIfPresent("homeserverId"),
                                                payloadHash: event.string("payloadHash"),
                                                recordedAtEpochMilliseconds: recordedAt.epochMilliseconds)
@@ -182,6 +182,20 @@ final class ResolverVerificationVectorsTests: XCTestCase {
         }
     }
 
+    func testEveryWindowIsInEffectAsListed() throws {
+        for vector in vectors.section("windows") {
+            let name = vector.string("name")
+            let window = Window(notBefore: vector.stringIfPresent("notBefore"), expiresAt: vector.stringIfPresent("expiresAt"))
+            let evaluatedAt = try XCTUnwrap(ResolverInstant(iso: vector.string("evaluatedAt")), name)
+            XCTAssertEqual(window.isInEffect(atEpochMilliseconds: evaluatedAt.epochMilliseconds), vector.bool("inEffect"), name)
+        }
+    }
+
+    private struct Window: ResolverValidityWindow {
+        let notBefore: String?
+        let expiresAt: String?
+    }
+
     func testEveryPolicyLogCaseGivesItsOutcome() throws {
         let events = try vectors.object("log").decode([TransparencyLogEvent].self, at: "events")
         for vector in vectors.section("policyLog") {
@@ -235,7 +249,7 @@ final class ResolverVerificationVectorsTests: XCTestCase {
             if let fallback = vector.objectIfPresent("fallback") {
                 XCTAssertEqual(context.canonicalRoutingKey, fallback.string("routingKeyUtf8"), name)
                 let candidates = PlacementReproducer.fallbackCandidates(in: roster)
-                XCTAssertEqual(candidates.map(\.id), fallback.array("candidates").map { JSONObject($0).string("id") }, name)
+                XCTAssertEqual(candidates.map { $0.id ?? "null" }, fallback.array("candidates").map { JSONObject($0).string("id") }, name)
                 XCTAssertEqual(candidates.map { Int($0.weight) }, fallback.array("candidates").map { JSONObject($0).int("weight") }, name)
                 XCTAssertEqual(PlacementReproducer.stableHash(context: context, rosterVersion: roster.version, candidates: candidates),
                                Int32(fallback.int("stableHash")), name)
@@ -248,7 +262,7 @@ final class ResolverVerificationVectorsTests: XCTestCase {
     private static func reference(of decision: PlacementDecision) -> (rule: String, ruleId: String) {
         switch decision.rule {
         case .policy(let rule): ("PolicyRoutingRule", rule.id ?? "")
-        case .rosterClaim(let priority): ("ClaimRule", "roster-claim:\(decision.homeserver.id):\(priority)")
+        case .rosterClaim(let priority): ("ClaimRule", "roster-claim:\(decision.homeserver.id ?? "null"):\(priority)")
         case .weightedFallback: ("WeightedFallbackRule", "weighted-fallback")
         }
     }
@@ -323,6 +337,21 @@ final class ResolverVerificationVectorsTests: XCTestCase {
                 XCTFail("\(name): expected the entry to be refused, got \(outcome)")
                 continue
             }
+        }
+    }
+}
+
+// MARK: - gua-lp.v1 primitives no signed object uses
+
+private extension GuaLPEncoder {
+    mutating func bool(_ value: Bool) {
+        bytes.append(value ? 1 : 0)
+    }
+
+    mutating func stringList(_ values: [String]) {
+        bytes.append(contentsOf: withUnsafeBytes(of: UInt32(values.count).bigEndian, Array.init))
+        for value in values {
+            string(value)
         }
     }
 }
