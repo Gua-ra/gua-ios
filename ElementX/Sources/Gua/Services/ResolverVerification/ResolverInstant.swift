@@ -7,9 +7,8 @@
 
 import Foundation
 
-/// An ISO-8601 UTC instant as the resolver serializes it (`2026-10-13T11:45:26.302491581Z`, 0 to 9
-/// fractional digits), reduced to the epoch milliseconds the canonical encodings carry. The fraction is
-/// truncated, never rounded, and no floating point is involved.
+/// An ISO-8601 UTC instant with 0 to 9 fractional digits, as the resolver writes it, reduced to the epoch
+/// milliseconds the canonical encodings carry. The fraction is truncated, never rounded.
 struct ResolverInstant: Equatable {
     let epochMilliseconds: Int64
     /// Whether the string carried digits below the millisecond, which the member entry window refuses.
