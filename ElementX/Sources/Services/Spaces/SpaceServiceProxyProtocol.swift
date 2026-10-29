@@ -17,4 +17,7 @@ protocol SpaceServiceProxyProtocol {
     var joinedSpacesPublisher: CurrentValuePublisher<[SpaceRoomProxyProtocol], Never> { get }
     
     func spaceRoomList(spaceID: String) async -> Result<SpaceRoomListProxyProtocol, SpaceServiceProxyError>
+    
+    /// GUA FORK: unlike joinedSpacesPublisher, this never lags behind sync.
+    func topLevelJoinedSpaces() async -> [SpaceRoomProxyProtocol]
 }

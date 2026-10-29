@@ -103,6 +103,7 @@ final class AppSettings {
     static func resetSessionSpecificSettings() {
         MXLog.warning("Resetting the user session specific AppSettings.")
         store.removeObject(forKey: UserDefaultsKeys.hasRunIdentityConfirmationOnboarding.rawValue)
+        store.removeObject(forKey: UserDefaultsKeys.spacesEnabled.rawValue)
         // GUA FORK: the bootstrap flag is now per account, so clear every account's copy along
         // with the pre-migration global one.
         let bootstrapPrefix = UserDefaultsKeys.hasBootstrappedKeyStorage.rawValue

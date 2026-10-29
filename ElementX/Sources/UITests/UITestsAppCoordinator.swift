@@ -587,7 +587,7 @@ class MockScreen: Identifiable {
             appSettings.hasRunIdentityConfirmationOnboarding = true
             appSettings.hasRunNotificationPermissionsOnboarding = true
             appSettings.analyticsConsentState = .optedOut
-            appSettings.spacesEnabled = true
+            appSettings.spacesEnabled = id == .userSessionSpacesFlow
             
             let clientProxy = ClientProxyMock(.init(userID: "@mock:client.com",
                                                     deviceID: "MOCKCLIENT",
@@ -595,7 +595,6 @@ class MockScreen: Identifiable {
                                                     joinedSpaceRooms: .mockSingleRoom,
                                                     roomPreviews: [SpaceRoomProxyProtocol].mockSpaceList.map(RoomPreviewProxyMock.init)))
             
-            // The tab bar remains hidden for the non-spaces tests as we don't supply any mock spaces.
             let spaceServiceProxy = SpaceServiceProxyMock(id == .userSessionSpacesFlow ? .populated : .init())
             clientProxy.spaceService = spaceServiceProxy
             
@@ -618,7 +617,8 @@ class MockScreen: Identifiable {
                                                                                                   analytics: ServiceLocator.shared.analytics,
                                                                                                   userIndicatorController: UserIndicatorControllerMock(),
                                                                                                   notificationManager: NotificationManagerMock(),
-                                                                                                  stateMachineFactory: StateMachineFactory()))
+                                                                                                  stateMachineFactory: StateMachineFactory(),
+                                                                                                  spacesSetting: SpacesSetting(clientProxy: clientProxy, appSettings: appSettings)))
 
             flowCoordinator.start()
             
@@ -787,7 +787,8 @@ class MockScreen: Identifiable {
                                                                                             analytics: ServiceLocator.shared.analytics,
                                                                                             userIndicatorController: UserIndicatorControllerMock(),
                                                                                             notificationManager: NotificationManagerMock(),
-                                                                                            stateMachineFactory: StateMachineFactory()))
+                                                                                            stateMachineFactory: StateMachineFactory(),
+                                                                                            spacesSetting: SpacesSetting(clientProxy: clientProxy, appSettings: appSettings)))
 
             flowCoordinator.start()
             

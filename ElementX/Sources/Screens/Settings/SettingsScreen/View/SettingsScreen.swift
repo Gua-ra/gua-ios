@@ -10,7 +10,7 @@ import SFSafeSymbols
 import SwiftUI
 
 struct SettingsScreen: View {
-    let context: SettingsScreenViewModel.Context
+    @Bindable var context: SettingsScreenViewModel.Context
     
     private var shouldHideManageAccountSection: Bool {
         // Always shown: the Two-step verification row lives in this section.
@@ -77,6 +77,15 @@ struct SettingsScreen: View {
     
     private var manageMyAppSection: some View {
         Section {
+            ListRow(label: .default(title: L10n.screenHomeTabSpaces,
+                                    description: UntranslatedL10n.guaSettingsSpacesDescription,
+                                    icon: \.space),
+                    kind: .toggle($context.isSpacesEnabled))
+                .onChange(of: context.isSpacesEnabled) {
+                    context.send(viewAction: .toggleSpaces)
+                }
+                .accessibilityIdentifier(A11yIdentifiers.settingsScreen.spaces)
+
             // GUA FORK: Find which of the user's phone contacts are already on Gua.
             ListRow(label: .default(title: L10n.screenFindFriendsTitle,
                                     icon: \.userAdd),
@@ -313,6 +322,8 @@ struct SettingsScreen_Previews: PreviewProvider, TestablePreview {
         let userSession = UserSessionMock(.init(clientProxy: clientProxy))
         return SettingsScreenViewModel(userSession: userSession,
                                        appSettings: ServiceLocator.shared.settings,
+                                       spacesSetting: SpacesSetting(clientProxy: clientProxy, appSettings: ServiceLocator.shared.settings),
+                                       userIndicatorController: UserIndicatorControllerMock(),
                                        isBugReportServiceEnabled: isBugReportServiceEnabled)
     }
 }

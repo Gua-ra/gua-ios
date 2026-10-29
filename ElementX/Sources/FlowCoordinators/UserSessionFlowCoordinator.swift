@@ -118,6 +118,8 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
     }
     
     func stop() {
+        // GUA FORK: runs before the sign-out reset so an in-flight write cannot undo it.
+        flowParameters.spacesSetting.invalidate()
         chatsFlowCoordinator.stop()
     }
     
@@ -293,10 +295,27 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
             }
             .store(in: &cancellables)
         
+        setupSpacesObservers()
+    }
+    
+    private func setupSpacesObservers() {
         flowParameters.appSettings.$spacesEnabled
-            .combineLatest(userSession.clientProxy.spaceService.joinedSpacesPublisher)
-            .map { $0 && !$1.isEmpty ? nil : .hidden }
-            .weakAssign(to: \.chatsTabDetails.barVisibilityOverride, on: self)
+            .sink { [weak self] isEnabled in
+                guard let self else { return }
+                if !isEnabled, navigationTabCoordinator.selectedTab == .spaces {
+                    navigationTabCoordinator.selectedTab = .chats
+                }
+                chatsTabDetails.barVisibilityOverride = isEnabled ? nil : .hidden
+            }
+            .store(in: &cancellables)
+        
+        userSession.clientProxy.actionsPublisher
+            .filter(\.isSyncUpdate)
+            .throttle(for: .seconds(5), scheduler: DispatchQueue.main, latest: true)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                Task { await self.flowParameters.spacesSetting.refresh(afterSync: true) }
+            }
             .store(in: &cancellables)
     }
     

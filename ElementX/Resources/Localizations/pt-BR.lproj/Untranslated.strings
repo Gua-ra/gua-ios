@@ -34,3 +34,8 @@
 "gua_resolver_routing_unavailable_retry_in" = "Estamos com problemas de conexão no momento. Tente novamente em %@.";
 "gua_resolver_rate_limited" = "Muitas tentativas. Aguarde um pouco e tente novamente.";
 "gua_resolver_rate_limited_retry_in" = "Muitas tentativas. Tente novamente em %@.";
+
+"gua_join_space_action" = "Ativar Espaços e entrar";
+"gua_join_space_turns_on_spaces" = "Este é um espaço. Ao entrar, os Espaços são ativados para você ver as conversas dele.";
+
+"gua_settings_spaces_description" = "Organize conversas e comunidades relacionadas em um só lugar";

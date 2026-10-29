@@ -124,9 +124,12 @@ class SpaceFlowCoordinator: FlowCoordinatorProtocol {
             }
         case .presentingChild:
             childSpaceFlowCoordinator?.clearRoute(animated: animated)
+            // GUA FORK: a child that is still loading ignores clearRoute, so re-running here would recurse forever.
+            if case .presentingChild = stateMachine.state { return }
             clearRoute(animated: animated) // Re-run with the state machine back in the .space state.
         case .roomFlow:
             roomFlowCoordinator?.clearRoute(animated: animated)
+            if case .roomFlow = stateMachine.state { return }
             clearRoute(animated: animated) // Re-run with the state machine back in the .space state.
         }
     }
@@ -227,7 +230,8 @@ class SpaceFlowCoordinator: FlowCoordinatorProtocol {
                                                              via: [],
                                                              userSession: flowParameters.userSession,
                                                              userIndicatorController: flowParameters.userIndicatorController,
-                                                             appSettings: flowParameters.appSettings)
+                                                             appSettings: flowParameters.appSettings,
+                                                             spacesSetting: flowParameters.spacesSetting)
         let coordinator = JoinRoomScreenCoordinator(parameters: parameters)
         coordinator.actionsPublisher
             .sink { [weak self] action in

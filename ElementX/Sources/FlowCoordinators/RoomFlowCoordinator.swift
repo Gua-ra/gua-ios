@@ -709,7 +709,8 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
                                                                       via: via,
                                                                       userSession: userSession,
                                                                       userIndicatorController: flowParameters.userIndicatorController,
-                                                                      appSettings: flowParameters.appSettings))
+                                                                      appSettings: flowParameters.appSettings,
+                                                                      spacesSetting: flowParameters.spacesSetting))
         
         joinRoomScreenCoordinator = coordinator
         
@@ -798,6 +799,18 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
                 }
             }
             .store(in: &cancellables)
+
+        if !isChildFlow {
+            flowParameters.appSettings.$spacesEnabled
+                .removeDuplicates()
+                .dropFirst()
+                .filter { !$0 }
+                .sink { [weak self] _ in
+                    guard let self, stateMachine.state != .complete else { return }
+                    stateMachine.tryEvent(.dismissFlow)
+                }
+                .store(in: &cancellables)
+        }
 
         spaceFlowCoordinator = coordinator
 

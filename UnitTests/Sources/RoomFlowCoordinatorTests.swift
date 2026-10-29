@@ -369,7 +369,8 @@ class RoomFlowCoordinatorTests: XCTestCase {
                                                   analytics: ServiceLocator.shared.analytics,
                                                   userIndicatorController: ServiceLocator.shared.userIndicatorController,
                                                   notificationManager: NotificationManagerMock(),
-                                                  stateMachineFactory: StateMachineFactory())
+                                                  stateMachineFactory: StateMachineFactory(),
+                                                  spacesSetting: SpacesSetting(clientProxy: clientProxy, appSettings: ServiceLocator.shared.settings))
         
         roomFlowCoordinator = RoomFlowCoordinator(roomID: roomID,
                                                   isChildFlow: asChildFlow,

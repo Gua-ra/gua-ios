@@ -12,6 +12,7 @@ import XCTest
 class JoinRoomScreenViewModelTests: XCTestCase {
     private enum TestMode {
         case joined
+        case joinableSpace
         case knocked
         case invited
         case banned
@@ -21,6 +22,7 @@ class JoinRoomScreenViewModelTests: XCTestCase {
     
     var clientProxy: ClientProxyMock!
     var appSettings: AppSettings!
+    var userIndicatorController: UserIndicatorControllerMock!
     
     var context: JoinRoomScreenViewModelType.Context {
         viewModel.context
@@ -35,6 +37,7 @@ class JoinRoomScreenViewModelTests: XCTestCase {
     override func tearDown() {
         viewModel = nil
         clientProxy = nil
+        userIndicatorController = nil
         AppSettings.resetAllSettings()
     }
 
@@ -155,12 +158,93 @@ class JoinRoomScreenViewModelTests: XCTestCase {
         try await deferred.fulfill()
     }
     
+    func testJoiningASpaceOffersToTurnOnSpaces() async throws {
+        setupViewModel(mode: .joinableSpace)
+        try await deferFulfillment(viewModel.context.$viewState) { $0.mode == .joinable }.fulfill()
+        
+        XCTAssertTrue(context.viewState.joiningTurnsOnSpaces)
+    }
+    
+    func testJoiningARoomDoesNotOfferToTurnOnSpaces() async throws {
+        setupViewModel()
+        try await deferFulfillment(viewModel.context.$viewState) { $0.mode == .joinable }.fulfill()
+        
+        XCTAssertFalse(context.viewState.joiningTurnsOnSpaces)
+    }
+    
+    func testJoiningASpaceWithSpacesOnDoesNotOfferToTurnItOn() async throws {
+        appSettings.spacesEnabled = true
+        setupViewModel(mode: .joinableSpace)
+        try await deferFulfillment(viewModel.context.$viewState) { $0.mode == .joinable }.fulfill()
+        
+        XCTAssertFalse(context.viewState.joiningTurnsOnSpaces)
+    }
+    
+    func testJoiningASpaceTurnsSpacesOn() async throws {
+        setupViewModel(mode: .joinableSpace)
+        try await deferFulfillment(viewModel.context.$viewState) { $0.mode == .joinable }.fulfill()
+        
+        let deferred = deferFulfillment(viewModel.actionsPublisher) { $0 == .joined(.space(SpaceRoomListProxyMock(.init(spaceRoomProxy: SpaceRoomProxyMock(.init(id: "1", isSpace: true)))))) }
+        context.send(viewAction: .join)
+        try await deferred.fulfill()
+        
+        XCTAssertTrue(appSettings.spacesEnabled)
+        XCTAssertEqual(clientProxy.setAccountDataTypeContentCallsCount, 1)
+        XCTAssertEqual(clientProxy.setAccountDataTypeContentReceivedArguments?.content, #"{"enabled":true}"#)
+    }
+    
+    func testSpaceIsNotJoinedWhenSpacesCannotBeTurnedOn() async throws {
+        setupViewModel(mode: .joinableSpace)
+        clientProxy.setAccountDataTypeContentReturnValue = .failure(.forbiddenAccess)
+        try await deferFulfillment(viewModel.context.$viewState) { $0.mode == .joinable }.fulfill()
+        
+        let deferred = deferFulfillment(viewModel.context.$viewState, keyPath: \.isTurningOnSpaces, transitionValues: [false, true, false])
+        context.send(viewAction: .join)
+        try await deferred.fulfill()
+        
+        XCTAssertFalse(appSettings.spacesEnabled)
+        XCTAssertFalse(clientProxy.joinRoomAliasCalled)
+        XCTAssertFalse(clientProxy.joinRoomViaCalled)
+        XCTAssertTrue(context.viewState.joiningTurnsOnSpaces, "The offer stays so the user can try again.")
+        XCTAssertTrue(userIndicatorController.submitIndicatorDelayReceivedInvocations.contains { $0.indicator.title == L10n.errorUnknown })
+    }
+    
+    func testSpacesIsTurnedOnBeforeTheJoin() async throws {
+        setupViewModel(mode: .joinableSpace)
+        let appSettings = try XCTUnwrap(appSettings)
+        clientProxy.joinRoomAliasClosure = { _ in
+            XCTAssertTrue(appSettings.spacesEnabled, "Spaces must be on before the join starts.")
+            return .failure(.forbiddenAccess)
+        }
+        try await deferFulfillment(viewModel.context.$viewState) { $0.mode == .joinable }.fulfill()
+        
+        let deferred = deferFulfillment(viewModel.context.$viewState) { $0.mode == .forbidden }
+        context.send(viewAction: .join)
+        try await deferred.fulfill()
+        
+        XCTAssertTrue(appSettings.spacesEnabled, "The user chose to turn Spaces on, so a failed join keeps it on.")
+        XCTAssertEqual(clientProxy.setAccountDataTypeContentCallsCount, 1)
+    }
+    
+    func testJoiningARoomNeverTouchesTheSpacesSwitch() async throws {
+        setupViewModel()
+        try await deferFulfillment(viewModel.context.$viewState) { $0.mode == .joinable }.fulfill()
+        
+        let deferred = deferFulfillment(viewModel.actionsPublisher) { $0 == .joined(.roomID("1")) }
+        context.send(viewAction: .join)
+        try await deferred.fulfill()
+        
+        XCTAssertFalse(appSettings.spacesEnabled)
+        XCTAssertFalse(clientProxy.setAccountDataTypeContentCalled)
+    }
+    
     // MARK: - Helpers
     
     private func setupViewModel(throwing: Bool = false, mode: TestMode = .joined) {
         ServiceLocator.shared.settings.knockingEnabled = true
         
         clientProxy = ClientProxyMock(.init())
+        userIndicatorController = UserIndicatorControllerMock()
         
         clientProxy.joinRoomViaReturnValue = throwing ? .failure(.sdkError(ClientProxyMockError.generic)) : .success(())
         clientProxy.joinRoomAliasReturnValue = clientProxy.joinRoomViaReturnValue
@@ -177,6 +261,11 @@ class JoinRoomScreenViewModelTests: XCTestCase {
             }
         case .joined:
             clientProxy.roomPreviewForIdentifierViaReturnValue = .success(RoomPreviewProxyMock.joinable)
+        case .joinableSpace:
+            clientProxy.roomPreviewForIdentifierViaReturnValue = .success(RoomPreviewProxyMock(.init(roomType: .space, membership: nil, joinRule: .public)))
+            let spaceRoomList = SpaceRoomListProxyMock(.init(spaceRoomProxy: SpaceRoomProxyMock(.init(id: "1", isSpace: true))))
+            clientProxy.spaceService = SpaceServiceProxyMock(.init(spaceRoomLists: ["1": spaceRoomList]))
+            clientProxy.setAccountDataTypeContentReturnValue = .success(())
         case .invited:
             clientProxy.roomPreviewForIdentifierViaReturnValue = .success(RoomPreviewProxyMock.invited())
             clientProxy.roomForIdentifierClosure = { _ in
@@ -196,8 +285,9 @@ class JoinRoomScreenViewModelTests: XCTestCase {
         viewModel = JoinRoomScreenViewModel(roomID: "1",
                                             via: [],
                                             appSettings: appSettings,
+                                            spacesSetting: SpacesSetting(clientProxy: clientProxy, appSettings: appSettings),
                                             userSession: UserSessionMock(.init(clientProxy: clientProxy)),
-                                            userIndicatorController: ServiceLocator.shared.userIndicatorController)
+                                            userIndicatorController: userIndicatorController)
     }
 }
 

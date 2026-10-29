@@ -874,6 +874,25 @@ class ClientProxy: ClientProxyProtocol {
         }
     }
         
+    func accountData(type: String) async -> Result<String?, ClientProxyError> {
+        do {
+            return try await .success(client.accountData(eventType: type))
+        } catch {
+            MXLog.error("Failed reading account data \(type) with error: \(error)")
+            return .failure(.sdkError(error))
+        }
+    }
+    
+    func setAccountData(type: String, content: String) async -> Result<Void, ClientProxyError> {
+        do {
+            try await client.setAccountData(eventType: type, content: content)
+            return .success(())
+        } catch {
+            MXLog.error("Failed setting account data \(type) with error: \(error)")
+            return .failure(.sdkError(error))
+        }
+    }
+    
     // MARK: Ignored users
     
     func ignoreUser(_ userID: String) async -> Result<Void, ClientProxyError> {
@@ -1315,7 +1334,8 @@ private struct ClientProxyServices {
                                                   name: "AllRooms",
                                                   shouldUpdateVisibleRange: true,
                                                   notificationSettings: notificationSettings,
-                                                  appSettings: appSettings)
+                                                  appSettings: appSettings,
+                                                  includesSpaceInvites: true) // GUA FORK: the home Chats list.
         try await roomSummaryProvider.setRoomList(roomListService.allRooms())
         
         alternateRoomSummaryProvider = RoomSummaryProvider(roomListService: roomListService,

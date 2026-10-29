@@ -12,6 +12,8 @@ typealias SettingsScreenViewModelType = StateStoreViewModelV2<SettingsScreenView
 
 class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewModelProtocol {
     private let appSettings: AppSettings
+    private let spacesSetting: SpacesSetting
+    private let userIndicatorController: UserIndicatorControllerProtocol
     
     private var actionsSubject: PassthroughSubject<SettingsScreenViewModelAction, Never> = .init()
     
@@ -19,8 +21,14 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
         actionsSubject.eraseToAnyPublisher()
     }
     
-    init(userSession: UserSessionProtocol, appSettings: AppSettings, isBugReportServiceEnabled: Bool) {
+    init(userSession: UserSessionProtocol,
+         appSettings: AppSettings,
+         spacesSetting: SpacesSetting,
+         userIndicatorController: UserIndicatorControllerProtocol,
+         isBugReportServiceEnabled: Bool) {
         self.appSettings = appSettings
+        self.spacesSetting = spacesSetting
+        self.userIndicatorController = userIndicatorController
         
         super.init(initialViewState: .init(deviceID: userSession.clientProxy.deviceID,
                                            userID: userSession.clientProxy.userID,
@@ -35,6 +43,12 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
             .weakAssign(to: \.state.showDeveloperOptions, on: self)
             .store(in: &cancellables)
         
+        appSettings.$spacesEnabled
+            .weakAssign(to: \.state.bindings.isSpacesEnabled, on: self)
+            .store(in: &cancellables)
+        
+        Task { await spacesSetting.refresh() }
+
         userSession.clientProxy.userAvatarURLPublisher
             .receive(on: DispatchQueue.main)
             .weakAssign(to: \.state.userAvatarURL, on: self)
@@ -104,6 +118,15 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
             actionsSubject.send(.secureBackup)
         case .notifications:
             actionsSubject.send(.notifications)
+        case .toggleSpaces:
+            let isEnabled = state.bindings.isSpacesEnabled
+            guard isEnabled != appSettings.spacesEnabled else { return }
+            Task {
+                if case .failure(let error) = await spacesSetting.setEnabled(isEnabled) {
+                    MXLog.error("Failed changing the Spaces switch: \(error)")
+                    userIndicatorController.submitIndicator(.init(title: L10n.errorUnknown))
+                }
+            }
         case .advancedSettings:
             actionsSubject.send(.advancedSettings)
         case .enableDeveloperOptions:
