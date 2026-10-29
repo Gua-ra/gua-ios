@@ -1,3 +1,10 @@
+//
+// Copyright 2025 Gua
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+// Please see LICENSE files in the repository root for full details.
+//
+
 @testable import ElementX
 import XCTest
 
