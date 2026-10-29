@@ -16,9 +16,10 @@ final class ResolverVerificationVectorsTests: XCTestCase {
     private var lpVectors: JSONObject!
 
     /// The acceptance time the member entries are checked against: inside every window the vectors sign.
-    private let now = ResolverInstant(iso: "2026-10-27T00:00:00Z")!.epochMilliseconds
+    private var now: Int64 = 0
 
     override func setUpWithError() throws {
+        now = try XCTUnwrap(ResolverInstant(iso: "2026-10-27T00:00:00Z")).epochMilliseconds
         vectors = try JSONObject.load("gua-client-verification-v1-vectors.json")
         lpVectors = try JSONObject.load("gua-lp-v1-vectors.json")
     }
@@ -60,7 +61,7 @@ final class ResolverVerificationVectorsTests: XCTestCase {
             let form = try XCTUnwrap(CanonicalRoster.form(of: roster), name)
             XCTAssertEqual(form.rawValue, vector.string("form"), name)
             let canonical = try XCTUnwrap(CanonicalRoster.bytes(of: roster, form: form), name)
-            XCTAssertEqual(String(decoding: canonical, as: UTF8.self), vector.string("canonicalUtf8"), name)
+            XCTAssertEqual(String(bytes: canonical, encoding: .utf8), vector.string("canonicalUtf8"), name)
             XCTAssertEqual(ResolverVerificationHex.string(canonical), vector.string("canonicalHex"), name)
             XCTAssertEqual(ResolverVerificationCrypto.sha256Hex(canonical), vector.string("sha256Hex"), name)
 
@@ -147,7 +148,7 @@ final class ResolverVerificationVectorsTests: XCTestCase {
             let name = vector.string("name")
             let bundle = try vector.decode(RoutingPolicyBundle.self, at: "bundle")
             let canonical = try XCTUnwrap(CanonicalRoutingPolicy.bytes(of: bundle), name)
-            XCTAssertEqual(String(decoding: canonical, as: UTF8.self), vector.string("canonicalUtf8"), name)
+            XCTAssertEqual(String(bytes: canonical, encoding: .utf8), vector.string("canonicalUtf8"), name)
             XCTAssertEqual(ResolverVerificationHex.string(canonical), vector.string("canonicalHex"), name)
             XCTAssertEqual(ResolverVerificationCrypto.sha256Hex(canonical), vector.string("sha256Hex"), name)
             for zone in vector.section("delegatedRules") {
@@ -269,13 +270,13 @@ final class ResolverVerificationVectorsTests: XCTestCase {
                                                            notBefore: notBefore.epochMilliseconds, notAfter: notAfter.epochMilliseconds)
             XCTAssertEqual(ResolverVerificationHex.string(canonical), vector.string("canonicalHex"), name)
             XCTAssertEqual(ResolverVerificationCrypto.sha256Hex(canonical), vector.string("sha256Hex"), name)
-            let outcome = MemberEntryVerifier.verify(homeserver: homeserver, member: member, atEpochMilliseconds: now, prior: Self.prior(vector))
-            XCTAssertEqual(outcome, .valid(entryHash: vector.string("sha256Hex")), name)
+            XCTAssertEqual(MemberEntryVerifier.verify(homeserver: homeserver, member: member, atEpochMilliseconds: now), .valid, name)
         }
     }
 
     func testEveryMemberEntryRejectionIsRefused() throws {
-        for vector in lpVectors.section("rejections") {
+        // A rotation can only be refused against an entry accepted earlier, and the app keeps none.
+        for vector in lpVectors.section("rejections") where vector.objectIfPresent("previous") == nil {
             let name = vector.string("name")
             let homeserver = try vector.decode(RosterHomeserver.self, at: "homeserver")
             guard let member = try? vector.decode(RosterMemberAttestation.self, at: "member") else {
@@ -283,18 +284,12 @@ final class ResolverVerificationVectorsTests: XCTestCase {
                 XCTAssertTrue(name.contains("unknown field"), "\(name): the member block should decode")
                 continue
             }
-            let outcome = MemberEntryVerifier.verify(homeserver: homeserver, member: member, atEpochMilliseconds: now, prior: Self.prior(vector))
+            let outcome = MemberEntryVerifier.verify(homeserver: homeserver, member: member, atEpochMilliseconds: now)
             guard case .invalid = outcome else {
                 XCTFail("\(name): expected the entry to be refused, got \(outcome)")
                 continue
             }
         }
-    }
-
-    private static func prior(_ vector: JSONObject) -> MemberEntryVerifier.Prior? {
-        guard let previous = vector.objectIfPresent("previous") else { return nil }
-        return MemberEntryVerifier.Prior(keyId: previous.stringIfPresent("keyId"), signingKey: previous.string("signingKey"),
-                                         sequence: Int64(previous.int("sequence")), entryHash: previous.stringIfPresent("entryHash"))
     }
 }
 

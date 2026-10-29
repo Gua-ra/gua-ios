@@ -14,23 +14,20 @@ import XCTest
 final class ResolverVerifierTests: XCTestCase {
     private static let baseURL = URL(string: "https://resolver.example")!
     private var vectors: [String: Any]!
-    private var appSettings: AppSettings!
     private var checkpoints: InMemoryCheckpointStore!
 
     /// A moment inside every validity window the vectors sign.
-    private let now = ResolverInstant(iso: "2026-10-27T00:00:00Z")!.epochMilliseconds
+    private var now: Int64 = 0
 
     override func setUpWithError() throws {
+        now = try XCTUnwrap(ResolverInstant(iso: "2026-10-27T00:00:00Z")).epochMilliseconds
         VerifierStub.reset()
         let url = try XCTUnwrap(Bundle(for: Self.self).url(forResource: "gua-client-verification-v1-vectors.json", withExtension: nil))
         vectors = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
-        appSettings = AppSettings()
-        appSettings.guaResolverVerificationEnabled = true
         checkpoints = InMemoryCheckpointStore()
     }
 
     override func tearDown() {
-        appSettings.guaResolverVerificationEnabled = true
         VerifierStub.reset()
     }
 
@@ -61,8 +58,7 @@ final class ResolverVerifierTests: XCTestCase {
     }
 
     func testKillSwitchOffVerifiesNothing() async {
-        appSettings.guaResolverVerificationEnabled = false
-        let verifier = makeVerifier(trustRoots: trustRoots(ofRoster: 0))
+        let verifier = makeVerifier(trustRoots: trustRoots(ofRoster: 0), isEnabled: false)
 
         let report = await verifier.verify(resolution: answer(.br), phoneNumber: "+5511987654321")
 
@@ -382,13 +378,14 @@ final class ResolverVerifierTests: XCTestCase {
 
     // MARK: - Helpers
 
-    private func makeVerifier(trustRoots: ResolverTrustRoots, budget: TimeInterval = 10) -> ResolverVerifier {
+    private func makeVerifier(trustRoots: ResolverTrustRoots, budget: TimeInterval = 10, isEnabled: Bool = true) -> ResolverVerifier {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [VerifierStubURLProtocol.self]
         let now = now
-        return ResolverVerifier(baseURL: Self.baseURL, trustRoots: trustRoots, environment: "test", appSettings: appSettings,
-                                checkpointStore: checkpoints, session: URLSession(configuration: configuration), budget: budget,
-                                clock: { now })
+        let clock: @Sendable () -> Int64 = { now }
+        let enabled: @Sendable () -> Bool = { isEnabled }
+        return ResolverVerifier(baseURL: Self.baseURL, trustRoots: trustRoots, environment: "test", checkpointStore: checkpoints,
+                                session: URLSession(configuration: configuration), budget: budget, clock: clock, isEnabled: enabled)
     }
 
     /// The report of one run; the kill switch is on in these tests, so a missing report is a failure.

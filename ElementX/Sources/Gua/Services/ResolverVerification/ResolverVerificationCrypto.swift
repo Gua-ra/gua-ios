@@ -59,13 +59,13 @@ enum ResolverVerificationHex {
 
     static func string(_ bytes: [UInt8]) -> String {
         let digits = Array("0123456789abcdef".utf8)
-        var out = [UInt8]()
-        out.reserveCapacity(bytes.count * 2)
-        for byte in bytes {
-            out.append(digits[Int(byte >> 4)])
-            out.append(digits[Int(byte & 0x0F)])
+        return String(unsafeUninitializedCapacity: bytes.count * 2) { buffer in
+            for (offset, byte) in bytes.enumerated() {
+                buffer[2 * offset] = digits[Int(byte >> 4)]
+                buffer[2 * offset + 1] = digits[Int(byte & 0x0F)]
+            }
+            return bytes.count * 2
         }
-        return String(decoding: out, as: UTF8.self)
     }
 
     private static func nibble(_ character: UInt8) -> UInt8? {

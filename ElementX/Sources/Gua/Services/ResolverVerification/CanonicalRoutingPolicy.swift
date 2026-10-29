@@ -5,7 +5,6 @@
 // Please see LICENSE files in the repository root for full details.
 //
 
-import CryptoKit
 import Foundation
 
 /// The `gua-routing-policy.v1` and `gua-delegated-rules.v1` bytes, ports of the resolver's
@@ -90,74 +89,5 @@ enum CanonicalRoutingPolicy {
     static func epoch(_ iso: String?) -> Int64? {
         guard let iso else { return 0 }
         return ResolverInstant(iso: iso)?.epochMilliseconds
-    }
-}
-
-/// Counts valid signatures over canonical bytes under trusted keys, one vote per key id.
-enum ResolverSignatureCounter {
-    struct Count: Equatable {
-        /// Distinct trusted key ids whose signature verified.
-        let valid: Int
-        /// Signatures whose key id names a trusted key, whether or not they verified.
-        let known: Int
-    }
-
-    static func count(signatures: [(keyId: String?, signatureB64: String?)], over canonical: [UInt8],
-                      keys: [String: Curve25519.Signing.PublicKey]) -> Count {
-        var counted = Set<String>()
-        var known = 0
-        for signature in signatures {
-            guard let keyId = signature.keyId, let key = keys[keyId] else { continue }
-            known += 1
-            guard !counted.contains(keyId), let value = signature.signatureB64,
-                  ResolverVerificationCrypto.verify(signatureBase64: value, over: canonical, key: key) else {
-                continue
-            }
-            counted.insert(keyId)
-        }
-        return Count(valid: counted.count, known: known)
-    }
-
-    /// Trusted keys by id, dropping any that is not a well formed Ed25519 SPKI document.
-    static func keys(_ trusted: [ResolverTrustedKey]) -> [String: Curve25519.Signing.PublicKey] {
-        var keys = [String: Curve25519.Signing.PublicKey]()
-        for trustedKey in trusted {
-            if let key = ResolverVerificationCrypto.publicKey(spkiBase64: trustedKey.publicKey) {
-                keys[trustedKey.id] = key
-            }
-        }
-        return keys
-    }
-}
-
-/// Routing policy verification at both levels: the authority threshold over the whole bundle, then each zone's
-/// delegate signature over its own rules. A rule is trusted only when its zone passes both.
-enum RoutingPolicyVerifier {
-    static func validSignatureCount(of bundle: RoutingPolicyBundle, canonical: [UInt8],
-                                    keys: [String: Curve25519.Signing.PublicKey]) -> ResolverSignatureCounter.Count {
-        ResolverSignatureCounter.count(signatures: bundle.signatures.map { ($0.authorityKeyId, $0.signatureB64) },
-                                       over: canonical, keys: keys)
-    }
-
-    /// The zones whose rules carry a valid delegate signature under the zone's own `delegatePublicKey`. The
-    /// bundle's authority signatures must already have been verified, which is what makes that key trusted.
-    static func delegateVerifiedZones(of bundle: RoutingPolicyBundle) -> Set<String> {
-        var verified = Set<String>()
-        for zone in bundle.delegationZones {
-            guard let zoneId = zone.id, let delegateKeyId = zone.delegateKeyId, !delegateKeyId.isBlank,
-                  let delegatePublicKey = zone.delegatePublicKey, !delegatePublicKey.isBlank,
-                  let key = ResolverVerificationCrypto.publicKey(spkiBase64: delegatePublicKey) else {
-                continue
-            }
-            let canonical = CanonicalRoutingPolicy.delegatedRulesBytes(policyId: bundle.policyId, version: bundle.version,
-                                                                       zoneId: zoneId, rules: bundle.rules)
-            for signature in bundle.delegateSignatures where signature.zoneId == zoneId && signature.delegateKeyId == delegateKeyId {
-                if let value = signature.signatureB64, ResolverVerificationCrypto.verify(signatureBase64: value, over: canonical, key: key) {
-                    verified.insert(zoneId)
-                    break
-                }
-            }
-        }
-        return verified
     }
 }

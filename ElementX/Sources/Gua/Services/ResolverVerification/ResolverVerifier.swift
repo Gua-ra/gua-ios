@@ -7,6 +7,7 @@
 
 import CryptoKit
 import Foundation
+import os
 
 protocol ResolverVerifying: Sendable {
     /// Verifies a `/resolve` answer detached from the caller. The outcome is logged and never changes what the
@@ -17,11 +18,11 @@ protocol ResolverVerifying: Sendable {
 /// Report-only verification of the resolver's answer against its signed artifacts: the roster under the pinned
 /// authority keys, the returned homeserver as an ACTIVE entry, the member self-signature, the log checkpoint
 /// against the last one accepted, the routing policy when served, and the placement reproduced locally.
-final class ResolverVerifier: ResolverVerifying, @unchecked Sendable {
+final class ResolverVerifier: ResolverVerifying {
     private let baseURL: URL
     private let trustRoots: ResolverTrustRoots
     private let environment: String
-    private let appSettings: AppSettings
+    private let isEnabled: @Sendable () -> Bool
     private let session: URLSession
     private let checkpointStore: ResolverCheckpointStoring
     private let budget: TimeInterval
@@ -29,26 +30,25 @@ final class ResolverVerifier: ResolverVerifying, @unchecked Sendable {
     private let authorityKeys: [String: Curve25519.Signing.PublicKey]
     private let policyKeys: [String: Curve25519.Signing.PublicKey]
 
-    private let lock = NSLock()
-    private var storedReport: ResolverVerificationReport?
+    private let latestReport = OSAllocatedUnfairLock<ResolverVerificationReport?>(initialState: nil)
 
     /// The most recent report, for tests and diagnostics.
     var lastReport: ResolverVerificationReport? {
-        lock.withLock { storedReport }
+        latestReport.withLock { $0 }
     }
 
     init(baseURL: URL,
          trustRoots: ResolverTrustRoots,
          environment: String,
-         appSettings: AppSettings,
          checkpointStore: ResolverCheckpointStoring = UserDefaultsResolverCheckpointStore(),
          session: URLSession? = nil,
          budget: TimeInterval = 10,
-         clock: @escaping @Sendable () -> Int64 = { Int64(Date().timeIntervalSince1970 * 1000) }) {
+         clock: @escaping @Sendable () -> Int64 = { Int64(Date().timeIntervalSince1970 * 1000) },
+         isEnabled: @escaping @Sendable () -> Bool) {
         self.baseURL = baseURL
         self.trustRoots = trustRoots
         self.environment = environment
-        self.appSettings = appSettings
+        self.isEnabled = isEnabled
         self.checkpointStore = checkpointStore
         self.budget = budget
         self.clock = clock
@@ -68,17 +68,13 @@ final class ResolverVerifier: ResolverVerifying, @unchecked Sendable {
     convenience init?(appSettings: AppSettings) {
         let deployment = GuaDeployment.current
         guard let baseURL = deployment.resolverBaseURL else { return nil }
-        self.init(baseURL: baseURL, trustRoots: deployment.resolverTrustRoots,
-                  environment: deployment == .production ? "prod" : "dev",
-                  appSettings: appSettings)
-    }
-
-    var isEnabled: Bool {
-        appSettings.guaResolverVerificationEnabled
+        self.init(baseURL: baseURL, trustRoots: deployment.resolverTrustRoots, environment: deployment == .production ? "prod" : "dev") {
+            appSettings.guaResolverVerificationEnabled
+        }
     }
 
     func startVerification(of resolution: HomeserverResolution, phoneNumber: String) {
-        guard isEnabled else { return }
+        guard isEnabled() else { return }
         Task.detached(priority: .utility) { [self] in
             _ = await verify(resolution: resolution, phoneNumber: phoneNumber)
         }
@@ -86,12 +82,12 @@ final class ResolverVerifier: ResolverVerifying, @unchecked Sendable {
 
     /// Runs every check and returns the report, or `nil` when the kill switch is off.
     func verify(resolution: HomeserverResolution, phoneNumber: String) async -> ResolverVerificationReport? {
-        guard isEnabled else { return nil }
+        guard isEnabled() else { return nil }
         let started = Date()
         var draft = Draft()
         await run(resolution: resolution, phoneNumber: phoneNumber, deadline: started.addingTimeInterval(budget), draft: &draft)
         let report = draft.report(environment: environment, durationMs: Int(Date().timeIntervalSince(started) * 1000))
-        lock.withLock { storedReport = report }
+        latestReport.withLock { $0 = report }
         MXLog.info("Resolver verification \(report.logDescription)")
         return report
     }
@@ -100,11 +96,11 @@ final class ResolverVerifier: ResolverVerifying, @unchecked Sendable {
 
     private func run(resolution: HomeserverResolution, phoneNumber: String, deadline: Date, draft: inout Draft) async {
         guard trustRoots.hasAuthorityKeys else {
-            draft.failEarly(.unverifiable(reason: "no_trust_roots"), reason: "no_trust_roots")
+            draft.failEarly(unverifiable: "no_trust_roots")
             return
         }
         guard !authorityKeys.isEmpty else {
-            draft.failEarly(.unverifiable(reason: "crypto_unsupported"), reason: "crypto_unsupported")
+            draft.failEarly(unverifiable: "crypto_unsupported")
             return
         }
 
@@ -113,39 +109,35 @@ final class ResolverVerifier: ResolverVerifying, @unchecked Sendable {
         do {
             let data = try await fetch("/roster", deadline: deadline)
             guard let flagged = StrictJSONScanner.entriesWithDuplicateMemberKeys(in: data) else {
-                draft.failEarly(.unverifiable(reason: "parse_error"), reason: "parse_error")
+                draft.failEarly(unverifiable: "parse_error")
                 return
             }
             malformedMembers = flagged
             roster = try JSONDecoder().decode(SignedRosterDocument.self, from: data)
-        } catch is DecodingError {
-            draft.failEarly(.unverifiable(reason: "parse_error"), reason: "parse_error")
-            return
         } catch let error as FetchError {
-            draft.failEarly(.unverifiable(reason: error.rosterReason), reason: error.rosterReason)
+            draft.failEarly(unverifiable: error.reason(unavailable: "roster_unavailable"))
             return
         } catch {
-            draft.failEarly(.unverifiable(reason: "roster_unavailable"), reason: "roster_unavailable")
+            draft.failEarly(unverifiable: "parse_error")
             return
         }
         draft.rosterVersion = roster.version
 
         guard let form = CanonicalRoster.form(of: roster) else {
             draft.rosterForm = "mixed"
-            draft.failEarly(.unverifiable(reason: "mixed_roster_form"), reason: "mixed_roster_form")
+            draft.failEarly(unverifiable: "mixed_roster_form")
             return
         }
         draft.rosterForm = form.rawValue
         guard let canonical = CanonicalRoster.bytes(of: roster, form: form) else {
-            draft.failEarly(.unverifiable(reason: "parse_error"), reason: "parse_error")
+            draft.failEarly(unverifiable: "parse_error")
             return
         }
 
         let count = ResolverSignatureCounter.count(signatures: roster.authoritySignatures.map { ($0.authorityKeyId, $0.signatureB64) },
                                                    over: canonical, keys: authorityKeys)
-        guard count.valid >= trustRoots.authorityThreshold else {
-            let reason = count.known == 0 ? "unknown_key_id" : count.valid == 0 ? "bad_signature" : "threshold_not_met"
-            draft.failEarly(.invalid(reason: reason), reason: "roster_unverified")
+        if let failure = count.failureReason(threshold: trustRoots.authorityThreshold) {
+            draft.failEarly(invalid: failure)
             return
         }
         draft.rosterSignature = .valid
@@ -174,9 +166,7 @@ final class ResolverVerifier: ResolverVerifying, @unchecked Sendable {
     }
 
     private func memberEntry(for answer: ResolvedHomeserver, in roster: SignedRosterDocument, malformedMembers: Set<Int>) -> ResolverVerificationReport.MemberEntry {
-        guard let index = roster.entries.firstIndex(where: {
-            $0.homeserver.serverName == answer.serverName && $0.homeserver.baseUrl == answer.baseURL && $0.homeserver.masIssuer == answer.masIssuer
-        }) else {
+        guard let index = roster.entries.firstIndex(where: { $0.homeserver.hasEndpoint(of: answer) }) else {
             return .unverifiable
         }
         let entry = roster.entries[index]
@@ -204,10 +194,10 @@ final class ResolverVerifier: ResolverVerifying, @unchecked Sendable {
                                        query: [URLQueryItem(name: "first", value: String(first)), URLQueryItem(name: "second", value: String(second))],
                                        deadline: deadline)
             proof = try JSONDecoder().decode(ConsistencyProofDocument.self, from: data)
-        } catch is DecodingError {
-            return .unverifiable(reason: "parse_error")
+        } catch let error as FetchError {
+            return .unverifiable(reason: error.reason(unavailable: "log_unavailable"))
         } catch {
-            return .unverifiable(reason: (error as? FetchError)?.logReason ?? "log_unavailable")
+            return .unverifiable(reason: "parse_error")
         }
         guard MerkleTree.verifyConsistency(first: first, second: second,
                                            oldRoot: pinned.merkleRoot, newRoot: served.merkleRoot, proof: proof.proof) else {
@@ -229,10 +219,10 @@ final class ResolverVerifier: ResolverVerifying, @unchecked Sendable {
             bundle = try JSONDecoder().decode(RoutingPolicyBundle.self, from: data)
         } catch FetchError.status(404) {
             return PolicyResult(outcome: .notPresent, verified: nil)
-        } catch is DecodingError {
-            return PolicyResult(outcome: .unverifiable(reason: "parse_error"), verified: nil)
+        } catch let error as FetchError {
+            return PolicyResult(outcome: .unverifiable(reason: error.reason(unavailable: "policy_unavailable")), verified: nil)
         } catch {
-            return PolicyResult(outcome: .unverifiable(reason: (error as? FetchError)?.policyReason ?? "policy_unavailable"), verified: nil)
+            return PolicyResult(outcome: .unverifiable(reason: "parse_error"), verified: nil)
         }
         guard !trustRoots.policyKeys.isEmpty else { return PolicyResult(outcome: .unverifiable(reason: "no_policy_keys"), verified: nil) }
         guard !policyKeys.isEmpty else { return PolicyResult(outcome: .unverifiable(reason: "crypto_unsupported"), verified: nil) }
@@ -240,9 +230,8 @@ final class ResolverVerifier: ResolverVerifying, @unchecked Sendable {
             return PolicyResult(outcome: .unverifiable(reason: "parse_error"), verified: nil)
         }
         let count = RoutingPolicyVerifier.validSignatureCount(of: bundle, canonical: canonical, keys: policyKeys)
-        guard count.valid >= trustRoots.policyThreshold else {
-            let reason = count.known == 0 ? "unknown_key_id" : count.valid == 0 ? "bad_signature" : "threshold_not_met"
-            return PolicyResult(outcome: .invalid(reason: reason), verified: nil)
+        if let failure = count.failureReason(threshold: trustRoots.policyThreshold) {
+            return PolicyResult(outcome: .invalid(reason: failure), verified: nil)
         }
         if let failure = await policyPublishFailure(contentHash: ResolverVerificationCrypto.sha256Hex(canonical),
                                                     checkpoint: roster.logCheckpoint, deadline: deadline) {
@@ -259,10 +248,10 @@ final class ResolverVerifier: ResolverVerifying, @unchecked Sendable {
         do {
             let data = try await fetch("/roster/log", deadline: deadline)
             log = try JSONDecoder().decode(TransparencyLogDocument.self, from: data)
-        } catch is DecodingError {
-            return .unverifiable(reason: "parse_error")
+        } catch let error as FetchError {
+            return .unverifiable(reason: error.reason(unavailable: "log_unavailable"))
         } catch {
-            return .unverifiable(reason: (error as? FetchError)?.logReason ?? "log_unavailable")
+            return .unverifiable(reason: "parse_error")
         }
         let events = log.events.sorted { $0.index < $1.index }
         var leaves = [String]()
@@ -298,9 +287,7 @@ final class ResolverVerifier: ResolverVerifying, @unchecked Sendable {
               let entry = roster.entries.first(where: { $0.homeserver.id == decision.homeserverId }) else {
             return .mismatch
         }
-        let answer = resolution.homeserver
-        let same = entry.homeserver.serverName == answer.serverName && entry.homeserver.baseUrl == answer.baseURL && entry.homeserver.masIssuer == answer.masIssuer
-        return same ? .match : .mismatch
+        return entry.homeserver.hasEndpoint(of: resolution.homeserver) ? .match : .mismatch
     }
 
     // MARK: - Transport
@@ -310,16 +297,8 @@ final class ResolverVerifier: ResolverVerifying, @unchecked Sendable {
         case transport
         case timeout
 
-        var rosterReason: String {
-            self == .timeout ? "timeout" : "roster_unavailable"
-        }
-
-        var logReason: String {
-            self == .timeout ? "timeout" : "log_unavailable"
-        }
-
-        var policyReason: String {
-            self == .timeout ? "timeout" : "policy_unavailable"
+        func reason(unavailable: String) -> String {
+            self == .timeout ? "timeout" : unavailable
         }
     }
 
@@ -375,8 +354,19 @@ final class ResolverVerifier: ResolverVerifying, @unchecked Sendable {
         var policy = ResolverVerificationReport.Policy.unverifiable(reason: "roster_unavailable")
         var placement = ResolverVerificationReport.Placement.unverifiable(reason: "roster_unavailable")
 
-        mutating func failEarly(_ signature: ResolverVerificationReport.RosterSignature, reason: String) {
-            rosterSignature = signature
+        /// The roster could not be checked: the checks that depend on it carry the same reason.
+        mutating func failEarly(unverifiable reason: String) {
+            rosterSignature = .unverifiable(reason: reason)
+            settleDependentChecks(reason)
+        }
+
+        /// The roster's signatures fell short: the checks that depend on it are `roster_unverified`.
+        mutating func failEarly(invalid reason: String) {
+            rosterSignature = .invalid(reason: reason)
+            settleDependentChecks("roster_unverified")
+        }
+
+        private mutating func settleDependentChecks(_ reason: String) {
             logConsistency = .unverifiable(reason: reason)
             policy = .unverifiable(reason: reason)
             placement = .unverifiable(reason: reason)

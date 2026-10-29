@@ -139,6 +139,11 @@ struct RosterHomeserver: Decodable {
         self.searchVisibility = searchVisibility ?? "GLOBAL"
         self.searchGroups = searchGroups ?? []
     }
+
+    /// Whether a `/resolve` answer names this homeserver: the same server name, base URL and auth issuer.
+    func hasEndpoint(of answer: ResolvedHomeserver) -> Bool {
+        serverName == answer.serverName && baseUrl == answer.baseURL && masIssuer == answer.masIssuer
+    }
 }
 
 struct RosterClaimPredicate: Decodable {

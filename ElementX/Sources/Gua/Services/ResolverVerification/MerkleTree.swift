@@ -53,14 +53,10 @@ enum MerkleTree {
     static func verifyConsistency(first: Int, second: Int, oldRoot: String, newRoot: String, proof: [String]) -> Bool {
         if first == 0 { return second >= 0 }
         if first == second { return proof.isEmpty && oldRoot == newRoot }
-        if first > second || proof.isEmpty { return false }
-
-        var path = [[UInt8]]()
-        for node in proof {
-            guard let bytes = ResolverVerificationHex.bytes(node) else { return false }
-            path.append(bytes)
+        let path = proof.compactMap(ResolverVerificationHex.bytes)
+        guard first < second, !path.isEmpty, path.count == proof.count, let oldRootBytes = ResolverVerificationHex.bytes(oldRoot) else {
+            return false
         }
-        guard let oldRootBytes = ResolverVerificationHex.bytes(oldRoot) else { return false }
 
         var index = 0
         let seed: [UInt8]

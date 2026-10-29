@@ -15,7 +15,6 @@ struct ResolverInstant: Equatable {
     /// Whether the string carried digits below the millisecond, which the member entry window refuses.
     let hasSubMillisecondDigits: Bool
 
-    /// Fixed and valid; kept optional so that no force try is needed and a failure reads as "not an instant".
     private static let pattern = try? Regex(#"^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\.([0-9]{1,9}))?Z$"#)
 
     init?(iso: String) {
@@ -30,7 +29,7 @@ struct ResolverInstant: Equatable {
             return nil
         }
         let fraction = match.output[7].substring.map(String.init) ?? ""
-        let milliseconds = Int64(String((fraction + "000").prefix(3)))!
+        guard let milliseconds = Int64(String((fraction + "000").prefix(3))) else { return nil }
         let seconds = Self.daysFromCivil(year: year, month: month, day: day) * 86400 + hour * 3600 + minute * 60 + second
         epochMilliseconds = seconds * 1000 + milliseconds
         hasSubMillisecondDigits = fraction.count > 3 && fraction.dropFirst(3).contains { $0 != "0" }

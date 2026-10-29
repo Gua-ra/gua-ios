@@ -51,7 +51,6 @@ struct ResolverVerificationReport: Equatable {
         case match
         case mismatch
         case indeterminate
-        case notApplicable
         case unverifiable(reason: String)
     }
 
@@ -107,7 +106,7 @@ struct ResolverVerificationReport: Equatable {
     }
 
     fileprivate enum Verdict {
-        case passed, failed, unverifiable, notApplicable
+        case passed, failed, unverifiable
     }
 }
 
@@ -212,9 +211,7 @@ private extension ResolverVerificationReport.Placement {
         switch self {
         case .match: .passed
         case .mismatch: .failed
-        case .indeterminate: .unverifiable
-        case .notApplicable: .notApplicable
-        case .unverifiable: .unverifiable
+        case .indeterminate, .unverifiable: .unverifiable
         }
     }
 
@@ -223,7 +220,6 @@ private extension ResolverVerificationReport.Placement {
         case .match: "match"
         case .mismatch: "mismatch"
         case .indeterminate: "indeterminate"
-        case .notApplicable: "notApplicable"
         case .unverifiable(let reason): "unverifiable:\(reason)"
         }
     }

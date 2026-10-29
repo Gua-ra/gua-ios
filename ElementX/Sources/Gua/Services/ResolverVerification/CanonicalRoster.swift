@@ -94,8 +94,8 @@ enum CanonicalRoster {
     }
 
     private static func attributes(_ attributes: [String: String]?) -> String {
-        guard let attributes, !attributes.isEmpty else { return "" }
-        return JavaStringOrder.sorted(Array(attributes.keys)).map { "\($0)=\(attributes[$0]!)" }.joined(separator: "|")
+        guard let attributes else { return "" }
+        return attributes.sorted { JavaStringOrder.precedes($0.key, $1.key) }.map { "\($0.key)=\($0.value)" }.joined(separator: "|")
     }
 }
 

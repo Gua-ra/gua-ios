@@ -28,8 +28,8 @@ struct PlacementContext: Equatable {
         text += "region=\(regionHint ?? "")\n"
         text += "affiliations=\(JavaStringOrder.sorted(affiliations).joined(separator: "|"))\n"
         text += "attrs="
-        for key in JavaStringOrder.sorted(Array(attributes.keys)) {
-            text += "\(key)=\(attributes[key]!)|"
+        for (key, value) in attributes.sorted(by: { JavaStringOrder.precedes($0.key, $1.key) }) {
+            text += "\(key)=\(value)|"
         }
         return text
     }
@@ -70,17 +70,11 @@ enum PlacementReproducer {
         for zone in policy.bundle.delegationZones {
             if let id = zone.id, zones[id] == nil { zones[id] = zone }
         }
-        let rules = policy.bundle.rules
-            .filter(\.isEnabled)
-            .filter { rule in
-                guard let zoneId = rule.delegatedZoneId, policy.delegateVerifiedZones.contains(zoneId) else { return false }
-                return zoneIsActive(zones[zoneId], now: now)
-            }
-            .stableSorted { lhs, rhs in
-                if lhs.priority != rhs.priority { return lhs.priority < rhs.priority ? -1 : 1 }
-                return JavaStringOrder.compare(lhs.id, rhs.id)
-            }
-        for rule in rules where matches(rule, context: context) {
+        let rules = policy.bundle.rules.filter { rule in
+            guard rule.isEnabled, let zoneId = rule.delegatedZoneId, policy.delegateVerifiedZones.contains(zoneId) else { return false }
+            return zoneIsActive(zones[zoneId], now: now)
+        }
+        for rule in CanonicalRoutingPolicy.sortedRules(rules) where matches(rule, context: context) {
             if let targetId = rule.targetHomeserverId, targets[targetId] != nil {
                 return PlacementDecision(homeserverId: targetId, rule: "PolicyRoutingRule", ruleId: rule.id ?? "")
             }
@@ -158,20 +152,14 @@ enum PlacementReproducer {
     private static func matchesLocally(_ claim: RosterClaimPredicate, context: PlacementContext) -> Bool {
         if let country = claim.country, country.lowercased() != context.country?.lowercased() { return false }
         if let mccmnc = claim.mccmnc, mccmnc != context.mccmnc { return false }
-        if let carrier = claim.carrier {
-            guard let contextCarrier = context.carrier, carrier.lowercased() == contextCarrier.lowercased() else { return false }
+        if let carrier = claim.carrier, carrier.lowercased() != context.carrier?.lowercased() { return false }
+        if let prefixes = claim.phonePrefixes, !prefixes.isEmpty, !prefixes.contains(where: { context.phone?.hasPrefix($0) == true }) {
+            return false
         }
-        if let prefixes = claim.phonePrefixes, !prefixes.isEmpty {
-            guard let phone = context.phone, prefixes.contains(where: { phone.hasPrefix($0) }) else { return false }
-        }
-        if let affiliation = claim.affiliation {
-            guard context.claimsVerified, context.affiliations.contains(affiliation) else { return false }
-        }
-        if let attributes = claim.attributeMatch, !attributes.isEmpty {
-            guard context.claimsVerified else { return false }
-            for (key, value) in attributes where context.attributes[key] != value {
-                return false
-            }
+        if let affiliation = claim.affiliation, !(context.claimsVerified && context.affiliations.contains(affiliation)) { return false }
+        if let attributes = claim.attributeMatch, !attributes.isEmpty,
+           !(context.claimsVerified && attributes.allSatisfy { context.attributes[$0.key] == $0.value }) {
+            return false
         }
         return true
     }
