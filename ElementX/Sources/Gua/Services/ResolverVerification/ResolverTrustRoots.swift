@@ -7,22 +7,19 @@
 
 import Foundation
 
-/// A published Ed25519 key the resolver's artifacts are verified under. `publicKey` is the base64 X.509
-/// SubjectPublicKeyInfo, the same encoding the roster carries for homeserver signing keys.
+/// An Ed25519 key whose `publicKey` is a base64 X.509 SubjectPublicKeyInfo.
 struct ResolverTrustedKey: Equatable {
     let id: String
     let publicKey: String
 }
 
-/// The keys pinned per deployment for the roster (authority) and the routing policy. The policy list has
-/// no fallback to the authority list: an empty one verifies no policy.
+/// Policy keys never fall back to the authority keys, so an empty policy list verifies no policy.
 struct ResolverTrustRoots: Equatable {
     let authorityKeys: [ResolverTrustedKey]
     let authorityThreshold: Int
     let policyKeys: [ResolverTrustedKey]
     let policyThreshold: Int
 
-    /// No keys at all: the verifier reports every answer as unverifiable and fetches nothing.
     static let empty = ResolverTrustRoots(authorityKeys: [], authorityThreshold: 1, policyKeys: [], policyThreshold: 1)
 
     /// Production lists no policy keys until governance keys exist, so a policy served there is `no_policy_keys`.
@@ -38,9 +35,7 @@ struct ResolverTrustRoots: Equatable {
         self.policyThreshold = max(1, policyThreshold)
     }
 
-    /// Development roots in Android's format: whitespace-separated `authority:<keyId>:<spkiBase64>`,
-    /// `policy:<keyId>:<spkiBase64>`, `authority-threshold:<n>` and `policy-threshold:<n>`, thresholds 1 by default.
-    /// A value with any token that does not read is refused whole and gives `.empty`.
+    /// Android's token format; a value with any token that does not read is refused whole.
     init(developmentSecret value: String?) {
         var authorityKeys = [ResolverTrustedKey]()
         var policyKeys = [ResolverTrustedKey]()

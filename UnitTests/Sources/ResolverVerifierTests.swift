@@ -10,8 +10,7 @@ import CryptoKit
 @testable import ElementX
 import XCTest
 
-/// The orchestrator over a stubbed resolver. Every endpoint is canned from the golden vectors, and rosters the tests
-/// change are signed again with the RFC 8032 test keys, so the checks run against signatures that really verify.
+/// Rosters the tests change are signed again with the RFC 8032 test keys, so their signatures really verify.
 final class ResolverVerifierTests: XCTestCase {
     private static let phone = "+5511987654321"
 
@@ -34,8 +33,6 @@ final class ResolverVerifierTests: XCTestCase {
     override func tearDown() {
         VerifierStub.reset()
     }
-
-    // MARK: - Trust roots
 
     func testDevelopmentTrustRootsReadTheTokenFormat() throws {
         let first = try spki("rfc8032-test1")
@@ -97,8 +94,6 @@ final class ResolverVerifierTests: XCTestCase {
         XCTAssertTrue(VerifierStub.requestedPaths.isEmpty)
     }
 
-    // MARK: - Roster
-
     func testRosterUnavailableIsUnverifiable() async throws {
         VerifierStub.respond(path: "/roster", status: 503, body: "{}")
         let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: "r1")), answer())
@@ -125,7 +120,7 @@ final class ResolverVerifierTests: XCTestCase {
     }
 
     func testTamperedRosterIsInvalidAndStopsTheDependentChecks() async throws {
-        let tampered = section("rosterRejections")[0]
+        let tampered = try vector("rosterRejections", named: "baseUrl changed after signing")
         try VerifierStub.respond(path: "/roster", body: json(tampered["roster"]))
         let report = try await verified(makeVerifier(trustRoots: trustRoots(of: tampered)), answer())
 
@@ -135,7 +130,7 @@ final class ResolverVerifierTests: XCTestCase {
     }
 
     func testRosterVersionIsReportedOnlyOnceTheSignatureIsValid() async throws {
-        let tampered = section("rosterRejections")[0]
+        let tampered = try vector("rosterRejections", named: "baseUrl changed after signing")
         try VerifierStub.respond(path: "/roster", body: json(tampered["roster"]))
         let report = try await verified(makeVerifier(trustRoots: trustRoots(of: tampered)), answer())
 
@@ -212,7 +207,6 @@ final class ResolverVerifierTests: XCTestCase {
             homeserver["weight"] = 3_000_000_000
             entry["homeserver"] = homeserver
         }
-        // No signature can be made for it here, and none is needed: the decoder refuses the value first.
         try VerifierStub.respond(path: "/roster", body: json(roster))
         let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: "r1")), answer())
 
@@ -300,8 +294,6 @@ final class ResolverVerifierTests: XCTestCase {
         XCTAssertEqual(report.rosterSignature, .unverifiable(.parseError))
     }
 
-    // MARK: - Answer in the roster
-
     func testRedirectedHomeserverIsAFieldMismatch() async throws {
         try serve(roster: "r2", policy: "br-policy v3")
         let redirected = HomeserverResolution(exists: true,
@@ -323,7 +315,6 @@ final class ResolverVerifierTests: XCTestCase {
         retired["homeserver"] = retiredHomeserver
         let retiredSignature = try memberSignature(of: retired)
         retired = withMemberSignature(retired, retiredSignature)
-        // The active entry carries the retired entry's signature, which covers another homeserver id.
         let active = withMemberSignature(entry, retiredSignature)
         var roster = try rosterJSON("r1")
         roster["entries"] = [retired, active]
@@ -346,8 +337,6 @@ final class ResolverVerifierTests: XCTestCase {
         XCTAssertEqual(report.rosterSignature, .valid)
         XCTAssertEqual(report.memberEntry, .invalid(.parseError))
     }
-
-    // MARK: - Log consistency
 
     func testFirstCheckpointIsPinned() async throws {
         try serve(roster: "r1")
@@ -436,7 +425,6 @@ final class ResolverVerifierTests: XCTestCase {
             if path == "/roster" { slowRosterFetched.fulfill() }
         }
 
-        // Two verifiers, as two sign-in attempts build them; the slower run holds the smaller checkpoint.
         let slowVerifier = makeVerifier(trustRoots: trust)
         let fastVerifier = makeVerifier(trustRoots: trust)
         let resolution = answer()
@@ -450,8 +438,6 @@ final class ResolverVerifierTests: XCTestCase {
         let later = try await verified(makeVerifier(trustRoots: trust), answer())
         XCTAssertEqual(later.logConsistency, .rollback)
     }
-
-    // MARK: - Policy
 
     func testNoPolicyServedIsNotPresentAndThePlacementReproduces() async throws {
         try serve(roster: "r1")
@@ -481,7 +467,8 @@ final class ResolverVerifierTests: XCTestCase {
 
     func testPolicySignedByAnUntrustedKeyIsInvalid() async throws {
         try serve(roster: "r2")
-        try VerifierStub.respond(path: "/policy/routing", body: json(section("policyRejections")[0]["bundle"]))
+        let untrusted = try vector("policyRejections", named: "signed by the roster authority key, which is not a policy key")
+        try VerifierStub.respond(path: "/policy/routing", body: json(untrusted["bundle"]))
         let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: "r2", policy: "br-policy v3")), answer())
 
         XCTAssertEqual(report.policy, .invalid(.unknownKeyId))
@@ -607,8 +594,6 @@ final class ResolverVerifierTests: XCTestCase {
         XCTAssertEqual(ResolverVerifier.logOutcome(for: served, checkpoint: checkpoint, events: [later, own]), .unverifiable(.policyNewerThanCheckpoint))
     }
 
-    // MARK: - Placement
-
     func testExistingAccountIsIndeterminateEvenWhenTheReproductionWouldMatch() async throws {
         try serve(roster: "r1")
         let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: "r1")), answer(exists: true))
@@ -674,8 +659,6 @@ final class ResolverVerifierTests: XCTestCase {
         XCTAssertEqual(report.placement, .indeterminate(.unsignedRule))
     }
 
-    // MARK: - Report
-
     func testReportLineMatchesTheContract() {
         let report = ResolverVerificationReport(environment: "dev", rosterVersion: 4, rosterForm: "v1", rosterSignature: .valid,
                                                 homeserverMatch: .activeMatch, memberEntry: .unattested, logConsistency: .consistent,
@@ -697,8 +680,6 @@ final class ResolverVerifierTests: XCTestCase {
         XCTAssertLessThan(elapsed, .seconds(5))
         XCTAssertTrue((250..<5000).contains(report.durationMs), "durationMs \(report.durationMs)")
     }
-
-    // MARK: - The resolve answer
 
     func testResolveAnswerWithoutExistsIsRefused() async throws {
         let client = ResolverClient(baseURL: baseURL, session: stubSession())
@@ -735,8 +716,6 @@ final class ResolverVerifierTests: XCTestCase {
         XCTAssertNil(resolution.rosterVersion)
         XCTAssertEqual(resolution.homeserver.serverName, "br.gua.test")
     }
-
-    // MARK: - The sign-in path
 
     func testStartVerificationReturnsBeforeTheReportExists() async throws {
         VerifierStub.hangs = true
@@ -797,8 +776,6 @@ final class ResolverVerifierTests: XCTestCase {
         XCTAssertEqual(VerifierStub.requestedPaths, ["/roster"])
     }
 
-    // MARK: - Helpers
-
     private enum Homeserver {
         case br, ca
 
@@ -816,7 +793,7 @@ final class ResolverVerifierTests: XCTestCase {
         return resolution
     }
 
-    /// The one homeserver the mocked authentication service configures; the verifier under test only needs an answer to start on.
+    /// The homeserver the mocked authentication service configures.
     private var mockServiceAnswer: HomeserverResolution {
         HomeserverResolution(exists: true, homeserver: ResolvedHomeserver(serverName: "matrix.org", baseURL: "matrix.org", masIssuer: nil, region: nil))
     }
@@ -835,14 +812,12 @@ final class ResolverVerifierTests: XCTestCase {
                                 session: stubSession(), budget: budget, now: wallClock, isEnabled: enabled)
     }
 
-    /// The report of one run; the kill switch is on in these tests, so a missing report is a failure.
     private func verified(_ verifier: ResolverVerifier, _ resolution: HomeserverResolution,
                           phone: String = ResolverVerifierTests.phone) async throws -> ResolverVerificationReport {
         let report = await verifier.verify(resolution: resolution, phoneNumber: phone)
         return try XCTUnwrap(report)
     }
 
-    /// The report of a run that stopped at the roster, whose other checks all carry `reason`.
     private func stopped(rosterForm: String? = nil, rosterSignature: ResolverVerificationReport.RosterSignature,
                          others reason: ResolverVerificationReason = .rosterUnverified, durationMs: Int) -> ResolverVerificationReport {
         ResolverVerificationReport(environment: "test", rosterVersion: nil, rosterForm: rosterForm, rosterSignature: rosterSignature,
@@ -850,7 +825,6 @@ final class ResolverVerifierTests: XCTestCase {
                                    policy: .unverifiable(reason), placement: .unverifiable(reason), durationMs: durationMs)
     }
 
-    /// br-policy v3 as its log leaf names it.
     private func servedPolicy() -> ServedPolicy {
         let hash = (log["events"] as? [[String: Any]] ?? []).first { $0["homeserverId"] as? String == "br-policy:v3" }?["payloadHash"] as? String
         return ServedPolicy(policyId: "br-policy", version: 3, contentHash: hash ?? "")
@@ -861,13 +835,12 @@ final class ResolverVerifierTests: XCTestCase {
         return try XCTUnwrap(keys[keyName]?["publicKeySpkiB64"] as? String)
     }
 
-    /// A vector roster's JSON with an ignored top-level field nested `depth` arrays deep, below the top-level object.
+    /// Counting the top-level object, the ignored field nests `depth + 1` levels deep.
     private func rosterJSONText(_ ref: String, ignoredFieldNesting depth: Int) throws -> String {
         let roster = try XCTUnwrap(String(bytes: json(rosterJSON(ref)), encoding: .utf8))
         return "{\"pad\":" + String(repeating: "[", count: depth) + String(repeating: "]", count: depth) + "," + roster.dropFirst()
     }
 
-    /// r1 with its one homeserver closed to new accounts, so no placement can be reproduced.
     private func serveRosterAcceptingNoNewAccounts() throws {
         let roster = try editing(rosterJSON("r1"), entry: 0) { entry in
             var homeserver = entry["homeserver"] as? [String: Any] ?? [:]
@@ -882,14 +855,16 @@ final class ResolverVerifierTests: XCTestCase {
         try XCTUnwrap(ResolverInstant(iso: iso)).epochMilliseconds
     }
 
-    // MARK: Vectors
-
     private func section(_ name: String) -> [[String: Any]] {
         vectors[name] as? [[String: Any]] ?? []
     }
 
     private func vector(_ name: String, ref: String) throws -> [String: Any] {
         try XCTUnwrap(section(name).first { $0["ref"] as? String == ref }, "no \(name) vector \(ref)")
+    }
+
+    private func vector(_ sectionName: String, named name: String) throws -> [String: Any] {
+        try XCTUnwrap(section(sectionName).first { $0["name"] as? String == name }, "no \(sectionName) vector named \(name)")
     }
 
     private func rosterJSON(_ ref: String) throws -> [String: Any] {
@@ -918,7 +893,6 @@ final class ResolverVerifierTests: XCTestCase {
         return try json(["first": first, "second": second, "proof": XCTUnwrap(proof)])
     }
 
-    /// The `GET /roster/log` document for the first `events` of the vectors' events, all of them by default.
     private func logDocument(events count: Int? = nil) throws -> Data {
         let events = (log["events"] as? [[String: Any]] ?? []).map { event in
             ["index": event["index"] as Any, "type": event["type"] as Any, "homeserverId": event["homeserverId"] as Any,
@@ -927,7 +901,7 @@ final class ResolverVerifierTests: XCTestCase {
         return try json(["events": Array(events.prefix(count ?? events.count))])
     }
 
-    /// Serves a roster and the log, and the policy when one is named; `/policy/routing` answers 404 otherwise.
+    /// Without a named policy, `/policy/routing` answers 404.
     private func serve(roster ref: String, policy: String? = nil) throws {
         try VerifierStub.respond(path: "/roster", body: json(rosterJSON(ref)))
         try VerifierStub.respond(path: "/roster/log", body: logDocument())
@@ -950,8 +924,6 @@ final class ResolverVerifierTests: XCTestCase {
         (any as? [[String: Any]] ?? []).map { ResolverTrustedKey(id: $0["id"] as? String ?? "", publicKey: $0["publicKeySpkiB64"] as? String ?? "") }
     }
 
-    // MARK: Changed rosters
-
     private func editing(_ roster: [String: Any], entry index: Int, _ change: (inout [String: Any]) -> Void) throws -> [String: Any] {
         var entries = try XCTUnwrap(roster["entries"] as? [[String: Any]])
         change(&entries[index])
@@ -960,14 +932,13 @@ final class ResolverVerifierTests: XCTestCase {
         return roster
     }
 
-    /// A vector roster moved to another checkpoint of the vectors' log and signed again.
     private func roster(_ ref: String, checkpointSize size: Int) throws -> [String: Any] {
         var roster = try rosterJSON(ref)
         roster["logCheckpoint"] = ["merkleRoot": logRoot(size: size), "size": size]
         return try signed(roster)
     }
 
-    /// The roster signed by the RFC 8032 test key the vectors trust as authority-a, over the form its JSON implies.
+    /// rfc8032-test1 is the key the vectors trust as authority-a.
     private func signed(_ roster: [String: Any]) throws -> [String: Any] {
         let document = try JSONDecoder().decode(SignedRosterDocument.self, from: json(roster))
         let canonical = try XCTUnwrap(CanonicalRoster.form(of: document).flatMap { CanonicalRoster.bytes(of: document, form: $0) })
@@ -976,7 +947,7 @@ final class ResolverVerifierTests: XCTestCase {
         return roster
     }
 
-    /// The member signature of `entry` by the RFC 8032 test key the vectors use as hs-br-1.
+    /// rfc8032-test-sha-abc is the key the vectors use as hs-br-1.
     private func memberSignature(of entry: [String: Any]) throws -> String {
         let homeserver = try JSONDecoder().decode(RosterHomeserver.self, from: json(entry["homeserver"]))
         let member = try JSONDecoder().decode(RosterMemberAttestation.self, from: json(entry["member"]))
@@ -999,13 +970,10 @@ final class ResolverVerifierTests: XCTestCase {
         return try Curve25519.Signing.PrivateKey(rawRepresentation: seed).signature(for: message).base64EncodedString()
     }
 
-    /// Sorted keys, so a sub-object serialized on its own is byte-identical to its occurrence in the whole document.
     private func json(_ object: Any?) throws -> Data {
         try JSONSerialization.data(withJSONObject: object as Any, options: .sortedKeys)
     }
 }
-
-// MARK: - Fakes
 
 private final class InMemoryCheckpointStore: ResolverCheckpointStoring, @unchecked Sendable {
     private let lock = NSLock()
@@ -1065,9 +1033,6 @@ private final class OIDCPresenterFake: OIDCAuthenticationPresenterProtocol {
     }
 }
 
-// MARK: - Stub transport
-
-/// Canned responses by path, or by path and query. Two runs can be in flight at once, so the state is locked.
 private enum VerifierStub {
     struct Response {
         let status: Int
@@ -1116,7 +1081,7 @@ private enum VerifierStub {
         respond(path: path, status: status, body: Data(body.utf8))
     }
 
-    /// Serves `body` to every request for `path`, and `query` when given, until replaced.
+    /// Serves `body` to every matching request until replaced.
     static func respond(path: String, query: String? = nil, status: Int = 200, body: Data, delay: TimeInterval = 0) {
         lock.withLock { queues[key(path, query)] = [Response(status: status, body: body, delay: delay)] }
     }

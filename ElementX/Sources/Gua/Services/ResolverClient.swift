@@ -28,8 +28,7 @@ struct HomeserverResolution: Equatable {
     /// Why the resolver decided what it did. Present only when the caller asked for a trace
     /// (`ResolveOptions.trace`); for debug and support tooling, never shown in the UI.
     var trace: DecisionTrace?
-    /// The roster version the resolver answered from. Older resolvers omit it, and so does a current one when
-    /// the roster changed during the request.
+    /// Absent from older resolvers, and from a current one when the roster changed during the request.
     var rosterVersion: Int64?
 }
 

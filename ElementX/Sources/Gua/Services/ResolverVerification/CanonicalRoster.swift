@@ -8,18 +8,16 @@
 import Foundation
 
 enum RosterForm: String {
-    /// Entries carry `searchVisibility` and `searchGroups`.
     case v1
-    /// Entries from a resolver image before 2026-08-14, whose signature covers bytes without the search fields.
+    /// Older resolvers sign the bytes without the search fields.
     case legacy
 }
 
-/// The `gua-roster.v1` bytes the authority signs, byte for byte as the resolver's `CanonicalRoster`. Fields are
-/// joined by U+001F and null and empty collapse, so this form is never reused for a new signed object.
+/// The `gua-roster.v1` bytes the authority signs, byte for byte as the resolver's `CanonicalRoster`.
+/// Null and empty collapse in this form, so it is never reused for a new signed object.
 enum CanonicalRoster {
     private static let separator = "\u{1F}"
 
-    /// `nil` when the entries mix the two forms: a verifier does not guess.
     static func form(of roster: SignedRosterDocument) -> RosterForm? {
         let withSearchFields = roster.entries.filter(\.homeserver.hasSearchVisibilityField).count
         if withSearchFields == 0 { return .legacy }
@@ -27,7 +25,6 @@ enum CanonicalRoster {
         return nil
     }
 
-    /// `nil` when a timestamp the bytes carry does not parse.
     static func bytes(of roster: SignedRosterDocument, form: RosterForm) -> [UInt8]? {
         guard let issuedAt = ResolverInstant(iso: roster.issuedAt) else { return nil }
         var text = "gua-roster.v1\n"

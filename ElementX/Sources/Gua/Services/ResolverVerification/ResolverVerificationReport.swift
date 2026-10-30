@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// Why a check did not pass. The raw values are the codes in the report line, the same on every Gua app.
+/// The raw values are the report line's codes, the same on every Gua app.
 enum ResolverVerificationReason: String, Error {
     case noTrustRoots = "no_trust_roots"
     case rosterUnavailable = "roster_unavailable"
@@ -45,8 +45,7 @@ enum ResolverVerificationReason: String, Error {
     case unattributed
 }
 
-/// One report-only verification of a `/resolve` answer. It holds outcome codes, the roster version and form and
-/// the environment label, never the phone, the answer or a hostname, because the report is logged.
+/// The report is logged, so it never holds the phone, the answer or a hostname.
 struct ResolverVerificationReport: Equatable {
     typealias Reason = ResolverVerificationReason
 
@@ -114,8 +113,6 @@ struct ResolverVerificationReport: Equatable {
     let placement: Placement
     let durationMs: Int
 
-    /// `failed` on the first check that found an input wrong, else `unverifiable` on the first that could not
-    /// decide, else `verified`.
     var overall: Overall {
         if let failed = checks.first(where: { $0.summary.verdict == .failed }) { return .failed(failed.check) }
         if let undecided = checks.first(where: { $0.summary.verdict == .undecided }) { return .unverifiable(undecided.check) }
@@ -136,7 +133,6 @@ struct ResolverVerificationReport: Equatable {
 }
 
 extension ResolverVerificationReport {
-    /// A check's code in the report line and how `overall` counts it.
     struct Summary: Equatable {
         enum Verdict {
             case passed, failed, undecided

@@ -10,8 +10,6 @@ import Foundation
 // A `member` block is read strictly, because its signature must cover every field the reader uses; the rest is
 // read leniently. Enum-valued fields are kept as served, so the signature over them decides an unknown value.
 
-// MARK: - Roster
-
 struct SignedRosterDocument: Decodable {
     let version: Int64
     let issuedAt: String
@@ -65,7 +63,6 @@ struct SignedRosterEntry: Decodable {
     let admittedAt: String?
     let status: String
     let member: RosterMemberAttestation?
-    /// A `member` block that was present and did not parse strictly. The entry's attestation is refused.
     let memberIsMalformed: Bool
 
     private enum CodingKeys: String, CodingKey {
@@ -102,7 +99,6 @@ struct RosterHomeserver: Decodable {
     let weight: Int32
     let acceptsNew: Bool
     let signingKey: String?
-    /// Whether the served JSON carried `searchVisibility` at all, which selects the roster form.
     let hasSearchVisibilityField: Bool
     let searchVisibility: String
     let searchGroups: [String]
@@ -126,7 +122,6 @@ struct RosterHomeserver: Decodable {
         searchGroups = try container.decodeIfPresent([String].self, forKey: .searchGroups) ?? []
     }
 
-    /// Whether a `/resolve` answer names this homeserver: the same server name, base URL and auth issuer.
     func hasEndpoint(of answer: ResolvedHomeserver) -> Bool {
         serverName == answer.serverName && baseUrl == answer.baseURL && masIssuer == answer.masIssuer
     }
@@ -164,7 +159,6 @@ struct RosterClaimPredicate: Decodable {
     }
 }
 
-/// The member-signed block, parsed strictly: an unknown field or a null at either level refuses the block.
 struct RosterMemberAttestation: Decodable {
     let schema: String?
     let alg: String?
@@ -233,7 +227,7 @@ private enum StrictKeys {
 }
 
 private extension KeyedDecodingContainer {
-    /// A field that may be absent but, when present, must have the type, so a null is refused.
+    /// Unlike `decodeIfPresent`, a present null is refused.
     func decodeStrictly<Value: Decodable>(_ type: Value.Type, forKey key: Key) throws -> Value? {
         try contains(key) ? decode(type, forKey: key) : nil
     }
@@ -245,10 +239,6 @@ private extension KeyedDecodingContainer {
     }
 }
 
-// MARK: - Routing policy
-
-/// An artifact in effect from `notBefore`, inclusive, until `expiresAt`, exclusive. An absent bound is open and a
-/// bound that does not parse never holds.
 protocol ResolverValidityWindow {
     var notBefore: String? { get }
     var expiresAt: String? { get }
@@ -381,8 +371,6 @@ struct RoutingPolicyRule: Decodable {
     }
 }
 
-// MARK: - Transparency log
-
 struct TransparencyLogDocument: Decodable {
     let events: [TransparencyLogEvent]
 }
@@ -407,8 +395,7 @@ struct TransparencyLogEvent: Decodable {
                                                       recordedAtEpochMilliseconds: recordedAt.epochMilliseconds).utf8))
     }
 
-    /// Whether this leaf publishes a later version of the served policy. A publication's subject, carried in
-    /// `homeserverId`, is `<policyId>:v<version>`.
+    /// A publication carries its subject, `<policyId>:v<version>`, in `homeserverId`.
     func publishesLaterVersion(of served: ServedPolicy) -> Bool {
         guard isPolicyPublication, let subject = homeserverId, let separator = subject.range(of: ":v", options: .backwards),
               let version = Int64(subject[separator.upperBound...]) else {
@@ -433,7 +420,6 @@ extension TransparencyLogEvent {
     }
 }
 
-/// A served policy bundle as its `POLICY_PUBLISH` leaf names it.
 struct ServedPolicy {
     let policyId: String?
     let version: Int64

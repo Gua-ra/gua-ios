@@ -7,8 +7,7 @@
 
 import Foundation
 
-/// Verifies a member's self-signature over its roster entry, as the resolver's `MemberEntryVerifier` does. The
-/// app keeps no earlier entry, so key continuity is not checked.
+/// A port of the resolver's `MemberEntryVerifier` without key continuity, since the app keeps no earlier entry.
 enum MemberEntryVerifier {
     static let maxLifetimeMilliseconds: Int64 = 400 * 86_400_000
 

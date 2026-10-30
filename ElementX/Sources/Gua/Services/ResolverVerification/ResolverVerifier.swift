@@ -10,18 +10,14 @@ import Foundation
 import os
 
 protocol ResolverVerifying: Sendable {
-    /// Verifies a `/resolve` answer detached from the caller. The outcome is logged and never changes what the
-    /// app connects to; the call returns at once and never throws.
+    /// Returns at once; the outcome is only logged and never changes what the app connects to.
     func startVerification(of resolution: HomeserverResolution, phoneNumber: String)
 }
 
-/// Report-only verification of a resolver answer: the signed roster, the answer's entry and its member signature,
-/// the log checkpoint against the last one accepted, the routing policy, and the placement reproduced locally.
 final class ResolverVerifier: ResolverVerifying {
     typealias Report = ResolverVerificationReport
     typealias Reason = ResolverVerificationReason
 
-    /// The largest checkpoint whose log is fetched to bind the policy to it.
     static let maxLogSize = 4096
 
     private let baseURL: URL
@@ -37,7 +33,6 @@ final class ResolverVerifier: ResolverVerifying {
     private let isEnabled: @Sendable () -> Bool
     private let latestReport = OSAllocatedUnfairLock<Report?>(initialState: nil)
 
-    /// The most recent report, for tests and diagnostics.
     var lastReport: Report? {
         latestReport.withLock { $0 }
     }
@@ -71,7 +66,6 @@ final class ResolverVerifier: ResolverVerifying {
         }
     }
 
-    /// `nil` when the deployment has no resolver.
     convenience init?(appSettings: AppSettings) {
         let deployment = GuaDeployment.current
         guard let baseURL = deployment.resolverBaseURL else { return nil }
@@ -87,7 +81,6 @@ final class ResolverVerifier: ResolverVerifying {
         }
     }
 
-    /// Runs every check and returns the report, or `nil` when the kill switch is off.
     func verify(resolution: HomeserverResolution, phoneNumber: String) async -> Report? {
         guard isEnabled() else { return nil }
         let report = await ResolverRunQueue.shared.run(for: baseURL) { [self] in
@@ -118,15 +111,11 @@ final class ResolverVerifier: ResolverVerifying {
                       durationMs: Self.milliseconds(since: started))
     }
 
-    // MARK: - Roster
-
     private struct VerifiedRoster {
         let document: SignedRosterDocument
         let form: RosterForm
     }
 
-    /// Why a run stopped at the roster. The other checks are `roster_unverified`, except that with no usable
-    /// authority key every check is `no_trust_roots`.
     private struct RosterStop: Error {
         let rosterSignature: Report.RosterSignature
         var rosterForm: String?
@@ -168,10 +157,6 @@ final class ResolverVerifier: ResolverVerifying {
                       policy: .unverifiable(reason), placement: .unverifiable(reason), durationMs: Self.milliseconds(since: started))
     }
 
-    // MARK: - Answer in the roster
-
-    /// Where an answer sits in the roster: the strongest match wins whatever the entry order, and a tie goes to the
-    /// entry served first. Only an ACTIVE entry with all three fields of the answer may be connected to.
     static func locate(_ answer: ResolvedHomeserver, in roster: SignedRosterDocument) -> (match: Report.HomeserverMatch, entry: SignedRosterEntry?) {
         let named = roster.entries.filter { $0.homeserver.serverName == answer.serverName }
         let sameEndpoint = named.filter { $0.homeserver.hasEndpoint(of: answer) }
@@ -188,8 +173,6 @@ final class ResolverVerifier: ResolverVerifying {
         if entry.memberIsMalformed { return .invalid(.parseError) }
         return MemberEntryVerifier.verify(homeserver: entry.homeserver, member: entry.member, atEpochMilliseconds: now())
     }
-
-    // MARK: - Log
 
     private func checkLogConsistency(of served: RosterLogCheckpoint, deadline: ContinuousClock.Instant) async -> Report.LogConsistency {
         let pinned: RosterLogCheckpoint?
@@ -223,8 +206,6 @@ final class ResolverVerifier: ResolverVerifying {
             return .unverifiable(.storageUnavailable)
         }
     }
-
-    // MARK: - Policy
 
     private enum PolicyStage {
         case notPresent
@@ -280,7 +261,6 @@ final class ResolverVerifier: ResolverVerifying {
         return .verified(VerifiedRoutingPolicy(bundle: bundle, delegateVerifiedZones: RoutingPolicyVerifier.delegateVerifiedZones(of: bundle)))
     }
 
-    /// The canonical bytes of a bundle signed by enough policy keys and in effect now.
     private func verifiedBytes(of bundle: RoutingPolicyBundle) throws(PolicyFailure) -> [UInt8] {
         guard let canonical = CanonicalRoutingPolicy.bytes(of: bundle) else { throw .unverifiable(.parseError) }
         guard !policyKeys.isEmpty else { throw .unverifiable(.noPolicyKeys) }
@@ -299,8 +279,6 @@ final class ResolverVerifier: ResolverVerifying {
         }
     }
 
-    /// The policy outcome of the log: the checkpoint's leaves must hash to its signed root, and the served bundle,
-    /// `nil` for a 404, must be the latest policy published under it.
     static func logOutcome(for served: ServedPolicy?, checkpoint: RosterLogCheckpoint, events: [TransparencyLogEvent]) -> Report.Policy {
         // Only the leaves under the signed checkpoint are authenticated, so only they are hashed.
         let signed = events.prefix(checkpoint.size)
@@ -318,8 +296,6 @@ final class ResolverVerifier: ResolverVerifying {
         guard published < checkpoint.size else { return .unverifiable(.policyNewerThanCheckpoint) }
         return signed.contains { $0.publishesLaterVersion(of: served) } ? .unverifiable(.policySuperseded) : .valid
     }
-
-    // MARK: - Placement
 
     private func checkPlacement(of resolution: HomeserverResolution, phoneNumber: String, roster: SignedRosterDocument,
                                 policy: PolicyStage) -> Report.Placement {
@@ -348,8 +324,7 @@ final class ResolverVerifier: ResolverVerifying {
     }
 }
 
-/// Runs against one resolver base URL take turns across every verifier in the process, so a run reads and writes
-/// the pin with no other run in between and the pin only moves forward.
+/// Runs against one base URL take turns across every verifier, so no run moves the pin between another's read and write.
 private actor ResolverRunQueue {
     static let shared = ResolverRunQueue()
 

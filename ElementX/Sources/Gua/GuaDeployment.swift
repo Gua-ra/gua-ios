@@ -42,8 +42,7 @@ enum GuaDeployment {
         }
     }
 
-    /// Keys the resolver's signed roster and routing policy are verified under. Development roots are
-    /// injected like the endpoints above; a build without any leaves the verifier inert.
+    /// A development build without injected roots leaves the verifier inert.
     var resolverTrustRoots: ResolverTrustRoots {
         switch self {
         case .production:

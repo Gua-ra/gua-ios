@@ -8,8 +8,6 @@
 import CryptoKit
 import Foundation
 
-/// Routing policy verification at both levels: the authority threshold over the whole bundle, then each zone's
-/// delegate signature over its own rules. A rule is trusted only when its zone passes both.
 enum RoutingPolicyVerifier {
     static func validSignatureCount(of bundle: RoutingPolicyBundle, canonical: [UInt8],
                                     keys: [String: Curve25519.Signing.PublicKey]) -> ResolverSignatureCounter.Count {
@@ -17,8 +15,7 @@ enum RoutingPolicyVerifier {
                                        over: canonical, keys: keys)
     }
 
-    /// The zones whose rules carry a valid delegate signature under the zone's own `delegatePublicKey`. The
-    /// bundle's authority signatures must already have been verified, which is what makes that key trusted.
+    /// Each `delegatePublicKey` is trusted only through the bundle's authority signatures, so those must verify first.
     static func delegateVerifiedZones(of bundle: RoutingPolicyBundle) -> Set<String> {
         var verified = Set<String>()
         for zone in bundle.delegationZones {

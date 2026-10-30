@@ -8,7 +8,6 @@
 import CryptoKit
 import Foundation
 
-/// Counts valid signatures over canonical bytes under trusted keys, one vote per key id.
 enum ResolverSignatureCounter {
     struct Count: Equatable {
         /// Distinct trusted key ids whose signature verified.
@@ -16,7 +15,6 @@ enum ResolverSignatureCounter {
         /// Signatures whose key id names a trusted key, whether or not they verified.
         let known: Int
 
-        /// Why the signatures fall short of `threshold`, or `nil` when they meet it.
         func failureReason(threshold: Int) -> ResolverVerificationReason? {
             guard valid < threshold else { return nil }
             if known == 0 { return .unknownKeyId }
@@ -40,7 +38,6 @@ enum ResolverSignatureCounter {
         return Count(valid: counted.count, known: known)
     }
 
-    /// Trusted keys by id, dropping any that is not a well formed Ed25519 SPKI document.
     static func keys(_ trusted: [ResolverTrustedKey]) -> [String: Curve25519.Signing.PublicKey] {
         var keys = [String: Curve25519.Signing.PublicKey]()
         for trustedKey in trusted {

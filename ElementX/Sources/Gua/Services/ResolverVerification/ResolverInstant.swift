@@ -7,11 +7,9 @@
 
 import Foundation
 
-/// An ISO-8601 UTC instant with 0 to 9 fractional digits, as the resolver writes it, reduced to the epoch
-/// milliseconds the canonical encodings carry. The fraction is truncated, never rounded.
+/// An instant as the resolver writes it, with the fraction truncated to milliseconds, never rounded.
 struct ResolverInstant: Equatable {
     let epochMilliseconds: Int64
-    /// Whether the string carried digits below the millisecond, which the member entry window refuses.
     let hasSubMillisecondDigits: Bool
 
     private static let pattern = try? Regex(#"^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\.([0-9]{1,9}))?Z$"#)

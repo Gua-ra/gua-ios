@@ -7,8 +7,7 @@
 
 import Foundation
 
-/// What the placement rules see of a new account. A public caller carries no verified routing claims, so its
-/// affiliations and attributes never match a rule and are left out of the fallback's key, as the server does.
+/// A public caller has no verified claims, so affiliations and attributes are left out, as the server does.
 struct PlacementContext: Equatable {
     var phone: String?
     var country: String?
@@ -16,7 +15,6 @@ struct PlacementContext: Equatable {
     var carrier: String?
     var regionHint: String?
 
-    /// The weighted fallback's bucketing key. A plain distribution key, not a signed form.
     var canonicalRoutingKey: String {
         "phone=\(phone ?? "")\ncountry=\(country ?? "")\nmccmnc=\(mccmnc ?? "")\ncarrier=\(carrier ?? "")\nregion=\(regionHint ?? "")\naffiliations=\nattrs="
     }
@@ -33,14 +31,11 @@ struct PlacementDecision {
     let rule: Rule
 }
 
-/// A policy bundle whose authority signatures verified, with the zones whose delegate signatures did too.
 struct VerifiedRoutingPolicy {
     let bundle: RoutingPolicyBundle
     let delegateVerifiedZones: Set<String>
 }
 
-/// The resolver's placement pipeline over verified artifacts: signed policy rules, then roster claims, then
-/// the stable weighted fallback. The first rule that yields a homeserver decides.
 enum PlacementReproducer {
     static func decide(context: PlacementContext, roster: SignedRosterDocument, policy: VerifiedRoutingPolicy?,
                        nowEpochMilliseconds now: Int64) -> PlacementDecision? {
@@ -53,16 +48,13 @@ enum PlacementReproducer {
         return weightedFallback(context: context, roster: roster)
     }
 
-    /// Whether a rule that lacks only a valid delegate signature outranks the rule that decided. Delegate signatures
-    /// are outside the bundle signatures and its log leaf, so a resolver can strip one to hide a rule.
+    /// Delegate signatures sit outside the bundle signatures and its log leaf, so a resolver can strip one to hide a rule.
     static func unsignedRuleRanksAbove(_ decision: PlacementDecision?, context: PlacementContext, policy: VerifiedRoutingPolicy,
                                        nowEpochMilliseconds now: Int64) -> Bool {
         guard let unsigned = phoneRules(of: policy, context: context, now: now, delegateSigned: false).first else { return false }
         guard case .policy(let decided) = decision?.rule else { return true }
         return CanonicalRoutingPolicy.compareRules(unsigned, decided) < 0
     }
-
-    // MARK: - Policy rule
 
     private static func policyRule(context: PlacementContext, roster: SignedRosterDocument, policy: VerifiedRoutingPolicy,
                                    now: Int64) -> PlacementDecision? {
@@ -76,8 +68,7 @@ enum PlacementReproducer {
         return nil
     }
 
-    /// The enabled phone prefix rules that match, in rank order, whose zone is in effect and does or does not
-    /// carry a valid delegate signature. No other match type can hold without verified claims.
+    /// Only phone prefix rules can match without verified claims.
     private static func phoneRules(of policy: VerifiedRoutingPolicy, context: PlacementContext, now: Int64,
                                    delegateSigned: Bool) -> [RoutingPolicyRule] {
         var zones = [String: DelegationZone]()
@@ -93,8 +84,6 @@ enum PlacementReproducer {
         }
         return CanonicalRoutingPolicy.sortedRules(rules)
     }
-
-    // MARK: - Roster claim
 
     private static func claimRule(context: PlacementContext, roster: SignedRosterDocument) -> PlacementDecision? {
         var best: (priority: Int32, homeserver: RosterHomeserver)?
@@ -119,8 +108,6 @@ enum PlacementReproducer {
         guard let prefixes = claim.phonePrefixes, !prefixes.isEmpty else { return true }
         return prefixes.contains { context.phone?.hasPrefix($0) == true }
     }
-
-    // MARK: - Weighted fallback
 
     static func fallbackCandidates(in roster: SignedRosterDocument) -> [RosterHomeserver] {
         roster.activeEntries.map(\.homeserver).filter(\.acceptsNew)
@@ -147,8 +134,6 @@ enum PlacementReproducer {
         return candidates[candidates.count - 1]
     }
 
-    /// The first four bytes of SHA-256 over the roster version, the routing key and the candidates, as a
-    /// signed 32-bit integer.
     static func stableHash(context: PlacementContext, rosterVersion: Int64, candidates: [RosterHomeserver]) -> Int32 {
         var message = Array("weighted-fallback.v1\nroster=\(rosterVersion)\n".utf8)
         message += Array(context.canonicalRoutingKey.utf8)
@@ -160,7 +145,6 @@ enum PlacementReproducer {
         return Int32(bitPattern: value)
     }
 
-    /// Java's `Math.floorMod`: the result takes the sign of the divisor.
     private static func floorMod(_ value: Int32, _ modulus: Int) -> Int {
         let remainder = Int(value) % modulus
         return remainder < 0 ? remainder + modulus : remainder

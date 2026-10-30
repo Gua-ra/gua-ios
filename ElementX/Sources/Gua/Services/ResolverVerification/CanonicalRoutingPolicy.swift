@@ -7,12 +7,10 @@
 
 import Foundation
 
-/// The `gua-routing-policy.v1` and `gua-delegated-rules.v1` bytes, ports of the resolver's
-/// `CanonicalRoutingPolicy` and `CanonicalDelegatedRules`. Signatures sit outside both.
+/// Ports of the resolver's `CanonicalRoutingPolicy` and `CanonicalDelegatedRules`.
 enum CanonicalRoutingPolicy {
     private static let separator = "\u{1F}"
 
-    /// `nil` when a timestamp the bytes carry does not parse.
     static func bytes(of bundle: RoutingPolicyBundle) -> [UInt8]? {
         guard let issuedAt = epoch(bundle.issuedAt), let notBefore = epoch(bundle.notBefore), let expiresAt = epoch(bundle.expiresAt) else {
             return nil
@@ -36,7 +34,6 @@ enum CanonicalRoutingPolicy {
         return Array(text.utf8)
     }
 
-    /// The bytes a delegate signs for one zone: the bundle's rules whose `delegatedZoneId` is that zone.
     static func delegatedRulesBytes(policyId: String?, version: Int64, zoneId: String, rules: [RoutingPolicyRule]) -> [UInt8] {
         var text = "gua-delegated-rules.v1\n"
         text += "policyId=\(policyId ?? "")\n"
@@ -48,7 +45,6 @@ enum CanonicalRoutingPolicy {
         return Array(text.utf8)
     }
 
-    /// The rule order of the bundle, the per-zone form and placement: priority, then id with nulls last.
     static func sortedRules(_ rules: [RoutingPolicyRule]) -> [RoutingPolicyRule] {
         rules.sorted { compareRules($0, $1) < 0 }
     }
@@ -87,7 +83,6 @@ enum CanonicalRoutingPolicy {
          rule.isEnabled ? "true" : "false"].joined(separator: separator)
     }
 
-    /// Epoch milliseconds, with `null` encoded as 0 and an unparseable value as `nil`.
     static func epoch(_ iso: String?) -> Int64? {
         guard let iso else { return 0 }
         return ResolverInstant(iso: iso)?.epochMilliseconds

@@ -7,8 +7,7 @@
 
 import Foundation
 
-/// RFC 6962 Merkle tree hashing behind the transparency log. Domain separated so a leaf and an interior node
-/// cannot be confused: `leaf = SHA-256(0x00 || data)`, `node = SHA-256(0x01 || left || right)`.
+/// RFC 6962 hashing; the 0x00 and 0x01 prefixes keep a leaf and an interior node from being confused.
 enum MerkleTree {
     static func leafData(index: Int, type: String, homeserverId: String?, payloadHash: String, recordedAtEpochMilliseconds: Int64) -> String {
         "\(index)|\(type)|\(homeserverId ?? "")|\(payloadHash)|\(recordedAtEpochMilliseconds)"
@@ -22,8 +21,6 @@ enum MerkleTree {
         ResolverVerificationCrypto.sha256([0x01] + left + right)
     }
 
-    /// The Merkle Tree Hash over hex leaf hashes; the empty tree hashes to SHA-256 of nothing. `nil` when a
-    /// leaf hash is not hex.
     static func root(leafHashes: [String]) -> String? {
         if leafHashes.isEmpty { return ResolverVerificationCrypto.sha256Hex([]) }
         var nodes = [[UInt8]]()
@@ -49,8 +46,7 @@ enum MerkleTree {
         return k
     }
 
-    /// Whether `newRoot` (of `second` leaves) is an append-only extension of `oldRoot` (of `first` leaves), checked
-    /// as RFC 9162 section 2.1.4.2 describes.
+    /// RFC 9162 section 2.1.4.2, with `first` and `second` the leaf counts of `oldRoot` and `newRoot`.
     static func verifyConsistency(first: Int, second: Int, oldRoot: String, newRoot: String, proof: [String]) -> Bool {
         if first == 0 { return second >= 0 }
         if first == second { return proof.isEmpty && oldRoot == newRoot }

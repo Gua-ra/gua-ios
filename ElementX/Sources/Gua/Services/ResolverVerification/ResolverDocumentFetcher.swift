@@ -7,8 +7,6 @@
 
 import Foundation
 
-/// Fetches the documents a verification run reads. Each request gets only the time left in the run, and a body
-/// over 2 MiB or nested deeper than 64 levels is refused before the decoder sees it.
 struct ResolverDocumentFetcher {
     enum Failure: Error, Equatable {
         case status(Int)
@@ -16,7 +14,6 @@ struct ResolverDocumentFetcher {
         case timeout
         case malformed
 
-        /// The check's reason, where `unavailable` names the document that could not be read.
         func reason(unavailable: ResolverVerificationReason) -> ResolverVerificationReason {
             switch self {
             case .timeout: .timeout
@@ -109,7 +106,6 @@ struct ResolverDocumentFetcher {
         guard (200..<300).contains(status) else { throw Failure.status(status) }
         var body = [UInt8]()
         for try await byte in stream {
-            // Stop at the cap instead of buffering an oversized body.
             guard body.count < maxBodyBytes else { throw Failure.malformed }
             body.append(byte)
         }

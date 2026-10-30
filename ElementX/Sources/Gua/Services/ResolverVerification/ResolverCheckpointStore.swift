@@ -7,8 +7,7 @@
 
 import Foundation
 
-/// The last transparency-log checkpoint this install accepted, per resolver base URL. It moves forward only
-/// after a consistency proof verified, so a rewritten history is caught against it.
+/// A stored checkpoint moves forward only after a consistency proof verified, so a rewritten history is caught.
 protocol ResolverCheckpointStoring: Sendable {
     func checkpoint(for baseURL: URL) throws -> RosterLogCheckpoint?
     func store(_ checkpoint: RosterLogCheckpoint, for baseURL: URL) throws

@@ -13,7 +13,7 @@ final class ResolverVerificationVectorsTests: XCTestCase {
     private var vectors: JSONObject!
     private var lpVectors: JSONObject!
 
-    /// The acceptance time the member entries are checked against: inside every window the vectors sign.
+    /// A moment inside every validity window the vectors sign.
     private var now: Int64 = 0
 
     override func setUpWithError() throws {
@@ -21,8 +21,6 @@ final class ResolverVerificationVectorsTests: XCTestCase {
         vectors = try JSONObject.load("gua-client-verification-v1-vectors.json")
         lpVectors = try JSONObject.load("gua-lp-v1-vectors.json")
     }
-
-    // MARK: - Keys
 
     func testEveryKeyIsAnEd25519SPKIDocument() throws {
         for file in try [XCTUnwrap(vectors), XCTUnwrap(lpVectors)] {
@@ -40,8 +38,6 @@ final class ResolverVerificationVectorsTests: XCTestCase {
         }
     }
 
-    // MARK: - Instants
-
     func testEveryInstantTruncatesToTheListedEpochMilliseconds() throws {
         for vector in vectors.section("instants") {
             let iso = vector.string("iso")
@@ -49,8 +45,6 @@ final class ResolverVerificationVectorsTests: XCTestCase {
             XCTAssertEqual(instant.epochMilliseconds, Int64(vector.string("epochMs")), iso)
         }
     }
-
-    // MARK: - Rosters
 
     func testEveryRosterVectorReproducesItsBytesAndVerdict() throws {
         for vector in vectors.section("rosters") {
@@ -99,8 +93,6 @@ final class ResolverVerificationVectorsTests: XCTestCase {
                                        over: canonical, keys: ResolverSignatureCounter.keys(vector.trustedKeys))
     }
 
-    // MARK: - Transparency log
-
     func testTheLogVectorsReproduceLeavesRootsAndProofs() throws {
         let log = vectors.object("log")
         var leafHashes = [String]()
@@ -135,8 +127,6 @@ final class ResolverVerificationVectorsTests: XCTestCase {
                                                         proof: proof.stringArray("proof")), name)
         }
     }
-
-    // MARK: - Policies
 
     func testEveryPolicyVectorReproducesItsBytesAndVerdict() throws {
         for vector in vectors.section("policies") + vectors.section("policyRejections") {
@@ -210,8 +200,6 @@ final class ResolverVerificationVectorsTests: XCTestCase {
         }
     }
 
-    // MARK: - Placements
-
     func testEveryPlacementVectorReproducesTheReferenceDecision() throws {
         let rosters = vectors.byRef("rosters")
         let policies = vectors.byRef("policies")
@@ -258,7 +246,6 @@ final class ResolverVerificationVectorsTests: XCTestCase {
         }
     }
 
-    /// The reference verifier's name and id for the rule that decided.
     private static func reference(of decision: PlacementDecision) -> (rule: String, ruleId: String) {
         switch decision.rule {
         case .policy(let rule): ("PolicyRoutingRule", rule.id ?? "")
@@ -266,8 +253,6 @@ final class ResolverVerificationVectorsTests: XCTestCase {
         case .weightedFallback: ("WeightedFallbackRule", "weighted-fallback")
         }
     }
-
-    // MARK: - Resolve answers
 
     func testEveryResolveAnswerVectorLocatesAsExpected() throws {
         let rosters = vectors.byRef("rosters")
@@ -282,8 +267,6 @@ final class ResolverVerificationVectorsTests: XCTestCase {
             XCTAssertEqual(located.entry?.homeserver.id, vector.stringIfPresent("expectedEntryId"), name)
         }
     }
-
-    // MARK: - gua-lp.v1 primitives
 
     func testEveryPrimitiveEncodesToItsBytes() throws {
         for vector in lpVectors.section("primitives") {
@@ -302,8 +285,6 @@ final class ResolverVerificationVectorsTests: XCTestCase {
             XCTAssertEqual(ResolverVerificationHex.string(encoder.bytes), vector.string("hex"), name)
         }
     }
-
-    // MARK: - Member entries
 
     func testEveryMemberEntryReproducesItsBytesAndVerifies() throws {
         for vector in lpVectors.section("memberEntries") {
@@ -328,7 +309,6 @@ final class ResolverVerificationVectorsTests: XCTestCase {
             let name = vector.string("name")
             let homeserver = try vector.memberHomeserver()
             guard let member = try? vector.decode(RosterMemberAttestation.self, at: "member") else {
-                // Only the vector carrying an unknown field is refused by the strict reader; every other block decodes.
                 XCTAssertTrue(name.contains("unknown field"), "\(name): the member block should decode")
                 continue
             }
@@ -340,8 +320,6 @@ final class ResolverVerificationVectorsTests: XCTestCase {
         }
     }
 }
-
-// MARK: - gua-lp.v1 primitives no signed object uses
 
 private extension GuaLPEncoder {
     mutating func bool(_ value: Bool) {
@@ -356,9 +334,6 @@ private extension GuaLPEncoder {
     }
 }
 
-// MARK: - Vector access
-
-/// A thin reader over the vector files' JSON, kept untyped so every section is walked as the file lays it out.
 private struct JSONObject {
     let dictionary: [String: Any]
 
@@ -416,15 +391,14 @@ private struct JSONObject {
         dictionary[key] as? Bool
     }
 
-    /// A section as objects. An empty section fails, so a renamed or dropped key cannot pass silently.
+    /// An empty section fails, so a renamed or dropped key cannot pass silently.
     func section(_ key: String, file: StaticString = #filePath, line: UInt = #line) -> [JSONObject] {
         let items = array(key).map(JSONObject.init)
         XCTAssertFalse(items.isEmpty, "the \(key) section is empty", file: file, line: line)
         return items
     }
 
-    /// A member vector's homeserver. It carries only the fields the member signs, so the roster's authority
-    /// attributes, which the member bytes leave out, are filled in for the decoder.
+    /// Member vectors carry only the fields the member signs, so the authority attributes the decoder needs are filled in.
     func memberHomeserver() throws -> RosterHomeserver {
         var homeserver = object("homeserver").dictionary
         homeserver["weight"] = homeserver["weight"] ?? 0
@@ -432,7 +406,6 @@ private struct JSONObject {
         return try JSONDecoder().decode(RosterHomeserver.self, from: JSONSerialization.data(withJSONObject: homeserver))
     }
 
-    /// A section's objects by their `ref`, the key vectors join on.
     func byRef(_ key: String) -> [String: JSONObject] {
         Dictionary(section(key).compactMap { vector in vector.stringIfPresent("ref").map { ($0, vector) } }) { first, _ in first }
     }
@@ -441,7 +414,6 @@ private struct JSONObject {
         array("trustedKeys").map(JSONObject.init).map { ResolverTrustedKey(id: $0.string("id"), publicKey: $0.string("publicKeySpkiB64")) }
     }
 
-    /// Re-serializes a sub-object and decodes it the way the verifier decodes a served document.
     func decode<T: Decodable>(_ type: T.Type, at key: String) throws -> T {
         let data = try JSONSerialization.data(withJSONObject: dictionary[key] as Any)
         return try JSONDecoder().decode(type, from: data)

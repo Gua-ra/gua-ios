@@ -8,12 +8,9 @@
 import CryptoKit
 import Foundation
 
-/// Ed25519 and SHA-256 as the resolver uses them: keys are base64 X.509 SubjectPublicKeyInfo (44 bytes, a
-/// fixed 12-byte prefix then the raw point), signatures are standard base64 of 64 bytes.
 enum ResolverVerificationCrypto {
     static let spkiPrefix: [UInt8] = [0x30, 0x2A, 0x30, 0x05, 0x06, 0x03, 0x2B, 0x65, 0x70, 0x03, 0x21, 0x00]
 
-    /// The raw 32 key bytes of an SPKI document, or `nil` for any other length, prefix or an invalid point.
     static func rawPublicKey(spkiBase64: String) -> [UInt8]? {
         guard let spki = Data(base64Encoded: spkiBase64), spki.count == 44 else { return nil }
         let bytes = [UInt8](spki)
@@ -78,8 +75,7 @@ enum ResolverVerificationHex {
     }
 }
 
-/// Java's `String.compareTo`: UTF-16 code unit order. Every sorted field of the canonical encodings uses it,
-/// and Swift's own `String` comparison does not agree with it above the BMP.
+/// Java's `String.compareTo`, UTF-16 code unit order, which Swift's `String` comparison does not match above the BMP.
 enum JavaStringOrder {
     static func precedes(_ lhs: String, _ rhs: String) -> Bool {
         lhs.utf16.lexicographicallyPrecedes(rhs.utf16)
@@ -91,7 +87,6 @@ enum JavaStringOrder {
         return 0
     }
 
-    /// Nulls last, as `Comparator.nullsLast(String::compareTo)`.
     static func compare(_ lhs: String?, _ rhs: String?) -> Int {
         switch (lhs, rhs) {
         case (nil, nil): 0

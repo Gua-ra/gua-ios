@@ -7,8 +7,7 @@
 
 import Foundation
 
-/// The `gua-lp.v1` encoding: u32 big-endian lengths, int64 big-endian, a presence byte for optionals and sets in
-/// unsigned UTF-8 byte order. It has no delimiters, so no value can be confused with framing.
+/// The `gua-lp.v1` encoding. It has no delimiters, so no value can be confused with framing.
 struct GuaLPEncoder {
     enum EncodingError: Error, Equatable {
         case duplicateSetElement
