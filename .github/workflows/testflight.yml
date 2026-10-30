@@ -314,6 +314,7 @@ jobs:
           GUA_DEV_RESOLVER_BASE_URL: ${{ secrets.GUA_DEV_RESOLVER_BASE_URL }}
           GUA_DEV_IDENTITY_SERVICE_BASE_URL: ${{ secrets.GUA_DEV_IDENTITY_SERVICE_BASE_URL }}
           GUA_DEV_ACCOUNT_PROVIDER: ${{ secrets.GUA_DEV_ACCOUNT_PROVIDER }}
+          GUA_DEV_RESOLVER_TRUST_ROOTS: ${{ secrets.GUA_DEV_RESOLVER_TRUST_ROOTS }}
         run: |
           set -euo pipefail
           if [ -z "${GUA_DEV_RESOLVER_BASE_URL:-}" ] || [ -z "${GUA_DEV_IDENTITY_SERVICE_BASE_URL:-}" ] || [ -z "${GUA_DEV_ACCOUNT_PROVIDER:-}" ]; then
@@ -341,6 +342,8 @@ jobs:
               static let identityServiceBaseURL: String? = "${GUA_DEV_IDENTITY_SERVICE_BASE_URL}"
               static let resolverBaseURL: String? = "${GUA_DEV_RESOLVER_BASE_URL}"
               static let defaultAccountProvider: String? = "${GUA_DEV_ACCOUNT_PROVIDER}"
+              // Resolver trust roots as space-separated authority:<keyId>:<spkiBase64>, policy:<keyId>:<spkiBase64>, authority-threshold:<n> and policy-threshold:<n> tokens.
+              static let resolverTrustRoots: String? = "${GUA_DEV_RESOLVER_TRUST_ROOTS:-}"
           }
           EOF
           echo "Wrote Secrets.swift with dev backend endpoints (values masked by Actions)."

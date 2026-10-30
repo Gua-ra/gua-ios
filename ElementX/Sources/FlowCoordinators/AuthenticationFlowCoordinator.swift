@@ -25,6 +25,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     private let userIndicatorController: UserIndicatorControllerProtocol
     private let resolverClient: ResolverClientProtocol? // GUA FORK: phone -> homeserver routing
     private let accountGenesisService: AccountGenesisServiceProtocol? // GUA FORK: ADM-008 account genesis
+    private let resolverVerifier: ResolverVerifying? // GUA FORK: report-only resolver verification
     private let usesPhoneLoginHint: Bool // GUA FORK
     private let oidcPresenterFactory: ((UIWindow) -> OIDCAuthenticationPresenterProtocol)? // GUA FORK
     
@@ -127,6 +128,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
          userIndicatorController: UserIndicatorControllerProtocol,
          resolverClient: ResolverClientProtocol? = nil,
          accountGenesisService: AccountGenesisServiceProtocol? = nil,
+         resolverVerifier: ResolverVerifying? = nil,
          usesPhoneLoginHint: Bool = false,
          oidcPresenterFactory: ((UIWindow) -> OIDCAuthenticationPresenterProtocol)? = nil) {
         self.authenticationService = authenticationService
@@ -138,6 +140,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         self.userIndicatorController = userIndicatorController
         self.resolverClient = resolverClient
         self.accountGenesisService = accountGenesisService
+        self.resolverVerifier = resolverVerifier
         self.usesPhoneLoginHint = usesPhoneLoginHint
         self.oidcPresenterFactory = oidcPresenterFactory
         
@@ -593,7 +596,9 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     /// phone auth so the app doesn't silently route to the wrong MAS/homeserver.
     private func resolveHomeserver(forPhone phoneNumber: String) async throws -> HomeserverResolution {
         guard let resolverClient else { throw ResolverError.notConfigured }
-        return try await resolverClient.resolve(phoneNumber: phoneNumber)
+        let resolution = try await resolverClient.resolve(phoneNumber: phoneNumber)
+        resolverVerifier?.startVerification(of: resolution, phoneNumber: phoneNumber)
+        return resolution
     }
 
     // MARK: - QR Code
