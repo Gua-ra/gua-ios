@@ -34,6 +34,7 @@ class SecureBackupController: SecureBackupControllerProtocol {
     /// GUA FORK: in-flight post-reset provisioning, so two of them can never race.
     private var provisioningTask: Task<EncryptionRepairOutcome, Never>?
     private let isProvisioningKeyStorageSubject = CurrentValueSubject<Bool, Never>(false)
+    private let isBootstrappingKeyStorageSubject = CurrentValueSubject<Bool, Never>(false)
     
     var recoveryState: CurrentValuePublisher<SecureBackupRecoveryState, Never> {
         recoveryStateSubject.asCurrentValuePublisher()
@@ -45,6 +46,14 @@ class SecureBackupController: SecureBackupControllerProtocol {
 
     var isProvisioningKeyStorage: CurrentValuePublisher<Bool, Never> {
         isProvisioningKeyStorageSubject.asCurrentValuePublisher()
+    }
+
+    var isBootstrappingKeyStorage: CurrentValuePublisher<Bool, Never> {
+        isBootstrappingKeyStorageSubject.asCurrentValuePublisher()
+    }
+
+    func setBootstrappingKeyStorage(_ isBootstrapping: Bool) {
+        isBootstrappingKeyStorageSubject.send(isBootstrapping)
     }
     
     init(encryption: Encryption,
@@ -609,6 +618,16 @@ class SecureBackupController: SecureBackupControllerProtocol {
         // work is still going.
         if let provisioningTask {
             return await provisioningTask.value
+        }
+
+        // The first-login bootstrap enables recovery itself, so it is joined the same way.
+        if isBootstrappingKeyStorageSubject.value {
+            for await isBootstrapping in isBootstrappingKeyStorage.values where !isBootstrapping {
+                break
+            }
+            if sdkRecoveryState() == .enabled {
+                return .repaired
+            }
         }
 
         do {

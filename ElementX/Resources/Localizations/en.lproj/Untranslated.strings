@@ -90,6 +90,8 @@
 /* Button on the phone-entry screen. The passkey is a discoverable credential, so it
    identifies the account on its own: choosing this sends no code and costs no message. */
 "gua_sign_in_with_passkey" = "Sign in with a passkey";
+/* Phone entry, when the sign-in service cannot be reached or does not answer in time. */
+"gua_sign_in_connection_failed" = "Couldn’t connect to Gua. Check your connection and try again.";
 
 
 /* Gua resolver v1 problem codes, surfaced on the phone entry screen */

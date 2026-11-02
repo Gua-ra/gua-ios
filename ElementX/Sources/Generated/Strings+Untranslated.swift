@@ -72,6 +72,8 @@ internal enum UntranslatedL10n {
   internal static func guaResolverRoutingUnavailableRetryIn(_ p1: Any) -> String {
     return UntranslatedL10n.tr("Untranslated", "gua_resolver_routing_unavailable_retry_in", String(describing: p1))
   }
+  /// Couldn’t connect to Gua. Check your connection and try again.
+  internal static var guaSignInConnectionFailed: String { return UntranslatedL10n.tr("Untranslated", "gua_sign_in_connection_failed") }
   /// Sign in with a passkey
   internal static var guaSignInWithPasskey: String { return UntranslatedL10n.tr("Untranslated", "gua_sign_in_with_passkey") }
   /// Messages kept only here will not be available when you sign back in.

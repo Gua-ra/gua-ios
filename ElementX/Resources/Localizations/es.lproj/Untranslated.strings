@@ -24,6 +24,7 @@
 "gua_verification_complete_subtitle" = "Ahora tus mensajes aparecerán en este dispositivo.";
 "gua_identity_change_banner_description" = "Los datos de seguridad de %1$@ han cambiado. Esto puede ocurrir cuando reinstala Gua o cambia de teléfono. %2$@";
 "gua_identity_change_undecryptable" = "Este mensaje no se puede abrir porque los datos de seguridad del remitente han cambiado.";
+"gua_sign_in_connection_failed" = "No se pudo conectar con Gua. Comprueba tu conexión e inténtalo de nuevo.";
 "gua_identity_change_profile" = "Los datos de seguridad de %1$@ han cambiado. Esto puede ocurrir cuando reinstala Gua o cambia de teléfono.";
 "gua_soft_logout_signin_notice" = "Se cerró tu sesión en la cuenta de Gua. Vuelve a iniciar sesión para continuar.";
 "gua_join_room_by_address_hint" = "Pega la dirección de la sala que te han dado.";

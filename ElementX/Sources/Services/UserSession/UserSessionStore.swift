@@ -116,13 +116,17 @@ class UserSessionStore: UserSessionStoreProtocol {
     func bootstrapKeyStorageIfNeeded(_ clientProxy: ClientProxyProtocol) {
         let secureBackupController = clientProxy.secureBackupController
         let userID = clientProxy.userID
+        guard !appSettings.hasBootstrappedKeyStorage(forUserID: userID) else { return }
+
+        // GUA FORK: raised before the session is handed out, so the home screen never takes a
+        // fresh account's `.disabled` for a broken one.
+        secureBackupController.setBootstrappingKeyStorage(true)
 
         Task { [weak self] in
+            defer { secureBackupController.setBootstrappingKeyStorage(false) }
             guard let self else { return }
 
             do {
-                guard !appSettings.hasBootstrappedKeyStorage(forUserID: userID) else { return }
-
                 // GUA FORK: everything below can create key storage, so it may not start before the
                 // SDK's own provisioning has finished. See `waitForE2EEInitialization`.
                 await clientProxy.waitForE2EEInitialization()

@@ -180,11 +180,19 @@ final class ContactDiscoveryService: ContactDiscoveryServiceProtocol {
 
     private static func hasExistingDefaultDialCodePrefix(_ digits: String, defaultDialCode: String) -> Bool {
         guard digits.hasPrefix(defaultDialCode), digits.count > defaultDialCode.count else { return false }
-        if defaultDialCode == "1" {
-            return digits.count == 11
+        // A national number can begin with the dial code digits, as Brazil's DDD 55 does, so where
+        // the lengths are known only the international length counts as already carrying it.
+        if let internationalLengths = internationalLengthsByDialCode[defaultDialCode] {
+            return internationalLengths.contains(digits.count)
         }
         return isE164("+\(digits)")
     }
+
+    private static let internationalLengthsByDialCode: [String: ClosedRange<Int>] = [
+        "1": 11...11,
+        // 55, a two-digit DDD, then an 8-digit landline or 9-digit mobile.
+        "55": 12...13
+    ]
 
     private static func isE164(_ number: String) -> Bool {
         number.range(of: "^\\+[1-9]\\d{6,14}$", options: .regularExpression) != nil

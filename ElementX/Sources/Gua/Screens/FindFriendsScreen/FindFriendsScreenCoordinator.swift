@@ -11,7 +11,6 @@ import SwiftUI
 struct FindFriendsScreenCoordinatorParameters {
     let contactDiscoveryService: ContactDiscoveryServiceProtocol
     let clientProxy: ClientProxyProtocol
-    let accessToken: String
 }
 
 enum FindFriendsScreenCoordinatorAction {
@@ -32,8 +31,7 @@ final class FindFriendsScreenCoordinator: CoordinatorProtocol {
 
     init(parameters: FindFriendsScreenCoordinatorParameters) {
         viewModel = FindFriendsScreenViewModel(contactDiscoveryService: parameters.contactDiscoveryService,
-                                               clientProxy: parameters.clientProxy,
-                                               accessToken: parameters.accessToken)
+                                               clientProxy: parameters.clientProxy)
     }
 
     func start() {

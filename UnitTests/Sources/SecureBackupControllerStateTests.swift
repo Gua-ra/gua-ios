@@ -113,6 +113,45 @@ class SecureBackupControllerStateTests: XCTestCase {
         XCTAssertTrue(isFailure(result))
     }
 
+    // MARK: - first-login bootstrap
+
+    /// Two concurrent `enableRecovery` calls each mint a secret store, so a repair that lands while the
+    /// first-login bootstrap is running waits for it and stops if it enabled recovery.
+    func testARepairDuringTheBootstrapWaitsForItAndDoesNotEnableRecoveryAgain() async {
+        encryption.recoveryStateReturnValue = .disabled
+        controller.setBootstrappingKeyStorage(true)
+
+        let repair = Task { await controller.repairWithoutReset() }
+        try? await Task.sleep(for: .milliseconds(300))
+        XCTAssertEqual(encryption.enableRecoveryWaitForBackupsToUploadPassphraseProgressListenerCallsCount, 0)
+
+        encryption.recoveryStateReturnValue = .enabled
+        givenTheSDKReports(.enabled)
+        controller.setBootstrappingKeyStorage(false)
+
+        let outcome = await repair.value
+        XCTAssertEqual(outcome, .repaired)
+        XCTAssertEqual(encryption.enableRecoveryWaitForBackupsToUploadPassphraseProgressListenerCallsCount, 0)
+    }
+
+    func testARepairAfterAFailedBootstrapEnablesRecoveryOnce() async {
+        encryption.recoveryStateReturnValue = .disabled
+        encryption.enableRecoveryWaitForBackupsToUploadPassphraseProgressListenerClosure = { [weak self] _, _, _ in
+            self?.encryption.recoveryStateReturnValue = .enabled
+            self?.givenTheSDKReports(.enabled)
+            return "k"
+        }
+        controller.setBootstrappingKeyStorage(true)
+
+        let repair = Task { await controller.repairWithoutReset() }
+        try? await Task.sleep(for: .milliseconds(300))
+        controller.setBootstrappingKeyStorage(false)
+        let outcome = await repair.value
+
+        XCTAssertEqual(outcome, .repaired)
+        XCTAssertEqual(encryption.enableRecoveryWaitForBackupsToUploadPassphraseProgressListenerCallsCount, 1)
+    }
+
     // MARK: - helpers
 
     /// Drives the recovery-state listener the controller registered at init, as the SDK would.

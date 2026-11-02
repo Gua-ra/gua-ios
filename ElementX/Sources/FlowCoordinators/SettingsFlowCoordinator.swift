@@ -296,15 +296,10 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
             MXLog.warning("Identity service is not configured; cannot show Find Friends.")
             return
         }
-        guard let accessToken = flowParameters.userSession.clientProxy.accessToken else {
-            MXLog.warning("No access token available; cannot run contact discovery.")
-            return
-        }
         let contactDiscoveryService = ContactDiscoveryService(identityServiceClient: identityServiceClient,
                                                               currentUserID: flowParameters.userSession.clientProxy.userID)
         let parameters = FindFriendsScreenCoordinatorParameters(contactDiscoveryService: contactDiscoveryService,
-                                                                clientProxy: flowParameters.userSession.clientProxy,
-                                                                accessToken: accessToken)
+                                                                clientProxy: flowParameters.userSession.clientProxy)
         let coordinator = FindFriendsScreenCoordinator(parameters: parameters)
 
         coordinator.actionsPublisher

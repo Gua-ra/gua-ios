@@ -226,6 +226,23 @@ class HomeScreenViewModelTests: XCTestCase {
         XCTAssertEqual(context.viewState.securityBannerMode, .none)
     }
     
+    func testTheSetupBannerWaitsForTheFirstLoginBootstrap() async throws {
+        // Given a fresh account, which reads disabled while its key storage is being bootstrapped.
+        let securityStateSubject = CurrentValueSubject<SessionSecurityState, Never>(.init(verificationState: .verified, recoveryState: .disabled))
+        let isBootstrappingSubject = CurrentValueSubject<Bool, Never>(true)
+        setupViewModel(securityStatePublisher: securityStateSubject.asCurrentValuePublisher(),
+                       isBootstrappingKeyStorage: isBootstrappingSubject.asCurrentValuePublisher())
+        let noBanner = deferFailure(context.$viewState, timeout: 1) { $0.securityBannerMode != .none || $0.requiresExtraAccountSetup }
+
+        // Then no setup banner is offered while the bootstrap runs.
+        try await noBanner.fulfill()
+
+        // When the bootstrap ends with key storage still not set up, the banner appears.
+        let banner = deferFulfillment(context.$viewState) { $0.securityBannerMode == .show(.recoveryOutOfSync) }
+        isBootstrappingSubject.send(false)
+        try await banner.fulfill()
+    }
+
     func testTheBannerButtonRoutesToTheStagedRepair() {
         // The banner is the ONLY encryption affordance a user has, so its button must go to the
         // staged repair. If it points at .resetEncryption again, every tap skips straight to
@@ -713,7 +730,8 @@ class HomeScreenViewModelTests: XCTestCase {
                                                                                                       preferredFactor: .pin,
                                                                                                       phoneChangeStepUpFactors: [],
                                                                                                       pinStepUpHoldRemainingSeconds: nil),
-                                securityStatusRetryDelay: Duration = .seconds(30)) {
+                                securityStatusRetryDelay: Duration = .seconds(30),
+                                isBootstrappingKeyStorage: CurrentValuePublisher<Bool, Never>? = nil) {
         var rooms: [RoomSummary] = .mockRooms
         if withInvites {
             rooms += .mockInvites
@@ -724,6 +742,9 @@ class HomeScreenViewModelTests: XCTestCase {
         clientProxy = ClientProxyMock(.init(userID: "@mock:client.com",
                                             roomSummaryProvider: roomSummaryProvider))
         clientProxy.accessToken = "access-token"
+        if let isBootstrappingKeyStorage, let secureBackupController = clientProxy.secureBackupController as? SecureBackupControllerMock {
+            secureBackupController.underlyingIsBootstrappingKeyStorage = isBootstrappingKeyStorage
+        }
         if withInvites {
             clientProxy.joinRoomViaReturnValue = .success(())
             clientProxy.joinRoomAliasReturnValue = .success(())
