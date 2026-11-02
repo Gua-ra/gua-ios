@@ -26,7 +26,6 @@
         "value" : "\/tmp\/__FailedScreenshots__"
       },
       {
-        "enabled" : false,
         "key" : "RECORD_FAILURES",
         "value" : "true"
       }
