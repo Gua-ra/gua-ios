@@ -1335,7 +1335,7 @@ private struct ClientProxyServices {
                                                   shouldUpdateVisibleRange: true,
                                                   notificationSettings: notificationSettings,
                                                   appSettings: appSettings,
-                                                  includesSpaceInvites: true) // GUA FORK: the home Chats list.
+                                                  includesSpaceInvites: true)
         try await roomSummaryProvider.setRoomList(roomListService.allRooms())
         
         alternateRoomSummaryProvider = RoomSummaryProvider(roomListService: roomListService,
