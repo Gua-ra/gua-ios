@@ -11,7 +11,8 @@ PROMETHEUS_CLIENT_VERSION="0.23.1"
 HOMESERVER_URL="http://127.0.0.1:8008"
 SERVER_NAME="localhost"
 USERNAME="integration-tests"
-INVITEES=("invitee-1" "invitee-2")
+ROOM_OWNER="room-owner"
+INVITEE="invitee"
 ROOM_NAME="Element X iOS Integration Tests"
 DIRECTORY="${RUNNER_TEMP:-/tmp}/integration-tests-homeserver"
 
@@ -61,32 +62,36 @@ EOF
     done
     curl -fsS "$HOMESERVER_URL/_matrix/client/versions" > /dev/null
 
-    local password
+    local password owner_password
     password="$(openssl rand -hex 16)"
+    owner_password="$(openssl rand -hex 16)"
     register "$USERNAME" "$password"
-    for invitee in "${INVITEES[@]}"; do
-        register "$invitee" "$(openssl rand -hex 16)"
-    done
+    register "$ROOM_OWNER" "$owner_password"
+    register "$INVITEE" "$(openssl rand -hex 16)"
 
-    local token
-    token="$(curl -fsS -X POST "$HOMESERVER_URL/_matrix/client/v3/login" \
-        -H 'Content-Type: application/json' \
-        -d "$(jq -n --arg user "$USERNAME" --arg password "$password" \
-            '{type: "m.login.password", identifier: {type: "m.id.user", user: $user}, password: $password}')" \
-        | jq -r .access_token)"
-
+    # The test user must not be a room admin: admins get a Members/Banned picker above the member list.
     # The member list opens its manage sheet only for other members and lists pending invites first.
     # The chat list hides rooms with no messages and at most two members.
-    curl -fsS -X POST "$HOMESERVER_URL/_matrix/client/v3/createRoom" \
+    local owner_token room_id
+    owner_token="$(login "$ROOM_OWNER" "$owner_password")"
+    room_id="$(curl -fsS -X POST "$HOMESERVER_URL/_matrix/client/v3/createRoom" \
+        -H "Authorization: Bearer $owner_token" \
+        -H 'Content-Type: application/json' \
+        -d "$(jq -n --arg name "$ROOM_NAME" --arg server "$SERVER_NAME" --arg user "$USERNAME" --arg invitee "$INVITEE" \
+            '{name: $name, preset: "private_chat", invite: ["@\($user):\($server)", "@\($invitee):\($server)"],
+              initial_state: [{type: "m.room.encryption", state_key: "", content: {algorithm: "m.megolm.v1.aes-sha2"}}]}')" \
+        | jq -r .room_id)"
+
+    local token
+    token="$(login "$USERNAME" "$password")"
+    curl -fsS -X POST "$HOMESERVER_URL/_matrix/client/v3/rooms/$(jq -rn --arg id "$room_id" '$id | @uri')/join" \
         -H "Authorization: Bearer $token" \
         -H 'Content-Type: application/json' \
-        -d "$(jq -n --arg name "$ROOM_NAME" --arg server "$SERVER_NAME" '$ARGS.positional as $invitees |
-            {name: $name, preset: "private_chat", invite: [$invitees[] | "@\(.):\($server)"],
-             initial_state: [{type: "m.room.encryption", state_key: "", content: {algorithm: "m.megolm.v1.aes-sha2"}}]}' \
-            --args "${INVITEES[@]}")" \
+        -d '{}' \
         > /dev/null
 
-    curl -fsS -X POST "$HOMESERVER_URL/_matrix/client/v3/logout" -H "Authorization: Bearer $token" > /dev/null
+    logout "$token"
+    logout "$owner_token"
 
     {
         echo "INTEGRATION_TESTS_HOST=$HOMESERVER_URL"
@@ -102,6 +107,18 @@ register() {
         --no-admin \
         --config "$DIRECTORY/homeserver.yaml" \
         "$HOMESERVER_URL"
+}
+
+login() {
+    curl -fsS -X POST "$HOMESERVER_URL/_matrix/client/v3/login" \
+        -H 'Content-Type: application/json' \
+        -d "$(jq -n --arg user "$1" --arg password "$2" \
+            '{type: "m.login.password", identifier: {type: "m.id.user", user: $user}, password: $password}')" \
+        | jq -r .access_token
+}
+
+logout() {
+    curl -fsS -X POST "$HOMESERVER_URL/_matrix/client/v3/logout" -H "Authorization: Bearer $1" > /dev/null
 }
 
 stop() {
