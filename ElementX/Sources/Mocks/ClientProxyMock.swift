@@ -91,6 +91,20 @@ extension ClientProxyMock {
         
         secureBackupController = SecureBackupControllerMock(.init(recoveryState: configuration.recoveryState))
         resetIdentityReturnValue = .success(IdentityResetHandleSDKMock(.init()))
+        hasDevicesToVerifyAgainstReturnValue = .success(false)
+        
+        let identityResetGuard = IdentityResetGuardMock()
+        identityResetGuard.runResetAuthClosure = { handle, auth in
+            Task<Result<Void, Error>, Never> {
+                do {
+                    try await handle.reset(auth: auth)
+                    return .success(())
+                } catch {
+                    return .failure(error)
+                }
+            }
+        }
+        acquireIdentityResetGuardReturnValue = identityResetGuard
         
         spaceService = SpaceServiceProxyMock(.init())
         
