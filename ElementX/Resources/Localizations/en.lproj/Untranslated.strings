@@ -111,12 +111,12 @@
 
 // MARK: - Gua: identity-service refusals
 
-/* Shown for every identity-service refusal that has no wording of its own. The server's own text is English and never shown. */
+/* Shown for every identity-service refusal that has no wording of its own. */
 "gua_error_rate_limited" = "Too many attempts. Please wait a moment and try again.";
 "gua_pin_incorrect" = "That PIN is incorrect. Please try again.";
-/* %1$@ is a duration such as "5 minutes" (gua_duration_*). */
+/* %1$@ is a duration such as "5 minutes". */
 "gua_pin_locked_retry" = "Too many wrong PIN attempts. Try again in %1$@.";
-/* %1$@ is a duration such as "3 hours" (gua_duration_*). */
+/* %1$@ is a duration such as "3 hours". */
 "gua_pin_change_cooldown_retry" = "For security, you can change your PIN again in %1$@.";
 /* A PIN change or number change waited too long between its steps and has to begin again. */
 "gua_flow_expired" = "This took too long. Please start again.";
