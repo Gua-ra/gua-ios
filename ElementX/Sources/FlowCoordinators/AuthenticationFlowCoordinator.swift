@@ -148,8 +148,9 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     }
     
     /// GUA FORK: the phone flow starts on the phone-entry screen and never shows the start screen.
+    /// The integration tests sign in with a password on a local homeserver, through the start screen.
     private var usesPhoneFlow: Bool {
-        usesPhoneLoginHint && !appSettings.legacyAuthEnabled
+        usesPhoneLoginHint && !appSettings.legacyAuthEnabled && !ProcessInfo.isRunningIntegrationTests
     }
     
     func start() {
