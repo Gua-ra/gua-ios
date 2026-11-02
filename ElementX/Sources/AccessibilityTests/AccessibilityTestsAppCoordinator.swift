@@ -106,8 +106,11 @@ struct PreviewsWrapperView: View {
         if wrapper.currentIndex < 0 || wrapper.isDone {
             EmptyView()
         } else {
-            wrapper.currentPreview.content
-                .id("\(wrapper.previewName)-\(dynamicTypeSize)")
+            // An .id() applied directly to a NavigationStack crashes UIKit's navigation bar layout when the audit changes the text size.
+            VStack(spacing: 0) {
+                wrapper.currentPreview.content
+            }
+            .id("\(wrapper.previewName)-\(dynamicTypeSize)")
         }
     }
 }
