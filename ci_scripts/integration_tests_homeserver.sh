@@ -11,7 +11,7 @@ PROMETHEUS_CLIENT_VERSION="0.23.1"
 HOMESERVER_URL="http://127.0.0.1:8008"
 SERVER_NAME="localhost"
 USERNAME="integration-tests"
-INVITEE="invitee"
+INVITEES=("invitee-1" "invitee-2")
 ROOM_NAME="Element X iOS Integration Tests"
 DIRECTORY="${RUNNER_TEMP:-/tmp}/integration-tests-homeserver"
 
@@ -64,7 +64,9 @@ EOF
     local password
     password="$(openssl rand -hex 16)"
     register "$USERNAME" "$password"
-    register "$INVITEE" "$(openssl rand -hex 16)"
+    for invitee in "${INVITEES[@]}"; do
+        register "$invitee" "$(openssl rand -hex 16)"
+    done
 
     local token
     token="$(curl -fsS -X POST "$HOMESERVER_URL/_matrix/client/v3/login" \
@@ -73,13 +75,15 @@ EOF
             '{type: "m.login.password", identifier: {type: "m.id.user", user: $user}, password: $password}')" \
         | jq -r .access_token)"
 
-    # The member list opens its manage sheet only for other members, and lists pending invites first.
+    # The member list opens its manage sheet only for other members and lists pending invites first.
+    # The chat list hides rooms with no messages and at most two members.
     curl -fsS -X POST "$HOMESERVER_URL/_matrix/client/v3/createRoom" \
         -H "Authorization: Bearer $token" \
         -H 'Content-Type: application/json' \
-        -d "$(jq -n --arg name "$ROOM_NAME" --arg invitee "@$INVITEE:$SERVER_NAME" \
-            '{name: $name, preset: "private_chat", invite: [$invitee],
-              initial_state: [{type: "m.room.encryption", state_key: "", content: {algorithm: "m.megolm.v1.aes-sha2"}}]}')" \
+        -d "$(jq -n --arg name "$ROOM_NAME" --arg server "$SERVER_NAME" '$ARGS.positional as $invitees |
+            {name: $name, preset: "private_chat", invite: [$invitees[] | "@\(.):\($server)"],
+             initial_state: [{type: "m.room.encryption", state_key: "", content: {algorithm: "m.megolm.v1.aes-sha2"}}]}' \
+            --args "${INVITEES[@]}")" \
         > /dev/null
 
     curl -fsS -X POST "$HOMESERVER_URL/_matrix/client/v3/logout" -H "Authorization: Bearer $token" > /dev/null
