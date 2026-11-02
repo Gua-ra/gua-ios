@@ -19,7 +19,7 @@ class EncryptionResetScreenViewModelTests: XCTestCase {
     private var viewModel: EncryptionResetScreenViewModel!
     private var cancellables: Set<AnyCancellable> = []
 
-    private static let userID = "@reset:dev.gua.sarahlacerda.me"
+    private static let userID = "@reset:gua.example"
     private static let ceiling: Duration = .milliseconds(150)
 
     override func setUp() {
