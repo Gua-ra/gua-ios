@@ -14,7 +14,6 @@ class AppLockSetupUITests: XCTestCase {
     @MainActor enum Step {
         static let createPIN = 0
         static let confirmPIN = 1
-        static let setupBiometrics = 2
         static let settings = 3
         
         /// iPad shows the settings screen behind the modal, iPhone doesn't.
@@ -46,12 +45,7 @@ class AppLockSetupUITests: XCTestCase {
         
         enterPIN()
         
-        // Setup biometrics screen.
-        try await app.assertScreenshot(step: Step.setupBiometrics)
-        
-        app.buttons[A11yIdentifiers.appLockSetupBiometricsScreen.allow].tap()
-        
-        // Settings screen.
+        // Settings screen. Setting the PIN turns on biometric unlock, so there is no biometrics prompt.
         try await app.assertScreenshot(step: Step.settings)
         
         app.buttons[A11yIdentifiers.appLockSetupSettingsScreen.changePIN].tap()
@@ -89,15 +83,9 @@ class AppLockSetupUITests: XCTestCase {
         
         enterPIN()
         
-        // Setup biometrics screen (non-modal).
-        try await app.assertScreenshot(step: Step.setupBiometrics)
-        
+        // Setting the PIN turns on biometric unlock, so the flow completes without a biometrics prompt.
         let allowButton = app.buttons[A11yIdentifiers.appLockSetupBiometricsScreen.allow]
-        XCTAssertTrue(allowButton.exists, "The biometrics screen should be shown.")
-        allowButton.tap()
-        
-        // The stack should remain on biometrics for the presenting flow to take over navigation.
-        try await app.assertScreenshot(step: Step.setupBiometrics)
+        XCTAssertFalse(allowButton.waitForExistence(timeout: 2), "The biometrics screen should not be shown.")
     }
     
     func testUnlockFlow() async throws {
