@@ -5,7 +5,9 @@
 
 set -euo pipefail
 
+# The last Synapse with macOS wheels. It fails to import with prometheus-client 0.24 or later.
 SYNAPSE_VERSION="1.143.0"
+PROMETHEUS_CLIENT_VERSION="0.23.1"
 HOMESERVER_URL="http://127.0.0.1:8008"
 SERVER_NAME="localhost"
 USERNAME="integration-tests"
@@ -15,8 +17,11 @@ DIRECTORY="${RUNNER_TEMP:-/tmp}/integration-tests-homeserver"
 
 start() {
     mkdir -p "$DIRECTORY"
+    # The generated logging config writes homeserver.log to the working directory.
+    cd "$DIRECTORY"
     python3 -m venv "$DIRECTORY/venv"
-    "$DIRECTORY/venv/bin/pip" install --quiet "matrix-synapse==$SYNAPSE_VERSION"
+    # register_new_matrix_user needs requests, which Synapse doesn't install.
+    "$DIRECTORY/venv/bin/pip" install --quiet "matrix-synapse==$SYNAPSE_VERSION" "prometheus-client==$PROMETHEUS_CLIENT_VERSION" requests
 
     "$DIRECTORY/venv/bin/python" -m synapse.app.homeserver \
         --server-name "$SERVER_NAME" \
