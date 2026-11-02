@@ -33,7 +33,7 @@ class SecureBackupControllerStateTests: XCTestCase {
         encryption.backupExistsOnServerReturnValue = false
 
         controller = SecureBackupController(encryption: encryption,
-                                            userID: "@state:example.org",
+                                            userID: "@state:gua.example",
                                             e2eeInitialization: Task { },
                                             persistRecoveryKey: { _ in })
         published = []

@@ -1,5 +1,6 @@
 //
-// Copyright 2025 Gua. All rights reserved.
+// Copyright 2022-2025 New Vector Ltd.
+// Copyright 2025 Gua
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
@@ -28,7 +29,7 @@ enum PhoneEntryScreenCoordinatorAction {
 
 final class PhoneEntryScreenCoordinator: CoordinatorProtocol {
     private let parameters: PhoneEntryScreenCoordinatorParameters
-    private let viewModel: PhoneEntryScreenViewModel
+    let viewModel: PhoneEntryScreenViewModel
 
     private var cancellables = Set<AnyCancellable>()
 

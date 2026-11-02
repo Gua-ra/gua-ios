@@ -29,3 +29,7 @@
 "gua_join_room_by_address_hint" = "Pega la dirección de la sala que te han dado.";
 "gua_sign_in_with_passkey" = "Entrar con clave de acceso";
 "gua_account_genesis_setup_failed" = "No se pudo finalizar la configuración de tu cuenta en este dispositivo. Inténtalo de nuevo.";
+"gua_resolver_routing_unavailable" = "Estamos teniendo problemas para conectarnos. Vuelve a intentarlo en un momento.";
+"gua_resolver_routing_unavailable_retry_in" = "Estamos teniendo problemas para conectarnos. Vuelve a intentarlo en %@.";
+"gua_resolver_rate_limited" = "Demasiados intentos. Espera un momento y vuelve a intentarlo.";
+"gua_resolver_rate_limited_retry_in" = "Demasiados intentos. Vuelve a intentarlo en %@.";
