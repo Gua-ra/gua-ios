@@ -90,14 +90,15 @@ final class ChatBackgroundScreenViewModelTests: XCTestCase {
         XCTAssertEqual(draft.dim, ChatBackground.Photo.defaultDim)
         XCTAssertEqual(draft.upload.width, 2048)
 
+        context.send(viewAction: .setPreviewColorScheme(.light))
+        XCTAssertEqual(context.viewState.bindings.photoDraft?.previewColorScheme, .light)
         context.send(viewAction: .setPhotoDim(3))
         XCTAssertEqual(context.viewState.bindings.photoDraft?.dim, ChatBackground.Photo.maxDim)
+        XCTAssertEqual(context.viewState.bindings.photoDraft?.previewColorScheme, .dark, "Dim only shows in the dark preview")
         context.send(viewAction: .setPhotoDim(0.6))
         context.send(viewAction: .movePhoto(alignX: -1, alignY: 0.25))
         XCTAssertEqual(context.viewState.bindings.photoDraft?.alignX, 0)
         XCTAssertEqual(context.viewState.bindings.photoDraft?.alignY, 0.25)
-        context.send(viewAction: .setPreviewColorScheme(.dark))
-        XCTAssertEqual(context.viewState.bindings.photoDraft?.previewColorScheme, .dark)
 
         let dismissed = deferFulfillment(viewModel.actionsPublisher) { $0 == .dismiss }
         context.send(viewAction: .apply)

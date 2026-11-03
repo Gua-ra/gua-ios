@@ -61,6 +61,8 @@ class ChatBackgroundScreenViewModel: ChatBackgroundScreenViewModelType, ChatBack
             Task { await preparePhoto(load: load) }
         case .setPhotoDim(let dim):
             state.bindings.photoDraft?.dim = dim.clamped(to: 0...ChatBackground.Photo.maxDim)
+            // Dim only shows in dark mode.
+            state.bindings.photoDraft?.previewColorScheme = .dark
         case .movePhoto(let alignX, let alignY):
             state.bindings.photoDraft?.alignX = alignX.clamped(to: 0...1)
             state.bindings.photoDraft?.alignY = alignY.clamped(to: 0...1)
