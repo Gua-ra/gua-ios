@@ -142,19 +142,20 @@
 /* %1$@ is the contact's name. */
 "gua_find_friends_start_chat_failed_message" = "Something went wrong starting a chat with %1$@. Please try again.";
 
-// MARK: - Gua: message menu
-
-"gua_action_select" = "Select";
-"gua_action_more" = "More";
-"gua_message_text_selection_title" = "Select text";
-
 "common_account_settings" = "Account settings";
 "common_app_settings" = "App settings";
 
 "common_moderation_and_safety" = "Moderation & safety";
 "screen_moderation_and_safety_invites_heading" = "Invites";
 
+// MARK: - Gua: message menu
+
+"gua_action_select" = "Select";
+"gua_action_more" = "More";
+"gua_message_text_selection_title" = "Select text";
+
 // MARK: - Gua: Spaces switch
+
 "gua_settings_spaces_description" = "Organize related chats and communities in one place";
 "gua_join_space_action" = "Turn on Spaces and join";
 "gua_join_space_turns_on_spaces" = "This is a space. Joining turns on Spaces so you can see its chats.";
