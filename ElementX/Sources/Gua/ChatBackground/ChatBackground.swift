@@ -159,7 +159,7 @@ private struct PhotoContent: Decodable {
         }
 
         let blurhash = try container.decodeIfPresentAndNotNull(String.self, forKey: .blurhash)
-        if let blurhash, blurhash.count > Self.maxBlurhashLength {
+        if let blurhash, blurhash.utf16.count > Self.maxBlurhashLength {
             throw InvalidContent()
         }
 

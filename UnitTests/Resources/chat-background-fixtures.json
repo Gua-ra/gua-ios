@@ -711,6 +711,24 @@
       }
     },
     {
+      "name": "blurhash longer than 100 UTF-16 code units",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 600,
+          "size": 1000,
+          "blurhash": "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00"
+        }
+      },
+      "expected": {
+        "kind": "none"
+      }
+    },
+    {
       "name": "preset as a number",
       "content": {
         "v": 1,
