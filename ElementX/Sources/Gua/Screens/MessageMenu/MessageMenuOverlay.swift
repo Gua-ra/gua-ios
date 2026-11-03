@@ -13,6 +13,7 @@ import SwiftUI
 struct MessageMenuOverlay: View {
     @EnvironmentObject private var context: TimelineViewModel.Context
     @Environment(\.layoutDirection) private var layoutDirection
+    @Environment(\.colorScheme) private var colorScheme
 
     let item: EventBasedTimelineItemProtocol
     let actions: TimelineItemMenuActions
@@ -111,6 +112,7 @@ struct MessageMenuOverlay: View {
                     }
                 }
                 .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
+                .inGlassEffectContainer()
                 // The anchor's frame is measured from the left, so positions are too. Contents keep the real direction.
                 .environment(\.layoutDirection, .leftToRight)
                 .onChange(of: geometry.size.width) {
@@ -137,9 +139,8 @@ struct MessageMenuOverlay: View {
     // MARK: - Backdrop
 
     private var backdrop: some View {
-        Rectangle()
-            .fill(.ultraThinMaterial)
-            .overlay(Color.black.opacity(0.15))
+        Color.black
+            .opacity(colorScheme == .dark ? 0.4 : 0.1)
             .opacity(isVisible ? 1 : 0)
             .ignoresSafeArea()
             .onTapGesture { close() }
@@ -196,8 +197,7 @@ struct MessageMenuOverlay: View {
             .padding(.trailing, Self.reactionBarPadding)
             .accessibilityLabel(L10n.actionReact)
         }
-        .background(.regularMaterial, in: Capsule())
-        .shadow(color: .black.opacity(0.12), radius: 10, y: 3)
+        .messageMenuSurface(in: Capsule())
         .environment(\.layoutDirection, layoutDirection)
     }
 
@@ -212,7 +212,7 @@ struct MessageMenuOverlay: View {
             Text(key)
                 .font(.system(size: 28))
                 .frame(width: Self.reactionSize, height: Self.reactionSize)
-                .background(Circle().fill(hasReacted ? Color.compound.bgSubtlePrimary : .clear))
+                .background(Circle().fill(hasReacted ? MessageMenuChrome.selectedFill : .clear))
                 .overlay(Circle().strokeBorder(hasReacted ? Color.compound.borderInteractivePrimary : .clear))
         }
         .accessibilityLabel(hasReacted ? L10n.a11yRemoveReaction(key) : L10n.a11yAddReaction(key))
@@ -231,13 +231,13 @@ struct MessageMenuOverlay: View {
                     reactionSummaryRows
                 }
             }
+            .padding(.vertical, MessageMenuChrome.inset)
             .readHeight($detailsContentHeight)
         }
         .scrollBounceBehavior(.basedOnSize)
         .frame(height: height)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.12), radius: 10, y: 3)
+        .clipShape(MessageMenuChrome.cardShape)
+        .messageMenuSurface(in: MessageMenuChrome.cardShape)
         .environment(\.layoutDirection, layoutDirection)
     }
 
@@ -273,13 +273,23 @@ struct MessageMenuOverlay: View {
                 }
 
                 if !sections.destructive.isEmpty {
-                    Divider()
-                        .frame(height: 6)
-                        .overlay(Color.compound.bgSubtlePrimary.opacity(0.6))
+                    sectionSeparator
 
                     ForEach(sections.destructive, id: \.self) { actionButton(for: $0) }
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private var sectionSeparator: some View {
+        if MessageMenuChrome.usesGlass {
+            Divider()
+                .padding(.vertical, MessageMenuChrome.inset)
+        } else {
+            Divider()
+                .frame(height: 6)
+                .overlay(Color.compound.bgSubtlePrimary.opacity(0.6))
         }
     }
 
@@ -376,7 +386,59 @@ private struct MessageMenuButtonStyle: ButtonStyle {
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(.rect)
-        .background(configuration.isPressed ? Color.compound.bgSubtlePrimary : .clear)
+        .background {
+            if configuration.isPressed {
+                RoundedRectangle(cornerRadius: MessageMenuChrome.highlightCornerRadius)
+                    .fill(MessageMenuChrome.selectedFill)
+                    .padding(.horizontal, MessageMenuChrome.inset)
+            }
+        }
+    }
+}
+
+private enum MessageMenuChrome {
+    static let usesGlass: Bool = {
+        if #available(iOS 26, *) { return true }
+        return false
+    }()
+
+    static let cornerRadius: CGFloat = usesGlass ? 32 : 16
+    static let cardShape = RoundedRectangle(cornerRadius: cornerRadius)
+    static let inset: CGFloat = usesGlass ? 8 : 0
+    static let highlightCornerRadius: CGFloat = usesGlass ? cornerRadius - inset : 0
+    static let selectedFill: Color = usesGlass ? .compound.bgActionSecondaryPressed : .compound.bgSubtlePrimary
+}
+
+private extension View {
+    func messageMenuSurface(in shape: some Shape) -> some View {
+        modifier(MessageMenuSurface(shape: shape))
+    }
+
+    @ViewBuilder
+    func inGlassEffectContainer() -> some View {
+        if #available(iOS 26, *) {
+            // Zero spacing keeps the bar and the card from merging over a short bubble.
+            GlassEffectContainer(spacing: 0) { self }
+        } else {
+            self
+        }
+    }
+}
+
+private struct MessageMenuSurface<S: Shape>: ViewModifier {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let shape: S
+
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            // Untinted glass goes near-black over the dimmed dark timeline, darker than the Messages menu.
+            content.glassEffect(.regular.tint(colorScheme == .dark ? .white.opacity(0.15) : nil), in: shape)
+        } else {
+            content
+                .background(.regularMaterial, in: shape)
+                .shadow(color: .black.opacity(0.12), radius: 10, y: 3)
+        }
     }
 }
 
