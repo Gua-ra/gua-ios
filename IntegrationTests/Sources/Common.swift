@@ -54,6 +54,11 @@ extension XCUIApplication {
         XCTAssertTrue(nextButton.isEnabled)
         nextButton.tap(.center)
         
+        // iOS offers to save the password after sign-in, and the app's main thread waits for the service showing that
+        // offer, which takes over a minute to start on a fresh CI simulator. Querying the app meanwhile fails after 30
+        // seconds, so wait for the offer through the service instead.
+        _ = XCUIApplication(bundleIdentifier: "com.apple.SafariViewService").buttons["Not Now"].waitForExistence(timeout: 300.0)
+        
         // Wait for login to finish
         currentTestCase.expectation(for: doesNotExistPredicate, evaluatedWith: usernameTextField)
         currentTestCase.waitForExpectations(timeout: 300.0)
