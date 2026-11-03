@@ -734,17 +734,24 @@ class MockScreen: Identifiable {
         case .encryptionReset:
             let recoveryState: SecureBackupRecoveryState = id == .encryptionSettings ? .enabled : .incomplete
             let clientProxy = ClientProxyMock(.init(userID: "@mock:client.com", recoveryState: recoveryState))
+            clientProxy.accessToken = "mock-token"
             let userSession = UserSessionMock(.init(clientProxy: clientProxy))
             
             let userIndicatorController = UserIndicatorController()
             userIndicatorController.window = windowManager.overlayWindow
             let navigationStackCoordinator = NavigationStackCoordinator()
             
+            let identityServiceClient = IdentityServiceClientMock(status: .init(hasPin: false,
+                                                                                passkeyRegistered: false,
+                                                                                preferredFactor: nil,
+                                                                                phoneChangeStepUpFactors: [],
+                                                                                pinStepUpHoldRemainingSeconds: nil))
             let coordinator = EncryptionResetFlowCoordinator(parameters: .init(userSession: userSession,
                                                                                appSettings: ServiceLocator.shared.settings,
                                                                                userIndicatorController: userIndicatorController,
                                                                                navigationStackCoordinator: navigationStackCoordinator,
-                                                                               windowManger: windowManager))
+                                                                               windowManger: windowManager,
+                                                                               identityServiceClient: identityServiceClient))
 
             retainedState.append(coordinator)
             coordinator.start()

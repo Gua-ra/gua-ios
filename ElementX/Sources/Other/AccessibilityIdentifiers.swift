@@ -100,6 +100,9 @@ enum A11yIdentifiers {
     struct EncryptionResetPasswordScreen {
         let passwordField = "encryption_reset_password-password_field"
         let submit = "encryption_reset_password-submit"
+        let phoneField = "encryption_reset_password-phone_field"
+        let sendCode = "encryption_reset_password-send_code"
+        let codeField = "encryption_reset_password-code_field"
     }
     
     struct HomeScreen {

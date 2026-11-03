@@ -99,11 +99,13 @@ struct EncryptionResetPasswordScreen: View {
                     .padding()
                     .background(Color.compound.bgSubtleSecondaryLevel0)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .accessibilityIdentifier(A11yIdentifiers.encryptionResetPasswordScreen.phoneField)
                 Button(L10n.screenAccountReauthSendCode) {
                     context.send(viewAction: .sendReauthCode)
                 }
                 .buttonStyle(.compound(.primary))
                 .disabled(context.phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .accessibilityIdentifier(A11yIdentifiers.encryptionResetPasswordScreen.sendCode)
                 if case let .error(message) = context.viewState.reauthPhase {
                     Text(message)
                         .foregroundStyle(.compound.textCriticalPrimary)
@@ -125,6 +127,7 @@ struct EncryptionResetPasswordScreen: View {
                     .padding()
                     .background(Color.compound.bgSubtleSecondaryLevel0)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .accessibilityIdentifier(A11yIdentifiers.encryptionResetPasswordScreen.codeField)
                     .focused($textFieldFocus)
                 Button(L10n.actionConfirm, role: .destructive) {
                     context.send(viewAction: .verifyReauthCode)
