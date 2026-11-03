@@ -11,7 +11,7 @@ import XCTest
 enum Application {
     static func launch(_ identifier: UITestsScreenIdentifier, disableTimelineAccessibility: Bool = true) -> XCUIApplication {
         if ProcessInfo().environment["RECORD_FAILURES"].map(Bool.init) == true {
-            XCUIApplication.recordMode = .failed
+            XCUIApplication.recordMode = .all
         }
         
         checkEnvironments()

@@ -89,7 +89,7 @@ lane :ui_tests do |options|
     prelaunch_simulator: false,
     result_bundle: true,
     only_testing: test_to_run,
-    number_of_retries: 3
+    number_of_retries: 0
   )
 end
 
