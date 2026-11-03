@@ -138,7 +138,8 @@ struct ChatBackgroundPhotoFrame: View {
                 dragStart = nil
             })
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(UntranslatedL10n.guaChatBackgroundPositionHint)
+            .accessibilityLabel(UntranslatedL10n.guaChatBackgroundPreviewA11y)
+            .accessibilityHint(UntranslatedL10n.guaChatBackgroundPositionHint)
             .accessibilityAction(named: UntranslatedL10n.guaChatBackgroundA11yMoveLeft) { onMove(draft.alignX + nudge, draft.alignY) }
             .accessibilityAction(named: UntranslatedL10n.guaChatBackgroundA11yMoveRight) { onMove(draft.alignX - nudge, draft.alignY) }
             .accessibilityAction(named: UntranslatedL10n.guaChatBackgroundA11yMoveUp) { onMove(draft.alignX, draft.alignY + nudge) }

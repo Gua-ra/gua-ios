@@ -97,6 +97,7 @@ struct ChatBackgroundPreviewCard: View {
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(UntranslatedL10n.guaChatBackgroundPreviewA11y)
+            .accessibilityValue(background.displayName)
     }
 }
 
