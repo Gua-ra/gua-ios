@@ -83,6 +83,9 @@ class SessionVerificationScreenViewModel: SessionVerificationViewModelType, Sess
         case .acceptVerificationRequest:
             stateMachine.processEvent(.acceptVerificationRequest)
         case .ignoreVerificationRequest:
+            if case .deviceResponder(let details) = flow {
+                actionsSubject.send(.ignoredOwnDeviceRequest(deviceID: details.deviceID))
+            }
             actionsSubject.send(.finished)
         case .requestVerification:
             stateMachine.processEvent(.requestVerification)
@@ -141,7 +144,12 @@ class SessionVerificationScreenViewModel: SessionVerificationViewModelType, Sess
             case (_, .cancel, .cancelling):
                 cancelVerification()
             case (_, _, .verified):
-                actionsSubject.send(.finished)
+                switch flow {
+                case .deviceResponder:
+                    break // GUA FORK: stays on the confirmation until the user taps Done.
+                case .deviceInitiator, .userInitiator, .userResponder:
+                    actionsSubject.send(.finished)
+                }
             case (.initial, _, .cancelled):
                 switch flow {
                 case .deviceResponder, .userResponder:
@@ -168,6 +176,10 @@ class SessionVerificationScreenViewModel: SessionVerificationViewModelType, Sess
             switch await sessionVerificationControllerProxy.acceptVerificationRequest() {
             case .success:
                 stateMachine.processEvent(.didAcceptVerificationRequest)
+                // GUA FORK: our own new device waits for this side to start, so its emojis show without a click.
+                if case .deviceResponder = flow {
+                    stateMachine.processEvent(.startSasVerification)
+                }
             case .failure:
                 stateMachine.processEvent(.didFail)
             }
