@@ -71,6 +71,7 @@ extension ClientProxyMock {
         createRoomNameTopicIsRoomPrivateIsKnockingOnlyUserIDsAvatarURLAliasLocalPartReturnValue = .failure(.sdkError(ClientProxyMockError.generic))
         canJoinRoomWithReturnValue = true
         uploadMediaReturnValue = .failure(.sdkError(ClientProxyMockError.generic))
+        uploadMediaDataMimeTypeReturnValue = .success(URL.mockMXCImage.absoluteString)
         loadUserDisplayNameReturnValue = .failure(.sdkError(ClientProxyMockError.generic))
         setUserDisplayNameReturnValue = .failure(.sdkError(ClientProxyMockError.generic))
         loadUserAvatarURLReturnValue = .failure(.sdkError(ClientProxyMockError.generic))
