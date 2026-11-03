@@ -93,6 +93,7 @@ class RoomDetailsScreenViewModel: RoomDetailsScreenViewModelType, RoomDetailsScr
         }
         
         updateRoomInfo(roomProxy.infoPublisher.value)
+        setupChatBackgroundSubscriptionIfNeeded()
                 
         setupRoomSubscription()
         Task { await fetchMembersIfNeeded() }
@@ -162,6 +163,9 @@ class RoomDetailsScreenViewModel: RoomDetailsScreenViewModelType, RoomDetailsScr
             actionsSubject.send(.requestRecipientDetailsPresentation(userID: userID))
         case .processTapReport:
             actionsSubject.send(.displayReportRoom)
+        case .processTapChatBackground:
+            guard state.canChangeChatBackground else { return }
+            actionsSubject.send(.displayChatBackground)
         }
     }
     
@@ -257,7 +261,23 @@ class RoomDetailsScreenViewModel: RoomDetailsScreenViewModelType, RoomDetailsScr
             state.canBanUsers = powerLevels.canOwnUserBan()
             state.canJoinCall = powerLevels.canOwnUserJoinCall()
             state.canEditRolesOrPermissions = powerLevels.canOwnUserEditRolesAndPermissions()
+            state.canChangeChatBackground = powerLevels.canOwnUser(sendStateEvent: .guaChatBackground)
         }
+    }
+    
+    private func setupChatBackgroundSubscriptionIfNeeded() {
+        guard appSettings.guaChatBackgroundsEnabled, !roomProxy.infoPublisher.value.isSpace else { return }
+        
+        let chatBackgroundService = userSession.chatBackgroundService
+        let backgroundPublisher = chatBackgroundService.backgroundPublisher(roomID: roomProxy.id)
+        state.chatBackground = backgroundPublisher.value
+        backgroundPublisher
+            .removeDuplicates()
+            .map { Optional($0) }
+            .weakAssign(to: \.state.chatBackground, on: self)
+            .store(in: &cancellables)
+        
+        Task { [roomID = roomProxy.id] in await chatBackgroundService.refresh(roomID: roomID) }
     }
     
     private func fetchMembersIfNeeded() async {
