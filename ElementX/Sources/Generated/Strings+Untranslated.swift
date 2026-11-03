@@ -12,6 +12,10 @@ import Foundation
 internal enum UntranslatedL10n {
   /// We couldn’t finish setting up your account on this device. Please try again.
   internal static var guaAccountGenesisSetupFailed: String { return UntranslatedL10n.tr("Untranslated", "gua_account_genesis_setup_failed") }
+  /// More
+  internal static var guaActionMore: String { return UntranslatedL10n.tr("Untranslated", "gua_action_more") }
+  /// Select
+  internal static var guaActionSelect: String { return UntranslatedL10n.tr("Untranslated", "gua_action_select") }
   /// Contact info
   internal static var guaContactInfoTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_contact_info_title") }
   /// Opens country picker
@@ -108,6 +112,8 @@ internal enum UntranslatedL10n {
   internal static var guaIdentityChangeUndecryptable: String { return UntranslatedL10n.tr("Untranslated", "gua_identity_change_undecryptable") }
   /// Paste the address you were given.
   internal static var guaJoinRoomByAddressHint: String { return UntranslatedL10n.tr("Untranslated", "gua_join_room_by_address_hint") }
+  /// Select text
+  internal static var guaMessageTextSelectionTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_message_text_selection_title") }
   /// Your passkey can’t be used for this right now.
   internal static var guaPasskeyUnavailable: String { return UntranslatedL10n.tr("Untranslated", "gua_passkey_unavailable") }
   /// That passkey didn’t confirm it was you. Please try again.

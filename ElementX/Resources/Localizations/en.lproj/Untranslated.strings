@@ -156,3 +156,9 @@
 "gua_find_friends_start_chat_failed_title" = "Couldn’t start the chat";
 /* %1$@ is the contact's name. */
 "gua_find_friends_start_chat_failed_message" = "Something went wrong starting a chat with %1$@. Please try again.";
+
+// MARK: - Gua: message menu
+
+"gua_action_select" = "Select";
+"gua_action_more" = "More";
+"gua_message_text_selection_title" = "Select text";

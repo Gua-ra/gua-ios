@@ -176,8 +176,8 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
             paginateForwards()
         case .scrollToBottom:
             scrollToBottom()
-        case .displayTimelineItemMenu(let itemID):
-            timelineInteractionHandler.displayTimelineItemActionMenu(for: itemID)
+        case .displayTimelineItemMenu(let itemID, let presentation):
+            timelineInteractionHandler.displayTimelineItemActionMenu(for: itemID, presentation: presentation)
         case .handleTimelineItemMenuAction(let itemID, let action):
             timelineInteractionHandler.handleTimelineItemMenuAction(action, itemID: itemID)
         case .tappedOnSenderDetails(let sender):
@@ -483,11 +483,17 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
                     if case .media(.mediaFilesScreen) = timelineController.timelineKind,
                        let item = actionMenuInfo.item as? EventBasedMessageTimelineItemProtocol {
                         actionsSubject.send(.displayMediaDetails(item: item))
+                    } else if actionMenuInfo.presentation.anchor != nil,
+                              state.menuActionProvider(for: actionMenuInfo.item).makeActions() == nil {
+                        // The overlay has nothing to show for this message, for example a removed one.
+                        break
                     } else {
                         self.state.bindings.actionMenuInfo = actionMenuInfo
                     }
                 case .showDebugInfo(let debugInfo):
                     state.bindings.debugInfo = debugInfo
+                case .showTextSelection(let item):
+                    state.bindings.textSelectionInfo = .init(id: item.id, text: selectableText(for: item))
                 case .viewInRoomTimeline(let eventID):
                     actionsSubject.send(.viewInRoomTimeline(eventID: eventID))
                 case .displayThread(let itemID):
@@ -904,6 +910,23 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
     }
     
     // MARK: Pills
+    
+    /// The message as its bubble reads, with mentions written out the way their pills show them.
+    private func selectableText(for item: EventBasedMessageTimelineItemProtocol) -> String {
+        let formattedBody = switch item {
+        case let item as TextRoomTimelineItem: item.content.formattedBody
+        case let item as NoticeRoomTimelineItem: item.content.formattedBody
+        case let item as EmoteRoomTimelineItem: item.content.formattedBody
+        default: AttributedString?.none
+        }
+        
+        return MessageSelectionText.make(body: item.body, formattedBody: formattedBody) { pillType in
+            if case let .user(userID) = pillType {
+                return PillUtilities.userPillDisplayText(username: state.members[userID]?.displayName, userID: userID)
+            }
+            return PillContext(timelineContext: context, data: PillTextAttachmentData(type: pillType, font: .preferredFont(forTextStyle: .body))).viewState.displayText
+        }
+    }
     
     private func pillContextUpdater(_ pillContext: PillContext) {
         switch pillContext.data.type {
