@@ -91,13 +91,14 @@ extension XCUIApplication {
         XCTAssertTrue(logoutButton.waitForExistence(timeout: 10.0))
         logoutButton.tap(.center)
         
-        // Confirm logout
-        let alertLogoutButton = alerts.firstMatch.buttons["Sign out"]
-        XCTAssertTrue(alertLogoutButton.waitForExistence(timeout: 10.0))
-        alertLogoutButton.tap(.center)
-        
+        // Confirm logout. On the account's last device the app asks on a screen instead of an alert,
+        // and signs out once the key backup has uploaded.
+        let confirmLogoutButton = buttons.matching(NSPredicate(format: "label == %@ && identifier != %@", "Sign out", A11yIdentifiers.settingsScreen.logout)).firstMatch
+        XCTAssertTrue(confirmLogoutButton.waitForExistence(timeout: 10.0))
+        confirmLogoutButton.tap(.center)
+
         // Check that we're back on the login screen
         let getStartedButton = buttons[A11yIdentifiers.authenticationStartScreen.signIn]
-        XCTAssertTrue(getStartedButton.waitForExistence(timeout: 10.0))
+        XCTAssertTrue(getStartedButton.waitForExistence(timeout: 30.0))
     }
 }
