@@ -52,6 +52,7 @@ struct SettingsScreenViewStateBindings {
     private let appSettings: AppSettings
     
     var isPresentingAccountDeactivationConfirmation = false
+    var isSpacesEnabled = false
     
     var appAppearance: AppAppearance {
         get { appSettings.appAppearance }
@@ -73,6 +74,7 @@ enum SettingsScreenViewAction {
     case moderationAndSafety
     case manageAccount(url: URL)
     case notifications
+    case toggleSpaces
     case enableDeveloperOptions
     case developerOptions
     case advancedSettings

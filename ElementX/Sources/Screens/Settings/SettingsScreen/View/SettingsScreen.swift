@@ -72,6 +72,15 @@ struct SettingsScreen: View {
     
     private var findFriendsSection: some View {
         Section {
+            ListRow(label: .default(title: L10n.screenHomeTabSpaces,
+                                    description: UntranslatedL10n.guaSettingsSpacesDescription,
+                                    icon: \.space),
+                    kind: .toggle($context.isSpacesEnabled))
+                .onChange(of: context.isSpacesEnabled) {
+                    context.send(viewAction: .toggleSpaces)
+                }
+                .accessibilityIdentifier(A11yIdentifiers.settingsScreen.spaces)
+            
             ListRow(label: .default(title: L10n.screenFindFriendsTitle,
                                     icon: \.userAdd),
                     kind: .navigationLink {
@@ -303,6 +312,8 @@ struct SettingsScreen_Previews: PreviewProvider, TestablePreview {
         let userSession = UserSessionMock(.init(clientProxy: clientProxy))
         return SettingsScreenViewModel(userSession: userSession,
                                        appSettings: ServiceLocator.shared.settings,
+                                       spacesSetting: SpacesSetting(clientProxy: clientProxy, appSettings: ServiceLocator.shared.settings),
+                                       userIndicatorController: UserIndicatorControllerMock(),
                                        isBugReportServiceEnabled: isBugReportServiceEnabled)
     }
 }

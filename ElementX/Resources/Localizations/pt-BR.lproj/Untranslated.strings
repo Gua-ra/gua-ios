@@ -67,3 +67,8 @@
 "gua_find_friends_view_profile_a11y" = "Ver o perfil de %1$@";
 "gua_find_friends_start_chat_failed_title" = "Não foi possível iniciar a conversa";
 "gua_find_friends_start_chat_failed_message" = "Algo deu errado ao iniciar uma conversa com %1$@. Tente novamente.";
+
+"gua_join_space_action" = "Ativar Espaços e entrar";
+"gua_join_space_turns_on_spaces" = "Este é um espaço. Ao entrar, os Espaços são ativados para você ver as conversas dele.";
+
+"gua_settings_spaces_description" = "Organize conversas e comunidades relacionadas em um só lugar";

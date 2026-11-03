@@ -118,6 +118,10 @@ internal enum UntranslatedL10n {
   internal static var guaIdentityChangeUndecryptable: String { return UntranslatedL10n.tr("Untranslated", "gua_identity_change_undecryptable") }
   /// Paste the address you were given.
   internal static var guaJoinRoomByAddressHint: String { return UntranslatedL10n.tr("Untranslated", "gua_join_room_by_address_hint") }
+  /// Turn on Spaces and join
+  internal static var guaJoinSpaceAction: String { return UntranslatedL10n.tr("Untranslated", "gua_join_space_action") }
+  /// This is a space. Joining turns on Spaces so you can see its chats.
+  internal static var guaJoinSpaceTurnsOnSpaces: String { return UntranslatedL10n.tr("Untranslated", "gua_join_space_turns_on_spaces") }
   /// Select text
   internal static var guaMessageTextSelectionTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_message_text_selection_title") }
   /// Your passkey can’t be used for this right now.
@@ -154,6 +158,8 @@ internal enum UntranslatedL10n {
   }
   /// We couldn’t sign you back in. Please sign in again.
   internal static var guaRestoreSigninFailed: String { return UntranslatedL10n.tr("Untranslated", "gua_restore_signin_failed") }
+  /// Organize related chats and communities in one place
+  internal static var guaSettingsSpacesDescription: String { return UntranslatedL10n.tr("Untranslated", "gua_settings_spaces_description") }
   /// Sign in with a passkey
   internal static var guaSignInWithPasskey: String { return UntranslatedL10n.tr("Untranslated", "gua_sign_in_with_passkey") }
   /// Messages kept only here will not be available when you sign back in.

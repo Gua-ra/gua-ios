@@ -239,6 +239,7 @@ enum A11yIdentifiers {
         let account = "settings-account"
         let secureBackup = "settings-secure_backup"
         let notifications = "settings-notifications"
+        let spaces = "settings-spaces"
         let analytics = "settings-analytics"
         let screenLock = "settings-screen_lock"
         let reportBug = "settings-report_bug"
