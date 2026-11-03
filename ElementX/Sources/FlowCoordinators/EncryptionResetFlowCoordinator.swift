@@ -315,6 +315,7 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
         items.append(URLQueryItem(name: "gua_return", value: scheme))
         items.append(URLQueryItem(name: "gua_user", value: localpart))
         items.append(URLQueryItem(name: "org.matrix.msc4198.login_hint", value: "mxid:\(userID)"))
+        items.append(URLQueryItem(name: "ui_locales", value: Bundle.guaAppLanguage))
         components.queryItems = items
 
         return components.url ?? url

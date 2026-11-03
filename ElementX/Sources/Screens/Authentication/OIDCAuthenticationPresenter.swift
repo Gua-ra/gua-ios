@@ -54,7 +54,8 @@ class OIDCAuthenticationPresenter: NSObject, OIDCAuthenticationPresenterProtocol
             session.prefersEphemeralWebBrowserSession = true
             session.presentationContextProvider = self
             session.additionalHeaderFields = [
-                "X-Element-User-Agent": UserAgentBuilder.makeASCIIUserAgent()
+                "X-Element-User-Agent": UserAgentBuilder.makeASCIIUserAgent(),
+                "Accept-Language": Bundle.guaAppLanguage
             ]
             
             activeSession = session

@@ -269,9 +269,9 @@
 			<key>NSStringFormatValueTypeKey</key>
 			<string>d</string>
 			<key>one</key>
-			<string>Code PIN incorrect. Il reste %1$d tentative</string>
+			<string>Code incorrect. Il reste %1$d tentative</string>
 			<key>other</key>
-			<string>Code PIN incorrect. Il reste %1$d tentatives</string>
+			<string>Code incorrect. Il reste %1$d tentatives</string>
 		</dict>
 	</dict>
 	<key>screen_pinned_timeline_screen_title</key>
