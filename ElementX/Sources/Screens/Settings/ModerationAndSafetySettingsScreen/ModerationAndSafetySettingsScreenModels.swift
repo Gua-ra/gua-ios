@@ -19,6 +19,21 @@ struct ModerationAndSafetySettingsScreenViewState: BindableState {
     var isWaitingTimelineMediaVisibility = false
     
     var showBlockedUsers = false
+    
+    var bindings: ModerationAndSafetySettingsScreenViewStateBindings
+}
+
+struct ModerationAndSafetySettingsScreenViewStateBindings {
+    private let appSettings: AppSettings
+    
+    init(appSettings: AppSettings) {
+        self.appSettings = appSettings
+    }
+    
+    var sharePresence: Bool {
+        get { appSettings.sharePresence }
+        set { appSettings.sharePresence = newValue }
+    }
 }
 
 enum ModerationAndSafetySettingsScreenViewAction {

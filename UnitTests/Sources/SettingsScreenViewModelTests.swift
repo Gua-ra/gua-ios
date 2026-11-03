@@ -58,6 +58,28 @@ class SettingsScreenViewModelTests: XCTestCase {
         try await deferred.fulfill()
     }
     
+    func testMediaUploadQuality() async throws {
+        let deferred = deferFulfillment(viewModel.actions) { $0 == .mediaUploadQuality }
+        context.send(viewAction: .mediaUploadQuality)
+        try await deferred.fulfill()
+    }
+    
+    func testManageAccountAndDevicesOpensTheAccountProfile() async throws {
+        let profileURL = try XCTUnwrap(URL(string: "https://account.example.com/profile"))
+        clientProxy.accountURLActionClosure = { action in
+            action == .profile ? profileURL : nil
+        }
+        makeViewModel()
+        let loaded = deferFulfillment(context.observe(\.viewState.accountProfileURL)) { $0 != nil }
+        try await loaded.fulfill()
+        
+        let url = try XCTUnwrap(context.viewState.accountProfileURL)
+        XCTAssertEqual(url, profileURL)
+        let deferred = deferFulfillment(viewModel.actions) { $0 == .manageAccount(url: profileURL) }
+        context.send(viewAction: .manageAccount(url: url))
+        try await deferred.fulfill()
+    }
+    
     func testToggleSpacesWritesAccountDataOnce() async {
         let written = expectation(description: "The switch is written to account data")
         clientProxy.setAccountDataTypeContentClosure = { _, _ in

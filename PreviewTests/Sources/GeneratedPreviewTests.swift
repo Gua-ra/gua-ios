@@ -11,12 +11,6 @@ extension PreviewTests {
 
     // MARK: - PreviewProvider
 
-    func testAdvancedSettingsScreen() async throws {
-        for (index, preview) in AdvancedSettingsScreen_Previews._allPreviews.enumerated() {
-            try await assertSnapshots(matching: preview, step: index)
-        }
-    }
-
     func testAnalyticsPromptScreen() async throws {
         for (index, preview) in AnalyticsPromptScreen_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)
@@ -433,6 +427,12 @@ extension PreviewTests {
 
     func testMediaUploadPreviewScreen() async throws {
         for (index, preview) in MediaUploadPreviewScreen_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    func testMediaUploadQualitySettingsScreen() async throws {
+        for (index, preview) in MediaUploadQualitySettingsScreen_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)
         }
     }

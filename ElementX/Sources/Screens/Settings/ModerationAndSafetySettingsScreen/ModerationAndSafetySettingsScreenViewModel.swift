@@ -23,12 +23,14 @@ class ModerationAndSafetySettingsScreenViewModel: ModerationAndSafetySettingsScr
     }
     
     init(userSession: UserSessionProtocol,
+         appSettings: AppSettings,
          userIndicatorController: UserIndicatorControllerProtocol) {
         clientProxy = userSession.clientProxy
         self.userIndicatorController = userIndicatorController
         
         let state = ModerationAndSafetySettingsScreenViewState(hideInviteAvatars: clientProxy.hideInviteAvatarsPublisher.value,
-                                                               timelineMediaVisibility: clientProxy.timelineMediaVisibilityPublisher.value)
+                                                               timelineMediaVisibility: clientProxy.timelineMediaVisibilityPublisher.value,
+                                                               bindings: .init(appSettings: appSettings))
         super.init(initialViewState: state)
         
         clientProxy.hideInviteAvatarsPublisher

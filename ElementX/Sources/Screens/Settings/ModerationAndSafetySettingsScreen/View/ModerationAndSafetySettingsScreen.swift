@@ -9,10 +9,11 @@ import Compound
 import SwiftUI
 
 struct ModerationAndSafetySettingsScreen: View {
-    let context: ModerationAndSafetySettingsScreenViewModel.Context
+    @Bindable var context: ModerationAndSafetySettingsScreenViewModel.Context
     
     var body: some View {
         Form {
+            sharePresenceSection
             invitesSection
             timelineMediaSection
             blockedUsersSection
@@ -20,6 +21,17 @@ struct ModerationAndSafetySettingsScreen: View {
         .compoundList()
         .navigationTitle(UntranslatedL10n.commonModerationAndSafety)
         .navigationBarTitleDisplayMode(.inline)
+    }
+    
+    private var sharePresenceSection: some View {
+        Section {
+            ListRow(label: .plain(title: L10n.screenAdvancedSettingsSharePresence,
+                                  description: L10n.screenAdvancedSettingsSharePresenceDescription),
+                    kind: .toggle($context.sharePresence))
+        } header: {
+            Text(UntranslatedL10n.screenModerationAndSafetySharePresenceHeading)
+                .compoundListSectionHeader()
+        }
     }
     
     @ViewBuilder
@@ -83,6 +95,7 @@ struct ModerationAndSafetySettingsScreen: View {
 
 struct ModerationAndSafetySettingsScreen_Previews: PreviewProvider, TestablePreview {
     static let viewModel = ModerationAndSafetySettingsScreenViewModel(userSession: UserSessionMock(.init()),
+                                                                      appSettings: ServiceLocator.shared.settings,
                                                                       userIndicatorController: UserIndicatorControllerMock())
     
     static var previews: some View {

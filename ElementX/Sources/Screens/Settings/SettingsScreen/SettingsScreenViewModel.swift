@@ -70,24 +70,31 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
         switch viewAction {
         case .close:
             actionsSubject.send(.close)
+            
         case .userDetails:
             actionsSubject.send(.userDetails)
+            
+        case .findFriends:
+            actionsSubject.send(.findFriends)
+            
         case let .manageAccount(url):
             actionsSubject.send(.manageAccount(url: url))
-        case .analytics:
-            actionsSubject.send(.analytics)
-        case .appLock:
-            actionsSubject.send(.appLock)
-        case .reportBug:
-            actionsSubject.send(.reportBug)
-        case .about:
-            actionsSubject.send(.about)
-        case .moderationAndSafety:
-            actionsSubject.send(.moderationAndSafety)
-        case .logout:
-            actionsSubject.send(.logout)
+        case .twoStepVerification:
+            actionsSubject.send(.twoStepVerification)
+        case .changePhoneNumber:
+            actionsSubject.send(.changePhoneNumber)
         case .notifications:
             actionsSubject.send(.notifications)
+        case .moderationAndSafety:
+            actionsSubject.send(.moderationAndSafety)
+        case .reportBug:
+            actionsSubject.send(.reportBug)
+            
+        case .logout:
+            actionsSubject.send(.logout)
+        case .deactivateAccount:
+            actionsSubject.send(.deactivateAccount)
+            
         case .toggleSpaces:
             let isEnabled = state.bindings.isSpacesEnabled
             guard isEnabled != appSettings.spacesEnabled else { return }
@@ -97,20 +104,19 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
                     userIndicatorController.submitIndicator(.init(title: L10n.errorUnknown))
                 }
             }
-        case .advancedSettings:
-            actionsSubject.send(.advancedSettings)
+        case .mediaUploadQuality:
+            actionsSubject.send(.mediaUploadQuality)
+        case .appLock:
+            actionsSubject.send(.appLock)
+        case .analytics:
+            actionsSubject.send(.analytics)
+        case .about:
+            actionsSubject.send(.about)
+            
         case .enableDeveloperOptions:
             appSettings.developerOptionsEnabled.toggle()
         case .developerOptions:
             actionsSubject.send(.developerOptions)
-        case .deactivateAccount:
-            actionsSubject.send(.deactivateAccount)
-        case .twoStepVerification:
-            actionsSubject.send(.twoStepVerification)
-        case .changePhoneNumber:
-            actionsSubject.send(.changePhoneNumber)
-        case .findFriends:
-            actionsSubject.send(.findFriends)
         }
     }
 }

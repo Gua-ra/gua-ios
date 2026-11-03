@@ -144,9 +144,13 @@
 
 "common_account_settings" = "Account settings";
 "common_app_settings" = "App settings";
+"action_manage_account_and_devices" = "Manage account & devices";
+"action_delete_account" = "Delete account";
+"common_media_upload_quality" = "Media upload quality";
 
 "common_moderation_and_safety" = "Moderation & safety";
 "screen_moderation_and_safety_invites_heading" = "Invites";
+"screen_moderation_and_safety_share_presence_heading" = "Your appearance";
 
 // MARK: - Gua: message menu
 

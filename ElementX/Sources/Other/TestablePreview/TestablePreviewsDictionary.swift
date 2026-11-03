@@ -9,7 +9,6 @@ import SwiftUI
 
 enum TestablePreviewsDictionary {
     static let dictionary: [String: any PreviewProvider.Type] = [
-        "AdvancedSettingsScreen_Previews" : AdvancedSettingsScreen_Previews.self,
         "AnalyticsPromptScreen_Previews" : AnalyticsPromptScreen_Previews.self,
         "AnalyticsSettingsScreen_Previews" : AnalyticsSettingsScreen_Previews.self,
         "AppLockScreen_Previews" : AppLockScreen_Previews.self,
@@ -80,6 +79,7 @@ enum TestablePreviewsDictionary {
         "MatrixUserPermalink_Previews" : MatrixUserPermalink_Previews.self,
         "MediaEventsTimelineScreen_Previews" : MediaEventsTimelineScreen_Previews.self,
         "MediaUploadPreviewScreen_Previews" : MediaUploadPreviewScreen_Previews.self,
+        "MediaUploadQualitySettingsScreen_Previews" : MediaUploadQualitySettingsScreen_Previews.self,
         "MentionSuggestionItemView_Previews" : MentionSuggestionItemView_Previews.self,
         "MessageComposerTextField_Previews" : MessageComposerTextField_Previews.self,
         "MessageComposer_Previews" : MessageComposer_Previews.self,

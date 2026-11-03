@@ -77,9 +77,13 @@
 
 "common_account_settings" = "Ajustes de la cuenta";
 "common_app_settings" = "Ajustes de la app";
+"action_manage_account_and_devices" = "Gestionar cuenta y dispositivos";
+"action_delete_account" = "Eliminar cuenta";
+"common_media_upload_quality" = "Calidad de subida de multimedia";
 
 "common_moderation_and_safety" = "Moderación y seguridad";
 "screen_moderation_and_safety_invites_heading" = "Invitaciones";
+"screen_moderation_and_safety_share_presence_heading" = "Cómo apareces";
 
 "gua_join_space_action" = "Activar Espacios y unirse";
 "gua_join_space_turns_on_spaces" = "Este es un espacio. Al unirte, se activan los Espacios para que veas sus chats.";

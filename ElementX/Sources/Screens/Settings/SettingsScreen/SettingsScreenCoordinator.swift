@@ -18,21 +18,27 @@ struct SettingsScreenCoordinatorParameters {
 
 enum SettingsScreenCoordinatorAction {
     case dismiss
-    case logout
+    
     case userDetails
-    case analytics
-    case appLock
-    case bugReport
-    case about
-    case moderationAndSafety
+    
+    case findFriends
+    
     case manageAccount(url: URL)
-    case notifications
-    case advancedSettings
-    case developerOptions
-    case deactivateAccount
     case twoStepVerification
     case changePhoneNumber
-    case findFriends
+    case notifications
+    case moderationAndSafety
+    case bugReport
+    
+    case logout
+    case deactivateAccount
+    
+    case mediaUploadQuality
+    case appLock
+    case analytics
+    case about
+    
+    case developerOptions
 }
 
 final class SettingsScreenCoordinator: CoordinatorProtocol {
@@ -61,36 +67,42 @@ final class SettingsScreenCoordinator: CoordinatorProtocol {
                 switch action {
                 case .close:
                     actionsSubject.send(.dismiss)
+                    
                 case .userDetails:
                     actionsSubject.send(.userDetails)
+                    
+                case .findFriends:
+                    actionsSubject.send(.findFriends)
+                    
                 case let .manageAccount(url):
                     actionsSubject.send(.manageAccount(url: url))
-                case .analytics:
-                    actionsSubject.send(.analytics)
-                case .appLock:
-                    actionsSubject.send(.appLock)
-                case .reportBug:
-                    actionsSubject.send(.bugReport)
-                case .about:
-                    actionsSubject.send(.about)
-                case .moderationAndSafety:
-                    actionsSubject.send(.moderationAndSafety)
-                case .notifications:
-                    actionsSubject.send(.notifications)
-                case .advancedSettings:
-                    actionsSubject.send(.advancedSettings)
-                case .developerOptions:
-                    actionsSubject.send(.developerOptions)
-                case .logout:
-                    actionsSubject.send(.logout)
-                case .deactivateAccount:
-                    actionsSubject.send(.deactivateAccount)
                 case .twoStepVerification:
                     actionsSubject.send(.twoStepVerification)
                 case .changePhoneNumber:
                     actionsSubject.send(.changePhoneNumber)
-                case .findFriends:
-                    actionsSubject.send(.findFriends)
+                case .notifications:
+                    actionsSubject.send(.notifications)
+                case .moderationAndSafety:
+                    actionsSubject.send(.moderationAndSafety)
+                case .reportBug:
+                    actionsSubject.send(.bugReport)
+                    
+                case .logout:
+                    actionsSubject.send(.logout)
+                case .deactivateAccount:
+                    actionsSubject.send(.deactivateAccount)
+                    
+                case .mediaUploadQuality:
+                    actionsSubject.send(.mediaUploadQuality)
+                case .appLock:
+                    actionsSubject.send(.appLock)
+                case .analytics:
+                    actionsSubject.send(.analytics)
+                case .about:
+                    actionsSubject.send(.about)
+                    
+                case .developerOptions:
+                    actionsSubject.send(.developerOptions)
                 }
             }
             .store(in: &cancellables)

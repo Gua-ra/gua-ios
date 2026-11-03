@@ -10,28 +10,33 @@ import UIKit
 
 enum SettingsScreenViewModelAction: Equatable {
     case close
+    
     case userDetails
+    
+    case findFriends
+    
     case manageAccount(url: URL)
-    case analytics
-    case appLock
-    case reportBug
-    case about
-    case moderationAndSafety
-    case notifications
-    case advancedSettings
-    case developerOptions
-    case logout
-    case deactivateAccount
     case twoStepVerification
     case changePhoneNumber
-    case findFriends
+    case notifications
+    case moderationAndSafety
+    case reportBug
+    
+    case logout
+    case deactivateAccount
+    
+    case mediaUploadQuality
+    case appLock
+    case analytics
+    case about
+    
+    case developerOptions
 }
 
 struct SettingsScreenViewState: BindableState {
     var deviceID: String?
     var userID: String
     var accountProfileURL: URL?
-    var accountSessionsListURL: URL?
     var showAccountDeactivation: Bool
     var userAvatarURL: URL?
     var userDisplayName: String?
@@ -66,21 +71,27 @@ struct SettingsScreenViewStateBindings {
 
 enum SettingsScreenViewAction {
     case close
+    
     case userDetails
-    case analytics
-    case appLock
-    case reportBug
-    case about
-    case moderationAndSafety
+    
+    case findFriends
+    
     case manageAccount(url: URL)
-    case notifications
-    case toggleSpaces
-    case enableDeveloperOptions
-    case developerOptions
-    case advancedSettings
-    case logout
-    case deactivateAccount
     case twoStepVerification
     case changePhoneNumber
-    case findFriends
+    case notifications
+    case moderationAndSafety
+    case reportBug
+    
+    case logout
+    case deactivateAccount
+    
+    case toggleSpaces
+    case mediaUploadQuality
+    case appLock
+    case analytics
+    case about
+    
+    case enableDeveloperOptions
+    case developerOptions
 }

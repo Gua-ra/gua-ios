@@ -245,7 +245,6 @@ enum A11yIdentifiers {
         let reportBug = "settings-report_bug"
         let about = "settings_about"
         let blockedUsers = "settings_blocked-users"
-        let advancedSettings = "settings_advanced-settings"
         let developerOptions = "settings_developer-options"
         let logout = "settings-logout"
     }

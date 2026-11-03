@@ -10,10 +10,16 @@ import Foundation
 // swiftlint:disable explicit_type_interface function_parameter_count identifier_name line_length
 // swiftlint:disable nesting type_body_length type_name vertical_whitespace_opening_braces
 internal enum UntranslatedL10n {
+  /// Delete account
+  internal static var actionDeleteAccount: String { return UntranslatedL10n.tr("Untranslated", "action_delete_account") }
+  /// Manage account & devices
+  internal static var actionManageAccountAndDevices: String { return UntranslatedL10n.tr("Untranslated", "action_manage_account_and_devices") }
   /// Account settings
   internal static var commonAccountSettings: String { return UntranslatedL10n.tr("Untranslated", "common_account_settings") }
   /// App settings
   internal static var commonAppSettings: String { return UntranslatedL10n.tr("Untranslated", "common_app_settings") }
+  /// Media upload quality
+  internal static var commonMediaUploadQuality: String { return UntranslatedL10n.tr("Untranslated", "common_media_upload_quality") }
   /// Moderation & safety
   internal static var commonModerationAndSafety: String { return UntranslatedL10n.tr("Untranslated", "common_moderation_and_safety") }
   /// We couldn’t finish setting up your account on this device. Please try again.
@@ -188,6 +194,8 @@ internal enum UntranslatedL10n {
   internal static var guaVerificationWaitingOtherDeviceTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_verification_waiting_other_device_title") }
   /// Invites
   internal static var screenModerationAndSafetyInvitesHeading: String { return UntranslatedL10n.tr("Untranslated", "screen_moderation_and_safety_invites_heading") }
+  /// Your appearance
+  internal static var screenModerationAndSafetySharePresenceHeading: String { return UntranslatedL10n.tr("Untranslated", "screen_moderation_and_safety_share_presence_heading") }
   /// Clear all data currently stored on this device?
   /// Sign in again to access your account data and messages.
   internal static var softLogoutClearDataDialogContent: String { return UntranslatedL10n.tr("Untranslated", "soft_logout_clear_data_dialog_content") }

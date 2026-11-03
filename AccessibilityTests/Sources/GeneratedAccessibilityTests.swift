@@ -7,10 +7,6 @@
 
 extension AccessibilityTests {
 
-    func testAdvancedSettingsScreen() async throws {
-        try await performAccessibilityAudit(named: "AdvancedSettingsScreen_Previews")
-    }
-
     func testAnalyticsPromptScreen() async throws {
         try await performAccessibilityAudit(named: "AnalyticsPromptScreen_Previews")
     }
@@ -289,6 +285,10 @@ extension AccessibilityTests {
 
     func testMediaUploadPreviewScreen() async throws {
         try await performAccessibilityAudit(named: "MediaUploadPreviewScreen_Previews")
+    }
+
+    func testMediaUploadQualitySettingsScreen() async throws {
+        try await performAccessibilityAudit(named: "MediaUploadQualitySettingsScreen_Previews")
     }
 
     func testMentionSuggestionItemView() async throws {

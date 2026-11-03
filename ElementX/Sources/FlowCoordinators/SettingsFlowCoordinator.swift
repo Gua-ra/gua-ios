@@ -103,8 +103,8 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                     presentModerationAndSafetyScreen()
                 case .notifications:
                     presentNotificationSettings()
-                case .advancedSettings:
-                    presentAdvancedSettings()
+                case .mediaUploadQuality:
+                    presentMediaUploadQualitySettings()
                 case .developerOptions:
                     presentDeveloperOptions()
                 case .deactivateAccount:
@@ -183,6 +183,7 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
     
     private func presentModerationAndSafetyScreen() {
         let coordinator = ModerationAndSafetySettingsScreenCoordinator(parameters: .init(userSession: flowParameters.userSession,
+                                                                                         appSettings: flowParameters.appSettings,
                                                                                          userIndicatorController: flowParameters.userIndicatorController))
         coordinator.actionsPublisher
             .sink { [weak self] action in
@@ -213,9 +214,10 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
         navigationStackCoordinator.push(coordinator)
     }
     
-    private func presentAdvancedSettings() {
-        let coordinator = AdvancedSettingsScreenCoordinator(parameters: .init(appSettings: flowParameters.appSettings,
-                                                                              analytics: flowParameters.analytics))
+    private func presentMediaUploadQualitySettings() {
+        let parameters = MediaUploadQualitySettingsScreenCoordinatorParameters(appSettings: flowParameters.appSettings,
+                                                                               analytics: flowParameters.analytics)
+        let coordinator = MediaUploadQualitySettingsScreenCoordinator(parameters: parameters)
         navigationStackCoordinator.push(coordinator)
     }
     
