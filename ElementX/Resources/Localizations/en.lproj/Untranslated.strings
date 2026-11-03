@@ -162,3 +162,6 @@
 "gua_action_select" = "Select";
 "gua_action_more" = "More";
 "gua_message_text_selection_title" = "Select text";
+
+"common_account_settings" = "Account settings";
+"common_app_settings" = "App settings";

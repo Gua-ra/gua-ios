@@ -67,3 +67,6 @@
 "gua_find_friends_view_profile_a11y" = "Voir le profil de %1$@";
 "gua_find_friends_start_chat_failed_title" = "Impossible de démarrer la discussion";
 "gua_find_friends_start_chat_failed_message" = "Une erreur s’est produite lors de la création de la discussion avec %1$@. Veuillez réessayer.";
+
+"common_account_settings" = "Paramètres du compte";
+"common_app_settings" = "Paramètres de l'application";

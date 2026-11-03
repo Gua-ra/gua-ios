@@ -17,23 +17,14 @@ enum SettingsScreenViewModelAction: Equatable {
     case reportBug
     case about
     case blockedUsers
-    case secureBackup
     case notifications
     case advancedSettings
     case developerOptions
     case logout
     case deactivateAccount
-    /// GUA FORK: Two-step verification (PIN) nav target
     case twoStepVerification
-    /// GUA FORK: Change phone number nav target
     case changePhoneNumber
-    /// GUA FORK: Find which of the user's phone contacts are on Gua
     case findFriends
-}
-
-enum SettingsScreenSecuritySectionMode {
-    case none
-    case secureBackup
 }
 
 struct SettingsScreenViewState: BindableState {
@@ -45,31 +36,32 @@ struct SettingsScreenViewState: BindableState {
     var userAvatarURL: URL?
     var userDisplayName: String?
     var showDeveloperOptions: Bool
-
-    /// GUA FORK: When `true`, the advanced Encryption entry point is hidden from
-    /// Settings. E2EE remains fully enabled with safe defaults.
-    var hidesAdvancedEncryption = true
-
-    /// GUA FORK: The bare localpart (e.g. "alice") of `userID`, hiding the
-    /// "@" prefix and ":homeserver" suffix for Gua's frictionless design.
-    /// Display-only — `userID` is still used for avatars and any logic.
+    
     var userLocalpart: String {
         userID.hasPrefix("@") ? String(userID.dropFirst().prefix { $0 != ":" }) : userID
     }
-    
-    var securitySectionMode = SettingsScreenSecuritySectionMode.none
-    var showSecuritySectionBadge = false
     
     var showBlockedUsers = false
     let showAnalyticsSettings: Bool
     
     let isBugReportServiceEnabled: Bool
     
-    var bindings = SettingsScreenViewStateBindings()
+    var bindings: SettingsScreenViewStateBindings
 }
 
 struct SettingsScreenViewStateBindings {
+    private let appSettings: AppSettings
+    
     var isPresentingAccountDeactivationConfirmation = false
+    
+    var appAppearance: AppAppearance {
+        get { appSettings.appAppearance }
+        set { appSettings.appAppearance = newValue }
+    }
+    
+    init(appSettings: AppSettings) {
+        self.appSettings = appSettings
+    }
 }
 
 enum SettingsScreenViewAction {
@@ -80,7 +72,6 @@ enum SettingsScreenViewAction {
     case reportBug
     case about
     case blockedUsers
-    case secureBackup
     case manageAccount(url: URL)
     case notifications
     case enableDeveloperOptions
@@ -88,10 +79,7 @@ enum SettingsScreenViewAction {
     case advancedSettings
     case logout
     case deactivateAccount
-    /// GUA FORK: Two-step verification (PIN) action
     case twoStepVerification
-    /// GUA FORK: Change phone number action
     case changePhoneNumber
-    /// GUA FORK: Find friends from phone contacts
     case findFriends
 }

@@ -15,7 +15,7 @@ struct NotificationSettingsEditScreenRoomCell: View {
     let context: NotificationSettingsEditScreenViewModel.Context
     
     var body: some View {
-        ListRow(label: .action(title: room.name,
+        ListRow(label: .avatar(title: room.name,
                                icon: avatar),
                 details: roomDetailsLabel,
                 kind: .navigationLink {

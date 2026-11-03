@@ -17,7 +17,6 @@ struct SettingsScreenCoordinatorParameters {
 enum SettingsScreenCoordinatorAction {
     case dismiss
     case logout
-    case secureBackup
     case userDetails
     case analytics
     case appLock
@@ -72,8 +71,6 @@ final class SettingsScreenCoordinator: CoordinatorProtocol {
                     actionsSubject.send(.about)
                 case .blockedUsers:
                     actionsSubject.send(.blockedUsers)
-                case .secureBackup:
-                    actionsSubject.send(.secureBackup)
                 case .notifications:
                     actionsSubject.send(.notifications)
                 case .advancedSettings:
