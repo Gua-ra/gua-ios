@@ -77,7 +77,9 @@ lane :ui_tests do |options|
     test_to_run = nil
   end
 
-  reset_simulator = ENV.key?('CI')
+  if ENV.key?('CI')
+    prepare_simulator_without_push(name: device)
+  end
   
   run_tests(
     project: "./Gua.xcodeproj",
@@ -87,8 +89,7 @@ lane :ui_tests do |options|
     prelaunch_simulator: false,
     result_bundle: true,
     only_testing: test_to_run,
-    number_of_retries: 3,
-    reset_simulator: reset_simulator
+    number_of_retries: 3
   )
 end
 
@@ -118,15 +119,16 @@ lane :integration_tests do
     runtime: ios18_runtime
   )
 
-  reset_simulator = ENV.key?('CI')
+  if ENV.key?('CI')
+    prepare_simulator_without_push(name: "iPhone-18.5")
+  end
 
   run_tests(
     project: "./Gua.xcodeproj",
     scheme: "IntegrationTests",
     device: "iPhone-18.5",
     ensure_devices_found: true,
-    result_bundle: true,
-    reset_simulator: reset_simulator
+    result_bundle: true
   )
 end
 
@@ -362,4 +364,15 @@ private_lane :create_simulator_if_necessary do |options|
   rescue
     sh("xcrun simctl create '#{simulator_name}' #{simulator_type} #{simulator_runtime}")
   end
+end
+
+# On GitHub's runners the simulator's push daemon retries Apple's push service in a tight loop, which starves the
+# keyboard and the other system services the tests wait on. So erase and boot the simulator here and stop that daemon,
+# rather than letting the tests reset it.
+private_lane :prepare_simulator_without_push do |options|
+  simulator_name = options[:name]
+  sh("xcrun simctl shutdown '#{simulator_name}' || true")
+  sh("xcrun simctl erase '#{simulator_name}'")
+  sh("xcrun simctl bootstatus '#{simulator_name}' -b")
+  sh("xcrun simctl spawn '#{simulator_name}' launchctl bootout system/com.apple.apsd")
 end
