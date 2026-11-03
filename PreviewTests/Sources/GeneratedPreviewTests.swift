@@ -107,6 +107,18 @@ extension PreviewTests {
         }
     }
 
+    func testChatBackgroundPhotoPreview() async throws {
+        for (index, preview) in ChatBackgroundPhotoPreview_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    func testChatBackgroundScreen() async throws {
+        for (index, preview) in ChatBackgroundScreen_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
     func testChatBackgroundView() async throws {
         for (index, preview) in ChatBackgroundView_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)
