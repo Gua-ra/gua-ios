@@ -71,8 +71,12 @@
 "gua_find_friends_start_chat_failed_title" = "Impossible de démarrer la discussion";
 "gua_find_friends_start_chat_failed_message" = "Une erreur s’est produite lors de la création de la discussion avec %1$@. Veuillez réessayer.";
 
+"gua_action_select" = "Sélectionner";
+"gua_action_more" = "Plus";
+"gua_message_text_selection_title" = "Sélectionner le texte";
+
 "common_account_settings" = "Paramètres du compte";
-"common_app_settings" = "Paramètres de l'application";
+"common_app_settings" = "Paramètres de l’application";
 
 "common_moderation_and_safety" = "Modération & sécurité";
 "screen_moderation_and_safety_invites_heading" = "Invitations";

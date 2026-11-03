@@ -71,6 +71,16 @@
 "gua_find_friends_start_chat_failed_title" = "Não foi possível iniciar a conversa";
 "gua_find_friends_start_chat_failed_message" = "Algo deu errado ao iniciar uma conversa com %1$@. Tente novamente.";
 
+"gua_action_select" = "Selecionar";
+"gua_action_more" = "Mais";
+"gua_message_text_selection_title" = "Selecionar texto";
+
+"common_account_settings" = "Configurações da conta";
+"common_app_settings" = "Configurações do app";
+
+"common_moderation_and_safety" = "Moderação e segurança";
+"screen_moderation_and_safety_invites_heading" = "Convites";
+
 "gua_join_space_action" = "Ativar Espaços e entrar";
 "gua_join_space_turns_on_spaces" = "Este é um espaço. Ao entrar, os Espaços são ativados para você ver as conversas dele.";
 
