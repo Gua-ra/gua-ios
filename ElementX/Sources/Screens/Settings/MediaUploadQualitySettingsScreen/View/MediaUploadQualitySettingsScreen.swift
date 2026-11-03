@@ -28,8 +28,6 @@ struct MediaUploadQualitySettingsScreen: View {
     }
 }
 
-// MARK: - Previews
-
 struct MediaUploadQualitySettingsScreen_Previews: PreviewProvider, TestablePreview {
     static let viewModel = MediaUploadQualitySettingsScreenViewModel(appSettings: ServiceLocator.shared.settings,
                                                                      analytics: ServiceLocator.shared.analytics)
