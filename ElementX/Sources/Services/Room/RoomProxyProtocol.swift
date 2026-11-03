@@ -123,6 +123,9 @@ protocol JoinedRoomProxyProtocol: RoomProxyProtocol {
     
     func setTopic(_ topic: String) async -> Result<Void, RoomProxyError>
     
+    /// GUA FORK: sends raw state content and returns the new event's ID.
+    func sendStateEvent(type: String, stateKey: String, content: String) async -> Result<String, RoomProxyError>
+    
     func removeAvatar() async -> Result<Void, RoomProxyError>
     
     func uploadAvatar(media: MediaInfo) async -> Result<Void, RoomProxyError>
