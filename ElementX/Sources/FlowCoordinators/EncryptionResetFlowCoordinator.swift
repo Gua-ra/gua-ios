@@ -22,12 +22,15 @@ struct EncryptionResetFlowCoordinatorParameters {
     let userIndicatorController: UserIndicatorControllerProtocol
     let navigationStackCoordinator: NavigationStackCoordinator
     let windowManger: WindowManagerProtocol
+    /// Nil uses the deployment's identity service.
+    var identityServiceClient: IdentityServiceClientProtocol?
 }
 
 class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
     private let userSession: UserSessionProtocol
     private let appSettings: AppSettings
     private let userIndicatorController: UserIndicatorControllerProtocol
+    private let identityServiceClient: IdentityServiceClientProtocol?
     
     private let navigationStackCoordinator: NavigationStackCoordinator
     private let windowManager: WindowManagerProtocol
@@ -63,6 +66,7 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
         userSession = parameters.userSession
         appSettings = parameters.appSettings
         userIndicatorController = parameters.userIndicatorController
+        identityServiceClient = parameters.identityServiceClient
         navigationStackCoordinator = parameters.navigationStackCoordinator
         windowManager = parameters.windowManger
         
@@ -182,7 +186,7 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
     private func presentPasswordScreen(passwordPublisher: PassthroughSubject<String, Never>) {
         let coordinator = EncryptionResetPasswordScreenCoordinator(parameters: .init(passwordPublisher: passwordPublisher,
                                                                                      clientProxy: userSession.clientProxy,
-                                                                                     identityServiceClient: IdentityServiceClient()))
+                                                                                     identityServiceClient: identityServiceClient ?? IdentityServiceClient()))
         
         coordinator.actionsPublisher.sink { [weak self] action in
             guard let self else { return }

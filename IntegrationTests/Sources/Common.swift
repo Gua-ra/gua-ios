@@ -37,51 +37,31 @@ extension XCUIApplication {
             currentTestCase.waitForExpectations(timeout: 300.0)
         }
         
-        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-        let webAuthenticationSessionAlertContinueButton = springboard.buttons["Continue"].firstMatch
+        let continueButton = buttons[A11yIdentifiers.serverConfirmationScreen.continue]
+        XCTAssertTrue(continueButton.waitForExistence(timeout: 30.0))
+        continueButton.tap(.center)
         
-        // On a fresh simulator the webcredentials association is sometimes slow to be resolved.
-        // This results in an error alert being shown instead of the Web Authentication Session alert.
-        // Keep looping on the Continue button for ~5 minutes until the Authentication Session is happy.
-        var remainingAttempts = 10
-        while !webAuthenticationSessionAlertContinueButton.exists {
-            let continueButton = buttons[A11yIdentifiers.serverConfirmationScreen.continue]
-            XCTAssertTrue(continueButton.waitForExistence(timeout: 30.0))
-            continueButton.tap(.center)
-            
-            if webAuthenticationSessionAlertContinueButton.waitForExistence(timeout: 30.0) {
-                break
-            }
-            
-            remainingAttempts -= 1
-            if remainingAttempts <= 0 {
-                XCTFail("Failed to present the web authentication session.")
-            }
-            
-            if alerts.count > 0 {
-                alerts.firstMatch.buttons["OK"].tap()
-            }
-        }
+        let usernameTextField = textFields[A11yIdentifiers.loginScreen.emailUsername]
+        XCTAssertTrue(usernameTextField.waitForExistence(timeout: 10.0))
+        usernameTextField.clearAndTypeText(username, app: self)
         
-        webAuthenticationSessionAlertContinueButton.tap(.center)
+        let passwordTextField = secureTextFields[A11yIdentifiers.loginScreen.password]
+        XCTAssertTrue(passwordTextField.waitForExistence(timeout: 10.0))
+        passwordTextField.clearAndTypeText(password, app: self)
         
-        let webAuthenticationView = webViews.firstMatch
-        XCTAssertTrue(webAuthenticationView.waitForExistence(timeout: 10.0))
-        webAuthenticationView.tap(.top) // Tap the web view to properly focus the app again.
+        let nextButton = buttons[A11yIdentifiers.loginScreen.continue]
+        XCTAssertTrue(nextButton.waitForExistence(timeout: 10.0))
+        XCTAssertTrue(nextButton.isEnabled)
+        nextButton.tap(.center)
         
-        let webUsernameTextField = textFields["Username or Email"]
-        XCTAssertTrue(webUsernameTextField.waitForExistence(timeout: 10.0))
-        webUsernameTextField.clearAndTypeText(username, app: self)
-        buttons["Done"].tap() // Dismiss the keyboard so that the password text field is fully hittable.
+        // iOS offers to save the password after sign-in, and the app's main thread waits for the service showing that
+        // offer, which can take a minute to start on a CI simulator. Querying the app meanwhile fails after 30 seconds,
+        // so give the service time to start before the next query.
+        sleep(30)
         
-        let webPasswordTextField = secureTextFields["Password"]
-        XCTAssertTrue(webPasswordTextField.waitForExistence(timeout: 10.0))
-        webPasswordTextField.clearAndTypeText(password, app: self)
-        buttons["Done"].tap() // Dismiss the keyboard so that the continue button is fully hittable.
-        
-        let webLoginButton = webAuthenticationView.buttons["Continue"]
-        XCTAssertTrue(webLoginButton.waitForExistence(timeout: 10.0))
-        webLoginButton.tap(.center)
+        // Wait for login to finish
+        currentTestCase.expectation(for: doesNotExistPredicate, evaluatedWith: usernameTextField)
+        currentTestCase.waitForExpectations(timeout: 300.0)
         
         // Handle the password saving dialog
         let savePasswordButton = buttons["Save Password"]
@@ -92,14 +72,6 @@ extension XCUIApplication {
             buttons["Not Now"].tap(.center)
         }
         
-        let webConsentButton = webAuthenticationView.buttons["Continue"]
-        XCTAssertTrue(webConsentButton.waitForExistence(timeout: 10.0))
-        webConsentButton.tap(.center)
-        
-        // Wait for login to finish
-        currentTestCase.expectation(for: doesNotExistPredicate, evaluatedWith: webUsernameTextField)
-        currentTestCase.waitForExpectations(timeout: 300.0)
-                
         // Wait for the home screen to become visible.
         let profileButton = buttons[A11yIdentifiers.homeScreen.userAvatar]
         // Timeouts are huge because we're waiting for the server.
@@ -124,13 +96,14 @@ extension XCUIApplication {
         XCTAssertTrue(logoutButton.waitForExistence(timeout: 10.0))
         logoutButton.tap(.center)
         
-        // Confirm logout
-        let alertLogoutButton = alerts.firstMatch.buttons["Sign out"]
-        XCTAssertTrue(alertLogoutButton.waitForExistence(timeout: 10.0))
-        alertLogoutButton.tap(.center)
-        
+        // Confirm logout. On the account's last device the app asks on a screen instead of an alert,
+        // and signs out once the key backup has uploaded.
+        let confirmLogoutButton = buttons.matching(NSPredicate(format: "label == %@ && identifier != %@", "Sign out", A11yIdentifiers.settingsScreen.logout)).firstMatch
+        XCTAssertTrue(confirmLogoutButton.waitForExistence(timeout: 10.0))
+        confirmLogoutButton.tap(.center)
+
         // Check that we're back on the login screen
         let getStartedButton = buttons[A11yIdentifiers.authenticationStartScreen.signIn]
-        XCTAssertTrue(getStartedButton.waitForExistence(timeout: 10.0))
+        XCTAssertTrue(getStartedButton.waitForExistence(timeout: 30.0))
     }
 }

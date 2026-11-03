@@ -19,7 +19,8 @@ class DateTests: XCTestCase {
         let today = try XCTUnwrap(calendar.date(byAdding: DateComponents(hour: 9, minute: 30), to: startOfToday))
         XCTAssertEqual(today.formattedMinimal(), today.formatted(date: .omitted, time: .shortened))
         
-        let yesterday = try XCTUnwrap(calendar.date(byAdding: .hour, value: 1, to: startOfYesterday))
+        // Later times yesterday are less than a day ago just after midnight, and the relative style formats those in hours.
+        let yesterday = startOfYesterday
         XCTAssertEqual(yesterday.formattedMinimal(), yesterday.formatted(Date.RelativeFormatStyle(presentation: .named, capitalizationContext: .beginningOfSentence)))
         
         let nearYesterday = try XCTUnwrap(calendar.date(byAdding: DateComponents(hour: -10), to: today))
