@@ -102,6 +102,28 @@ class HomeScreenViewModelTests: XCTestCase {
         XCTAssertEqual(context.leaveRoomAlertItem?.roomID, mockRoomID)
     }
     
+    func testLeaveRoomAsLastOwnerIgnoresDepartedCreator() async throws {
+        setupViewModel()
+        
+        let mockRoomID = "1"
+        let ownMember = RoomMemberProxyMock(with: .init(userID: RoomMemberProxyMock.mockMe.userID, membership: .join, powerLevel: .value(150)))
+        let departedCreator = RoomMemberProxyMock(with: .init(userID: "@creator:matrix.org", membership: .leave, powerLevel: .infinite))
+        let room = JoinedRoomProxyMock(.init(id: mockRoomID, name: "Some room", members: [ownMember, .mockAlice, departedCreator]))
+        
+        clientProxy.roomForIdentifierClosure = { _ in .joined(room) }
+        
+        let deferred = deferFulfillment(context.$viewState) { value in
+            value.bindings.alertInfo != nil || value.bindings.leaveRoomAlertItem != nil
+        }
+        
+        context.send(viewAction: .leaveRoom(roomIdentifier: mockRoomID))
+        
+        try await deferred.fulfill()
+        
+        XCTAssertEqual(context.alertInfo?.title, L10n.leaveRoomAlertSelectNewOwnerTitle)
+        XCTAssertNil(context.leaveRoomAlertItem)
+    }
+    
     func testLeaveRoomError() async throws {
         setupViewModel()
         
