@@ -11,6 +11,12 @@ extension PreviewTests {
 
     // MARK: - PreviewProvider
 
+    func testAccountAuthorityScreen() async throws {
+        for (index, preview) in AccountAuthorityScreen_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
     func testAdvancedSettingsScreen() async throws {
         for (index, preview) in AdvancedSettingsScreen_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)
@@ -67,6 +73,12 @@ extension PreviewTests {
 
     func testAuthenticationStartScreen() async throws {
         for (index, preview) in AuthenticationStartScreen_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    func testAuthorityApprovalScreen() async throws {
+        for (index, preview) in AuthorityApprovalScreen_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)
         }
     }

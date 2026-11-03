@@ -72,6 +72,7 @@ final class AppSettings {
         case legacyAuthEnabled
         case guaHidesAdvancedEncryption
         case guaAccountGenesisEnabled
+        case guaAccountAuthorityEnabled
         
         // Doug's tweaks 🔧
         case hideUnreadMessagesBadge
@@ -505,6 +506,10 @@ final class AppSettings {
     /// enabled and issuing would therefore break account creation there.
     @UserPreference(key: UserDefaultsKeys.guaAccountGenesisEnabled, defaultValue: false, storageType: .userDefaults(store))
     var guaAccountGenesisEnabled
+
+    /// GUA FORK: when `true`, the account authority screens and requests are reachable. Keep it off outside dev.
+    @UserPreference(key: UserDefaultsKeys.guaAccountAuthorityEnabled, defaultValue: false, storageType: .userDefaults(store))
+    var guaAccountAuthorityEnabled
 
     @UserPreference(key: UserDefaultsKeys.developerOptionsEnabled, defaultValue: isDevelopmentBuild, storageType: .userDefaults(store))
     var developerOptionsEnabled

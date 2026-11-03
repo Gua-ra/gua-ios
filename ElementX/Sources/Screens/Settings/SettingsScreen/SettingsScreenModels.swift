@@ -29,6 +29,7 @@ enum SettingsScreenViewModelAction: Equatable {
     case changePhoneNumber
     /// GUA FORK: Find which of the user's phone contacts are on Gua
     case findFriends
+    case accountAuthority
 }
 
 enum SettingsScreenSecuritySectionMode {
@@ -49,6 +50,8 @@ struct SettingsScreenViewState: BindableState {
     /// GUA FORK: When `true`, the advanced Encryption entry point is hidden from
     /// Settings. E2EE remains fully enabled with safe defaults.
     var hidesAdvancedEncryption = true
+
+    var showAccountAuthority = false
 
     /// GUA FORK: The bare localpart (e.g. "alice") of `userID`, hiding the
     /// "@" prefix and ":homeserver" suffix for Gua's frictionless design.
@@ -94,4 +97,5 @@ enum SettingsScreenViewAction {
     case changePhoneNumber
     /// GUA FORK: Find friends from phone contacts
     case findFriends
+    case accountAuthority
 }

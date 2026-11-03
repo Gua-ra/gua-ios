@@ -78,6 +78,9 @@ final class NotificationManager: NSObject, NotificationManagerProtocol {
         guard let userSession else {
             return false
         }
+        if appSettings.guaAccountAuthorityEnabled {
+            await MainActor.run { AuthorityPushTokenStore.shared.store(deviceToken: deviceToken) }
+        }
         return await setPusher(with: deviceToken, clientProxy: userSession.clientProxy)
     }
 
@@ -207,6 +210,10 @@ final class NotificationManager: NSObject, NotificationManagerProtocol {
 extension NotificationManager: UNUserNotificationCenterDelegate {
     func userNotificationCenter(_ center: UNUserNotificationCenter,
                                 willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
+        // GUA FORK: a security alert is shown regardless of the chat preference and of the local feature flag.
+        if notification.request.content.userInfo[NotificationConstants.UserInfoKey.guaAuthorityAlert] as? String == "1" {
+            return [.badge, .sound, .list, .banner]
+        }
         guard appSettings.enableInAppNotifications else {
             return []
         }

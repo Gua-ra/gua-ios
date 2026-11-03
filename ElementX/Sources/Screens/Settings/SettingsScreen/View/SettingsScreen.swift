@@ -146,6 +146,14 @@ struct SettingsScreen: View {
                         context.send(viewAction: .twoStepVerification)
                     })
 
+            if context.viewState.showAccountAuthority {
+                ListRow(label: .default(title: L10n.screenAccountAuthorityTitle,
+                                        icon: \.devices),
+                        kind: .navigationLink {
+                            context.send(viewAction: .accountAuthority)
+                        })
+            }
+
             // GUA FORK: Change phone number entry point
             ListRow(label: .default(title: L10n.screenChangePhoneTitle,
                                     icon: \.edit),
