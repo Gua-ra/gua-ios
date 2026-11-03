@@ -42,6 +42,16 @@ enum GuaDeployment {
         }
     }
 
+    /// A development build without injected roots leaves the verifier inert.
+    var resolverTrustRoots: ResolverTrustRoots {
+        switch self {
+        case .production:
+            return .production
+        case .development:
+            return ResolverTrustRoots(developmentSecret: Secrets.resolverTrustRoots)
+        }
+    }
+
     /// identity-service base URL (phone/OTP IdP), or `nil` when unconfigured.
     var identityServiceBaseURL: URL? {
         switch self {

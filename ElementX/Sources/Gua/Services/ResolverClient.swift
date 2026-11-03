@@ -28,6 +28,8 @@ struct HomeserverResolution: Equatable {
     /// Why the resolver decided what it did. Present only when the caller asked for a trace
     /// (`ResolveOptions.trace`); for debug and support tooling, never shown in the UI.
     var trace: DecisionTrace?
+    /// Absent from older resolvers, and from a current one when the roster changed during the request.
+    var rosterVersion: Int64?
 }
 
 /// Optional `POST /resolve` request fields of the resolver v1 contract. Every field is omitted from the
@@ -266,7 +268,22 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
             let exists: Bool
             let homeserver: HomeserverRef?
             let registerAt: HomeserverRef?
+            let rosterVersion: Int64?
             let trace: DecisionTrace?
+
+            private enum CodingKeys: String, CodingKey {
+                case exists, homeserver, registerAt, rosterVersion, trace
+            }
+
+            init(from decoder: Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                exists = try container.decode(Bool.self, forKey: .exists)
+                homeserver = try container.decodeIfPresent(HomeserverRef.self, forKey: .homeserver)
+                registerAt = try container.decodeIfPresent(HomeserverRef.self, forKey: .registerAt)
+                // Only the report-only verifier reads it, so a malformed value must not fail the sign-in.
+                rosterVersion = try? container.decodeIfPresent(Int64.self, forKey: .rosterVersion)
+                trace = try container.decodeIfPresent(DecisionTrace.self, forKey: .trace)
+            }
         }
 
         guard let url = URL(string: "/resolve", relativeTo: baseURL) else { throw ResolverError.invalidURL }
@@ -315,7 +332,8 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
                                                                    baseURL: ref.baseUrl,
                                                                    masIssuer: ref.masIssuer,
                                                                    region: ref.region),
-                                    trace: parsed.trace)
+                                    trace: parsed.trace,
+                                    rosterVersion: parsed.rosterVersion)
     }
 
     /// Map a non-success `/resolve` response to a typed error. The resolver's error body is

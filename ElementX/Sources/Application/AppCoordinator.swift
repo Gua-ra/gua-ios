@@ -630,6 +630,7 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
                                                         userIndicatorController: ServiceLocator.shared.userIndicatorController,
                                                         resolverClient: ResolverClient(), // GUA FORK: required for phone -> homeserver routing.
                                                         accountGenesisService: AccountGenesisService(appSettings: appSettings), // GUA FORK: ADM-008, inert while the flag is off.
+                                                        resolverVerifier: ResolverVerifier(appSettings: appSettings), // GUA FORK: report-only resolver verification.
                                                         usesPhoneLoginHint: true) // Flip to false to restore the stock start/server-confirmation OIDC entry.
         coordinator.delegate = self
         
