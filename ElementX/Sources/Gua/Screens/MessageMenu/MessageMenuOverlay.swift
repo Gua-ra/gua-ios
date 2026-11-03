@@ -136,8 +136,6 @@ struct MessageMenuOverlay: View {
         }
     }
 
-    // MARK: - Backdrop
-
     private var backdrop: some View {
         Color.black
             .opacity(colorScheme == .dark ? 0.4 : 0.1)
@@ -147,8 +145,6 @@ struct MessageMenuOverlay: View {
             .accessibilityHidden(true)
     }
 
-    // MARK: - Bubble
-
     private func bubble(width: CGFloat) -> some View {
         RoomTimelineItemView(viewState: RoomTimelineItemViewState(item: item, groupStyle: groupStyle))
             .environment(\.isMessageMenuPreview, true)
@@ -157,8 +153,6 @@ struct MessageMenuOverlay: View {
             .fixedSize(horizontal: false, vertical: true)
             .allowsHitTesting(false)
     }
-
-    // MARK: - Reactions
 
     private static let reactionSize: CGFloat = 44
     private static let reactionSpacing: CGFloat = 2
@@ -217,8 +211,6 @@ struct MessageMenuOverlay: View {
         }
         .accessibilityLabel(hasReacted ? L10n.a11yRemoveReaction(key) : L10n.a11yAddReaction(key))
     }
-
-    // MARK: - Actions
 
     private static let detailsWidth: CGFloat = 250
 
@@ -304,8 +296,6 @@ struct MessageMenuOverlay: View {
         .buttonStyle(MessageMenuButtonStyle())
     }
 
-    // MARK: - Who reacted
-
     private static let summaryRowHeight: CGFloat = 48
 
     private var reactionSummaryRows: some View {
@@ -344,8 +334,6 @@ struct MessageMenuOverlay: View {
         .frame(minHeight: Self.summaryRowHeight)
         .accessibilityElement(children: .combine)
     }
-
-    // MARK: - Dismissal
 
     private func close(then action: (() -> Void)? = nil) {
         withAnimation(.easeOut(duration: 0.18).disabledDuringTests()) {
@@ -454,8 +442,6 @@ private struct MessageMenuLabelStyle: LabelStyle {
         }
     }
 }
-
-// MARK: - Previews
 
 struct MessageMenuOverlay_Previews: PreviewProvider, TestablePreview {
     static let viewModel = TimelineViewModel.mock
