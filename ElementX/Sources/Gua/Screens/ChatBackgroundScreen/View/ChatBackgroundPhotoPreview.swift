@@ -8,15 +8,17 @@
 import Compound
 import SwiftUI
 
-/// The picked photo in the chat's own frame, with the controls drawn over it like the composer, so it is cropped exactly as in the chat.
+/// The picked photo full screen, with the controls drawn over it like the composer, cropped as in a chat that fills the screen.
 struct ChatBackgroundPhotoPreview: View {
     @Bindable var context: ChatBackgroundScreenViewModel.Context
 
     @Environment(\.colorScheme) private var colorScheme
+    /// Still drawn while the cover slides away, after the draft is cleared.
+    @State private var lastDraft: ChatBackgroundPhotoDraft?
 
     var body: some View {
         NavigationStack {
-            if let draft = context.viewState.bindings.photoDraft {
+            if let draft = context.viewState.bindings.photoDraft ?? lastDraft {
                 ZStack(alignment: .bottom) {
                     ChatBackgroundPhotoFrame(draft: draft, onMove: move)
                         .environment(\.colorScheme, previewColorScheme(for: draft))
@@ -49,6 +51,11 @@ struct ChatBackgroundPhotoPreview: View {
             }
         }
         .alert(item: $context.alertInfo)
+        .onChange(of: context.viewState.bindings.photoDraft, initial: true) { _, draft in
+            if let draft {
+                lastDraft = draft
+            }
+        }
     }
 
     private func previewColorScheme(for draft: ChatBackgroundPhotoDraft) -> ColorScheme {
