@@ -485,7 +485,6 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
                         actionsSubject.send(.displayMediaDetails(item: item))
                     } else if actionMenuInfo.presentation.anchor != nil,
                               state.menuActionProvider(for: actionMenuInfo.item).makeActions() == nil {
-                        // The overlay has nothing to show for this message, for example a removed one.
                         break
                     } else {
                         self.state.bindings.actionMenuInfo = actionMenuInfo
@@ -911,7 +910,6 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
     
     // MARK: Pills
     
-    /// The message as its bubble reads, with mentions written out the way their pills show them.
     private func selectableText(for item: EventBasedMessageTimelineItemProtocol) -> String {
         let formattedBody = switch item {
         case let item as TextRoomTimelineItem: item.content.formattedBody

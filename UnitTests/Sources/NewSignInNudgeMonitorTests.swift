@@ -70,8 +70,6 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
         OwnDevicesHTTPStub.reset()
     }
 
-    // MARK: - Candidate selection
-
     func testNudgesOnlyTheNewestRecentDeviceWithoutASelfSigningSignature() async throws {
         monitor.start()
         await runRound()
@@ -198,8 +196,6 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
         XCTAssertEqual(nudgedDevices, ["OLDWEB", "NEWWEB"])
     }
 
-    // MARK: - Rate limits
-
     func testNudgesADeviceAtMostOnceEveryTwoMinutesAndThreeTimesInAll() async {
         fixture.devices = [.init(id: phoneID, lastSeen: start, signedBySelfSigningKey: true),
                            .init(id: "WEB", lastSeen: start)]
@@ -267,8 +263,6 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
         await runRound(at: 240)
         XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 4)
     }
-
-    // MARK: - Gating
 
     func testDoesNothingWhileThisDeviceIsNotVerified() async {
         verificationState.send(.unverified)
@@ -352,8 +346,6 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
         XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
     }
 
-    // MARK: - Server errors
-
     func testUnauthorizedReadSkipsTheRoundAndTheNextRoundReadsAFreshToken() async {
         OwnDevicesHTTPStub.respond { _ in (401, #"{"errcode":"M_UNKNOWN_TOKEN","error":"Token expired"}"#) }
         monitor.start()
@@ -420,8 +412,6 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
         XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
     }
 
-    // MARK: - Scheduling
-
     func testFirstVerificationSchedulesOneRoundFiveSecondsLater() async {
         verificationState.send(.unverified)
         monitor.start()
@@ -479,8 +469,6 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
         notificationCenter.post(name: UIApplication.didBecomeActiveNotification, object: nil)
         XCTAssertTrue(scheduler.liveEntries.isEmpty)
     }
-
-    // MARK: - Helpers
 
     private func makeMonitor() -> NewSignInNudgeMonitor {
         NewSignInNudgeMonitor(clientProxy: clientProxy,

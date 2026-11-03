@@ -176,7 +176,7 @@ class SessionVerificationScreenViewModel: SessionVerificationViewModelType, Sess
             switch await sessionVerificationControllerProxy.acceptVerificationRequest() {
             case .success:
                 stateMachine.processEvent(.didAcceptVerificationRequest)
-                // GUA FORK: our own new device waits for this side to start, so its emojis show without a click.
+                // GUA FORK: the user's new device waits for this side to start, so its emojis show without a click.
                 if case .deviceResponder = flow {
                     stateMachine.processEvent(.startSasVerification)
                 }
