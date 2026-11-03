@@ -142,6 +142,26 @@ struct RoomStateEventStringBuilder {
         }
     }
     
+    /// GUA FORK: never reached from the chat list, which goes through `buildString(for:sender:isOutgoing:)`.
+    func buildChatBackgroundString(isRemoval: Bool, sender: TimelineItemSender, isOutgoing: Bool) -> String {
+        let displayName = if shouldDisambiguateDisplayNames {
+            sender.disambiguatedDisplayName ?? sender.id.guaDisplayHandle
+        } else {
+            sender.displayName ?? sender.id.guaDisplayHandle
+        }
+        
+        switch (isRemoval, isOutgoing) {
+        case (true, true):
+            return UntranslatedL10n.guaChatBackgroundNoticeRemovedByYou
+        case (true, false):
+            return UntranslatedL10n.guaChatBackgroundNoticeRemoved(displayName)
+        case (false, true):
+            return UntranslatedL10n.guaChatBackgroundNoticeChangedByYou
+        case (false, false):
+            return UntranslatedL10n.guaChatBackgroundNoticeChanged(displayName)
+        }
+    }
+    
     func buildString(for state: OtherState, sender: TimelineItemSender, isOutgoing: Bool) -> String? {
         let displayName = if shouldDisambiguateDisplayNames {
             sender.disambiguatedDisplayName ?? sender.id.guaDisplayHandle

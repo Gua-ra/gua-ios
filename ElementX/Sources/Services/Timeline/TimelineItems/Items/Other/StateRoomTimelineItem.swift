@@ -18,4 +18,7 @@ struct StateRoomTimelineItem: EventBasedTimelineItemProtocol, Equatable {
     let sender: TimelineItemSender
     
     var properties = RoomTimelineItemProperties()
+    
+    /// GUA FORK: set on a chat background notice, so the timeline can report the change.
+    var chatBackgroundEvent: ChatBackgroundTimelineEvent?
 }
