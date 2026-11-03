@@ -29,55 +29,10 @@ struct AdvancedSettingsScreen: View {
                         context.send(viewAction: .optimizeMediaUploadsChanged)
                     }
             }
-            
-            moderationAndSafetySection
-            timelineMediaSection
         }
         .compoundList()
         .navigationTitle(L10n.commonAdvancedSettings)
         .navigationBarTitleDisplayMode(.inline)
-    }
-    
-    @ViewBuilder
-    private var moderationAndSafetySection: some View {
-        let binding = Binding(get: {
-            context.viewState.hideInviteAvatars
-        }, set: { newValue in
-            context.send(viewAction: .updateHideInviteAvatars(newValue))
-        })
-        
-        Section {
-            ListRow(label: .plain(title: L10n.screenAdvancedSettingsHideInviteAvatarsToggleTitle),
-                    details: context.viewState.isWaitingHideInviteAvatars ? .isWaiting(true) : nil,
-                    kind: .toggle(binding))
-                .disabled(context.viewState.isWaitingHideInviteAvatars)
-        } header: {
-            Text(L10n.screenAdvancedSettingsModerationAndSafetySectionTitle)
-                .compoundListSectionHeader()
-        }
-    }
-    
-    @ViewBuilder
-    private var timelineMediaSection: some View {
-        let binding = Binding(get: {
-            context.viewState.timelineMediaVisibility
-        }, set: { newValue in
-            context.send(viewAction: .updateTimelineMediaVisibility(newValue))
-        })
-        
-        Section {
-            ListRow(label: .plain(title: L10n.screenAdvancedSettingsShowMediaTimelineTitle),
-                    details: .isWaiting(context.viewState.isWaitingTimelineMediaVisibility),
-                    kind: .inlinePicker(selection: binding,
-                                        items: TimelineMediaVisibility.items))
-                .disabled(context.viewState.isWaitingTimelineMediaVisibility)
-        } header: {
-            Text(L10n.screenAdvancedSettingsShowMediaTimelineTitle)
-                .compoundListSectionHeader()
-        } footer: {
-            Text(L10n.screenAdvancedSettingsShowMediaTimelineSubtitle)
-                .compoundListSectionFooter()
-        }
     }
 }
 
@@ -85,20 +40,10 @@ struct AdvancedSettingsScreen: View {
 
 struct AdvancedSettingsScreen_Previews: PreviewProvider, TestablePreview {
     static let viewModel = AdvancedSettingsScreenViewModel(advancedSettings: ServiceLocator.shared.settings,
-                                                           analytics: ServiceLocator.shared.analytics,
-                                                           clientProxy: ClientProxyMock(.init()),
-                                                           userIndicatorController: UserIndicatorControllerMock())
+                                                           analytics: ServiceLocator.shared.analytics)
     static var previews: some View {
         NavigationStack {
             AdvancedSettingsScreen(context: viewModel.context)
         }
-    }
-}
-
-private extension TimelineMediaVisibility {
-    static var items: [(title: String, tag: TimelineMediaVisibility)] {
-        [(title: L10n.screenAdvancedSettingsShowMediaTimelineAlwaysHide, tag: .never),
-         (title: L10n.screenAdvancedSettingsShowMediaTimelinePrivateRooms, tag: .privateOnly),
-         (title: L10n.screenAdvancedSettingsShowMediaTimelineAlwaysShow, tag: .always)]
     }
 }

@@ -87,6 +87,7 @@ enum TestablePreviewsDictionary {
         "MessageMenuOverlay_Previews" : MessageMenuOverlay_Previews.self,
         "MessageTextSelectionSheet_Previews" : MessageTextSelectionSheet_Previews.self,
         "MessageText_Previews" : MessageText_Previews.self,
+        "ModerationAndSafetySettingsScreen_Previews" : ModerationAndSafetySettingsScreen_Previews.self,
         "NoticeRoomTimelineView_Previews" : NoticeRoomTimelineView_Previews.self,
         "NotificationPermissionsScreen_Previews" : NotificationPermissionsScreen_Previews.self,
         "NotificationSettingsEditScreenRoomCell_Previews" : NotificationSettingsEditScreenRoomCell_Previews.self,

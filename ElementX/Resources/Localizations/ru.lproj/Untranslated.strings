@@ -30,3 +30,6 @@
 
 "common_account_settings" = "Настройки аккаунта";
 "common_app_settings" = "Настройки приложения";
+
+"common_moderation_and_safety" = "Модерация и безопасность";
+"screen_moderation_and_safety_invites_heading" = "Приглашения";

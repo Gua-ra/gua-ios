@@ -27,3 +27,6 @@
 
 "common_account_settings" = "Pengaturan Akun";
 "common_app_settings" = "Pengaturan aplikasi";
+
+"common_moderation_and_safety" = "Moderasi & keamanan";
+"screen_moderation_and_safety_invites_heading" = "Undangan";

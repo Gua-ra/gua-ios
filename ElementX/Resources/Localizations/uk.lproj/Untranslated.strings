@@ -30,3 +30,6 @@
 
 "common_account_settings" = "Налаштування облікового запису";
 "common_app_settings" = "Налаштування застосунку";
+
+"common_moderation_and_safety" = "Модерування та безпека";
+"screen_moderation_and_safety_invites_heading" = "Запрошення";

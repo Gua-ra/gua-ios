@@ -27,3 +27,6 @@
 
 "common_account_settings" = "Fiókbeállítások";
 "common_app_settings" = "Alkalmazásbeállítások";
+
+"common_moderation_and_safety" = "Moderálás és biztonság";
+"screen_moderation_and_safety_invites_heading" = "Meghívók";

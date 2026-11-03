@@ -144,14 +144,11 @@ struct SettingsScreen: View {
                         context.send(viewAction: .changePhoneNumber)
                     })
 
-            if context.viewState.showBlockedUsers {
-                ListRow(label: .default(title: L10n.commonBlockedUsers,
-                                        icon: \.block),
-                        kind: .navigationLink {
-                            context.send(viewAction: .blockedUsers)
-                        })
-                        .accessibilityIdentifier(A11yIdentifiers.settingsScreen.blockedUsers)
-            }
+            ListRow(label: .default(title: UntranslatedL10n.commonModerationAndSafety,
+                                    icon: \.admin),
+                    kind: .navigationLink {
+                        context.send(viewAction: .moderationAndSafety)
+                    })
         } header: {
             Text(UntranslatedL10n.commonAccountSettings)
                 .compoundListSectionHeader()
