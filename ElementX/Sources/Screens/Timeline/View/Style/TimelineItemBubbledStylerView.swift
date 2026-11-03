@@ -150,6 +150,7 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
     
     var messageBubbleWithActions: some View {
         messageBubble
+            .opacity(bubbleFrameReader.isLifted ? 0 : 1)
             .onDoubleTap(isEnabled: canDoubleTapToReact) {
                 displayMenu(showsActions: false)
             }

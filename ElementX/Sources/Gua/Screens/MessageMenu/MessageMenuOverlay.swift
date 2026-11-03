@@ -71,7 +71,7 @@ struct MessageMenuOverlay: View {
     /// The card's full height. The who-reacted card shows five and a half rows at most, then scrolls.
     private var detailsSize: CGSize? {
         guard showsDetails else { return nil }
-        let height = showsActions ? detailsContentHeight : min(detailsContentHeight, 5.5 * Self.summaryRowHeight)
+        let height = showsActions ? detailsContentHeight : min(detailsContentHeight, 5.5 * Self.summaryRowHeight + MessageMenuChrome.inset)
         return CGSize(width: Self.detailsWidth, height: height)
     }
 
@@ -112,7 +112,6 @@ struct MessageMenuOverlay: View {
                     }
                 }
                 .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
-                .inGlassEffectContainer()
                 // The anchor's frame is measured from the left, so positions are too. Contents keep the real direction.
                 .environment(\.layoutDirection, .leftToRight)
                 .onChange(of: geometry.size.width) {
@@ -129,10 +128,14 @@ struct MessageMenuOverlay: View {
             }
         }
         .onAppear {
+            presentation.anchor?.isBubbleLifted = true
             guard !isVisible else { return }
             withAnimation(.spring(response: 0.35, dampingFraction: 0.8).disabledDuringTests()) {
                 isVisible = true
             }
+        }
+        .onDisappear {
+            presentation.anchor?.isBubbleLifted = false
         }
     }
 
@@ -191,6 +194,7 @@ struct MessageMenuOverlay: View {
             .padding(.trailing, Self.reactionBarPadding)
             .accessibilityLabel(L10n.actionReact)
         }
+        .padding(.vertical, Self.reactionBarPadding)
         .messageMenuSurface(in: Capsule())
         .environment(\.layoutDirection, layoutDirection)
     }
@@ -344,6 +348,7 @@ struct MessageMenuOverlay: View {
             if !ProcessInfo.isRunningTests {
                 try? await Task.sleep(for: .seconds(0.18))
             }
+            presentation.anchor?.isBubbleLifted = false
             dismiss()
 
             guard let action else { return }
@@ -400,16 +405,6 @@ private enum MessageMenuChrome {
 private extension View {
     func messageMenuSurface(in shape: some Shape) -> some View {
         modifier(MessageMenuSurface(shape: shape))
-    }
-
-    @ViewBuilder
-    func inGlassEffectContainer() -> some View {
-        if #available(iOS 26, *) {
-            // Zero spacing keeps the bar and the card from merging over a short bubble.
-            GlassEffectContainer(spacing: 0) { self }
-        } else {
-            self
-        }
     }
 }
 

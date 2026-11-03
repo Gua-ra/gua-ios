@@ -56,6 +56,11 @@ final class MessageMenuAnchor: Equatable {
         reader?.frame ?? initialFrame
     }
 
+    var isBubbleLifted: Bool {
+        get { reader?.isLifted ?? false }
+        set { reader?.isLifted = newValue }
+    }
+
     nonisolated static func == (lhs: MessageMenuAnchor, rhs: MessageMenuAnchor) -> Bool {
         lhs === rhs
     }
