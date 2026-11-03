@@ -72,6 +72,10 @@ struct DeveloperOptionsScreen: View {
                     Text("Can leak the device IP address when loading link metadata.")
                         .foregroundStyle(.compound.textCriticalPrimary)
                 }
+                
+                Toggle(isOn: $context.viewSourceEnabled) {
+                    Text(L10n.actionViewSource)
+                }
             }
                         
             Section("Join rules") {

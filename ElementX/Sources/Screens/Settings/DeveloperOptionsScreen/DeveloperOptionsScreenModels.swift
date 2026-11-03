@@ -55,6 +55,7 @@ protocol DeveloperOptionsProtocol: AnyObject {
     
     var nextGenHTMLParserEnabled: Bool { get set }
     var linkPreviewsEnabled: Bool { get set }
+    var viewSourceEnabled: Bool { get set }
 }
 
 extension AppSettings: DeveloperOptionsProtocol { }
