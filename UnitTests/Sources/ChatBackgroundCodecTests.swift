@@ -65,13 +65,41 @@ final class ChatBackgroundCodecTests: XCTestCase {
         XCTAssertEqual(written["w"] as? Int, 1536)
         XCTAssertEqual(written["h"] as? Int, 2048)
         XCTAssertEqual(written["size"] as? Int, 412_337)
-        XCTAssertEqual(written["dim"] as? Double, 0.35)
-        XCTAssertEqual(written["align"] as? NSDictionary, ["x": 0.123, "y": 1] as NSDictionary)
+        XCTAssertEqual(written["dim"] as? Int, 35)
+        XCTAssertEqual(written["align"] as? NSDictionary, ["x": 123, "y": 1000] as NSDictionary)
 
         var rounded = photo
         rounded.dim = 0.35
         rounded.alignX = 0.123
         XCTAssertEqual(ChatBackground(contentJSON: ChatBackground.photo(photo).contentJSON), .photo(rounded))
+    }
+
+    func testPhotoIsWrittenInTheSharedFormat() {
+        let photo = ChatBackground.Photo(url: "mxc://gua.global/AbCdEf",
+                                         mimetype: "image/jpeg",
+                                         width: 1536,
+                                         height: 2048,
+                                         size: 412_337,
+                                         blurhash: "LKO2?U%2Tw=w]~RBVZRi};RPxuwH")
+        XCTAssertEqual(ChatBackground.photo(photo).contentJSON,
+                       #"{"kind":"photo","photo":{"align":{"x":500,"y":500},"blurhash":"LKO2?U%2Tw=w]~RBVZRi};RPxuwH","dim":35,"h":2048,"mimetype":"image/jpeg","size":412337,"url":"mxc://gua.global/AbCdEf","w":1536},"v":1}"#)
+    }
+
+    /// Synapse refuses an event holding a float, or an integer beyond 2^53 - 1, in room versions 6 and later.
+    func testEveryWrittenNumberIsACanonicalJSONInteger() throws {
+        var photo = ChatBackground.Photo.mock
+        photo.dim = 0.351_234
+        photo.alignX = 0.123_456
+        photo.alignY = 1
+
+        for background in [ChatBackground.none, .preset(.aurora), .photo(.mock), .photo(photo)] {
+            let numbers = numberTokens(in: background.contentJSON)
+            XCTAssertEqual(numbers.isEmpty, background.isNone)
+            for number in numbers {
+                let integer = try XCTUnwrap(Int64(number), "\(number) in \(background.contentJSON)")
+                XCTAssertLessThanOrEqual(abs(integer), 9_007_199_254_740_991)
+            }
+        }
     }
 
     func testPhotoWithoutBlurhashOmitsIt() throws {
@@ -130,13 +158,42 @@ final class ChatBackgroundCodecTests: XCTestCase {
                                     height: XCTUnwrap(photo["h"] as? Int),
                                     size: XCTUnwrap(photo["size"] as? Int),
                                     blurhash: photo["blurhash"] as? String,
-                                    dim: XCTUnwrap(photo["dim"] as? Double),
-                                    alignX: XCTUnwrap(align["x"] as? Double),
-                                    alignY: XCTUnwrap(align["y"] as? Double)))
+                                    dim: Double(XCTUnwrap(photo["dim"] as? Int)) / ChatBackground.Photo.dimScale,
+                                    alignX: Double(XCTUnwrap(align["x"] as? Int)) / ChatBackground.Photo.alignScale,
+                                    alignY: Double(XCTUnwrap(align["y"] as? Int)) / ChatBackground.Photo.alignScale))
         default:
             XCTFail("Unknown expected kind")
             return .none
         }
+    }
+
+    private func numberTokens(in json: String) -> [String] {
+        var tokens: [String] = []
+        var current = ""
+        var isInString = false
+        var isEscaped = false
+
+        for character in json {
+            if isInString {
+                if isEscaped {
+                    isEscaped = false
+                } else if character == "\\" {
+                    isEscaped = true
+                } else if character == "\"" {
+                    isInString = false
+                }
+            } else if character == "\"" {
+                isInString = true
+            } else if (current.isEmpty ? "-0123456789" : "+-.eE0123456789").contains(character) {
+                current.append(character)
+                continue
+            }
+            if !current.isEmpty {
+                tokens.append(current)
+                current = ""
+            }
+        }
+        return tokens
     }
 
     private func rawValues(forKey key: String, in text: String) -> [String] {

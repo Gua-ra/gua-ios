@@ -132,10 +132,10 @@
           "h": 2048,
           "size": 412337,
           "blurhash": "LKO2?U%2Tw=w]~RBVZRi};RPxuwH",
-          "dim": 0.6,
+          "dim": 60,
           "align": {
-            "x": 0.25,
-            "y": 1
+            "x": 250,
+            "y": 1000
           }
         }
       },
@@ -148,10 +148,10 @@
           "h": 2048,
           "size": 412337,
           "blurhash": "LKO2?U%2Tw=w]~RBVZRi};RPxuwH",
-          "dim": 0.6,
+          "dim": 60,
           "align": {
-            "x": 0.25,
-            "y": 1.0
+            "x": 250,
+            "y": 1000
           }
         }
       }
@@ -178,10 +178,10 @@
           "h": 600,
           "size": 1000,
           "blurhash": null,
-          "dim": 0.35,
+          "dim": 35,
           "align": {
-            "x": 0.5,
-            "y": 0.5
+            "x": 500,
+            "y": 500
           }
         }
       }
@@ -211,10 +211,10 @@
           "h": 600,
           "size": 1000,
           "blurhash": null,
-          "dim": 0.35,
+          "dim": 35,
           "align": {
-            "x": 0.5,
-            "y": 0.5
+            "x": 500,
+            "y": 500
           }
         }
       }
@@ -362,7 +362,7 @@
           "w": 800,
           "h": 600,
           "size": 1000,
-          "dim": 3
+          "dim": 300
         }
       },
       "expected": {
@@ -374,10 +374,10 @@
           "h": 600,
           "size": 1000,
           "blurhash": null,
-          "dim": 0.8,
+          "dim": 80,
           "align": {
-            "x": 0.5,
-            "y": 0.5
+            "x": 500,
+            "y": 500
           }
         }
       }
@@ -393,7 +393,7 @@
           "w": 800,
           "h": 600,
           "size": 1000,
-          "dim": -1
+          "dim": -10
         }
       },
       "expected": {
@@ -405,10 +405,10 @@
           "h": 600,
           "size": 1000,
           "blurhash": null,
-          "dim": 0.0,
+          "dim": 0,
           "align": {
-            "x": 0.5,
-            "y": 0.5
+            "x": 500,
+            "y": 500
           }
         }
       }
@@ -425,8 +425,8 @@
           "h": 600,
           "size": 1000,
           "align": {
-            "x": -2,
-            "y": 7
+            "x": -2000,
+            "y": 7000
           }
         }
       },
@@ -439,10 +439,10 @@
           "h": 600,
           "size": 1000,
           "blurhash": null,
-          "dim": 0.35,
+          "dim": 35,
           "align": {
-            "x": 0.0,
-            "y": 1.0
+            "x": 0,
+            "y": 1000
           }
         }
       }
@@ -486,10 +486,10 @@
           "h": 600,
           "size": 1000,
           "blurhash": null,
-          "dim": 0.35,
+          "dim": 35,
           "align": {
-            "x": 0.5,
-            "y": 0.5
+            "x": 500,
+            "y": 500
           }
         }
       }
@@ -589,7 +589,46 @@
           "w": 800,
           "h": 600,
           "size": 1000,
-          "dim": "0.5"
+          "dim": "50"
+        }
+      },
+      "expected": {
+        "kind": "none"
+      }
+    },
+    {
+      "name": "dim written as a fraction",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 600,
+          "size": 1000,
+          "dim": 0.35
+        }
+      },
+      "expected": {
+        "kind": "none"
+      }
+    },
+    {
+      "name": "align written as fractions",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 600,
+          "size": 1000,
+          "align": {
+            "x": 0.5,
+            "y": 0.5
+          }
         }
       },
       "expected": {
@@ -607,7 +646,7 @@
           "w": 800,
           "h": 600,
           "size": 1000,
-          "align": 0.5
+          "align": 500
         }
       },
       "expected": {
@@ -627,7 +666,7 @@
           "size": 1000,
           "align": {
             "x": "left",
-            "y": 0.5
+            "y": 500
           }
         }
       },
@@ -726,7 +765,12 @@
           "mimetype": "image/png",
           "w": 800.0,
           "h": 600.0,
-          "size": 1000.0
+          "size": 1000.0,
+          "dim": 40.0,
+          "align": {
+            "x": 250.0,
+            "y": 750.0
+          }
         }
       },
       "expected": {
@@ -738,10 +782,10 @@
           "h": 600,
           "size": 1000,
           "blurhash": null,
-          "dim": 0.35,
+          "dim": 40,
           "align": {
-            "x": 0.5,
-            "y": 0.5
+            "x": 250,
+            "y": 750
           }
         }
       }

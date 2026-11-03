@@ -17,6 +17,9 @@ enum ChatBackground: Hashable {
         static let defaultDim = 0.35
         static let maxDim = 0.8
         static let defaultAlign = 0.5
+        /// Room versions 6 and later refuse floats in events, so dim is stored in whole percent and align in thousandths.
+        static let dimScale = 100.0
+        static let alignScale = 1000.0
         /// The largest file a photo background may declare, and the most that is downloaded to show one.
         static let maxSize = 20_000_000
 
@@ -71,15 +74,15 @@ extension ChatBackground {
                                         h: photo.height,
                                         size: photo.size,
                                         blurhash: photo.blurhash,
-                                        dim: (photo.dim * 100).rounded() / 100,
-                                        align: .init(x: (photo.alignX * 1000).rounded() / 1000,
-                                                     y: (photo.alignY * 1000).rounded() / 1000)))
+                                        dim: photo.dim.storedUnits(per: Photo.dimScale, upTo: Photo.maxDim),
+                                        align: .init(x: photo.alignX.storedUnits(per: Photo.alignScale, upTo: 1),
+                                                     y: photo.alignY.storedUnits(per: Photo.alignScale, upTo: 1))))
         }
 
         guard let content else { return Self.removedContent }
 
         let encoder = JSONEncoder()
-        encoder.outputFormatting = .sortedKeys
+        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         guard let data = try? encoder.encode(content), let json = String(data: data, encoding: .utf8) else {
             return Self.removedContent
         }
@@ -160,14 +163,14 @@ private struct PhotoContent: Decodable {
             throw InvalidContent()
         }
 
-        let dim = try container.decodeIfPresentAndNotNull(Double.self, forKey: .dim)
+        let dim = try container.decodeIntegerIfPresentAndNotNull(forKey: .dim)
 
-        var alignX: Double?
-        var alignY: Double?
+        var alignX: Int?
+        var alignY: Int?
         if try container.containsValue(forKey: .align) {
             let align = try container.nestedContainer(keyedBy: AlignCodingKeys.self, forKey: .align)
-            alignX = try align.decodeIfPresentAndNotNull(Double.self, forKey: .x)
-            alignY = try align.decodeIfPresentAndNotNull(Double.self, forKey: .y)
+            alignX = try align.decodeIntegerIfPresentAndNotNull(forKey: .x)
+            alignY = try align.decodeIntegerIfPresentAndNotNull(forKey: .y)
         }
 
         photo = .init(url: url,
@@ -176,17 +179,25 @@ private struct PhotoContent: Decodable {
                       height: height,
                       size: size,
                       blurhash: blurhash,
-                      dim: (dim ?? ChatBackground.Photo.defaultDim).clamped(to: 0...ChatBackground.Photo.maxDim),
-                      alignX: (alignX ?? ChatBackground.Photo.defaultAlign).clamped(to: 0...1),
-                      alignY: (alignY ?? ChatBackground.Photo.defaultAlign).clamped(to: 0...1))
+                      dim: dim.map(Self.dim) ?? ChatBackground.Photo.defaultDim,
+                      alignX: alignX.map(Self.align) ?? ChatBackground.Photo.defaultAlign,
+                      alignY: alignY.map(Self.align) ?? ChatBackground.Photo.defaultAlign)
+    }
+
+    private static func dim(_ storedValue: Int) -> Double {
+        (Double(storedValue) / ChatBackground.Photo.dimScale).clamped(to: 0...ChatBackground.Photo.maxDim)
+    }
+
+    private static func align(_ storedValue: Int) -> Double {
+        (Double(storedValue) / ChatBackground.Photo.alignScale).clamped(to: 0...1)
     }
 }
 
 private struct EncodedContent: Encodable {
     struct Photo: Encodable {
         struct Align: Encodable {
-            let x: Double
-            let y: Double
+            let x: Int
+            let y: Int
         }
 
         let url: String
@@ -195,7 +206,7 @@ private struct EncodedContent: Encodable {
         let h: Int
         let size: Int
         let blurhash: String?
-        let dim: Double
+        let dim: Int
         let align: Align
     }
 
@@ -227,6 +238,18 @@ private extension KeyedDecodingContainer {
             throw DecodingError.dataCorruptedError(forKey: key, in: self, debugDescription: "Not a whole number")
         }
         return integer
+    }
+
+    func decodeIntegerIfPresentAndNotNull(forKey key: Key) throws -> Int? {
+        guard try containsValue(forKey: key) else { return nil }
+        return try decodeInteger(forKey: key)
+    }
+}
+
+private extension Double {
+    func storedUnits(per scale: Double, upTo maximum: Double) -> Int {
+        guard isFinite else { return 0 }
+        return Int((clamped(to: 0...maximum) * scale).rounded())
     }
 }
 
