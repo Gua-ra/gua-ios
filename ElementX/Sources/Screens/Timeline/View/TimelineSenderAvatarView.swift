@@ -10,6 +10,7 @@ import SwiftUI
 
 struct TimelineSenderAvatarView: View {
     @Environment(\.timelineContext) private var context
+    @Environment(\.chatBackgroundActive) private var isChatBackgroundActive
 
     let timelineItem: EventBasedTimelineItemProtocol
         
@@ -20,7 +21,7 @@ struct TimelineSenderAvatarView: View {
                             avatarSize: .user(on: .timeline),
                             mediaProvider: context?.mediaProvider)
             .overlay {
-                Circle().stroke(Color.compound.bgCanvasDefault, lineWidth: 3)
+                Circle().stroke(isChatBackgroundActive ? Color.clear : Color.compound.bgCanvasDefault, lineWidth: 3)
             }
     }
 }

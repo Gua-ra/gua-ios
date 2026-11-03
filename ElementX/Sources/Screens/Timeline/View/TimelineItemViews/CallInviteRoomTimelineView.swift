@@ -11,6 +11,7 @@ import SwiftUI
 
 struct CallInviteRoomTimelineView: View {
     let timelineItem: CallInviteRoomTimelineItem
+    @Environment(\.chatBackgroundActive) private var isChatBackgroundActive
     
     var body: some View {
         Label {
@@ -19,7 +20,8 @@ struct CallInviteRoomTimelineView: View {
             CompoundIcon(\.voiceCallSolid, size: .medium, relativeTo: .compound.bodyMD)
         }
         .font(.compound.bodyMD)
-        .foregroundColor(.compound.textSecondary)
+        .foregroundColor(.legibleSecondaryText(isOnBackground: isChatBackgroundActive))
+        .legibilityCapsule()
         .frame(maxWidth: .infinity, alignment: .center)
         .padding()
     }

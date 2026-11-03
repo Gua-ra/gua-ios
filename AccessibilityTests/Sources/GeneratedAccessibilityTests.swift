@@ -71,6 +71,10 @@ extension AccessibilityTests {
         try await performAccessibilityAudit(named: "CallNotificationRoomTimelineView_Previews")
     }
 
+    func testChatBackgroundView() async throws {
+        try await performAccessibilityAudit(named: "ChatBackgroundView_Previews")
+    }
+
     func testCollapsibleRoomTimelineView() async throws {
         try await performAccessibilityAudit(named: "CollapsibleRoomTimelineView_Previews")
     }
@@ -245,6 +249,10 @@ extension AccessibilityTests {
 
     func testLegalInformationScreen() async throws {
         try await performAccessibilityAudit(named: "LegalInformationScreen_Previews")
+    }
+
+    func testLegibilityCapsule() async throws {
+        try await performAccessibilityAudit(named: "LegibilityCapsule_Previews")
     }
 
     func testLoadableImage() async throws {

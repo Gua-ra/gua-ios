@@ -138,7 +138,15 @@ struct TimelineViewState: BindableState {
     
     var mapTilerConfiguration: MapTilerConfiguration
     
+    /// GUA FORK: only the main timeline shows the chat's background.
+    var chatBackground: ChatBackground = .none
+    
     var bindings: TimelineViewStateBindings
+    
+    /// GUA FORK: a chat that hides media shows the default canvas instead of downloading its photo.
+    var visibleChatBackground: ChatBackground {
+        hideTimelineMedia && chatBackground.photo != nil ? .none : chatBackground
+    }
 }
 
 struct TimelineViewStateBindings {

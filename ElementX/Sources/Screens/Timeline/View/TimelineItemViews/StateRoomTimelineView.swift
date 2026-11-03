@@ -9,12 +9,14 @@ import SwiftUI
 
 struct StateRoomTimelineView: View {
     let timelineItem: StateRoomTimelineItem
+    @Environment(\.chatBackgroundActive) private var isChatBackgroundActive
     
     var body: some View {
         Text(timelineItem.body)
             .font(.compound.bodySM)
             .multilineTextAlignment(.center)
-            .foregroundColor(.compound.textSecondary)
+            .foregroundColor(.legibleSecondaryText(isOnBackground: isChatBackgroundActive))
+            .legibilityCapsule()
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.horizontal, 36.0)
             .padding(.vertical, 8.0)

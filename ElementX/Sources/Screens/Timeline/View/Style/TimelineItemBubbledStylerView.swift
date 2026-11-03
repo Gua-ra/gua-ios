@@ -13,6 +13,7 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
     @Environment(\.timelineGroupStyle) private var timelineGroupStyle
     @Environment(\.focussedEventID) private var focussedEventID
     @Environment(\.isMessageMenuPreview) private var isMessageMenuPreview
+    @Environment(\.chatBackgroundActive) private var isChatBackgroundActive
     
     @State private var bubbleFrameReader = WindowFrameReader()
     
@@ -103,11 +104,13 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
                     if timelineItem.sender.displayName != nil, timelineItem.sender.isDisplayNameAmbiguous {
                         Text(timelineItem.sender.id.guaDisplayHandle)
                             .font(.compound.bodyXS)
-                            .foregroundColor(.compound.textSecondary)
+                            .foregroundColor(.legibleSecondaryText(isOnBackground: isChatBackgroundActive))
                     }
                 }
                 .lineLimit(1)
-                .scaledPadding(.vertical, 3)
+                // GUA FORK: the capsule brings the same vertical padding, so the header keeps its height.
+                .scaledPadding(.vertical, isChatBackgroundActive ? 0 : 3)
+                .legibilityCapsule()
             }
             // sender info are read inside the `TimelineAccessibilityModifier`
             .accessibilityHidden(true)

@@ -11,6 +11,7 @@ import SwiftUI
 
 struct CallNotificationRoomTimelineView: View {
     @Environment(\.timelineContext) private var context
+    @Environment(\.chatBackgroundActive) private var isChatBackgroundActive
     
     let timelineItem: CallNotificationRoomTimelineItem
     
@@ -33,7 +34,7 @@ struct CallNotificationRoomTimelineView: View {
                 Label(title: { Text(L10n.commonCallStarted) },
                       icon: { CompoundIcon(\.videoCallSolid, size: .medium, relativeTo: .compound.bodyMD) })
                     .font(.compound.bodyMD)
-                    .foregroundColor(.compound.textSecondary)
+                    .foregroundColor(.legibleSecondaryText(isOnBackground: isChatBackgroundActive))
                     .labelStyle(.custom(spacing: 4))
             }
             
@@ -41,9 +42,10 @@ struct CallNotificationRoomTimelineView: View {
             
             Text(timelineItem.timestamp.formattedTime())
                 .font(.compound.bodyXS)
-                .foregroundColor(.compound.textSecondary)
+                .foregroundColor(.legibleSecondaryText(isOnBackground: isChatBackgroundActive))
         }
         .padding(12)
+        .legibilityCapsule(.roundedRectangle(cornerRadius: 8), hasPadding: false)
         .overlay(RoundedRectangle(cornerRadius: 8)
             .stroke(.compound.borderInteractiveSecondary, lineWidth: 1))
         .padding(16)

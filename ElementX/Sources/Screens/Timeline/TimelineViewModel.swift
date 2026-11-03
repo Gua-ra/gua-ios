@@ -118,6 +118,7 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
         
         setupSubscriptions()
         setupDirectRoomSubscriptionsIfNeeded()
+        setupChatBackgroundSubscriptionsIfNeeded()
         
         state.audioPlayerStateProvider = { [weak self] itemID -> AudioPlayerState? in
             guard let self else {
@@ -503,6 +504,32 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
                 case .displayThread(let itemID):
                     actionsSubject.send(.displayThread(itemID: itemID))
                 }
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func setupChatBackgroundSubscriptionsIfNeeded() {
+        switch timelineController.timelineKind {
+        case .live, .detached:
+            break
+        case .pinned, .thread, .media:
+            return
+        }
+        
+        let chatBackgroundService = userSession.chatBackgroundService
+        let roomID = roomProxy.id
+        let backgroundPublisher = chatBackgroundService.backgroundPublisher(roomID: roomID)
+        state.chatBackground = backgroundPublisher.value
+        backgroundPublisher
+            .removeDuplicates()
+            .weakAssign(to: \.state.chatBackground, on: self)
+            .store(in: &cancellables)
+        
+        Task { await chatBackgroundService.refresh(roomID: roomID) }
+        
+        NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)
+            .sink { _ in
+                Task { await chatBackgroundService.refresh(roomID: roomID) }
             }
             .store(in: &cancellables)
     }

@@ -10,13 +10,15 @@ import SwiftUI
 
 struct ReadMarkerRoomTimelineView: View {
     let timelineItem: ReadMarkerRoomTimelineItem
+    @Environment(\.chatBackgroundActive) private var isChatBackgroundActive
     
     var body: some View {
         VStack(alignment: .trailing, spacing: 2) {
             Text(L10n.screenRoomTimelineReadMarkerTitle)
                 .textCase(.uppercase)
                 .font(.compound.bodyXSSemibold)
-                .foregroundColor(.compound.textSecondary)
+                .foregroundColor(.legibleSecondaryText(isOnBackground: isChatBackgroundActive))
+                .legibilityCapsule()
             Rectangle()
                 .frame(height: 0.5)
                 .foregroundColor(.compound.borderInteractivePrimary)

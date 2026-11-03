@@ -99,12 +99,14 @@ struct TimelineReactionsView: View {
 struct TimelineReactionButtonLabel<Content: View>: View {
     var isHighlighted = false
     @ViewBuilder var content: () -> Content
+    @Environment(\.chatBackgroundActive) private var isChatBackgroundActive
     
     var body: some View {
         content()
             .background(backgroundShape.inset(by: 1).fill(overlayBackgroundColor))
             .overlay(backgroundShape.inset(by: 2.0).strokeBorder(overlayBorderColor))
-            .overlay(backgroundShape.strokeBorder(Color.compound.bgCanvasDefault, lineWidth: 2))
+            // GUA FORK: the ring cuts the pill out of the bubble, and over a background it would show as a halo.
+            .overlay(backgroundShape.strokeBorder(isChatBackgroundActive ? Color.clear : Color.compound.bgCanvasDefault, lineWidth: 2))
             .accessibilityElement(children: .combine)
     }
     
