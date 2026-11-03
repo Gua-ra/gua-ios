@@ -133,7 +133,7 @@ struct ChatBackgroundSampleMessages: View {
     }
 }
 
-/// Phone-shaped swatches in as many columns as keep the longest name on one line, three to five.
+/// Phone-shaped swatches up to 88 pt wide, in as many columns as keep the longest name on one line, and at least three.
 struct ChatBackgroundPresetGrid: View {
     let selected: ChatBackgroundPreset?
     let onSelect: (ChatBackgroundPreset) -> Void
@@ -141,7 +141,7 @@ struct ChatBackgroundPresetGrid: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        ChatBackgroundPresetGridLayout(minimumCellWidth: minimumCellWidth, spacing: 12) {
+        ChatBackgroundPresetGridLayout(minimumCellWidth: minimumCellWidth, maximumCellWidth: max(minimumCellWidth, 88), spacing: 12) {
             ForEach(ChatBackgroundPreset.allCases) { preset in
                 ChatBackgroundPresetSwatch(preset: preset, isSelected: preset == selected) {
                     onSelect(preset)
@@ -163,11 +163,13 @@ struct ChatBackgroundPresetGrid: View {
 private struct ChatBackgroundPresetGridLayout: Layout {
     private struct Row {
         let indices: Range<Int>
+        let columns: Int
         let cellWidth: CGFloat
         let height: CGFloat
     }
 
     let minimumCellWidth: CGFloat
+    let maximumCellWidth: CGFloat
     let spacing: CGFloat
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
@@ -179,8 +181,10 @@ private struct ChatBackgroundPresetGridLayout: Layout {
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         var y = bounds.minY
         for row in rows(width: bounds.width, subviews: subviews) {
+            let gridWidth = CGFloat(row.columns) * row.cellWidth + CGFloat(row.columns - 1) * spacing
+            let minX = bounds.minX + max(0, (bounds.width - gridWidth) / 2)
             for (column, index) in row.indices.enumerated() {
-                subviews[index].place(at: CGPoint(x: bounds.minX + CGFloat(column) * (row.cellWidth + spacing), y: y),
+                subviews[index].place(at: CGPoint(x: minX + CGFloat(column) * (row.cellWidth + spacing), y: y),
                                       anchor: .topLeading,
                                       proposal: ProposedViewSize(width: row.cellWidth, height: row.height))
             }
@@ -189,12 +193,12 @@ private struct ChatBackgroundPresetGridLayout: Layout {
     }
 
     private func rows(width: CGFloat, subviews: Subviews) -> [Row] {
-        let columns = min(max(Int((width + spacing) / (minimumCellWidth + spacing)), 3), 5)
-        let cellWidth = max(0, (width - spacing * CGFloat(columns - 1)) / CGFloat(columns))
+        let columns = min(max(Int((width + spacing) / (minimumCellWidth + spacing)), 3), max(subviews.count, 3))
+        let cellWidth = min(max(0, (width - spacing * CGFloat(columns - 1)) / CGFloat(columns)), maximumCellWidth)
         return stride(from: 0, to: subviews.count, by: columns).map { start in
             let indices = start..<min(start + columns, subviews.count)
             let height = indices.map { subviews[$0].sizeThatFits(ProposedViewSize(width: cellWidth, height: nil)).height }.max() ?? 0
-            return Row(indices: indices, cellWidth: cellWidth, height: height)
+            return Row(indices: indices, columns: columns, cellWidth: cellWidth, height: height)
         }
     }
 }
