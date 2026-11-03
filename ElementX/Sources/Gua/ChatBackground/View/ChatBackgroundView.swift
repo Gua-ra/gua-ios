@@ -79,14 +79,17 @@ struct ChatBackgroundFillView: View {
 /// Aspect fill: a photo overflowing its frame by `o` on an axis is offset by `-o × align`, as on Android.
 struct ChatBackgroundPhotoLayout: View {
     let image: UIImage
+    /// The shape to fill with, when the image is a stand-in of another shape.
+    var contentSize: CGSize?
     let alignX: Double
     let alignY: Double
 
     var body: some View {
         GeometryReader { geometry in
             let frame = geometry.size
-            let scale = max(frame.width / max(image.size.width, 1), frame.height / max(image.size.height, 1))
-            let scaled = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+            let content = contentSize ?? image.size
+            let scale = max(frame.width / max(content.width, 1), frame.height / max(content.height, 1))
+            let scaled = CGSize(width: content.width * scale, height: content.height * scale)
 
             Image(uiImage: image)
                 .resizable()
@@ -118,8 +121,11 @@ private struct ChatBackgroundPhotoView: View {
 
                 if let image {
                     ChatBackgroundPhotoLayout(image: image, alignX: photo.alignX, alignY: photo.alignY)
-                } else if !hasFailed, let placeholder {
-                    ChatBackgroundPhotoLayout(image: placeholder, alignX: photo.alignX, alignY: photo.alignY)
+                } else if !hasFailed, let placeholder = photo.blurhash.flatMap(ChatBackgroundPhotoLoader.placeholder) {
+                    ChatBackgroundPhotoLayout(image: placeholder,
+                                              contentSize: CGSize(width: photo.width, height: photo.height),
+                                              alignX: photo.alignX,
+                                              alignY: photo.alignY)
                 }
 
                 if colorScheme == .dark, image != nil || !hasFailed {
@@ -136,12 +142,6 @@ private struct ChatBackgroundPhotoView: View {
 
     private var dim: Double {
         colorSchemeContrast == .increased ? max(photo.dim, 0.5) : photo.dim
-    }
-
-    private var placeholder: UIImage? {
-        guard let blurhash = photo.blurhash else { return nil }
-        let height = 32 * Double(photo.height) / Double(max(photo.width, 1))
-        return UIImage(blurHash: blurhash, size: CGSize(width: 32, height: max(1, height.rounded())))
     }
 
     private struct LoadRequest: Equatable {

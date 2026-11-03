@@ -79,6 +79,14 @@ final class ChatBackgroundImageProcessorTests: XCTestCase {
         XCTAssertThrowsError(try ChatBackgroundImageProcessor.process(Data("not an image".utf8)))
     }
 
+    @MainActor
+    func testPlaceholderIsDecodedAtAFixedSize() throws {
+        let placeholder = try XCTUnwrap(ChatBackgroundPhotoLoader.placeholder(blurhash: "LKO2?U%2Tw=w]~RBVZRi};RPxuwH"))
+        XCTAssertEqual(placeholder.size.width * placeholder.scale, 32)
+        XCTAssertEqual(placeholder.size.height * placeholder.scale, 32)
+        XCTAssertNil(ChatBackgroundPhotoLoader.placeholder(blurhash: "not a hash"))
+    }
+
     private func properties(of data: Data) -> [String: Any] {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return [:] }
         return CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any] ?? [:]

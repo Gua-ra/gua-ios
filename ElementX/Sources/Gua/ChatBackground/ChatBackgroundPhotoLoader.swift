@@ -11,6 +11,8 @@ import UIKit
 @MainActor
 enum ChatBackgroundPhotoLoader {
     private static let decodedImages = NSCache<NSString, UIImage>()
+    private static let placeholders = NSCache<NSString, UIImage>()
+    private static let placeholderSize = 32
 
     static func cachedImage(for photo: ChatBackground.Photo, maxPixelSize: Int, mediaProvider: MediaProviderProtocol?) -> UIImage? {
         if let image = decodedImages.object(forKey: cacheKey(photo, maxPixelSize)) {
@@ -35,6 +37,18 @@ enum ChatBackgroundPhotoLoader {
         if let image {
             decodedImages.setObject(image, forKey: cacheKey(photo, maxPixelSize))
         }
+        return image
+    }
+
+    /// Decoded at a fixed size whatever shape the photo declares, so a crafted width and height cannot make it expensive.
+    static func placeholder(blurhash: String) -> UIImage? {
+        if let image = placeholders.object(forKey: blurhash as NSString) {
+            return image
+        }
+        guard let image = UIImage(blurHash: blurhash, size: CGSize(width: placeholderSize, height: placeholderSize)) else {
+            return nil
+        }
+        placeholders.setObject(image, forKey: blurhash as NSString)
         return image
     }
 
