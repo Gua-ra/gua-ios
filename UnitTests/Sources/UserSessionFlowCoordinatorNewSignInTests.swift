@@ -97,7 +97,8 @@ final class UserSessionFlowCoordinatorNewSignInTests: XCTestCase {
                                                   analytics: ServiceLocator.shared.analytics,
                                                   userIndicatorController: userIndicatorController,
                                                   notificationManager: NotificationManagerMock(),
-                                                  stateMachineFactory: PublishedStateMachineFactory())
+                                                  stateMachineFactory: PublishedStateMachineFactory(),
+                                                  spacesSetting: SpacesSetting(clientProxy: clientProxy, appSettings: appSettings))
 
         flowCoordinator = UserSessionFlowCoordinator(isNewLogin: false,
                                                      navigationRootCoordinator: rootCoordinator,
