@@ -204,16 +204,8 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
     }
     
     private func displayMenu(showsActions: Bool) {
-        guard let sourceFrame = bubbleFrameReader.frame else {
-            if showsActions {
-                context.send(viewAction: .displayTimelineItemMenu(itemID: timelineItem.id))
-            }
-            return
-        }
-        
-        let anchor = MessageMenuAnchor(frame: sourceFrame, reader: bubbleFrameReader)
-        let presentation: TimelineItemMenuPresentation = showsActions ? .reactionsAndActions(anchor) : .reactions(anchor)
-        context.send(viewAction: .displayTimelineItemMenu(itemID: timelineItem.id, presentation: presentation))
+        context.send(viewAction: .displayTimelineItemMenu(itemID: timelineItem.id,
+                                                          presentation: .floating(showsActions: showsActions, over: bubbleFrameReader)))
     }
     
     var messageBubble: some View {

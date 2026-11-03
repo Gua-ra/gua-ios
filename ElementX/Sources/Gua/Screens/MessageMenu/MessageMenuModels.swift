@@ -30,6 +30,13 @@ enum TimelineItemMenuPresentation: Equatable {
         case .reactions: false
         }
     }
+
+    @MainActor
+    static func floating(showsActions: Bool, over reader: WindowFrameReader) -> Self {
+        guard let frame = reader.frame else { return .sheet }
+        let anchor = MessageMenuAnchor(frame: frame, reader: reader)
+        return showsActions ? .reactionsAndActions(anchor) : .reactions(anchor)
+    }
 }
 
 /// The message bubble a menu opens over. The bubble can move while the menu is open, for example

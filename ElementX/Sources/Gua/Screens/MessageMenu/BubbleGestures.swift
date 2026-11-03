@@ -11,12 +11,17 @@ import SwiftUI
 /// every bubble's geometry while it scrolls.
 @MainActor
 final class WindowFrameReader {
-    fileprivate weak var view: UIView?
+    /// Accessibility clients make SwiftUI build copies of the bubble outside any window, so only a view in a window counts.
+    private let views = NSHashTable<UIView>.weakObjects()
 
-    /// Nil when the view isn't in a window.
+    /// Nil when none of the views is in a window.
     var frame: CGRect? {
-        guard let view, view.window != nil else { return nil }
+        guard let view = views.allObjects.first(where: { $0.window != nil }) else { return nil }
         return view.convert(view.bounds, to: nil)
+    }
+
+    func track(_ view: UIView) {
+        views.add(view)
     }
 }
 
@@ -42,12 +47,12 @@ private struct WindowFrameReaderView: UIViewRepresentable {
     func makeUIView(context: Context) -> UIView {
         let view = UIView()
         view.isUserInteractionEnabled = false
-        reader.view = view
+        reader.track(view)
         return view
     }
 
     func updateUIView(_ uiView: UIView, context: Context) {
-        reader.view = uiView
+        reader.track(uiView)
     }
 }
 

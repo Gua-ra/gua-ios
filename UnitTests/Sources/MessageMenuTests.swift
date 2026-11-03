@@ -256,6 +256,53 @@ class MessageMenuTests: XCTestCase {
         XCTAssertEqual(viewModel.context.actionMenuInfo?.presentation, .sheet)
     }
 
+    func testBubbleFrameIgnoresCopiesOutsideTheWindow() {
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 402, height: 874))
+        let bubble = UIView(frame: CGRect(x: 16, y: 300, width: 250, height: 80))
+        window.addSubview(bubble)
+        let earlierCopy = UIView(frame: bubble.bounds)
+        let accessibilityCopy = UIView(frame: bubble.bounds)
+        let reader = WindowFrameReader()
+
+        reader.track(earlierCopy)
+        reader.track(bubble)
+        reader.track(accessibilityCopy)
+
+        XCTAssertEqual(reader.frame, CGRect(x: 16, y: 300, width: 250, height: 80))
+    }
+
+    func testGesturesAnchorTheMenusToTheBubbleOnScreen() {
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 402, height: 874))
+        let bubble = UIView(frame: CGRect(x: 120, y: 500, width: 250, height: 44))
+        window.addSubview(bubble)
+        let accessibilityCopy = UIView(frame: bubble.bounds)
+        let reader = WindowFrameReader()
+        reader.track(bubble)
+        reader.track(accessibilityCopy)
+
+        let doubleTap = TimelineItemMenuPresentation.floating(showsActions: false, over: reader)
+        let longPress = TimelineItemMenuPresentation.floating(showsActions: true, over: reader)
+
+        XCTAssertEqual(doubleTap.anchor?.frame, CGRect(x: 120, y: 500, width: 250, height: 44))
+        XCTAssertFalse(doubleTap.showsActions)
+        XCTAssertEqual(longPress.anchor?.frame, CGRect(x: 120, y: 500, width: 250, height: 44))
+        XCTAssertTrue(longPress.showsActions)
+
+        bubble.frame.origin.y = 320
+
+        XCTAssertEqual(doubleTap.anchor?.frame, CGRect(x: 120, y: 320, width: 250, height: 44))
+    }
+
+    func testGesturesOpenTheSheetWhenTheBubbleIsOffScreen() {
+        let detachedBubble = UIView(frame: CGRect(x: 16, y: 300, width: 250, height: 80))
+        let reader = WindowFrameReader()
+        reader.track(detachedBubble)
+
+        XCTAssertNil(reader.frame)
+        XCTAssertEqual(TimelineItemMenuPresentation.floating(showsActions: false, over: reader), .sheet)
+        XCTAssertEqual(TimelineItemMenuPresentation.floating(showsActions: true, over: reader), .sheet)
+    }
+
     func testSelectShowsTheMessageText() async throws {
         let item = makeTextItem(isOutgoing: false, body: "Que paz nesse lugar 😍")
         let viewModel = makeViewModel(items: [item])
