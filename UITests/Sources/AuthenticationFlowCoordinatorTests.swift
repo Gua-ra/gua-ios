@@ -23,7 +23,7 @@ class AuthenticationFlowCoordinatorUITests: XCTestCase {
         app.buttons[A11yIdentifiers.serverConfirmationScreen.changeServer].tap()
         
         // Server Selection: Clear the default, enter OIDC server and continue.
-        app.textFields[A11yIdentifiers.changeServerScreen.server].clearAndTypeText("example.com\n", app: app)
+        changeServer(to: "example.com", app: app)
         
         // Server Confirmation: Tap continue button
         app.buttons[A11yIdentifiers.serverConfirmationScreen.continue].tap()
@@ -53,7 +53,7 @@ class AuthenticationFlowCoordinatorUITests: XCTestCase {
         app.buttons[A11yIdentifiers.serverConfirmationScreen.changeServer].tap()
         
         // Server Selection: Clear the default, enter OIDC server and continue.
-        app.textFields[A11yIdentifiers.changeServerScreen.server].clearAndTypeText("example.com\n", app: app)
+        changeServer(to: "example.com", app: app)
         
         // Server Confirmation: Tap continue button
         app.buttons[A11yIdentifiers.serverConfirmationScreen.continue].tap()
@@ -85,7 +85,7 @@ class AuthenticationFlowCoordinatorUITests: XCTestCase {
         app.buttons[A11yIdentifiers.serverConfirmationScreen.changeServer].tap()
         
         // Server Selection: Clear the default, enter OIDC server and continue.
-        app.textFields[A11yIdentifiers.changeServerScreen.server].clearAndTypeText("example.com\n", app: app)
+        changeServer(to: "example.com", app: app)
         
         // Server Confirmation: Tap continue button
         app.buttons[A11yIdentifiers.serverConfirmationScreen.continue].tap()
@@ -235,5 +235,12 @@ class AuthenticationFlowCoordinatorUITests: XCTestCase {
         // Bug report: Make sure it exists then cancel.
         XCTAssert(app.textFields[A11yIdentifiers.bugReportScreen.report].exists)
         app.buttons[A11yIdentifiers.bugReportScreen.cancel].tap()
+    }
+    
+    /// Changes the server and waits for its screen to close: a tap on the confirmation screen while it closes is lost.
+    private func changeServer(to address: String, app: XCUIApplication) {
+        let serverTextField = app.textFields[A11yIdentifiers.changeServerScreen.server]
+        serverTextField.clearAndTypeText("\(address)\n", app: app)
+        XCTAssertTrue(serverTextField.waitForNonExistence(timeout: 10))
     }
 }
