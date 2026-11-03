@@ -96,7 +96,8 @@ class AppLockSetupUITests: XCTestCase {
         
         enterPIN()
         
-        // Settings screen.
+        // Settings screen. On iPhone it moves until the unlock sheet over it has finished dismissing.
+        XCTAssertTrue(app.secureTextFields[A11yIdentifiers.appLockSetupPINScreen.textField].waitForNonExistence(timeout: 10))
         try await app.assertScreenshot(step: Step.settings)
         
         app.buttons[A11yIdentifiers.appLockSetupSettingsScreen.removePIN].tap()
