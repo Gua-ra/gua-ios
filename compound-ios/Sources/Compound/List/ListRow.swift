@@ -23,6 +23,16 @@ public enum ListRowPadding {
     public static let labelIconSpacing: CGFloat = Compound.supportsGlass ? 12 : 16
 }
 
+public enum ListRowColor {
+    public static var separatorTint: Color {
+        if #available(iOS 26, *) {
+            .compound.bgSubtleSecondary
+        } else {
+            .compound._borderInteractiveSecondaryAlpha
+        }
+    }
+}
+
 public struct ListRow<Icon: View, DetailsIcon: View, CustomContent: View, SelectionValue: Hashable>: View {
     @Environment(\.isEnabled) private var isEnabled
     
@@ -55,7 +65,7 @@ public struct ListRow<Icon: View, DetailsIcon: View, CustomContent: View, Select
             .buttonStyle(ListRowButtonStyle())
             .listRowInsets(EdgeInsets())
             .listRowBackground(Color.compound.bgCanvasDefaultLevel1)
-            .listRowSeparatorTint(.compound._borderInteractiveSecondaryAlpha)
+            .listRowSeparatorTint(ListRowColor.separatorTint)
     }
     
     @ViewBuilder

@@ -17,7 +17,7 @@ public extension View {
     
     /// Styles a list section header using the Compound design tokens.
     func compoundListSectionHeader() -> some View {
-        font(.compound.bodySM)
+        font(headerFont)
             .foregroundColor(.compound.textSecondary)
             .listRowInsets(EdgeInsets(top: 15,
                                       leading: ListRowPadding.horizontal,
@@ -33,6 +33,14 @@ public extension View {
                                       leading: ListRowPadding.horizontal,
                                       bottom: 10,
                                       trailing: ListRowPadding.horizontal))
+    }
+    
+    private var headerFont: Font {
+        if #available(iOS 26.0, *) {
+            .compound.bodyMDSemibold
+        } else {
+            .compound.bodySM
+        }
     }
 }
 
