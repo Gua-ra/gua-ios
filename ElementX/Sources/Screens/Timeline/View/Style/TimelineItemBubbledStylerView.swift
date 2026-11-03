@@ -108,9 +108,10 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
                     }
                 }
                 .lineLimit(1)
-                // GUA FORK: the capsule brings the same vertical padding, so the header keeps its height.
+                // GUA FORK: the capsule brings the vertical padding, and stays clear of the 12 pt the bubble tucks under the header.
                 .scaledPadding(.vertical, isChatBackgroundActive ? 0 : 3)
                 .legibilityCapsule()
+                .padding(.bottom, isChatBackgroundActive ? 12 : 0)
             }
             // sender info are read inside the `TimelineAccessibilityModifier`
             .accessibilityHidden(true)
@@ -330,6 +331,8 @@ private struct PinnedIndicatorViewModifier: ViewModifier {
     let isPinned: Bool
     let isOutgoing: Bool
     
+    @Environment(\.chatBackgroundActive) private var isChatBackgroundActive
+    
     func body(content: Content) -> some View {
         if isPinned {
             HStack(alignment: .top, spacing: 8) {
@@ -350,6 +353,8 @@ private struct PinnedIndicatorViewModifier: ViewModifier {
     private var pinnedIndicator: some View {
         CompoundIcon(\.pinSolid, size: .xSmall, relativeTo: .compound.bodyMD)
             .foregroundStyle(Color.compound.iconTertiary)
+            .padding(isChatBackgroundActive ? 1 : 0)
+            .legibilityCapsule(.circle, hasPadding: false)
             .accessibilityLabel(L10n.commonPinned)
     }
 }
@@ -410,6 +415,12 @@ struct TimelineItemBubbledStylerView_Previews: PreviewProvider, TestablePreview 
             .previewDisplayName("Encryption Indicators")
         pinned
             .previewDisplayName("Pinned messages")
+            .previewLayout(.fixed(width: 390, height: 1150))
+            .padding(.bottom, 20)
+        pinned
+            .environment(\.chatBackgroundActive, true)
+            .background { ChatBackgroundView(background: .preset(.night), mediaProvider: nil) }
+            .previewDisplayName("Pinned messages over a background")
             .previewLayout(.fixed(width: 390, height: 1150))
             .padding(.bottom, 20)
     }
