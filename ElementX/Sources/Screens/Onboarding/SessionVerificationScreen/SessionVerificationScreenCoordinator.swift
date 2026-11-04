@@ -11,6 +11,7 @@ import SwiftUI
 
 enum SessionVerificationScreenCoordinatorAction {
     case done
+    case ignoredOwnDeviceRequest(deviceID: String)
 }
 
 enum SessionVerificationScreenFlow {
@@ -37,7 +38,7 @@ struct SessionVerificationScreenCoordinatorParameters {
 }
 
 final class SessionVerificationScreenCoordinator: CoordinatorProtocol {
-    private var viewModel: SessionVerificationScreenViewModelProtocol
+    let viewModel: SessionVerificationScreenViewModelProtocol
     
     private let actionsSubject: PassthroughSubject<SessionVerificationScreenCoordinatorAction, Never> = .init()
     private var cancellables = Set<AnyCancellable>()
@@ -63,6 +64,8 @@ final class SessionVerificationScreenCoordinator: CoordinatorProtocol {
                 switch action {
                 case .finished:
                     actionsSubject.send(.done)
+                case .ignoredOwnDeviceRequest(let deviceID):
+                    actionsSubject.send(.ignoredOwnDeviceRequest(deviceID: deviceID))
                 }
             }
             .store(in: &cancellables)

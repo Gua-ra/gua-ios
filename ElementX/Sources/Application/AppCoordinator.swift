@@ -722,7 +722,8 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
                                                   analytics: ServiceLocator.shared.analytics,
                                                   userIndicatorController: ServiceLocator.shared.userIndicatorController,
                                                   notificationManager: notificationManager,
-                                                  stateMachineFactory: StateMachineFactory())
+                                                  stateMachineFactory: StateMachineFactory(),
+                                                  spacesSetting: SpacesSetting(clientProxy: userSession.clientProxy, appSettings: appSettings))
         
         let userSessionFlowCoordinator = UserSessionFlowCoordinator(isNewLogin: isNewLogin,
                                                                     navigationRootCoordinator: navigationRootCoordinator,
@@ -1059,7 +1060,7 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
     }
     
     private func showLoginErrorToast() {
-        ServiceLocator.shared.userIndicatorController.submitIndicator(UserIndicator(title: "Failed logging in"))
+        ServiceLocator.shared.userIndicatorController.submitIndicator(UserIndicator(title: UntranslatedL10n.guaRestoreSigninFailed))
     }
 
     // MARK: - Application State

@@ -11,14 +11,6 @@
       }
     },
     {
-      "identity" : "compound-ios",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/element-hq/compound-ios",
-      "state" : {
-        "revision" : "a1db8e1b61db70417af406bdf9f8d324b079041f"
-      }
-    },
-    {
       "identity" : "devicekit",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/devicekit/DeviceKit",

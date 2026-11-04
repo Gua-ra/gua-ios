@@ -175,12 +175,11 @@ enum ResolverError: Error, LocalizedError {
     }
 
     /// A wait such as "30 seconds" or "2 minutes". Waits of a minute or more are rounded up to whole
-    /// minutes so the user is never told to retry early. It is formatted in English because
-    /// `UntranslatedL10n` always reads the English table, and the wait must match its sentence.
+    /// minutes so the user is never told to retry early.
     static func formattedWait(_ retryAfter: TimeInterval?) -> String? {
         guard let seconds = retryAfter?.rounded(.up), seconds.isFinite, seconds >= 1 else { return nil }
         var calendar = Calendar(identifier: .gregorian)
-        calendar.locale = Locale(identifier: "en")
+        calendar.locale = Locale(identifier: Bundle.guaAppLanguage)
         let formatter = DateComponentsFormatter()
         formatter.calendar = calendar
         formatter.unitsStyle = .full
