@@ -123,10 +123,7 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
     // MARK: - Private
     
     private var requiresVerification: Bool {
-        // Gua: encryption is set up on first sign-in and restored on re-login entirely in
-        // the background (UserSessionStore.bootstrapKeyStorageIfNeeded / restoreKeyStorageIfNeeded),
-        // so we never gate the user on the identity-confirmation or reset screens. They just
-        // land in the app — key backup and recovery happen silently with no friction.
+        // Gua: encryption is set up and restored in the background, so onboarding never gates on it.
         false
     }
     
@@ -287,6 +284,8 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
                 switch action {
                 case .done:
                     break // Moving to next state is handled by the global session verification listener
+                case .ignoredOwnDeviceRequest:
+                    break
                 }
             }
             .store(in: &cancellables)
@@ -326,10 +325,8 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
             switch action {
             case .resetComplete:
                 navigationStackCoordinator.setSheetCoordinator(nil)
-                // A completed reset is a terminal exit out of identity confirmation: treat the
-                // device as set up and advance, instead of waiting on the global verification
-                // listener (which only fires on `.verified`). A reset that completes but never
-                // reaches `.verified` must not re-present the reset screen, so we advance here.
+                // A completed reset may never reach `.verified`, so advance here or the reset screen
+                // is presented again.
                 if stateMachine.state == .identityConfirmation {
                     appSettings.hasRunIdentityConfirmationOnboarding = true
                     stateMachine.tryEvent(.nextSkippingIdentityConfirmed)

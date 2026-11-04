@@ -59,7 +59,39 @@ setup_github_actions_translations_environment() {
 xcode_select_for_github_actions() {
     # While fastlane has its own way of selecting Xcode, that only works inside of fastlane.
     # We need to select it globally for other processes like xcresultparser and our custom tools to use the same Xcode version.
-    sudo xcode-select -s /Applications/Xcode_26.5.0.app
+    # The project needs the iOS 26 SDK: prefer the pinned release, otherwise the newest Xcode 26 on the image.
+    local xcode_app
+    xcode_app="$(ls -d /Applications/Xcode_26.5.0.app 2>/dev/null || true)"
+    if [ -z "$xcode_app" ]; then
+        xcode_app="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -n1 || true)"
+    fi
+    if [ -z "$xcode_app" ]; then
+        echo "::error::No Xcode 26.x on this runner. Available: $(ls -d /Applications/Xcode_*.app 2>/dev/null | tr '\n' ' ')" >&2
+        return 1
+    fi
+    sudo xcode-select -s "$xcode_app"
+    xcodebuild -version
+}
+
+install_ios18_simulator_runtime() {
+    # macos-26 images ship only iOS 26 simulator runtimes; the snapshot-based test targets are pinned to iOS 18.6.
+    if ! xcrun simctl list runtimes | grep -q "iOS 18.6"; then
+        xcodebuild -downloadPlatform iOS -buildVersion 18.6
+    fi
+    if ! xcrun simctl list runtimes | grep -q "iOS 18.6"; then
+        echo "::error::The iOS 18.6 simulator runtime is not available." >&2
+        xcrun simctl list runtimes >&2
+        return 1
+    fi
+}
+
+# Usage: ensure_ios18_simulator "<device name>" <device type identifier>
+ensure_ios18_simulator() {
+    local runtime_id
+    runtime_id="$(xcrun simctl list -j runtimes | jq -r '.runtimes[] | select(.identifier | startswith("com.apple.CoreSimulator.SimRuntime.iOS-18-6")) | .identifier' | head -n 1)"
+    if ! xcrun simctl list -j devices | jq -e --arg rt "$runtime_id" --arg name "$1" '.devices[$rt] // [] | map(select(.name == $name)) | length > 0' > /dev/null; then
+        xcrun simctl create "$1" "$2" "$runtime_id"
+    fi
 }
 
 generate_what_to_test_notes() {

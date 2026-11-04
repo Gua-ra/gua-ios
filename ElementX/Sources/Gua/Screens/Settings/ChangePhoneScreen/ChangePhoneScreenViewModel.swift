@@ -1,5 +1,6 @@
 //
 // Copyright 2022-2025 New Vector Ltd.
+// Copyright 2026 Gua
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
@@ -274,7 +275,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         do {
             try await identityServiceClient.startAccountReauth(accessToken: accessToken,
                                                                phone: state.currentPhoneE164,
-                                                               language: Locale.guaLanguageTag())
+                                                               language: Bundle.guaAppLanguage)
             state.bindings.code = ""
             state.errorMessage = nil
             state.phase = .reauth
@@ -431,7 +432,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
                                                                              pin: pin,
                                                                              passkeyStepUpID: passkey?.stepUpID,
                                                                              passkeyAssertion: passkey?.assertion,
-                                                                             language: Locale.guaLanguageTag())
+                                                                             language: Bundle.guaAppLanguage)
             state.challengeID = challenge.challengeID
             state.errorMessage = nil
             state.phase = .otp

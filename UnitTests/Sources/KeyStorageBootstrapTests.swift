@@ -1,7 +1,7 @@
 //
 // Copyright Gua
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -23,7 +23,7 @@ class KeyStorageBootstrapTests: XCTestCase {
     private var appSettings: AppSettings!
     private var store: UserSessionStore!
 
-    private static let userID = "@fresh:dev.gua.sarahlacerda.me"
+    private static let userID = "@fresh:gua.example"
 
     override func setUp() {
         AppSettings.resetAllSettings()

@@ -1,5 +1,6 @@
 //
 // Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Gua
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
@@ -45,6 +46,20 @@ class PhoneEntryScreenViewModelTests: XCTestCase {
         }
         context.send(viewAction: .continueTapped)
         try await deferred.fulfill()
+    }
+
+    func testActionsWhileSubmittingEmitNothing() async throws {
+        viewModel = PhoneEntryScreenViewModel(isLegacyAuthEnabled: false, initialPhoneNumber: "+15551234567")
+        let firstContinue = deferFulfillment(viewModel.actionsPublisher) { _ in true }
+        context.send(viewAction: .continueTapped)
+        try await firstContinue.fulfill()
+        XCTAssertFalse(context.viewState.canContinue)
+
+        let repeatedAction = deferFailure(viewModel.actionsPublisher, timeout: 1) { _ in true }
+        context.send(viewAction: .continueTapped)
+        context.send(viewAction: .signInWithPasskeyTapped)
+        context.send(viewAction: .useLegacyAuthTapped)
+        try await repeatedAction.fulfill()
     }
 
     func testSignInWithPasskeyTappedEmitsAction() async throws {

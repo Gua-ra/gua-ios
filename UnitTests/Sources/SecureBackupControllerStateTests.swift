@@ -1,7 +1,7 @@
 //
 // Copyright Gua
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -33,7 +33,7 @@ class SecureBackupControllerStateTests: XCTestCase {
         encryption.backupExistsOnServerReturnValue = false
 
         controller = SecureBackupController(encryption: encryption,
-                                            userID: "@state:dev.gua.sarahlacerda.me",
+                                            userID: "@state:gua.example",
                                             e2eeInitialization: Task { },
                                             persistRecoveryKey: { _ in })
         published = []

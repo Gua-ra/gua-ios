@@ -1,7 +1,7 @@
 //
-// Copyright 2025 Gua. All rights reserved.
+// Copyright 2025 Gua
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -57,8 +57,8 @@ struct CountryPickerScreen: View {
                 .contentShape(Rectangle())
             }
             .listStyle(.plain)
-            .searchable(text: $searchQuery, prompt: Text("Search country or code"))
-            .navigationTitle("Select country")
+            .searchable(text: $searchQuery, prompt: Text(UntranslatedL10n.guaCountryPickerSearchPrompt))
+            .navigationTitle(UntranslatedL10n.guaCountryPickerTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

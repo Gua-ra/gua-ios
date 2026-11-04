@@ -10,8 +10,48 @@ import Foundation
 // swiftlint:disable explicit_type_interface function_parameter_count identifier_name line_length
 // swiftlint:disable nesting type_body_length type_name vertical_whitespace_opening_braces
 internal enum UntranslatedL10n {
+  /// Delete account
+  internal static var actionDeleteAccount: String { return UntranslatedL10n.tr("Untranslated", "action_delete_account") }
+  /// Manage account & devices
+  internal static var actionManageAccountAndDevices: String { return UntranslatedL10n.tr("Untranslated", "action_manage_account_and_devices") }
+  /// Account settings
+  internal static var commonAccountSettings: String { return UntranslatedL10n.tr("Untranslated", "common_account_settings") }
+  /// App settings
+  internal static var commonAppSettings: String { return UntranslatedL10n.tr("Untranslated", "common_app_settings") }
+  /// Media upload quality
+  internal static var commonMediaUploadQuality: String { return UntranslatedL10n.tr("Untranslated", "common_media_upload_quality") }
+  /// Moderation & safety
+  internal static var commonModerationAndSafety: String { return UntranslatedL10n.tr("Untranslated", "common_moderation_and_safety") }
   /// We couldn’t finish setting up your account on this device. Please try again.
   internal static var guaAccountGenesisSetupFailed: String { return UntranslatedL10n.tr("Untranslated", "gua_account_genesis_setup_failed") }
+  /// More
+  internal static var guaActionMore: String { return UntranslatedL10n.tr("Untranslated", "gua_action_more") }
+  /// Select
+  internal static var guaActionSelect: String { return UntranslatedL10n.tr("Untranslated", "gua_action_select") }
+  /// Contact info
+  internal static var guaContactInfoTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_contact_info_title") }
+  /// Opens country picker
+  internal static var guaCountryCodeA11yHint: String { return UntranslatedL10n.tr("Untranslated", "gua_country_code_a11y_hint") }
+  /// Country code: %1$@, plus %2$@
+  internal static func guaCountryCodeA11yLabel(_ p1: Any, _ p2: Any) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_country_code_a11y_label", String(describing: p1), String(describing: p2))
+  }
+  /// Search country or code
+  internal static var guaCountryPickerSearchPrompt: String { return UntranslatedL10n.tr("Untranslated", "gua_country_picker_search_prompt") }
+  /// Select country
+  internal static var guaCountryPickerTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_country_picker_title") }
+  /// Plural format key: "%#@COUNT@"
+  internal static func guaDurationDays(_ p1: Int) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_duration_days", p1)
+  }
+  /// Plural format key: "%#@COUNT@"
+  internal static func guaDurationHours(_ p1: Int) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_duration_hours", p1)
+  }
+  /// Plural format key: "%#@COUNT@"
+  internal static func guaDurationMinutes(_ p1: Int) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_duration_minutes", p1)
+  }
   /// Use my other device
   internal static var guaEncryptionRecoverFromOtherDeviceAction: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_recover_from_other_device_action") }
   /// Couldn’t get your messages from the other device. Make sure it’s open and try again, or reset.
@@ -26,15 +66,15 @@ internal enum UntranslatedL10n {
   internal static var guaEncryptionRepairAction: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_repair_action") }
   /// Setting up…
   internal static var guaEncryptionRepairActionInProgress: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_repair_action_in_progress") }
-  /// Complete setup to access encrypted chats and message history available on this device.
+  /// Finish setup to see your encrypted chats and message history on this device.
   internal static var guaEncryptionRepairMessage: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_repair_message") }
   /// Finish setting up this device
   internal static var guaEncryptionRepairTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_repair_title") }
-  /// Couldn’t finish setup. Tap Reset and finish setup to try again.
+  /// Couldn’t finish setup. Please try again.
   internal static var guaEncryptionResetFailed: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_failed") }
   /// Finishing setup…
   internal static var guaEncryptionResetFinishing: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_finishing") }
-  /// Setup wasn’t approved. Tap Reset and finish setup to try again.
+  /// Setup wasn’t approved. Please try again.
   internal static var guaEncryptionResetNotApproved: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_not_approved") }
   /// Reset and finish setup
   internal static var guaEncryptionResetRequiredAction: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_required_action") }
@@ -42,8 +82,36 @@ internal enum UntranslatedL10n {
   internal static var guaEncryptionResetRequiredMessage: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_required_message") }
   /// Some previous messages can’t be recovered
   internal static var guaEncryptionResetRequiredTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_required_title") }
-  /// Setup is taking longer than expected. It continues in the background; you can wait here or come back later.
+  /// Still finishing setup in the background. You can keep using Gua.
   internal static var guaEncryptionResetStillFinishing: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_still_finishing") }
+  /// Too many attempts. Please wait a moment and try again.
+  internal static var guaErrorRateLimited: String { return UntranslatedL10n.tr("Untranslated", "gua_error_rate_limited") }
+  /// See which of your contacts are on Gua
+  internal static var guaFindFriendsActionDescription: String { return UntranslatedL10n.tr("Untranslated", "gua_find_friends_action_description") }
+  /// Looking for your contacts on Gua…
+  internal static var guaFindFriendsLoading: String { return UntranslatedL10n.tr("Untranslated", "gua_find_friends_loading") }
+  /// Open Settings
+  internal static var guaFindFriendsOpenSettings: String { return UntranslatedL10n.tr("Untranslated", "gua_find_friends_open_settings") }
+  /// Gua checks your contacts privately to find which of them are already here. Your contacts are never stored.
+  internal static var guaFindFriendsPermissionMessage: String { return UntranslatedL10n.tr("Untranslated", "gua_find_friends_permission_message") }
+  /// Allow access to Contacts
+  internal static var guaFindFriendsPermissionTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_find_friends_permission_title") }
+  /// Plural format key: "%#@COUNT@"
+  internal static func guaFindFriendsResultsHeader(_ p1: Int) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_find_friends_results_header", p1)
+  }
+  /// Something went wrong starting a chat with %1$@. Please try again.
+  internal static func guaFindFriendsStartChatFailedMessage(_ p1: Any) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_find_friends_start_chat_failed_message", String(describing: p1))
+  }
+  /// Couldn’t start the chat
+  internal static var guaFindFriendsStartChatFailedTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_find_friends_start_chat_failed_title") }
+  /// View %1$@’s profile
+  internal static func guaFindFriendsViewProfileA11y(_ p1: Any) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_find_friends_view_profile_a11y", String(describing: p1))
+  }
+  /// This took too long. Please start again.
+  internal static var guaFlowExpired: String { return UntranslatedL10n.tr("Untranslated", "gua_flow_expired") }
   /// %1$@’s security details changed. This can happen when they reinstall Gua or get a new phone. %2$@
   internal static func guaIdentityChangeBannerDescription(_ p1: Any, _ p2: Any) -> String {
     return UntranslatedL10n.tr("Untranslated", "gua_identity_change_banner_description", String(describing: p1), String(describing: p2))
@@ -54,32 +122,80 @@ internal enum UntranslatedL10n {
   }
   /// This message can’t be opened because the sender’s security details changed.
   internal static var guaIdentityChangeUndecryptable: String { return UntranslatedL10n.tr("Untranslated", "gua_identity_change_undecryptable") }
-  /// Paste the room address you were given.
+  /// Paste the address you were given.
   internal static var guaJoinRoomByAddressHint: String { return UntranslatedL10n.tr("Untranslated", "gua_join_room_by_address_hint") }
-  /// We couldn't confirm your organization details. Please try again.
+  /// Turn on Spaces and join
+  internal static var guaJoinSpaceAction: String { return UntranslatedL10n.tr("Untranslated", "gua_join_space_action") }
+  /// This is a space. Joining turns on Spaces so you can see its chats.
+  internal static var guaJoinSpaceTurnsOnSpaces: String { return UntranslatedL10n.tr("Untranslated", "gua_join_space_turns_on_spaces") }
+  /// Select text
+  internal static var guaMessageTextSelectionTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_message_text_selection_title") }
+  /// Your passkey can’t be used for this right now.
+  internal static var guaPasskeyUnavailable: String { return UntranslatedL10n.tr("Untranslated", "gua_passkey_unavailable") }
+  /// That passkey didn’t confirm it was you. Please try again.
+  internal static var guaPasskeyVerificationFailed: String { return UntranslatedL10n.tr("Untranslated", "gua_passkey_verification_failed") }
+  /// For security, you can change your PIN again in %1$@.
+  internal static func guaPinChangeCooldownRetry(_ p1: Any) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_pin_change_cooldown_retry", String(describing: p1))
+  }
+  /// That PIN is incorrect. Please try again.
+  internal static var guaPinIncorrect: String { return UntranslatedL10n.tr("Untranslated", "gua_pin_incorrect") }
+  /// Too many wrong PIN attempts. Try again in %1$@.
+  internal static func guaPinLockedRetry(_ p1: Any) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_pin_locked_retry", String(describing: p1))
+  }
+  /// Your verification expired. Please request a new code.
+  internal static var guaReauthExpired: String { return UntranslatedL10n.tr("Untranslated", "gua_reauth_expired") }
+  /// We couldn’t confirm your account details. Please try again.
   internal static var guaResolverClaimsInvalid: String { return UntranslatedL10n.tr("Untranslated", "gua_resolver_claims_invalid") }
-  /// We can't set up new accounts right now. Please try again later.
+  /// Too many attempts. Please wait a moment and try again.
+  internal static var guaResolverRateLimited: String { return UntranslatedL10n.tr("Untranslated", "gua_resolver_rate_limited") }
+  /// Too many attempts. Please try again in %@.
+  internal static func guaResolverRateLimitedRetryIn(_ p1: Any) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_resolver_rate_limited_retry_in", String(describing: p1))
+  }
+  /// We can’t set up new accounts right now. Please try again later.
   internal static var guaResolverRegistrationClosed: String { return UntranslatedL10n.tr("Untranslated", "gua_resolver_registration_closed") }
-  /// We're having trouble connecting right now. Please try again in a moment.
+  /// We’re having trouble connecting right now. Please try again in a moment.
   internal static var guaResolverRoutingUnavailable: String { return UntranslatedL10n.tr("Untranslated", "gua_resolver_routing_unavailable") }
+  /// We’re having trouble connecting right now. Please try again in %@.
+  internal static func guaResolverRoutingUnavailableRetryIn(_ p1: Any) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_resolver_routing_unavailable_retry_in", String(describing: p1))
+  }
+  /// We couldn’t sign you back in. Please sign in again.
+  internal static var guaRestoreSigninFailed: String { return UntranslatedL10n.tr("Untranslated", "gua_restore_signin_failed") }
+  /// Organize related chats and communities in one place
+  internal static var guaSettingsSpacesDescription: String { return UntranslatedL10n.tr("Untranslated", "gua_settings_spaces_description") }
   /// Sign in with a passkey
   internal static var guaSignInWithPasskey: String { return UntranslatedL10n.tr("Untranslated", "gua_sign_in_with_passkey") }
   /// Messages kept only here will not be available when you sign back in.
   internal static var guaSignoutLastDeviceMessage: String { return UntranslatedL10n.tr("Untranslated", "gua_signout_last_device_message") }
   /// Signing out will remove your messages from this device
   internal static var guaSignoutLastDeviceTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_signout_last_device_title") }
-  /// You were signed out of your Gua account. Sign in again to carry on.
+  /// You were signed out of your Gua account. Sign in again to continue.
   internal static var guaSoftLogoutSigninNotice: String { return UntranslatedL10n.tr("Untranslated", "gua_soft_logout_signin_notice") }
+  /// You’ll need two-step verification before you can change your number.
+  internal static var guaStepUpRequired: String { return UntranslatedL10n.tr("Untranslated", "gua_step_up_required") }
   /// Make sure the emojis below match the ones on your other device.
   internal static var guaVerificationCompareEmojisSubtitle: String { return UntranslatedL10n.tr("Untranslated", "gua_verification_compare_emojis_subtitle") }
+  /// Your messages will now show up on your other device.
+  internal static var guaVerificationCompleteOtherDeviceSubtitle: String { return UntranslatedL10n.tr("Untranslated", "gua_verification_complete_other_device_subtitle") }
   /// Your messages will now show up on this device.
   internal static var guaVerificationCompleteSubtitle: String { return UntranslatedL10n.tr("Untranslated", "gua_verification_complete_subtitle") }
+  /// If this was you, confirm it to show your messages there. You’ll compare a few emojis on both screens.
+  internal static var guaVerificationNewSignInSubtitle: String { return UntranslatedL10n.tr("Untranslated", "gua_verification_new_sign_in_subtitle") }
+  /// New sign-in to your account
+  internal static var guaVerificationNewSignInTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_verification_new_sign_in_title") }
   /// Keep it open. You’ll compare a few emojis on both devices to confirm it’s you.
   internal static var guaVerificationOtherDeviceSubtitle: String { return UntranslatedL10n.tr("Untranslated", "gua_verification_other_device_subtitle") }
   /// Open Gua on your other device
   internal static var guaVerificationOtherDeviceTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_verification_other_device_title") }
   /// Waiting for your other device
   internal static var guaVerificationWaitingOtherDeviceTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_verification_waiting_other_device_title") }
+  /// Invites
+  internal static var screenModerationAndSafetyInvitesHeading: String { return UntranslatedL10n.tr("Untranslated", "screen_moderation_and_safety_invites_heading") }
+  /// Your appearance
+  internal static var screenModerationAndSafetySharePresenceHeading: String { return UntranslatedL10n.tr("Untranslated", "screen_moderation_and_safety_share_presence_heading") }
   /// Clear all data currently stored on this device?
   /// Sign in again to access your account data and messages.
   internal static var softLogoutClearDataDialogContent: String { return UntranslatedL10n.tr("Untranslated", "soft_logout_clear_data_dialog_content") }
@@ -115,10 +231,27 @@ internal enum UntranslatedL10n {
 
 extension UntranslatedL10n {
   static func tr(_ table: String, _ key: String, _ args: CVarArg...) -> String {
-    // No need to check languages, we always default to en for untranslated strings
-    guard let bundle = Bundle.lprojBundle(for: "en") else { return key }
+    // Gua keeps its own translations in this table, so resolve the app language exactly like L10n does.
+    let languages = Bundle.overrideLocalizations ?? Bundle.app.preferredLocalizations
+
+    for language in languages {
+      if let translation = trIn(language, table, key, args) {
+        return translation
+      }
+    }
+    return Bundle.app.developmentLocalization.flatMap { trIn($0, table, key, args) } ?? key
+  }
+
+  private static func trIn(_ language: String, _ table: String, _ key: String, _ args: CVarArg...) -> String? {
+    guard let bundle = Bundle.lprojBundle(for: language) else { return nil }
     let format = NSLocalizedString(key, tableName: table, bundle: bundle, comment: "")
-    return String(format: format, locale: Locale(identifier: "en"), arguments: args)
+    let translation = String(format: format, locale: Locale(identifier: language), arguments: args)
+    guard translation != key,
+          translation != "\(key) \(key)" // Handle double pseudo for tests
+    else {
+      return nil
+    }
+    return translation
   }
 }
 

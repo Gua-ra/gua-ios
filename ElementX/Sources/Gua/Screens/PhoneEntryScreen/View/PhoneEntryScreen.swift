@@ -1,5 +1,6 @@
 //
-// Copyright 2025 Gua. All rights reserved.
+// Copyright 2022-2025 New Vector Ltd.
+// Copyright 2025 Gua
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
@@ -101,8 +102,8 @@ struct PhoneEntryScreen: View {
             .frame(height: 52)
             .background(.compound.bgSubtleSecondary, in: RoundedRectangle(cornerRadius: 14))
         }
-        .accessibilityLabel("Country code: \(context.viewState.selectedCountry.name) plus \(context.viewState.selectedCountry.dialCode)")
-        .accessibilityHint("Opens country picker")
+        .accessibilityLabel(UntranslatedL10n.guaCountryCodeA11yLabel(context.viewState.selectedCountry.name, context.viewState.selectedCountry.dialCode))
+        .accessibilityHint(UntranslatedL10n.guaCountryCodeA11yHint)
     }
 
     private var phoneField: some View {
@@ -156,6 +157,7 @@ struct PhoneEntryScreen: View {
                     Label(L10n.screenPhoneLoginLegacy, icon: \.lock)
                 }
                 .buttonStyle(.compound(.tertiary))
+                .disabled(context.viewState.isSubmitting)
             }
         }
     }

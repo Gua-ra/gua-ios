@@ -9,7 +9,6 @@ import SwiftUI
 
 enum TestablePreviewsDictionary {
     static let dictionary: [String: any PreviewProvider.Type] = [
-        "AdvancedSettingsScreen_Previews" : AdvancedSettingsScreen_Previews.self,
         "AnalyticsPromptScreen_Previews" : AnalyticsPromptScreen_Previews.self,
         "AnalyticsSettingsScreen_Previews" : AnalyticsSettingsScreen_Previews.self,
         "AppLockScreen_Previews" : AppLockScreen_Previews.self,
@@ -80,11 +79,15 @@ enum TestablePreviewsDictionary {
         "MatrixUserPermalink_Previews" : MatrixUserPermalink_Previews.self,
         "MediaEventsTimelineScreen_Previews" : MediaEventsTimelineScreen_Previews.self,
         "MediaUploadPreviewScreen_Previews" : MediaUploadPreviewScreen_Previews.self,
+        "MediaUploadQualitySettingsScreen_Previews" : MediaUploadQualitySettingsScreen_Previews.self,
         "MentionSuggestionItemView_Previews" : MentionSuggestionItemView_Previews.self,
         "MessageComposerTextField_Previews" : MessageComposerTextField_Previews.self,
         "MessageComposer_Previews" : MessageComposer_Previews.self,
         "MessageForwardingScreen_Previews" : MessageForwardingScreen_Previews.self,
+        "MessageMenuOverlay_Previews" : MessageMenuOverlay_Previews.self,
+        "MessageTextSelectionSheet_Previews" : MessageTextSelectionSheet_Previews.self,
         "MessageText_Previews" : MessageText_Previews.self,
+        "ModerationAndSafetySettingsScreen_Previews" : ModerationAndSafetySettingsScreen_Previews.self,
         "NoticeRoomTimelineView_Previews" : NoticeRoomTimelineView_Previews.self,
         "NotificationPermissionsScreen_Previews" : NotificationPermissionsScreen_Previews.self,
         "NotificationSettingsEditScreenRoomCell_Previews" : NotificationSettingsEditScreenRoomCell_Previews.self,
@@ -185,6 +188,7 @@ enum TestablePreviewsDictionary {
         "TimelineThreadSummaryView_Previews" : TimelineThreadSummaryView_Previews.self,
         "TimelineView_Previews" : TimelineView_Previews.self,
         "TombstonedAvatarImage_Previews" : TombstonedAvatarImage_Previews.self,
+        "ToolbarButton_Previews" : ToolbarButton_Previews.self,
         "TwoStepVerificationScreen_Previews" : TwoStepVerificationScreen_Previews.self,
         "TypingIndicatorView_Previews" : TypingIndicatorView_Previews.self,
         "UnsupportedRoomTimelineView_Previews" : UnsupportedRoomTimelineView_Previews.self,

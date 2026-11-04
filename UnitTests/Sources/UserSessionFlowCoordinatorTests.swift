@@ -18,6 +18,8 @@ class UserSessionFlowCoordinatorTests: XCTestCase {
     
     let networkReachabilitySubject: CurrentValueSubject<NetworkMonitorReachability, Never> = .init(.reachable)
     let homeserverReachabilitySubject: CurrentValueSubject<NetworkMonitorReachability, Never> = .init(.reachable)
+    let clientActionsSubject = PassthroughSubject<ClientProxyAction, Never>()
+    var clientProxy: ClientProxyMock!
     var cancellables = Set<AnyCancellable>()
     
     var tabCoordinator: NavigationTabCoordinator<UserSessionFlowCoordinator.HomeTab>? {
@@ -41,8 +43,9 @@ class UserSessionFlowCoordinatorTests: XCTestCase {
         
         rootCoordinator = NavigationRootCoordinator()
         
-        let clientProxy = ClientProxyMock(.init(userID: "hi@bob", roomSummaryProvider: RoomSummaryProviderMock(.init(state: .loaded(.mockRooms)))))
+        clientProxy = ClientProxyMock(.init(userID: "hi@bob", roomSummaryProvider: RoomSummaryProviderMock(.init(state: .loaded(.mockRooms)))))
         clientProxy.homeserverReachabilityPublisher = homeserverReachabilitySubject.asCurrentValuePublisher()
+        clientProxy.actionsPublisher = clientActionsSubject.eraseToAnyPublisher()
         
         let networkMonitor = NetworkMonitorMock.default
         networkMonitor.reachabilityPublisher = networkReachabilitySubject.asCurrentValuePublisher()
@@ -63,7 +66,8 @@ class UserSessionFlowCoordinatorTests: XCTestCase {
                                                   analytics: ServiceLocator.shared.analytics,
                                                   userIndicatorController: userIndicatorController,
                                                   notificationManager: NotificationManagerMock(),
-                                                  stateMachineFactory: stateMachineFactory)
+                                                  stateMachineFactory: stateMachineFactory,
+                                                  spacesSetting: SpacesSetting(clientProxy: clientProxy, appSettings: ServiceLocator.shared.settings))
         
         userSessionFlowCoordinator = UserSessionFlowCoordinator(isNewLogin: false,
                                                                 navigationRootCoordinator: rootCoordinator,
@@ -71,6 +75,11 @@ class UserSessionFlowCoordinatorTests: XCTestCase {
                                                                 flowParameters: flowParameters)
         
         userSessionFlowCoordinator.start()
+    }
+    
+    override func tearDown() {
+        userSessionFlowCoordinator = nil
+        ServiceLocator.shared.settings.spacesEnabled = false
     }
     
     // MARK: Navigation
@@ -171,6 +180,26 @@ class UserSessionFlowCoordinatorTests: XCTestCase {
         XCTAssertTrue(detailNavigationStack?.rootCoordinator is RoomScreenCoordinator)
         XCTAssertNil(tabCoordinator?.sheetCoordinator)
         XCTAssertNil(chatsSplitCoordinator?.sheetCoordinator, "The media upload sheet shouldn't be shown when sharing text.")
+    }
+    
+    func testTurningSpacesOffLeavesTheSpacesTab() {
+        ServiceLocator.shared.settings.spacesEnabled = true
+        tabCoordinator?.selectedTab = .spaces
+        
+        ServiceLocator.shared.settings.spacesEnabled = false
+        
+        XCTAssertEqual(tabCoordinator?.selectedTab, .chats)
+    }
+    
+    func testASyncResponseCopiesTheStoredSpacesValue() async throws {
+        clientProxy.accountDataTypeReturnValue = .success(#"{"enabled":true}"#)
+        let deferred = deferFulfillment(ServiceLocator.shared.settings.$spacesEnabled) { $0 }
+        
+        // The room list sends an update for every stored response, Running to Running included.
+        clientActionsSubject.send(.receivedSyncUpdate)
+        clientActionsSubject.send(.receivedSyncUpdate)
+        
+        try await deferred.fulfill()
     }
     
     // MARK: Indicators

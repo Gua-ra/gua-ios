@@ -1,7 +1,7 @@
 //
 // Copyright Gua
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -34,7 +34,7 @@ class SecureBackupControllerKeyPersistenceTests: XCTestCase {
         events = []
 
         controller = SecureBackupController(encryption: encryption,
-                                            userID: "@persist:dev.gua.sarahlacerda.me",
+                                            userID: "@persist:gua.example",
                                             e2eeInitialization: Task { },
                                             persistRecoveryKey: { [weak self] key in
                                                 self?.persisted.append(key)

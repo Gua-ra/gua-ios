@@ -1,5 +1,6 @@
 //
-// Copyright 2025 Gua. All rights reserved.
+// Copyright 2022-2025 New Vector Ltd.
+// Copyright 2025 Gua
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 //
@@ -73,7 +74,7 @@ class FindFriendsScreenViewModel: FindFriendsScreenViewModelType, FindFriendsScr
             state.contacts = []
             state.phase = .empty
         } catch {
-            state.errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            state.errorMessage = (error as? LocalizedError)?.errorDescription ?? L10n.errorUnknown
             state.phase = .error
         }
     }
@@ -96,8 +97,8 @@ class FindFriendsScreenViewModel: FindFriendsScreenViewModelType, FindFriendsScr
             actionsSubject.send(.startedChat(roomID: roomID))
         case .failure:
             state.bindings.alertInfo = AlertInfo(id: UUID(),
-                                                 title: "Couldn't start the chat",
-                                                 message: "Something went wrong starting a chat with \(contact.localName). Please try again.")
+                                                 title: UntranslatedL10n.guaFindFriendsStartChatFailedTitle,
+                                                 message: UntranslatedL10n.guaFindFriendsStartChatFailedMessage(contact.localName))
         }
     }
 }

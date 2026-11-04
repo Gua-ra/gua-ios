@@ -1,7 +1,7 @@
 //
-// Copyright 2026 Gua. All rights reserved.
+// Copyright 2026 Gua
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -47,5 +47,15 @@ final class AccountManagementURLTests: XCTestCase {
         components.appendUILocalesPreservingEncoding(languageCode: "pt")
 
         XCTAssertEqual(components.percentEncodedQuery, "login_hint=%2B15551234567&ui_locales=pt")
+    }
+
+    func testUILocalesDefaultsToTheAppLanguage() throws {
+        defer { Bundle.overrideLocalizations = nil }
+        Bundle.overrideLocalizations = ["pt-BR"]
+        var components = try XCTUnwrap(URLComponents(string: "https://auth.example/authorize?login_hint=%2B15551234567"))
+
+        components.appendUILocalesPreservingEncoding()
+
+        XCTAssertEqual(components.percentEncodedQuery, "login_hint=%2B15551234567&ui_locales=pt-BR")
     }
 }

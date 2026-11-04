@@ -11,12 +11,6 @@ extension PreviewTests {
 
     // MARK: - PreviewProvider
 
-    func testAdvancedSettingsScreen() async throws {
-        for (index, preview) in AdvancedSettingsScreen_Previews._allPreviews.enumerated() {
-            try await assertSnapshots(matching: preview, step: index)
-        }
-    }
-
     func testAnalyticsPromptScreen() async throws {
         for (index, preview) in AnalyticsPromptScreen_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)
@@ -437,6 +431,12 @@ extension PreviewTests {
         }
     }
 
+    func testMediaUploadQualitySettingsScreen() async throws {
+        for (index, preview) in MediaUploadQualitySettingsScreen_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
     func testMentionSuggestionItemView() async throws {
         for (index, preview) in MentionSuggestionItemView_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)
@@ -461,8 +461,26 @@ extension PreviewTests {
         }
     }
 
+    func testMessageMenuOverlay() async throws {
+        for (index, preview) in MessageMenuOverlay_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    func testMessageTextSelectionSheet() async throws {
+        for (index, preview) in MessageTextSelectionSheet_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
     func testMessageText() async throws {
         for (index, preview) in MessageText_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    func testModerationAndSafetySettingsScreen() async throws {
+        for (index, preview) in ModerationAndSafetySettingsScreen_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)
         }
     }
@@ -1063,6 +1081,12 @@ extension PreviewTests {
 
     func testTombstonedAvatarImage() async throws {
         for (index, preview) in TombstonedAvatarImage_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    func testToolbarButton() async throws {
+        for (index, preview) in ToolbarButton_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)
         }
     }

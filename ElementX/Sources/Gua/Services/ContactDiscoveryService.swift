@@ -1,7 +1,7 @@
 //
-// Copyright 2025 Gua. All rights reserved.
+// Copyright 2025 Gua
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only
 //
 
 import Contacts
@@ -35,11 +35,11 @@ enum ContactDiscoveryError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .accessDenied:
-            "Gua needs access to your contacts to find which of them are already here. You can enable it in Settings."
+            UntranslatedL10n.guaFindFriendsPermissionMessage
         case .noContactsWithNumbers:
-            "None of your contacts have a phone number we can check."
+            L10n.findFriendsEmptyMessage
         case let .lookupFailed(error):
-            (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            (error as? LocalizedError)?.errorDescription ?? L10n.errorUnknown
         }
     }
 }

@@ -1,7 +1,7 @@
 //
 // Copyright Gua
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -19,7 +19,7 @@ class EncryptionResetScreenViewModelTests: XCTestCase {
     private var viewModel: EncryptionResetScreenViewModel!
     private var cancellables: Set<AnyCancellable> = []
 
-    private static let userID = "@reset:dev.gua.sarahlacerda.me"
+    private static let userID = "@reset:gua.example"
     private static let ceiling: Duration = .milliseconds(150)
 
     override func setUp() {
