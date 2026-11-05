@@ -19,7 +19,7 @@ struct ModerationAndSafetySettingsScreen: View {
             blockedUsersSection
         }
         .compoundList()
-        .navigationTitle(L10n.commonModerationAndSafety)
+        .navigationTitle(UntranslatedL10n.commonModerationAndSafety)
         .navigationBarTitleDisplayMode(.inline)
     }
     
@@ -29,7 +29,7 @@ struct ModerationAndSafetySettingsScreen: View {
                                   description: L10n.screenAdvancedSettingsSharePresenceDescription),
                     kind: .toggle($context.sharePresence))
         } header: {
-            Text(L10n.screenModerationAndSafetySharePresenceHeading)
+            Text(UntranslatedL10n.screenModerationAndSafetySharePresenceHeading)
                 .compoundListSectionHeader()
         }
     }
@@ -48,7 +48,7 @@ struct ModerationAndSafetySettingsScreen: View {
                     kind: .toggle(binding))
                 .disabled(context.viewState.isWaitingHideInviteAvatars)
         } header: {
-            Text(L10n.screenModerationAndSafetyInvitesHeading)
+            Text(UntranslatedL10n.screenModerationAndSafetyInvitesHeading)
                 .compoundListSectionHeader()
         }
     }

@@ -108,7 +108,7 @@ struct SettingsScreen: View {
     private var accountSettingsSection: some View {
         Section {
             if let url = context.viewState.accountProfileURL {
-                ListRow(label: .default(title: L10n.actionManageAccountAndDevices,
+                ListRow(label: .default(title: UntranslatedL10n.actionManageAccountAndDevices,
                                         icon: \.userProfile),
                         kind: .button {
                             context.send(viewAction: .manageAccount(url: url))
@@ -143,7 +143,7 @@ struct SettingsScreen: View {
                     })
                     .accessibilityIdentifier(A11yIdentifiers.settingsScreen.notifications)
             
-            ListRow(label: .default(title: L10n.commonModerationAndSafety,
+            ListRow(label: .default(title: UntranslatedL10n.commonModerationAndSafety,
                                     icon: \.admin),
                     kind: .navigationLink {
                         context.send(viewAction: .moderationAndSafety)
@@ -158,7 +158,7 @@ struct SettingsScreen: View {
                         .accessibilityIdentifier(A11yIdentifiers.settingsScreen.reportBug)
             }
         } header: {
-            Text(L10n.commonAccountSettings)
+            Text(UntranslatedL10n.commonAccountSettings)
                 .compoundListSectionHeader()
         }
     }
@@ -174,7 +174,7 @@ struct SettingsScreen: View {
                     .accessibilityIdentifier(A11yIdentifiers.settingsScreen.logout)
             
             if context.viewState.showAccountDeactivation {
-                ListRow(label: .action(title: L10n.actionDeleteAccount,
+                ListRow(label: .action(title: UntranslatedL10n.actionDeleteAccount,
                                        icon: \.delete,
                                        role: .destructive),
                         kind: .navigationLink {
@@ -200,7 +200,7 @@ struct SettingsScreen: View {
                     kind: .picker(selection: $context.appAppearance,
                                   items: AppAppearance.allCases.map { (title: $0.name, tag: $0) }))
             
-            ListRow(label: .default(title: L10n.commonMediaUploadQuality,
+            ListRow(label: .default(title: UntranslatedL10n.commonMediaUploadQuality,
                                     icon: \.image),
                     kind: .navigationLink {
                         context.send(viewAction: .mediaUploadQuality)
@@ -252,7 +252,7 @@ struct SettingsScreen: View {
                         .accessibilityIdentifier(A11yIdentifiers.settingsScreen.developerOptions)
             }
         } header: {
-            Text(L10n.commonAppSettings)
+            Text(UntranslatedL10n.commonAppSettings)
                 .compoundListSectionHeader()
         } footer: {
             versionSection

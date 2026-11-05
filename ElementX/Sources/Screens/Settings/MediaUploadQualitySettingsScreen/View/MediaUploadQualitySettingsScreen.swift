@@ -23,7 +23,7 @@ struct MediaUploadQualitySettingsScreen: View {
             }
         }
         .compoundList()
-        .navigationTitle(L10n.commonMediaUploadQuality)
+        .navigationTitle(UntranslatedL10n.commonMediaUploadQuality)
         .navigationBarTitleDisplayMode(.inline)
     }
 }
