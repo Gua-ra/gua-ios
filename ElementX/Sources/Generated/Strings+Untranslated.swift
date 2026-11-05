@@ -26,8 +26,12 @@ internal nonisolated enum UntranslatedL10n {
   internal static var guaAccountGenesisSetupFailed: String { return UntranslatedL10n.tr("Untranslated", "gua_account_genesis_setup_failed") }
   /// More
   internal static var guaActionMore: String { return UntranslatedL10n.tr("Untranslated", "gua_action_more") }
+  /// Open in new window
+  internal static var guaActionOpenInNewWindow: String { return UntranslatedL10n.tr("Untranslated", "gua_action_open_in_new_window") }
   /// Select
   internal static var guaActionSelect: String { return UntranslatedL10n.tr("Untranslated", "gua_action_select") }
+  /// Global Search
+  internal static var guaCommonGlobalSearch: String { return UntranslatedL10n.tr("Untranslated", "gua_common_global_search") }
   /// Contact info
   internal static var guaContactInfoTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_contact_info_title") }
   /// Opens country picker

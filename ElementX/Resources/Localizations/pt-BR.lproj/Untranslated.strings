@@ -74,6 +74,8 @@
 
 "gua_action_select" = "Selecionar";
 "gua_action_more" = "Mais";
+"gua_action_open_in_new_window" = "Abrir em nova janela";
+"gua_common_global_search" = "Pesquisa global";
 "gua_message_text_selection_title" = "Selecionar texto";
 
 "common_account_settings" = "Configurações da conta";

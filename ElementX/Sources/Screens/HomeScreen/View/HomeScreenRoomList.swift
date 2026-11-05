@@ -61,7 +61,7 @@ struct HomeScreenRoomList: View {
                             Button {
                                 context.send(viewAction: .detachRoom(roomIdentifier: room.id))
                             } label: {
-                                Label("Open in new window", icon: \.spotlight)
+                                Label(UntranslatedL10n.guaActionOpenInNewWindow, icon: \.spotlight)
                             }
                         }
                         

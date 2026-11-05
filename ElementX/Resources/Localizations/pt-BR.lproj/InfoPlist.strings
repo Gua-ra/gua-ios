@@ -1,7 +1,7 @@
 "NSCameraUsageDescription" = "Para tirar fotos ou gravar vídeos e enviá-los como mensagem, o Gua precisa de acesso à câmera.";
 "NSContactsUsageDescription" = "O Gua verifica seus contatos de forma privada para descobrir quais deles já estão aqui. Seus contatos nunca são armazenados.";
 "NSFaceIDUsageDescription" = "O Gua usa o Face ID para desbloquear o app, assim você não precisa digitar seu código toda vez.";
-"NSLocationAlwaysAndWhenInUseUsageDescription" = "To share your location live in chats, location access is needed when the app is in the background.";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "Para compartilhar sua localização ao vivo nas conversas, o Gua precisa de acesso à localização quando o app estiver em segundo plano.";
 "NSLocationWhenInUseUsageDescription" = "Permita o acesso à localização para que o Gua possa compartilhar sua localização.";
 "NSMicrophoneUsageDescription" = "Para gravar e enviar mensagens de áudio, o Gua precisa de acesso ao microfone.";
 "NSPhotoLibraryAddUsageDescription" = "Permite salvar imagens e vídeos na sua galeria.";

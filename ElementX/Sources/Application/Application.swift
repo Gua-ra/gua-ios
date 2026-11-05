@@ -77,7 +77,7 @@ struct Application: App {
             }
             
             CommandGroup(after: .windowArrangement) {
-                Button("Global Search") {
+                Button(UntranslatedL10n.guaCommonGlobalSearch) {
                     appCoordinator.handleAppRoute(.search, windowType: nil)
                 }
                 .keyboardShortcut("k", modifiers: [.command])

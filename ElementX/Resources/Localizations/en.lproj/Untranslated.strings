@@ -133,6 +133,8 @@
 
 "gua_action_select" = "Select";
 "gua_action_more" = "More";
+"gua_action_open_in_new_window" = "Open in new window";
+"gua_common_global_search" = "Global Search";
 "gua_message_text_selection_title" = "Select text";
 
 "gua_settings_spaces_description" = "Organize related chats and communities in one place";
