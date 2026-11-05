@@ -50,7 +50,7 @@ final class ChatBackgroundService: ChatBackgroundServiceProtocol {
     private var slots: [String: Slot] = [:]
     private var subjects: [String: CurrentValueSubject<ChatBackground, Never>] = [:]
 
-    nonisolated init(roomStateClient: RoomStateClientProtocol, cache: ChatBackgroundCacheProtocol) {
+    init(roomStateClient: RoomStateClientProtocol, cache: ChatBackgroundCacheProtocol) {
         self.roomStateClient = roomStateClient
         self.cache = cache
     }

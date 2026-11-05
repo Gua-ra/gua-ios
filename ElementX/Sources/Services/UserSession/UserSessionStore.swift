@@ -56,7 +56,7 @@ class UserSessionStore: UserSessionStoreProtocol {
         switch await restorePreviousLogin(credentials) {
         case .success(let clientProxy):
             restoreKeyStorageIfNeeded(clientProxy)
-            return .success(buildUserSessionWithClient(clientProxy, sessionDirectories: credentials.restorationToken.sessionDirectories))
+            return await .success(buildUserSessionWithClient(clientProxy, sessionDirectories: credentials.restorationToken.sessionDirectories))
         case .failure(let error):
             MXLog.error("Failed restoring login with error: \(error)")
             
@@ -84,7 +84,7 @@ class UserSessionStore: UserSessionStoreProtocol {
 
             bootstrapKeyStorageIfNeeded(clientProxy)
 
-            return .success(buildUserSessionWithClient(clientProxy, sessionDirectories: sessionDirectories))
+            return await .success(buildUserSessionWithClient(clientProxy, sessionDirectories: sessionDirectories))
         } catch {
             MXLog.error("Failed creating user session with error: \(error)")
             return .failure(.failedSettingUpSession)
@@ -332,6 +332,7 @@ class UserSessionStore: UserSessionStoreProtocol {
         }
     }
 
+    @MainActor
     private func buildUserSessionWithClient(_ clientProxy: ClientProxyProtocol, sessionDirectories: SessionDirectories) -> UserSessionProtocol {
         let mediaProvider = MediaProvider(mediaLoader: clientProxy.mediaLoader,
                                           imageCache: .onlyInMemory,

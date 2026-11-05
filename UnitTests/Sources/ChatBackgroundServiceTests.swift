@@ -181,7 +181,7 @@ final class ChatBackgroundServiceTests: XCTestCase {
         let reply = stored(.preset(.aurora), eventID: "$older", timestamp: 1000)
         let newer = ChatBackground.preset(.lavender).contentJSON
         roomStateClient.chatBackgroundRoomIDClosure = { [service, roomID] _ in
-            await service?.handleTimelineEvent(roomID: roomID, eventID: "$newer", timestamp: 2000, contentJSON: newer)
+            service?.handleTimelineEvent(roomID: roomID, eventID: "$newer", timestamp: 2000, contentJSON: newer)
             return .found(reply)
         }
 
@@ -194,7 +194,7 @@ final class ChatBackgroundServiceTests: XCTestCase {
         let reply = stored(.preset(.graphite), eventID: "$newer", timestamp: 2000)
         let older = ChatBackground.preset(.lavender).contentJSON
         roomStateClient.chatBackgroundRoomIDClosure = { [service, roomID] _ in
-            await service?.handleTimelineEvent(roomID: roomID, eventID: "$older", timestamp: 1000, contentJSON: older)
+            service?.handleTimelineEvent(roomID: roomID, eventID: "$older", timestamp: 1000, contentJSON: older)
             return .found(reply)
         }
 

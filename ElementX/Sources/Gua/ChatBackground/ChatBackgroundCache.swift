@@ -41,7 +41,7 @@ final class ChatBackgroundCache: ChatBackgroundCacheProtocol {
     private let writeQueue = DispatchQueue(label: "global.gua.chat-background-cache", qos: .utility)
     private var entries: [Entry]?
 
-    nonisolated init(directory: URL) {
+    init(directory: URL) {
         fileURL = directory.appending(path: "chat-backgrounds.json")
     }
 
