@@ -80,7 +80,7 @@ struct SearchScreenRoom: Identifiable, Equatable {
     
     init(_ summary: RoomSummary) {
         let identifier = if summary.isDirect {
-            summary.heroes.first?.id ?? summary.canonicalAlias
+            summary.heroes.first?.id.guaDisplayHandle ?? summary.canonicalAlias
         } else {
             summary.canonicalAlias
         }
@@ -119,7 +119,7 @@ struct SearchScreenMessage: Identifiable, Equatable {
         roomID = result.roomID
         roomName = roomSummary?.name ?? result.roomID
         roomAvatar = roomSummary?.avatar ?? .room(id: result.roomID, name: roomSummary?.name, avatarURL: nil)
-        senderName = isOutgoing ? L10n.commonYou : result.sender.disambiguatedDisplayName ?? result.sender.id
+        senderName = isOutgoing ? L10n.commonYou : result.sender.disambiguatedDisplayName ?? result.sender.id.guaDisplayHandle
         content = result.content
         timestamp = result.timestamp
     }

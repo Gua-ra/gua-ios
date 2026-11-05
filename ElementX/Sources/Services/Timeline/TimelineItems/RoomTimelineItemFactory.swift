@@ -957,8 +957,8 @@ nonisolated struct RoomTimelineItemFactory: RoomTimelineItemFactoryProtocol {
                                                                           previousDisplayName: previousDisplayName,
                                                                           avatarURLString: avatarURLString,
                                                                           previousAvatarURLString: previousAvatarURLString,
-                                                                          memberID: eventItemProxy.sender.id,
-                                                                          memberDisplayName: eventItemProxy.sender.disambiguatedDisplayName ?? eventItemProxy.sender.id,
+                                                                          memberID: eventItemProxy.sender.id.guaDisplayHandle,
+                                                                          memberDisplayName: eventItemProxy.sender.disambiguatedDisplayName ?? eventItemProxy.sender.id.guaDisplayHandle,
                                                                           memberIsYou: isOutgoing) else { return nil }
         return buildStateTimelineItem(for: eventItemProxy, text: text, isOutgoing: isOutgoing)
     }

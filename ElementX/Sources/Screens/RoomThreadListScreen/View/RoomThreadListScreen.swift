@@ -80,7 +80,7 @@ private struct RoomThreadListCell: View {
     }
     
     private var creatorDetails: some View {
-        Text(item.rootMessageDetails.sender.disambiguatedDisplayName ?? item.rootMessageDetails.sender.id)
+        Text(item.rootMessageDetails.sender.disambiguatedDisplayName ?? item.rootMessageDetails.sender.id.guaDisplayHandle)
             .font(.compound.bodyLGSemibold)
             .foregroundColor(.compound.textPrimary)
             .lineLimit(1)

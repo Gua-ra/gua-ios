@@ -83,7 +83,7 @@ nonisolated struct RoomEventStringBuilder {
                                           previousDisplayName: prevDisplayName,
                                           avatarURLString: avatarUrl,
                                           previousAvatarURLString: prevAvatarUrl,
-                                          memberID: sender.id,
+                                          memberID: sender.id.guaDisplayHandle,
                                           memberDisplayName: sender.disambiguatedDisplayName ?? sender.id.guaDisplayHandle,
                                           memberIsYou: isOutgoing)
                 .map(AttributedString.init)
