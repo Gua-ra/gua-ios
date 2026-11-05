@@ -186,8 +186,9 @@ extension PreviewTests {
             .onPreferenceChange(SnapshotPerceptualPrecisionPreferenceKey.self) { preferences.perceptualPrecision = $0 }
             .onPreferenceChange(SnapshotFulfillmentPreferenceKey.self) { preferences.fulfillmentSource = $0?.source }
         
-        // Rendering once triggers the preference updates read below.
-        _ = ImageRenderer(content: preferenceReadingView).uiImage
+        // Rendering once triggers the preference updates read below. Releasing the renderer early traps on iOS 27.
+        let imageRenderer = ImageRenderer(content: preferenceReadingView)
+        _ = imageRenderer.uiImage
         
         switch preferences.fulfillmentSource {
         case .publisher(let publisher):
