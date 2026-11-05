@@ -1,0 +1,829 @@
+{
+  "cases": [
+    {
+      "name": "preset aurora",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "aurora"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "aurora"
+      }
+    },
+    {
+      "name": "preset mint",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "mint"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "mint"
+      }
+    },
+    {
+      "name": "preset sky",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "sky"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "sky"
+      }
+    },
+    {
+      "name": "preset sand",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "sand"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "sand"
+      }
+    },
+    {
+      "name": "preset blush",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "blush"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "blush"
+      }
+    },
+    {
+      "name": "preset lavender",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "lavender"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "lavender"
+      }
+    },
+    {
+      "name": "preset graphite",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "graphite"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "graphite"
+      }
+    },
+    {
+      "name": "preset sunset",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "sunset"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "sunset"
+      }
+    },
+    {
+      "name": "preset ocean",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "ocean"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "ocean"
+      }
+    },
+    {
+      "name": "preset night",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "night"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "night"
+      }
+    },
+    {
+      "name": "photo full",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/jpeg",
+          "w": 1536,
+          "h": 2048,
+          "size": 412337,
+          "blurhash": "LKO2?U%2Tw=w]~RBVZRi};RPxuwH",
+          "dim": 60,
+          "align": {
+            "x": 250,
+            "y": 1000
+          }
+        }
+      },
+      "expected": {
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/jpeg",
+          "w": 1536,
+          "h": 2048,
+          "size": 412337,
+          "blurhash": "LKO2?U%2Tw=w]~RBVZRi};RPxuwH",
+          "dim": 60,
+          "align": {
+            "x": 250,
+            "y": 1000
+          }
+        }
+      }
+    },
+    {
+      "name": "photo minimal gets the defaults",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 600,
+          "size": 1000
+        }
+      },
+      "expected": {
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 600,
+          "size": 1000,
+          "blurhash": null,
+          "dim": 35,
+          "align": {
+            "x": 500,
+            "y": 500
+          }
+        }
+      }
+    },
+    {
+      "name": "photo with null optional fields gets the defaults",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 600,
+          "size": 1000,
+          "blurhash": null,
+          "dim": null,
+          "align": null
+        }
+      },
+      "expected": {
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 600,
+          "size": 1000,
+          "blurhash": null,
+          "dim": 35,
+          "align": {
+            "x": 500,
+            "y": 500
+          }
+        }
+      }
+    },
+    {
+      "name": "empty content",
+      "content": {},
+      "expected": {
+        "kind": "none"
+      }
+    },
+    {
+      "name": "not an object",
+      "content": [
+        "v",
+        1
+      ],
+      "expected": {
+        "kind": "none"
+      }
+    },
+    {
+      "name": "unknown preset",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "rainbow"
+      },
+      "expected": {
+        "kind": "none"
+      }
+    },
+    {
+      "name": "preset with an invalid id",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "Aurora"
+      },
+      "expected": {
+        "kind": "none"
+      }
+    },
+    {
+      "name": "version 2 with a known fallback",
+      "content": {
+        "v": 2,
+        "kind": "video",
+        "fallback_preset": "ocean",
+        "video": {}
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "ocean"
+      }
+    },
+    {
+      "name": "version 2 without a fallback",
+      "content": {
+        "v": 2,
+        "kind": "preset",
+        "preset": "mint"
+      },
+      "expected": {
+        "kind": "none"
+      }
+    },
+    {
+      "name": "version 2 with an unknown fallback",
+      "content": {
+        "v": 2,
+        "kind": "video",
+        "fallback_preset": "rainbow"
+      },
+      "expected": {
+        "kind": "none"
+      }
+    },
+    {
+      "name": "unknown kind uses the fallback",
+      "content": {
+        "v": 1,
+        "kind": "pattern",
+        "fallback_preset": "sand"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "sand"
+      }
+    },
+    {
+      "name": "missing version uses the fallback",
+      "content": {
+        "kind": "preset",
+        "preset": "mint",
+        "fallback_preset": "sky"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "sky"
+      }
+    },
+    {
+      "name": "non mxc url",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "https://example.org/a.jpg",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 600,
+          "size": 1000
+        }
+      },
+      "expected": {
+        "kind": "none"
+      }
+    },
+    {
+      "name": "non image mimetype",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "video/mp4",
+          "w": 800,
+          "h": 600,
+          "size": 1000
+        }
+      },
+      "expected": {
+        "kind": "none"
+      }
+    },
+    {
+      "name": "dim above the maximum is clamped",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 600,
+          "size": 1000,
+          "dim": 300
+        }
+      },
+      "expected": {
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 600,
+          "size": 1000,
+          "blurhash": null,
+          "dim": 80,
+          "align": {
+            "x": 500,
+            "y": 500
+          }
+        }
+      }
+    },
+    {
+      "name": "negative dim is clamped",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 600,
+          "size": 1000,
+          "dim": -10
+        }
+      },
+      "expected": {
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 600,
+          "size": 1000,
+          "blurhash": null,
+          "dim": 0,
+          "align": {
+            "x": 500,
+            "y": 500
+          }
+        }
+      }
+    },
+    {
+      "name": "align outside the frame is clamped",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 600,
+          "size": 1000,
+          "align": {
+            "x": -2000,
+            "y": 7000
+          }
+        }
+      },
+      "expected": {
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 600,
+          "size": 1000,
+          "blurhash": null,
+          "dim": 35,
+          "align": {
+            "x": 0,
+            "y": 1000
+          }
+        }
+      }
+    },
+    {
+      "name": "extra fields are ignored",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "night",
+        "colour": "red",
+        "photo": {
+          "url": "mxc://a/b"
+        }
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "night"
+      }
+    },
+    {
+      "name": "extra photo fields are ignored",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 600,
+          "size": 1000,
+          "caption": "hi"
+        }
+      },
+      "expected": {
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 600,
+          "size": 1000,
+          "blurhash": null,
+          "dim": 35,
+          "align": {
+            "x": 500,
+            "y": 500
+          }
+        }
+      }
+    },
+    {
+      "name": "width as a string",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": "800",
+          "h": 600,
+          "size": 1000
+        }
+      },
+      "expected": {
+        "kind": "none"
+      }
+    },
+    {
+      "name": "width zero",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 0,
+          "h": 600,
+          "size": 1000
+        }
+      },
+      "expected": {
+        "kind": "none"
+      }
+    },
+    {
+      "name": "height above 8192",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 8193,
+          "size": 1000
+        }
+      },
+      "expected": {
+        "kind": "none"
+      }
+    },
+    {
+      "name": "size above 20 MB",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 600,
+          "size": 20000001
+        }
+      },
+      "expected": {
+        "kind": "none"
+      }
+    },
+    {
+      "name": "missing size",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 600
+        }
+      },
+      "expected": {
+        "kind": "none"
+      }
+    },
+    {
+      "name": "dim as a string",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 600,
+          "size": 1000,
+          "dim": "50"
+        }
+      },
+      "expected": {
+        "kind": "none"
+      }
+    },
+    {
+      "name": "dim written as a fraction",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 600,
+          "size": 1000,
+          "dim": 0.35
+        }
+      },
+      "expected": {
+        "kind": "none"
+      }
+    },
+    {
+      "name": "align written as fractions",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 600,
+          "size": 1000,
+          "align": {
+            "x": 0.5,
+            "y": 0.5
+          }
+        }
+      },
+      "expected": {
+        "kind": "none"
+      }
+    },
+    {
+      "name": "align as a number",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 600,
+          "size": 1000,
+          "align": 500
+        }
+      },
+      "expected": {
+        "kind": "none"
+      }
+    },
+    {
+      "name": "align x as a string",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 600,
+          "size": 1000,
+          "align": {
+            "x": "left",
+            "y": 500
+          }
+        }
+      },
+      "expected": {
+        "kind": "none"
+      }
+    },
+    {
+      "name": "blurhash as a number",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 600,
+          "size": 1000,
+          "blurhash": 5
+        }
+      },
+      "expected": {
+        "kind": "none"
+      }
+    },
+    {
+      "name": "blurhash longer than 100 characters",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 600,
+          "size": 1000,
+          "blurhash": "LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL"
+        }
+      },
+      "expected": {
+        "kind": "none"
+      }
+    },
+    {
+      "name": "blurhash longer than 100 UTF-16 code units",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 600,
+          "size": 1000,
+          "blurhash": "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00"
+        }
+      },
+      "expected": {
+        "kind": "none"
+      }
+    },
+    {
+      "name": "preset as a number",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": 5
+      },
+      "expected": {
+        "kind": "none"
+      }
+    },
+    {
+      "name": "version as a string",
+      "content": {
+        "v": "1",
+        "kind": "preset",
+        "preset": "mint"
+      },
+      "expected": {
+        "kind": "none"
+      }
+    },
+    {
+      "name": "photo as a string",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": "mxc://gua.global/AbCdEf"
+      },
+      "expected": {
+        "kind": "none"
+      }
+    },
+    {
+      "name": "version written as 1.0",
+      "content": {
+        "v": 1.0,
+        "kind": "preset",
+        "preset": "mint"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "mint"
+      }
+    },
+    {
+      "name": "whole number photo fields written with a decimal point",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800.0,
+          "h": 600.0,
+          "size": 1000.0,
+          "dim": 40.0,
+          "align": {
+            "x": 250.0,
+            "y": 750.0
+          }
+        }
+      },
+      "expected": {
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 600,
+          "size": 1000,
+          "blurhash": null,
+          "dim": 40,
+          "align": {
+            "x": 250,
+            "y": 750
+          }
+        }
+      }
+    },
+    {
+      "name": "fractional width",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800.5,
+          "h": 600,
+          "size": 1000
+        }
+      },
+      "expected": {
+        "kind": "none"
+      }
+    }
+  ]
+}

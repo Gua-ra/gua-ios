@@ -150,6 +150,10 @@ struct TimelineViewRepresentable: UIViewControllerRepresentable {
             if tableViewController.hideTimelineMedia != context.viewState.hideTimelineMedia {
                 tableViewController.hideTimelineMedia = context.viewState.hideTimelineMedia
             }
+            let isChatBackgroundActive = !context.viewState.visibleChatBackground.isNone
+            if tableViewController.isChatBackgroundActive != isChatBackgroundActive {
+                tableViewController.isChatBackgroundActive = isChatBackgroundActive
+            }
             
             if tableViewController.typingMembers.members != context.viewState.typingMembers {
                 tableViewController.setTypingMembers(context.viewState.typingMembers)

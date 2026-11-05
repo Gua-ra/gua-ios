@@ -19,7 +19,8 @@ struct CallInviteRoomTimelineView: View {
             CompoundIcon(\.voiceCallSolid, size: .medium, relativeTo: .compound.bodyMD)
         }
         .font(.compound.bodyMD)
-        .foregroundColor(.compound.textSecondary)
+        .legibleSecondaryForeground()
+        .legibilityCapsule()
         .frame(maxWidth: .infinity, alignment: .center)
         .padding()
     }

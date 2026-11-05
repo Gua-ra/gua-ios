@@ -21,7 +21,8 @@ struct TimelineStartRoomTimelineView: View {
             if context?.viewState.isDirectOneToOneRoom != true {
                 Text(title)
                     .font(.compound.bodySM)
-                    .foregroundColor(.compound.textSecondary)
+                    .legibleSecondaryForeground()
+                    .legibilityCapsule()
                     .padding(.bottom, 24)
                     .padding(.top, context?.viewState.hasPredecessor == true ? 0 : 24)
                     .frame(maxWidth: .infinity)

@@ -10,6 +10,7 @@ import Foundation
 
 struct UserSessionMockConfiguration {
     var clientProxy: ClientProxyProtocol = ClientProxyMock(.init())
+    var chatBackgroundService: ChatBackgroundServiceProtocol = ChatBackgroundServiceMock(.init())
 }
 
 extension UserSessionMock {
@@ -19,6 +20,7 @@ extension UserSessionMock {
         clientProxy = configuration.clientProxy
         mediaProvider = MediaProviderMock(configuration: .init())
         voiceMessageMediaManager = VoiceMessageMediaManagerMock()
+        chatBackgroundService = configuration.chatBackgroundService
         
         sessionSecurityStatePublisher = CurrentValueSubject<SessionSecurityState, Never>(.init(verificationState: .verified, recoveryState: .enabled)).asCurrentValuePublisher()
     }

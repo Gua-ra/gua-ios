@@ -7,15 +7,6 @@
 
 import Foundation
 
-enum OwnDevicesClientError: Error {
-    case invalidURL
-    /// The SDK refreshes the token on its own, so a 401 only skips this attempt and never signs out.
-    case unauthorized
-    case server(status: Int)
-    case transport(Error)
-    case decoding(Error)
-}
-
 struct OwnDevice: Equatable {
     let deviceID: String
     let lastSeen: Date?
@@ -39,7 +30,6 @@ final class OwnDevicesClient {
     private let session: URLSession
     private let decoder = JSONDecoder()
     private let encoder = JSONEncoder()
-    private let timeout: TimeInterval = 15
 
     init(session: URLSession = .shared) {
         self.session = session
@@ -60,8 +50,8 @@ final class OwnDevicesClient {
             let devices: [Device]
         }
 
-        let request = try makeRequest(homeserver: homeserver, path: "/_matrix/client/v3/devices", method: "GET", accessToken: accessToken, body: nil)
-        let response: Response = try await decode(send(request))
+        let request = try ClientServerHTTP.makeRequest(homeserver: homeserver, path: "/_matrix/client/v3/devices", method: "GET", accessToken: accessToken)
+        let response: Response = try await decode(ClientServerHTTP.send(request, session: session))
         return response.devices.map { device in
             OwnDevice(deviceID: device.deviceID,
                       lastSeen: device.lastSeenTimestamp.map { Date(timeIntervalSince1970: TimeInterval($0) / 1000) })
@@ -97,8 +87,8 @@ final class OwnDevicesClient {
         }
 
         let body = try encode(Body(deviceKeys: [userID: []]))
-        let request = try makeRequest(homeserver: homeserver, path: "/_matrix/client/v3/keys/query", method: "POST", accessToken: accessToken, body: body)
-        let response: Response = try await decode(send(request))
+        let request = try ClientServerHTTP.makeRequest(homeserver: homeserver, path: "/_matrix/client/v3/keys/query", method: "POST", accessToken: accessToken, body: body)
+        let response: Response = try await decode(ClientServerHTTP.send(request, session: session))
 
         let selfSigningKeyIDs = Set(response.selfSigningKeys?[userID]?.keys.keys.filter { $0.hasPrefix("ed25519:") } ?? [])
         let devices = (response.deviceKeys?[userID] ?? [:]).mapValues { keys in
@@ -118,58 +108,17 @@ final class OwnDevicesClient {
             let messages: [String: [String: [String: String]]]
         }
 
-        let path = try "/_matrix/client/v3/sendToDevice/\(Self.verificationRetryEventType)/\(Self.pathComponent(transactionID))"
+        let path = try "/_matrix/client/v3/sendToDevice/\(Self.verificationRetryEventType)/\(ClientServerHTTP.pathComponent(transactionID))"
         let body = try encode(Body(messages: [userID: [targetDeviceID: ["from_device": fromDeviceID]]]))
-        let request = try makeRequest(homeserver: homeserver, path: path, method: "PUT", accessToken: accessToken, body: body)
-        _ = try await send(request)
-    }
-
-    private func makeRequest(homeserver: String, path: String, method: String, accessToken: String, body: Data?) throws -> URLRequest {
-        var base = homeserver
-        while base.hasSuffix("/") {
-            base.removeLast()
-        }
-        guard let url = URL(string: base + path), url.scheme == "https" || url.scheme == "http", url.host() != nil else {
-            throw OwnDevicesClientError.invalidURL
-        }
-
-        var request = URLRequest(url: url, timeoutInterval: timeout)
-        request.httpMethod = method
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        if let body {
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.httpBody = body
-        }
-        return request
-    }
-
-    private func send(_ request: URLRequest) async throws -> Data {
-        let data: Data
-        let response: URLResponse
-        do {
-            (data, response) = try await session.data(for: request)
-        } catch {
-            throw OwnDevicesClientError.transport(error)
-        }
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw OwnDevicesClientError.server(status: -1)
-        }
-        switch httpResponse.statusCode {
-        case 200..<300:
-            return data
-        case 401:
-            throw OwnDevicesClientError.unauthorized
-        default:
-            throw OwnDevicesClientError.server(status: httpResponse.statusCode)
-        }
+        let request = try ClientServerHTTP.makeRequest(homeserver: homeserver, path: path, method: "PUT", accessToken: accessToken, body: body)
+        _ = try await ClientServerHTTP.send(request, session: session)
     }
 
     private func encode(_ value: some Encodable) throws -> Data {
         do {
             return try encoder.encode(value)
         } catch {
-            throw OwnDevicesClientError.transport(error)
+            throw ClientServerError.transport(error)
         }
     }
 
@@ -177,16 +126,7 @@ final class OwnDevicesClient {
         do {
             return try decoder.decode(T.self, from: data)
         } catch {
-            throw OwnDevicesClientError.decoding(error)
+            throw ClientServerError.decoding(error)
         }
-    }
-
-    private static func pathComponent(_ value: String) throws -> String {
-        var allowed = CharacterSet.urlPathAllowed
-        allowed.remove("/")
-        guard let escaped = value.addingPercentEncoding(withAllowedCharacters: allowed) else {
-            throw OwnDevicesClientError.invalidURL
-        }
-        return escaped
     }
 }
