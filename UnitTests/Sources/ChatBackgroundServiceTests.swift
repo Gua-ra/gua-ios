@@ -56,7 +56,7 @@ final class ChatBackgroundServiceTests: XCTestCase {
     func testServerErrorsKeepTheCache() async {
         cache.values[roomID] = stored(.preset(.aurora), eventID: "$cached", timestamp: 10)
 
-        for error in [ClientServerError.server(status: 500), .unauthorized, .transport] {
+        for error in [ClientServerError.server(status: 500), .unauthorized, .transport(URLError(.notConnectedToInternet))] {
             roomStateClient.chatBackgroundRoomIDReturnValue = .failed(error)
             await service.refresh(roomID: roomID)
             XCTAssertEqual(service.backgroundPublisher(roomID: roomID).value, .preset(.aurora), "\(error)")

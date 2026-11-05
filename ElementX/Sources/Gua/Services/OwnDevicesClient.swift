@@ -118,7 +118,7 @@ final class OwnDevicesClient {
         do {
             return try encoder.encode(value)
         } catch {
-            throw ClientServerError.transport
+            throw ClientServerError.transport(error)
         }
     }
 
@@ -126,7 +126,7 @@ final class OwnDevicesClient {
         do {
             return try decoder.decode(T.self, from: data)
         } catch {
-            throw ClientServerError.decoding
+            throw ClientServerError.decoding(error)
         }
     }
 }

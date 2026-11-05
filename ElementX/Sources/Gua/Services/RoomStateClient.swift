@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum RoomStateReadResult: Equatable {
+enum RoomStateReadResult {
     /// The timestamp is 0 when the server returned the content without the event.
     case found(ChatBackgroundStoredValue)
     case notFound
@@ -34,11 +34,7 @@ final class RoomStateClient: RoomStateClientProtocol {
     func chatBackground(roomID: String) async -> RoomStateReadResult {
         do throws(ClientServerError) {
             let data = try await read(roomID: roomID)
-            guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  let value = Self.storedValue(from: json) else {
-                return .failed(.decoding)
-            }
-            return .found(value)
+            return try .found(Self.storedValue(from: data))
         } catch .server(status: 404) {
             return .notFound
         } catch {
@@ -60,6 +56,19 @@ final class RoomStateClient: RoomStateClientProtocol {
                                                        method: "GET",
                                                        accessToken: accessToken)
         return try await ClientServerHTTP.send(request, session: session)
+    }
+
+    private static func storedValue(from data: Data) throws(ClientServerError) -> ChatBackgroundStoredValue {
+        let object: Any
+        do {
+            object = try JSONSerialization.jsonObject(with: data)
+        } catch {
+            throw .decoding(error)
+        }
+        guard let json = object as? [String: Any], let value = storedValue(from: json) else {
+            throw .decoding(DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "Not a JSON object")))
+        }
+        return value
     }
 
     private static func storedValue(from json: [String: Any]) -> ChatBackgroundStoredValue? {

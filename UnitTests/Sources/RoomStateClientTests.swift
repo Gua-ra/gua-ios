@@ -69,25 +69,46 @@ final class RoomStateClientTests: XCTestCase {
     func testNotFoundMeansNoBackground() async {
         RoomStateHTTPStub.respond(status: 404, body: #"{"errcode":"M_NOT_FOUND"}"#)
         let result = await makeClient().chatBackground(roomID: "!room:gua.global")
-        XCTAssertEqual(result, .notFound)
+        guard case .notFound = result else {
+            XCTFail("Expected no background, got \(result)")
+            return
+        }
     }
 
     func testUnauthorizedNeverSignsOut() async {
         RoomStateHTTPStub.respond(status: 401, body: #"{"errcode":"M_UNKNOWN_TOKEN"}"#)
         let result = await makeClient().chatBackground(roomID: "!room:gua.global")
-        XCTAssertEqual(result, .failed(.unauthorized))
+        guard case .failed(.unauthorized) = result else {
+            XCTFail("Expected unauthorized, got \(result)")
+            return
+        }
     }
 
     func testServerErrorFails() async {
         RoomStateHTTPStub.respond(status: 500, body: "")
         let result = await makeClient().chatBackground(roomID: "!room:gua.global")
-        XCTAssertEqual(result, .failed(.server(status: 500)))
+        guard case .failed(.server(status: 500)) = result else {
+            XCTFail("Expected a server error, got \(result)")
+            return
+        }
+    }
+
+    func testUnreadableBodyFails() async {
+        RoomStateHTTPStub.respond(status: 200, body: "<html>")
+        let result = await makeClient().chatBackground(roomID: "!room:gua.global")
+        guard case .failed(.decoding) = result else {
+            XCTFail("Expected a decoding error, got \(result)")
+            return
+        }
     }
 
     func testMissingTokenSendsNothing() async {
         let client = RoomStateClient(session: RoomStateHTTPStub.makeSession(), homeserver: { "https://matrix.gua.global" }, accessToken: { nil })
         let result = await client.chatBackground(roomID: "!room:gua.global")
-        XCTAssertEqual(result, .failed(.missingAccessToken))
+        guard case .failed(.missingAccessToken) = result else {
+            XCTFail("Expected a missing token, got \(result)")
+            return
+        }
         XCTAssertTrue(RoomStateHTTPStub.requests.isEmpty)
     }
 

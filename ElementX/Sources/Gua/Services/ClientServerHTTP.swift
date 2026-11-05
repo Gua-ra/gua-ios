@@ -7,14 +7,14 @@
 
 import Foundation
 
-enum ClientServerError: Error, Equatable {
+enum ClientServerError: Error {
     case invalidURL
     case missingAccessToken
     /// The SDK refreshes the token on its own, so a 401 only skips this attempt and never signs out.
     case unauthorized
     case server(status: Int)
-    case transport
-    case decoding
+    case transport(Error)
+    case decoding(Error)
 }
 
 enum ClientServerHTTP {
@@ -44,7 +44,7 @@ enum ClientServerHTTP {
         do {
             (data, response) = try await session.data(for: request)
         } catch {
-            throw .transport
+            throw .transport(error)
         }
         guard let httpResponse = response as? HTTPURLResponse else {
             throw .server(status: -1)
