@@ -345,6 +345,17 @@ jobs:
           EOF
           echo "Wrote Secrets.swift with dev backend endpoints (values masked by Actions)."
 
+      - name: Turn off analytics in the prod archive
+        # The committed placeholders enable the analytics opt-in, and opting in sends Element Call analytics to Element.
+        if: needs.gate.outputs.target != 'dev'
+        run: |
+          set -euo pipefail
+          perl -pi -e 's/^(\s*static let (?:sentryDSN|sentryRustDSN|postHogHost|postHogAPIKey): String\?) = .*$/$1 = nil/' Components/Secrets/Secrets.swift
+          if [ "$(grep -cE 'static let (sentryDSN|sentryRustDSN|postHogHost|postHogAPIKey): String\? = nil$' Components/Secrets/Secrets.swift)" != 4 ]; then
+            echo "::error::Could not clear the analytics placeholders in Components/Secrets/Secrets.swift."
+            exit 1
+          fi
+
       - name: Apply the Dev app variant
         # Switches bundle id / app group / OIDC redirect scheme to the dev app and
         # re-adds GUA_DEVELOPMENT on Release, so both apps install side by side.
