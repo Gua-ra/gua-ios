@@ -254,7 +254,6 @@ private extension Double {
 
 struct ChatBackgroundTimelineEvent: Equatable {
     let eventID: String
-    /// The server timestamp in milliseconds.
     let timestamp: UInt64
     /// Nil when the event's JSON cannot be read, which still reads as a change.
     let contentJSON: String?

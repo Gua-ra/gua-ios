@@ -8,7 +8,7 @@
 import Compound
 import SwiftUI
 
-/// The picked photo full screen, with the controls drawn over it like the composer, cropped as in a chat that fills the screen.
+/// Cropped as in a chat that fills the screen.
 struct ChatBackgroundPhotoPreview: View {
     @Bindable var context: ChatBackgroundScreenViewModel.Context
 

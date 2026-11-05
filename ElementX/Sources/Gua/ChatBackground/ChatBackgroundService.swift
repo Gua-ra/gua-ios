@@ -35,7 +35,6 @@ final class ChatBackgroundService: ChatBackgroundServiceProtocol {
         var stored: ChatBackgroundStoredValue?
         /// Counts changes from this device and the timeline, so a server reply in flight meanwhile can tell it is stale.
         var localRevision = 0
-        /// A change sent from this device that neither the server nor the timeline has confirmed yet.
         var pendingEventID: String?
 
         func outlives(_ reply: ChatBackgroundStoredValue) -> Bool {
