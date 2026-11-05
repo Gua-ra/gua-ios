@@ -72,8 +72,6 @@ final class NewSignInNudgeMonitorTests {
         OwnDevicesHTTPStub.reset()
     }
     
-    // MARK: - Candidate selection
-    
     @Test
     func nudgesOnlyTheNewestRecentDeviceWithoutASelfSigningSignature() async throws {
         monitor.start()
@@ -211,8 +209,6 @@ final class NewSignInNudgeMonitorTests {
         #expect(nudgedDevices == ["OLDWEB", "NEWWEB"])
     }
     
-    // MARK: - Rate limits
-    
     @Test
     func nudgesADeviceAtMostOnceEveryTwoMinutesAndThreeTimesInAll() async {
         fixture.devices = [.init(id: phoneID, lastSeen: start, signedBySelfSigningKey: true),
@@ -283,8 +279,6 @@ final class NewSignInNudgeMonitorTests {
         await runRound(at: 240)
         #expect(OwnDevicesHTTPStub.nudges.count == 4)
     }
-    
-    // MARK: - Gating
     
     @Test
     func doesNothingWhileThisDeviceIsNotVerified() async {
@@ -376,8 +370,6 @@ final class NewSignInNudgeMonitorTests {
         #expect(OwnDevicesHTTPStub.requests.isEmpty)
     }
     
-    // MARK: - Server errors
-    
     @Test
     func unauthorizedReadSkipsTheRoundAndTheNextRoundReadsAFreshToken() async {
         OwnDevicesHTTPStub.respond { _ in (401, #"{"errcode":"M_UNKNOWN_TOKEN","error":"Token expired"}"#) }
@@ -449,8 +441,6 @@ final class NewSignInNudgeMonitorTests {
         #expect(OwnDevicesHTTPStub.requests.isEmpty)
     }
     
-    // MARK: - Scheduling
-    
     @Test
     func firstVerificationSchedulesOneRoundFiveSecondsLater() async {
         verificationState.send(.unverified)
@@ -512,8 +502,6 @@ final class NewSignInNudgeMonitorTests {
         notificationCenter.post(name: UIApplication.didBecomeActiveNotification, object: nil)
         #expect(scheduler.liveEntries.isEmpty)
     }
-    
-    // MARK: - Helpers
     
     private func makeMonitor() -> NewSignInNudgeMonitor {
         NewSignInNudgeMonitor(clientProxy: clientProxy,

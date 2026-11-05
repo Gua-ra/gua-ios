@@ -8,22 +8,20 @@
 import Compound
 import SwiftUI
 
-/// The message lifted above a dimmed timeline, with quick reactions above it and a card below it:
-/// who reacted after a double tap, the actions after a long press.
 struct MessageMenuOverlay: View {
     @EnvironmentObject private var context: TimelineViewModel.Context
     @Environment(\.layoutDirection) private var layoutDirection
+    @Environment(\.colorScheme) private var colorScheme
 
     let item: EventBasedTimelineItemProtocol
     let actions: TimelineItemMenuActions
     let presentation: TimelineItemMenuPresentation
     let groupStyle: TimelineGroupStyle
-    /// Removes the overlay without animation. The overlay animates out before calling it.
+    /// Must remove the overlay without animation, since the overlay has already animated out.
     let dismiss: () -> Void
 
     @State private var isVisible: Bool
     @State private var isShowingMore: Bool
-    /// The bubble in window coordinates.
     @State private var sourceFrame: CGRect
     @State private var detailsContentHeight: CGFloat = 0
 
@@ -62,15 +60,14 @@ struct MessageMenuOverlay: View {
         showsActions || (!presentation.showsActions && !reactionRows.isEmpty)
     }
 
-    /// The bubble's visual side. Outgoing bubbles sit on the right, or on the left in right-to-left layouts.
+    /// Outgoing bubbles sit on the right, or on the left in right-to-left layouts.
     private var alignsRight: Bool {
         item.isOutgoing != (layoutDirection == .rightToLeft)
     }
 
-    /// The card's full height. The who-reacted card shows five and a half rows at most, then scrolls.
     private var detailsSize: CGSize? {
         guard showsDetails else { return nil }
-        let height = showsActions ? detailsContentHeight : min(detailsContentHeight, 5.5 * Self.summaryRowHeight)
+        let height = showsActions ? detailsContentHeight : min(detailsContentHeight, Self.maximumVisibleSummaryRows * Self.summaryRowHeight + MessageMenuChrome.inset)
         return CGSize(width: Self.detailsWidth, height: height)
     }
 
@@ -127,26 +124,25 @@ struct MessageMenuOverlay: View {
             }
         }
         .onAppear {
+            presentation.anchor?.isBubbleLifted = true
             guard !isVisible else { return }
             withAnimation(.spring(response: 0.35, dampingFraction: 0.8).disabledDuringTests()) {
                 isVisible = true
             }
         }
+        .onDisappear {
+            presentation.anchor?.isBubbleLifted = false
+        }
     }
 
-    // MARK: - Backdrop
-
     private var backdrop: some View {
-        Rectangle()
-            .fill(.ultraThinMaterial)
-            .overlay(Color.black.opacity(0.15))
+        Color.black
+            .opacity(colorScheme == .dark ? 0.4 : 0.1)
             .opacity(isVisible ? 1 : 0)
             .ignoresSafeArea()
             .onTapGesture { close() }
             .accessibilityHidden(true)
     }
-
-    // MARK: - Bubble
 
     private func bubble(width: CGFloat) -> some View {
         RoomTimelineItemView(viewState: RoomTimelineItemViewState(item: item, groupStyle: groupStyle))
@@ -156,8 +152,6 @@ struct MessageMenuOverlay: View {
             .fixedSize(horizontal: false, vertical: true)
             .allowsHitTesting(false)
     }
-
-    // MARK: - Reactions
 
     private static let reactionSize: CGFloat = 44
     private static let reactionSpacing: CGFloat = 2
@@ -196,8 +190,8 @@ struct MessageMenuOverlay: View {
             .padding(.trailing, Self.reactionBarPadding)
             .accessibilityLabel(L10n.actionReact)
         }
-        .background(.regularMaterial, in: Capsule())
-        .shadow(color: .black.opacity(0.12), radius: 10, y: 3)
+        .padding(.vertical, Self.reactionBarPadding)
+        .messageMenuSurface(in: Capsule())
         .environment(\.layoutDirection, layoutDirection)
     }
 
@@ -212,13 +206,11 @@ struct MessageMenuOverlay: View {
             Text(key)
                 .font(.system(size: 28))
                 .frame(width: Self.reactionSize, height: Self.reactionSize)
-                .background(Circle().fill(hasReacted ? Color.compound.bgSubtlePrimary : .clear))
+                .background(Circle().fill(hasReacted ? MessageMenuChrome.selectedFill : .clear))
                 .overlay(Circle().strokeBorder(hasReacted ? Color.compound.borderInteractivePrimary : .clear))
         }
         .accessibilityLabel(hasReacted ? L10n.a11yRemoveReaction(key) : L10n.a11yAddReaction(key))
     }
-
-    // MARK: - Actions
 
     private static let detailsWidth: CGFloat = 250
 
@@ -231,13 +223,13 @@ struct MessageMenuOverlay: View {
                     reactionSummaryRows
                 }
             }
+            .padding(.vertical, MessageMenuChrome.inset)
             .readHeight($detailsContentHeight)
         }
         .scrollBounceBehavior(.basedOnSize)
         .frame(height: height)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.12), radius: 10, y: 3)
+        .clipShape(MessageMenuChrome.cardShape)
+        .messageMenuSurface(in: MessageMenuChrome.cardShape)
         .environment(\.layoutDirection, layoutDirection)
     }
 
@@ -273,13 +265,23 @@ struct MessageMenuOverlay: View {
                 }
 
                 if !sections.destructive.isEmpty {
-                    Divider()
-                        .frame(height: 6)
-                        .overlay(Color.compound.bgSubtlePrimary.opacity(0.6))
+                    sectionSeparator
 
                     ForEach(sections.destructive, id: \.self) { actionButton(for: $0) }
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private var sectionSeparator: some View {
+        if MessageMenuChrome.usesGlass {
+            Divider()
+                .padding(.vertical, MessageMenuChrome.inset)
+        } else {
+            Divider()
+                .frame(height: 6)
+                .overlay(Color.compound.bgSubtlePrimary.opacity(0.6))
         }
     }
 
@@ -294,9 +296,8 @@ struct MessageMenuOverlay: View {
         .buttonStyle(MessageMenuButtonStyle())
     }
 
-    // MARK: - Who reacted
-
     private static let summaryRowHeight: CGFloat = 48
+    private static let maximumVisibleSummaryRows: CGFloat = 5.5
 
     private var reactionSummaryRows: some View {
         VStack(spacing: 0) {
@@ -335,8 +336,6 @@ struct MessageMenuOverlay: View {
         .accessibilityElement(children: .combine)
     }
 
-    // MARK: - Dismissal
-
     private func close(then action: (() -> Void)? = nil) {
         withAnimation(.easeOut(duration: 0.18).disabledDuringTests()) {
             isVisible = false
@@ -346,6 +345,7 @@ struct MessageMenuOverlay: View {
             if !ProcessInfo.isRunningTests {
                 try? await Task.sleep(for: .seconds(0.18))
             }
+            presentation.anchor?.isBubbleLifted = false
             dismiss()
 
             guard let action else { return }
@@ -376,7 +376,49 @@ private struct MessageMenuButtonStyle: ButtonStyle {
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(.rect)
-        .background(configuration.isPressed ? Color.compound.bgSubtlePrimary : .clear)
+        .background {
+            if configuration.isPressed {
+                RoundedRectangle(cornerRadius: MessageMenuChrome.highlightCornerRadius)
+                    .fill(MessageMenuChrome.selectedFill)
+                    .padding(.horizontal, MessageMenuChrome.inset)
+            }
+        }
+    }
+}
+
+private enum MessageMenuChrome {
+    static let usesGlass: Bool = {
+        if #available(iOS 26, *) { return true }
+        return false
+    }()
+
+    static let cornerRadius: CGFloat = usesGlass ? 32 : 16
+    static let cardShape = RoundedRectangle(cornerRadius: cornerRadius)
+    static let inset: CGFloat = usesGlass ? 8 : 0
+    static let highlightCornerRadius: CGFloat = usesGlass ? cornerRadius - inset : 0
+    static let selectedFill: Color = usesGlass ? .compound.bgActionSecondaryPressed : .compound.bgSubtlePrimary
+}
+
+private extension View {
+    func messageMenuSurface(in shape: some Shape) -> some View {
+        modifier(MessageMenuSurface(shape: shape))
+    }
+}
+
+private struct MessageMenuSurface<S: Shape>: ViewModifier {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let shape: S
+
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            // Untinted glass goes near-black over the dimmed dark timeline.
+            content.glassEffect(.regular.tint(colorScheme == .dark ? .white.opacity(0.15) : nil), in: shape)
+        } else {
+            content
+                .background(.regularMaterial, in: shape)
+                .shadow(color: .black.opacity(0.12), radius: 10, y: 3)
+        }
     }
 }
 
@@ -392,8 +434,6 @@ private struct MessageMenuLabelStyle: LabelStyle {
         }
     }
 }
-
-// MARK: - Previews
 
 struct MessageMenuOverlay_Previews: PreviewProvider, TestablePreview {
     static let viewModel = TimelineViewModel.mock

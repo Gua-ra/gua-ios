@@ -200,7 +200,6 @@ final nonisolated class AppSettings: @unchecked Sendable {
     /// The number of attempts the user has made to unlock the app with a PIN code (resets when unlocked).
     @UserPreference(defaultValue: 0)
     var appLockNumberOfPINAttempts: Int
-    /// GUA FORK: biometric unlock defaults on with a PIN, so only the user's opt-out is stored.
     @UserPreference(defaultValue: false)
     var appLockBiometricUnlockOptOut: Bool
     

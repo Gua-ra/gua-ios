@@ -8,13 +8,9 @@
 import SFSafeSymbols
 import SwiftUI
 
-/// How the menu for a timeline item is shown.
 enum TimelineItemMenuPresentation: Equatable {
-    /// The full action sheet, used by VoiceOver and the media browser.
     case sheet
-    /// Quick reactions above the message bubble and who reacted below it, opened by a double tap.
     case reactions(MessageMenuAnchor)
-    /// Quick reactions above the message bubble and actions below it, opened by a long press.
     case reactionsAndActions(MessageMenuAnchor)
 
     var anchor: MessageMenuAnchor? {
@@ -39,8 +35,7 @@ enum TimelineItemMenuPresentation: Equatable {
     }
 }
 
-/// The message bubble a menu opens over. The bubble can move while the menu is open, for example
-/// when the keyboard closes, so the menu reads its frame again from the timeline.
+/// The bubble can move while the menu is open, for example when the keyboard closes, so its frame is read again from the timeline.
 @MainActor
 final class MessageMenuAnchor: Equatable {
     private let initialFrame: CGRect
@@ -51,9 +46,13 @@ final class MessageMenuAnchor: Equatable {
         self.reader = reader
     }
 
-    /// The bubble's frame in window coordinates, or where it was if it has left the screen.
     var frame: CGRect {
         reader?.frame ?? initialFrame
+    }
+
+    var isBubbleLifted: Bool {
+        get { reader?.isLifted ?? false }
+        set { reader?.isLifted = newValue }
     }
 
     nonisolated static func == (lhs: MessageMenuAnchor, rhs: MessageMenuAnchor) -> Bool {
@@ -82,8 +81,7 @@ struct TimelineItemTextSelectionInfo: Identifiable, Equatable {
 }
 
 enum MessageQuickReactions {
-    /// The reactions offered first on every message. Reaction keys are compared byte for byte
-    /// across clients, so these must stay identical on every Gua platform.
+    /// Reaction keys are compared byte for byte across clients, so these must stay identical on every Gua platform.
     static let defaults: [TimelineItemMenuReaction] = [
         .init(key: "❤️", symbol: .heart),
         .init(key: "👍️", symbol: .handThumbsup),
@@ -96,15 +94,11 @@ enum MessageQuickReactions {
     static let maximumCount = 10
 }
 
-/// Splits the menu actions into the rows shown under a message bubble.
 struct MessageMenuSections: Equatable {
     enum Section { case primary, more, destructive }
     
-    /// Shown directly under the bubble.
     let primary: [TimelineItemMenuAction]
-    /// Shown after tapping More.
     let more: [TimelineItemMenuAction]
-    /// Shown last, below a separator.
     let destructive: [TimelineItemMenuAction]
     
     init(actions: [TimelineItemMenuAction]) {
@@ -146,21 +140,16 @@ extension TimelineItemMenuAction {
     }
 }
 
-/// Places the message bubble, the reaction bar and the action list on screen.
 struct MessageMenuLayout: Equatable {
-    /// The bubble's frame, moved to fit and clipped if taller than the space left.
     let bubbleFrame: CGRect
     let reactionBarFrame: CGRect?
-    /// The card under the bubble: the actions after a long press, who reacted after a double tap.
     let detailsFrame: CGRect?
 
     static let spacing: CGFloat = 8
     static let margin: CGFloat = 12
-    /// How much of the bubble stays visible when the card under it needs the room.
     static let minimumBubbleHeight: CGFloat = 44
 
     /// All frames use the container's coordinate space, measured from its left edge.
-    /// `alignsRight` anchors the bar and the card to the bubble's right edge instead of its left edge.
     init(sourceFrame: CGRect,
          alignsRight: Bool,
          container: CGRect,
@@ -195,15 +184,11 @@ struct MessageMenuLayout: Equatable {
     }
 }
 
-/// One person in the list of who reacted, shown under the bubble after a double tap.
 struct MessageReactionSummaryRow: Equatable, Identifiable {
-    /// The user ID of the person who reacted.
     let id: String
     let isOwnUser: Bool
-    /// Display keys, in the order the message shows its reactions.
     let keys: [String]
     
-    /// The current user first, then everyone else by their earliest reaction, oldest first.
     static func rows(for reactions: [AggregatedReaction]) -> [MessageReactionSummaryRow] {
         var keys: [String: [String]] = [:]
         var earliest: [String: Date] = [:]
@@ -236,7 +221,6 @@ struct MessageReactionSummaryRow: Equatable, Identifiable {
 }
 
 enum MessageSelectionText {
-    /// The text the bubble shows: the formatted body with each mention pill written out, otherwise the plain body.
     static func make(body: String, formattedBody: AttributedString?, pillText: (PillType) -> String) -> String {
         guard let formattedBody, let attributedText = try? NSAttributedString(formattedBody, including: \.elementX) else {
             return body

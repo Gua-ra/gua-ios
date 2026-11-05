@@ -128,8 +128,6 @@ final class UserSessionFlowCoordinatorNewSignInTests {
         OwnDevicesHTTPStub.reset()
     }
     
-    // MARK: - Responder
-    
     @Test
     func subscribesToVerificationRequestsOncePerSession() async throws {
         for recoveryState in [SecureBackupRecoveryState.incomplete, .settingUp, .enabled, .incomplete, .enabled] {
@@ -207,8 +205,6 @@ final class UserSessionFlowCoordinatorNewSignInTests {
         await runRound()
         #expect(OwnDevicesHTTPStub.nudges.count == 1)
     }
-    
-    // MARK: - Gate
     
     @Test
     func nudgesWhenNothingIsPresented() async {
@@ -325,8 +321,6 @@ final class UserSessionFlowCoordinatorNewSignInTests {
         
         #expect(scheduler.liveEntries.isEmpty)
     }
-    
-    // MARK: - Helpers
     
     private func requestDetails(from senderID: String, deviceID: String) -> SessionVerificationRequestDetails {
         SessionVerificationRequestDetails(senderProfile: UserProfile(userID: senderID),

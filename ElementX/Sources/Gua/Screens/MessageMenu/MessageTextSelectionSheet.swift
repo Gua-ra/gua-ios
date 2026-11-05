@@ -8,7 +8,6 @@
 import Compound
 import SwiftUI
 
-/// A message's text with the system selection handles, for copying, translating or looking up part of it.
 struct MessageTextSelectionSheet: View {
     @Environment(\.dismiss) private var dismiss
 
@@ -55,7 +54,6 @@ private struct SelectableTextView: UIViewRepresentable {
     }
 }
 
-/// Selects all of its text the first time it appears, so the selection handles show straight away.
 private final class SelectAllTextView: UITextView {
     private var hasSelectedAll = false
     
@@ -73,8 +71,6 @@ private final class SelectAllTextView: UITextView {
         }
     }
 }
-
-// MARK: - Previews
 
 struct MessageTextSelectionSheet_Previews: PreviewProvider, TestablePreview {
     static var previews: some View {

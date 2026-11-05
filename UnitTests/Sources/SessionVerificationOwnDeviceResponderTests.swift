@@ -37,8 +37,6 @@ final class SessionVerificationOwnDeviceResponderTests {
         }
     }
     
-    // MARK: - Starting the emoji check
-    
     @Test
     func acceptingAnOwnDeviceRequestStartsTheEmojiCheckWithoutAnotherTap() async throws {
         let viewModel = makeViewModel(flow: .deviceResponder(requestDetails: ownDeviceRequest))
@@ -84,8 +82,6 @@ final class SessionVerificationOwnDeviceResponderTests {
         #expect(controller.startSasVerificationCallsCount == 0)
     }
     
-    // MARK: - Verified
-    
     @Test
     func ownDeviceConfirmationStaysOpenUntilDone() async throws {
         let viewModel = makeViewModel(flow: .deviceResponder(requestDetails: ownDeviceRequest),
@@ -114,8 +110,6 @@ final class SessionVerificationOwnDeviceResponderTests {
         
         #expect(finishedCount() == 1)
     }
-    
-    // MARK: - Ignore
     
     @Test
     func ignoringAnOwnDeviceRequestReportsTheDevice() {
@@ -153,8 +147,6 @@ final class SessionVerificationOwnDeviceResponderTests {
         #expect(actions == ["finished"])
     }
     
-    // MARK: - Copy
-    
     @Test
     func ownDeviceRequestCopy() {
         let flow = SessionVerificationScreenFlow.deviceResponder(requestDetails: ownDeviceRequest)
@@ -191,8 +183,6 @@ final class SessionVerificationOwnDeviceResponderTests {
             }
         }
     }
-    
-    // MARK: - Helpers
     
     private func makeViewModel(flow: SessionVerificationScreenFlow,
                                verificationState: SessionVerificationScreenStateMachine.State = .initial) -> SessionVerificationScreenViewModel {

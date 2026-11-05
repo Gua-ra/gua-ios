@@ -12,8 +12,6 @@ import UIKit
 
 @MainActor
 final class MessageMenuTests {
-    // MARK: - Quick reactions
-    
     @Test
     func quickReactionsStartWithTheGuaSet() throws {
         let actions = try #require(makeActions(for: makeTextItem(isOutgoing: false)))
@@ -35,8 +33,6 @@ final class MessageMenuTests {
         
         #expect(actions.reactions.isEmpty)
     }
-    
-    // MARK: - Action sections
     
     @Test
     func incomingTextMessage() throws {
@@ -94,8 +90,6 @@ final class MessageMenuTests {
         #expect(TimelineItemMenuAction.react.messageMenuPlacement == nil)
         #expect(TimelineItemMenuAction.toggleReaction(key: "❤️").messageMenuPlacement == nil)
     }
-    
-    // MARK: - Layout
     
     private let container = CGRect(x: 0, y: 60, width: 400, height: 760)
     
@@ -174,8 +168,6 @@ final class MessageMenuTests {
         #expect(layout.bubbleFrame == CGRect(x: 200, y: 300, width: 200, height: 44))
     }
     
-    // MARK: - Who reacted
-    
     @Test
     func whoReactedListsTheCurrentUserFirstThenOldestFirst() {
         let reactions = [
@@ -214,8 +206,6 @@ final class MessageMenuTests {
     func noReactionsMeansNobodyToList() {
         #expect(MessageReactionSummaryRow.rows(for: []) == [])
     }
-    
-    // MARK: - View model
     
     @Test
     func doubleTapShowsReactionsOverTheBubble() async throws {
@@ -361,8 +351,6 @@ final class MessageMenuTests {
     func selectionTextKeepsPlainBodiesAsTheyAre() {
         #expect(MessageSelectionText.make(body: "**not markdown here**", formattedBody: nil) { _ in "" } == "**not markdown here**")
     }
-    
-    // MARK: - Helpers
     
     private func sender(_ id: String, _ minute: Double) -> ReactionSender {
         ReactionSender(id: id, timestamp: Date(timeIntervalSince1970: minute * 60))

@@ -124,8 +124,6 @@ final class OwnDevicesClient {
         _ = try await send(request)
     }
 
-    // MARK: - Private
-
     private func makeRequest(homeserver: String, path: String, method: String, accessToken: String, body: Data?) throws -> URLRequest {
         var base = homeserver
         while base.hasSuffix("/") {

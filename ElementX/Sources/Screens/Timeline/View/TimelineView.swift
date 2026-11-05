@@ -13,7 +13,6 @@ import WysiwygComposer
 struct TimelineView: View {
     @ObservedObject var timelineContext: TimelineViewModel.Context
     @State private var dragOver = false
-    /// The message menu drawn over the timeline. Mirrors `actionMenuInfo` so it can be shown without the cover's slide animation.
     @State private var messageMenuInfo: TimelineItemActionMenuInfo?
     
     var body: some View {

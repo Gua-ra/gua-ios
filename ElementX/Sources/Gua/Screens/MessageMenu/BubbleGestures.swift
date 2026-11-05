@@ -10,11 +10,12 @@ import SwiftUI
 /// Reads a view's frame in window coordinates on demand, so the timeline doesn't track
 /// every bubble's geometry while it scrolls.
 @MainActor
+@Observable
 final class WindowFrameReader {
     /// Accessibility clients make SwiftUI build copies of the bubble outside any window, so only a view in a window counts.
     private let views = NSHashTable<UIView>.weakObjects()
+    var isLifted = false
 
-    /// Nil when none of the views is in a window.
     var frame: CGRect? {
         guard let view = views.allObjects.first(where: { $0.window != nil }) else { return nil }
         return view.convert(view.bounds, to: nil)
@@ -26,7 +27,6 @@ final class WindowFrameReader {
 }
 
 extension EnvironmentValues {
-    /// Set on the copy of a message bubble shown in the message menu, which renders the bubble alone.
     @Entry var isMessageMenuPreview = false
 }
 

@@ -222,6 +222,7 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
     
     var messageBubbleWithActions: some View {
         messageBubble
+            .opacity(bubbleFrameReader.isLifted ? 0 : 1)
             .onDoubleTap(isEnabled: canDoubleTapToReact) {
                 displayMenu(showsActions: false)
             }
@@ -255,8 +256,7 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
             .padding(.top, messageBubbleTopPadding)
     }
     
-    /// Media, files, polls and locations handle single taps themselves, so only text reacts to a double tap.
-    /// The Mac keeps double-click for selecting words in place.
+    /// Only text reacts to a double tap: other content handles single taps itself, and the Mac keeps double-click for selecting words.
     private var canDoubleTapToReact: Bool {
         guard !ProcessInfo.processInfo.isiOSAppOnMac, !isMessageSelectionActive,
               timelineItem.isCopyable, timelineItem.isReactable, !timelineItem.isRedacted else { return false }
