@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -16,13 +17,13 @@ struct VoiceMessageRecordingView: View {
     @ScaledMetric private var waveformLineWidth = 2.0
     @ScaledMetric private var waveformLinePadding = 2.0
     @ScaledMetric private var recordingIndicatorSize = 8
-
+    
     private static let elapsedTimeFormatter: DateFormatter = {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "mm:ss"
         return dateFormatter
     }()
-            
+    
     private var timeLabelContent: String {
         Self.elapsedTimeFormatter.string(from: Date(timeIntervalSinceReferenceDate: recorderState.duration))
     }
@@ -36,7 +37,7 @@ struct VoiceMessageRecordingView: View {
         HStack(spacing: 8) {
             VoiceMessageRecordingBadge()
                 .frame(width: recordingIndicatorSize, height: recordingIndicatorSize)
-
+            
             Text(timeLabelContent)
                 .lineLimit(1)
                 .font(.compound.bodySMSemibold)
@@ -54,7 +55,7 @@ struct VoiceMessageRecordingView: View {
 
 private struct VoiceMessageRecordingBadge: View {
     @State private var opacity: CGFloat = 0
-
+    
     var body: some View {
         Circle()
             .foregroundColor(.red)

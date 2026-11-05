@@ -1,0 +1,98 @@
+//
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
+//
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
+// Please see LICENSE files in the repository root for full details.
+//
+
+import Compound
+import SwiftUI
+
+struct LabsScreen: View {
+    @Bindable var context: LabsScreenViewModel.Context
+    
+    var body: some View {
+        Form {
+            header
+            threadsSection
+            gallerySection
+            knockingSection
+        }
+        .compoundList()
+        .navigationTitle(L10n.screenLabsTitle)
+        .navigationBarTitleDisplayMode(.inline)
+    }
+    
+    private var header: some View {
+        Section {
+            EmptyView()
+        } header: {
+            VStack(spacing: 16) {
+                BigIcon(icon: \.labs, style: .default)
+                
+                VStack(spacing: 8) {
+                    Text(L10n.screenLabsHeaderTitle)
+                        .foregroundColor(.compound.textPrimary)
+                        .font(.compound.headingMDBold)
+                        .multilineTextAlignment(.center)
+                    
+                    Text(L10n.screenLabsHeaderDescription)
+                        .font(.compound.bodyMD)
+                        .multilineTextAlignment(.center)
+                        .foregroundColor(.compound.textSecondary)
+                }
+                .compoundListSectionHeader()
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+    
+    private var threadsSection: some View {
+        Section {
+            ListRow(label: .default(title: L10n.screenLabsEnableThreads,
+                                    icon: \.threads),
+                    kind: .toggle($context.threadsEnabled))
+        } footer: {
+            Text(L10n.screenLabsEnableThreadsDescription)
+                .compoundListSectionFooter()
+        }
+        .onChange(of: context.threadsEnabled) { _, _ in
+            context.send(viewAction: .clearCache)
+        }
+    }
+    
+    private var gallerySection: some View {
+        Section {
+            ListRow(label: .default(title: L10n.screenLabsEnableGallery,
+                                    icon: \.image),
+                    kind: .toggle($context.galleryEnabled))
+        } footer: {
+            Text(L10n.screenLabsEnableGalleryDescription)
+                .compoundListSectionFooter()
+        }
+    }
+    
+    private var knockingSection: some View {
+        Section {
+            ListRow(label: .default(title: L10n.screenLabsEnableKnocking,
+                                    icon: \.askToJoin),
+                    kind: .toggle($context.knockingEnabled))
+        } footer: {
+            Text(L10n.screenLabsEnableKnockingDescription)
+                .compoundListSectionFooter()
+        }
+    }
+}
+
+// MARK: - Previews
+
+struct LabsScreen_Previews: PreviewProvider, TestablePreview {
+    static let viewModel = LabsScreenViewModel(labsOptions: AppSettings.volatile())
+    
+    static var previews: some View {
+        ElementNavigationStack {
+            LabsScreen(context: viewModel.context)
+        }
+    }
+}

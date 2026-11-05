@@ -1,33 +1,40 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
-import Combine
+@preconcurrency import Combine
 import CryptoKit
+import ElementCall
 import Foundation
 import MatrixRustSDK
 import OrderedCollections
 
+// swiftlint:disable:next type_body_length
 class ClientProxy: ClientProxyProtocol {
     private let client: ClientProtocol
     private let networkMonitor: NetworkMonitorProtocol
-    private let appSettings: AppSettings
+    private let userSettings: UserSettings
+    private let analyticsService: AnalyticsServiceProtocol
     
     let mediaLoader: MediaLoaderProtocol
-    private let clientQueue: DispatchQueue
+    let contentScanner: ContentScannerProxyProtocol?
     
     private var roomListService: RoomListService
     // periphery: ignore - only for retain
     private var roomListStateUpdateTaskHandle: TaskHandle?
     // periphery: ignore - only for retain
     private var roomListStateLoadingStateUpdateTaskHandle: TaskHandle?
-
+    
     private var syncService: SyncService
     // periphery: ignore - only for retain
     private var syncServiceStateUpdateTaskHandle: TaskHandle?
+    
+    // periphery:ignore - required for instance retention in the rust codebase
+    private var userProfileListenerTaskHandle: TaskHandle?
     
     // periphery:ignore - required for instance retention in the rust codebase
     private var ignoredUsersListenerTaskHandle: TaskHandle?
@@ -36,12 +43,20 @@ class ClientProxy: ClientProxyProtocol {
     private var verificationStateListenerTaskHandle: TaskHandle?
     
     // periphery:ignore - required for instance retention in the rust codebase
-    private var sendQueueListenerTaskHandle: TaskHandle?
+    private var sendQueueStatusListenerTaskHandle: TaskHandle?
+    
+    // periphery:ignore - required for instance retention in the rust codebase
+    private var sendQueueUpdatesListenerTaskHandle: TaskHandle?
     
     // periphery:ignore - required for instance retention in the rust codebase
     private var mediaPreviewConfigListenerTaskHandle: TaskHandle?
     
+    // periphery:ignore - required for instance retention in the rust codebase
+    private var liveLocationOwnInfoUpdatesListenerTaskHandle: TaskHandle?
+    
     private var delegateHandle: TaskHandle?
+    
+    private var searchBackfillTaskHandle: TaskHandle?
     
     // These following summary providers both operate on the same allRooms() list but
     // can apply their own filtering and pagination
@@ -51,12 +66,17 @@ class ClientProxy: ClientProxyProtocol {
     private(set) var staticRoomSummaryProvider: StaticRoomSummaryProviderProtocol
     
     let notificationSettings: NotificationSettingsProxyProtocol
-
+    
     let secureBackupController: SecureBackupControllerProtocol
     
     private(set) var sessionVerificationController: SessionVerificationControllerProxyProtocol?
     
     let spaceService: SpaceServiceProxyProtocol
+    let searchService: SearchServiceProxyProtocol
+    
+    let capabilities: HomeserverCapabilitiesProxyProtocol
+    
+    let eventStringBuilder: RoomEventStringBuilder
     
     private static var roomCreationPowerLevelOverrides: PowerLevels {
         .init(usersDefault: nil,
@@ -65,7 +85,7 @@ class ClientProxy: ClientProxyProtocol {
               ban: nil,
               kick: nil,
               redact: nil,
-              invite: nil,
+              invite: Int32(0),
               notifications: nil,
               users: [:],
               events: [
@@ -89,16 +109,37 @@ class ClientProxy: ClientProxyProtocol {
                   "org.matrix.msc3401.call.member": Int32(0)
               ])
     }
-
-    private var loadCachedAvatarURLTask: Task<Void, Never>?
-    private let userAvatarURLSubject = CurrentValueSubject<URL?, Never>(nil)
-    var userAvatarURLPublisher: CurrentValuePublisher<URL?, Never> {
-        userAvatarURLSubject.asCurrentValuePublisher()
+    
+    private static var standardSpaceCreationPowerLevelOverrides: PowerLevels {
+        .init(usersDefault: nil,
+              eventsDefault: Int32(100),
+              stateDefault: nil,
+              ban: nil,
+              kick: nil,
+              redact: nil,
+              invite: Int32(50),
+              notifications: nil,
+              users: [:],
+              events: [:])
     }
     
-    private let userDisplayNameSubject = CurrentValueSubject<String?, Never>(nil)
-    var userDisplayNamePublisher: CurrentValuePublisher<String?, Never> {
-        userDisplayNameSubject.asCurrentValuePublisher()
+    private static var publicSpaceCreationPowerLevelOverrides: PowerLevels {
+        .init(usersDefault: nil,
+              eventsDefault: Int32(100),
+              stateDefault: nil,
+              ban: nil,
+              kick: nil,
+              redact: nil,
+              invite: Int32(0),
+              notifications: nil,
+              users: [:],
+              events: [:])
+    }
+    
+    private var loadCachedAvatarURLTask: Task<Void, Never>?
+    private let userProfileSubject: CurrentValueSubject<UserProfile, Never>
+    var userProfilePublisher: CurrentValuePublisher<UserProfile, Never> {
+        userProfileSubject.asCurrentValuePublisher()
     }
     
     private let ignoredUsersSubject = CurrentValueSubject<[String]?, Never>(nil)
@@ -115,7 +156,12 @@ class ClientProxy: ClientProxyProtocol {
     private var hasEncounteredAuthError = false
     
     deinit {
-        stopSync { [delegateHandle] in
+        // Stop the sync and cancel the delegate (in that order) before the client is released. No need to pause
+        // the client as it's being deallocated, so the SDK tears it down anyway. Capture the sync service strongly
+        // as `self` is being deallocated.
+        Task { [syncService, delegateHandle] in
+            await syncService.stop()
+            
             // The delegate handle needs to be cancelled always after the sync stops
             delegateHandle?.cancel()
         }
@@ -136,8 +182,8 @@ class ClientProxy: ClientProxyProtocol {
         verificationStateSubject.asCurrentValuePublisher()
     }
     
-    private let homeserverReachabilitySubject = CurrentValueSubject<NetworkMonitorReachability, Never>(.reachable)
-    var homeserverReachabilityPublisher: CurrentValuePublisher<NetworkMonitorReachability, Never> {
+    private let homeserverReachabilitySubject = CurrentValueSubject<HomeserverReachability, Never>(.reachable)
+    var homeserverReachabilityPublisher: CurrentValuePublisher<HomeserverReachability, Never> {
         homeserverReachabilitySubject.asCurrentValuePublisher()
     }
     
@@ -153,6 +199,11 @@ class ClientProxy: ClientProxyProtocol {
     
     var roomsToAwait: Set<String> = []
     
+    private let liveLocationOwnInfoUpdatesSubject = PassthroughSubject<LiveLocationOwnInfoUpdate, Never>()
+    var liveLocationOwnInfoUpdatesPublisher: AnyPublisher<LiveLocationOwnInfoUpdate, Never> {
+        liveLocationOwnInfoUpdatesSubject.eraseToAnyPublisher()
+    }
+    
     private let sendQueueStatusSubject = CurrentValueSubject<Bool, Never>(false)
 
     /// GUA FORK: the SDK hands out the initialisation task's handle exactly once, so a second
@@ -162,17 +213,29 @@ class ClientProxy: ClientProxyProtocol {
     
     init(client: ClientProtocol,
          networkMonitor: NetworkMonitorProtocol,
-         appSettings: AppSettings,
+         userSettings: UserSettings,
+         analyticsService: AnalyticsServiceProtocol,
          persistRecoveryKey: @escaping (String) -> Void) async throws {
         self.client = client
         self.networkMonitor = networkMonitor
-        self.appSettings = appSettings
-
+        self.userSettings = userSettings
+        self.analyticsService = analyticsService
+        
         e2eeInitialization = Task { await client.encryption().waitForE2eeInitializationTasks() }
         
-        clientQueue = .init(label: "ClientProxyQueue", attributes: .concurrent)
+        userProfileSubject = .init(UserProfile(userID: (try? client.userId()) ?? ""))
         
         mediaLoader = MediaLoader(client: client)
+        
+        // Route media downloads through a content scanner when one has been configured for the server,
+        // and expose a proxy for the active scanning of content in the timeline.
+        if let contentScannerURL = userSettings.app.contentScannerURL.publisher.value, let client = client as? Client {
+            let scanner = ContentScanner(scannerUrl: contentScannerURL.absoluteString)
+            await client.setContentScanner(contentScanner: scanner)
+            contentScanner = ContentScannerProxy(contentScanner: scanner, client: client)
+        } else {
+            contentScanner = nil
+        }
         
         notificationSettings = await NotificationSettingsProxy(notificationSettings: client.getNotificationSettings())
         
@@ -185,69 +248,61 @@ class ClientProxy: ClientProxyProtocol {
         
         spaceService = await SpaceServiceProxy(spaceService: client.spaceService())
         
+        let searchUserID = try client.userId()
+        searchService = SearchServiceProxy(searchService: client.searchService(),
+                                           timelineItemFactory: RoomTimelineItemFactory(userID: searchUserID,
+                                                                                        attributedStringBuilder: AttributedStringBuilder(cacheKey: "search",
+                                                                                                                                         mentionBuilder: PlainMentionBuilder()),
+                                                                                        stateEventStringBuilder: RoomStateEventStringBuilder(userID: searchUserID)))
+        
+        capabilities = HomeserverCapabilitiesProxy(underlyingCapabilities: client.homeserverCapabilities())
+        
         let configuredAppService = try await ClientProxyServices(client: client,
-                                                                 actionsSubject: actionsSubject,
                                                                  notificationSettings: notificationSettings,
-                                                                 appSettings: appSettings)
+                                                                 userSettings: userSettings)
         
         syncService = configuredAppService.syncService
         roomListService = configuredAppService.roomListService
         roomSummaryProvider = configuredAppService.roomSummaryProvider
         alternateRoomSummaryProvider = configuredAppService.alternateRoomSummaryProvider
         staticRoomSummaryProvider = configuredAppService.staticRoomSummaryProvider
+        eventStringBuilder = configuredAppService.eventStringBuilder
         
         syncServiceStateUpdateTaskHandle = createSyncServiceStateObserver(syncService)
         roomListStateUpdateTaskHandle = createRoomListServiceObserver(roomListService)
         roomListStateLoadingStateUpdateTaskHandle = createRoomListLoadingStateUpdateObserver(roomListService)
-                
+        
         delegateHandle = try client.setDelegate(delegate: ClientDelegateWrapper { [weak self] isSoftLogout in
-            self?.hasEncounteredAuthError = true
-            self?.actionsSubject.send(.receivedAuthError(isSoftLogout: isSoftLogout))
+            // Called by the SDK from arbitrary threads, hop to the main actor where the proxy lives.
+            Task { @MainActor in
+                self?.hasEncounteredAuthError = true
+                self?.actionsSubject.send(.receivedAuthError(isSoftLogout: isSoftLogout))
+            }
+        } backgroundTaskErrorCallback: { error in
+            switch error {
+            case .panic(let message, let backtrace):
+                MXLog.error("Received background task panic: \(message ?? "Missing message")\nBacktrace:\n\(backtrace ?? "Missing backtrace")")
+                fatalError(message ?? "")
+            case .error(let error):
+                MXLog.error("Received background task error: \(error)")
+            case .earlyTermination:
+                MXLog.error("Received background task early termination")
+            }
         })
         
         try await client.setUtdDelegate(utdDelegate: ClientDecryptionErrorDelegate(actionsSubject: actionsSubject))
         
-        networkMonitor.reachabilityPublisher
-            .removeDuplicates()
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] reachability in
-                if reachability == .reachable {
-                    self?.startSync()
-                }
-            }
-            .store(in: &cancellables)
-
-        loadUserAvatarURLFromCache()
+        let canSubscribeToUserProfile = if await (try? client.isProfilesSlidingSyncExtensionSupported()) == true {
+            true
+        } else {
+            false
+        }
         
-        ignoredUsersListenerTaskHandle = client.subscribeToIgnoredUsers(listener: IgnoredUsersListenerProxy { [weak self] ignoredUsers in
-            self?.ignoredUsersSubject.send(ignoredUsers)
-        })
+        if !canSubscribeToUserProfile {
+            loadUserAvatarURLFromCache()
+        }
         
-        await updateVerificationState(client.encryption().verificationState())
-        
-        verificationStateListenerTaskHandle = client.encryption().verificationStateListener(listener: SDKListener { [weak self] verificationState in
-            Task { await self?.updateVerificationState(verificationState) }
-        })
-        
-        sendQueueListenerTaskHandle = client.subscribeToSendQueueStatus(listener: SendQueueRoomErrorListenerProxy { [weak self] roomID, error in
-            MXLog.error("Send queue failed in room: \(roomID) with error: \(error)")
-            self?.sendQueueStatusSubject.send(false)
-        })
-        
-        sendQueueStatusSubject
-            .combineLatest(homeserverReachabilityPublisher)
-            .debounce(for: 1.0, scheduler: DispatchQueue.main)
-            .sink { enabled, reachability in
-                MXLog.info("Send queue status changed to enabled: \(enabled), homeserver reachability: \(reachability)")
-                
-                if enabled == false, reachability == .reachable {
-                    MXLog.info("Enabling all send queues")
-                    Task {
-                        await client.enableAllSendQueues(enable: true)
-                    }
-                }
-            }
-            .store(in: &cancellables)
+        await setupSubscriptions(canSubscribeToUserProfile: canSubscribeToUserProfile)
         
         Task {
             do {
@@ -265,6 +320,13 @@ class ClientProxy: ClientProxyProtocol {
         Task {
             mediaPreviewConfigListenerTaskHandle = await createMediaPreviewConfigObserver()
         }
+        
+        Task {
+            guard case .success(true) = await isUserStatusSupported() else { return }
+            client.enableAutomaticCallStatus(enabled: true)
+        }
+        
+        liveLocationOwnInfoUpdatesListenerTaskHandle = createLiveLocationOwnInfoUpdatesObserver()
     }
     
     var userID: String {
@@ -275,7 +337,7 @@ class ClientProxy: ClientProxyProtocol {
             return "Unknown user identifier"
         }
     }
-
+    
     var deviceID: String? {
         do {
             return try client.deviceId()
@@ -284,7 +346,7 @@ class ClientProxy: ClientProxyProtocol {
             return nil
         }
     }
-
+    
     var accessToken: String? {
         do {
             return try client.session().accessToken
@@ -293,13 +355,17 @@ class ClientProxy: ClientProxyProtocol {
             return nil
         }
     }
-
+    
     var homeserver: String {
         client.homeserver()
     }
     
     var canDeactivateAccount: Bool {
         client.canDeactivateAccount()
+    }
+    
+    var totalUnreadNotifications: UInt64 {
+        client.totalUnreadNotifications()
     }
     
     var userIDServerName: String? {
@@ -333,6 +399,21 @@ class ClientProxy: ClientProxyProtocol {
         }
     }
     
+    func makeNativeCallTransport() -> ElementCallMatrixTransportProtocol? {
+        (client as? Client).flatMap { ElementCallSDKTransport(client: $0) }
+    }
+    
+    var isLoginWithQRCodeSupported: Bool {
+        get async {
+            do {
+                return try await client.isLoginWithQrCodeSupported()
+            } catch {
+                MXLog.error("Failed checking QR code support with error: \(error)")
+                return false
+            }
+        }
+    }
+    
     var maxMediaUploadSize: Result<UInt, ClientProxyError> {
         get async {
             do {
@@ -343,7 +424,7 @@ class ClientProxy: ClientProxyProtocol {
             }
         }
     }
-
+    
     private(set) lazy var pusherNotificationClientIdentifier: String? = {
         // NOTE: The result is stored as part of the restoration token. Any changes
         // here would require a migration to correctly match incoming notifications.
@@ -361,46 +442,36 @@ class ClientProxy: ClientProxyProtocol {
             return .failure(.sdkError(error))
         }
     }
-
-    func startSync() {
-        guard identityResetGuard == nil else {
-            MXLog.info("Ignoring request, an identity reset holds the sync.")
-            return
+    
+    func hasDevicesToVerifyAgainst() async -> Result<Bool, ClientProxyError> {
+        do {
+            let result = try await client.encryption().hasDevicesToVerifyAgainst()
+            return .success(result)
+        } catch {
+            MXLog.error("Failed checking hasDevicesToVerifyAgainst with error: \(error)")
+            return .failure(.sdkError(error))
         }
-
+    }
+    
+    func resumeServices() async {
+        MXLog.info("Resuming services")
+        
         guard !hasEncounteredAuthError else {
             MXLog.warning("Ignoring request, this client has an unknown token.")
             return
         }
         
-        guard networkMonitor.reachabilityPublisher.value == .reachable else {
-            MXLog.warning("Ignoring request, network unreachable.")
-            return
-        }
+        let offline = networkMonitor.reachabilityPublisher.value != .reachable
         
-        MXLog.info("Starting sync")
-        
-        Task {
-            guard identityResetGuard == nil else {
-                MXLog.info("Not starting sync, an identity reset took the hold meanwhile.")
-                return
-            }
-
-            await syncService.start()
-            
-            // If we are using OIDC we want to cache the account management URL in volatile memory on the SDK side.
-            // To avoid the cache being invalidated while the app is backgrounded, we cache at every sync start.
-            await cacheAccountURL()
-        }
+        await transitionServices(to: .running(offline: offline)).value
     }
     
     /// A stored task for restarting the sync after a failure. This is stored so that we can cancel
-    /// it when `stopSync` is called (e.g. when signing out) to prevent an otherwise infinite
+    /// it when `pauseServices` is called (e.g. when signing out) to prevent an otherwise infinite
     /// loop that was triggered by trying to sync a signed out session.
     @CancellableTask private var restartTask: Task<Void, Never>?
 
     private var identityResetGuard: IdentityResetGuard?
-    private var latestSyncServiceState: SyncServiceState = .idle
 
     static func maySyncStart(identityResetHeld: Bool, hasEncounteredAuthError: Bool, isReachable: Bool) -> Bool {
         !identityResetHeld && !hasEncounteredAuthError && isReachable
@@ -414,8 +485,8 @@ class ClientProxy: ClientProxyProtocol {
         let guardUserID = userID
         let newGuard = IdentityResetGuard(dependencies: .init(stopSync: { [syncService] in await syncService.stop() },
                                                               startSync: { [weak self] in await self?.startSyncAwaitingRunning() },
-                                                              isSyncRunning: { [weak self] in self?.latestSyncServiceState == .running },
-                                                              writeMarker: { [appSettings] date in appSettings.setIdentityResetStartedAt(date, forUserID: guardUserID) },
+                                                              isSyncRunning: { [weak self] in self?.syncServiceState == .running },
+                                                              writeMarker: { [userSettings] date in userSettings.app.setIdentityResetStartedAt(date, forUserID: guardUserID) },
                                                               resetLanded: { IdentityResetPendingStore.clear(for: guardUserID) },
                                                               provisionAfterReset: { [weak self] in _ = await self?.secureBackupController.provisionAfterReset() },
                                                               onReleased: { [weak self] in self?.identityResetGuard = nil }))
@@ -427,6 +498,11 @@ class ClientProxy: ClientProxyProtocol {
     }
 
     private func startSyncAwaitingRunning() async {
+        guard case .running = desiredServiceState else {
+            MXLog.info("Not restarting sync after the identity reset: services are paused.")
+            return
+        }
+        
         guard Self.maySyncStart(identityResetHeld: identityResetGuard != nil,
                                 hasEncounteredAuthError: hasEncounteredAuthError,
                                 isReachable: networkMonitor.reachabilityPublisher.value == .reachable) else {
@@ -439,7 +515,7 @@ class ClientProxy: ClientProxyProtocol {
         await cacheAccountURL()
     }
     
-    func restartSync() {
+    private func restartServices() {
         guard restartTask == nil, identityResetGuard == nil else { return }
         
         restartTask = Task { [weak self] in
@@ -447,7 +523,7 @@ class ClientProxy: ClientProxyProtocol {
                 // Until the SDK can tell us the failure, we add a small
                 // delay to avoid generating multi-gigabyte log files.
                 try await Task.sleep(for: .milliseconds(250))
-                self?.startSync()
+                await self?.resumeServices()
             } catch {
                 MXLog.error("Restart cancelled.")
             }
@@ -455,30 +531,33 @@ class ClientProxy: ClientProxyProtocol {
         }
     }
     
-    func stopSync() {
-        stopSync(completion: nil)
-    }
-    
-    func stopSync(completion: (() -> Void)?) {
-        MXLog.info("Stopping sync")
+    func pauseServices() async {
+        MXLog.info("Pausing services")
         
         if restartTask != nil {
-            MXLog.warning("Removing the sync service restart task.")
             restartTask = nil
         }
         
-        // Capture the sync service strongly as this method is called on deinit and so the
-        // existence of self when the Task executes is questionable and would sometimes crash.
-        // Note: This isn't strictly necessary now given the unwrap above, but leaving the code as
-        // documentation. SE-0371 will allow us to fix this by using an async deinit.
-        Task { [syncService] in
-            defer {
-                completion?()
-            }
-            
-            await syncService.stop()
-            MXLog.info("Sync stopped")
+        await transitionServices(to: .suspended).value
+    }
+    
+    func startSearchBackfill(strategy: SearchBackfillStrategy) {
+        if strategy == .foreground, isSearchBackfillRunning {
+            return
         }
+        
+        MXLog.info("Starting search backfill with strategy: \(strategy)")
+        searchBackfillTaskHandle?.cancel()
+        searchBackfillTaskHandle = client.runSearchBackfill(strategy: strategy)
+    }
+    
+    func stopSearchBackfill() {
+        searchBackfillTaskHandle?.cancel()
+        searchBackfillTaskHandle = nil
+    }
+    
+    var isSearchBackfillRunning: Bool {
+        searchBackfillTaskHandle?.isFinished() == false
     }
     
     func expireSyncSessions() async {
@@ -514,13 +593,14 @@ class ClientProxy: ClientProxyProtocol {
         do {
             let parameters = CreateRoomParameters(name: nil,
                                                   topic: nil,
-                                                  isEncrypted: true,
+                                                  isEncrypted: !userSettings.app.forceDisableE2EE.publisher.value,
                                                   isDirect: true,
                                                   visibility: .private,
                                                   preset: .trustedPrivateChat,
                                                   invite: [userID],
                                                   avatar: nil,
-                                                  powerLevelContentOverride: Self.roomCreationPowerLevelOverrides)
+                                                  powerLevelContentOverride: Self.roomCreationPowerLevelOverrides,
+                                                  historyVisibilityOverride: .invited)
             let roomID = try await client.createRoom(request: parameters)
             
             await waitForRoomToSync(roomID: roomID)
@@ -532,27 +612,42 @@ class ClientProxy: ClientProxyProtocol {
         }
     }
     
-    func createRoom(name: String,
+    func createRoom(name: String?,
                     topic: String?,
-                    isRoomPrivate: Bool,
-                    isKnockingOnly: Bool,
+                    accessType: CreateRoomAccessType,
+                    isSpace: Bool,
                     userIDs: [String],
                     avatarURL: URL?,
                     aliasLocalPart: String?) async -> Result<String, ClientProxyError> {
         do {
+            let powerLevelContentOverride = if isSpace {
+                if accessType == .public {
+                    Self.publicSpaceCreationPowerLevelOverrides
+                } else {
+                    Self.standardSpaceCreationPowerLevelOverrides
+                }
+            } else {
+                if accessType.isAskToJoin {
+                    Self.knockingRoomCreationPowerLevelOverrides
+                } else {
+                    Self.roomCreationPowerLevelOverrides
+                }
+            }
+            
             let parameters = CreateRoomParameters(name: name,
                                                   topic: topic,
-                                                  isEncrypted: isRoomPrivate,
+                                                  isEncrypted: !userSettings.app.forceDisableE2EE.publisher.value && accessType.isEncrypted,
                                                   isDirect: false,
-                                                  visibility: isRoomPrivate ? .private : .public,
-                                                  preset: isRoomPrivate ? .privateChat : .publicChat,
+                                                  visibility: accessType.visibility,
+                                                  preset: accessType.preset,
                                                   invite: userIDs,
                                                   avatar: avatarURL?.absoluteString,
-                                                  powerLevelContentOverride: isKnockingOnly ? Self.knockingRoomCreationPowerLevelOverrides : Self.roomCreationPowerLevelOverrides,
-                                                  joinRuleOverride: isKnockingOnly ? .knock : nil,
-                                                  historyVisibilityOverride: isRoomPrivate ? .invited : nil,
+                                                  powerLevelContentOverride: powerLevelContentOverride,
+                                                  joinRuleOverride: accessType.joinRuleOverride?.rustValue,
+                                                  historyVisibilityOverride: accessType.historyVisibilityOverride,
                                                   // This is an FFI naming mistake, what is required is the `aliasLocalPart` not the whole alias
-                                                  canonicalAlias: aliasLocalPart)
+                                                  canonicalAlias: aliasLocalPart,
+                                                  isSpace: isSpace)
             let roomID = try await client.createRoom(request: parameters)
             
             await waitForRoomToSync(roomID: roomID)
@@ -567,7 +662,7 @@ class ClientProxy: ClientProxyProtocol {
     func joinRoom(_ roomID: String, via: [String]) async -> Result<Void, ClientProxyError> {
         do {
             let _ = try await client.joinRoomByIdOrAlias(roomIdOrAlias: roomID, serverNames: via)
-                        
+            
             await waitForRoomToSync(roomID: roomID, timeout: .seconds(30))
             
             return .success(())
@@ -653,7 +748,7 @@ class ClientProxy: ClientProxyProtocol {
             return .failure(ClientProxyError.sdkError(error))
         }
     }
-        
+    
     func roomForIdentifier(_ identifier: String) async -> RoomProxyType? {
         let shouldAwait = roomsToAwait.remove(identifier) != nil
         
@@ -662,8 +757,9 @@ class ClientProxy: ClientProxyProtocol {
             return room
         }
         
-        if !roomSummaryProvider.statePublisher.value.isLoaded {
-            _ = await roomSummaryProvider.statePublisher.values.first { $0.isLoaded }
+        if !staticRoomSummaryProvider.statePublisher.value.isLoaded {
+            var iterator = staticRoomSummaryProvider.statePublisher.values.makeAsyncIterator()
+            while let state = await iterator.next(isolation: #isolation), !state.isLoaded { }
         }
         
         if shouldAwait {
@@ -707,14 +803,24 @@ class ClientProxy: ClientProxyProtocol {
             return .failure(.sdkError(error))
         }
     }
-
-    func loadUserDisplayName() async -> Result<Void, ClientProxyError> {
+    
+    func loadUserProfileIfNeeded() async -> Result<Void, ClientProxyError> {
+        // There's no need to load the profile if we're subscribed to it via /sync
+        guard userProfileListenerTaskHandle == nil else { return .success(()) }
+        
         do {
-            let displayName = try await client.displayName()
-            userDisplayNameSubject.send(displayName)
+            async let displayName = client.displayName()
+            async let avatarURLString = client.avatarUrl()
+            
+            let profile = try await UserProfile(userID: userID,
+                                                displayName: displayName,
+                                                avatarURL: avatarURLString.flatMap(URL.init),
+                                                status: userProfileSubject.value.status)
+            loadCachedAvatarURLTask?.cancel()
+            userProfileSubject.send(profile)
             return .success(())
         } catch {
-            MXLog.error("Failed loading user display name with error: \(error)")
+            MXLog.error("Failed loading user profile with error: \(error)")
             return .failure(.sdkError(error))
         }
     }
@@ -722,24 +828,10 @@ class ClientProxy: ClientProxyProtocol {
     func setUserDisplayName(_ name: String) async -> Result<Void, ClientProxyError> {
         do {
             try await client.setDisplayName(name: name)
-            Task {
-                await self.loadUserDisplayName()
-            }
+            Task { await self.loadUserProfileIfNeeded() }
             return .success(())
         } catch {
             MXLog.error("Failed setting user display name with error: \(error)")
-            return .failure(.sdkError(error))
-        }
-    }
-
-    func loadUserAvatarURL() async -> Result<Void, ClientProxyError> {
-        do {
-            let urlString = try await client.avatarUrl()
-            loadCachedAvatarURLTask?.cancel()
-            userAvatarURLSubject.send(urlString.flatMap(URL.init))
-            return .success(())
-        } catch {
-            MXLog.error("Failed loading user avatar URL with error: \(error)")
             return .failure(.sdkError(error))
         }
     }
@@ -749,13 +841,11 @@ class ClientProxy: ClientProxyProtocol {
             MXLog.error("Failed uploading, invalid media: \(media)")
             return .failure(.invalidMedia)
         }
-            
+        
         do {
             let data = try Data(contentsOf: imageURL)
             try await client.uploadAvatar(mimeType: mimeType, data: data)
-            Task {
-                await self.loadUserAvatarURL()
-            }
+            Task { await self.loadUserProfileIfNeeded() }
             return .success(())
         } catch {
             MXLog.error("Failed setting user avatar with error: \(error)")
@@ -766,31 +856,63 @@ class ClientProxy: ClientProxyProtocol {
     func removeUserAvatar() async -> Result<Void, ClientProxyError> {
         do {
             try await client.removeAvatar()
-            Task {
-                await self.loadUserAvatarURL()
-            }
+            Task { await self.loadUserProfileIfNeeded() }
             return .success(())
         } catch {
             MXLog.error("Failed removing user avatar with error: \(error)")
             return .failure(.sdkError(error))
         }
     }
-
+    
+    func isUserStatusSupported() async -> Result<Bool, ClientProxyError> {
+        do {
+            return try await .success(client.isUserStatusSupported())
+        } catch {
+            MXLog.error("Failed detecting user status support with error: \(error)")
+            return .failure(.sdkError(error))
+        }
+    }
+    
+    func setUserStatus(_ status: UserStatus.Raw) async -> Result<Void, ClientProxyError> {
+        do {
+            try await client.setUserStatus(status: status.rustValue)
+            // No need to refresh the profile, we only support user status with the profiles /sync extension.
+            return .success(())
+        } catch {
+            MXLog.error("Failed setting user status with error: \(error)")
+            return .failure(.sdkError(error))
+        }
+    }
+    
+    func clearUserStatus() async -> Result<Void, ClientProxyError> {
+        do {
+            try await client.clearUserStatus()
+            // No need to refresh the profile, we only support user status with the profiles /sync extension.
+            return .success(())
+        } catch {
+            MXLog.error("Failed removing user status with error: \(error)")
+            return .failure(.sdkError(error))
+        }
+    }
+    
+    func linkNewDeviceService() -> LinkNewDeviceServiceProtocol {
+        LinkNewDeviceService(handler: client.newGrantLoginWithQrCodeHandler())
+    }
+    
+    func deactivateAccount(password: String, eraseData: Bool) async -> Result<Void, ClientProxyError> {
+        do {
+            try await client.deactivateAccount(password: password, eraseData: eraseData)
+            return .success(())
+        } catch {
+            return .failure(.sdkError(error))
+        }
+    }
+    
     func logout() async {
         do {
             try await client.logout()
         } catch {
             MXLog.error("Failed logging out with error: \(error)")
-        }
-    }
-    
-    func deactivateAccount(password: String?, eraseData: Bool) async -> Result<Void, ClientProxyError> {
-        do {
-            try await client.deactivateAccount(authData: password.map { .password(passwordDetails: .init(identifier: userID, password: $0)) },
-                                               eraseData: eraseData)
-            return .success(())
-        } catch {
-            return .failure(.sdkError(error))
         }
     }
     
@@ -801,21 +923,25 @@ class ClientProxy: ClientProxyProtocol {
                                    deviceDisplayName: configuration.deviceDisplayName,
                                    profileTag: configuration.profileTag,
                                    lang: configuration.lang,
-                                   append: false)
+                                   append: configuration.append)
     }
     
-    func searchUsers(searchTerm: String, limit: UInt) async -> Result<SearchUsersResultsProxy, ClientProxyError> {
+    func deletePusher(with identifiers: PusherIdentifiers) async throws {
+        try await client.deletePusher(identifiers: identifiers)
+    }
+    
+    func searchUsers(searchTerm: String, limit: UInt) async -> Result<SearchUsersResults, ClientProxyError> {
         do {
-            return try await .success(.init(sdkResults: client.searchUsers(searchTerm: searchTerm, limit: UInt64(limit))))
+            return try await .success(.init(rustResults: client.searchUsers(searchTerm: searchTerm, limit: UInt64(limit))))
         } catch {
             MXLog.error("Failed searching users with error: \(error)")
             return .failure(.sdkError(error))
         }
     }
     
-    func profile(for userID: String) async -> Result<UserProfileProxy, ClientProxyError> {
+    func profile(for userID: String) async -> Result<UserProfile, ClientProxyError> {
         do {
-            return try await .success(.init(sdkUserProfile: client.getProfile(userId: userID)))
+            return try await .success(.init(rustUserProfile: client.getProfile(userId: userID)))
         } catch {
             MXLog.error("Failed retrieving profile for userID: \(userID) with error: \(error)")
             return .failure(.sdkError(error))
@@ -823,7 +949,7 @@ class ClientProxy: ClientProxyProtocol {
     }
     
     func roomDirectorySearchProxy() -> RoomDirectorySearchProxyProtocol {
-        RoomDirectorySearchProxy(roomDirectorySearch: client.roomDirectorySearch(), appSettings: appSettings)
+        RoomDirectorySearchProxy(roomDirectorySearch: client.roomDirectorySearch())
     }
     
     func resolveRoomAlias(_ alias: String) async -> Result<ResolvedRoomAlias, ClientProxyError> {
@@ -864,6 +990,33 @@ class ClientProxy: ClientProxyProtocol {
         }
     }
     
+    func optimizeStores() async -> Result<Void, ClientProxyError> {
+        do {
+            return try await .success(client.optimizeStores())
+        } catch {
+            MXLog.error("Failed optimizing client stores with error: \(error)")
+            return .failure(.sdkError(error))
+        }
+    }
+    
+    func markAllRoomsAsRead() async -> Result<Void, ClientProxyError> {
+        do {
+            return try await .success(client.markAllRoomsAsRead())
+        } catch {
+            MXLog.error("Failed marking all rooms as read with error: \(error)")
+            return .failure(.sdkError(error))
+        }
+    }
+    
+    func storeSizes() async -> Result<StoreSizes, ClientProxyError> {
+        do {
+            return try await .success(client.getStoreSizes())
+        } catch {
+            MXLog.error("Failed optimizing client stores with error: \(error)")
+            return .failure(.sdkError(error))
+        }
+    }
+    
     func fetchMediaPreviewConfiguration() async -> Result<MediaPreviewConfig?, ClientProxyError> {
         do {
             let config = try await client.fetchMediaPreviewConfig()
@@ -873,7 +1026,7 @@ class ClientProxy: ClientProxyProtocol {
             return .failure(.sdkError(error))
         }
     }
-        
+    
     func accountData(type: String) async -> Result<String?, ClientProxyError> {
         do {
             return try await .success(client.accountData(eventType: type))
@@ -927,7 +1080,7 @@ class ClientProxy: ClientProxyProtocol {
         }
     }
     
-    func recentlyVisitedRooms() async -> Result<[String], ClientProxyError> {
+    func recentlyVisitedRoomIDs() async -> Result<[String], ClientProxyError> {
         do {
             let result = try await client.getRecentlyVisitedRooms()
             return .success(result)
@@ -937,14 +1090,39 @@ class ClientProxy: ClientProxyProtocol {
         }
     }
     
-    func recentConversationCounterparts() async -> [UserProfileProxy] {
+    func recentlyVisitedRooms(filter: @Sendable (JoinedRoomProxyProtocol) async -> Bool) async -> [JoinedRoomProxyProtocol] {
         let maxResultsToReturn = 5
         
-        guard case let .success(roomIdentifiers) = await recentlyVisitedRooms() else {
+        guard case let .success(roomIdentifiers) = await recentlyVisitedRoomIDs() else {
             return []
         }
         
-        var users: OrderedSet<UserProfileProxy> = []
+        var rooms: [JoinedRoomProxyProtocol] = []
+        
+        for roomID in roomIdentifiers {
+            guard case let .joined(roomProxy) = await roomForIdentifier(roomID),
+                  await filter(roomProxy) else {
+                continue
+            }
+            
+            rooms.append(roomProxy)
+            
+            if rooms.count >= maxResultsToReturn {
+                return rooms
+            }
+        }
+        
+        return rooms
+    }
+    
+    func recentConversationCounterparts() async -> [UserProfile] {
+        let maxResultsToReturn = 5
+        
+        guard case let .success(roomIdentifiers) = await recentlyVisitedRoomIDs() else {
+            return []
+        }
+        
+        var users: OrderedSet<UserProfile> = []
         
         for roomID in roomIdentifiers {
             guard case let .joined(roomProxy) = await roomForIdentifier(roomID),
@@ -988,7 +1166,171 @@ class ClientProxy: ClientProxyProtocol {
         }
     }
     
+    // MARK: Presence
+    
+    func configurePresence(_ presence: ClientProxyPresence, sendImmediately: Bool) async -> Result<Void, ClientProxyError> {
+        do {
+            try await client.setPresence(presence: presence.rustValue, immediate: sendImmediately)
+            return .success(())
+        } catch {
+            MXLog.error("Failed setting presence with error: \(error)")
+            return .failure(.sdkError(error))
+        }
+    }
+    
     // MARK: - Private
+    
+    private func setupSubscriptions(canSubscribeToUserProfile: Bool) async {
+        networkMonitor.reachabilityPublisher
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] reachability in
+                if reachability == .reachable {
+                    Task {
+                        await self?.resumeServices()
+                    }
+                }
+            }
+            .store(in: &cancellables)
+        
+        if canSubscribeToUserProfile {
+            userProfileListenerTaskHandle = try? client.subscribeToOwnProfile(listener: SDKListener.onMainActor { [weak self] profile in
+                self?.userProfileSubject.send(.init(rustUserProfile: profile))
+            })
+        }
+        
+        ignoredUsersListenerTaskHandle = client.subscribeToIgnoredUsers(listener: SDKListener.onMainActor { [weak self] ignoredUsers in
+            self?.ignoredUsersSubject.send(ignoredUsers)
+        })
+        
+        await updateVerificationState(client.encryption().verificationState())
+        verificationStateListenerTaskHandle = client.encryption().verificationStateListener(listener: SDKListener { [weak self] verificationState in
+            Task { await self?.updateVerificationState(verificationState) }
+        })
+        
+        sendQueueStatusListenerTaskHandle = client.subscribeToSendQueueStatus(listener: SDKListener.onMainActor { [weak self] roomID, error in
+            MXLog.error("Send queue failed in room: \(roomID) with error: \(error)")
+            self?.sendQueueStatusSubject.send(false)
+        })
+        
+        sendQueueUpdatesListenerTaskHandle = try? await client.subscribeToSendQueueUpdates(listener: SDKListener.onMainActor { [analyticsService] _, update in
+            switch update {
+            case .newLocalEvent(let transactionID):
+                analyticsService.signpost.startTransaction(.sendMessage(uuid: transactionID))
+            case .sentEvent(let transactionID, _):
+                analyticsService.signpost.finishTransaction(.sendMessage(uuid: transactionID))
+            default:
+                break
+            }
+        })
+        
+        sendQueueStatusSubject
+            .combineLatest(homeserverReachabilityPublisher)
+            .debounce(for: 1.0, scheduler: DispatchQueue.main)
+            .sink { [weak self, client] enabled, reachability in
+                MXLog.info("Send queue status changed to enabled: \(enabled), homeserver reachability: \(reachability)")
+                
+                // Don't restart the send queue unless the client is meant to be running; doing so while
+                // suspended would generate network activity in the window we paused to keep quiet.
+                if enabled == false, reachability == .reachable, case .running = self?.desiredServiceState {
+                    MXLog.info("Enabling all send queues")
+                    Task {
+                        await client.enableAllSendQueues(enable: true)
+                    }
+                }
+            }
+            .store(in: &cancellables)
+        
+        actionsPublisher
+            .filter(\.isSyncUpdate)
+            .throttle(for: 86400, scheduler: DispatchQueue.main, latest: true)
+            .sink { [weak self] _ in
+                Task { await self?.capabilities.refresh() }
+            }
+            .store(in: &cancellables)
+    }
+    
+    // MARK: - Pausing and resuming
+    
+    private enum ServiceState { case running(offline: Bool), suspended }
+    
+    /// The state the sync service and client *should* be in, updated by ``resumeServices()`` and ``pauseServices()``.
+    private var desiredServiceState: ServiceState = .suspended
+    
+    /// Serialises service state transitions so that pause and resume never interleave. Each request chains onto
+    /// the previous one and the reconcile always drives the SDK to the *latest* desired state, so a late background
+    /// pause can no longer strand the client suspended after a foreground resume.
+    private var serviceStateTask: Task<Void, Never>?
+    
+    @discardableResult
+    private func transitionServices(to state: ServiceState) -> Task<Void, Never> {
+        desiredServiceState = state
+        
+        let previousTask = serviceStateTask
+        let task = Task { [weak self] in
+            await previousTask?.value
+            await self?.reconcileServiceState()
+        }
+        serviceStateTask = task
+        return task
+    }
+    
+    private func reconcileServiceState() async {
+        switch desiredServiceState {
+        case .running(let offline):
+            if userSettings.app.clientPausingAndResumingEnabled {
+                do {
+                    MXLog.info("Resuming client")
+                    try await client.resume()
+                } catch {
+                    MXLog.error("Failed resuming client with error: \(error)")
+                }
+            }
+            
+            if offline {
+                MXLog.warning("Ignoring sync services, network unreachable.")
+                return
+            }
+            
+            guard identityResetGuard == nil else {
+                MXLog.info("Not starting sync, an identity reset holds it.")
+                return
+            }
+            
+            MXLog.info("Starting sync")
+            await syncService.start()
+            
+            updateHomeserverReachability()
+            
+            // If we are using OAuth we want to cache the account management URL in volatile memory on the SDK side.
+            // To avoid the cache being invalidated while the app is backgrounded, we cache at every sync start.
+            // Fire and forget as it might hit the network.
+            Task { await cacheAccountURL() }
+            
+            // Nudge the send queue listener to re-evaluate now that we're running; a resume doesn't otherwise
+            // emit, and the SDK only re-enables queues when client.resume() runs (gated behind the flag).
+            sendQueueStatusSubject.send(sendQueueStatusSubject.value)
+        case .suspended:
+            updateHomeserverReachability()
+            
+            stopSearchBackfill()
+            
+            MXLog.info("Stopping sync")
+            await syncService.stop()
+            MXLog.info("Sync stopped")
+            
+            if userSettings.app.clientPausingAndResumingEnabled {
+                do {
+                    MXLog.info("Pausing client")
+                    try await client.pause()
+                } catch {
+                    MXLog.error("Failed pausing client with error: \(error)")
+                }
+            }
+        }
+    }
+    
+    // MARK: - Other
     
     private func cacheAccountURL() async {
         // Calling this function for the first time will cache the account URL in volatile memory for 24 hrs on the SDK.
@@ -1027,40 +1369,58 @@ class ClientProxy: ClientProxyProtocol {
             MXLog.error("Failed retrieving session verification controller proxy with error: \(error)")
         }
     }
-
+    
     private func loadUserAvatarURLFromCache() {
         loadCachedAvatarURLTask = Task {
             do {
                 let urlString = try await self.client.cachedAvatarUrl()
                 guard !Task.isCancelled else { return }
-                self.userAvatarURLSubject.value = urlString.flatMap(URL.init)
+                let profile = self.userProfileSubject.value
+                self.userProfileSubject.value = UserProfile(userID: profile.id,
+                                                            displayName: profile.displayName,
+                                                            avatarURL: urlString.flatMap(URL.init),
+                                                            status: profile.status)
             } catch {
                 MXLog.error("Failed to look for the avatar url in the cache: \(error)")
             }
         }
     }
     
+    /// The latest state reported by the sync service. Stored so reachability can be recomputed after a
+    /// resume, where the store reopens but the service may not emit a fresh state.
+    private var syncServiceState: SyncServiceState?
+    
     private func createSyncServiceStateObserver(_ syncService: SyncService) -> TaskHandle {
-        syncService.state(listener: SDKListener { [weak self] state in
+        syncService.state(listener: SDKListener.onMainActor { [weak self] state in
             guard let self else { return }
             
             MXLog.info("Received sync service update: \(state)")
-            latestSyncServiceState = state
             
-            switch state {
-            case .running, .terminated, .idle:
-                homeserverReachabilitySubject.send(.reachable)
-            case .offline:
-                homeserverReachabilitySubject.send(.unreachable)
-            case .error:
-                restartSync()
+            syncServiceState = state
+            
+            if case .error = state {
+                restartServices()
+            } else {
+                updateHomeserverReachability()
             }
         })
     }
     
+    private func updateHomeserverReachability() {
+        let reachability: HomeserverReachability = if case .suspended = desiredServiceState {
+            .suspended
+        } else if syncServiceState == .offline {
+            .unreachable
+        } else {
+            .reachable
+        }
+        
+        homeserverReachabilitySubject.send(reachability)
+    }
+    
     private func createMediaPreviewConfigObserver() async -> TaskHandle? {
         do {
-            return try await client.subscribeToMediaPreviewConfig(listener: SDKListener { [weak self] config in
+            return try await client.subscribeToMediaPreviewConfig(listener: SDKListener.onMainActor { [weak self] config in
                 guard let self else { return }
                 
                 if let config {
@@ -1077,30 +1437,46 @@ class ClientProxy: ClientProxyProtocol {
             return nil
         }
     }
-
+    
+    private func createLiveLocationOwnInfoUpdatesObserver() -> TaskHandle? {
+        do {
+            return try client.subscribeToOwnBeaconInfoUpdates(listener: SDKListener.onMainActor { [weak self] update in
+                guard let self else { return }
+                let appUpdate = LiveLocationOwnInfoUpdate(roomID: update.roomId,
+                                                          eventID: update.eventId,
+                                                          isLive: update.live)
+                liveLocationOwnInfoUpdatesSubject.send(appUpdate)
+            })
+        } catch {
+            MXLog.error("Failed creating own beacon info updates observer: \(error)")
+            return nil
+        }
+    }
+    
     private func createRoomListServiceObserver(_ roomListService: RoomListService) -> TaskHandle {
-        roomListService.state(listener: SDKListener { [weak self] state in
+        roomListService.state(listener: SDKListener.onMainActor { [weak self] state in
             guard let self else { return }
             
             MXLog.info("Received room list update: \(state)")
             
-            guard state != .error,
-                  state != .terminated else {
-                // The sync service is responsible of handling error and termination
-                return
-            }
-            
-            // Hide the sync spinner as soon as we get any update back
-            actionsSubject.send(.receivedSyncUpdate)
-            
-            if ignoredUsersSubject.value == nil {
-                updateIgnoredUsers()
+            switch state {
+            case .initial, .settingUp, .recovering:
+                break // Don't do anything until we're actually running.
+            case .running:
+                // Hide the sync spinner as soon as we get any update back
+                actionsSubject.send(.receivedSyncUpdate)
+                
+                if ignoredUsersSubject.value == nil {
+                    updateIgnoredUsers()
+                }
+            case .error, .terminated:
+                break // The sync service is responsible for handling error and termination
             }
         })
     }
     
     private func createRoomListLoadingStateUpdateObserver(_ roomListService: RoomListService) -> TaskHandle {
-        roomListService.syncIndicator(delayBeforeShowingInMs: 1000, delayBeforeHidingInMs: 0, listener: SDKListener { [weak self] state in
+        roomListService.syncIndicator(delayBeforeShowingInMs: 1000, delayBeforeHidingInMs: 0, listener: SDKListener.onMainActor { [weak self] state in
             guard let self else { return }
             
             switch state {
@@ -1122,15 +1498,13 @@ class ClientProxy: ClientProxyProtocol {
             case .invited:
                 return try await .invited(InvitedRoomProxy(room: room))
             case .knocked:
-                guard appSettings.knockingEnabled else {
-                    return nil
-                }
-                
                 return try await .knocked(KnockedRoomProxy(room: room))
             case .joined:
                 let roomProxy = try await JoinedRoomProxy(roomListService: roomListService,
                                                           room: room,
-                                                          appSettings: appSettings)
+                                                          userSettings: userSettings,
+                                                          analyticsService: analyticsService,
+                                                          eventStringBuilder: eventStringBuilder)
                 
                 return .joined(roomProxy)
             case .left:
@@ -1163,7 +1537,7 @@ class ClientProxy: ClientProxyProtocol {
             MXLog.info("Wait for \(roomID) failed: \(error)")
         }
     }
-
+    
     private func updateIgnoredUsers() {
         Task {
             do {
@@ -1229,45 +1603,44 @@ class ClientProxy: ClientProxyProtocol {
         }
     }
     
-    func userIdentity(for userID: String) async -> Result<UserIdentityProxyProtocol?, ClientProxyError> {
+    func userIdentity(for userID: String, fallBackToServer: Bool) async -> Result<UserIdentityProxyProtocol?, ClientProxyError> {
         do {
-            return try await .success(client.encryption().userIdentity(userId: userID, fallbackToServer: true).map(UserIdentityProxy.init))
+            return try await .success(client.encryption().userIdentity(userId: userID, fallbackToServer: fallBackToServer).map(UserIdentityProxy.init))
         } catch {
             MXLog.error("Failed retrieving user identity: \(error)")
             return .failure(.sdkError(error))
         }
     }
-
-    func hasDevicesToVerifyAgainst() async -> Result<Bool, ClientProxyError> {
-        do {
-            return try await .success(client.encryption().hasDevicesToVerifyAgainst())
-        } catch {
-            MXLog.error("Failed checking for devices to verify against: \(error)")
-            return .failure(.sdkError(error))
-        }
-    }
 }
 
-private class ClientDelegateWrapper: ClientDelegate {
-    private let authErrorCallback: (Bool) -> Void
+private final class ClientDelegateWrapper: ClientDelegate {
+    private let authErrorCallback: @Sendable (Bool) -> Void
+    private let backgroundTaskErrorCallback: @Sendable (MatrixRustSDK.BackgroundTaskFailureReason) -> Void
     
-    init(authErrorCallback: @escaping (Bool) -> Void) {
+    init(authErrorCallback: @escaping @Sendable (Bool) -> Void,
+         backgroundTaskErrorCallback: @escaping @Sendable (MatrixRustSDK.BackgroundTaskFailureReason) -> Void) {
         self.authErrorCallback = authErrorCallback
+        self.backgroundTaskErrorCallback = backgroundTaskErrorCallback
     }
     
     // MARK: - ClientDelegate
-
+    
     func didReceiveAuthError(isSoftLogout: Bool) {
         MXLog.error("Received authentication error, softlogout=\(isSoftLogout)")
         authErrorCallback(isSoftLogout)
     }
     
-    func onBackgroundTaskErrorReport(taskName: String, error: BackgroundTaskFailureReason) {
-        MXLog.error("Background task '\(taskName)' failed: \(error)")
+    // periphery:ignore - required by the SDK's delegate protocol
+    func didRefreshTokens() {
+        MXLog.info("Delegating session updates to the ClientSessionDelegate.")
+    }
+    
+    func onBackgroundTaskErrorReport(taskName: String, error: MatrixRustSDK.BackgroundTaskFailureReason) {
+        backgroundTaskErrorCallback(error)
     }
 }
 
-private class ClientDecryptionErrorDelegate: UnableToDecryptDelegate {
+private final class ClientDecryptionErrorDelegate: UnableToDecryptDelegate {
     private let actionsSubject: PassthroughSubject<ClientProxyAction, Never>
     
     init(actionsSubject: PassthroughSubject<ClientProxyAction, Never>) {
@@ -1279,41 +1652,17 @@ private class ClientDecryptionErrorDelegate: UnableToDecryptDelegate {
     }
 }
 
-private class IgnoredUsersListenerProxy: IgnoredUsersListener {
-    private let onUpdateClosure: ([String]) -> Void
-
-    init(onUpdateClosure: @escaping ([String]) -> Void) {
-        self.onUpdateClosure = onUpdateClosure
-    }
-    
-    func call(ignoredUserIds: [String]) {
-        onUpdateClosure(ignoredUserIds)
-    }
-}
-
-private class SendQueueRoomErrorListenerProxy: SendQueueRoomErrorListener {
-    private let onErrorClosure: (String, ClientError) -> Void
-    
-    init(onErrorClosure: @escaping (String, ClientError) -> Void) {
-        self.onErrorClosure = onErrorClosure
-    }
-    
-    func onError(roomId: String, error: ClientError) {
-        onErrorClosure(roomId, error)
-    }
-}
-
 private struct ClientProxyServices {
     let syncService: SyncService
     let roomListService: RoomListService
     let roomSummaryProvider: RoomSummaryProviderProtocol
     let alternateRoomSummaryProvider: RoomSummaryProviderProtocol
     let staticRoomSummaryProvider: StaticRoomSummaryProviderProtocol
+    let eventStringBuilder: RoomEventStringBuilder
     
     init(client: ClientProtocol,
-         actionsSubject: PassthroughSubject<ClientProxyAction, Never>,
          notificationSettings: NotificationSettingsProxyProtocol,
-         appSettings: AppSettings) async throws {
+         userSettings: UserSettings) async throws {
         let syncService = try await client
             .syncService()
             .withOfflineMode()
@@ -1323,35 +1672,57 @@ private struct ClientProxyServices {
         let roomListService = syncService.roomListService()
         
         let roomMessageEventStringBuilder = RoomMessageEventStringBuilder(attributedStringBuilder: AttributedStringBuilder(cacheKey: "roomList",
-                                                                                                                           mentionBuilder: PlainMentionBuilder()), destination: .roomList)
-        let eventStringBuilder = try RoomEventStringBuilder(stateEventStringBuilder: RoomStateEventStringBuilder(userID: client.userId(), shouldDisambiguateDisplayNames: false),
-                                                            messageEventStringBuilder: roomMessageEventStringBuilder,
-                                                            shouldDisambiguateDisplayNames: false,
-                                                            shouldPrefixSenderName: true)
+                                                                                                                           mentionBuilder: PlainMentionBuilder()),
+                                                                          style: .senderPrefixed)
+        
+        eventStringBuilder = try RoomEventStringBuilder(stateEventStringBuilder: RoomStateEventStringBuilder(userID: client.userId()),
+                                                        messageEventStringBuilder: roomMessageEventStringBuilder,
+                                                        shouldPrefixSenderName: true)
         
         roomSummaryProvider = RoomSummaryProvider(roomListService: roomListService,
                                                   eventStringBuilder: eventStringBuilder,
                                                   name: "AllRooms",
                                                   shouldUpdateVisibleRange: true,
                                                   notificationSettings: notificationSettings,
-                                                  appSettings: appSettings,
-                                                  includesSpaceInvites: true)
+                                                  userSettings: userSettings)
         try await roomSummaryProvider.setRoomList(roomListService.allRooms())
         
         alternateRoomSummaryProvider = RoomSummaryProvider(roomListService: roomListService,
                                                            eventStringBuilder: eventStringBuilder,
                                                            name: "AlternateAllRooms",
+                                                           includesOnlyJoinedRooms: true,
                                                            notificationSettings: notificationSettings,
-                                                           appSettings: appSettings)
-        try await alternateRoomSummaryProvider.setRoomList(roomListService.allRooms())
+                                                           userSettings: userSettings)
         
         staticRoomSummaryProvider = RoomSummaryProvider(roomListService: roomListService,
                                                         eventStringBuilder: eventStringBuilder,
                                                         name: "StaticAllRooms",
                                                         roomListPageSize: .max,
                                                         notificationSettings: notificationSettings,
-                                                        appSettings: appSettings)
-        try await staticRoomSummaryProvider.setRoomList(roomListService.allRooms())
+                                                        userSettings: userSettings)
+        
+        // Setting a provider's room list will create summaries for every room so
+        // wait until the app is fully running for the alternate and static providers.
+        Task { [roomSummaryProvider, alternateRoomSummaryProvider, staticRoomSummaryProvider] in
+            // Wait for actual content (or a loaded-but-empty account) as the loading state
+            // doesn't take into account the app having build and published any summaries.
+            for await rooms in roomSummaryProvider.roomListPublisher.values {
+                if !rooms.isEmpty {
+                    break
+                }
+                
+                if case .loaded(0) = roomSummaryProvider.statePublisher.value {
+                    break
+                }
+            }
+            
+            do {
+                try await alternateRoomSummaryProvider.setRoomList(roomListService.allRooms())
+                try await staticRoomSummaryProvider.setRoomList(roomListService.allRooms())
+            } catch {
+                fatalError("Failed setting up the deferred room summary providers: \(error)")
+            }
+        }
         
         self.syncService = syncService
         self.roomListService = roomListService
@@ -1393,6 +1764,64 @@ private extension TimelineMediaVisibility {
             .off
         case .privateOnly:
             .private
+        }
+    }
+}
+
+private extension ClientProxyPresence {
+    var rustValue: PresenceState {
+        switch self {
+        case .online:
+            .online
+        case .unavailable:
+            .unavailable
+        case .offline:
+            .offline
+        }
+    }
+}
+
+private extension CreateRoomAccessType {
+    var isEncrypted: Bool {
+        switch self {
+        case .public:
+            false
+        default:
+            true
+        }
+    }
+    
+    var visibility: RoomVisibility {
+        isVisibilityPrivate ? .private : .public
+    }
+    
+    var preset: RoomPreset {
+        isVisibilityPrivate ? .privateChat : .publicChat
+    }
+    
+    var historyVisibilityOverride: RoomHistoryVisibility? {
+        isVisibilityPrivate ? .invited : nil
+    }
+    
+    var joinRuleOverride: JoinRule? {
+        switch self {
+        case .askToJoin:
+            .knock
+        case .spaceMembers(let spaceID):
+            .restricted(rules: [.roomMembership(roomID: spaceID)])
+        case .askToJoinWithSpaceMembers(let spaceID):
+            .knockRestricted(rules: [.roomMembership(roomID: spaceID)])
+        case .private, .public:
+            nil
+        }
+    }
+    
+    var isAskToJoin: Bool {
+        switch self {
+        case .askToJoin, .askToJoinWithSpaceMembers:
+            true
+        default:
+            false
         }
     }
 }

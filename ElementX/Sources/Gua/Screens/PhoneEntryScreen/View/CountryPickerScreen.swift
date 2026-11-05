@@ -31,7 +31,7 @@ struct CountryPickerScreen: View {
     }
 
     var body: some View {
-        NavigationStack {
+        ElementNavigationStack {
             List(filteredCountries) { country in
                 Button {
                     onSelect(country)

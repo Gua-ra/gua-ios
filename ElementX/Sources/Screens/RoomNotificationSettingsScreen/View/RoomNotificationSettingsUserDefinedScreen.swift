@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -9,7 +10,7 @@ import Compound
 import SwiftUI
 
 struct RoomNotificationSettingsUserDefinedScreen: View {
-    @ObservedObject var context: RoomNotificationSettingsScreenViewModel.Context
+    @Bindable var context: RoomNotificationSettingsScreenViewModel.Context
     
     var body: some View {
         Form {
@@ -42,7 +43,7 @@ struct RoomNotificationSettingsUserDefinedScreen: View {
 struct RoomNotificationSettingsUserDefinedScreen_Previews: PreviewProvider, TestablePreview {
     static let viewModel = {
         let notificationSettingsProxy = NotificationSettingsProxyMock(with: .init(defaultRoomMode: .mentionsAndKeywordsOnly, roomMode: .mentionsAndKeywordsOnly))
-
+        
         let roomProxy = JoinedRoomProxyMock(.init(name: "Room", isEncrypted: true))
         
         return RoomNotificationSettingsScreenViewModel(notificationSettingsProxy: notificationSettingsProxy,
@@ -52,14 +53,14 @@ struct RoomNotificationSettingsUserDefinedScreen_Previews: PreviewProvider, Test
     
     static let viewModelUnencrypted = {
         let notificationSettingsProxy = NotificationSettingsProxyMock(with: .init(defaultRoomMode: .mentionsAndKeywordsOnly, roomMode: .mentionsAndKeywordsOnly))
-
+        
         let roomProxy = JoinedRoomProxyMock(.init(name: "Room", isEncrypted: false))
         
         return RoomNotificationSettingsScreenViewModel(notificationSettingsProxy: notificationSettingsProxy,
                                                        roomProxy: roomProxy,
                                                        displayAsUserDefinedRoomSettings: true)
     }()
-
+    
     static var previews: some View {
         RoomNotificationSettingsUserDefinedScreen(context: viewModel.context)
             .previewDisplayName("Encrypted")

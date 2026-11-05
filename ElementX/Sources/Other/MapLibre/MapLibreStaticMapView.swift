@@ -1,10 +1,12 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
+import Compound
 import CoreLocation
 import SwiftUI
 
@@ -15,7 +17,7 @@ struct MapLibreStaticMapView<PinAnnotation: View>: View {
     private let mapTilerAttributionPlacement: MapTilerAttributionPlacement
     private let mapSize: CGSize
     private let pinAnnotationView: PinAnnotation
-
+    
     @Environment(\.colorScheme) private var colorScheme
     @State private var fetchAttempt = 0
     
@@ -33,13 +35,26 @@ struct MapLibreStaticMapView<PinAnnotation: View>: View {
         self.pinAnnotationView = pinAnnotationView()
     }
     
+    init(geoURI: GeoURI,
+         mapURLBuilder: MapTilerURLBuilderProtocol,
+         attributionPlacement: MapTilerAttributionPlacement = .bottomLeft,
+         mapSize: CGSize,
+         @ViewBuilder pinAnnotationView: () -> PinAnnotation) {
+        self.init(coordinates: .init(latitude: geoURI.latitude, longitude: geoURI.longitude),
+                  zoomLevel: 15,
+                  attributionPlacement: attributionPlacement,
+                  mapURLBuilder: mapURLBuilder,
+                  mapSize: mapSize,
+                  pinAnnotationView: pinAnnotationView)
+    }
+    
     var body: some View {
         GeometryReader { geometry in
-            if let url = mapURLBuilder.staticMapURL(for: colorScheme.mapStyle,
-                                                    coordinates: coordinates,
-                                                    zoomLevel: zoomLevel,
-                                                    size: mapSize, // temporary using a fixed size since the refresh doesn't work properly on the UITableView based timeline
-                                                    attribution: mapTilerAttributionPlacement) {
+            if let url = mapURLBuilder.staticMapTileImageURL(for: colorScheme.mapStyle,
+                                                             coordinates: coordinates,
+                                                             zoomLevel: zoomLevel,
+                                                             size: mapSize, // temporary using a fixed size since the refresh doesn't work properly on the UITableView based timeline
+                                                             attribution: mapTilerAttributionPlacement) {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .empty:
@@ -48,10 +63,11 @@ struct MapLibreStaticMapView<PinAnnotation: View>: View {
                         ZStack {
                             image
                                 .resizable()
-                                .aspectRatio(contentMode: .fill)
+                                .scaledToFill()
                             pinAnnotationView
                         }
-                    case .failure:
+                    case .failure(let error):
+                        let _ = MXLog.error("Failed retrieving tile with error: \(error.localizedDescription)")
                         errorView
                     @unknown default:
                         EmptyView()
@@ -64,13 +80,13 @@ struct MapLibreStaticMapView<PinAnnotation: View>: View {
             }
         }
     }
-
+    
     private var placeholderImage: some View {
         Image(asset: Asset.Images.mapBlurred)
             .resizable()
             .scaledToFill()
     }
-
+    
     private var errorView: some View {
         Button {
             fetchAttempt += 1
@@ -78,7 +94,7 @@ struct MapLibreStaticMapView<PinAnnotation: View>: View {
             placeholderImage
                 .overlay {
                     VStack(spacing: 0) {
-                        Image(systemName: "arrow.clockwise")
+                        CompoundIcon(\.restart)
                         Text(L10n.actionStaticMapLoad)
                     }
                 }
@@ -113,15 +129,15 @@ struct MapLibreStaticMapView_Previews: PreviewProvider, TestablePreview {
 }
 
 private struct MapTilerURLBuilderMock: MapTilerURLBuilderProtocol {
-    func dynamicMapURL(for style: MapTilerStyle) -> URL? {
+    func interactiveMapURL(for style: MapTilerStyle) -> URL? {
         nil
     }
     
-    func staticMapURL(for style: MapTilerStyle,
-                      coordinates: CLLocationCoordinate2D,
-                      zoomLevel: Double,
-                      size: CGSize,
-                      attribution: MapTilerAttributionPlacement) -> URL? {
+    func staticMapTileImageURL(for style: MapTilerStyle,
+                               coordinates: CLLocationCoordinate2D,
+                               zoomLevel: Double,
+                               size: CGSize,
+                               attribution: MapTilerAttributionPlacement) -> URL? {
         switch style {
         case .light:
             return URL(string: "https://www.maptiler.com/img/cloud/home/map5.webp")

@@ -1,5 +1,6 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
@@ -36,9 +37,7 @@ struct RoomScreenFooterView: View {
     var body: some View {
         if let details {
             detailsView(details)
-                .highlight(gradient: gradient,
-                           borderColor: borderColor,
-                           backgroundColor: .compound.bgCanvasDefault)
+                .highlight(gradient: gradient, borderColor: borderColor)
                 .padding(.top, 8)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -117,11 +116,11 @@ struct RoomScreenFooterView_Previews: PreviewProvider, TestablePreview {
                                                                                                   learnMoreURL: "https://gua.global/help#security-changes")
     
     static var previews: some View {
-        RoomScreenFooterView(details: bobDetails, mediaProvider: MediaProviderMock(configuration: .init())) { _ in }
+        RoomScreenFooterView(details: bobDetails, mediaProvider: MediaProviderMock(.init())) { _ in }
             .previewDisplayName("With displayname")
-        RoomScreenFooterView(details: noNameDetails, mediaProvider: MediaProviderMock(configuration: .init())) { _ in }
+        RoomScreenFooterView(details: noNameDetails, mediaProvider: MediaProviderMock(.init())) { _ in }
             .previewDisplayName("Without displayname")
-        RoomScreenFooterView(details: verificationViolationDetails, mediaProvider: MediaProviderMock(configuration: .init())) { _ in }
+        RoomScreenFooterView(details: verificationViolationDetails, mediaProvider: MediaProviderMock(.init())) { _ in }
             .previewDisplayName("Verification Violation")
     }
 }

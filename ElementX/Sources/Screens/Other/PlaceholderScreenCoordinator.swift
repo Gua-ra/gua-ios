@@ -1,5 +1,6 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
@@ -9,25 +10,28 @@ import SwiftUI
 
 class PlaceholderScreenCoordinator: CoordinatorProtocol {
     private let hideBrandChrome: Bool
+    private let hideGradientBackground: Bool
     
-    init(hideBrandChrome: Bool = true) {
+    init(hideBrandChrome: Bool, hideGradientBackground: Bool = true) {
         self.hideBrandChrome = hideBrandChrome
+        self.hideGradientBackground = hideBrandChrome || hideGradientBackground
     }
     
     func toPresentable() -> AnyView {
-        AnyView(PlaceholderScreen(hideBrandChrome: hideBrandChrome))
+        AnyView(PlaceholderScreen(hideBrandChrome: hideBrandChrome, hideGradientBackground: hideGradientBackground))
     }
 }
 
 /// The screen shown in split view when the detail has no content.
 struct PlaceholderScreen: View {
     let hideBrandChrome: Bool
-
+    let hideGradientBackground: Bool
+    
     var body: some View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background {
-                if !hideBrandChrome {
+                if !hideGradientBackground {
                     PrivacyScreenBloom()
                 }
             }
@@ -36,18 +40,18 @@ struct PlaceholderScreen: View {
             .ignoresSafeArea(edges: .top) // Remain vertically centred even if there's a navigation bar.
             .ignoresSafeArea(.keyboard) // Specifically for the lock screen, but make sense everywhere.
     }
-
+    
     @ViewBuilder
     private var content: some View {
-        if hideBrandChrome {
+        if hideGradientBackground {
             // GUA FORK: the empty iPad detail pane. AuthenticationStartLogo is resizable +
             // scaledToFit with no intrinsic cap, so without a frame it scales up to fill the
             // whole detail pane (the "giant logo" bug). Cap it and pair it with a subtle hint
             // so this reads as a tasteful empty state rather than a hero logo.
             VStack(spacing: 16) {
-                AuthenticationStartLogo(isOnGradient: false)
+                AuthenticationStartLogo(hideBrandChrome: hideBrandChrome, isOnGradient: false)
                     .frame(maxWidth: 96, maxHeight: 96)
-
+                
                 Text(L10n.screenRoomlistEmptyMessage)
                     .font(.compound.bodyMD)
                     .foregroundColor(.compound.textSecondary)
@@ -110,17 +114,20 @@ private struct PrivacyScreenBloom: View {
 
 struct PlaceholderScreen_Previews: PreviewProvider, TestablePreview {
     static var previews: some View {
-        PlaceholderScreen(hideBrandChrome: true)
-            .previewDisplayName("Screen")
+        PlaceholderScreen(hideBrandChrome: false, hideGradientBackground: false)
+            .previewDisplayName("With chrome and background")
         
-        PlaceholderScreen(hideBrandChrome: false)
-            .previewDisplayName("With background")
-
-        PlaceholderScreen(hideBrandChrome: false)
+        PlaceholderScreen(hideBrandChrome: false, hideGradientBackground: false)
             .environment(\.colorScheme, .dark)
             .preferredColorScheme(.dark)
-            .previewDisplayName("With background dark")
-
+            .previewDisplayName("With chrome and background dark")
+        
+        PlaceholderScreen(hideBrandChrome: false, hideGradientBackground: true)
+            .previewDisplayName("With chrome and no background")
+        
+        PlaceholderScreen(hideBrandChrome: true, hideGradientBackground: true)
+            .previewDisplayName("Without chrome")
+        
         NavigationSplitView {
             List {
                 ForEach("Nothing to see here".split(separator: " "), id: \.self) { word in
@@ -128,7 +135,7 @@ struct PlaceholderScreen_Previews: PreviewProvider, TestablePreview {
                 }
             }
         } detail: {
-            PlaceholderScreen(hideBrandChrome: true)
+            PlaceholderScreen(hideBrandChrome: false, hideGradientBackground: true)
         }
         .previewDisplayName("Split View")
         .previewInterfaceOrientation(.landscapeLeft)

@@ -33,7 +33,6 @@ targets:
     - target: ElementX
     - package: MatrixRustSDK
     - package: DeviceKit
-    - package: DTCoreText
     - package: KeychainAccess
     - package: Kingfisher
     - package: SwiftState
@@ -48,6 +47,8 @@ targets:
       base:
         PRODUCT_NAME: IntegrationTests
         PRODUCT_BUNDLE_IDENTIFIER: ${BASE_BUNDLE_IDENTIFIER}.integration.tests
+        SWIFT_VERSION: 6
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
       debug:
       release:
 
@@ -57,4 +58,3 @@ targets:
     - path: ../../ElementX/Sources/Other/AccessibilityIdentifiers.swift
     - path: ../../ElementX/Sources/Other/Extensions/NSRegularExpresion.swift
     - path: ../../ElementX/Sources/Other/Extensions/XCUIElement.swift
-    - path: ../../ElementX/Sources/Services/Analytics/Signposter.swift

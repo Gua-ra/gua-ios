@@ -10,6 +10,7 @@
 "gua_encryption_reset_required_action" = "Réinitialiser et terminer";
 "gua_signout_last_device_title" = "Se déconnecter supprimera vos messages de cet appareil";
 "gua_signout_last_device_message" = "Les messages conservés uniquement ici ne seront plus disponibles à votre prochaine connexion.";
+"gua_settings_sign_out" = "Se déconnecter";
 "gua_encryption_reset_finishing" = "Finalisation de la configuration…";
 "gua_encryption_reset_failed" = "Impossible de terminer la configuration. Veuillez réessayer.";
 "gua_encryption_recover_from_other_device_title" = "Restaurez vos messages précédents";

@@ -1,7 +1,8 @@
 //
-// Copyright 2021-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2021-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -22,7 +23,7 @@ struct CompletionSuggestionView: View {
         /// To make the scrolling more apparent we show a factional amount
         static let maxVisibleRows: CGFloat = 4.5
     }
-
+    
     // MARK: Public
     
     @State private var prototypeListItemFrame: CGRect = .zero
@@ -46,7 +47,7 @@ struct CompletionSuggestionView: View {
             .padding(.bottom, Constants.listItemPadding)
         }
     }
-
+    
     private func list() -> some View {
         List(items) { item in
             Button {
@@ -65,18 +66,18 @@ struct CompletionSuggestionView: View {
     private func contentHeightForRowCount(_ count: CGFloat) -> CGFloat {
         (prototypeListItemFrame.height + Constants.listItemPadding * 2 + Constants.listItemSpacing) * count - Constants.listItemSpacing / 2 + Constants.topPadding - Constants.listItemPadding
     }
-
+    
     private struct ListItemPaddingModifier: ViewModifier {
         private let isFirst: Bool
-
+        
         init(isFirst: Bool) {
             self.isFirst = isFirst
         }
-
+        
         func body(content: Content) -> some View {
             let topPadding: CGFloat = isFirst ? Constants.topPadding : Constants.listItemPadding
             let bottomPadding: CGFloat = Constants.listItemPadding
-
+            
             return content
                 .padding(.top, topPadding)
                 .padding(.bottom, bottomPadding)
@@ -95,7 +96,6 @@ private struct BackgroundView<Content: View>: View {
             .clipShape(RoundedCornerShape(radius: shadowRadius, corners: [.topLeft, .topRight]))
             .shadow(color: .black.opacity(0.20), radius: 20.0, x: 0.0, y: 3.0)
             .mask(Rectangle().padding(.init(top: -(shadowRadius * 2), leading: 0.0, bottom: 0.0, trailing: 0.0)))
-            .edgesIgnoringSafeArea(.all)
     }
 }
 
@@ -109,13 +109,24 @@ struct CompletionSuggestion_Previews: PreviewProvider, TestablePreview {
     static var previews: some View {
         // Putting them is VStack allows the preview to work properly in tests
         VStack(spacing: 8) {
-            CompletionSuggestionView(mediaProvider: MediaProviderMock(configuration: .init()),
-                                     items: [.init(suggestionType: .user(.init(id: "@user_mention_1:matrix.org", displayName: "User 1", avatarURL: nil)), range: .init(), rawSuggestionText: ""),
-                                             .init(suggestionType: .user(.init(id: "@user_mention_2:matrix.org", displayName: "User 2", avatarURL: .mockMXCUserAvatar)), range: .init(), rawSuggestionText: "")]) { _ in }
+            CompletionSuggestionView(mediaProvider: MediaProviderMock(.init()),
+                                     items: [
+                                         .init(suggestionType: .user(.init(id: "@user_mention_1:matrix.org",
+                                                                           displayName: "User 1",
+                                                                           avatarURL: nil)),
+                                               range: .init(),
+                                               rawSuggestionText: ""),
+                                         .init(suggestionType: .user(.init(id: "@user_mention_2:matrix.org",
+                                                                           displayName: "User 2",
+                                                                           avatarURL: .mockMXCUserAvatar,
+                                                                           status: .mockCall)),
+                                               range: .init(),
+                                               rawSuggestionText: "")
+                                     ]) { _ in }
         }
         
         VStack(spacing: 8) {
-            CompletionSuggestionView(mediaProvider: MediaProviderMock(configuration: .init()),
+            CompletionSuggestionView(mediaProvider: MediaProviderMock(.init()),
                                      items: multipleItems) { _ in }
         }
     }

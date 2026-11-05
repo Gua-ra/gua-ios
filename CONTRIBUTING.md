@@ -10,7 +10,7 @@ Upstream's CLA, Localazy and pull request instructions do not apply here. There 
 - Upstream files that Gua changed keep their place.
 - Fork strings live in `ElementX/Resources/Localizations/<locale>.lproj/Untranslated.strings` and are generated into `UntranslatedL10n`. Do not add Gua strings to `Localizable.strings`, which comes from upstream.
 
-Keeping Gua changes in these places makes the next upstream re-port smaller.
+Keeping Gua changes in these places makes the next upstream merge smaller.
 
 ## Setup
 

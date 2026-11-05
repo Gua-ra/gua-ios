@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -9,23 +10,27 @@ import Combine
 @testable import ElementX
 @testable import SnapshotTesting
 import SwiftUI
-import XCTest
+import Testing
 
-@MainActor
-class PreviewTests: XCTestCase {
-    private let deviceConfig: ViewImageConfig = .iPhoneX
+struct PreviewTests {
+    private struct SnapshotDevice {
+        let name: String
+        let device: String
+    }
+    
     private let simulatorDevice: String? = "iPhone14,6" // iPhone SE 3rd Generation
-    private let requiredOSVersion = (major: 18, minor: 6)
-    private let snapshotDevices = ["iPhone 16", "iPad"]
+    private let requiredOSVersion = (major: 27, minor: 0)
+    /// The key is the name we will give to the snapshot
+    /// The value is the actual device that will be used to render the preview
+    private let snapshotDevices: [SnapshotDevice] = [.init(name: "iPhone", device: "iPhone 17"),
+                                                     .init(name: "iPad", device: "iPad")]
     private var recordMode: SnapshotTestingConfiguration.Record = .missing
-
-    override func setUp() {
-        super.setUp()
-        
+    
+    init() {
         if ProcessInfo().environment["RECORD_FAILURES"].map(Bool.init) == true {
             recordMode = .failed
         }
-
+        
         checkEnvironments()
         UIView.setAnimationsEnabled(false)
     }
@@ -38,7 +43,7 @@ class PreviewTests: XCTestCase {
                 fatalError("\(deviceModel ?? "Unknown") is the wrong one. Switch to using \(simulatorDevice) for these tests.")
             }
         }
-
+        
         let osVersion = ProcessInfo().operatingSystemVersion
         guard osVersion.majorVersion == requiredOSVersion.major, osVersion.minorVersion == requiredOSVersion.minor else {
             fatalError("Switch to iOS \(requiredOSVersion) for these tests.")
@@ -49,8 +54,11 @@ class PreviewTests: XCTestCase {
     }
     
     // MARK: - Snapshots
-
-    func assertSnapshots(matching preview: _Preview, testName: String = #function, step: Int) async throws {
+    
+    func assertSnapshots(matching preview: _Preview,
+                         step: Int,
+                         testName: String = #function,
+                         sourceLocation: SourceLocation = #_sourceLocation) async throws {
         let preferences = SnapshotPreferences()
         
         let preferenceReadingView = preview.content
@@ -66,19 +74,19 @@ class PreviewTests: XCTestCase {
         case .publisher(let publisher):
             let deferred = deferFulfillment(publisher) { $0 == true }
             try await deferred.fulfill()
-        case .stream(let stream):
-            let deferred = deferFulfillment(stream) { $0 == true }
+        case .sequence(let sequence):
+            let deferred = deferFulfillment(sequence) { $0 == true }
             try await deferred.fulfill()
         case .none:
             break
         }
         
-        var sanitizedSuiteName = String(testName.suffix(testName.count - "test".count).dropLast(2))
+        var sanitizedSuiteName = String(testName.dropLast(2))
         sanitizedSuiteName = sanitizedSuiteName.prefix(1).lowercased() + sanitizedSuiteName.dropFirst()
         
-        for deviceName in snapshotDevices {
-            guard var device = PreviewDevice(rawValue: deviceName).snapshotDevice() else {
-                fatalError("Unknown device name: \(deviceName)")
+        for snapshotDevice in snapshotDevices {
+            guard var device = PreviewDevice(rawValue: snapshotDevice.device).snapshotDevice() else {
+                fatalError("Unknown device name: \(snapshotDevice.device)")
             }
             // Ignore specific device safe area (using the workaround value to fix rendering issues).
             device.safeArea = .one
@@ -87,9 +95,9 @@ class PreviewTests: XCTestCase {
             
             var testName = ""
             if let displayName = preview.displayName {
-                testName = "\(displayName)-\(deviceName)-\(localeCode)"
+                testName = "\(displayName)-\(snapshotDevice.name)-\(localeCode)"
             } else {
-                testName = "\(deviceName)-\(localeCode)-\(step)"
+                testName = "\(snapshotDevice.name)-\(localeCode)-\(step)"
             }
             
             let isScreen = switch preview.layout {
@@ -103,7 +111,7 @@ class PreviewTests: XCTestCase {
                                              testName: sanitizedSuiteName,
                                              traits: traits,
                                              preferences: preferences) {
-                XCTFail(failure)
+                Issue.record(Comment(rawValue: failure), sourceLocation: sourceLocation)
             }
         }
     }
@@ -114,15 +122,15 @@ class PreviewTests: XCTestCase {
         }
         return languageCode + "-" + regionCode
     }
-
+    
     private var languageCode: String {
         Locale.current.language.languageCode?.identifier ?? ""
     }
-
+    
     private var regionCode: String {
         Locale.current.language.region?.identifier ?? ""
     }
-
+    
     private func assertSnapshots(matching view: AnyView,
                                  name: String?,
                                  isScreen: Bool,
@@ -143,26 +151,17 @@ class PreviewTests: XCTestCase {
                            testName: testName)
         }
     }
-    
-    private func wait(for duration: TimeInterval) {
-        let expectation = XCTestExpectation(description: "Wait")
-        DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
-            expectation.fulfill()
-        }
-        _ = XCTWaiter.wait(for: [expectation], timeout: duration + 1)
-    }
 }
 
 extension PreviewTests {
-    func testGuaLocalizedScreens() async throws {
-        if UserDefaults.standard.bool(forKey: "NSDoubleLocalizedStrings") {
-            throw XCTSkip("The pseudolanguage run doubles every string, so it cannot show a translation.")
-        }
+    @Test(.disabled(if: UserDefaults.standard.bool(forKey: "NSDoubleLocalizedStrings"),
+                    "The pseudolanguage run doubles every string, so it cannot show a translation."))
+    func guaLocalizedScreens() async throws {
         defer { Bundle.overrideLocalizations = nil }
-
+        
         for locale in ["pt-BR", "es", "fr"] {
             Bundle.overrideLocalizations = [locale]
-
+            
             // Built per language because a preview can read its strings at creation.
             let screens: [(name: String, preview: _Preview)] = [
                 ("phoneEntryScreen", PhoneEntryScreen_Previews._allPreviews[0]),
@@ -175,45 +174,49 @@ extension PreviewTests {
             }
         }
     }
-
-    private func assertLocalizedSnapshot(of preview: _Preview, screen: String, locale: String) async throws {
+    
+    private func assertLocalizedSnapshot(of preview: _Preview,
+                                         screen: String,
+                                         locale: String,
+                                         sourceLocation: SourceLocation = #_sourceLocation) async throws {
         let preferences = SnapshotPreferences()
-
+        
         let preferenceReadingView = preview.content
             .onPreferenceChange(SnapshotPrecisionPreferenceKey.self) { preferences.precision = $0 }
             .onPreferenceChange(SnapshotPerceptualPrecisionPreferenceKey.self) { preferences.perceptualPrecision = $0 }
             .onPreferenceChange(SnapshotFulfillmentPreferenceKey.self) { preferences.fulfillmentSource = $0?.source }
-
+        
         // Rendering once triggers the preference updates read below.
         _ = ImageRenderer(content: preferenceReadingView).uiImage
-
+        
         switch preferences.fulfillmentSource {
         case .publisher(let publisher):
             try await deferFulfillment(publisher) { $0 == true }.fulfill()
-        case .stream(let stream):
-            try await deferFulfillment(stream) { $0 == true }.fulfill()
+        case .sequence(let sequence):
+            try await deferFulfillment(sequence) { $0 == true }.fulfill()
         case .none:
             break
         }
-
-        guard var device = PreviewDevice(rawValue: "iPhone 16").snapshotDevice() else {
-            fatalError("Unknown device name: iPhone 16")
+        
+        let snapshotDevice = snapshotDevices[0]
+        guard var device = PreviewDevice(rawValue: snapshotDevice.device).snapshotDevice() else {
+            fatalError("Unknown device name: \(snapshotDevice.device)")
         }
         device.safeArea = .one
-
+        
         let isScreen = switch preview.layout {
         case .device: true
         default: false
         }
         let content = AnyView(preview.content.environment(\.locale, Locale(identifier: locale)))
         if let failure = assertSnapshots(matching: content,
-                                         name: "iPhone-16-\(locale)",
+                                         name: "\(snapshotDevice.name)-\(locale)",
                                          isScreen: isScreen,
                                          device: device,
                                          testName: screen,
                                          traits: UITraitCollection(displayScale: 2.0),
                                          preferences: preferences) {
-            XCTFail(failure)
+            Issue.record(Comment(rawValue: failure), sourceLocation: sourceLocation)
         }
     }
 }
@@ -229,7 +232,7 @@ private class SnapshotPreferences: @unchecked Sendable {
 private extension PreviewDevice {
     func snapshotDevice() -> ViewImageConfig? {
         switch rawValue {
-        case "iPhone 16", "iPhone 15", "iPhone 14", "iPhone 13", "iPhone 12", "iPhone 11", "iPhone 10":
+        case "iPhone 17", "iPhone 16", "iPhone 15", "iPhone 14", "iPhone 13", "iPhone 12", "iPhone 11", "iPhone 10":
             return .iPhoneX
         case "iPhone 6", "iPhone 6s", "iPhone 7", "iPhone 8":
             return .iPhone8
@@ -256,7 +259,7 @@ private extension Snapshotting where Value: SwiftUI.View, Format == UIImage {
                              layout: SwiftUISnapshotLayout = .sizeThatFits,
                              traits: UITraitCollection = .init()) -> Snapshotting {
         let config: ViewImageConfig
-
+        
         switch layout {
         #if os(iOS) || os(tvOS)
         case let .device(config: deviceConfig):
@@ -270,30 +273,74 @@ private extension Snapshotting where Value: SwiftUI.View, Format == UIImage {
             // Make sure to use the workaround safe area insets.
             config = .init(safeArea: .one, size: size, traits: traits)
         }
-
+        
         return SimplySnapshotting<UIImage>(pathExtension: "png", diffing: .prefireImage(preferences: preferences, scale: traits.displayScale))
             .asyncPullback { view in
                 var config = config
-
+                
                 let controller: UIViewController
-
+                
                 if config.size != nil {
                     controller = UIHostingController(rootView: view)
                 } else {
                     let hostingController = UIHostingController(rootView: view)
-
+                    // iOS 27 applies the window's safe area when rendering, which sizeThatFits ignores, clipping the content.
+                    hostingController.safeAreaRegions = []
+                    
                     let maxSize = CGSize.zero
                     config.size = hostingController.sizeThatFits(in: maxSize)
-
+                    
                     controller = hostingController
                 }
+                
+                let sceneAttachingController = SceneAttachingViewController(child: controller)
                 
                 return snapshotView(config: config,
                                     drawHierarchyInKeyWindow: drawHierarchyInKeyWindow,
                                     traits: traits,
-                                    view: controller.view,
-                                    viewController: controller)
+                                    view: sceneAttachingController.view,
+                                    viewController: sceneAttachingController)
             }
+    }
+}
+
+/// Temporary workaround: swift-snapshot-testing doesn't manage which scene its render window belongs to, and on iOS 27 a
+/// navigation stack in a window without a scene reserves space for a large title it never shows. Drop this once
+/// swift-snapshot-testing handles its window's scene.
+private final class SceneAttachingViewController: UIViewController {
+    private let child: UIViewController
+    
+    init(child: UIViewController) {
+        self.child = child
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    override func loadView() {
+        view = SceneAttachingView()
+    }
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        addChild(child)
+        child.view.frame = view.bounds
+        child.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        view.addSubview(child.view)
+        child.didMove(toParent: self)
+    }
+}
+
+private final class SceneAttachingView: UIView {
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        
+        guard let window, window.windowScene == nil else { return }
+        window.windowScene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
     }
 }
 

@@ -1,42 +1,46 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 @testable import ElementX
-import XCTest
+import Testing
+import UIKit
 
-@MainActor
-final class EmojiProviderTests: XCTestCase {
-    func testWhenEmojisLoadedCategoriesAreLoadedFromLoader() async {
+struct EmojiProviderTests {
+    @Test @MainActor
+    func emojisLoadedCategoriesAreLoadedFromLoader() async {
         let item = EmojiItem(label: "test", unicode: "test", keywords: ["1", "2"], shortcodes: ["1", "2"])
         let category = EmojiCategory(id: "test", emojis: [item])
         
         let emojiLoaderMock = EmojiLoaderMock()
         emojiLoaderMock.categories = [category]
         
-        let emojiProvider = EmojiProvider(loader: emojiLoaderMock, appSettings: ServiceLocator.shared.settings)
+        let emojiProvider = EmojiProvider(loader: emojiLoaderMock, userSettings: .mock())
         
         let categories = await emojiProvider.categories()
-        XCTAssertEqual(emojiLoaderMock.categories, categories)
+        #expect(emojiLoaderMock.categories == categories)
     }
-
-    func testWhenEmojisLoadedAndSearchStringEmptyAllCategoriesReturned() async {
+    
+    @Test @MainActor
+    func emojisLoadedAndSearchStringEmptyAllCategoriesReturned() async {
         let item = EmojiItem(label: "test", unicode: "test", keywords: ["1", "2"], shortcodes: ["1", "2"])
         let category = EmojiCategory(id: "test", emojis: [item])
         
         let emojiLoaderMock = EmojiLoaderMock()
         emojiLoaderMock.categories = [category]
         
-        let emojiProvider = EmojiProvider(loader: emojiLoaderMock, appSettings: ServiceLocator.shared.settings)
+        let emojiProvider = EmojiProvider(loader: emojiLoaderMock, userSettings: .mock())
         
         let categories = await emojiProvider.categories(searchString: "")
-        XCTAssertEqual(emojiLoaderMock.categories, categories)
+        #expect(emojiLoaderMock.categories == categories)
     }
-
-    func testWhenEmojisLoadedSecondTimeCachedValuesAreUsed() async {
+    
+    @Test @MainActor
+    func emojisLoadedSecondTimeCachedValuesAreUsed() async {
         let item = EmojiItem(label: "test", unicode: "test", keywords: ["1", "2"], shortcodes: ["1", "2"])
         let item2 = EmojiItem(label: "test2", unicode: "test2", keywords: ["3", "4"], shortcodes: ["3", "4"])
         let categoriesForFirstLoad = [EmojiCategory(id: "test",
@@ -47,16 +51,17 @@ final class EmojiProviderTests: XCTestCase {
         let emojiLoaderMock = EmojiLoaderMock()
         emojiLoaderMock.categories = categoriesForFirstLoad
         
-        let emojiProvider = EmojiProvider(loader: emojiLoaderMock, appSettings: ServiceLocator.shared.settings)
+        let emojiProvider = EmojiProvider(loader: emojiLoaderMock, userSettings: .mock())
         
         _ = await emojiProvider.categories()
         emojiLoaderMock.categories = categoriesForSecondLoad
         
         let categories = await emojiProvider.categories()
-        XCTAssertEqual(categories, categoriesForFirstLoad)
+        #expect(categories == categoriesForFirstLoad)
     }
     
-    func testWhenEmojisSearchedCorrectNumberOfCategoriesReturned() async {
+    @Test @MainActor
+    func emojisSearchedCorrectNumberOfCategoriesReturned() async {
         let searchString = "smile"
         var categories = [EmojiCategory]()
         let item0WithSearchString = EmojiItem(label: "emoji0", unicode: "\(searchString)_123", keywords: ["key1", "key1"], shortcodes: ["key1", "key1"])
@@ -77,12 +82,12 @@ final class EmojiProviderTests: XCTestCase {
         let emojiLoaderMock = EmojiLoaderMock()
         emojiLoaderMock.categories = categories
         
-        let emojiProvider = EmojiProvider(loader: emojiLoaderMock, appSettings: ServiceLocator.shared.settings)
+        let emojiProvider = EmojiProvider(loader: emojiLoaderMock, userSettings: .mock())
         
         _ = await emojiProvider.categories()
         let result = await emojiProvider.categories(searchString: searchString)
-        XCTAssertEqual(result.count, 2)
-        XCTAssertEqual(result.first?.emojis.count, 4)
+        #expect(result.count == 2)
+        #expect(result.first?.emojis.count == 4)
     }
 }
 

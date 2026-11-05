@@ -7,58 +7,52 @@
 
 import Combine
 @testable import ElementX
+import Testing
 import XCTest
 
 @MainActor
 final class AuthenticationFlowCoordinatorTests: XCTestCase {
     private var navigationRootCoordinator: NavigationRootCoordinator!
     private var resolverClient: ResolverClientFake!
-    private var oidcPresenter: OIDCAuthenticationPresenterFake!
+    private var oAuthPresenter: OAuthAuthenticationPresenterFake!
     private var flowCoordinator: AuthenticationFlowCoordinator!
 
     override func setUp() {
-        XCTAssertTrue(ServiceLocator.shared.settings.allowOtherAccountProviders)
-        XCTAssertFalse(ServiceLocator.shared.settings.legacyAuthEnabled)
+        let appSettings = AppSettings.volatile()
+        XCTAssertTrue(appSettings.allowOtherAccountProviders)
+        XCTAssertFalse(appSettings.legacyAuthEnabled)
 
-        let windowManager = WindowManagerMock()
-        windowManager.mainWindow = UIWindow()
-        let appMediator = AppMediatorMock.default
-        appMediator.underlyingWindowManager = windowManager
+        let appMediator = AppMediatorMock(.init())
+        (appMediator.windowManager as? WindowManagerMock)?.mainWindow = UIWindow()
 
         navigationRootCoordinator = NavigationRootCoordinator()
         resolverClient = ResolverClientFake()
-        let oidcPresenter = OIDCAuthenticationPresenterFake()
-        self.oidcPresenter = oidcPresenter
+        let oAuthPresenter = OAuthAuthenticationPresenterFake()
+        self.oAuthPresenter = oAuthPresenter
         flowCoordinator = AuthenticationFlowCoordinator(authenticationService: AuthenticationService.mock,
                                                         bugReportService: BugReportServiceMock(.init()),
                                                         navigationRootCoordinator: navigationRootCoordinator,
                                                         appMediator: appMediator,
-                                                        appSettings: ServiceLocator.shared.settings,
-                                                        analytics: ServiceLocator.shared.analytics,
+                                                        appSettings: appSettings,
+                                                        appHooks: AppHooks(),
                                                         userIndicatorController: UserIndicatorControllerMock(),
                                                         resolverClient: resolverClient,
-                                                        usesPhoneLoginHint: true) { _ in oidcPresenter }
+                                                        usesPhoneLoginHint: true) { _ in oAuthPresenter }
     }
 
     override func tearDown() {
-        oidcPresenter.finish(with: .failure(.oidcError(.userCancellation)))
-    }
-
-    func testRepeatedOIDCRequestDuringOIDCAuthenticationIsIgnored() {
-        XCTAssertTrue(AuthenticationFlowCoordinator.ignoresUnroutedEvent(.continueWithOIDC, from: .oidcAuthentication))
+        oAuthPresenter.finish(with: .failure(.oAuthError(.userCancellation)))
     }
 
     func testEventsAfterCompletionAreIgnored() {
         XCTAssertTrue(AuthenticationFlowCoordinator.ignoresUnroutedEvent(.signedIn, from: .complete))
-        XCTAssertTrue(AuthenticationFlowCoordinator.ignoresUnroutedEvent(.continueWithOIDC, from: .complete))
+        XCTAssertTrue(AuthenticationFlowCoordinator.ignoresUnroutedEvent(.startPhoneAuth, from: .complete))
     }
 
     func testOtherUnroutedEventsAreNotIgnored() {
-        XCTAssertFalse(AuthenticationFlowCoordinator.ignoresUnroutedEvent(.continueWithOIDC, from: .loginScreen))
-        XCTAssertFalse(AuthenticationFlowCoordinator.ignoresUnroutedEvent(.continueWithOIDC, from: .bugReportFlow))
-        XCTAssertFalse(AuthenticationFlowCoordinator.ignoresUnroutedEvent(.continueWithPassword, from: .oidcAuthentication))
-        XCTAssertFalse(AuthenticationFlowCoordinator.ignoresUnroutedEvent(.startPhoneAuth, from: .oidcAuthentication))
-        XCTAssertFalse(AuthenticationFlowCoordinator.ignoresUnroutedEvent(nil, from: .oidcAuthentication))
+        XCTAssertFalse(AuthenticationFlowCoordinator.ignoresUnroutedEvent(.continueWithPassword, from: .phoneEntryScreen))
+        XCTAssertFalse(AuthenticationFlowCoordinator.ignoresUnroutedEvent(.startPhoneAuth, from: .loginScreen))
+        XCTAssertFalse(AuthenticationFlowCoordinator.ignoresUnroutedEvent(nil, from: .bugReportFlow))
     }
 
     func testProvisioningLinkOnThePhoneEntryScreenIsIgnored() throws {
@@ -74,7 +68,7 @@ final class AuthenticationFlowCoordinatorTests: XCTestCase {
 
         XCTAssertTrue(phoneEntry.viewModel.context.viewState.isSubmitting)
         XCTAssertEqual(resolverClient.resolveCallsCount, 1)
-        XCTAssertEqual(oidcPresenter.authenticateCallsCount, 1)
+        XCTAssertEqual(oAuthPresenter.authenticateCallsCount, 1)
     }
 
     func testContinueReachingTheCoordinatorWhileSignInIsOpenIsIgnored() async throws {
@@ -86,7 +80,7 @@ final class AuthenticationFlowCoordinatorTests: XCTestCase {
         try await repeatedResolve.fulfill()
 
         XCTAssertEqual(resolverClient.resolveCallsCount, 1)
-        XCTAssertEqual(oidcPresenter.authenticateCallsCount, 1)
+        XCTAssertEqual(oAuthPresenter.authenticateCallsCount, 1)
     }
 
     func testCancellingSignInEnablesThePhoneEntryScreen() async throws {
@@ -94,11 +88,11 @@ final class AuthenticationFlowCoordinatorTests: XCTestCase {
         let context = phoneEntry.viewModel.context
 
         let enabled = deferFulfillment(context.observe(\.viewState.isSubmitting)) { !$0 }
-        oidcPresenter.finish(with: .failure(.oidcError(.userCancellation)))
+        oAuthPresenter.finish(with: .failure(.oAuthError(.userCancellation)))
         try await enabled.fulfill()
         XCTAssertTrue(context.viewState.canContinue)
 
-        let signInStarted = deferFulfillment(oidcPresenter.authenticationStarted) { _ in true }
+        let signInStarted = deferFulfillment(oAuthPresenter.authenticationStarted) { _ in true }
         context.send(viewAction: .continueTapped)
         try await signInStarted.fulfill()
         XCTAssertEqual(resolverClient.resolveCallsCount, 2)
@@ -110,11 +104,11 @@ final class AuthenticationFlowCoordinatorTests: XCTestCase {
 
         flowCoordinator.handleAppRoute(.accountProvisioningLink(.init(accountProvider: "example.com", loginHint: nil)), animated: false)
 
-        XCTAssertEqual(oidcPresenter.cancelCallsCount, 0)
+        XCTAssertEqual(oAuthPresenter.cancelCallsCount, 0)
         XCTAssertTrue(context.viewState.isSubmitting)
 
         let enabled = deferFulfillment(context.observe(\.viewState.isSubmitting)) { !$0 }
-        oidcPresenter.finish(with: .failure(.oidcError(.userCancellation)))
+        oAuthPresenter.finish(with: .failure(.oAuthError(.userCancellation)))
         try await enabled.fulfill()
         XCTAssertTrue(try phoneEntryScreenCoordinator() === phoneEntry)
     }
@@ -132,7 +126,7 @@ final class AuthenticationFlowCoordinatorTests: XCTestCase {
         let context = phoneEntry.viewModel.context
         context.localPhoneNumber = "5551234567"
 
-        let signInStarted = deferFulfillment(oidcPresenter.authenticationStarted) { _ in true }
+        let signInStarted = deferFulfillment(oAuthPresenter.authenticationStarted) { _ in true }
         context.send(viewAction: .continueTapped)
         try await signInStarted.fulfill()
         return phoneEntry
@@ -157,15 +151,15 @@ private final class ResolverClientFake: ResolverClientProtocol {
 }
 
 @MainActor
-private final class OIDCAuthenticationPresenterFake: OIDCAuthenticationPresenterProtocol {
+private final class OAuthAuthenticationPresenterFake: OAuthAuthenticationPresenterProtocol {
     let authenticationStarted = PassthroughSubject<Void, Never>()
     private(set) var authenticateCallsCount = 0
     private(set) var cancelCallsCount = 0
 
     private var pendingAuthentication: CheckedContinuation<Void, Never>?
-    private var result: Result<UserSessionProtocol, AuthenticationServiceError> = .failure(.oidcError(.userCancellation))
+    private var result: Result<UserSessionProtocol, AuthenticationServiceError> = .failure(.oAuthError(.userCancellation))
 
-    func authenticate(using oidcData: OIDCAuthorizationDataProxy) async -> Result<UserSessionProtocol, AuthenticationServiceError> {
+    func authenticate(using oAuthData: OAuthAuthorizationDataProxy) async -> Result<UserSessionProtocol, AuthenticationServiceError> {
         authenticateCallsCount += 1
         await withCheckedContinuation { continuation in
             pendingAuthentication = continuation
@@ -173,6 +167,8 @@ private final class OIDCAuthenticationPresenterFake: OIDCAuthenticationPresenter
         }
         return result
     }
+
+    func handleUniversalLinkCallback(_ url: URL) { }
 
     func cancel() {
         cancelCallsCount += 1

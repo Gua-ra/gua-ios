@@ -1,14 +1,15 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Foundation
 import UIKit
 
-enum PillType: Codable, Equatable {
+nonisolated enum PillType: Codable, Equatable {
     enum EventRoom: Codable, Equatable {
         case roomAlias(String)
         case roomID(String)
@@ -23,7 +24,7 @@ enum PillType: Codable, Equatable {
     case allUsers
 }
 
-struct PillTextAttachmentData: Codable, Equatable {
+nonisolated struct PillTextAttachmentData: Codable, Equatable {
     struct Font: Codable, Equatable {
         let descender: CGFloat
         let lineHeight: CGFloat
@@ -36,7 +37,7 @@ struct PillTextAttachmentData: Codable, Equatable {
     let fontData: Font
 }
 
-extension PillTextAttachmentData {
+nonisolated extension PillTextAttachmentData {
     init(type: PillType, font: UIFont) {
         self.type = type
         fontData = Font(descender: font.descender, lineHeight: font.lineHeight)

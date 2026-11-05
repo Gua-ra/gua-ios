@@ -15,7 +15,7 @@ struct MessageTextSelectionSheet: View {
     let info: TimelineItemTextSelectionInfo
 
     var body: some View {
-        NavigationStack {
+        ElementNavigationStack {
             SelectableTextView(text: info.text)
                 .background(Color.compound.bgCanvasDefault)
                 .navigationTitle(UntranslatedL10n.guaMessageTextSelectionTitle)

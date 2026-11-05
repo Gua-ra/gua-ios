@@ -1,28 +1,26 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Foundation
 import MatrixRustSDK
 
-// periphery:ignore - for generic conformance
 enum InviteUsersScreenErrorType: Error {
     case unknown
 }
 
 enum InviteUsersScreenViewModelAction {
-    case cancel
-    case proceed
-    case invite(users: [String])
-    case toggleUser(UserProfileProxy)
+    case dismiss
+    case openRoom(roomID: String)
 }
 
 enum InviteUsersScreenRoomType {
-    case draft
-    case room(roomProxy: JoinedRoomProxyProtocol)
+    case draft(mandatoryInvitees: [UserProfile])
+    case existingRoom(roomProxy: JoinedRoomProxyProtocol)
 }
 
 struct InviteUsersScreenViewState: BindableState {
@@ -30,8 +28,10 @@ struct InviteUsersScreenViewState: BindableState {
     
     var usersSection: UserDiscoverySection = .init(type: .suggestions, users: [])
     
-    var selectedUsers: [UserProfileProxy] = []
+    var selectedUsers: [UserProfile] = []
+    var mandatoryInvitees: [UserProfile] = []
     var membershipState: [String: MembershipState] = .init()
+    var usersToConfirm: [UserProfile] = []
     
     var isSearching = false
     
@@ -39,38 +39,39 @@ struct InviteUsersScreenViewState: BindableState {
         !isSearching && usersSection.type == .searchResult && usersSection.users.isEmpty
     }
     
-    var scrollToLastID: String?
-    
-    func isUserSelected(_ user: UserProfileProxy) -> Bool {
-        isUserDisabled(user) || selectedUsers.contains { $0.userID == user.userID }
+    var hasInvitableSelectedUsers: Bool {
+        selectedUsers.contains { !isInviteeMandatory($0) }
     }
     
-    func isUserDisabled(_ user: UserProfileProxy) -> Bool {
+    func isUserSelected(_ user: UserProfile) -> Bool {
+        isUserDisabled(user) || selectedUsers.contains { $0.id == user.id }
+    }
+    
+    func isUserDisabled(_ user: UserProfile) -> Bool {
+        if isInviteeMandatory(user) {
+            return true
+        }
         let membershipState = membershipState(user)
         return membershipState == .invite || membershipState == .join
     }
     
-    func membershipState(_ user: UserProfileProxy) -> MembershipState? {
-        membershipState[user.userID]
+    func isInviteeMandatory(_ user: UserProfile) -> Bool {
+        mandatoryInvitees.contains { $0.id == user.id }
     }
     
-    let isCreatingRoom: Bool
-    
-    var actionText: String {
-        if isCreatingRoom {
-            return selectedUsers.isEmpty ? L10n.actionSkip : L10n.actionNext
-        } else {
-            return L10n.actionInvite
-        }
+    func membershipState(_ user: UserProfile) -> MembershipState? {
+        membershipState[user.id]
     }
     
-    var isActionDisabled: Bool {
-        isCreatingRoom ? false : selectedUsers.isEmpty
-    }
+    let isSkippable: Bool
 }
 
 struct InviteUsersScreenViewStateBindings {
     var searchQuery = ""
+    var selectedUsersPosition: String?
+    
+    /// Whether we are showing the confirmation dialog.
+    var presentConfirmationDialog = false
     
     /// Information describing the currently displayed alert.
     var alertInfo: AlertInfo<InviteUsersScreenErrorType>?
@@ -79,5 +80,7 @@ struct InviteUsersScreenViewStateBindings {
 enum InviteUsersScreenViewAction {
     case cancel
     case proceed
-    case toggleUser(UserProfileProxy)
+    case removeUnknownUsers
+    case confirmUnknownUsers
+    case toggleUser(UserProfile)
 }

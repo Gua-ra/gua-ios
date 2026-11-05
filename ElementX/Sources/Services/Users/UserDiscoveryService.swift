@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -11,7 +12,7 @@ final class UserDiscoveryService: UserDiscoveryServiceProtocol {
     private let clientProxy: ClientProxyProtocol
     private let federationRosterProvider: FederationRosterProviding?
     private let federatedLookupTimeout: Duration
-
+    
     init(clientProxy: ClientProxyProtocol,
          federationRosterProvider: FederationRosterProviding? = FederationRosterCache.shared,
          federatedLookupTimeout: Duration = .seconds(3)) {
@@ -19,14 +20,14 @@ final class UserDiscoveryService: UserDiscoveryServiceProtocol {
         self.federationRosterProvider = federationRosterProvider
         self.federatedLookupTimeout = federatedLookupTimeout
     }
-
-    func searchProfiles(with searchQuery: String) async -> Result<[UserProfileProxy], UserDiscoveryErrorType> {
+    
+    func searchProfiles(with searchQuery: String) async -> Result<[UserProfile], UserDiscoveryErrorType> {
         async let queriedProfile = profileIfPossible(with: searchQuery)
         async let federatedProfiles = federatedProfiles(matching: searchQuery)
-
+        
         do {
-            async let searchedUsers = clientProxy.searchUsers(searchTerm: searchQuery, limit: 10).get()
-            let users = try await merge(queriedProfile: queriedProfile, searchResults: searchedUsers)
+            let searchedUsers = try await clientProxy.searchUsers(searchTerm: searchQuery, limit: 10).get()
+            let users = await merge(queriedProfile: queriedProfile, searchResults: searchedUsers)
             let merged = await appendFederated(federatedProfiles, to: users)
             return .success(filterAccountOwner(merged))
         } catch {
@@ -38,22 +39,22 @@ final class UserDiscoveryService: UserDiscoveryServiceProtocol {
             return .success(filterAccountOwner(fallback))
         }
     }
-
-    private func merge(queriedProfile: UserProfileProxy?, searchResults: SearchUsersResultsProxy) -> [UserProfileProxy] {
+    
+    private func merge(queriedProfile: UserProfile?, searchResults: SearchUsersResults) -> [UserProfile] {
         let searchResults = searchResults.results
         
         guard let queriedProfile else {
             return searchResults
         }
-
+        
         let filteredSearchResult = searchResults.filter {
-            $0.userID != queriedProfile.userID
+            $0.id != queriedProfile.id
         }
-
+        
         return [queriedProfile] + filteredSearchResult
     }
     
-    private func profileIfPossible(with searchQuery: String) async -> UserProfileProxy? {
+    private func profileIfPossible(with searchQuery: String) async -> UserProfile? {
         guard searchQuery.isMatrixIdentifier, searchQuery != clientProxy.userID else {
             return nil
         }
@@ -63,14 +64,14 @@ final class UserDiscoveryService: UserDiscoveryServiceProtocol {
         // fallback to a "local profile" if the profile api fails
         return getProfileResult ?? .init(userID: searchQuery)
     }
-
-    private func filterAccountOwner(_ profiles: [UserProfileProxy]) -> [UserProfileProxy] {
+    
+    private func filterAccountOwner(_ profiles: [UserProfile]) -> [UserProfile] {
         let accountOwnerID = clientProxy.userID
-        return profiles.filter { $0.userID != accountOwnerID }
+        return profiles.filter { $0.id != accountOwnerID }
     }
-
+    
     // MARK: - Gua federated bare-handle search
-
+    
     /// GUA FORK: exact-handle matches for a bare username, on the searcher's own homeserver and
     /// on the other homeservers of the Gua federation, honouring each server's discoverability
     /// policy. Empty when the query isn't a bare handle.
@@ -79,13 +80,13 @@ final class UserDiscoveryService: UserDiscoveryServiceProtocol {
     /// name comes from their own user ID, so an unconfigured or unreachable resolver must not
     /// take away the ability to find someone on your own server, which is the common case and
     /// the bug this whole path exists to fix. The roster only ever adds the other servers.
-    private func federatedProfiles(matching searchQuery: String) async -> [UserProfileProxy] {
+    private func federatedProfiles(matching searchQuery: String) async -> [UserProfile] {
         guard let handle = FederatedUserSearch.bareHandle(from: searchQuery) else {
             return []
         }
-
+        
         var candidates = ["@\(handle):\(ownServerName)"]
-
+        
         if let federationRosterProvider,
            let roster = await federationRosterProvider.currentRoster() {
             candidates += FederatedUserSearch.candidates(forHandle: handle,
@@ -93,19 +94,19 @@ final class UserDiscoveryService: UserDiscoveryServiceProtocol {
                                                          ownServerName: ownServerName)
                 .filter { $0 != candidates[0] }
         }
-
+        
         guard !candidates.isEmpty else {
             return []
         }
-
-        return await withTaskGroup(of: (Int, UserProfileProxy?).self) { group in
+        
+        return await withTaskGroup(of: (Int, UserProfile?).self) { group in
             for (index, userID) in candidates.enumerated() {
                 group.addTask {
                     await (index, self.federatedProfile(for: userID))
                 }
             }
-
-            var profiles = [(index: Int, profile: UserProfileProxy)]()
+            
+            var profiles = [(index: Int, profile: UserProfile)]()
             for await (index, profile) in group {
                 if let profile {
                     profiles.append((index, profile))
@@ -114,12 +115,12 @@ final class UserDiscoveryService: UserDiscoveryServiceProtocol {
             return profiles.sorted { $0.index < $1.index }.map(\.profile)
         }
     }
-
+    
     /// Resolves one federated candidate through the same profile lookup used when a full
     /// `@user:server` address is typed. Failures (unknown user, unreachable server) and lookups
     /// exceeding the timeout are dropped silently, so one slow server can't stall the search.
-    private func federatedProfile(for userID: String) async -> UserProfileProxy? {
-        await withTaskGroup(of: UserProfileProxy?.self) { group in
+    private func federatedProfile(for userID: String) async -> UserProfile? {
+        await withTaskGroup(of: UserProfile?.self) { group in
             group.addTask {
                 try? await self.clientProxy.profile(for: userID).get()
             }
@@ -127,22 +128,22 @@ final class UserDiscoveryService: UserDiscoveryServiceProtocol {
                 try? await Task.sleep(for: self.federatedLookupTimeout)
                 return nil
             }
-
+            
             let profile = await group.next() ?? nil
             group.cancelAll()
             return profile
         }
     }
-
+    
     /// Local results first, then the federated exact matches that aren't already present.
-    private func appendFederated(_ federatedProfiles: [UserProfileProxy], to users: [UserProfileProxy]) -> [UserProfileProxy] {
+    private func appendFederated(_ federatedProfiles: [UserProfile], to users: [UserProfile]) -> [UserProfile] {
         guard !federatedProfiles.isEmpty else {
             return users
         }
-        let knownUserIDs = Set(users.map(\.userID))
-        return users + federatedProfiles.filter { !knownUserIDs.contains($0.userID) }
+        let knownUserIDs = Set(users.map(\.id))
+        return users + federatedProfiles.filter { !knownUserIDs.contains($0.id) }
     }
-
+    
     /// The homeserver part of the signed-in user's ID (`@user:server` → `server`).
     private var ownServerName: String {
         let userID = clientProxy.userID

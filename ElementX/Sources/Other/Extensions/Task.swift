@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -9,6 +10,7 @@ import Combine
 import Foundation
 
 public extension Task where Success == Never, Failure == Never {
+    // periphery:ignore - might be useful to have
     /// Dispatches the given closure onto the given queue, wrapped within
     /// a continuation to make it non-blocking and awaitable.
     ///
@@ -28,7 +30,7 @@ public extension Task where Success == Never, Failure == Never {
             }
         }
     }
-
+    
     /// Dispatches the given throwing closure onto the given queue, wrapped within
     /// a continuation to make it non-blocking and awaitable.
     ///
@@ -58,7 +60,7 @@ extension Task {
     func store(in cancellables: inout Set<AnyCancellable>) {
         asCancellable().store(in: &cancellables)
     }
-
+    
     func asCancellable() -> AnyCancellable {
         AnyCancellable(cancel)
     }

@@ -2,20 +2,22 @@
 
 source ci_common.sh
 
-setup_xcode_cloud_environment
+# Move to the project root
+cd ..
 
 # Xcode Cloud shallow clones the repo. We need to deepen it to fetch tags, commit history and be able to rebase main on develop at the end of releases.
 fetch_unshallow_repository
 
 # Upload dsyms no matter the workflow
 # Perform this step before releasing to github in case it fails.
-bundle exec fastlane upload_dsyms_to_sentry dsym_path:"$CI_ARCHIVE_PATH/dSYMs"
+swift run -q tools ci upload-dsyms --dsym-path "$CI_ARCHIVE_PATH/dSYMs"
+# Rust panics are reported to their own project and need the dSYMs there to be symbolicated.
+swift run -q tools ci upload-dsyms --dsym-path "$CI_ARCHIVE_PATH/dSYMs" --project-slug matrix-rust-sdk
 
 generate_what_to_test_notes
 
 if [ "$CI_WORKFLOW" = "Release" ]; then
-    bundle exec fastlane release_to_github
-    bundle exec fastlane prepare_next_release
+    swift run -q tools ci release-to-github
 elif [ "$CI_WORKFLOW" = "Nightly" ]; then
-    bundle exec fastlane tag_nightly build_number:"$CI_BUILD_NUMBER"
+    swift run -q tools ci tag-nightly --build-number "$CI_BUILD_NUMBER"
 fi

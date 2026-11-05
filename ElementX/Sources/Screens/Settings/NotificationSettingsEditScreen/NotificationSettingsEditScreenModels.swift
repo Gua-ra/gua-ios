@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -11,7 +12,7 @@ enum NotificationSettingsEditScreenViewModelAction {
     case requestRoomNotificationSettingsPresentation(roomID: String)
 }
 
-enum NotificationSettingsEditScreenDefaultMode {
+nonisolated enum NotificationSettingsEditScreenDefaultMode {
     case allMessages
     case mentionsAndKeywordsOnly
 }
@@ -24,7 +25,7 @@ struct NotificationSettingsEditScreenViewState: BindableState {
     var pendingMode: NotificationSettingsEditScreenDefaultMode?
     var roomsWithUserDefinedMode: [NotificationSettingsEditScreenRoom] = []
     var canPushEncryptedEvents = false
-
+    
     func isSelected(mode: NotificationSettingsEditScreenDefaultMode) -> Bool {
         pendingMode == nil && defaultMode == mode
     }
@@ -100,7 +101,7 @@ struct NotificationSettingsEditScreenRoom: Identifiable, Equatable {
     let roomId: String?
     
     var name = ""
-        
+    
     var avatar: RoomAvatar
     
     var notificationMode: RoomNotificationModeProxy?

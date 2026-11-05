@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -9,7 +10,7 @@ import Combine
 import Foundation
 import UIKit
 
-struct BugReport: Equatable {
+nonisolated struct BugReport: Equatable {
     let userID: String?
     let deviceID: String?
     let ed25519: String?
@@ -49,9 +50,8 @@ enum BugReportServiceError: LocalizedError {
 // sourcery: AutoMockable
 protocol BugReportServiceProtocol: AnyObject {
     var isEnabled: Bool { get }
-    var crashedLastRun: Bool { get }
     
-    var lastCrashEventID: String? { get set }
+    var lastCrashEventIDSubject: CurrentValueSubject<String?, Never> { get }
     
     func submitBugReport(_ bugReport: BugReport,
                          progressListener: CurrentValueSubject<Double, Never>) async -> Result<SubmitBugReportResponse, BugReportServiceError>

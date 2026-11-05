@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -13,14 +14,22 @@ struct ImageMediaEventsTimelineView: View {
     let timelineItem: ImageRoomTimelineItem
     
     var body: some View {
-        Color.clear // Let the image aspect fill in place
-            .aspectRatio(1, contentMode: .fill)
-            .overlay {
-                loadableImage
-            }
-            .clipped()
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(L10n.commonImage)
+        ContentScanningView(contentScannerService: context?.contentScannerService,
+                            mediaSource: timelineItem.content.imageInfo.source,
+                            thumbnailSource: timelineItem.content.thumbnailInfo?.source) {
+            Color.clear // Let the image aspect fill in place
+                .aspectRatio(1, contentMode: .fill)
+                .overlay {
+                    loadableImage
+                }
+                .clipped()
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(L10n.commonImage)
+        } scanningContent: {
+            ScanningMediaEventsTimelineView()
+        } unsafeContent: { failure in
+            UnsafeMediaEventsTimelineView(failure: failure)
+        }
     }
     
     @ViewBuilder
@@ -45,7 +54,7 @@ struct ImageMediaEventsTimelineView: View {
             .mediaGalleryTimelineAspectRatio(imageInfo: timelineItem.content.thumbnailInfo ?? timelineItem.content.imageInfo)
         }
     }
-        
+    
     private var placeholder: some View {
         Rectangle()
             .foregroundColor(.compound.bgSubtleSecondary)
@@ -56,6 +65,9 @@ struct ImageMediaEventsTimelineView: View {
 struct ImageMediaEventsTimelineView_Previews: PreviewProvider, TestablePreview {
     static let viewModel = TimelineViewModel.mock
     
+    static let scanningViewModel = TimelineViewModel.mock(contentScannerService: ContentScannerServiceMock(.init(scanResult: nil)))
+    static let unsafeViewModel = TimelineViewModel.mock(contentScannerService: ContentScannerServiceMock(.init(scanResult: false)))
+    
     static var previews: some View {
         ImageMediaEventsTimelineView(timelineItem: makeTimelineItem())
             .frame(width: 100, height: 100)
@@ -63,6 +75,20 @@ struct ImageMediaEventsTimelineView_Previews: PreviewProvider, TestablePreview {
             .environment(\.timelineContext, viewModel.context)
             .previewLayout(.sizeThatFits)
             .background(.black)
+        
+        HStack(spacing: 16) {
+            ImageMediaEventsTimelineView(timelineItem: makeTimelineItem())
+                .frame(width: 100, height: 100)
+                .environmentObject(scanningViewModel.context)
+                .environment(\.timelineContext, scanningViewModel.context)
+            
+            ImageMediaEventsTimelineView(timelineItem: makeTimelineItem())
+                .frame(width: 100, height: 100)
+                .environmentObject(unsafeViewModel.context)
+                .environment(\.timelineContext, unsafeViewModel.context)
+        }
+        .previewLayout(.sizeThatFits)
+        .previewDisplayName("Content Scanner")
     }
     
     private static func makeTimelineItem() -> ImageRoomTimelineItem {

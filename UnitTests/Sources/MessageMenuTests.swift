@@ -10,10 +10,6 @@ import XCTest
 
 @MainActor
 class MessageMenuTests: XCTestCase {
-    override func setUp() {
-        AppSettings.resetAllSettings()
-    }
-
     // MARK: - Quick reactions
 
     func testQuickReactionsStartWithTheGuaSet() throws {
@@ -43,7 +39,7 @@ class MessageMenuTests: XCTestCase {
         let actions = try XCTUnwrap(makeActions(for: item))
         let sections = MessageMenuSections(actions: actions.actions + actions.secondaryActions)
 
-        XCTAssertEqual(sections.primary, [.reply(isThread: false), .copy, .select, .forward(itemID: item.id)])
+        XCTAssertEqual(sections.primary, [.reply(isThread: false), .copy, .select, .translate, .forward(itemID: item.id)])
         XCTAssertEqual(sections.more, [.pin, .copyPermalink, .report])
         XCTAssertEqual(sections.destructive, [])
     }
@@ -53,13 +49,13 @@ class MessageMenuTests: XCTestCase {
         let actions = try XCTUnwrap(makeActions(for: item))
         let sections = MessageMenuSections(actions: actions.actions + actions.secondaryActions)
 
-        XCTAssertEqual(sections.primary, [.reply(isThread: false), .copy, .select, .edit, .forward(itemID: item.id)])
+        XCTAssertEqual(sections.primary, [.reply(isThread: false), .copy, .select, .translate, .edit, .forward(itemID: item.id)])
         XCTAssertEqual(sections.more, [.pin, .copyPermalink])
-        XCTAssertEqual(sections.destructive, [.redact])
+        XCTAssertEqual(sections.destructive, [.redact(isMedia: false)])
     }
 
     func testMediaWithCaptionHasNoSelect() throws {
-        let item = try XCTUnwrap(RoomTimelineItemFixtures.mediaChunk[5] as? EventBasedTimelineItemProtocol)
+        let item = try XCTUnwrap(TimelineFixtures.mediaChunk[5] as? EventBasedTimelineItemProtocol)
         let actions = try XCTUnwrap(makeActions(for: item))
         let sections = MessageMenuSections(actions: actions.actions + actions.secondaryActions)
 
@@ -68,7 +64,7 @@ class MessageMenuTests: XCTestCase {
         XCTAssertTrue(sections.primary.contains(.copyCaption))
         XCTAssertTrue(sections.primary.contains(.editCaption))
         XCTAssertEqual(sections.more.last, .removeCaption)
-        XCTAssertEqual(sections.destructive, [.redact])
+        XCTAssertEqual(sections.destructive, [.redact(isMedia: false)])
     }
 
     func testViewSourceAndThreadsGoUnderMore() throws {
@@ -80,10 +76,10 @@ class MessageMenuTests: XCTestCase {
 
     func testEveryActionHasAPlaceExceptReactions() {
         let itemID = TimelineItemIdentifier.randomEvent
-        let actions: [TimelineItemMenuAction] = [.copy, .copyCaption, .edit, .addCaption, .editCaption, .removeCaption, .editPoll,
-                                                 .copyPermalink, .redact, .reply(isThread: false), .replyInThread, .forward(itemID: itemID),
+        let actions: [TimelineItemMenuAction] = [.copy, .translate, .copyCaption, .edit, .addCaption, .editCaption, .removeCaption, .editPoll,
+                                                 .copyPermalink, .redact(isMedia: false), .reply(isThread: false), .replyInThread, .forward(itemID: itemID),
                                                  .viewSource, .report, .endPoll(pollStartID: "poll"), .pin, .unpin,
-                                                 .viewInRoomTimeline, .share, .save, .select]
+                                                 .viewInRoomTimeline, .downloadMedia, .select]
 
         XCTAssertTrue(actions.allSatisfy { $0.messageMenuPlacement != nil })
         XCTAssertNil(TimelineItemMenuAction.react.messageMenuPlacement)
@@ -236,8 +232,7 @@ class MessageMenuTests: XCTestCase {
                                             isEditable: false,
                                             canBeRepliedTo: false,
                                             sender: .init(id: "@camila:gua"))
-        ServiceLocator.shared.settings.viewSourceEnabled = false
-        let viewModel = makeViewModel(items: [item])
+        let viewModel = makeViewModel(items: [item], isViewSourceEnabled: false)
         
         viewModel.context.send(viewAction: .displayTimelineItemMenu(itemID: item.id, presentation: .reactionsAndActions(MessageMenuAnchor(frame: .zero))))
         try await Task.sleep(for: .milliseconds(300))
@@ -364,7 +359,6 @@ class MessageMenuTests: XCTestCase {
                                        canCurrentUserRedactOthers: false,
                                        canCurrentUserPin: true,
                                        pinnedEventIDs: [],
-                                       isDM: true,
                                        isViewSourceEnabled: isViewSourceEnabled,
                                        areThreadsEnabled: areThreadsEnabled,
                                        timelineKind: timelineKind,
@@ -372,19 +366,20 @@ class MessageMenuTests: XCTestCase {
             .makeActions()
     }
 
-    private func makeViewModel(items: [RoomTimelineItemProtocol]) -> TimelineViewModel {
-        let timelineController = MockTimelineController()
-        timelineController.timelineItems = items
+    private func makeViewModel(items: [RoomTimelineItemProtocol], isViewSourceEnabled: Bool? = nil) -> TimelineViewModel {
+        let userSettings = UserSettings.mock()
+        if let isViewSourceEnabled {
+            userSettings.app.viewSourceEnabled = isViewSourceEnabled
+        }
 
         return TimelineViewModel(roomProxy: JoinedRoomProxyMock(.init(name: "")),
-                                 timelineController: timelineController,
-                                 userSession: UserSessionMock(.init()),
+                                 timelineController: TimelineControllerMock(.init(timelineItems: items)),
+                                 userSession: UserSessionMock(.init(userSettings: userSettings)),
                                  mediaPlayerProvider: MediaPlayerProviderMock(),
-                                 userIndicatorController: UserIndicatorControllerMock.default,
-                                 appMediator: AppMediatorMock.default,
-                                 appSettings: ServiceLocator.shared.settings,
-                                 analyticsService: ServiceLocator.shared.analytics,
-                                 emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                 userIndicatorController: UserIndicatorControllerMock(),
+                                 appMediator: AppMediatorMock(.init()),
+                                 analyticsService: AnalyticsServiceMock(.init()),
+                                 emojiProvider: EmojiProvider(userSettings: userSettings),
                                  linkMetadataProvider: LinkMetadataProvider(),
                                  timelineControllerFactory: TimelineControllerFactoryMock(.init()))
     }

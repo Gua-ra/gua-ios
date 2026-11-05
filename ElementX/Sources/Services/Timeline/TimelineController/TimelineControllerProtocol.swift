@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -11,8 +12,9 @@ import SwiftUI
 
 enum TimelineControllerCallback {
     case updatedTimelineItems(timelineItems: [RoomTimelineItemProtocol], isSwitchingTimelines: Bool)
-    case paginationState(PaginationState)
+    case paginationState(TimelinePaginationState)
     case isLive(Bool)
+    case messageSentOrEdited
 }
 
 enum TimelineControllerAction {
@@ -24,7 +26,9 @@ enum TimelineControllerAction {
     }
     
     case displayMediaPreview(item: EventBasedMessageTimelineItemProtocol, timelineViewModel: TimelineViewModelKind)
-    case displayLocation(body: String, geoURI: GeoURI, description: String?)
+    case displayGalleryPreview(galleryItem: GalleryRoomTimelineItem, timelineViewModel: TimelineViewModelKind)
+    case displayLocation(StaticLocationData)
+    case displayLiveLocation(sender: TimelineItemSender, initialLiveLocationShare: LiveLocationShare)
     case none
 }
 
@@ -40,15 +44,17 @@ enum TimelineControllerError: Error {
 /// It, for example, permits switching from a live timeline to an event focused one, building view specific
 /// timeline items, grouping together state events, donating intents to the larger system etc.
 @MainActor
-protocol TimelineControllerProtocol {
-    var roomID: String { get }
+protocol TimelineControllerProtocol: Sendable {
     var timelineKind: TimelineKind { get }
+    
+    /// The gallery attachments this timeline includes, or `nil` when it isn't filtered.
+    var allowedGalleryItemTypes: [TimelineAllowedGalleryItemType]? { get }
     
     /// The currently known items, use only for setting up the intial state.
     var timelineItems: [RoomTimelineItemProtocol] { get }
     
     /// The current pagination state, use only for setting up the intial state
-    var paginationState: PaginationState { get }
+    var paginationState: TimelinePaginationState { get }
     
     var callbacks: PassthroughSubject<TimelineControllerCallback, Never> { get }
     
@@ -77,8 +83,8 @@ protocol TimelineControllerProtocol {
     func removeCaption(_ eventOrTransactionID: TimelineItemIdentifier.EventOrTransactionID) async
     
     func toggleReaction(_ reaction: String, to eventOrTransactionID: TimelineItemIdentifier.EventOrTransactionID) async
-
-    func redact(_ eventOrTransactionID: TimelineItemIdentifier.EventOrTransactionID) async
+    
+    func redact(_ eventOrTransactionID: TimelineItemIdentifier.EventOrTransactionID, reason: String?) async
     
     func pin(eventID: String) async
     
@@ -89,6 +95,12 @@ protocol TimelineControllerProtocol {
     func debugInfo(for itemID: TimelineItemIdentifier) -> TimelineItemDebugInfo
     
     func sendHandle(for itemID: TimelineItemIdentifier) -> SendHandleProxy?
+    
+    func pendingSendTarget(for itemID: TimelineItemIdentifier) -> SendTarget?
+    
+    func retrySend(_ itemID: TimelineItemIdentifier, target: SendTarget) async
+    
+    func abortSend(_ itemID: TimelineItemIdentifier, target: SendTarget) async
     
     func eventTimestamp(for itemID: TimelineItemIdentifier) -> Date?
     
@@ -129,19 +141,27 @@ protocol TimelineControllerProtocol {
     
     func sendVoiceMessage(url: URL,
                           audioInfo: AudioInfo,
-                          waveform: [UInt16],
+                          waveform: [Float],
                           requestHandle: @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineControllerError>
+    
+    func sendGallery(itemInfos: [GalleryItemInfo],
+                     caption: String?,
+                     inReplyToEventID: String?) async -> Result<Void, TimelineControllerError>
     
     // MARK: - Poll
     
-    func createPoll(question: String, answers: [String], pollKind: Poll.Kind) async -> Result<Void, TimelineControllerError>
+    func createPoll(question: String, answers: [String], maxSelections: Int, pollKind: Poll.Kind) async -> Result<Void, TimelineControllerError>
     
     func editPoll(original eventID: String,
                   question: String,
                   answers: [String],
+                  maxSelections: Int,
                   pollKind: Poll.Kind) async -> Result<Void, TimelineControllerError>
     
     func sendPollResponse(pollStartID: String, answers: [String]) async -> Result<Void, TimelineControllerError>
     
     func endPoll(pollStartID: String, text: String) async -> Result<Void, TimelineControllerError>
 }
+
+// sourcery: AutoMockable
+extension TimelineControllerProtocol { }

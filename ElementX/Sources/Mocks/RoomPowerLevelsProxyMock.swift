@@ -1,32 +1,33 @@
 //
+// Copyright 2025 Element Creations Ltd.
 // Copyright 2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import MatrixRustSDK
 
-struct RoomPowerLevelsProxyMockConfiguration {
-    var canUserSendMessage = true
-    var canUserSendState = false
-    var canUserInvite = true
-    var canUserRedactOther = false
-    var canUserRedactOwn = true
-    var canUserKick = false
-    var canUserBan = false
-    var canUserTriggerRoomNotification = false
-    var canUserPin = true
-    var canUserJoinCall = true
-    var canUserEditRoomsAndPermissions = true
-}
-
-extension RoomPowerLevelsProxyMock {
-    convenience init(configuration: RoomPowerLevelsProxyMockConfiguration) {
+@MainActor extension RoomPowerLevelsProxyMock {
+    struct Configuration {
+        var canUserSendMessage = true
+        var canUserSendState = false
+        var canUserInvite = true
+        var canUserRedactOther = false
+        var canUserRedactOwn = true
+        var canUserKick = false
+        var canUserBan = false
+        var canUserTriggerRoomNotification = false
+        var canUserPin = true
+        var canUserJoinCall = true
+        var canUserEditRoomsAndPermissions = true
+    }
+    
+    convenience init(_ configuration: Configuration) {
         self.init()
         
-        underlyingValues = RoomPowerLevelsValues.mock
-                
+        values = RoomPowerLevelsValues.mock
+        
         canOwnUserSendMessageReturnValue = configuration.canUserSendMessage
         canOwnUserSendStateEventReturnValue = configuration.canUserSendState
         canOwnUserInviteReturnValue = configuration.canUserInvite
@@ -38,17 +39,6 @@ extension RoomPowerLevelsProxyMock {
         canOwnUserPinOrUnpinReturnValue = configuration.canUserPin
         canOwnUserJoinCallReturnValue = configuration.canUserJoinCall
         canOwnUserEditRolesAndPermissionsReturnValue = configuration.canUserEditRoomsAndPermissions
-        
-        canUserUserIDSendMessageReturnValue = .success(configuration.canUserSendMessage)
-        canUserUserIDSendStateEventReturnValue = .success(configuration.canUserSendState)
-        canUserInviteUserIDReturnValue = .success(configuration.canUserInvite)
-        canUserRedactOtherUserIDReturnValue = .success(configuration.canUserRedactOther)
-        canUserRedactOwnUserIDReturnValue = .success(configuration.canUserRedactOwn)
-        canUserKickUserIDReturnValue = .success(configuration.canUserKick)
-        canUserBanUserIDReturnValue = .success(configuration.canUserBan)
-        canUserTriggerRoomNotificationUserIDReturnValue = .success(configuration.canUserTriggerRoomNotification)
-        canUserPinOrUnpinUserIDReturnValue = .success(configuration.canUserPin)
-        canUserJoinCallUserIDReturnValue = .success(configuration.canUserJoinCall)
     }
 }
 

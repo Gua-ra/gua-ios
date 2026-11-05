@@ -43,6 +43,11 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: ${BASE_BUNDLE_IDENTIFIER}.preview.tests
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/$(APP_NAME).app/$(APP_NAME)"
         BUNDLE_LOADER: "$(TEST_HOST)"
+        # Requires iOS 26 as the generated tests reference previews gated to the Observations-based observe(_:).
+        IPHONEOS_DEPLOYMENT_TARGET: '26.0'
+        SWIFT_VERSION: 6
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
       debug:
       release:
 
@@ -51,4 +56,4 @@ targets:
       excludes:
         - "**/__Snapshots__/**"
     - path: ../SupportingFiles
-    - path: ../../ElementX/Sources/Other/Extensions/XCTestCase.swift
+    - path: ../../UnitTests/Sources/TestUtilities/DeferredFulfillment.swift

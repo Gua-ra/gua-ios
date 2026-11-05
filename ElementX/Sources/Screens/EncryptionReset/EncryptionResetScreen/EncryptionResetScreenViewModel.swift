@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -22,7 +23,7 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
 
     private var identityResetHandle: IdentityResetHandle?
     private var passwordCancellable: AnyCancellable?
-    private var oidcCancellable: AnyCancellable?
+    private var oAuthCancellable: AnyCancellable?
     /// GUA FORK: true while an upload is in flight, so a second one can never start on the same
     /// handle. Each reset deletes the key backup and secret storage again, so a concurrent call is
     /// destructive, not just noisy.
@@ -128,18 +129,18 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
             IdentityResetPendingStore.markPending(for: clientProxy.userID)
 
             switch handle.authType() {
-            case .uiaa:
+            case .uiaa(let info):
                 let passwordPublisher = PassthroughSubject<String, Never>()
                 passwordCancellable = passwordPublisher.sink { [weak self] password in
                     guard let self else { return }
                     passwordCancellable = nil
-                    Task { await self.resetWith(password: password) }
+                    Task { await self.resetWith(password: password, session: info.session) }
                 }
 
                 actionsSubject.send(.requestPassword(passwordPublisher: passwordPublisher))
-            case let .oAuth(oidcInfo):
-                guard let url = URL(string: oidcInfo.approvalUrl) else {
-                    fatalError("Invalid URL received through identity reset handle: \(oidcInfo.approvalUrl)")
+            case .oAuth(let oAuthInfo):
+                guard let url = URL(string: oAuthInfo.approvalUrl) else {
+                    fatalError("Invalid URL received through identity reset handle: \(oAuthInfo.approvalUrl)")
                 }
 
                 hideLoadingIndicator()
@@ -148,7 +149,7 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
                 // system browser's cookies, which may belong to another account.
                 showFinishingIndicator()
                 if let accessToken = clientProxy.accessToken, await approveReset(url, accessToken) {
-                    await finishApprovedReset()
+                    await finishApprovedReset(session: oAuthInfo.session)
                     return
                 }
                 hideFinishingIndicator()
@@ -156,14 +157,14 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
                 // Older servers: fall back to the web sheet. Nothing runs while it is open. The
                 // approval page hands control back to the app once the user has approved, and
                 // that is the moment to upload. The sheet closing by hand means no approval.
-                let outcomePublisher = PassthroughSubject<OIDCAccountSettingsPresenter.Outcome, Never>()
-                oidcCancellable = outcomePublisher.sink { [weak self] outcome in
+                let outcomePublisher = PassthroughSubject<OAuthAccountSettingsPresenter.Outcome, Never>()
+                oAuthCancellable = outcomePublisher.sink { [weak self] outcome in
                     guard let self else { return }
-                    oidcCancellable = nil
-                    Task { await self.handleApprovalSheet(outcome: outcome) }
+                    oAuthCancellable = nil
+                    Task { await self.handleApprovalSheet(outcome: outcome, session: oAuthInfo.session) }
                 }
 
-                actionsSubject.send(.requestOIDCAuthorisation(url: url, completionPublisher: outcomePublisher))
+                actionsSubject.send(.requestOAuthAuthorisation(url: url, completionPublisher: outcomePublisher))
             }
         case let .failure(error):
             MXLog.error("Failed resetting encryption with error \(error)")
@@ -173,13 +174,13 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
         }
     }
 
-    func resetWith(password: String) async {
+    func resetWith(password: String, session: String) async {
         guard let identityResetHandle, let resetGuard else {
             fatalError("Requested reset flow continuation without a stored handle")
         }
 
         let operation = resetGuard.runReset(identityResetHandle,
-                                            auth: .password(passwordDetails: .init(identifier: clientProxy.userID, password: password)))
+                                            auth: .password(passwordDetails: .init(identifier: clientProxy.userID, password: password, session: session)))
         self.identityResetHandle = nil
         await awaitReset(operation)
     }
@@ -219,7 +220,7 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
 
     // MARK: Approval sheet outcome
 
-    private func handleApprovalSheet(outcome: OIDCAccountSettingsPresenter.Outcome) async {
+    private func handleApprovalSheet(outcome: OAuthAccountSettingsPresenter.Outcome, session: String) async {
         switch outcome {
         case .dismissed:
             // Closed without approving. Nothing to upload, so nothing to wait for: say so, and
@@ -229,20 +230,20 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
             await abandonAttempt()
             userIndicatorController.submitIndicator(UserIndicator(title: UntranslatedL10n.guaEncryptionResetNotApproved))
         case .returned:
-            await finishApprovedReset()
+            await finishApprovedReset(session: session)
         }
     }
 
-    private func finishApprovedReset() async {
+    private func finishApprovedReset(session: String) async {
         guard let identityResetHandle, let resetGuard, !isResetInFlight else { return }
 
         isResetInFlight = true
         defer { isResetInFlight = false }
 
-        let operation = resetGuard.runReset(identityResetHandle, auth: nil)
+        let operation = resetGuard.runReset(identityResetHandle, auth: .oAuth(session: session))
         // Cleared so that nothing can cancel a call that has started.
         self.identityResetHandle = nil
-        actionsSubject.send(.dismissOIDCPresentation)
+        actionsSubject.send(.dismissOAuthPresentation)
 
         await awaitReset(operation)
     }
@@ -287,7 +288,7 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
     }
 
     private func abandonAttempt() async {
-        actionsSubject.send(.dismissOIDCPresentation)
+        actionsSubject.send(.dismissOAuthPresentation)
         if let identityResetHandle {
             await identityResetHandle.cancel()
         }

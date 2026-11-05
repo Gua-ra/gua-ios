@@ -30,7 +30,6 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
 
     override func setUp() async throws {
         OwnDevicesHTTPStub.reset()
-        AppSettings.resetSessionSpecificSettings()
         IdentityResetPendingStore.clear(for: userID)
 
         clock = NewSignInNudgeTestClock(now: start)
@@ -43,7 +42,7 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
         secureBackupController.sdkRecoveryStateReturnValue = .enabled
         clientProxy.secureBackupController = secureBackupController
 
-        appSettings = AppSettings()
+        appSettings = AppSettings.volatile()
         scheduler = ManualNewSignInNudgeScheduler()
         notificationCenter = NotificationCenter()
         history = NewSignInNudgeHistory()
@@ -65,8 +64,7 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
     override func tearDown() async throws {
         monitor?.stop()
         IdentityResetPendingStore.clear(for: userID)
-        appSettings?.setIdentityResetStartedAt(nil, forUserID: userID)
-        AppSettings.resetSessionSpecificSettings()
+        appSettings?.resetSessionSpecificSettings()
         OwnDevicesHTTPStub.reset()
     }
 
@@ -175,7 +173,7 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
         XCTAssertEqual(appSettings.dismissedSignInDeviceIDs(forUserID: userID), ["WEB", "WEB2"])
         XCTAssertEqual(appSettings.dismissedSignInDeviceIDs(forUserID: "@bob:gua.test"), [])
 
-        AppSettings.resetSessionSpecificSettings()
+        appSettings.resetSessionSpecificSettings()
 
         XCTAssertEqual(appSettings.dismissedSignInDeviceIDs(forUserID: userID), [])
     }

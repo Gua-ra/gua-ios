@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -20,7 +21,7 @@ enum UIConstants {
     
     /// The padding used to the top of the view for breaker screens that don't have a navigation bar.
     static let startScreenBreakerScreenTopPadding: CGFloat = 80
-
+    
     /// The height to use for top/bottom spacers to pad the views to fit the `maxContentHeight`.
     static func spacerHeight(in geometry: GeometryProxy) -> CGFloat {
         max(0, (geometry.size.height - maxContentHeight) / 2)

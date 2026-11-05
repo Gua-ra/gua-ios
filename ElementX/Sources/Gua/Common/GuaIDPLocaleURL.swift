@@ -7,7 +7,7 @@
 
 import Foundation
 
-extension URLComponents {
+nonisolated extension URLComponents {
     /// Why not `queryItems.append(...)`: assigning through `URLComponents.queryItems` re-serializes
     /// the whole query and, in doing so, decodes an already-encoded `%2B` back to a bare `+`. A
     /// bare `+` in a query value is `application/x-www-form-urlencoded` shorthand for a space, so
@@ -48,7 +48,7 @@ extension URLComponents {
     }
 }
 
-private extension CharacterSet {
+private nonisolated extension CharacterSet {
     /// Characters allowed unescaped in a single query-parameter **value** (RFC 3986 `query` minus the
     /// sub-delimiters that carry meaning inside a query string, plus `+` which a form-urlencoded
     /// parser would read as a space).

@@ -69,7 +69,6 @@ extension TimelineViewState {
                                        canCurrentUserRedactOthers: canCurrentUserRedactOthers,
                                        canCurrentUserPin: canCurrentUserPin,
                                        pinnedEventIDs: pinnedEventIDs,
-                                       isDM: isDirectOneToOneRoom,
                                        isViewSourceEnabled: isViewSourceEnabled,
                                        areThreadsEnabled: areThreadsEnabled,
                                        timelineKind: timelineKind,
@@ -130,10 +129,10 @@ extension TimelineItemMenuAction {
         case .reply: (.primary, 1)
         case .copy, .copyCaption: (.primary, 2)
         case .select: (.primary, 3)
-        case .edit, .editCaption, .addCaption, .editPoll: (.primary, 4)
-        case .forward: (.primary, 5)
-        case .share: (.primary, 6)
-        case .save: (.primary, 7)
+        case .translate: (.primary, 4)
+        case .edit, .editCaption, .addCaption, .editPoll: (.primary, 5)
+        case .forward: (.primary, 6)
+        case .downloadMedia: (.primary, 7)
         case .replyInThread: (.more, 0)
         case .pin, .unpin: (.more, 1)
         case .copyPermalink: (.more, 2)

@@ -56,7 +56,7 @@ class IdentityResetGuardTests: XCTestCase {
         let handle = IdentityResetHandleSDKMock()
         handle.resetAuthClosure = { _ in await signal.wait() }
 
-        let operation = guardUnderTest.runReset(handle, auth: nil)
+        let operation = guardUnderTest.runReset(handle, auth: .oAuth(session: "session"))
 
         try? await Task.sleep(for: .milliseconds(150))
         XCTAssertTrue(guardUnderTest.isHeld)
@@ -69,7 +69,7 @@ class IdentityResetGuardTests: XCTestCase {
         XCTAssertEqual(events, [])
 
         let second = IdentityResetHandleSDKMock()
-        _ = guardUnderTest.runReset(second, auth: nil)
+        _ = guardUnderTest.runReset(second, auth: .oAuth(session: "session"))
         XCTAssertEqual(second.resetAuthCallsCount, 0)
 
         signal.fire()
@@ -92,7 +92,7 @@ class IdentityResetGuardTests: XCTestCase {
         let handle = IdentityResetHandleSDKMock()
         handle.resetAuthThrowableError = SomeError()
 
-        let result = await guardUnderTest.runReset(handle, auth: nil).value
+        let result = await guardUnderTest.runReset(handle, auth: .oAuth(session: "session")).value
         try? await Task.sleep(for: .milliseconds(100))
 
         XCTAssertThrowsError(try result.get())

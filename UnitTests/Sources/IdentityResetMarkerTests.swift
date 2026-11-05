@@ -31,8 +31,7 @@ class IdentityResetMarkerTests: XCTestCase {
     }
 
     func testTheMarkerIsAccountSpecific() {
-        AppSettings.resetAllSettings()
-        let settings = AppSettings()
+        let settings = AppSettings.volatile()
         settings.setIdentityResetStartedAt(now, forUserID: "@one:example.org")
 
         XCTAssertEqual(settings.identityResetStartedAt(forUserID: "@one:example.org"), now)
@@ -40,6 +39,5 @@ class IdentityResetMarkerTests: XCTestCase {
 
         settings.setIdentityResetStartedAt(nil, forUserID: "@one:example.org")
         XCTAssertNil(settings.identityResetStartedAt(forUserID: "@one:example.org"))
-        AppSettings.resetAllSettings()
     }
 }

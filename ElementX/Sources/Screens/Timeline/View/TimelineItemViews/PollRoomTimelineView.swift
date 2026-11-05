@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -25,9 +26,9 @@ struct PollRoomTimelineView: View {
                      state: state,
                      sender: timelineItem.sender) { action in
                 switch action {
-                case .selectOption(let optionID):
-                    guard let eventID, let option = poll.options.first(where: { $0.id == optionID }), !option.isSelected else { return }
-                    context.send(viewAction: .handlePollAction(.selectOption(pollStartID: eventID, optionID: option.id)))
+                case .sendResponse(let answerIDs):
+                    guard let eventID else { return }
+                    context.send(viewAction: .handlePollAction(.sendResponse(pollStartID: eventID, answerIDs: answerIDs)))
                 case .edit:
                     guard let eventID else { return }
                     context.send(viewAction: .handlePollAction(.edit(pollStartID: eventID, poll: poll)))
@@ -53,24 +54,24 @@ struct PollRoomTimelineView: View {
 struct PollRoomTimelineView_Previews: PreviewProvider, TestablePreview {
     static let viewModel = TimelineViewModel.mock
     static let pinnedEventsTimelineViewModel = TimelineViewModel.mock(timelineKind: .pinned)
-
+    
     static var previews: some View {
         PollRoomTimelineView(timelineItem: .mock(poll: .disclosed(), isOutgoing: false))
             .environmentObject(viewModel.context)
             .previewDisplayName("Disclosed, Bubble")
-
+        
         PollRoomTimelineView(timelineItem: .mock(poll: .undisclosed(), isOutgoing: false))
             .environmentObject(viewModel.context)
             .previewDisplayName("Undisclosed, Bubble")
-
+        
         PollRoomTimelineView(timelineItem: .mock(poll: .endedDisclosed))
             .environmentObject(viewModel.context)
             .previewDisplayName("Ended, Disclosed, Bubble")
-
+        
         PollRoomTimelineView(timelineItem: .mock(poll: .endedUndisclosed))
             .environmentObject(viewModel.context)
             .previewDisplayName("Ended, Undisclosed, Bubble")
-
+        
         PollRoomTimelineView(timelineItem: .mock(poll: .disclosed(createdByAccountOwner: true)))
             .environmentObject(viewModel.context)
             .previewDisplayName("Creator, disclosed, Bubble")

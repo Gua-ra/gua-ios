@@ -21,6 +21,7 @@
   },
   "testTargets" : [
     {
+      "parallelizable" : false,
       "target" : {
         "containerPath" : "container:Gua.xcodeproj",
         "identifier" : "1DD4CE8EE9A055AF4B9B6C1F",

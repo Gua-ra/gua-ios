@@ -6,7 +6,7 @@
 
 import Foundation
 
-extension Bundle {
+nonisolated extension Bundle {
     /// The app's language: "pt-BR", "es", "fr" or "en". Servers get this instead of the device locale, whose
     /// `pt-CA` or `pt-PT` match no server template. The bundled `pt` copy of pt-BR reports "pt-BR".
     static var guaAppLanguage: String {

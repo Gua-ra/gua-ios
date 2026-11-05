@@ -1,11 +1,13 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 enum DocumentPickerAction {
     case selectedMediaAtURLs([URL])
@@ -15,19 +17,22 @@ enum DocumentPickerAction {
 
 struct DocumentPicker: UIViewControllerRepresentable {
     private let selectionType: MediaPickerScreenSelectionType
+    private let contentTypes: [UTType]
     private let userIndicatorController: UserIndicatorControllerProtocol
     private let callback: (DocumentPickerAction) -> Void
     
     init(selectionType: MediaPickerScreenSelectionType,
+         contentTypes: [UTType],
          userIndicatorController: UserIndicatorControllerProtocol,
          callback: @escaping (DocumentPickerAction) -> Void) {
         self.selectionType = selectionType
+        self.contentTypes = contentTypes
         self.userIndicatorController = userIndicatorController
         self.callback = callback
     }
-
+    
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        let documentPicker = UIDocumentPickerViewController(forOpeningContentTypes: [.data])
+        let documentPicker = UIDocumentPickerViewController(forOpeningContentTypes: contentTypes)
         documentPicker.delegate = context.coordinator
         
         documentPicker.allowsMultipleSelection = switch selectionType {
@@ -83,6 +88,11 @@ struct DocumentPicker: UIViewControllerRepresentable {
                 } catch {
                     documentPicker.callback(.error(error))
                 }
+            }
+            
+            guard !selectedURLs.isEmpty else {
+                // Every picked document failed to copy; each failure was already surfaced via .error.
+                return
             }
             
             documentPicker.callback(.selectedMediaAtURLs(selectedURLs))

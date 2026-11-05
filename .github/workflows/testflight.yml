@@ -304,7 +304,7 @@ jobs:
         # gua.global) are committed in GuaDeployment.swift, so a prod archive needs
         # no injected secrets at all.
         if: needs.gate.outputs.target == 'dev'
-        # The committed Secrets/Secrets.swift holds localhost placeholders, which only
+        # The committed Components/Secrets/Secrets.swift holds localhost placeholders, which only
         # resolve on the simulator (localhost == the Mac). A TestFlight build runs on
         # real devices, where localhost is the phone itself, so it MUST point at the
         # network-reachable HTTPS dev backend instead. The dev hostnames are non-public
@@ -328,8 +328,8 @@ jobs:
               *) echo "::error::'$u' must be an https:// URL (ATS blocks cleartext http on device)."; exit 1 ;;
             esac
           done
-          cat > Secrets/Secrets.swift <<EOF
-          enum Secrets {
+          cat > Components/Secrets/Secrets.swift <<EOF
+          nonisolated enum Secrets {
               static let sentryDSN: String? = nil
               static let sentryRustDSN: String? = nil
               static let postHogHost: String? = nil
@@ -353,7 +353,7 @@ jobs:
 
       - name: Generate Xcode project
         # The .xcodeproj is generated from project.yml. For a dev build the previous
-        # steps populated Secrets/Secrets.swift and applied the Dev variant; a prod
+        # steps populated Components/Secrets/Secrets.swift and applied the Dev variant; a prod
         # build generates straight from the committed spec.
         if: needs.gate.outputs.target != 'dev'
         run: xcodegen generate

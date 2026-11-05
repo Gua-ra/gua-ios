@@ -1,20 +1,37 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
-struct LocationRoomTimelineItemContent: Hashable {
+import MatrixRustSDK
+
+nonisolated struct LocationRoomTimelineItemContent: Hashable {
     let body: String
     let geoURI: GeoURI?
-    let description: String?
-
+    let kind: StaticLocationKind
+    
     init(body: String,
          geoURI: GeoURI? = nil,
-         description: String? = nil) {
+         kind: StaticLocationKind = .sender) {
         self.body = body
         self.geoURI = geoURI
-        self.description = description
+        self.kind = kind
+    }
+}
+
+nonisolated enum StaticLocationKind {
+    case sender
+    case pin
+    
+    init(from asset: AssetType?) {
+        switch asset {
+        case .pin:
+            self = .pin
+        default:
+            self = .sender
+        }
     }
 }

@@ -1,25 +1,40 @@
 //
+// Copyright 2025 Element Creations Ltd.
 // Copyright 2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Combine
 import Foundation
 import MatrixRustSDK
+import MatrixRustSDKMocks
+
+enum SpaceServiceProxyMockError: Error {
+    case generic
+}
 
 extension SpaceServiceProxyMock {
     struct Configuration {
-        var joinedSpaces: [SpaceRoomProxyProtocol] = []
+        var topLevelSpaces: [SpaceServiceRoom] = []
+        var spaceFilters: [SpaceServiceFilter] = []
+        var joinedParentSpaces: [SpaceServiceRoom] = []
+        var editableSpaces: [SpaceServiceRoom] = []
         var spaceRoomLists: [String: SpaceRoomListProxyMock] = [:]
+        var spaceRooms: [SpaceServiceRoom] = []
+        var leaveSpaceRooms: [LeaveSpaceRoom] = []
     }
     
     convenience init(_ configuration: Configuration) {
         self.init()
         
-        joinedSpacesPublisher = .init(configuration.joinedSpaces)
-        topLevelJoinedSpacesReturnValue = configuration.joinedSpaces
+        topLevelSpacesPublisher = .init(configuration.topLevelSpaces)
+        topLevelJoinedSpacesReturnValue = configuration.topLevelSpaces
+        spaceFilterPublisher = .init(configuration.spaceFilters)
+        
+        joinedParentsChildIDReturnValue = .success(configuration.joinedParentSpaces)
+        editableSpacesReturnValue = configuration.editableSpaces
         spaceRoomListSpaceIDClosure = { spaceID in
             if let spaceRoomList = configuration.spaceRoomLists[spaceID] {
                 .success(spaceRoomList)
@@ -27,18 +42,38 @@ extension SpaceServiceProxyMock {
                 .failure(.sdkError(ClientProxyMockError.generic))
             }
         }
+        
+        leaveSpaceSpaceIDClosure = { spaceID in
+            .success(LeaveSpaceHandleProxy(spaceID: spaceID,
+                                           leaveHandle: LeaveSpaceHandleSDKMock(.init(rooms: configuration.leaveSpaceRooms))))
+        }
+        spaceForIdentifierSpaceIDClosure = { spaceID in
+            let space = configuration.topLevelSpaces.first { $0.id == spaceID } ?? configuration.spaceRooms.first { $0.id == spaceID }
+            return .success(space)
+        }
+        addChildToReturnValue = .success(())
+        removeChildFromReturnValue = .success(())
     }
 }
 
 extension SpaceServiceProxyMock.Configuration {
     static var populated: SpaceServiceProxyMock.Configuration {
-        let spaceRoomLists = [SpaceRoomProxyProtocol].mockJoinedSpaces.map {
-            ($0.id, SpaceRoomListProxyMock(.init(spaceRoomProxy: $0, initialSpaceRooms: .mockSpaceList)))
-        }
-        let subSpaceRoomLists = [SpaceRoomProxyProtocol].mockSpaceList.map {
-            ($0.id, SpaceRoomListProxyMock(.init(spaceRoomProxy: $0, initialSpaceRooms: .mockSingleRoom)))
+        let spaceFilters = [SpaceServiceRoom].mockJoinedSpaces.reduce(into: [SpaceServiceFilter]()) { partialResult, spaceRoom in
+            partialResult.append(SpaceServiceFilter(room: spaceRoom, level: 0, descendants: .init()))
+            partialResult.append(SpaceServiceFilter(room: spaceRoom, level: 1, descendants: .init()))
         }
         
-        return .init(joinedSpaces: .mockJoinedSpaces, spaceRoomLists: .init(uniqueKeysWithValues: spaceRoomLists + subSpaceRoomLists))
+        let spaceRoomLists = [SpaceServiceRoom].mockJoinedSpaces.map {
+            ($0.id, SpaceRoomListProxyMock(.init(spaceServiceRoom: $0, initialSpaceRooms: .mockSpaceList)))
+        }
+        
+        let subSpaceRoomLists = [SpaceServiceRoom].mockSpaceList.map {
+            ($0.id, SpaceRoomListProxyMock(.init(spaceServiceRoom: $0, initialSpaceRooms: .mockSingleRoom)))
+        }
+        
+        return .init(topLevelSpaces: .mockJoinedSpaces,
+                     spaceFilters: spaceFilters,
+                     spaceRoomLists: .init(uniqueKeysWithValues: spaceRoomLists + subSpaceRoomLists),
+                     spaceRooms: .mockSpaceList)
     }
 }

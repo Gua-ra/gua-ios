@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -31,6 +32,7 @@ struct SuggestionItem: Identifiable, Equatable {
         let id: String
         let displayName: String?
         let avatarURL: URL?
+        var status = UserStatus()
     }
     
     struct Room: Equatable {
@@ -58,22 +60,31 @@ struct SuggestionItem: Identifiable, Equatable {
     var displayName: String {
         switch suggestionType {
         case .allUsers:
-            return PillUtilities.everyone
+            PillUtilities.everyone
         case .user(let user):
-            return user.displayName ?? user.id.guaDisplayHandle
+            user.displayName ?? user.id.guaDisplayHandle
         case .room(let room):
-            return room.name
+            room.name
+        }
+    }
+    
+    var statusEmoji: Character? {
+        switch suggestionType {
+        case .user(let user):
+            user.status.displayed?.emoji
+        case .allUsers, .room:
+            nil
         }
     }
     
     var subtitle: String? {
         switch suggestionType {
         case .allUsers:
-            return PillUtilities.atRoom
+            PillUtilities.atRoom
         case .user(let user):
-            return user.displayName == nil ? nil : user.id.guaDisplayHandle
+            user.displayName == nil ? nil : user.id.guaDisplayHandle
         case .room(let room):
-            return room.canonicalAlias
+            room.canonicalAlias
         }
     }
 }

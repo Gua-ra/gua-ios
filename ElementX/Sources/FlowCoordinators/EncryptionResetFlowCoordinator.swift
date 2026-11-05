@@ -1,7 +1,8 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -18,7 +19,7 @@ enum EncryptionResetFlowCoordinatorAction: Equatable {
 
 struct EncryptionResetFlowCoordinatorParameters {
     let userSession: UserSessionProtocol
-    let appSettings: AppSettings
+    let appMediator: AppMediatorProtocol
     let userIndicatorController: UserIndicatorControllerProtocol
     let navigationStackCoordinator: NavigationStackCoordinator
     let windowManger: WindowManagerProtocol
@@ -26,7 +27,7 @@ struct EncryptionResetFlowCoordinatorParameters {
 
 class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
     private let userSession: UserSessionProtocol
-    private let appSettings: AppSettings
+    private let appMediator: AppMediatorProtocol
     private let userIndicatorController: UserIndicatorControllerProtocol
     
     private let navigationStackCoordinator: NavigationStackCoordinator
@@ -61,7 +62,7 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
     
     init(parameters: EncryptionResetFlowCoordinatorParameters) {
         userSession = parameters.userSession
-        appSettings = parameters.appSettings
+        appMediator = parameters.appMediator
         userIndicatorController = parameters.userIndicatorController
         navigationStackCoordinator = parameters.navigationStackCoordinator
         windowManager = parameters.windowManger
@@ -70,7 +71,7 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
         configureStateMachine()
     }
     
-    func start() {
+    func start(animated: Bool) {
         stateMachine.tryEvent(.start)
     }
     
@@ -118,9 +119,9 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
             guard let self else { return }
             
             switch action {
-            case .requestOIDCAuthorisation(let url, let completionPublisher):
-                presentOIDCAuthorization(for: url, completionPublisher: completionPublisher)
-            case .dismissOIDCPresentation:
+            case .requestOAuthAuthorisation(let url, let completionPublisher):
+                presentOAuthAuthorization(for: url, completionPublisher: completionPublisher)
+            case .dismissOAuthPresentation:
                 accountSettingsPresenter?.dismiss()
                 accountSettingsPresenter = nil
             case .requestPassword(let passwordPublisher):
@@ -201,8 +202,7 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
 
         let parameters = SessionVerificationScreenCoordinatorParameters(sessionVerificationControllerProxy: sessionVerificationController,
                                                                         flow: .deviceInitiator,
-                                                                        appSettings: appSettings,
-                                                                        mediaProvider: userSession.mediaProvider)
+                                                                        userSession: userSession)
         let coordinator = SessionVerificationScreenCoordinator(parameters: parameters)
         coordinator.actions
             .sink { [weak self] action in
@@ -258,7 +258,7 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
         }
     }
 
-    private final class OnceGate: @unchecked Sendable {
+    private final nonisolated class OnceGate: @unchecked Sendable {
         private let lock = NSLock()
         private var resumed = false
 
@@ -276,11 +276,11 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
 
     private static let finishingIndicatorID = "\(EncryptionResetFlowCoordinator.self)-Finishing"
 
-    private var accountSettingsPresenter: OIDCAccountSettingsPresenter?
+    private var accountSettingsPresenter: OAuthAccountSettingsPresenter?
     /// GUA FORK: on approval MAS navigates to the scheme passed in `gua_return`, which dismisses the web session.
     /// MAS checks it against an allow-list and builds the URL itself.
     private func approvalURL(_ url: URL) -> URL {
-        guard let scheme = appSettings.oidcRedirectURL.scheme,
+        guard let scheme = userSession.userSettings.app.oAuthRedirectURL.scheme,
               var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
             return url
         }
@@ -300,16 +300,17 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
         return components.url ?? url
     }
 
-    private func presentOIDCAuthorization(for url: URL, completionPublisher: PassthroughSubject<OIDCAccountSettingsPresenter.Outcome, Never>) {
+    private func presentOAuthAuthorization(for url: URL, completionPublisher: PassthroughSubject<OAuthAccountSettingsPresenter.Outcome, Never>) {
         // Note to anyone in the future if you come back here to make this open in Safari instead of a WAS.
         // As of iOS 16, there is an issue on the simulator with accessing the cookie but it works on a device. 🤷‍♂️
-        let presenter = OIDCAccountSettingsPresenter(accountURL: approvalURL(url),
-                                                     presentationAnchor: windowManager.mainWindow,
-                                                     appSettings: appSettings)
+        let presenter = OAuthAccountSettingsPresenter(accountURL: approvalURL(url),
+                                                      presentationAnchor: windowManager.mainWindow,
+                                                      appMediator: appMediator,
+                                                      userSession: userSession)
         accountSettingsPresenter = presenter
         // The reset must only run after the approval sheet closes.
         Task { @MainActor in
-            let outcome = await presenter.start()
+            let outcome = await presenter.startAndWaitForOutcome()
             completionPublisher.send(outcome)
         }
     }

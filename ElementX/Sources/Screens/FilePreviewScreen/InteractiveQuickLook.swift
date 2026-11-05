@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -42,14 +43,14 @@ private struct MediaPreviewViewController: UIViewControllerRepresentable {
     let allowEditing: Bool
     let dismissalPublisher: PassthroughSubject<Void, Never>
     let onDismiss: () -> Void
-
+    
     func makeUIViewController(context: Context) -> PreviewHostingController {
         PreviewHostingController(previewItem: previewItem,
                                  allowEditing: allowEditing,
                                  dismissalPublisher: dismissalPublisher,
                                  onDismiss: onDismiss)
     }
-
+    
     func updateUIViewController(_ uiViewController: PreviewHostingController, context: Context) { }
     
     /// A view controller that hosts the QuickLook preview.
@@ -65,7 +66,7 @@ private struct MediaPreviewViewController: UIViewControllerRepresentable {
         private var dismissalObserver: AnyCancellable?
         
         var previewController: QLPreviewController?
-
+        
         init(previewItem: MediaPreviewItem,
              allowEditing: Bool,
              dismissalPublisher: PassthroughSubject<Void, Never>,
@@ -73,7 +74,7 @@ private struct MediaPreviewViewController: UIViewControllerRepresentable {
             self.previewItem = previewItem
             self.allowEditing = allowEditing
             self.onDismiss = onDismiss
-
+            
             super.init(nibName: nil, bundle: nil)
             
             // The QLPreviewController will not automatically dismiss itself when the underlying view is removed
@@ -82,6 +83,8 @@ private struct MediaPreviewViewController: UIViewControllerRepresentable {
             dismissalObserver = dismissalPublisher.sink { [weak self] _ in
                 // Dispatching on main.async with weak self we avoid doing an extra dismiss if the view is presented on top of another modal
                 DispatchQueue.main.async { [weak self] in
+                    // Only dismiss a preview we still have up, UIKit forwards dismiss() to an ancestor otherwise.
+                    guard self?.presentedViewController != nil else { return }
                     self?.dismiss(animated: true)
                 }
             }
@@ -127,7 +130,7 @@ private struct MediaPreviewViewController: UIViewControllerRepresentable {
         func numberOfPreviewItems(in controller: QLPreviewController) -> Int {
             1
         }
-
+        
         func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
             previewItem
         }
@@ -152,15 +155,25 @@ private struct MediaPreviewViewController: UIViewControllerRepresentable {
 class MediaPreviewItem: NSObject, QLPreviewItem {
     let file: MediaFileHandleProxy
     
-    var previewItemURL: URL? {
+    nonisolated var previewItemURL: URL? { // nonisolated as QuickLook can call from any thread (macOS 26).
         file.url
     }
-
-    let previewItemTitle: String?
-
+    
+    nonisolated let previewItemTitle: String? // nonisolated as QuickLook can call from any thread (macOS 26).
+    
     init(file: MediaFileHandleProxy, title: String?) {
         self.file = file
         previewItemTitle = title
+    }
+    
+    /// Loads the media at the given URL, guessing at a JPEG for callers such as avatars that don't know the real mime type.
+    static func load(from url: URL, title: String?, mimeType: String = "image/jpeg", using mediaProvider: MediaProviderProtocol) async -> MediaPreviewItem? {
+        guard let mediaSource = try? MediaSourceProxy(url: url, mimeType: mimeType),
+              case let .success(file) = await mediaProvider.loadFileFromSource(mediaSource) else {
+            return nil
+        }
+        
+        return MediaPreviewItem(file: file, title: title)
     }
 }
 

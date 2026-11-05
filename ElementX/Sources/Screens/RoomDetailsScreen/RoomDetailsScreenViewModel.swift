@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -13,12 +14,11 @@ typealias RoomDetailsScreenViewModelType = StateStoreViewModelV2<RoomDetailsScre
 class RoomDetailsScreenViewModel: RoomDetailsScreenViewModelType, RoomDetailsScreenViewModelProtocol {
     private let roomProxy: JoinedRoomProxyProtocol
     private let userSession: UserSessionProtocol
-    private let analyticsService: AnalyticsService
+    private let analyticsService: AnalyticsServiceProtocol
     private let userIndicatorController: UserIndicatorControllerProtocol
     private let notificationSettingsProxy: NotificationSettingsProxyProtocol
     private let attributedStringBuilder: AttributedStringBuilderProtocol
-    private let appSettings: AppSettings
-
+    
     private var pinnedEventsTimelineItemProvider: TimelineItemProviderProtocol? {
         didSet {
             guard let pinnedEventsTimelineItemProvider else {
@@ -45,34 +45,30 @@ class RoomDetailsScreenViewModel: RoomDetailsScreenViewModelType, RoomDetailsScr
     
     init(roomProxy: JoinedRoomProxyProtocol,
          userSession: UserSessionProtocol,
-         analyticsService: AnalyticsService,
+         analyticsService: AnalyticsServiceProtocol,
          userIndicatorController: UserIndicatorControllerProtocol,
          notificationSettingsProxy: NotificationSettingsProxyProtocol,
-         attributedStringBuilder: AttributedStringBuilderProtocol,
-         appSettings: AppSettings) {
+         attributedStringBuilder: AttributedStringBuilderProtocol) {
         self.roomProxy = roomProxy
         self.userSession = userSession
         self.analyticsService = analyticsService
         self.userIndicatorController = userIndicatorController
         self.notificationSettingsProxy = notificationSettingsProxy
         self.attributedStringBuilder = attributedStringBuilder
-        self.appSettings = appSettings
         
         let topic = attributedStringBuilder.fromPlain(roomProxy.infoPublisher.value.topic)
         
-        super.init(initialViewState: .init(details: roomProxy.details,
-                                           isEncrypted: roomProxy.infoPublisher.value.isEncrypted,
-                                           isDirect: roomProxy.infoPublisher.value.isDirect,
-                                           topic: topic,
-                                           topicSummary: topic?.unattributedStringByReplacingNewlinesWithSpaces(),
-                                           joinedMembersCount: roomProxy.infoPublisher.value.joinedMembersCount,
-                                           notificationSettingsState: .loading,
-                                           bindings: .init()),
+        let viewState = RoomDetailsScreenViewState(details: roomProxy.details,
+                                                   isEncrypted: roomProxy.infoPublisher.value.isEncrypted,
+                                                   isDirect: roomProxy.infoPublisher.value.isDirect,
+                                                   topic: topic,
+                                                   topicSummary: topic?.unattributedStringByReplacingNewlinesWithSpaces(),
+                                                   joinedMembersCount: roomProxy.infoPublisher.value.joinedMembersCount,
+                                                   notificationSettingsState: .loading,
+                                                   isNativeCallingEnabled: userSession.userSettings.app.nativeCallEnabled,
+                                                   bindings: .init())
+        super.init(initialViewState: userSession.userHooks.roomDetailsScreenHook.update(viewState),
                    mediaProvider: userSession.mediaProvider)
-        
-        appSettings.$knockingEnabled
-            .weakAssign(to: \.state.knockingEnabled, on: self)
-            .store(in: &cancellables)
         
         Task {
             state.reportRoomEnabled = await userSession.clientProxy.isReportRoomSupported
@@ -93,7 +89,7 @@ class RoomDetailsScreenViewModel: RoomDetailsScreenViewModelType, RoomDetailsScr
         }
         
         updateRoomInfo(roomProxy.infoPublisher.value)
-                
+        
         setupRoomSubscription()
         Task { await fetchMembersIfNeeded() }
         
@@ -113,7 +109,11 @@ class RoomDetailsScreenViewModel: RoomDetailsScreenViewModelType, RoomDetailsScr
         case .processTapPeople:
             actionsSubject.send(.requestMemberDetailsPresentation)
         case .processTapInvite:
-            actionsSubject.send(.requestInvitePeoplePresentation)
+            if let dmRecipient = state.dmRecipientInfo {
+                actionsSubject.send(.requestInviteToNewRoomPresentation(selectedInvitee: .init(member: dmRecipient.member)))
+            } else {
+                actionsSubject.send(.requestInvitePeoplePresentation)
+            }
         case .processTapLeave:
             processTapToLeave()
         case .confirmLeave:
@@ -144,8 +144,8 @@ class RoomDetailsScreenViewModel: RoomDetailsScreenViewModelType, RoomDetailsScr
             Task { await toggleFavourite(isFavourite) }
         case .processTapRolesAndPermissions:
             actionsSubject.send(.requestRolesAndPermissionsPresentation)
-        case .processTapCall:
-            actionsSubject.send(.startCall)
+        case .processTapCall(let isVoiceCall):
+            actionsSubject.send(.startCall(isVoiceCall: isVoiceCall))
         case .processTapPinnedEvents:
             analyticsService.trackInteraction(name: .PinnedMessageRoomInfoButton)
             actionsSubject.send(.displayPinnedEventsTimeline)
@@ -168,16 +168,21 @@ class RoomDetailsScreenViewModel: RoomDetailsScreenViewModelType, RoomDetailsScr
     // MARK: - Private
     
     private func processTapToLeave() {
+        guard !roomProxy.infoPublisher.value.isSpace else {
+            Task { await processLeaveSpace() }
+            return
+        }
+        
         guard state.joinedMembersCount > 1 else {
             state.bindings.leaveRoomAlertItem = LeaveRoomAlertItem(roomID: roomProxy.id,
-                                                                   isDM: roomProxy.isDirectOneToOneRoom,
+                                                                   isDM: roomProxy.infoPublisher.value.isDM,
                                                                    state: roomProxy.infoPublisher.value.isPrivate ?? true ? .empty : .public)
             return
         }
         
-        if !roomProxy.isDirectOneToOneRoom, state.accountOwner?.role.isOwner == true {
+        if !roomProxy.infoPublisher.value.isDM, state.accountOwner?.role.isOwner == true {
             var isLastOwner = true
-            for member in roomProxy.membersPublisher.value where member.userID != roomProxy.ownUserID {
+            for member in roomProxy.membersPublisher.value where member.userID != roomProxy.ownUserID && member.membership == .join {
                 if member.role.isOwner {
                     isLastOwner = false
                     break
@@ -197,8 +202,40 @@ class RoomDetailsScreenViewModel: RoomDetailsScreenViewModelType, RoomDetailsScr
         }
         
         state.bindings.leaveRoomAlertItem = LeaveRoomAlertItem(roomID: roomProxy.id,
-                                                               isDM: roomProxy.isDirectOneToOneRoom,
+                                                               isDM: roomProxy.infoPublisher.value.isDM,
                                                                state: roomProxy.infoPublisher.value.isPrivate ?? true ? .private : .public)
+    }
+    
+    private func processLeaveSpace() async {
+        switch await userSession.clientProxy.spaceService.leaveSpace(spaceID: roomProxy.id) {
+        case .success(let leaveHandle):
+            let leaveSpaceViewModel = LeaveSpaceViewModel(spaceName: state.details.name ?? state.details.id,
+                                                          canEditRolesAndPermissions: state.canEditRolesOrPermissions,
+                                                          leaveHandle: leaveHandle,
+                                                          userIndicatorController: userIndicatorController,
+                                                          mediaProvider: userSession.mediaProvider)
+            leaveSpaceViewModel.actions.sink { [weak self] action in
+                guard let self else { return }
+                switch action {
+                case .didCancel:
+                    state.bindings.leaveSpaceViewModel = nil
+                case .presentRolesAndPermissions:
+                    state.bindings.leaveSpaceViewModel = nil
+                    actionsSubject.send(.requestRolesAndPermissionsPresentation)
+                case .didLeaveSpace:
+                    state.bindings.leaveSpaceViewModel = nil
+                    actionsSubject.send(.leftRoom)
+                case .presentTransferOwnership:
+                    state.bindings.leaveSpaceViewModel = nil
+                    actionsSubject.send(.transferOwnership)
+                }
+            }
+            .store(in: &cancellables)
+            
+            state.bindings.leaveSpaceViewModel = leaveSpaceViewModel
+        case .failure:
+            userIndicatorController.submitIndicator(.init(title: L10n.errorUnknown))
+        }
     }
     
     private func setupRoomSubscription() {
@@ -236,6 +273,7 @@ class RoomDetailsScreenViewModel: RoomDetailsScreenViewModelType, RoomDetailsScr
         state.joinedMembersCount = roomInfo.joinedMembersCount
         
         state.details = roomProxy.details
+        state.details.historySharingState = roomInfo.historySharingState
         
         let topic = attributedStringBuilder.fromPlain(roomInfo.topic)
         state.topic = topic
@@ -257,6 +295,8 @@ class RoomDetailsScreenViewModel: RoomDetailsScreenViewModelType, RoomDetailsScr
             state.canBanUsers = powerLevels.canOwnUserBan()
             state.canJoinCall = powerLevels.canOwnUserJoinCall()
             state.canEditRolesOrPermissions = powerLevels.canOwnUserEditRolesAndPermissions()
+            state.canEditSecurityAndPrivacy = powerLevels.canOwnUserEditSecurityAndPrivacy(isSpace: roomInfo.isSpace,
+                                                                                           joinRule: roomInfo.joinRule)
         }
     }
     
@@ -270,7 +310,7 @@ class RoomDetailsScreenViewModel: RoomDetailsScreenViewModelType, RoomDetailsScr
                     self.state.accountOwner = .init(withProxy: accountOwner)
                 }
                 
-                guard roomProxy.isDirectOneToOneRoom else {
+                guard roomProxy.infoPublisher.value.isDM else {
                     return
                 }
                 
@@ -291,20 +331,18 @@ class RoomDetailsScreenViewModel: RoomDetailsScreenViewModelType, RoomDetailsScr
             return
         }
         
-        if roomProxy.isDirectOneToOneRoom {
-            if var dmRecipientInfo = state.dmRecipientInfo {
-                if case let .success(userIdentity) = await userSession.clientProxy.userIdentity(for: dmRecipientInfo.member.id) {
-                    dmRecipientInfo.verificationState = userIdentity?.verificationState
-                    state.dmRecipientInfo = dmRecipientInfo
-                }
+        if roomProxy.infoPublisher.value.isDM {
+            if var dmRecipientInfo = state.dmRecipientInfo,
+               case let .success(userIdentity) = await userSession.clientProxy.userIdentity(for: dmRecipientInfo.member.id, fallBackToServer: true) {
+                dmRecipientInfo.verificationState = userIdentity?.verificationState
+                state.dmRecipientInfo = dmRecipientInfo
             }
         } else {
             for member in roomProxy.membersPublisher.value {
-                if case let .success(userIdentity) = await userSession.clientProxy.userIdentity(for: member.userID) {
-                    if userIdentity?.verificationState == .verificationViolation {
-                        state.hasMemberIdentityVerificationStateViolations = true
-                        return
-                    }
+                if case let .success(userIdentity) = await userSession.clientProxy.userIdentity(for: member.userID, fallBackToServer: false),
+                   userIdentity?.verificationState == .verificationViolation {
+                    state.hasMemberIdentityVerificationStateViolations = true
+                    return
                 }
             }
             
@@ -380,9 +418,9 @@ class RoomDetailsScreenViewModel: RoomDetailsScreenViewModelType, RoomDetailsScr
             analyticsService.trackInteraction(name: .MobileRoomFavouriteToggle)
         }
     }
-
+    
     private static let leaveRoomLoadingID = "LeaveRoomLoading"
-
+    
     private func leaveRoom() async {
         userIndicatorController.submitIndicator(UserIndicator(id: Self.leaveRoomLoadingID, type: .modal, title: L10n.commonLeavingRoom, persistent: true))
         let result = await roomProxy.leaveRoom()
@@ -394,7 +432,7 @@ class RoomDetailsScreenViewModel: RoomDetailsScreenViewModelType, RoomDetailsScr
             actionsSubject.send(.leftRoom)
         }
     }
-
+    
     private func ignore() async {
         guard let dmUserID = state.dmRecipientInfo?.member.id else {
             MXLog.error("Attempting to ignore a nil DM Recipient")
@@ -415,7 +453,7 @@ class RoomDetailsScreenViewModel: RoomDetailsScreenViewModelType, RoomDetailsScr
             state.bindings.alertInfo = .init(id: .unknown)
         }
     }
-
+    
     private func unignore() async {
         guard let dmUserID = state.dmRecipientInfo?.member.id else {
             MXLog.error("Attempting to unignore a nil DM Recipient")
@@ -446,11 +484,7 @@ class RoomDetailsScreenViewModel: RoomDetailsScreenViewModelType, RoomDetailsScr
                 userIndicatorController.retractIndicatorWithId(loadingIndicatorIdentifier)
             }
             
-            // We don't actually know the mime type here, assume it's an image.
-            if let mediaSource = try? MediaSourceProxy(url: url, mimeType: "image/jpeg"),
-               case let .success(file) = await userSession.mediaProvider.loadFileFromSource(mediaSource) {
-                state.bindings.mediaPreviewItem = MediaPreviewItem(file: file, title: roomProxy.infoPublisher.value.displayName)
-            }
+            state.bindings.mediaPreviewItem = await MediaPreviewItem.load(from: url, title: roomProxy.infoPublisher.value.displayName, using: userSession.mediaProvider)
         }
     }
     

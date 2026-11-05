@@ -1,5 +1,6 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
@@ -8,35 +9,36 @@
 import Foundation
 
 enum UserDetailsEditScreenViewModelAction {
+    case dismiss
     case displayCameraPicker
     case displayMediaPicker
     case displayFilePicker
 }
 
 struct UserDetailsEditScreenViewState: BindableState {
-    let userID: String
-
-    /// GUA FORK: The bare localpart (e.g. "alice") of `userID`, hiding the
+    var currentUserProfile: UserProfile
+    
+    /// GUA FORK: The bare localpart (e.g. "alice") of the user ID, hiding the
     /// "@" prefix and ":homeserver" suffix for Gua's frictionless design.
     var userLocalpart: String {
-        userID.hasPrefix("@") ? String(userID.dropFirst().prefix { $0 != ":" }) : userID
+        let userID = currentUserProfile.id
+        return userID.hasPrefix("@") ? String(userID.dropFirst().prefix { $0 != ":" }) : userID
     }
-
-    var currentAvatarURL: URL?
+    
+    var canEditAvatar = true
+    var canEditDisplayName = true
+    
     var selectedAvatarURL: URL?
-    
-    var currentDisplayName: String?
-    
     var localMedia: MediaInfo?
     
     var bindings: UserDetailsEditScreenViewStateBindings
     
     var nameDidChange: Bool {
-        bindings.name != currentDisplayName
+        bindings.name != currentUserProfile.displayName
     }
-      
+    
     var avatarDidChange: Bool {
-        localMedia != nil || selectedAvatarURL != currentAvatarURL
+        localMedia != nil || selectedAvatarURL != currentUserProfile.avatarURL
     }
     
     var canSave: Bool {
@@ -51,12 +53,23 @@ struct UserDetailsEditScreenViewState: BindableState {
 struct UserDetailsEditScreenViewStateBindings {
     var name = ""
     var showMediaSheet = false
+    
+    var alertInfo: AlertInfo<UserDetailsEditScreenAlertType>?
+}
+
+enum UserDetailsEditScreenAlertType {
+    case failedProcessingMedia
+    case unsavedChanges
+    case saveError
+    case unknown
 }
 
 enum UserDetailsEditScreenViewAction {
+    case cancel
     case save
     case presentMediaSource
     case displayCameraPicker
     case displayMediaPicker
+    case displayFilePicker
     case removeImage
 }

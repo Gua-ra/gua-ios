@@ -1,5 +1,6 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
@@ -32,7 +33,7 @@ struct RoomPollsHistoryScreenViewState: BindableState {
 struct RoomPollsHistoryScreenViewStateBindings {
     /// Polls list filter
     var filter: RoomPollsHistoryFilter
-
+    
     /// Information describing the currently displayed alert.
     var alertInfo: AlertInfo<RoomPollsHistoryScreenErrorType>?
 }
@@ -41,7 +42,7 @@ enum RoomPollsHistoryScreenViewAction {
     case filter(RoomPollsHistoryFilter)
     case end(pollStartID: String)
     case edit(pollStartID: String, poll: Poll)
-    case sendPollResponse(pollStartID: String, optionID: String)
+    case sendPollResponse(pollStartID: String, answerIDs: [String])
     case loadMore
 }
 

@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -16,12 +17,12 @@ enum MockSoftLogoutScreenState: String, CaseIterable {
     // mock that screen.
     case emptyPassword
     case enteredPassword
-    case oidc
+    case oAuth
     case unsupported
     case keyBackupNeeded
-
+    
     /// Generate the view struct for the screen state.
-    @MainActor var viewModel: SoftLogoutScreenViewModel {
+    var viewModel: SoftLogoutScreenViewModel {
         let credentials = SoftLogoutScreenCredentials(userID: "@mock:matrix.org",
                                                       homeserverName: "matrix.org",
                                                       userDisplayName: "mock",
@@ -36,9 +37,9 @@ enum MockSoftLogoutScreenState: String, CaseIterable {
                                              homeserver: .mockBasicServer,
                                              keyBackupNeeded: false,
                                              password: "12345678")
-        case .oidc:
+        case .oAuth:
             return SoftLogoutScreenViewModel(credentials: credentials,
-                                             homeserver: .mockOIDC,
+                                             homeserver: .mockOAuth,
                                              keyBackupNeeded: false)
         case .unsupported:
             return SoftLogoutScreenViewModel(credentials: credentials,

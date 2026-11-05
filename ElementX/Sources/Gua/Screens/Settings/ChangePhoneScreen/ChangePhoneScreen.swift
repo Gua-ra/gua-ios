@@ -352,22 +352,22 @@ struct ChangePhoneScreen_Previews: PreviewProvider {
     static let doneViewModel = makeViewModel(phase: .done)
 
     static var previews: some View {
-        NavigationStack {
+        ElementNavigationStack {
             ChangePhoneScreen(context: introViewModel.context)
         }
         .previewDisplayName("Intro")
 
-        NavigationStack {
+        ElementNavigationStack {
             ChangePhoneScreen(context: stepUpRequiredViewModel.context)
         }
         .previewDisplayName("Step-up required")
 
-        NavigationStack {
+        ElementNavigationStack {
             ChangePhoneScreen(context: cooldownViewModel.context)
         }
         .previewDisplayName("Cooldown")
 
-        NavigationStack {
+        ElementNavigationStack {
             ChangePhoneScreen(context: doneViewModel.context)
         }
         .previewDisplayName("Done")

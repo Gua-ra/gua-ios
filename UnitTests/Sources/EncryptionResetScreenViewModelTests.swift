@@ -23,7 +23,6 @@ class EncryptionResetScreenViewModelTests: XCTestCase {
     private static let ceiling: Duration = .milliseconds(150)
 
     override func setUp() {
-        AppSettings.resetAllSettings()
         cancellables = []
         clientProxy = ClientProxyMock(.init(userID: Self.userID))
         clientProxy.accessToken = "access-token"
@@ -43,7 +42,6 @@ class EncryptionResetScreenViewModelTests: XCTestCase {
     }
 
     override func tearDown() {
-        AppSettings.resetAllSettings()
         IdentityResetPendingStore.clear(for: Self.userID)
     }
 
@@ -164,9 +162,9 @@ class EncryptionResetScreenViewModelTests: XCTestCase {
 
     func testADismissedApprovalSheetCancelsTheHandleAndReleasesTheGuard() async {
         makeViewModel(approved: false)
-        var completion: PassthroughSubject<OIDCAccountSettingsPresenter.Outcome, Never>?
+        var completion: PassthroughSubject<OAuthAccountSettingsPresenter.Outcome, Never>?
         let requested = deferFulfillment(viewModel.actionsPublisher) { action in
-            if case let .requestOIDCAuthorisation(_, publisher) = action {
+            if case let .requestOAuthAuthorisation(_, publisher) = action {
                 completion = publisher
                 return true
             }

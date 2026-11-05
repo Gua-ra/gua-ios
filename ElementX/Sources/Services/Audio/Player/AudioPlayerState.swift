@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -23,7 +24,6 @@ enum AudioPlayerStateIdentifier {
     case recorderPreview
 }
 
-@MainActor
 class AudioPlayerState: ObservableObject, Identifiable {
     let id: AudioPlayerStateIdentifier
     let title: String
@@ -35,12 +35,13 @@ class AudioPlayerState: ObservableObject, Identifiable {
     /// It's similar to `playbackState`, with the a difference: `.loading`
     /// updates are delayed by a fixed amount of time
     @Published private(set) var playerButtonPlaybackState: AudioPlayerPlaybackState
-
+    @Published private(set) var playbackSpeed: AudioPlaybackSpeed
+    
     private weak var audioPlayer: AudioPlayerProtocol?
     private var audioPlayerSubscription: AnyCancellable?
     private var playbackStateSubscription: AnyCancellable?
     private var displayLink: CADisplayLink?
-
+    
     /// The file url that the last player attached to this object has loaded.
     /// The file url persists even if the AudioPlayer will be detached later.
     private(set) var fileURL: URL?
@@ -48,7 +49,7 @@ class AudioPlayerState: ObservableObject, Identifiable {
     var showProgressIndicator: Bool {
         progress > 0
     }
-
+    
     var isAttached: Bool {
         audioPlayer != nil
     }
@@ -56,15 +57,22 @@ class AudioPlayerState: ObservableObject, Identifiable {
     var isPublishingProgress: Bool {
         displayLink != nil
     }
-
-    init(id: AudioPlayerStateIdentifier, title: String, duration: Double, waveform: EstimatedWaveform? = nil, progress: Double = 0.0) {
+    
+    init(id: AudioPlayerStateIdentifier, title: String,
+         duration: Double,
+         waveform: EstimatedWaveform? = nil,
+         progress: Double = 0.0,
+         playbackSpeed: AudioPlaybackSpeed = .default,
+         playbackSpeedPublisher: AnyPublisher<AudioPlaybackSpeed, Never>? = nil) {
         self.id = id
         self.title = title
         self.duration = duration
         self.waveform = waveform ?? EstimatedWaveform(data: [])
         self.progress = progress
+        self.playbackSpeed = playbackSpeed
         playbackState = .stopped
         playerButtonPlaybackState = .stopped
+        playbackSpeedPublisher?.assign(to: &$playbackSpeed)
         setupPlaybackStateSubscription()
     }
     
@@ -96,6 +104,7 @@ class AudioPlayerState: ObservableObject, Identifiable {
         playbackState = .loading
         self.audioPlayer = audioPlayer
         subscribeToAudioPlayer(audioPlayer: audioPlayer)
+        setPlaybackSpeed(playbackSpeed)
     }
     
     func detachAudioPlayer() {
@@ -110,11 +119,15 @@ class AudioPlayerState: ObservableObject, Identifiable {
         playbackState = .error
     }
     
+    func setPlaybackSpeed(_ speed: AudioPlaybackSpeed) {
+        playbackSpeed = speed
+        audioPlayer?.setPlaybackSpeed(speed.rawValue)
+    }
+    
     // MARK: - Private
     
     private func subscribeToAudioPlayer(audioPlayer: AudioPlayerProtocol) {
         audioPlayerSubscription = audioPlayer.actions
-            .receive(on: DispatchQueue.main)
             .sink { [weak self] action in
                 guard let self else {
                     return
@@ -231,7 +244,7 @@ class AudioPlayerState: ObservableObject, Identifiable {
             }
             
             audioPlayer.pause()
-
+            
             return MPRemoteCommandHandlerStatus.success
         }
         

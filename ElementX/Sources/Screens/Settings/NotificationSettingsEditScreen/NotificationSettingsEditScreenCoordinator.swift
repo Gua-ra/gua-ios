@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -38,7 +39,7 @@ final class NotificationSettingsEditScreenCoordinator: CoordinatorProtocol {
         }
         .store(in: &cancellables)
     }
-        
+    
     func toPresentable() -> AnyView {
         AnyView(NotificationSettingsEditScreen(context: viewModel.context))
     }
@@ -47,7 +48,7 @@ final class NotificationSettingsEditScreenCoordinator: CoordinatorProtocol {
     
     private func presentRoomNotificationSettings(roomID: String) async {
         guard case let .joined(roomProxy) = await parameters.userSession.clientProxy.roomForIdentifier(roomID) else { return }
-         
+        
         let roomNotificationSettingsParameters = RoomNotificationSettingsScreenCoordinatorParameters(navigationStackCoordinator: parameters.navigationStackCoordinator,
                                                                                                      notificationSettingsProxy: parameters.userSession.clientProxy.notificationSettings,
                                                                                                      roomProxy: roomProxy,

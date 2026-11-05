@@ -198,17 +198,17 @@ struct PhoneEntryScreen_Previews: PreviewProvider, TestablePreview {
     static let viewModelLegacy = PhoneEntryScreenViewModel(isLegacyAuthEnabled: true)
 
     static var previews: some View {
-        NavigationStack {
+        ElementNavigationStack {
             PhoneEntryScreen(context: viewModel.context)
         }
         .previewDisplayName("Default")
 
-        NavigationStack {
+        ElementNavigationStack {
             PhoneEntryScreen(context: viewModelLegacy.context)
         }
         .previewDisplayName("Legacy enabled")
 
-        NavigationStack {
+        ElementNavigationStack {
             PhoneEntryScreen(context: viewModel.context)
         }
         .environment(\.colorScheme, .dark)

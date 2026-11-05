@@ -84,7 +84,7 @@ record for the dev app (see the identifier caveats below, which apply equally).
 
 The `GUA_DEV_*` secrets point the **TestFlight build** at the network-reachable
 **dev backend** instead of the committed `localhost` placeholders in
-`Secrets/Secrets.swift`. `localhost` only resolves on the simulator. On a real
+`Components/Secrets/Secrets.swift`. `localhost` only resolves on the simulator. On a real
 device it's the phone itself, so a build without these is dead at phone entry. The
 resolver and identity-service URLs **must be `https://`** (App Transport Security
 blocks cleartext on device). The "Inject dev backend endpoints" step writes them
@@ -130,14 +130,12 @@ Key build facts the workflow relies on:
 - **Scheme:** `Gua`. **Configuration:** `Release` (which compiles with the
   `GUA_DEVELOPMENT` flag: TestFlight currently points at the dev backend; see the
   note in `ElementX/SupportingFiles/target.yml`).
-- **Secrets file:** the committed placeholder `Secrets/Secrets.swift` compiles
-  fine for an archive. The workflow deliberately does **not** run the
-  `fastlane config_production` lane, because its `update_foss_secrets()` helper
-  lives in the Enterprise pipeline that is not part of this fork.
+- **Secrets file:** the committed placeholder `Components/Secrets/Secrets.swift`
+  compiles fine for an archive. A prod archive needs no injected secrets.
 
 ## Caveats
 
-- **macOS minutes:** iOS archiving requires a macOS runner (`macos-15`). GitHub
+- **macOS minutes:** iOS archiving requires a macOS runner (`macos-26`). GitHub
   bills macOS minutes at 10x the Linux rate, and private repos have a monthly free
   allowance: a full archive run can use a meaningful chunk of it. Budget
   accordingly or use a self-hosted Mac runner. **If you use a self-hosted runner,**

@@ -10,6 +10,7 @@
 "gua_encryption_reset_required_action" = "Redefinir e concluir";
 "gua_signout_last_device_title" = "Sair vai remover suas mensagens deste dispositivo";
 "gua_signout_last_device_message" = "As mensagens guardadas apenas aqui não estarão disponíveis quando você entrar novamente.";
+"gua_settings_sign_out" = "Sair";
 "gua_encryption_reset_finishing" = "Concluindo a configuração…";
 "gua_encryption_reset_failed" = "Não foi possível concluir a configuração. Tente novamente.";
 "gua_encryption_reset_still_finishing" = "Ainda concluindo a configuração em segundo plano. Você pode continuar usando o Gua.";

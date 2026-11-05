@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -12,15 +13,15 @@ struct TimelineItemStatusView: View {
     let timelineItem: EventBasedTimelineItemProtocol
     let adjustedDeliveryStatus: TimelineItemDeliveryStatus?
     @EnvironmentObject private var context: TimelineViewModel.Context
-
+    
     private var isLastOutgoingMessage: Bool {
         timelineItem.isOutgoing && context.viewState.timelineState.uniqueIDs.last == timelineItem.id.uniqueID
     }
-
+    
     var body: some View {
         mainContent
     }
-
+    
     @ViewBuilder
     private var mainContent: some View {
         if context.viewState.timelineKind == .pinned {
@@ -32,7 +33,7 @@ struct TimelineItemStatusView: View {
             deliveryStatusBadge
         }
     }
-
+    
     @ViewBuilder
     var deliveryStatusBadge: some View {
         switch adjustedDeliveryStatus {
@@ -48,7 +49,7 @@ struct TimelineItemStatusView: View {
             EmptyView()
         }
     }
-
+    
     var readReceipts: some View {
         TimelineReadReceiptsView(timelineItem: timelineItem)
             .environmentObject(context)

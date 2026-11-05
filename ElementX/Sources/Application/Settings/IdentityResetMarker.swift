@@ -9,7 +9,7 @@ import Foundation
 
 /// Freshness of the identity-reset marker shared with the notification extension.
 /// A marker older than `maxAge` belongs to a reset that died and is ignored.
-enum IdentityResetMarker {
+nonisolated enum IdentityResetMarker {
     static let refreshInterval: Duration = .seconds(30)
     static let maxAge: TimeInterval = 180
     static let futureTolerance: TimeInterval = 60

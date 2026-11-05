@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -26,9 +27,9 @@ enum ComposerToolbarViewModelAction {
     case sendMessage(plain: String, html: String?, mode: ComposerMode, intentionalMentions: IntentionalMentions)
     case editLastMessage
     case attach(ComposerAttachmentType)
-
+    
     case handlePasteOrDrop(providers: [NSItemProvider])
-
+    
     case composerModeChanged(mode: ComposerMode)
     case composerFocusedChanged(isFocused: Bool)
     
@@ -74,8 +75,6 @@ struct ComposerToolbarViewState: BindableState {
     /// Could be false if sending is disabled in the room
     var canSend = true
     var suggestions: [SuggestionItem] = []
-    var audioPlayerState: AudioPlayerState
-    var audioRecorderState: AudioRecorderState
     
     var isRoomEncrypted: Bool
     var isLocationSharingEnabled: Bool
@@ -83,7 +82,7 @@ struct ComposerToolbarViewState: BindableState {
     var keyCommands: [WysiwygKeyCommand] = []
     
     var bindings: ComposerToolbarViewStateBindings
-
+    
     var isUploading: Bool {
         switch composerMode {
         case .previewVoiceMessage(_, _, let isUploading):
@@ -92,7 +91,7 @@ struct ComposerToolbarViewState: BindableState {
             return false
         }
     }
-
+    
     var showSendButton: Bool {
         switch composerMode {
         case .recordVoiceMessage:
@@ -106,6 +105,14 @@ struct ComposerToolbarViewState: BindableState {
                 return !bindings.plainComposerText.string.isEmpty
             }
         }
+    }
+    
+    var sendButtonMode: SendButton.Mode {
+        composerMode.isEdit ? .edit : .send
+    }
+    
+    var sendButtonAccessibilityLabel: String {
+        composerMode.isEdit ? L10n.actionConfirm : L10n.actionSend
     }
     
     var sendButtonDisabled: Bool {
@@ -212,7 +219,7 @@ extension FormatItem {
             return \.link
         }
     }
-
+    
     var accessibilityIdentifier: String {
         switch type {
         case .bold:
@@ -241,7 +248,7 @@ extension FormatItem {
             return A11yIdentifiers.roomScreen.composerToolbar.link
         }
     }
-
+    
     var accessibilityLabel: String {
         let localizedAction = switch type {
         case .bold:
@@ -327,7 +334,7 @@ enum ComposerMode: Equatable {
     case edit(originalEventOrTransactionID: TimelineItemIdentifier.EventOrTransactionID, type: EditType)
     case recordVoiceMessage(state: AudioRecorderState)
     case previewVoiceMessage(state: AudioPlayerState, waveform: WaveformSource, isUploading: Bool)
-
+    
     var isEdit: Bool {
         switch self {
         case .edit:
@@ -336,7 +343,7 @@ enum ComposerMode: Equatable {
             return false
         }
     }
-
+    
     var isTextEditingEnabled: Bool {
         switch self {
         case .default, .reply, .edit:

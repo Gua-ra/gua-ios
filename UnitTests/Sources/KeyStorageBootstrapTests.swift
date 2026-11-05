@@ -26,20 +26,17 @@ class KeyStorageBootstrapTests: XCTestCase {
     private static let userID = "@fresh:gua.example"
 
     override func setUp() {
-        AppSettings.resetAllSettings()
-        appSettings = AppSettings()
+        appSettings = AppSettings.volatile()
         keychain = KeychainControllerMock()
         secureBackup = SecureBackupControllerMock()
         clientProxy = ClientProxyMock(.init(userID: Self.userID))
         clientProxy.underlyingSecureBackupController = secureBackup
         store = UserSessionStore(keychainController: keychain,
+                                 clientFactory: ClientFactoryMock(.init()),
                                  appSettings: appSettings,
+                                 analyticsService: AnalyticsServiceMock(.init()),
                                  appHooks: AppHooks(),
-                                 networkMonitor: NetworkMonitorMock.default)
-    }
-
-    override func tearDown() {
-        AppSettings.resetAllSettings()
+                                 networkMonitor: NetworkMonitorMock(.init()))
     }
 
     // MARK: - a fresh account has one provisioning owner

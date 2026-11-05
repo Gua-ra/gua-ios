@@ -1,5 +1,6 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
@@ -17,9 +18,8 @@ class BugReportScreenViewModel: BugReportScreenViewModelType, BugReportScreenVie
     private let logFiles: [URL]
     
     private let actionsSubject: PassthroughSubject<BugReportScreenViewModelAction, Never> = .init()
-    // periphery:ignore - when set to nil this is automatically cancelled
     @CancellableTask private var uploadTask: Task<Void, Never>?
-
+    
     var actions: AnyPublisher<BugReportScreenViewModelAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
@@ -78,7 +78,7 @@ class BugReportScreenViewModel: BugReportScreenViewModelType, BugReportScreenVie
         }
         return true
     }
-
+    
     private func submitBugReport() async {
         let progressSubject = CurrentValueSubject<Double, Never>(0.0)
         

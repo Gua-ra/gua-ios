@@ -26,7 +26,6 @@ final class UserSessionFlowCoordinatorNewSignInTests: XCTestCase {
     private var appSettings: AppSettings!
     private var scheduler: ManualNewSignInNudgeScheduler!
     private var clock: NewSignInNudgeTestClock!
-    private var savedOnboardingSettings: (notifications: Bool, analytics: AnalyticsConsentState)?
 
     private var tabCoordinator: NavigationTabCoordinator<UserSessionFlowCoordinator.HomeTab>? {
         rootCoordinator.rootCoordinator as? NavigationTabCoordinator
@@ -46,18 +45,11 @@ final class UserSessionFlowCoordinatorNewSignInTests: XCTestCase {
 
     override func setUp() async throws {
         OwnDevicesHTTPStub.reset()
-        AppSettings.resetSessionSpecificSettings()
         IdentityResetPendingStore.clear(for: userID)
 
         let testClock = NewSignInNudgeTestClock(now: start)
         clock = testClock
         scheduler = ManualNewSignInNudgeScheduler()
-        appSettings = ServiceLocator.shared.settings
-        // Onboarding would otherwise cover the tab bar for the whole test.
-        savedOnboardingSettings = (appSettings.hasRunNotificationPermissionsOnboarding, appSettings.analyticsConsentState)
-        appSettings.hasRunNotificationPermissionsOnboarding = true
-        appSettings.analyticsConsentState = .optedOut
-
         clientProxy = ClientProxyMock(.init(homeserver: "https://matrix.gua.test", userID: userID, deviceID: phoneID,
                                             roomSummaryProvider: RoomSummaryProviderMock(.init(state: .loaded(.mockRooms)))))
         clientProxy.accessToken = "token-1"
@@ -71,7 +63,11 @@ final class UserSessionFlowCoordinatorNewSignInTests: XCTestCase {
         verificationController.acceptVerificationRequestReturnValue = .success(())
         clientProxy.sessionVerificationController = verificationController
 
-        let userSession = UserSessionMock(.init(clientProxy: clientProxy))
+        let userSession = UserSessionMock(.init(clientProxy: clientProxy, userSettings: .mock(userID: userID)))
+        appSettings = userSession.userSettings.app
+        // Onboarding would otherwise cover the tab bar for the whole test.
+        appSettings.hasRunNotificationPermissionsOnboarding = true
+        appSettings.analyticsConsentState = .optedOut
         securityState = .init(.init(verificationState: .verified, recoveryState: .enabled))
         userSession.sessionSecurityStatePublisher = securityState.asCurrentValuePublisher()
 
@@ -82,21 +78,19 @@ final class UserSessionFlowCoordinatorNewSignInTests: XCTestCase {
         let elementCallService = ElementCallServiceMock(.init())
         elementCallService.underlyingOngoingCallRoomIDPublisher = ongoingCallRoomID.asCurrentValuePublisher()
         windowManager = WindowManagerMock()
-        let appMediator = AppMediatorMock.default
+        let appMediator = AppMediatorMock(.init())
         appMediator.underlyingWindowManager = windowManager
 
         let flowParameters = CommonFlowParameters(userSession: userSession,
+                                                  availableSessionsPublisher: .init([.init(userSession: userSession)]),
                                                   bugReportService: BugReportServiceMock(.init()),
                                                   elementCallService: elementCallService,
                                                   timelineControllerFactory: TimelineControllerFactoryMock(.init()),
-                                                  emojiProvider: EmojiProvider(appSettings: appSettings),
+                                                  emojiProvider: EmojiProvider(userSettings: userSession.userSettings),
                                                   linkMetadataProvider: LinkMetadataProvider(),
                                                   appMediator: appMediator,
-                                                  appSettings: appSettings,
-                                                  appHooks: AppHooks(),
-                                                  analytics: ServiceLocator.shared.analytics,
+                                                  analytics: AnalyticsServiceMock(.init()),
                                                   userIndicatorController: userIndicatorController,
-                                                  notificationManager: NotificationManagerMock(),
                                                   stateMachineFactory: PublishedStateMachineFactory(),
                                                   spacesSetting: SpacesSetting(clientProxy: clientProxy, appSettings: appSettings))
 
@@ -125,11 +119,6 @@ final class UserSessionFlowCoordinatorNewSignInTests: XCTestCase {
 
     override func tearDown() async throws {
         flowCoordinator?.stop()
-        if let savedOnboardingSettings {
-            appSettings.hasRunNotificationPermissionsOnboarding = savedOnboardingSettings.notifications
-            appSettings.analyticsConsentState = savedOnboardingSettings.analytics
-        }
-        AppSettings.resetSessionSpecificSettings()
         OwnDevicesHTTPStub.reset()
     }
 
@@ -236,12 +225,12 @@ final class UserSessionFlowCoordinatorNewSignInTests: XCTestCase {
 
     func testDoesNotNudgeWhileASheetIsPresentedInTheChatsTab() async throws {
         let split = try XCTUnwrap(chatsSplitCoordinator)
-        split.setSheetCoordinator(PlaceholderScreenCoordinator(), animated: false)
+        split.setSheetCoordinator(PlaceholderScreenCoordinator(hideBrandChrome: false), animated: false)
         await runRound()
         XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
 
         split.setSheetCoordinator(nil)
-        split.setFullScreenCoverCoordinator(PlaceholderScreenCoordinator(), animated: false)
+        split.setFullScreenCoverCoordinator(PlaceholderScreenCoordinator(hideBrandChrome: false), animated: false)
         await runRound()
         XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
     }
@@ -249,12 +238,12 @@ final class UserSessionFlowCoordinatorNewSignInTests: XCTestCase {
     func testDoesNotNudgeWhileASheetIsPresentedInTheSpacesTab() async throws {
         let split = try XCTUnwrap(spacesSplitCoordinator)
         XCTAssertNotIdentical(split, chatsSplitCoordinator)
-        split.setSheetCoordinator(PlaceholderScreenCoordinator(), animated: false)
+        split.setSheetCoordinator(PlaceholderScreenCoordinator(hideBrandChrome: false), animated: false)
         await runRound()
         XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
 
         split.setSheetCoordinator(nil)
-        split.setFullScreenCoverCoordinator(PlaceholderScreenCoordinator(), animated: false)
+        split.setFullScreenCoverCoordinator(PlaceholderScreenCoordinator(hideBrandChrome: false), animated: false)
         await runRound()
         XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
 
@@ -287,12 +276,12 @@ final class UserSessionFlowCoordinatorNewSignInTests: XCTestCase {
 
     func testDoesNotNudgeWhileAFullScreenCoverOrOverlayIsPresented() async throws {
         let tab = try XCTUnwrap(tabCoordinator)
-        tab.setFullScreenCoverCoordinator(PlaceholderScreenCoordinator(), animated: false)
+        tab.setFullScreenCoverCoordinator(PlaceholderScreenCoordinator(hideBrandChrome: false), animated: false)
         await runRound()
         XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
 
         tab.setFullScreenCoverCoordinator(nil)
-        tab.setOverlayCoordinator(PlaceholderScreenCoordinator(), animated: false)
+        tab.setOverlayCoordinator(PlaceholderScreenCoordinator(hideBrandChrome: false), animated: false)
         await runRound()
         XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
     }
@@ -318,7 +307,7 @@ final class UserSessionFlowCoordinatorNewSignInTests: XCTestCase {
     // MARK: - Helpers
 
     private func requestDetails(from senderID: String, deviceID: String) -> SessionVerificationRequestDetails {
-        SessionVerificationRequestDetails(senderProfile: UserProfileProxy(userID: senderID),
+        SessionVerificationRequestDetails(senderProfile: UserProfile(userID: senderID),
                                           flowID: "flow-\(deviceID)",
                                           deviceID: deviceID,
                                           deviceDisplayName: "Gua Web",

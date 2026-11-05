@@ -27,6 +27,7 @@
    screen_signout_key_backup_disabled_*. */
 "gua_signout_last_device_title" = "Signing out will remove your messages from this device";
 "gua_signout_last_device_message" = "Messages kept only here will not be available when you sign back in.";
+"gua_settings_sign_out" = "Sign out";
 
 // MARK: - Gua identity change, other surfaces
 

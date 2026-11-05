@@ -121,7 +121,7 @@ final class TwoStepVerificationScreenCoordinator: CoordinatorProtocol {
     /// server keeps the allowlist, and a value it does not hold costs nothing because the client
     /// asks again without one.
     private func enrollmentURL(for factor: EnrollableFactor, accessToken: String) async throws -> URL {
-        let redirectURI = parameters.appSettings.oidcRedirectURL.absoluteString
+        let redirectURI = parameters.appSettings.oAuthRedirectURL.absoluteString
         switch factor {
         case .passkey:
             return try await parameters.identityServiceClient.startPasskeyEnrollment(accessToken: accessToken,

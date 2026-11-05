@@ -1,46 +1,61 @@
 //
+// Copyright 2025 Element Creations Ltd.
 // Copyright 2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 @testable import ElementX
-import XCTest
+import Testing
 
 @MainActor
-final class EmojiPickerScreenViewModelTests: XCTestCase {
-    var timelineProxy: TimelineProxyMock!
+struct EmojiPickerScreenViewModelTests {
+    var emojiPickerStream: AsyncStream<String>!
     
     var viewModel: EmojiPickerScreenViewModel!
     var context: EmojiPickerScreenViewModel.Context {
         viewModel.context
     }
     
-    func testToggleReaction() async throws {
+    @Test
+    mutating func selectEmoji() async throws {
+        // Given a freshly presented emoji picker.
         setupViewModel()
         let reaction = "👋"
         
-        let expectation = XCTestExpectation(description: "Toggle reaction")
+        // When the user taps an emoji.
         let deferred = deferFulfillment(viewModel.actions) { $0 == .dismiss }
-        timelineProxy.toggleReactionToClosure = { toggledReaction, _ in
-            XCTAssertEqual(toggledReaction, reaction)
-            expectation.fulfill()
-            return .success(())
-        }
         context.send(viewAction: .emojiTapped(emoji: .init(id: "wave", value: reaction)))
-        await fulfillment(of: [expectation], timeout: 1)
+        
+        // Then the screen should dismiss and yield the emoji before finishing the stream.
         try await deferred.fulfill()
+        var iterator = emojiPickerStream.makeAsyncIterator()
+        #expect(await iterator.next() == reaction)
+        #expect(await iterator.next() == nil)
+    }
+    
+    @Test
+    mutating func stopFinishesTheStream() async {
+        // Given a freshly presented emoji picker.
+        setupViewModel()
+        
+        // When it is stopped without a selection (e.g. the picker is dismissed).
+        viewModel.stop()
+        
+        // Then the stream should finish without yielding an emoji.
+        var iterator = emojiPickerStream.makeAsyncIterator()
+        #expect(await iterator.next() == nil)
     }
     
     // MARK: - Helpers
     
-    private func setupViewModel(selectedEmojis: Set<String> = []) {
-        timelineProxy = TimelineProxyMock(.init())
+    private mutating func setupViewModel(selectedEmojis: Set<String> = []) {
+        let (stream, continuation) = AsyncStream<String>.makeStream()
+        emojiPickerStream = stream
         
-        viewModel = EmojiPickerScreenViewModel(itemID: .randomEvent,
-                                               selectedEmojis: selectedEmojis,
-                                               emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
-                                               timelineController: MockTimelineController(timelineProxy: timelineProxy))
+        viewModel = EmojiPickerScreenViewModel(selectedEmojis: selectedEmojis,
+                                               emojiProvider: EmojiProvider(userSettings: .mock()),
+                                               continuation: continuation)
     }
 }

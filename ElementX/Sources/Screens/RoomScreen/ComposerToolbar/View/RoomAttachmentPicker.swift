@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -12,19 +13,17 @@ import WysiwygComposer
 struct RoomAttachmentPicker: View {
     @ObservedObject var context: ComposerToolbarViewModel.Context
     
-    @Environment(\.isEnabled) private var isEnabled
-    
     var body: some View {
         // Use a menu instead of the popover/sheet shown in Figma because overriding the colour scheme
         // results in a rendering bug on 17.1: https://github.com/element-hq/element-x-ios/issues/2157
         Menu {
             menuContent
         } label: {
-            CompoundIcon(asset: Asset.Images.composerAttachment, size: .custom(30), relativeTo: .compound.headingLG)
-                .scaledPadding(7, relativeTo: .compound.headingLG)
-                .foregroundColor(isEnabled ? .compound.iconPrimary : .compound.iconDisabled)
+            CompoundIcon(\.plus,
+                         size: Compound.supportsGlass ? .medium : .small,
+                         relativeTo: .compound.headingLG)
         }
-        .buttonStyle(RoomAttachmentPickerButtonStyle())
+        .buttonStyle(ComposerToolbarButtonStyle())
         .accessibilityLabel(L10n.actionAddToTimeline)
         .accessibilityIdentifier(A11yIdentifiers.roomScreen.composerToolbar.openComposeOptions)
     }
@@ -78,23 +77,22 @@ struct RoomAttachmentPicker: View {
     }
 }
 
-private struct RoomAttachmentPickerButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .foregroundStyle(configuration.isPressed ? .compound.bgActionPrimaryPressed : .compound.bgActionPrimaryRest)
-    }
-}
-
 struct RoomAttachmentPicker_Previews: PreviewProvider, TestablePreview {
-    static let viewModel = ComposerToolbarViewModel(roomProxy: JoinedRoomProxyMock(.init()),
-                                                    wysiwygViewModel: WysiwygComposerViewModel(),
-                                                    completionSuggestionService: CompletionSuggestionServiceMock(configuration: .init()),
-                                                    mediaProvider: MediaProviderMock(configuration: .init()),
-                                                    mentionDisplayHelper: ComposerMentionDisplayHelper.mock,
-                                                    appSettings: ServiceLocator.shared.settings,
-                                                    analyticsService: ServiceLocator.shared.analytics,
-                                                    composerDraftService: ComposerDraftServiceMock(.init()))
-
+    static let viewModel = makeViewModel()
+    
+    static func makeViewModel() -> ComposerToolbarViewModel {
+        let userSettings = UserSettings.mock()
+        
+        return ComposerToolbarViewModel(roomProxy: JoinedRoomProxyMock(.init()),
+                                        wysiwygViewModel: WysiwygComposerViewModel(),
+                                        completionSuggestionService: CompletionSuggestionServiceMock(configuration: .init()),
+                                        mediaProvider: MediaProviderMock(.init()),
+                                        mentionDisplayHelper: ComposerMentionDisplayHelper.mock,
+                                        userSettings: userSettings,
+                                        analyticsService: AnalyticsServiceMock(.init()),
+                                        composerDraftService: ComposerDraftServiceMock(.init()))
+    }
+    
     static var previews: some View {
         RoomAttachmentPicker(context: viewModel.context)
     }

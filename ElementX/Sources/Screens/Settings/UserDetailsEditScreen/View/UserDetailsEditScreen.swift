@@ -1,5 +1,6 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
@@ -11,7 +12,7 @@ import SwiftUI
 struct UserDetailsEditScreen: View {
     @Bindable var context: UserDetailsEditScreenViewModel.Context
     @FocusState private var focus: Bool
-        
+    
     var body: some View {
         Form {
             Section {
@@ -30,13 +31,22 @@ struct UserDetailsEditScreen: View {
         .scrollDismissesKeyboard(.immediately)
         .navigationTitle(L10n.screenEditProfileTitle)
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(context.viewState.canSave)
         .toolbar { toolbar }
+        .alert(item: $context.alertInfo)
     }
     
     // MARK: - Private
     
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
+        ToolbarItem(placement: .cancellationAction) {
+            if context.viewState.canSave {
+                Button(L10n.actionCancel) {
+                    context.send(viewAction: .cancel)
+                }
+            }
+        }
         ToolbarItem(placement: .confirmationAction) {
             Button(L10n.actionSave) {
                 context.send(viewAction: .save)
@@ -45,48 +55,39 @@ struct UserDetailsEditScreen: View {
             .disabled(!context.viewState.canSave)
         }
     }
-
+    
     private var avatar: some View {
         Button {
             context.send(viewAction: .presentMediaSource)
         } label: {
             OverridableAvatarImage(overrideURL: context.viewState.localMedia?.thumbnailURL,
                                    url: context.viewState.selectedAvatarURL,
-                                   name: context.viewState.currentDisplayName,
-                                   contentID: context.viewState.userID,
+                                   name: context.viewState.currentUserProfile.displayName,
+                                   contentID: context.viewState.currentUserProfile.id,
+                                   shape: .circle,
                                    avatarSize: .user(on: .editUserDetails),
                                    mediaProvider: context.mediaProvider)
-                .overlay(alignment: .bottomTrailing) {
-                    avatarOverlayIcon
-                }
                 .confirmationDialog("", isPresented: $context.showMediaSheet) {
                     mediaActionSheet
                 }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(EditAvatarButtonStyle())
+        .disabled(!context.viewState.canEditAvatar)
+        .accessibilityLabel(L10n.a11yEditAvatar)
         .frame(maxWidth: .infinity, alignment: .center)
         .listRowBackground(Color.clear)
     }
-
+    
     private var nameSection: some View {
         Section {
             ListRow(label: .plain(title: L10n.screenEditProfileDisplayNamePlaceholder),
                     kind: .textField(text: $context.name, axis: .horizontal))
                 .focused($focus)
+                .disabled(!context.viewState.canEditDisplayName)
         } header: {
             Text(L10n.screenEditProfileDisplayName)
                 .compoundListSectionHeader()
         }
-    }
-    
-    private var avatarOverlayIcon: some View {
-        CompoundIcon(\.editSolid, size: .xSmall, relativeTo: .compound.bodyLG)
-            .foregroundColor(.white)
-            .padding(4)
-            .background {
-                Circle()
-                    .foregroundColor(.black)
-            }
     }
     
     @ViewBuilder
@@ -96,10 +97,17 @@ struct UserDetailsEditScreen: View {
         } label: {
             Text(L10n.actionTakePhoto)
         }
+        
         Button {
             context.send(viewAction: .displayMediaPicker)
         } label: {
             Text(L10n.actionChoosePhoto)
+        }
+        
+        Button {
+            context.send(viewAction: .displayFilePicker)
+        } label: {
+            Text(L10n.actionChooseFile)
         }
         
         if context.viewState.showDeleteImageAction {
@@ -115,14 +123,30 @@ struct UserDetailsEditScreen: View {
 // MARK: - Previews
 
 struct UserDetailsEditScreen_Previews: PreviewProvider, TestablePreview {
-    static let viewModel = UserDetailsEditScreenViewModel(userSession: UserSessionMock(.init(clientProxy: ClientProxyMock(.init(userID: "@stefan:matrix.org")))),
-                                                          mediaUploadingPreprocessor: .init(appSettings: ServiceLocator.shared.settings),
-                                                          userIndicatorController: UserIndicatorControllerMock.default)
+    static let viewModel = makeViewModel()
+    static let readOnlyViewModel = makeViewModel(canChangeProfile: false)
     
     static var previews: some View {
-        NavigationStack {
+        ElementNavigationStack {
             UserDetailsEditScreen(context: viewModel.context)
         }
-        .snapshotPreferences(expect: viewModel.context.observe(\.viewState.currentDisplayName).map { $0 != nil }.eraseToStream())
+        .previewDisplayName("Default")
+        
+        ElementNavigationStack {
+            UserDetailsEditScreen(context: readOnlyViewModel.context)
+        }
+        .previewDisplayName("Read Only")
+    }
+    
+    static func makeViewModel(canChangeProfile: Bool = true) -> UserDetailsEditScreenViewModel {
+        let userSession = UserSessionMock(.init(clientProxy: ClientProxyMock(.init(userID: "@stefan:matrix.org",
+                                                                                   displayName: "Stefan",
+                                                                                   canChangeAvatar: canChangeProfile,
+                                                                                   canChangeDisplayName: canChangeProfile))))
+        
+        return UserDetailsEditScreenViewModel(userSession: userSession,
+                                              mediaUploadingPreprocessor: .init(userSettings: .mock()),
+                                              appMediator: AppMediatorMock(.init()),
+                                              userIndicatorController: UserIndicatorControllerMock())
     }
 }

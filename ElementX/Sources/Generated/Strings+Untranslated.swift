@@ -9,7 +9,7 @@ import Foundation
 
 // swiftlint:disable explicit_type_interface function_parameter_count identifier_name line_length
 // swiftlint:disable nesting type_body_length type_name vertical_whitespace_opening_braces
-internal enum UntranslatedL10n {
+internal nonisolated enum UntranslatedL10n {
   /// Delete account
   internal static var actionDeleteAccount: String { return UntranslatedL10n.tr("Untranslated", "action_delete_account") }
   /// Manage account & devices
@@ -164,6 +164,8 @@ internal enum UntranslatedL10n {
   }
   /// We couldn’t sign you back in. Please sign in again.
   internal static var guaRestoreSigninFailed: String { return UntranslatedL10n.tr("Untranslated", "gua_restore_signin_failed") }
+  /// Sign out
+  internal static var guaSettingsSignOut: String { return UntranslatedL10n.tr("Untranslated", "gua_settings_sign_out") }
   /// Organize related chats and communities in one place
   internal static var guaSettingsSpacesDescription: String { return UntranslatedL10n.tr("Untranslated", "gua_settings_spaces_description") }
   /// Sign in with a passkey
@@ -229,7 +231,7 @@ internal enum UntranslatedL10n {
 
 // MARK: - Implementation Details
 
-extension UntranslatedL10n {
+nonisolated extension UntranslatedL10n {
   static func tr(_ table: String, _ key: String, _ args: CVarArg...) -> String {
     // Gua keeps its own translations in this table, so resolve the app language exactly like L10n does.
     let languages = Bundle.overrideLocalizations ?? Bundle.app.preferredLocalizations

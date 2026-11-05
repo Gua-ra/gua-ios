@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -67,11 +68,7 @@ public struct ListRowLabel<Icon: View>: View {
         case error
     }
     
-    @usableFromInline static var defaultIconAlignment: VerticalAlignment {
-        Compound.supportsGlass ? .top : .center
-    }
-    
-    var iconAlignment: VerticalAlignment = ListRowLabel.defaultIconAlignment
+    var iconAlignment: VerticalAlignment = .top
     var hideIconBackground = false
     
     enum Layout { case `default`, centered, avatar }
@@ -81,7 +78,7 @@ public struct ListRowLabel<Icon: View>: View {
         guard isEnabled else { return .compound.textDisabled }
         return role == .destructive ? .compound.textCriticalPrimary : .compound.textPrimary
     }
-
+    
     var titleLineLimit: Int? {
         layout == .avatar ? 1 : lineLimit
     }
@@ -93,7 +90,7 @@ public struct ListRowLabel<Icon: View>: View {
     var descriptionColor: Color {
         isEnabled ? .compound.textSecondary : .compound.textDisabled
     }
-
+    
     var descriptionLineLimit: Int? {
         guard layout == .avatar else { return lineLimit }
         return role != .error ? 1 : lineLimit
@@ -104,10 +101,14 @@ public struct ListRowLabel<Icon: View>: View {
         if role == .destructive {
             return .compound.iconCriticalPrimary
         }
-        if #available(iOS 26, *) {
-            return hideIconBackground ? .compound.iconTertiaryAlpha : .compound.iconSecondary
+        if hideIconBackground {
+            return .compound.iconTertiaryAlpha
         } else {
-            return hideIconBackground ? .compound.iconPrimary : .compound.iconTertiaryAlpha
+            if #available(iOS 26, *) {
+                return .compound.iconSecondary
+            } else {
+                return .compound.iconPrimary
+            }
         }
     }
     
@@ -144,7 +145,7 @@ public struct ListRowLabel<Icon: View>: View {
         } icon: {
             icon
                 .foregroundColor(iconForegroundColor)
-                .frame(width: iconSize, height: iconSize)
+                .frame(width: iconSize, height: iconSize) // Can be removed when dropping support for iOS 18.
                 .background(iconBackgroundColor)
                 .clipShape(RoundedRectangle(cornerRadius: Compound.supportsGlass ? 0 : 8))
                 .padding(.vertical, Compound.supportsGlass ? -1 : -4) // Don't allow the background to size the row.
@@ -222,7 +223,7 @@ public struct ListRowLabel<Icon: View>: View {
                                  description: String? = nil,
                                  icon: Icon,
                                  role: ListRowLabel.Role? = nil,
-                                 iconAlignment: VerticalAlignment = defaultIconAlignment) -> ListRowLabel {
+                                 iconAlignment: VerticalAlignment = .top) -> ListRowLabel {
         ListRowLabel(title: title,
                      description: description,
                      icon: icon,
@@ -234,7 +235,7 @@ public struct ListRowLabel<Icon: View>: View {
                                  description: String? = nil,
                                  icon: KeyPath<CompoundIcons, Image>,
                                  role: ListRowLabel.Role? = nil,
-                                 iconAlignment: VerticalAlignment = defaultIconAlignment) -> ListRowLabel where Icon == CompoundIcon {
+                                 iconAlignment: VerticalAlignment = .top) -> ListRowLabel where Icon == CompoundIcon {
         .default(title: title,
                  description: description,
                  icon: CompoundIcon(icon),
@@ -246,7 +247,7 @@ public struct ListRowLabel<Icon: View>: View {
                                  description: String? = nil,
                                  systemIcon: SFSymbol,
                                  role: ListRowLabel.Role? = nil,
-                                 iconAlignment: VerticalAlignment = defaultIconAlignment) -> ListRowLabel where Icon == Image {
+                                 iconAlignment: VerticalAlignment = .top) -> ListRowLabel where Icon == Image {
         .default(title: title,
                  description: description,
                  icon: Image(systemSymbol: systemIcon),

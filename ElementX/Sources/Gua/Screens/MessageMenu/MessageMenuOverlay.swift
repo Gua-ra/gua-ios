@@ -456,11 +456,10 @@ struct MessageMenuOverlay_Previews: PreviewProvider, TestablePreview {
                                                      canCurrentUserRedactOthers: false,
                                                      canCurrentUserPin: true,
                                                      pinnedEventIDs: [],
-                                                     isDM: true,
                                                      isViewSourceEnabled: false,
                                                      areThreadsEnabled: false,
                                                      timelineKind: .live,
-                                                     emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings))
+                                                     emojiProvider: EmojiProvider(userSettings: .mock()))
             .makeActions()
 
         return ZStack {

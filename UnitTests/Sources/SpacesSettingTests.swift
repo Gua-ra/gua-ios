@@ -10,23 +10,20 @@ import XCTest
 
 @MainActor
 class SpacesSettingTests: XCTestCase {
+    private var store: VolatileUserDefaults!
     private var appSettings: AppSettings!
     private var clientProxy: ClientProxyMock!
     private var spaceService: SpaceServiceProxyMock!
     private var spacesSetting: SpacesSetting!
 
     override func setUp() {
-        AppSettings.resetAllSettings()
-        appSettings = AppSettings()
+        store = VolatileUserDefaults()
+        appSettings = AppSettings(store: store)
         clientProxy = ClientProxyMock(.init())
         clientProxy.setAccountDataTypeContentReturnValue = .success(())
         spaceService = SpaceServiceProxyMock(.init())
         clientProxy.spaceService = spaceService
         spacesSetting = SpacesSetting(clientProxy: clientProxy, appSettings: appSettings)
-    }
-
-    override func tearDown() {
-        AppSettings.resetAllSettings()
     }
 
     func testStoredValueIsCopiedToThisDevice() async {
@@ -82,7 +79,7 @@ class SpacesSettingTests: XCTestCase {
         clientProxy.setAccountDataTypeContentReturnValue = .failure(.forbiddenAccess)
         joinASpace()
         var values: [Bool] = []
-        let cancellable = appSettings.$spacesEnabled.sink { values.append($0) }
+        let cancellable = appSettings.spacesEnabledPublisher.sink { values.append($0) }
         
         await spacesSetting.refresh(afterSync: true)
         await spacesSetting.refresh(afterSync: true)
@@ -138,7 +135,7 @@ class SpacesSettingTests: XCTestCase {
 
     func testMembershipIsReadWhenTheDefaultIsDecided() async {
         clientProxy.accountDataTypeReturnValue = .success(nil)
-        XCTAssertTrue(spaceService.joinedSpacesPublisher.value.isEmpty)
+        XCTAssertTrue(spaceService.topLevelSpacesPublisher.value.isEmpty)
         joinASpace()
 
         await spacesSetting.refresh(afterSync: true)
@@ -311,7 +308,7 @@ class SpacesSettingTests: XCTestCase {
         let write = Task { await spacesSetting.setEnabled(false) }
         await gate.waitForWriters(1)
         spacesSetting.invalidate()
-        AppSettings.resetSessionSpecificSettings()
+        appSettings.resetSessionSpecificSettings()
         
         gate.release(.failure(.forbiddenAccess))
         _ = await write.value
@@ -325,7 +322,7 @@ class SpacesSettingTests: XCTestCase {
     func testTheSwitchSurvivesAnAppRestart() async {
         await spacesSetting.setEnabled(true)
         
-        XCTAssertTrue(AppSettings().spacesEnabled, "A new AppSettings instance reads the persisted device copy.")
+        XCTAssertTrue(AppSettings(store: store).spacesEnabled, "A new AppSettings instance reads the persisted device copy.")
     }
     
     func testTurningSpacesOffOnlyWritesThePreference() async {
@@ -343,7 +340,7 @@ class SpacesSettingTests: XCTestCase {
     func testSignOutResetsTheDeviceCopy() {
         appSettings.spacesEnabled = true
 
-        AppSettings.resetSessionSpecificSettings()
+        appSettings.resetSessionSpecificSettings()
 
         XCTAssertFalse(appSettings.spacesEnabled)
     }
@@ -355,9 +352,9 @@ class SpacesSettingTests: XCTestCase {
 
 @MainActor
 private final class SpacesReadGate {
-    private var waiting: [CheckedContinuation<[SpaceRoomProxyProtocol], Never>] = []
+    private var waiting: [CheckedContinuation<[SpaceServiceRoom], Never>] = []
 
-    func read() async -> [SpaceRoomProxyProtocol] {
+    func read() async -> [SpaceServiceRoom] {
         await withCheckedContinuation { waiting.append($0) }
     }
 
@@ -369,7 +366,7 @@ private final class SpacesReadGate {
         XCTFail("Expected \(count) pending reads, found \(waiting.count)", file: file, line: line)
     }
 
-    func release(_ spaces: [SpaceRoomProxyProtocol], file: StaticString = #filePath, line: UInt = #line) {
+    func release(_ spaces: [SpaceServiceRoom], file: StaticString = #filePath, line: UInt = #line) {
         guard !waiting.isEmpty else {
             XCTFail("No membership read is waiting to be released.", file: file, line: line)
             return

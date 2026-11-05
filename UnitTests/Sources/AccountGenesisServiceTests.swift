@@ -18,7 +18,7 @@ final class AccountGenesisServiceTests: XCTestCase {
     override func setUp() {
         registrar = GenesisRegistrarStub()
         keyStore = AccountAuthorityKeyStoreStub()
-        appSettings = AppSettings()
+        appSettings = AppSettings.volatile()
         appSettings.guaAccountGenesisEnabled = false
         service = AccountGenesisService(identityServiceClient: registrar,
                                         keyStore: keyStore,
@@ -32,7 +32,7 @@ final class AccountGenesisServiceTests: XCTestCase {
     // MARK: - The flag
 
     func testTheFlagIsOffByDefault() {
-        XCTAssertFalse(AppSettings().guaAccountGenesisEnabled,
+        XCTAssertFalse(AppSettings.volatile().guaAccountGenesisEnabled,
                        "Account genesis must stay off until it is deliberately turned on.")
         XCTAssertFalse(service.isEnabled)
     }

@@ -23,17 +23,18 @@ struct MediaUploadQualitySettingsScreen: View {
             }
         }
         .compoundList()
-        .navigationTitle(UntranslatedL10n.commonMediaUploadQuality)
+        .navigationTitle(L10n.commonMediaUploadQuality)
         .navigationBarTitleDisplayMode(.inline)
     }
 }
 
+// MARK: - Previews
+
 struct MediaUploadQualitySettingsScreen_Previews: PreviewProvider, TestablePreview {
-    static let viewModel = MediaUploadQualitySettingsScreenViewModel(appSettings: ServiceLocator.shared.settings,
-                                                                     analytics: ServiceLocator.shared.analytics)
+    static let viewModel = MediaUploadQualitySettingsScreenViewModel(userSettings: .mock(), analytics: AnalyticsServiceMock(.init()))
     
     static var previews: some View {
-        NavigationStack {
+        ElementNavigationStack {
             MediaUploadQualitySettingsScreen(context: viewModel.context)
         }
     }

@@ -1,5 +1,6 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
@@ -12,9 +13,8 @@ import SwiftUI
 typealias JoinRoomScreenViewModelType = StateStoreViewModel<JoinRoomScreenViewState, JoinRoomScreenViewAction>
 
 class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewModelProtocol {
-    private let roomID: String
-    private let via: [String]
-    private let appSettings: AppSettings
+    private let source: JoinRoomScreenSource
+    private let userSettings: UserSettings
     private let spacesSetting: SpacesSetting
     private let clientProxy: ClientProxyProtocol
     private let userIndicatorController: UserIndicatorControllerProtocol
@@ -23,25 +23,24 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
     private var room: RoomProxyType?
     private var isLoadingPreview = true
     private var membershipStateChangeCancellable: AnyCancellable?
+    private var hasSentJoinAction = false
     
     private let actionsSubject: PassthroughSubject<JoinRoomScreenViewModelAction, Never> = .init()
     var actionsPublisher: AnyPublisher<JoinRoomScreenViewModelAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
-
-    init(roomID: String,
-         via: [String],
-         appSettings: AppSettings,
+    
+    init(source: JoinRoomScreenSource,
          spacesSetting: SpacesSetting,
          userSession: UserSessionProtocol,
          userIndicatorController: UserIndicatorControllerProtocol) {
-        self.roomID = roomID
-        self.via = via
-        self.appSettings = appSettings
+        self.source = source
+        userSettings = userSession.userSettings
         self.spacesSetting = spacesSetting
         clientProxy = userSession.clientProxy
         self.userIndicatorController = userIndicatorController
         
+        let (roomID, _) = source.roomIDAndVia()
         super.init(initialViewState: JoinRoomScreenViewState(roomID: roomID), mediaProvider: userSession.mediaProvider)
         
         clientProxy.hideInviteAvatarsPublisher
@@ -50,16 +49,16 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
             .weakAssign(to: \.state.hideInviteAvatars, on: self)
             .store(in: &cancellables)
         
-        appSettings.$spacesEnabled
+        userSettings.app.spacesEnabledPublisher
             .weakAssign(to: \.state.isSpacesEnabled, on: self)
             .store(in: &cancellables)
         
         context.$viewState.map(\.mode)
             .removeDuplicates()
-            .sink { mode in
+            .sink { [userSettings = self.userSettings] mode in
                 switch mode {
                 case .invited:
-                    appSettings.seenInvites.insert(roomID)
+                    userSettings.account.seenInvites.insert(roomID)
                 default:
                     break
                 }
@@ -107,21 +106,26 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
         
         await updateRoom()
         
-        switch await clientProxy.roomPreviewForIdentifier(roomID, via: via) {
-        case .success(let roomPreview):
+        switch source {
+        case .generic(let roomID, let via):
+            switch await clientProxy.roomPreviewForIdentifier(roomID, via: via) {
+            case .success(let roomPreview):
+                isLoadingPreview = false
+                self.roomPreview = roomPreview
+                await updateRoomDetails()
+            case .failure(.roomPreviewIsPrivate):
+                // Handled by the mode, we don't need an error indicator.
+                isLoadingPreview = false
+            case .failure:
+                hideLoadingIndicator()
+                state.bindings.alertInfo = .init(id: .loadingError,
+                                                 title: L10n.commonError,
+                                                 message: L10n.screenJoinRoomLoadingAlertMessage,
+                                                 primaryButton: .init(title: L10n.actionTryAgain) { [weak self] in Task { await self?.loadRoomDetails() }},
+                                                 secondaryButton: .init(title: L10n.actionCancel, role: .cancel) { [weak self] in self?.actionsSubject.send(.dismiss) })
+            }
+        case .space:
             isLoadingPreview = false
-            self.roomPreview = roomPreview
-            await updateRoomDetails()
-        case .failure(.roomPreviewIsPrivate):
-            // Handled by the mode, we don't need an error indicator.
-            isLoadingPreview = false
-        case .failure:
-            hideLoadingIndicator()
-            state.bindings.alertInfo = .init(id: .loadingError,
-                                             title: L10n.commonError,
-                                             message: L10n.screenJoinRoomLoadingAlertMessage,
-                                             primaryButton: .init(title: L10n.actionTryAgain) { [weak self] in Task { await self?.loadRoomDetails() }},
-                                             secondaryButton: .init(title: L10n.actionCancel, role: .cancel) { [weak self] in self?.actionsSubject.send(.dismiss) })
         }
         
         hideLoadingIndicator()
@@ -134,7 +138,7 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
         // of giving us information for non-joined rooms (at least not on synapse)
         // See if we known about the room locally and, if so, have that
         // take priority over the preview one.
-        if let room = await clientProxy.roomForIdentifier(roomID) {
+        if let room = await clientProxy.roomForIdentifier(state.roomID) {
             self.room = room
             await updateRoomDetails()
         }
@@ -151,27 +155,52 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
         case .invited(let invitedRoomProxy):
             inviter = invitedRoomProxy.inviter.map(RoomInviterDetails.init)
             roomInfo = invitedRoomProxy.info
+            watchForMembershipChange(from: .invited)
         case .knocked(let knockedRoomProxy):
             roomInfo = knockedRoomProxy.info
-            membershipStateChangeCancellable = clientProxy
-                .staticRoomSummaryProvider
-                .roomListPublisher
-                .compactMap { summaries -> Void? in
-                    guard let roomSummary = summaries.first(where: { $0.id == roomInfo?.id }),
-                          roomSummary.room.membership() != .knocked else {
-                        return nil
-                    }
-                    return ()
-                }
-                .sink { [weak self] in
-                    Task { await self?.loadRoomDetails() }
-                }
+            watchForMembershipChange(from: .knocked)
         case .banned(let bannedRoomProxy):
             roomInfo = bannedRoomProxy.info
         default:
             break
         }
-
+        
+        switch source {
+        case .generic(let roomID, _):
+            await updateGenericRoomDetails(roomID: roomID, roomInfo: roomInfo, inviter: inviter)
+        case .space(let spaceServiceRoom):
+            await updateSpaceRoomDetails(spaceServiceRoom: spaceServiceRoom, inviter: inviter)
+        }
+        await updateMode()
+        
+        // The homeserver can join us to the room without a join request from this client:
+        // it auto-joined us after our knock was accepted
+        // (https://github.com/element-hq/synapse/issues/16307), or the invite was accepted
+        // on another of our devices. Advance into the room as if the join button had been
+        // tapped, matching Android's RoomFlowNode.
+        if case .joined = room {
+            await finishJoinAction()
+        }
+    }
+    
+    private func watchForMembershipChange(from membership: Membership) {
+        let roomID = state.roomID
+        membershipStateChangeCancellable = clientProxy
+            .staticRoomSummaryProvider
+            .roomListPublisher
+            .compactMap { summaries -> Void? in
+                guard let roomSummary = summaries.first(where: { $0.id == roomID }),
+                      roomSummary.room.membership() != membership else {
+                    return nil
+                }
+                return ()
+            }
+            .sink { [weak self] in
+                Task { await self?.loadRoomDetails() }
+            }
+    }
+    
+    private func updateGenericRoomDetails(roomID: String, roomInfo: BaseRoomInfoProxyProtocol?, inviter: RoomInviterDetails?) async {
         let info = roomPreview?.info ?? roomInfo
         let avatar: RoomAvatar? = if let avatar = info?.avatar {
             avatar
@@ -185,11 +214,26 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
                                                       canonicalAlias: info?.canonicalAlias,
                                                       avatar: avatar,
                                                       memberCount: info?.joinedMembersCount,
+                                                      heroes: [],
                                                       inviter: inviter,
                                                       isDirect: info?.isDirect,
-                                                      isSpace: info?.isSpace)
-        
-        await updateMode()
+                                                      isSpace: info?.isSpace,
+                                                      childrenCount: nil,
+                                                      spaceVisibility: nil)
+    }
+    
+    private func updateSpaceRoomDetails(spaceServiceRoom: SpaceServiceRoom, inviter: RoomInviterDetails?) async {
+        state.roomDetails = JoinRoomScreenRoomDetails(name: spaceServiceRoom.name,
+                                                      topic: spaceServiceRoom.topic,
+                                                      canonicalAlias: spaceServiceRoom.canonicalAlias,
+                                                      avatar: spaceServiceRoom.avatar,
+                                                      memberCount: spaceServiceRoom.joinedMembersCount,
+                                                      heroes: spaceServiceRoom.heroes,
+                                                      inviter: inviter,
+                                                      isDirect: spaceServiceRoom.isDirect,
+                                                      isSpace: spaceServiceRoom.isSpace,
+                                                      childrenCount: spaceServiceRoom.childrenCount,
+                                                      spaceVisibility: spaceServiceRoom.visibility)
     }
     
     private func updateMode() async {
@@ -198,12 +242,32 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
             return
         }
         
-        if roomPreview == nil, room == nil {
+        if case .generic = source, roomPreview == nil, room == nil {
             state.mode = .unknown
             return
         }
         
-        if let roomPreview {
+        if case .space(let spaceServiceRoom) = source {
+            switch spaceServiceRoom.state {
+            case .invited:
+                state.mode = .invited(isDM: spaceServiceRoom.isDM == true)
+            case .knocked:
+                state.mode = .knocked
+            case .banned:
+                state.mode = .banned(sender: nil, reason: nil)
+            default:
+                switch spaceServiceRoom.joinRule {
+                case .invite:
+                    state.mode = .inviteRequired
+                case .knock, .knockRestricted:
+                    state.mode = .knockable
+                case .restricted(let rules):
+                    state.mode = clientProxy.canJoinRoom(with: rules) ? .joinable : .restricted
+                default:
+                    state.mode = .joinable
+                }
+            }
+        } else if let roomPreview {
             let membershipDetails = await roomPreview.ownMembershipDetails
             
             switch roomPreview.info.membership {
@@ -216,10 +280,10 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
                                      reason: membershipDetails?.ownRoomMember.membershipChangeReason)
             default:
                 switch roomPreview.info.joinRule {
-                case .private, .invite:
+                case .invite:
                     state.mode = .inviteRequired
                 case .knock, .knockRestricted:
-                    state.mode = appSettings.knockingEnabled ? .knockable : .joinable
+                    state.mode = .knockable
                 case .restricted(let rules):
                     state.mode = clientProxy.canJoinRoom(with: rules) ? .joinable : .restricted
                 default:
@@ -281,6 +345,7 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
                 }
             }
         } else {
+            let (roomID, via) = source.roomIDAndVia()
             switch await clientProxy.joinRoom(roomID, via: via) {
             case .success:
                 await finishJoinAction()
@@ -301,15 +366,22 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
     }
     
     private func finishJoinAction() async {
-        appSettings.seenInvites.remove(roomID)
+        // A user-initiated join and a server-side one can complete concurrently:
+        // only ever advance once.
+        guard !hasSentJoinAction else { return }
+        
+        let roomID = state.roomID
+        userSettings.account.seenInvites.remove(roomID)
         
         guard state.roomDetails?.isSpace == true else {
+            hasSentJoinAction = true
             actionsSubject.send(.joined(.roomID(roomID)))
             return
         }
         
         switch await clientProxy.spaceService.spaceRoomList(spaceID: roomID) {
         case .success(let spaceRoomListProxy):
+            hasSentJoinAction = true
             actionsSubject.send(.joined(.space(spaceRoomListProxy)))
         case .failure(let error):
             MXLog.error("Failed to get the space room list after joining: \(error)")
@@ -335,6 +407,7 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
                 userIndicatorController.submitIndicator(.init(title: L10n.errorUnknown))
             }
         } else {
+            let (roomID, via) = source.roomIDAndVia()
             switch await clientProxy.knockRoom(roomID,
                                                via: via,
                                                message: state.bindings.knockMessage.isBlank ? nil : state.bindings.knockMessage) {
@@ -347,14 +420,14 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
             }
         }
     }
-        
+    
     private func showDeclineInviteConfirmationAlert() {
         guard let roomDetails = state.roomDetails else {
             userIndicatorController.submitIndicator(.init(title: L10n.errorUnknown))
             return
         }
         
-        let roomName = roomDetails.name ?? roomID
+        let roomName = roomDetails.name ?? state.roomID
         state.bindings.alertInfo = .init(id: .declineInvite,
                                          title: L10n.screenInvitesDeclineChatTitle,
                                          message: L10n.screenInvitesDeclineChatMessage(roomName),
@@ -395,11 +468,10 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
     
     @discardableResult
     private func declineInvite() async -> Bool {
-        defer {
-            userIndicatorController.retractIndicatorWithId(roomID)
-        }
+        let roomID = state.roomID
         
         userIndicatorController.submitIndicator(UserIndicator(id: roomID, type: .modal, title: L10n.commonLoading, persistent: true))
+        defer { userIndicatorController.retractIndicatorWithId(roomID) }
         
         guard case let .invited(roomProxy) = room else {
             userIndicatorController.submitIndicator(.init(title: L10n.errorUnknown))
@@ -413,18 +485,17 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
             return false
         }
         
-        appSettings.seenInvites.remove(roomID)
+        userSettings.account.seenInvites.remove(roomID)
         
         actionsSubject.send(.dismiss)
         return true
     }
     
     private func cancelKnock() async {
-        defer {
-            userIndicatorController.retractIndicatorWithId(roomID)
-        }
+        let roomID = state.roomID
         
         userIndicatorController.submitIndicator(UserIndicator(id: roomID, type: .modal, title: L10n.commonLoading, persistent: true))
+        defer { userIndicatorController.retractIndicatorWithId(roomID) }
         
         guard case let .knocked(roomProxy) = room else {
             userIndicatorController.submitIndicator(.init(title: L10n.errorUnknown))
@@ -441,11 +512,10 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
     }
     
     private func forgetRoom() async {
-        defer {
-            userIndicatorController.retractIndicatorWithId(roomID)
-        }
+        let roomID = state.roomID
         
         userIndicatorController.submitIndicator(UserIndicator(id: roomID, type: .modal, title: L10n.commonLoading, persistent: true))
+        defer { userIndicatorController.retractIndicatorWithId(roomID) }
         
         guard case let .banned(roomProxy) = room else {
             userIndicatorController.submitIndicator(.init(title: L10n.errorUnknown))

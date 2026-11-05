@@ -14,7 +14,7 @@ protocol IdentityResetGuardProtocol: AnyObject {
 
     /// Releases the guard when the call returns, even if no one awaits the task. A call while one
     /// is running returns the running task.
-    func runReset(_ handle: IdentityResetHandle, auth: AuthData?) -> Task<Result<Void, Error>, Never>
+    func runReset(_ handle: IdentityResetHandle, auth: AuthData) -> Task<Result<Void, Error>, Never>
 
     func releaseIfIdle() async
 }
@@ -74,7 +74,7 @@ final class IdentityResetGuard: IdentityResetGuardProtocol, @unchecked Sendable 
         startRefreshingMarker()
     }
 
-    func runReset(_ handle: IdentityResetHandle, auth: AuthData?) -> Task<Result<Void, Error>, Never> {
+    func runReset(_ handle: IdentityResetHandle, auth: AuthData) -> Task<Result<Void, Error>, Never> {
         lock.lock()
         if let inFlight {
             lock.unlock()

@@ -1,18 +1,19 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Foundation
 
-enum KnockRequestProxyError: Error {
+nonisolated enum KnockRequestProxyError: Error {
     case sdkError(Error)
 }
 
 // sourcery: AutoMockable
-protocol KnockRequestProxyProtocol {
+nonisolated protocol KnockRequestProxyProtocol: Sendable {
     var eventID: String { get }
     var userID: String { get }
     var displayName: String? { get }

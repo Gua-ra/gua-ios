@@ -1,5 +1,6 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
@@ -10,7 +11,7 @@ import SwiftUI
 
 struct ReportContentScreen: View {
     @Bindable var context: ReportContentScreenViewModel.Context
-
+    
     var body: some View {
         Form {
             reasonSection
@@ -24,7 +25,7 @@ struct ReportContentScreen: View {
         .toolbar { toolbar }
         .interactiveDismissDisabled()
     }
-
+    
     private var reasonSection: some View {
         Section {
             ListRow(label: .plain(title: L10n.screenReportContentHint),
@@ -46,7 +47,7 @@ struct ReportContentScreen: View {
                 .compoundListSectionFooter()
         }
     }
-
+    
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {
@@ -54,7 +55,7 @@ struct ReportContentScreen: View {
                 context.send(viewAction: .cancel)
             }
         }
-
+        
         ToolbarItem(placement: .confirmationAction) {
             Button(L10n.actionSend) {
                 context.send(viewAction: .submit)
@@ -72,7 +73,7 @@ struct ReportContentScreen_Previews: PreviewProvider, TestablePreview {
                                                         clientProxy: ClientProxyMock(.init()))
     
     static var previews: some View {
-        NavigationStack {
+        ElementNavigationStack {
             ReportContentScreen(context: viewModel.context)
         }
     }

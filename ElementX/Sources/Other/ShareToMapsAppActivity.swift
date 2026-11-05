@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -14,49 +15,52 @@ final class ShareToMapsAppActivity: UIActivity {
         case google
         case osm
     }
-
+    
     private let type: MapsAppType
     private let location: CLLocationCoordinate2D
-    private let locationDescription: String?
-
-    init(type: MapsAppType, location: CLLocationCoordinate2D, locationDescription: String?) {
+    private let senderName: String?
+    
+    init(type: MapsAppType, location: CLLocationCoordinate2D, senderName: String?) {
         self.type = type
         self.location = location
-        self.locationDescription = locationDescription
+        self.senderName = senderName
         super.init()
     }
-
-    override private init() {
+    
+    override private nonisolated init() {
         fatalError()
     }
-
-    override var activityTitle: String? {
+    
+    override nonisolated var activityTitle: String? {
         type.activityTitle
     }
-
-    override var activityType: UIActivity.ActivityType {
+    
+    override nonisolated var activityType: UIActivity.ActivityType {
         .shareToMapsApp
     }
-
-    override func canPerform(withActivityItems activityItems: [Any]) -> Bool {
+    
+    override nonisolated func canPerform(withActivityItems activityItems: [Any]) -> Bool {
         true
     }
-
-    override func prepare(withActivityItems activityItems: [Any]) {
-        UIApplication.shared.open(type.activityURL(for: location, locationDescription: locationDescription), options: [:]) { [weak self] result in
-            self?.activityDidFinish(result)
+    
+    override nonisolated func prepare(withActivityItems activityItems: [Any]) {
+        // UIActivity isn't annotated but UIKit guarantees this is called on the main thread.
+        MainActor.assumeIsolated {
+            UIApplication.shared.open(type.activityURL(for: location, senderName: senderName), options: [:]) { [weak self] result in
+                self?.activityDidFinish(result)
+            }
         }
     }
 }
 
-extension ShareToMapsAppActivity.MapsAppType {
-    func activityURL(for location: CLLocationCoordinate2D, locationDescription: String?) -> URL {
+nonisolated extension ShareToMapsAppActivity.MapsAppType {
+    func activityURL(for location: CLLocationCoordinate2D, senderName: String?) -> URL {
         switch self {
         case .apple:
             var url: URL = "https://maps.apple.com/"
             url.append(queryItems: [
                 .init(name: "ll", value: "\(location.latitude),\(location.longitude)"),
-                .init(name: "q", value: locationDescription ?? "Pin")
+                .init(name: "q", value: senderName ?? "Pin") // We need to provide a value or no marker is displayed.
             ])
             return url
         case .google:
@@ -75,7 +79,7 @@ extension ShareToMapsAppActivity.MapsAppType {
             return url
         }
     }
-
+    
     var activityTitle: String {
         switch self {
         case .apple:
@@ -88,6 +92,6 @@ extension ShareToMapsAppActivity.MapsAppType {
     }
 }
 
-private extension UIActivity.ActivityType {
+private nonisolated extension UIActivity.ActivityType {
     static let shareToMapsApp = UIActivity.ActivityType("ElementX.ShareToMapsApp")
 }

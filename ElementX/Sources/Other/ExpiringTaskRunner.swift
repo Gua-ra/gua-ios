@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -14,9 +15,9 @@ enum ExpiringTaskRunnerError: Error {
 actor ExpiringTaskRunner<T: Sendable> {
     private var continuation: CheckedContinuation<T, Error>?
     
-    private var task: () async throws -> T
+    private var task: @Sendable () async throws -> T
     
-    init(_ task: @escaping () async throws -> T) {
+    init(_ task: @escaping @Sendable () async throws -> T) {
         self.task = task
     }
     

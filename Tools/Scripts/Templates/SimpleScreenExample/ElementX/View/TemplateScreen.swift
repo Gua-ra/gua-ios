@@ -1,7 +1,7 @@
 //
-// Copyright 2022-2025 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -42,21 +42,22 @@ struct TemplateScreen: View {
 
 // MARK: - Previews
 
+@available(iOS 26.0, *)
 struct TemplateScreen_Previews: PreviewProvider, TestablePreview {
     static let viewModel = makeViewModel()
     static let incrementedViewModel = makeViewModel(counterValue: 1)
     
     static var previews: some View {
-        NavigationStack {
+        ElementNavigationStack {
             TemplateScreen(context: viewModel.context)
         }
         .previewDisplayName("Initial")
         
-        NavigationStack {
+        ElementNavigationStack {
             TemplateScreen(context: incrementedViewModel.context)
         }
         .previewDisplayName("Incremented")
-        .snapshotPreferences(expect: incrementedViewModel.context.observe(\.viewState.counter).map { $0 == 1 }.eraseToStream())
+        .snapshotPreferences(expect: incrementedViewModel.context.observe(\.viewState.counter).map { $0 == 1 })
     }
     
     static func makeViewModel(counterValue: Int = 0) -> TemplateScreenViewModel {

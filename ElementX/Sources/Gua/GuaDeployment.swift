@@ -17,7 +17,7 @@ import Foundation
 /// Production endpoints are the project's own `gua.global` domain and are safe to commit. **Development**
 /// endpoints are read from the injected `Secrets` (the Pkl secrets pipeline), so the non-public dev host
 /// is supplied per-machine / per-CI and never committed to this (public) repo.
-enum GuaDeployment {
+nonisolated enum GuaDeployment {
     case development
     case production
 

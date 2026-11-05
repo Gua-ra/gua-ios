@@ -47,7 +47,7 @@ private struct GuaAppSettingsHook: AppSettingsHookProtocol {
         // providers if nothing is configured.
         let injectedProvider = string(for: Constants.infoPlistAccountProviderKey)?.trimmingCharacters(in: .whitespacesAndNewlines)
         let resolvedProvider = (injectedProvider?.isEmpty == false ? injectedProvider : nil) ?? GuaDeployment.current.defaultAccountProvider
-        let accountProviders = resolvedProvider.map { [$0] } ?? appSettings.accountProviders
+        let accountProviders = resolvedProvider.map { [AccountProvider.generic($0)] } ?? appSettings.accountProviders
         let redirectURLString = string(for: Constants.infoPlistRedirectURLKey) ?? Constants.oidcRedirectURL
 
         guard let redirectURL = URL(string: redirectURLString) else {
@@ -61,7 +61,8 @@ private struct GuaAppSettingsHook: AppSettingsHookProtocol {
                              allowOtherAccountProviders: true,
                              hideBrandChrome: appSettings.hideBrandChrome,
                              pushGatewayBaseURL: GuaDeployment.current.pushGatewayBaseURL,
-                             oidcRedirectURL: redirectURL,
+                             oAuthRedirectURL: redirectURL,
+                             oAuthClientURIPath: nil,
                              websiteURL: Constants.websiteURL,
                              logoURL: Constants.logoURL,
                              copyrightURL: Constants.copyrightURL,
@@ -71,12 +72,13 @@ private struct GuaAppSettingsHook: AppSettingsHookProtocol {
                              deviceVerificationURL: appSettings.deviceVerificationURL,
                              chatBackupDetailsURL: Constants.chatBackupDetailsURL,
                              identityPinningViolationDetailsURL: appSettings.identityPinningViolationDetailsURL,
+                             historySharingDetailsURL: appSettings.historySharingDetailsURL,
                              elementWebHosts: appSettings.elementWebHosts,
                              accountProvisioningHost: appSettings.accountProvisioningHost,
                              bugReportApplicationID: appSettings.bugReportApplicationID,
                              analyticsTermsURL: appSettings.analyticsTermsURL,
-                             mapTilerConfiguration: appSettings.mapTilerConfiguration,
-                             oidcStaticRegistrations: staticRegistrations)
+                             mapTilerConfiguration: AppSettings.bundledMapTilerConfiguration,
+                             oAuthStaticRegistrations: staticRegistrations)
 
         return appSettings
     }

@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -20,8 +21,8 @@ struct UserProfileScreen: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { toolbar }
         .alert(item: $context.alertInfo)
-        .sheet(item: $context.inviteConfirmationUser) { user in
-            SendInviteConfirmationView(userToInvite: user,
+        .sheet(item: $context.inviteConfirmationUser) { userToInvite in
+            SendInviteConfirmationView(userToInvite: userToInvite,
                                        mediaProvider: context.mediaProvider) {
                 context.send(viewAction: .createDirectChat)
             }
@@ -42,9 +43,10 @@ struct UserProfileScreen: View {
                 context.send(viewAction: .displayAvatar(url))
             } footer: {
                 otherUserFooter
+                    .padding(.top, 8)
             }
         } else {
-            AvatarHeaderView(user: UserProfileProxy(userID: context.viewState.userID),
+            AvatarHeaderView(user: UserProfile(userID: context.viewState.userID),
                              isVerified: context.viewState.showVerifiedBadge,
                              avatarSize: .user(on: .memberDetails),
                              mediaProvider: context.mediaProvider) { }
@@ -63,13 +65,22 @@ struct UserProfileScreen: View {
                 .accessibilityIdentifier(A11yIdentifiers.roomMemberDetailsScreen.directChat)
             }
             
-            if let roomID = context.viewState.dmRoomID {
+            if let roomID = context.viewState.dmRoomID, context.viewState.isCallingEnabled {
                 Button {
-                    context.send(viewAction: .startCall(roomID: roomID))
+                    context.send(viewAction: .startCall(roomID: roomID, isVoiceCall: true))
+                } label: {
+                    CompoundIcon(\.voiceCall)
+                }
+                .accessibilityLabel(L10n.a11yStartVoiceCall)
+                .buttonStyle(FormActionButtonStyle(title: L10n.actionCall))
+                
+                Button {
+                    context.send(viewAction: .startCall(roomID: roomID, isVoiceCall: false))
                 } label: {
                     CompoundIcon(\.videoCall)
                 }
-                .buttonStyle(FormActionButtonStyle(title: L10n.actionCall))
+                .accessibilityLabel(L10n.a11yStartVideoCall)
+                .buttonStyle(FormActionButtonStyle(title: L10n.commonVideo))
             }
             
             if let permalink = context.viewState.permalink {
@@ -79,9 +90,8 @@ struct UserProfileScreen: View {
                 .buttonStyle(FormActionButtonStyle(title: L10n.actionShare))
             }
         }
-        .padding(.top, 32)
     }
-        
+    
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
         if context.viewState.isPresentedModally {
@@ -96,6 +106,7 @@ struct UserProfileScreen: View {
 
 // MARK: - Previews
 
+@available(iOS 26.0, *)
 struct UserProfileScreen_Previews: PreviewProvider, TestablePreview {
     static let verifiedUserViewModel = makeViewModel(userID: RoomMemberProxyMock.mockDan.userID)
     static let otherUserViewModel = makeViewModel(userID: RoomMemberProxyMock.mockAlice.userID)
@@ -105,42 +116,42 @@ struct UserProfileScreen_Previews: PreviewProvider, TestablePreview {
 
     static var previews: some View {
         UserProfileScreen(context: verifiedUserViewModel.context)
-            .snapshotPreferences(expect: verifiedUserViewModel.context.observe(\.viewState.isVerified).map { $0 != nil }.eraseToStream())
+            .snapshotPreferences(expect: verifiedUserViewModel.context.observe(\.viewState.isVerified).map { $0 != nil })
             .previewDisplayName("Verified User")
 
         UserProfileScreen(context: otherUserViewModel.context)
-            .snapshotPreferences(expect: otherUserViewModel.context.observe(\.viewState.isVerified).map { $0 != nil }.eraseToStream())
+            .snapshotPreferences(expect: otherUserViewModel.context.observe(\.viewState.isVerified).map { $0 != nil })
             .previewDisplayName("Other User")
 
         UserProfileScreen(context: accountOwnerViewModel.context)
-            .snapshotPreferences(expect: accountOwnerViewModel.context.observe(\.viewState.isVerified).map { $0 != nil }.eraseToStream())
+            .snapshotPreferences(expect: accountOwnerViewModel.context.observe(\.viewState.isVerified).map { $0 != nil })
             .previewDisplayName("Account Owner")
 
         UserProfileScreen(context: guaMarketingViewModel.context)
             .environment(\.colorScheme, .dark)
             .preferredColorScheme(.dark)
-            .snapshotPreferences(expect: guaMarketingViewModel.context.observe(\.viewState.userProfile).map { $0 != nil }.eraseToStream())
+            .snapshotPreferences(expect: guaMarketingViewModel.context.observe(\.viewState.userProfile).map { $0 != nil })
             .previewDisplayName("GuaMarketingPerfil")
     }
 
-    static func makeViewModel(userID: String, profile: UserProfileProxy? = nil) -> UserProfileScreenViewModel {
+    static func makeViewModel(userID: String, profile: UserProfile? = nil) -> UserProfileScreenViewModel {
         let clientProxyMock = ClientProxyMock(.init())
-
-        clientProxyMock.userIdentityForClosure = { userID in
+        
+        clientProxyMock.userIdentityForFallBackToServerClosure = { userID, _ in
             let identity = switch userID {
             case RoomMemberProxyMock.mockDan.userID:
-                UserIdentityProxyMock(configuration: .init(verificationState: .verified))
+                UserIdentityProxyMock(.init(verificationState: .verified))
             default:
-                UserIdentityProxyMock(configuration: .init())
+                UserIdentityProxyMock(.init())
             }
 
             return .success(identity)
         }
-
+        
         if let profile {
             clientProxyMock.profileForReturnValue = .success(profile)
         }
-
+        
         if userID != RoomMemberProxyMock.mockMe.userID {
             clientProxyMock.directRoomForUserIDReturnValue = .success("roomID")
         }
@@ -148,7 +159,7 @@ struct UserProfileScreen_Previews: PreviewProvider, TestablePreview {
         return UserProfileScreenViewModel(userID: userID,
                                           isPresentedModally: false,
                                           userSession: UserSessionMock(.init(clientProxy: clientProxyMock)),
-                                          userIndicatorController: ServiceLocator.shared.userIndicatorController,
-                                          analytics: ServiceLocator.shared.analytics)
+                                          analytics: AnalyticsServiceMock(.init()),
+                                          userIndicatorController: UserIndicatorControllerMock())
     }
 }

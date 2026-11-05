@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -41,12 +42,12 @@ class AudioPlayer: NSObject, AudioPlayerProtocol {
     
     private let audioSession = AVAudioSession.sharedInstance()
     
-    // periphery:ignore - when set to nil is automatically cancelled
     @CancellableTask private var releaseAudioSessionTask: Task<Void, Never>?
     
     private let releaseAudioSessionTimeoutInterval = 5.0
     
     private(set) var playbackURL: URL?
+    private(set) var playbackSpeed: Float = 1.0
     
     private var deinitInProgress = false
     
@@ -80,7 +81,7 @@ class AudioPlayer: NSObject, AudioPlayerProtocol {
     
     private var isStopped = true
     
-    deinit {
+    isolated deinit {
         deinitInProgress = true
         stop()
         unloadContent()
@@ -105,7 +106,7 @@ class AudioPlayer: NSObject, AudioPlayerProtocol {
     func play() {
         isStopped = false
         setupAudioSession()
-        internalAudioPlayer?.play()
+        internalAudioPlayer?.rate = playbackSpeed
     }
     
     func pause() {
@@ -126,6 +127,13 @@ class AudioPlayer: NSObject, AudioPlayerProtocol {
         guard let internalAudioPlayer else { return }
         let time = progress * duration
         await internalAudioPlayer.seek(to: CMTime(seconds: time, preferredTimescale: 60))
+    }
+    
+    func setPlaybackSpeed(_ speed: Float) {
+        playbackSpeed = speed
+        if state == .playing {
+            internalAudioPlayer?.rate = speed
+        }
     }
     
     // MARK: - Private
@@ -169,41 +177,55 @@ class AudioPlayer: NSObject, AudioPlayerProtocol {
         playerItem = nil
         removeObservers()
     }
-
+    
     private func addObservers() {
-        guard let internalAudioPlayer, let playerItem else {
+        // Deliberately not shadowing the properties, the observers compare against them to detect stale updates.
+        guard let currentAudioPlayer = internalAudioPlayer, let currentItem = playerItem else {
             return
         }
         
-        statusObserver = playerItem.observe(\.status, options: [.old, .new]) { [weak self] _, _ in
-            guard let self else { return }
-            
-            switch playerItem.status {
-            case .failed:
-                setInternalState(.error(playerItem.error ?? AudioPlayerError.genericError))
-            case .readyToPlay:
-                guard state == .loading else { return }
-                setInternalState(.readyToPlay)
-            default:
-                break
-            }
-        }
+        statusObserver = currentItem.observe(\.status, options: [.old, .new]) { [weak self] item, _ in
+            // KVO fires on an arbitrary thread, hop to the main actor with the values we need.
+            let status = item.status
+            let error = item.error
+            Task { @MainActor [weak self] in
+                // Ignore an update that was queued before the content was replaced, it would leave
+                // the state out of sync with the item that is loaded now.
+                guard let self, item === playerItem else { return }
                 
-        rateObserver = internalAudioPlayer.observe(\.rate, options: [.old, .new]) { [weak self] _, _ in
-            guard let self else { return }
-            
-            if internalAudioPlayer.rate == 0 {
-                if isStopped {
-                    setInternalState(.stopped)
-                } else {
-                    setInternalState(.paused)
+                switch status {
+                case .failed:
+                    setInternalState(.error(error ?? AudioPlayerError.genericError))
+                case .readyToPlay:
+                    guard state == .loading else { return }
+                    setInternalState(.readyToPlay)
+                default:
+                    break
                 }
-            } else {
-                setInternalState(.playing)
             }
         }
+        
+        rateObserver = currentAudioPlayer.observe(\.rate, options: [.old, .new]) { [weak self] player, _ in
+            // KVO fires on an arbitrary thread, hop to the main actor with the values we need.
+            let rate = player.rate
+            Task { @MainActor [weak self] in
+                guard let self, player === internalAudioPlayer else { return }
                 
-        NotificationCenter.default.publisher(for: Notification.Name.AVPlayerItemDidPlayToEndTime)
+                if rate == 0 {
+                    if isStopped {
+                        setInternalState(.stopped)
+                    } else {
+                        setInternalState(.paused)
+                    }
+                } else {
+                    setInternalState(.playing)
+                }
+            }
+        }
+        
+        NotificationCenter.default.publisher(for: Notification.Name.AVPlayerItemDidPlayToEndTime, object: currentItem)
+            // The notification isn't posted on the main thread, unlike the state updates it triggers.
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 guard let self else { return }
                 setInternalState(.finishedPlaying)

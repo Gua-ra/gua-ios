@@ -1,17 +1,19 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Foundation
-import Kingfisher
 import MatrixRustSDK
 
 class UserSessionStore: UserSessionStoreProtocol {
     private let keychainController: KeychainControllerProtocol
+    private let clientFactory: ClientFactoryProtocol
     private let appSettings: AppSettings
+    private let analyticsService: AnalyticsServiceProtocol
     private let networkMonitor: NetworkMonitorProtocol
     private let appHooks: AppHooks
     
@@ -19,7 +21,7 @@ class UserSessionStore: UserSessionStoreProtocol {
     var hasSessions: Bool {
         !keychainController.restorationTokens().isEmpty
     }
-
+    
     /// All the user IDs managed by the store.
     var userIDs: [String] {
         keychainController.restorationTokens().map(\.userID)
@@ -30,11 +32,15 @@ class UserSessionStore: UserSessionStoreProtocol {
     }
     
     init(keychainController: KeychainControllerProtocol,
+         clientFactory: ClientFactoryProtocol = ClientFactory(),
          appSettings: AppSettings,
+         analyticsService: AnalyticsServiceProtocol,
          appHooks: AppHooks,
          networkMonitor: NetworkMonitorProtocol) {
         self.keychainController = keychainController
+        self.clientFactory = clientFactory
         self.appSettings = appSettings
+        self.analyticsService = analyticsService
         self.appHooks = appHooks
         self.networkMonitor = networkMonitor
     }
@@ -46,33 +52,39 @@ class UserSessionStore: UserSessionStoreProtocol {
         keychainController.removeAllRestorationTokens()
     }
     
-    func restoreUserSession() async -> Result<UserSessionProtocol, UserSessionStoreError> {
-        let availableCredentials = keychainController.restorationTokens()
-        
-        guard let credentials = availableCredentials.first else {
-            return .failure(.missingCredentials)
+    func restoreUserSession(userID: String) async -> Result<UserSessionProtocol, UserSessionStoreError> {
+        guard let credentials = keychainController.restorationTokens().first(where: { $0.userID == userID }) else {
+            return .failure(.unknownAccount)
         }
         
-        switch await restorePreviousLogin(credentials) {
+        let userSettings = appHooks.userSessionHook.configure(appSettings.userSettings(for: credentials.userID),
+                                                              forHomeserver: credentials.restorationToken.session.homeserverUrl)
+        
+        switch await restorePreviousLogin(credentials, userSettings: userSettings) {
         case .success(let clientProxy):
             restoreKeyStorageIfNeeded(clientProxy)
-            return .success(buildUserSessionWithClient(clientProxy))
+            return await .success(buildUserSessionWithClient(clientProxy, userSettings: userSettings))
         case .failure(let error):
             MXLog.error("Failed restoring login with error: \(error)")
             
             // On any restoration failure reset the token and restart
             keychainController.removeRestorationTokenForUsername(credentials.userID)
-            credentials.restorationToken.sessionDirectories.delete()
+            do {
+                try credentials.restorationToken.sessionDirectories.delete()
+            } catch {
+                fatalError("Failed deleting session directories with error \(error)")
+            }
             
             return .failure(error)
         }
     }
     
-    func userSession(for client: ClientProtocol, sessionDirectories: SessionDirectories, passphrase: String) async -> Result<UserSessionProtocol, UserSessionStoreError> {
+    func userSession(for client: ClientProtocol, sessionDirectories: SessionDirectories, passphrase: Data) async -> Result<UserSessionProtocol, UserSessionStoreError> {
         do {
             let session = try client.session()
             let userID = try client.userId()
-            let clientProxy = try await setupProxyForClient(client)
+            let userSettings = appHooks.userSessionHook.configure(appSettings.userSettings(for: userID), forHomeserver: client.homeserver())
+            let clientProxy = try await setupProxyForClient(client, userSettings: userSettings)
             
             keychainController.setRestorationToken(RestorationToken(session: session,
                                                                     sessionDirectories: sessionDirectories,
@@ -81,10 +93,10 @@ class UserSessionStore: UserSessionStoreProtocol {
                                                    forUsername: userID)
             
             MXLog.info("Set up session for user \(userID) at: \(sessionDirectories)")
-
+            
             bootstrapKeyStorageIfNeeded(clientProxy)
-
-            return .success(buildUserSessionWithClient(clientProxy))
+            
+            return await .success(buildUserSessionWithClient(clientProxy, userSettings: userSettings))
         } catch {
             MXLog.error("Failed creating user session with error: \(error)")
             return .failure(.failedSettingUpSession)
@@ -101,12 +113,12 @@ class UserSessionStore: UserSessionStoreProtocol {
         appSettings.setHasBootstrappedKeyStorage(false, forUserID: userID)
         
         if let credentials {
-            credentials.restorationToken.sessionDirectories.delete()
+            try? credentials.restorationToken.sessionDirectories.delete()
         }
     }
-        
+    
     // MARK: - Private
-
+    
     /// On a brand new login, automatically enables key backup, generates a recovery key and stores
     /// it in the keychain so that re-logins on this device can restore silently.
     ///
@@ -183,7 +195,7 @@ class UserSessionStore: UserSessionStoreProtocol {
                 }
 
                 MXLog.info("Bootstrapping key storage: generating recovery key.")
-                switch await secureBackupController.generateRecoveryKey() {
+                switch await secureBackupController.generateRecoveryKey(withPassphrase: nil) {
                 case .success(let key):
                     keychainController.setRecoveryKey(key, forUsername: userID)
 
@@ -251,7 +263,7 @@ class UserSessionStore: UserSessionStoreProtocol {
                 // exercise exists to remove. Provision it for them instead.
                 if state == .disabled {
                     MXLog.info("GUA-KEYSTORE: recovery disabled, provisioning it silently.")
-                    switch await secureBackupController.generateRecoveryKey() {
+                    switch await secureBackupController.generateRecoveryKey(withPassphrase: nil) {
                     case .success(let key):
                         // GUA FORK: a successful call is not enough, recovery has to actually reach
                         // `.enabled`. Keep the returned key even when recovery stays incomplete: it
@@ -332,50 +344,45 @@ class UserSessionStore: UserSessionStoreProtocol {
         }
     }
 
-    private func buildUserSessionWithClient(_ clientProxy: ClientProxyProtocol) -> UserSessionProtocol {
+    private func buildUserSessionWithClient(_ clientProxy: ClientProxyProtocol, userSettings: UserSettings) async -> UserSessionProtocol {
         let mediaProvider = MediaProvider(mediaLoader: clientProxy.mediaLoader,
                                           imageCache: .onlyInMemory,
                                           homeserverReachabilityPublisher: clientProxy.homeserverReachabilityPublisher)
         
         let voiceMessageMediaManager = VoiceMessageMediaManager(mediaProvider: mediaProvider)
         
+        let liveLocationService = LiveLocationService(clientProxy: clientProxy, userSettings: userSettings)
+        
+        let notificationService = NotificationService(clientProxy: clientProxy, userSettings: userSettings)
+        
         return UserSession(clientProxy: clientProxy,
+                           userSettings: userSettings,
+                           userHooks: appHooks.userSessionHook.makeUserHooks(for: clientProxy),
                            mediaProvider: mediaProvider,
-                           voiceMessageMediaManager: voiceMessageMediaManager)
+                           voiceMessageMediaManager: voiceMessageMediaManager,
+                           liveLocationService: liveLocationService,
+                           notificationService: notificationService)
     }
     
-    private func restorePreviousLogin(_ credentials: KeychainCredentials) async -> Result<ClientProxyProtocol, UserSessionStoreError> {
+    private func restorePreviousLogin(_ credentials: KeychainCredentials, userSettings: UserSettings) async -> Result<ClientProxyProtocol, UserSessionStoreError> {
         guard credentials.restorationToken.sessionDirectories.isNonTransientUserDataValid() else {
             MXLog.error("Failed restoring login, missing non-transient user data")
             return .failure(.failedRestoringLogin)
         }
         
-        let homeserverURL = credentials.restorationToken.session.homeserverUrl
-        appHooks.remoteSettingsHook.loadCache(forHomeserver: homeserverURL, applyingTo: appSettings)
-        
-        let builder = ClientBuilder
-            .baseBuilder(httpProxy: URL(string: homeserverURL)?.globalProxy,
-                         slidingSync: .restored,
-                         sessionDelegate: keychainController,
-                         appHooks: appHooks,
-                         enableOnlySignedDeviceIsolationMode: appSettings.enableOnlySignedDeviceIsolationMode,
-                         enableKeyShareOnInvite: appSettings.enableKeyShareOnInvite,
-                         threadsEnabled: appSettings.threadsEnabled)
-            .sqliteStore(config: .init(dataPath: credentials.restorationToken.sessionDirectories.dataPath,
-                                       cachePath: credentials.restorationToken.sessionDirectories.cachePath)
-                    .passphrase(passphrase: credentials.restorationToken.passphrase))
-            .username(username: credentials.userID)
-            .homeserverUrl(url: homeserverURL)
+        appHooks.remoteSettingsHook.loadCache(forHomeserver: credentials.restorationToken.session.homeserverUrl, applyingTo: appSettings)
         
         do {
-            let client = try await builder.build()
-            try await client.restoreSession(session: credentials.restorationToken.session)
+            let client = try await clientFactory.makeAppClient(credentials: credentials,
+                                                               clientSessionDelegate: keychainController,
+                                                               appSettings: appSettings,
+                                                               appHooks: appHooks)
             
             MXLog.info("Set up session for user \(credentials.userID) at: \(credentials.restorationToken.sessionDirectories)")
             
             Task(priority: .low) { await appHooks.remoteSettingsHook.updateCache(using: client) }
             
-            return try await .success(setupProxyForClient(client))
+            return try await .success(setupProxyForClient(client, userSettings: userSettings))
         } catch UserSessionStoreError.failedSettingUpClientProxy(let error) {
             // If this has failed, there is likely something wrong with the creation of the sync service
             // There is nothing we can do, but at the same time we don't want the user to the get logged out
@@ -387,14 +394,15 @@ class UserSessionStore: UserSessionStoreProtocol {
         }
     }
     
-    private func setupProxyForClient(_ client: ClientProtocol) async throws -> ClientProxyProtocol {
+    private func setupProxyForClient(_ client: ClientProtocol, userSettings: UserSettings) async throws -> ClientProxyProtocol {
         do {
             // GUA FORK: a recovery key minted by the secure backup controller replaces this
             // account's stored one at once. The keychain itself stays here.
             let userID = try client.userId()
             return try await ClientProxy(client: client,
                                          networkMonitor: networkMonitor,
-                                         appSettings: appSettings,
+                                         userSettings: userSettings,
+                                         analyticsService: analyticsService,
                                          persistRecoveryKey: { [keychainController] key in
                                              keychainController.setRecoveryKey(key, forUsername: userID)
                                          })

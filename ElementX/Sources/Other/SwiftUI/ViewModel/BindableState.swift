@@ -1,14 +1,14 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Foundation
 
 /// Represents a specific portion of the ViewState that can be bound to with SwiftUI's [2-way binding](https://developer.apple.com/documentation/swiftui/binding).
-@MainActor
 protocol BindableState {
     /// The associated type of the Bindable State. Defaults to Void.
     associatedtype BindStateType = Void

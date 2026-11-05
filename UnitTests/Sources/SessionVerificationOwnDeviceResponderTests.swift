@@ -14,13 +14,13 @@ final class SessionVerificationOwnDeviceResponderTests: XCTestCase {
     private var controller: SessionVerificationControllerProxyMock!
     private var cancellables = Set<AnyCancellable>()
 
-    private let ownDeviceRequest = SessionVerificationRequestDetails(senderProfile: UserProfileProxy(userID: "@alice:gua.test"),
+    private let ownDeviceRequest = SessionVerificationRequestDetails(senderProfile: UserProfile(userID: "@alice:gua.test"),
                                                                      flowID: "flow",
                                                                      deviceID: "WEB",
                                                                      deviceDisplayName: "Gua Web",
                                                                      firstSeenDate: .init(timeIntervalSince1970: 0))
 
-    private let otherUserRequest = SessionVerificationRequestDetails(senderProfile: UserProfileProxy(userID: "@bob:gua.test"),
+    private let otherUserRequest = SessionVerificationRequestDetails(senderProfile: UserProfile(userID: "@bob:gua.test"),
                                                                      flowID: "flow",
                                                                      deviceID: "BOBPHONE",
                                                                      deviceDisplayName: nil,
@@ -29,7 +29,11 @@ final class SessionVerificationOwnDeviceResponderTests: XCTestCase {
     override func setUp() {
         cancellables.removeAll()
         controller = SessionVerificationControllerProxyMock.configureMock(requestDelay: .milliseconds(10))
-        controller.acceptVerificationRequestReturnValue = .success(())
+        let actions = controller.actions
+        controller.acceptVerificationRequestClosure = {
+            actions.send(.acceptedVerificationRequest)
+            return .success(())
+        }
     }
 
     // MARK: - Starting the emoji check
@@ -46,17 +50,15 @@ final class SessionVerificationOwnDeviceResponderTests: XCTestCase {
         XCTAssertEqual(controller.startSasVerificationCallsCount, 1)
     }
 
-    func testAcceptingAnotherUsersRequestStillWaitsForStart() async throws {
+    func testAcceptingAnotherUsersRequestAlsoStartsTheEmojiCheck() async throws {
         let viewModel = makeViewModel(flow: .userResponder(requestDetails: otherUserRequest))
         let context = viewModel.context
-        let deferred = deferFulfillment(context.$viewState) { $0.verificationState == .verificationRequestAccepted }
+        let deferred = deferFulfillment(context.$viewState) { $0.verificationState == .showingChallenge(emojis: SessionVerificationControllerProxyMock.emojis) }
 
         context.send(viewAction: .acceptVerificationRequest)
         try await deferred.fulfill()
-        try await Task.sleep(for: .milliseconds(100))
 
-        XCTAssertEqual(context.viewState.verificationState, .verificationRequestAccepted)
-        XCTAssertEqual(controller.startSasVerificationCallsCount, 0)
+        XCTAssertEqual(controller.startSasVerificationCallsCount, 1)
     }
 
     func testOwnDeviceDoesNotStartTwiceWhenTheOtherSideStartedFirst() async throws {
@@ -64,6 +66,7 @@ final class SessionVerificationOwnDeviceResponderTests: XCTestCase {
         controller.acceptVerificationRequestClosure = {
             actions.send(.startedSasVerification)
             try? await Task.sleep(for: .milliseconds(50))
+            actions.send(.acceptedVerificationRequest)
             return .success(())
         }
         let viewModel = makeViewModel(flow: .deviceResponder(requestDetails: ownDeviceRequest))
@@ -184,8 +187,7 @@ final class SessionVerificationOwnDeviceResponderTests: XCTestCase {
                                verificationState: SessionVerificationScreenStateMachine.State = .initial) -> SessionVerificationScreenViewModel {
         SessionVerificationScreenViewModel(sessionVerificationControllerProxy: controller,
                                            flow: flow,
-                                           appSettings: AppSettings(),
-                                           mediaProvider: MediaProviderMock(configuration: .init()),
+                                           userSession: UserSessionMock(.init()),
                                            verificationState: verificationState)
     }
 

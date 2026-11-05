@@ -22,6 +22,9 @@ schemes:
         - variable: HTTPS_PROXY
           value: localhost:9090
           isEnabled: false
+        - variable: HTTP_PROXY
+          value: localhost:9090
+          isEnabled: false
         - variable: UI_TESTS_SCREEN
           value: ""
           isEnabled: false
@@ -54,11 +57,6 @@ targets:
           [
             {
               CFBundleTypeRole: Editor,
-              CFBundleURLName: "Element Call",
-              CFBundleURLSchemes: [io.element.call],
-            },
-            {
-              CFBundleTypeRole: Editor,
               CFBundleURLName: "Application",
               CFBundleURLSchemes: [
                   $(BASE_BUNDLE_IDENTIFIER), # The app's own scheme for custom routes
@@ -66,6 +64,8 @@ targets:
                 ],
             },
           ]
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: true
         UISupportedInterfaceOrientations:
           [
             UIInterfaceOrientationPortrait,
@@ -77,6 +77,7 @@ targets:
         baseBundleIdentifier: $(BASE_BUNDLE_IDENTIFIER)
         keychainAccessGroupIdentifier: $(KEYCHAIN_ACCESS_GROUP_IDENTIFIER)
         productionAppName: $(PRODUCTION_APP_NAME)
+        isNightlyBuild: $(IS_NIGHTLY_BUILD)
         GuaDefaultAccountProvider: $(DEFAULT_ACCOUNT_PROVIDER)
         GuaOidcRedirectURL: $(OIDC_REDIRECT_URL)
         GuaOidcStaticRegistrations: $(OIDC_STATIC_REGISTRATIONS)
@@ -91,11 +92,15 @@ targets:
         NSMicrophoneUsageDescription: To record and send messages with audio, $(APP_DISPLAY_NAME) needs access to the microphone.
         NSPhotoLibraryAddUsageDescription: This lets you save images and videos to your photo library.
         NSLocationWhenInUseUsageDescription: Allow location access so that $(APP_DISPLAY_NAME) can share your location.
+        NSLocationAlwaysAndWhenInUseUsageDescription: To share your live location, $(APP_DISPLAY_NAME) needs location access when the app is in the background.
         NSFaceIDUsageDescription: $(APP_DISPLAY_NAME) uses Face ID to unlock the app, so you don’t have to type your passcode every time.
         NSContactsUsageDescription: $(APP_DISPLAY_NAME) checks your contacts privately to find which of them are already here. Your contacts are never stored.
-        UIBackgroundModes: [audio, fetch, processing, voip]
+        UIBackgroundModes: [audio, fetch, processing, voip, location]
         BGTaskSchedulerPermittedIdentifiers:
-          [$(BACKGROUND_APP_REFRESH_TASK_IDENTIFIER)]
+          [
+            $(BACKGROUND_APP_REFRESH_TASK_IDENTIFIER),
+            $(BACKGROUND_SEARCH_BACKFILL_TASK_IDENTIFIER),
+          ]
         UTExportedTypeDeclarations:
           - UTTypeConformsTo: [public.text]
             UTTypeDescription: Mention Pills
@@ -121,8 +126,6 @@ targets:
         #        - applinks:staging.element.io
         #        - applinks:develop.element.io
         #        - applinks:mobile.element.io
-        #        - applinks:call.element.io
-        #        - applinks:call.element.dev
         #        - applinks:matrix.to
         #        # - applinks:localhost?mode=developer # developer mode only works with https (but self-signed is fine).
         #        - webcredentials:*.element.io
@@ -145,7 +148,10 @@ targets:
         SWIFT_OBJC_BRIDGING_HEADER: ElementX/SupportingFiles/ElementX-Bridging-Header.h
         SWIFT_OBJC_INTERFACE_HEADER_NAME: GeneratedInterface-Swift.h
         PILLS_UT_TYPE_IDENTIFIER: $(BASE_BUNDLE_IDENTIFIER).pills
-        DEVELOPMENT_ASSET_PATHS: DevelopmentAssets/Media
+        DEVELOPMENT_ASSET_PATHS: Components/DevelopmentAssets/Media
+        SWIFT_VERSION: 6
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
         OTHER_SWIFT_FLAGS:
           - "-DIS_MAIN_APP"
       configs:
@@ -243,22 +249,38 @@ targets:
     dependencies:
       - target: NSE
       - target: ShareExtension
+      - target: MatrixRustSDKMocks
       - package: MatrixRustSDK
         embed: true
       - package: Compound
+      - package: BuildExtensions
+        product: Macros
       - package: Algorithms
+      - package: AsyncAlgorithms
       - package: AnalyticsEvents
       - package: Collections
       - package: DeviceKit
-      - package: DTCoreText
       - package: EmbeddedElementCall
       - package: KeychainAccess
       - package: Kingfisher
       - package: KZFileWatchers
       - package: LoremSwiftum
       - package: LRUCache
-      - package: Mapbox
-      - package: Mutex
+      - package: Mantis
+      - target: MapLibreInterface
+        embed: true
+      # Embedded but not linked, dlopen'd on first map use
+      - target: MapLibreShim
+        link: false
+        embed: true
+      # The app just embeds the framework so it's in the bundle for the shim's load
+      # command to resolve against.
+      - framework: ../../MapLibre.framework
+        implicit: true
+        link: false
+        embed: true
+      - package: ElementCall
+        product: ElementCall
       - package: PostHog
       - package: SwiftState
       - package: GZIP
@@ -271,6 +293,8 @@ targets:
       - package: WysiwygComposer
       - package: SwiftOGG
       - package: SwiftSoup
+      - package: SwiftFlow
+        product: Flow
       - package: DSWaveformImage
         product: DSWaveformImageViews
 
@@ -279,26 +303,29 @@ targets:
         excludes:
           - Other/Extensions/XCTestCase.swift
           - Other/Extensions/XCUIElement.swift
-      - path: ../../Secrets/Secrets.swift
+      - path: ../../Components/Secrets/Secrets.swift
       - path: ../Resources
         # Upstream's other languages stay on disk for the Localazy sync but never ship.
         excludes:
+          - Localizations/ar.lproj
           - Localizations/be.lproj
           - Localizations/bg.lproj
+          - Localizations/ca.lproj
           - Localizations/cs.lproj
           - Localizations/cy.lproj
           - Localizations/da.lproj
           - Localizations/de.lproj
           - Localizations/el.lproj
           - Localizations/en-US.lproj
-          - Localizations/eo.lproj
           - Localizations/et.lproj
           - Localizations/eu.lproj
           - Localizations/fa.lproj
           - Localizations/fi.lproj
+          - Localizations/hr.lproj
           - Localizations/hu.lproj
           - Localizations/id.lproj
           - Localizations/it.lproj
+          - Localizations/ja.lproj
           - Localizations/ka.lproj
           - Localizations/ko.lproj
           - Localizations/lt.lproj
@@ -314,8 +341,16 @@ targets:
           - Localizations/uk.lproj
           - Localizations/ur.lproj
           - Localizations/uz.lproj
+          - Localizations/vi.lproj
           - Localizations/zh-Hans.lproj
           - Localizations/zh-Hant-TW.lproj
       - path: ../SupportingFiles
       - path: ../../Tools/Scripts/Templates/SimpleScreenExample/ElementX
-      - path: ../../DevelopmentAssets/Media
+      - path: ../../Components/DevelopmentAssets/Media
+
+      # This is required for testing purposes... The problem with unit tests is that if you
+      # try to `@testable import NSE` you can only get the definition of files, but due to a
+      # limitation in how they work, they can only compile files that are part of the main test
+      # target, so linking will fail. The solution is to just have the main app to reference the
+      # extension code, and test it directly.
+      - path: ../../NSE/Sources

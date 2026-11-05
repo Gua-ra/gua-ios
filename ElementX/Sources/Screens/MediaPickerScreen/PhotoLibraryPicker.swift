@@ -1,5 +1,6 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
@@ -31,15 +32,15 @@ struct PhotoLibraryPicker: UIViewControllerRepresentable {
         self.userIndicatorController = userIndicatorController
         self.callback = callback
     }
-
+    
     func makeUIViewController(context: Context) -> PHPickerViewController {
         var configuration = PHPickerConfiguration(photoLibrary: .shared())
         configuration.selection = .ordered
         configuration.selectionLimit = switch selectionType {
         case .single:
             1
-        case .multiple:
-            10
+        case .multiple(let limit):
+            limit
         }
         
         let pickerViewController = PHPickerViewController(configuration: configuration)
@@ -49,9 +50,19 @@ struct PhotoLibraryPicker: UIViewControllerRepresentable {
     }
     
     func updateUIViewController(_ uiViewController: PHPickerViewController, context: Context) {
-        // Override the app wide tint color (currently set to `.compound.texActionPrimary
+        // Override the app wide tint color (currently set to `.compound.texActionPrimary`)
         // as it's not legible enough in dark mode
         uiViewController.view.tintColor = .compound.textActionAccent
+        
+        // On iOS 26 the picker reads the window's tint instead so we need
+        // to make this workaround to override the window tint
+        DispatchQueue.main.async { [coordinator = context.coordinator] in
+            coordinator.overrideWindowTint(of: uiViewController)
+        }
+    }
+    
+    static func dismantleUIViewController(_ uiViewController: PHPickerViewController, coordinator: Coordinator) {
+        coordinator.restoreWindowTint()
     }
     
     func makeCoordinator() -> Coordinator {
@@ -61,8 +72,23 @@ struct PhotoLibraryPicker: UIViewControllerRepresentable {
     final class Coordinator: NSObject, PHPickerViewControllerDelegate {
         private var photoLibraryPicker: PhotoLibraryPicker
         
+        private weak var overriddenWindow: UIWindow?
+        private var originalWindowTint: UIColor?
+        
         init(_ photoLibraryPicker: PhotoLibraryPicker) {
             self.photoLibraryPicker = photoLibraryPicker
+        }
+        
+        func overrideWindowTint(of pickerViewController: PHPickerViewController) {
+            guard overriddenWindow == nil, let window = pickerViewController.view.window else { return }
+            overriddenWindow = window
+            originalWindowTint = window.tintColor
+            window.tintColor = .compound.textActionAccent
+        }
+        
+        func restoreWindowTint() {
+            overriddenWindow?.tintColor = originalWindowTint
+            overriddenWindow = nil
         }
         
         // MARK: PHPickerViewControllerDelegate
@@ -70,6 +96,8 @@ struct PhotoLibraryPicker: UIViewControllerRepresentable {
         private static let loadingIndicatorIdentifier = "\(PhotoLibraryPicker.self)-Loading"
         
         func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+            restoreWindowTint()
+            
             guard !results.isEmpty else {
                 photoLibraryPicker.callback(.cancel)
                 return
@@ -103,6 +131,11 @@ struct PhotoLibraryPicker: UIViewControllerRepresentable {
                     return selectedURLs.compactMap { $0 }
                 }
                 
+                guard !selectedURLs.isEmpty else {
+                    // Every selected item failed to load; each failure was already surfaced via .error.
+                    return
+                }
+                
                 photoLibraryPicker.callback(.selectedMediaAtURLs(selectedURLs))
             }
         }
@@ -113,6 +146,9 @@ struct PhotoLibraryPicker: UIViewControllerRepresentable {
             let provider = result.itemProvider
             
             guard let contentType = provider.preferredContentType else {
+                Task { @MainActor in
+                    photoLibraryPicker.callback(.error(.failedLoadingFileRepresentation(nil)))
+                }
                 return nil
             }
             

@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -12,11 +13,10 @@ typealias SecureBackupLogoutConfirmationScreenViewModelType = StateStoreViewMode
 
 class SecureBackupLogoutConfirmationScreenViewModel: SecureBackupLogoutConfirmationScreenViewModelType, SecureBackupLogoutConfirmationScreenViewModelProtocol {
     private let secureBackupController: SecureBackupControllerProtocol
-    private let homeserverReachabilityPublisher: CurrentValuePublisher<NetworkMonitorReachability, Never>
+    private let homeserverReachabilityPublisher: CurrentValuePublisher<HomeserverReachability, Never>
     
     private let backupUploadStateSubject: CurrentValueSubject<SecureBackupSteadyState, Never> = .init(.waiting)
     
-    // periphery:ignore - auto cancels when reassigned
     @CancellableTask
     private var keyUploadWaitingTask: Task<Void, Never>?
     @CancellableTask
@@ -26,8 +26,8 @@ class SecureBackupLogoutConfirmationScreenViewModel: SecureBackupLogoutConfirmat
     var actions: AnyPublisher<SecureBackupLogoutConfirmationScreenViewModelAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
-
-    init(secureBackupController: SecureBackupControllerProtocol, homeserverReachabilityPublisher: CurrentValuePublisher<NetworkMonitorReachability, Never>) {
+    
+    init(secureBackupController: SecureBackupControllerProtocol, homeserverReachabilityPublisher: CurrentValuePublisher<HomeserverReachability, Never>) {
         self.secureBackupController = secureBackupController
         self.homeserverReachabilityPublisher = homeserverReachabilityPublisher
         
@@ -89,7 +89,7 @@ class SecureBackupLogoutConfirmationScreenViewModel: SecureBackupLogoutConfirmat
         }
     }
     
-    private func updateMode(backupState: SecureBackupSteadyState, reachability: NetworkMonitorReachability) {
+    private func updateMode(backupState: SecureBackupSteadyState, reachability: HomeserverReachability) {
         switch (backupState, reachability) {
         case (.waiting, .reachable):
             state.mode = .waitingToStart(hasStalled: false)
@@ -100,7 +100,7 @@ class SecureBackupLogoutConfirmationScreenViewModel: SecureBackupLogoutConfirmat
             break // Nothing to do here, it will be handled with the result.
         case (.done, .reachable):
             state.mode = .backupOngoing(progress: 1.0)
-        case (_, .unreachable):
+        case (_, .unreachable), (_, .suspended):
             state.mode = .offline
         }
     }

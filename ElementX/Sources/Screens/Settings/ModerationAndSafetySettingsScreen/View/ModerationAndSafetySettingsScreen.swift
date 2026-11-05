@@ -19,7 +19,7 @@ struct ModerationAndSafetySettingsScreen: View {
             blockedUsersSection
         }
         .compoundList()
-        .navigationTitle(UntranslatedL10n.commonModerationAndSafety)
+        .navigationTitle(L10n.commonModerationAndSafety)
         .navigationBarTitleDisplayMode(.inline)
     }
     
@@ -29,7 +29,7 @@ struct ModerationAndSafetySettingsScreen: View {
                                   description: L10n.screenAdvancedSettingsSharePresenceDescription),
                     kind: .toggle($context.sharePresence))
         } header: {
-            Text(UntranslatedL10n.screenModerationAndSafetySharePresenceHeading)
+            Text(L10n.screenModerationAndSafetySharePresenceHeading)
                 .compoundListSectionHeader()
         }
     }
@@ -48,7 +48,7 @@ struct ModerationAndSafetySettingsScreen: View {
                     kind: .toggle(binding))
                 .disabled(context.viewState.isWaitingHideInviteAvatars)
         } header: {
-            Text(UntranslatedL10n.screenModerationAndSafetyInvitesHeading)
+            Text(L10n.screenModerationAndSafetyInvitesHeading)
                 .compoundListSectionHeader()
         }
     }
@@ -95,14 +95,13 @@ struct ModerationAndSafetySettingsScreen: View {
 
 struct ModerationAndSafetySettingsScreen_Previews: PreviewProvider, TestablePreview {
     static let viewModel = ModerationAndSafetySettingsScreenViewModel(userSession: UserSessionMock(.init()),
-                                                                      appSettings: ServiceLocator.shared.settings,
                                                                       userIndicatorController: UserIndicatorControllerMock())
     
     static var previews: some View {
-        NavigationStack {
+        ElementNavigationStack {
             ModerationAndSafetySettingsScreen(context: viewModel.context)
         }
-        .snapshotPreferences(expect: viewModel.context.observe(\.viewState.showBlockedUsers).eraseToStream())
+        .snapshotPreferences(expect: viewModel.context.observe(\.viewState.showBlockedUsers))
     }
 }
 

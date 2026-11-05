@@ -1,27 +1,27 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Combine
 import SwiftUI
 
-typealias RoomNotificationSettingsScreenViewModelType = StateStoreViewModel<RoomNotificationSettingsScreenViewState, RoomNotificationSettingsScreenViewAction>
+typealias RoomNotificationSettingsScreenViewModelType = StateStoreViewModelV2<RoomNotificationSettingsScreenViewState, RoomNotificationSettingsScreenViewAction>
 
 class RoomNotificationSettingsScreenViewModel: RoomNotificationSettingsScreenViewModelType, RoomNotificationSettingsScreenViewModelProtocol {
     private let actionsSubject: PassthroughSubject<RoomNotificationSettingsScreenViewModelAction, Never> = .init()
     private let notificationSettingsProxy: NotificationSettingsProxyProtocol
     private let roomProxy: JoinedRoomProxyProtocol
     
-    // periphery:ignore - cancellable tasks cancel when reassigned
     @CancellableTask private var fetchNotificationSettingsTask: Task<Void, Error>?
     
     var actions: AnyPublisher<RoomNotificationSettingsScreenViewModelAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
-
+    
     init(notificationSettingsProxy: NotificationSettingsProxyProtocol, roomProxy: JoinedRoomProxyProtocol, displayAsUserDefinedRoomSettings: Bool) {
         let bindings = RoomNotificationSettingsScreenViewStateBindings()
         self.notificationSettingsProxy = notificationSettingsProxy
@@ -36,7 +36,7 @@ class RoomNotificationSettingsScreenViewModel: RoomNotificationSettingsScreenVie
         setupNotificationSettingsSubscription()
         fetchNotificationSettings()
     }
-        
+    
     // MARK: - Public
     
     override func process(viewAction: RoomNotificationSettingsScreenViewAction) {
@@ -53,7 +53,7 @@ class RoomNotificationSettingsScreenViewModel: RoomNotificationSettingsScreenVie
     }
     
     // MARK: - Private
-
+    
     private func setupNotificationSettingsSubscription() {
         notificationSettingsProxy.callbacks
             .receive(on: DispatchQueue.main)
@@ -96,8 +96,10 @@ class RoomNotificationSettingsScreenViewModel: RoomNotificationSettingsScreenVie
     }
     
     private func toogleCustomSetting() {
-        guard case .loaded(let settings) = state.notificationSettingsState else { return }
-        guard state.bindings.allowCustomSetting == settings.isDefault else { return }
+        guard case .loaded(let settings) = state.notificationSettingsState,
+              state.bindings.allowCustomSetting == settings.isDefault else {
+            return
+        }
         
         if state.bindings.allowCustomSetting {
             setCustomMode(settings.mode)
@@ -114,16 +116,18 @@ class RoomNotificationSettingsScreenViewModel: RoomNotificationSettingsScreenVie
             } catch {
                 displayError(.restoreDefaultFailed)
             }
-            state.isRestoringDefaultSetting = false
+            await MainActor.run {
+                state.isRestoringDefaultSetting = false
+            }
         }
     }
     
     private func setCustomMode(_ mode: RoomNotificationModeProxy) {
         // Check if the new mode is already the current one
-        if case .loaded(let currentSettings) = state.notificationSettingsState {
-            if !currentSettings.isDefault, currentSettings.mode == mode {
-                return
-            }
+        if case .loaded(let currentSettings) = state.notificationSettingsState,
+           !currentSettings.isDefault,
+           currentSettings.mode == mode {
+            return
         }
         
         state.pendingCustomMode = mode
@@ -133,7 +137,9 @@ class RoomNotificationSettingsScreenViewModel: RoomNotificationSettingsScreenVie
             } catch {
                 displayError(.setModeFailed)
             }
-            state.pendingCustomMode = nil
+            await MainActor.run {
+                state.pendingCustomMode = nil
+            }
         }
     }
     
@@ -147,7 +153,7 @@ class RoomNotificationSettingsScreenViewModel: RoomNotificationSettingsScreenVie
             state.bindings.alertInfo = AlertInfo(id: type,
                                                  title: L10n.commonError,
                                                  message: L10n.screenRoomNotificationSettingsErrorSettingMode)
-
+            
         case .restoreDefaultFailed:
             state.bindings.alertInfo = AlertInfo(id: type,
                                                  title: L10n.commonError,

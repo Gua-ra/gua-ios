@@ -1,12 +1,14 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024, 2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Compound
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct TimelineMediaPreviewRedactConfirmationView: View {
     @Environment(\.dismiss) private var dismiss
@@ -14,7 +16,8 @@ struct TimelineMediaPreviewRedactConfirmationView: View {
     let item: TimelineMediaPreviewItem.Media
     @ObservedObject var context: TimelineMediaPreviewViewModel.Context
     var preferredColorScheme: ColorScheme? = .dark
-
+    
+    @State private var reason = ""
     @State private var sheetHeight: CGFloat = .zero
     private let topPadding: CGFloat = 19
     
@@ -23,6 +26,10 @@ struct TimelineMediaPreviewRedactConfirmationView: View {
             VStack(spacing: 0) {
                 header
                 preview
+                TextField(L10n.screenRoomConfirmRemovalReasonPlaceholder, text: $reason)
+                    .textFieldStyle(.compound(labelText: L10n.screenRoomConfirmRemovalReasonLabel))
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 40)
                 buttons
             }
             .readHeight($sheetHeight)
@@ -32,7 +39,7 @@ struct TimelineMediaPreviewRedactConfirmationView: View {
         .presentationDetents([.height(sheetHeight + topPadding)])
         .presentationDragIndicator(.visible)
         .presentationBackground(.compound.bgCanvasDefault)
-        .preferredColorScheme(preferredColorScheme)
+        .presentationColorScheme(preferredColorScheme)
     }
     
     private var header: some View {
@@ -68,17 +75,17 @@ struct TimelineMediaPreviewRedactConfirmationView: View {
                                       mediaProvider: context.mediaProvider) {
                             Color.compound.bgSubtleSecondary
                         }
-                        .aspectRatio(contentMode: .fill)
+                        .scaledToFill()
                     }
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .accessibilityHidden(true)
             }
-                
+            
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.filename ?? "")
                     .font(.compound.bodyMD)
                     .foregroundStyle(.compound.textPrimary)
-                    
+                
                 if let contentType = item.contentType {
                     Group {
                         if let fileSize = item.fileSize {
@@ -94,13 +101,13 @@ struct TimelineMediaPreviewRedactConfirmationView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 24)
-        .padding(.bottom, 40)
+        .padding(.bottom, 24)
     }
     
     private var buttons: some View {
         VStack(spacing: 16) {
             Button(L10n.actionRemove, role: .destructive) {
-                context.send(viewAction: .redactConfirmation(item: item))
+                context.send(viewAction: .redactConfirmation(item: item, reason: reason))
             }
             .buttonStyle(.compound(.primary))
             
@@ -115,8 +122,6 @@ struct TimelineMediaPreviewRedactConfirmationView: View {
 }
 
 // MARK: - Previews
-
-import UniformTypeIdentifiers
 
 struct TimelineMediaPreviewRedactConfirmationView_Previews: PreviewProvider, TestablePreview {
     static let viewModel = makeViewModel(contentType: .jpeg)
@@ -141,12 +146,11 @@ struct TimelineMediaPreviewRedactConfirmationView_Previews: PreviewProvider, Tes
                                                         thumbnailInfo: .mockThumbnail,
                                                         contentType: contentType))
         
-        let timelineController = MockTimelineController(timelineKind: .media(.mediaFilesScreen))
-        timelineController.timelineItems = [item]
+        let timelineController = TimelineControllerMock(.init(timelineKind: .media(.mediaFilesScreen), timelineItems: [item]))
         return TimelineMediaPreviewViewModel(initialItem: item,
                                              timelineViewModel: TimelineViewModel.mock(timelineKind: timelineController.timelineKind,
                                                                                        timelineController: timelineController),
-                                             mediaProvider: MediaProviderMock(configuration: .init()),
+                                             mediaProvider: MediaProviderMock(.init()),
                                              photoLibraryManager: PhotoLibraryManagerMock(.init()),
                                              userIndicatorController: UserIndicatorControllerMock(),
                                              appMediator: AppMediatorMock())

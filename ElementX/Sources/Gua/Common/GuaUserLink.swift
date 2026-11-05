@@ -16,7 +16,7 @@ import Foundation
 ///     @alice:dev.local  ->  https://gua.global/u/alice
 ///
 /// This is only for sharing/inviting. In-app mention parsing and pills still use `matrix.to`.
-enum GuaUserLink {
+nonisolated enum GuaUserLink {
     /// Builds `https://<brandHost>/u/<localpart>` for a Matrix user ID, where `localpart` is the
     /// part between `@` and `:`. Returns `nil` for a malformed ID.
     static func url(for userID: String) -> URL? {

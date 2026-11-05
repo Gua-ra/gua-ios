@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -19,19 +20,16 @@ enum DeactivateAccountScreenCoordinatorAction {
 }
 
 final class DeactivateAccountScreenCoordinator: CoordinatorProtocol {
-    private let parameters: DeactivateAccountScreenCoordinatorParameters
     private let viewModel: DeactivateAccountScreenViewModelProtocol
     
     private var cancellables = Set<AnyCancellable>()
- 
+    
     private let actionsSubject: PassthroughSubject<DeactivateAccountScreenCoordinatorAction, Never> = .init()
     var actionsPublisher: AnyPublisher<DeactivateAccountScreenCoordinatorAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
     
     init(parameters: DeactivateAccountScreenCoordinatorParameters) {
-        self.parameters = parameters
-        
         viewModel = DeactivateAccountScreenViewModel(clientProxy: parameters.clientProxy,
                                                      userIndicatorController: parameters.userIndicatorController,
                                                      identityServiceClient: parameters.identityServiceClient)
@@ -49,7 +47,7 @@ final class DeactivateAccountScreenCoordinator: CoordinatorProtocol {
         }
         .store(in: &cancellables)
     }
-        
+    
     func toPresentable() -> AnyView {
         AnyView(DeactivateAccountScreen(context: viewModel.context))
     }

@@ -76,7 +76,7 @@ Everything above describes the app as it ships today. Three parts of the target 
 
 ## Building
 
-Requirements: **Xcode 26.5** and an iOS simulator (iOS 17.5 or newer).
+Requirements: **Xcode 26.5** and an iOS simulator (iOS 18.5 or newer).
 
 ```bash
 git clone git@github.com:Gua-ra/gua-ios.git
@@ -88,7 +88,7 @@ Select the **Gua** scheme and run. Use `Gua.xcodeproj`; the `ElementX.xcodeproj`
 
 Things to know:
 
-- **Secrets.** `Secrets/Secrets.swift` is committed with placeholder values, so the project always compiles. The placeholders are localhost development endpoints and dummy analytics keys. Debug builds read their development backend endpoints from this file. Point them at your own backend locally and keep those edits out of your commits. Release builds use the production configuration instead.
+- **Secrets.** `Components/Secrets/Secrets.swift` is committed with placeholder values, so the project always compiles. The placeholders are localhost development endpoints and dummy analytics keys. Debug builds read their development backend endpoints from this file. Point them at your own backend locally and keep those edits out of your commits. Release builds use the production configuration instead.
 - **Project generation.** The Xcode project is generated from `project.yml` / `app.yml` with XcodeGen. If you change project configuration, run `xcodegen` and rebuild.
 - **Forking.** Bundle identifiers, app groups and team configuration are covered in [docs/FORKING.md](docs/FORKING.md). Gua's OIDC settings live in `ElementX/Sources/Gua/AppHooks/AppHooks+Gua.swift`.
 - **Everything else.** Setup tooling, checks and tests are described in the [contribution guide](CONTRIBUTING.md).
@@ -105,7 +105,7 @@ Things to know:
 
 ## Upstream relationship
 
-This fork tracks [`element-hq/element-x-ios`](https://github.com/element-hq/element-x-ios) as its upstream and shares its git history: it was forked from an upstream commit of September 2025. Catching up with upstream means re-porting Gua's changes onto a newer upstream snapshot rather than a plain `git merge`. See [docs/FORKING.md](docs/FORKING.md) for the fork configuration itself.
+This fork tracks [`element-hq/element-x-ios`](https://github.com/element-hq/element-x-ios) as its upstream and shares its git history: it was forked from an upstream commit of September 2025. Catching up with upstream is a regular `git merge` of an upstream release tag. See [docs/FORKING.md](docs/FORKING.md) for the fork configuration itself.
 
 Element X iOS is the Matrix client made by [Element](https://element.io/), built on the [Matrix Rust SDK](https://github.com/matrix-org/matrix-rust-sdk). Gua inherits its code, tooling and tests. Element X's own App Store listing, translation project, community rooms and support channels are Element's and do not cover Gua.
 
@@ -113,6 +113,7 @@ Element X iOS is the Matrix client made by [Element](https://element.io/), built
 
 ## License
 
+Copyright (c) 2025-2026 Element Creations Ltd (upstream code)
 Copyright (c) 2022-2025 New Vector Ltd (upstream code)
 Copyright (c) 2025-2026 Gua (Gua modifications)
 

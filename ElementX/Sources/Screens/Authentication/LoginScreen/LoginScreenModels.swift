@@ -1,21 +1,22 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Foundation
 
 enum LoginScreenViewModelAction {
-    /// The homeserver was updated to one that supports OIDC.
-    case configuredForOIDC
+    /// The homeserver was updated to one that supports OAuth.
+    case configuredForOAuth
     /// Login was successful.
     case signedIn(UserSessionProtocol)
     
-    var isConfiguredForOIDC: Bool {
+    var isConfiguredForOAuth: Bool {
         switch self {
-        case .configuredForOIDC: true
+        case .configuredForOAuth: true
         default: false
         }
     }
@@ -62,14 +63,10 @@ enum LoginScreenViewAction {
 }
 
 enum LoginScreenErrorType: Hashable {
-    /// A specific error message shown in an alert.
-    case alert(String)
     /// An alert that informs the user to check their username/password.
     case credentialsAlert
     /// An alert that informs the user that their account has been deactivated.
     case deactivatedAlert
-    /// An alert that informs the user about a bad well-known file.
-    case invalidWellKnownAlert(String)
     /// An alert that allows the user to learn about sliding sync.
     case slidingSyncAlert
     /// An alert that informs the user that Element Pro should be used for a particular server.

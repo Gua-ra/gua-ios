@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -12,30 +13,50 @@ import MatrixRustSDK
 final class TimelineProxy: TimelineProxyProtocol {
     private let timeline: Timeline
     
-    private var backPaginationStatusObservationToken: TaskHandle?
+    private var backPaginationStateObservationToken: TaskHandle?
     
     // The default values shouldn't matter here as they will be updated when calling subscribeToPagination
     // but empirically we randomly see the timeline start virtual item when we shouldn't.
     // We believe there's a race condition between the default values the status publisher
     // so we're going to default the backwards one to .idle. Worst case it's going to do
     // one extra back pagination.
-    private let backPaginationStatusSubject = CurrentValueSubject<PaginationStatus, Never>(.idle)
-    private let forwardPaginationStatusSubject = CurrentValueSubject<PaginationStatus, Never>(.timelineEndReached)
+    private let backPaginationStateSubject = CurrentValueSubject<PaginationState, Never>(.idle)
+    private let forwardPaginationStateSubject = CurrentValueSubject<PaginationState, Never>(.endReached)
     
     private let kind: TimelineKind
-   
+    
     private var innerTimelineItemProvider: TimelineItemProviderProtocol!
     var timelineItemProvider: TimelineItemProviderProtocol {
         innerTimelineItemProvider
     }
     
     deinit {
-        backPaginationStatusObservationToken?.cancel()
+        backPaginationStatusContinuation.finish()
+        backPaginationStateObservationToken?.cancel()
     }
+    
+    /// Bridge from the SDK's synchronous callback into Swift Concurrency. Yielding is safe from any
+    /// thread; a single long-lived `for await` consumer (set up in `init`) applies the status updates
+    /// on the main actor in FIFO order.
+    private let backPaginationStatusContinuation: AsyncStream<PaginationStatus>.Continuation
     
     init(timeline: Timeline, kind: TimelineKind) {
         self.timeline = timeline
         self.kind = kind
+        
+        let (backPaginationStatusStream, backPaginationStatusContinuation) = AsyncStream<PaginationStatus>.makeStream()
+        self.backPaginationStatusContinuation = backPaginationStatusContinuation
+        
+        Task { [weak self] in
+            for await status in backPaginationStatusStream {
+                switch status {
+                case .idle(let hitStartOfTimeline):
+                    self?.backPaginationStateSubject.send(hitStartOfTimeline ? .endReached : .idle)
+                case .paginating:
+                    self?.backPaginationStateSubject.send(.paginating)
+                }
+            }
+        }
     }
     
     func subscribeForUpdates() async {
@@ -44,17 +65,14 @@ final class TimelineProxy: TimelineProxyProtocol {
             return
         }
         
-        let paginationStatePublisher = backPaginationStatusSubject
-            .combineLatest(forwardPaginationStatusSubject)
-            .map { PaginationState(backward: $0.0, forward: $0.1) }
+        let paginationStatePublisher = backPaginationStateSubject
+            .combineLatest(forwardPaginationStateSubject)
+            .map { TimelinePaginationState(backward: $0.0, forward: $0.1) }
             .eraseToAnyPublisher()
         
         await subscribeToPagination()
         
-        let provider = await TimelineItemProvider(timeline: timeline, kind: kind, paginationStatePublisher: paginationStatePublisher)
-        // Make sure the existing items are built so that we have content in the timeline before
-        // determining whether or not the timeline should paginate to load more items.
-        await provider.waitForInitialItems()
+        let provider = TimelineItemProvider(timeline: timeline, kind: kind, paginationStatePublisher: paginationStatePublisher)
         
         innerTimelineItemProvider = provider
         
@@ -76,7 +94,7 @@ final class TimelineProxy: TimelineProxyProtocol {
     }
     
     func messageEventContent(for timelineItemID: TimelineItemIdentifier) async -> RoomMessageEventContentWithoutRelation? {
-        guard let content = await timelineItemProvider.itemProxies.firstEventTimelineItemUsingStableID(timelineItemID)?.content,
+        guard let content = timelineItemProvider.itemProxies.firstEventTimelineItem(matching: timelineItemID)?.content,
               case let .msgLike(messageLikeContent) = content,
               case let .message(messageContent) = messageLikeContent.kind else {
             return nil
@@ -130,15 +148,13 @@ final class TimelineProxy: TimelineProxyProtocol {
     /// Rust subscription isn't allowed on focussed/detached timelines.
     private func focussedPaginate(_ direction: PaginationDirection, requestSize: UInt16) async -> Result<Void, TimelineProxyError> {
         let subject = switch direction {
-        case .backwards: backPaginationStatusSubject
-        case .forwards: forwardPaginationStatusSubject
+        case .backwards: backPaginationStateSubject
+        case .forwards: forwardPaginationStateSubject
         }
         
         // This extra check is necessary as detached timelines don't support subscribing to pagination status.
-        // We need it to make sure we send a valid status after a failure.
         guard subject.value == .idle else {
-            MXLog.error("Attempting to paginate \(direction.rawValue) when already at the end.")
-            return .failure(.failedPaginatingEndReached)
+            return .success(())
         }
         
         MXLog.info("Paginating \(direction.rawValue)")
@@ -150,8 +166,8 @@ final class TimelineProxy: TimelineProxyProtocol {
             case .forwards: try await timeline.paginateForwards(numEvents: requestSize)
             }
             MXLog.info("Finished paginating \(direction.rawValue)")
-
-            subject.send(timelineEndReached ? .timelineEndReached : .idle)
+            
+            subject.send(timelineEndReached ? .endReached : .idle)
             return .success(())
         } catch {
             MXLog.error("Failed paginating \(direction.rawValue) with error: \(error)")
@@ -174,7 +190,7 @@ final class TimelineProxy: TimelineProxyProtocol {
             try await timeline.edit(eventOrTransactionId: eventOrTransactionID.rustValue, newContent: newContent)
             
             MXLog.info("Finished editing timeline item: \(eventOrTransactionID)")
-
+            
             return .success(())
         } catch {
             MXLog.error("Failed editing timeline item: \(eventOrTransactionID) with error: \(error)")
@@ -193,6 +209,36 @@ final class TimelineProxy: TimelineProxyProtocol {
             return .success(())
         } catch {
             MXLog.error("Failed redacting timeline item: \(eventOrTransactionID) with error: \(error)")
+            return .failure(.sdkError(error))
+        }
+    }
+    
+    func retrySend(_ eventOrTransactionID: TimelineItemIdentifier.EventOrTransactionID, target: SendTarget) async -> Result<Bool, TimelineProxyError> {
+        MXLog.info("Retrying \(target) send on timeline item: \(eventOrTransactionID)")
+        
+        do {
+            let hadPendingSend = try await timeline.retrySend(itemId: eventOrTransactionID.rustValue, target: target)
+            
+            MXLog.info("Retried \(target) send on timeline item: \(eventOrTransactionID), had one pending: \(hadPendingSend)")
+            
+            return .success(hadPendingSend)
+        } catch {
+            MXLog.error("Failed retrying \(target) send on timeline item: \(eventOrTransactionID) with error: \(error)")
+            return .failure(.sdkError(error))
+        }
+    }
+    
+    func abortSend(_ eventOrTransactionID: TimelineItemIdentifier.EventOrTransactionID, target: SendTarget) async -> Result<Bool, TimelineProxyError> {
+        MXLog.info("Aborting \(target) send on timeline item: \(eventOrTransactionID)")
+        
+        do {
+            let hadPendingSend = try await timeline.abortSend(itemId: eventOrTransactionID.rustValue, target: target)
+            
+            MXLog.info("Aborted \(target) send on timeline item: \(eventOrTransactionID), had one pending: \(hadPendingSend)")
+            
+            return .success(hadPendingSend)
+        } catch {
+            MXLog.error("Failed aborting \(target) send on timeline item: \(eventOrTransactionID) with error: \(error)")
             return .failure(.sdkError(error))
         }
     }
@@ -240,7 +286,7 @@ final class TimelineProxy: TimelineProxyProtocol {
                                                               inReplyTo: nil),
                                                 audioInfo: audioInfo)
             
-            await requestHandle(handle)
+            requestHandle(handle)
             
             try await handle.join()
             MXLog.info("Finished sending audio")
@@ -266,7 +312,7 @@ final class TimelineProxy: TimelineProxyProtocol {
                                                              inReplyTo: nil),
                                                fileInfo: fileInfo)
             
-            await requestHandle(handle)
+            requestHandle(handle)
             
             try await handle.join()
             MXLog.info("Finished sending file")
@@ -294,7 +340,7 @@ final class TimelineProxy: TimelineProxyProtocol {
                                                 thumbnailSource: .file(filename: thumbnailURL.path(percentEncoded: false)),
                                                 imageInfo: imageInfo)
             
-            await requestHandle(handle)
+            requestHandle(handle)
             
             try await handle.join()
             MXLog.info("Finished sending image")
@@ -346,7 +392,7 @@ final class TimelineProxy: TimelineProxyProtocol {
                                                 thumbnailSource: .file(filename: thumbnailURL.path(percentEncoded: false)),
                                                 videoInfo: videoInfo)
             
-            await requestHandle(handle)
+            requestHandle(handle)
             
             try await handle.join()
             MXLog.info("Finished sending video")
@@ -358,9 +404,30 @@ final class TimelineProxy: TimelineProxyProtocol {
         return .success(())
     }
     
+    func sendGallery(itemInfos: [GalleryItemInfo],
+                     caption: String?,
+                     inReplyToEventID: String?) async -> Result<Void, TimelineProxyError> {
+        MXLog.info("Sending gallery with \(itemInfos.count) items")
+        
+        do {
+            let handle = try timeline.sendGallery(params: .init(caption: caption,
+                                                                formattedCaption: nil, // Rust will build this from the caption's markdown.
+                                                                mentions: nil,
+                                                                inReplyTo: inReplyToEventID),
+                                                  itemInfos: itemInfos)
+            try await handle.join()
+            MXLog.info("Finished sending gallery")
+        } catch {
+            MXLog.error("Failed sending gallery with error: \(error)")
+            return .failure(.sdkError(error))
+        }
+        
+        return .success(())
+    }
+    
     func sendVoiceMessage(url: URL,
                           audioInfo: AudioInfo,
-                          waveform: [UInt16],
+                          waveform: [Float],
                           requestHandle: @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineProxyError> {
         MXLog.info("Sending voice message")
         
@@ -371,9 +438,9 @@ final class TimelineProxy: TimelineProxyProtocol {
                                                                      mentions: nil,
                                                                      inReplyTo: nil),
                                                        audioInfo: audioInfo,
-                                                       waveform: waveform.map(Float.init))
+                                                       waveform: waveform)
             
-            await requestHandle(handle)
+            requestHandle(handle)
             
             try await handle.join()
             MXLog.info("Finished sending voice message")
@@ -404,7 +471,7 @@ final class TimelineProxy: TimelineProxyProtocol {
         
         do {
             if let inReplyToEventID {
-                try await timeline.sendReply(msg: messageContent, eventId: inReplyToEventID)
+                _ = try await timeline.sendReply(msg: messageContent, eventId: inReplyToEventID)
                 MXLog.info("Finished sending reply to eventID: \(inReplyToEventID)")
             } else {
                 _ = try await timeline.send(msg: messageContent)
@@ -416,10 +483,10 @@ final class TimelineProxy: TimelineProxyProtocol {
             } else {
                 MXLog.error("Failed sending message with error: \(error)")
             }
-                
+            
             return .failure(.sdkError(error))
         }
-            
+        
         return .success(())
     }
     
@@ -467,7 +534,7 @@ final class TimelineProxy: TimelineProxyProtocol {
         MXLog.info("Toggling reaction \(reaction) for event: \(eventOrTransactionID)")
         
         do {
-            try await timeline.toggleReaction(itemId: eventOrTransactionID.rustValue, key: reaction)
+            _ = try await timeline.toggleReaction(itemId: eventOrTransactionID.rustValue, key: reaction)
             MXLog.info("Finished toggling reaction for event: \(eventOrTransactionID)")
             return .success(())
         } catch {
@@ -477,13 +544,16 @@ final class TimelineProxy: TimelineProxyProtocol {
     }
     
     // MARK: - Polls
-
-    func createPoll(question: String, answers: [String],
+    
+    func createPoll(question: String, answers: [String], maxSelections: Int,
                     pollKind: Poll.Kind) async -> Result<Void, TimelineProxyError> {
         MXLog.info("Creating poll")
         
         do {
-            try await timeline.createPoll(question: question, answers: answers, maxSelections: 1, pollKind: .init(pollKind: pollKind))
+            try await timeline.createPoll(question: question,
+                                          answers: answers,
+                                          maxSelections: UInt8(max(1, min(maxSelections, answers.count))),
+                                          pollKind: .init(pollKind: pollKind))
             
             MXLog.info("Finished creating poll")
             
@@ -497,6 +567,7 @@ final class TimelineProxy: TimelineProxyProtocol {
     func editPoll(original eventID: String,
                   question: String,
                   answers: [String],
+                  maxSelections: Int,
                   pollKind: Poll.Kind) async -> Result<Void, TimelineProxyError> {
         MXLog.info("Editing poll with eventID: \(eventID)")
         
@@ -506,7 +577,7 @@ final class TimelineProxy: TimelineProxyProtocol {
             try await timeline.edit(eventOrTransactionId: originalEvent.eventOrTransactionId,
                                     newContent: .pollStart(pollData: .init(question: question,
                                                                            answers: answers,
-                                                                           maxSelections: 1,
+                                                                           maxSelections: UInt8(max(1, min(maxSelections, answers.count))),
                                                                            pollKind: .init(pollKind: pollKind))))
             
             MXLog.info("Finished editing poll with eventID: \(eventID)")
@@ -532,7 +603,7 @@ final class TimelineProxy: TimelineProxyProtocol {
             return .failure(.sdkError(error))
         }
     }
-
+    
     func sendPollResponse(pollStartID: String, answers: [String]) async -> Result<Void, TimelineProxyError> {
         MXLog.info("Sending response for poll with eventID: \(pollStartID)")
         
@@ -547,7 +618,7 @@ final class TimelineProxy: TimelineProxyProtocol {
             return .failure(.sdkError(error))
         }
     }
-        
+    
     func buildMessageContentFor(_ message: String,
                                 html: String?,
                                 intentionalMentions: Mentions) -> RoomMessageEventContentWithoutRelation {
@@ -586,35 +657,26 @@ final class TimelineProxy: TimelineProxyProtocol {
     private func subscribeToPagination() async {
         switch kind {
         case .live:
-            let backPaginationListener = SDKListener<MatrixRustSDK.PaginationStatus> { [weak self] status in
-                guard let self else {
-                    return
-                }
-                
-                switch status {
-                case .idle(let hitStartOfTimeline):
-                    backPaginationStatusSubject.send(hitStartOfTimeline ? .timelineEndReached : .idle)
-                case .paginating:
-                    backPaginationStatusSubject.send(.paginating)
-                }
+            let backPaginationListener = SDKListener<PaginationStatus> { [backPaginationStatusContinuation] status in
+                backPaginationStatusContinuation.yield(status)
             }
             
             do {
-                backPaginationStatusObservationToken = try await timeline.subscribeToBackPaginationStatus(listener: backPaginationListener)
+                backPaginationStateObservationToken = try await timeline.subscribeToBackPaginationStatus(listener: backPaginationListener)
             } catch {
                 MXLog.error("Failed to subscribe to back pagination status with error: \(error)")
             }
-            forwardPaginationStatusSubject.send(.timelineEndReached)
+            forwardPaginationStateSubject.send(.endReached)
         case .detached, .thread:
             // Detached timelines don't support observation, set the initial state ourself.
-            backPaginationStatusSubject.send(.idle)
-            forwardPaginationStatusSubject.send(.idle)
+            backPaginationStateSubject.send(.idle)
+            forwardPaginationStateSubject.send(.idle)
         case .media(let presentation):
-            backPaginationStatusSubject.send(presentation == .pinnedEventsScreen ? .timelineEndReached : .idle)
-            forwardPaginationStatusSubject.send(presentation == .roomScreenDetached ? .idle : .timelineEndReached)
+            backPaginationStateSubject.send(presentation == .pinnedEventsScreen ? .endReached : .idle)
+            forwardPaginationStateSubject.send(presentation == .roomScreenDetached ? .idle : .endReached)
         case .pinned:
-            backPaginationStatusSubject.send(.timelineEndReached)
-            forwardPaginationStatusSubject.send(.timelineEndReached)
+            backPaginationStateSubject.send(.endReached)
+            forwardPaginationStateSubject.send(.endReached)
         }
     }
 }
@@ -631,27 +693,19 @@ private extension MatrixRustSDK.PollKind {
 }
 
 extension Array where Element == TimelineItemProxy {
-    func firstEventTimelineItemUsingStableID(_ id: TimelineItemIdentifier) -> EventTimelineItem? {
-        for item in self {
-            if case let .event(eventTimelineItem) = item {
-                if eventTimelineItem.id.uniqueID == id.uniqueID {
-                    return eventTimelineItem.item
-                }
-            }
+    /// The event matching the given identifier, found by the event itself as that is the only part of
+    /// the identifier that can be compared across timelines. Identifiers that don't represent an event
+    /// fall back to the unique ID.
+    func firstEventTimelineItem(matching id: TimelineItemIdentifier) -> EventTimelineItem? {
+        let eventTimelineItems = compactMap { item -> EventTimelineItemProxy? in
+            guard case let .event(eventTimelineItem) = item else { return nil }
+            return eventTimelineItem
         }
         
-        return nil
-    }
-    
-    func firstEventTimelineItemUsingEventOrTransactionID(_ eventOrTransactionID: TimelineItemIdentifier.EventOrTransactionID) -> EventTimelineItem? {
-        for item in self {
-            if case let .event(eventTimelineItem) = item,
-               case let .event(_, identifier) = eventTimelineItem.id,
-               identifier == eventOrTransactionID {
-                return eventTimelineItem.item
-            }
+        guard let eventOrTransactionID = id.eventOrTransactionID else {
+            return eventTimelineItems.first { $0.id.uniqueID == id.uniqueID }?.item
         }
         
-        return nil
+        return eventTimelineItems.first { $0.id.eventOrTransactionID == eventOrTransactionID }?.item
     }
 }

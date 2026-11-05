@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -16,16 +17,18 @@ struct CallScreen: View {
     @ObservedObject var context: CallScreenViewModel.Context
     
     var body: some View {
-        NavigationStack {
+        ElementNavigationStack {
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color.compound.bgCanvasDefault.ignoresSafeArea())
                 .navigationBarTitleDisplayMode(.inline)
-                .toolbar(context.viewState.isGenericCallLink ? .visible : .hidden, for: .navigationBar)
+                .toolbar(.hidden, for: .navigationBar)
                 .toolbar { toolbar }
         }
         .alert(item: $context.alertInfo)
-        .preferredColorScheme(context.viewState.isGenericCallLink ? .dark : nil)
+        // Force dark mode for calls. Don't use .preferredColorScheme
+        // otherwise the whole app changes, visible when using the PiP.
+        .environment(\.colorScheme, .dark)
     }
     
     @ViewBuilder
@@ -36,7 +39,7 @@ struct CallScreen: View {
             CallView(url: context.viewState.url, viewModelContext: context)
                 // This URL is stable, forces view reloads if this representable is ever reused for another url
                 .id(context.viewState.url)
-                .ignoresSafeArea(edges: .bottom)
+                .ignoresSafeArea()
         }
     }
     
@@ -50,7 +53,7 @@ struct CallScreen: View {
     }
 }
 
-private struct CallView: UIViewRepresentable {
+struct CallView: UIViewRepresentable {
     /// The top-level view this representable displays. It wraps the web view when picture in picture isn't running.
     typealias WebViewWrapper = UIView
     
@@ -62,7 +65,13 @@ private struct CallView: UIViewRepresentable {
     }
     
     func makeCoordinator() -> Coordinator {
-        Coordinator(viewModelContext: viewModelContext)
+        if let existing = viewModelContext.viewState.swiftUICallViewCoordinator {
+            return existing
+        }
+        // When the screen is rotated, the pro max models regenerate the swiftui view tree, destroying and
+        // rebuilding this view. For that reason, we need to create and store the coordinator in the view model
+        // (and by extension the UIView) to persist between rotations to retain state
+        fatalError("CallView.Coordinator must be initialized in the context view state")
     }
     
     func updateUIView(_ callWebView: WebViewWrapper, context: Context) {
@@ -71,10 +80,8 @@ private struct CallView: UIViewRepresentable {
         }
     }
     
-    @MainActor
     class Coordinator: NSObject, WKUIDelegate, WKNavigationDelegate, AVPictureInPictureControllerDelegate {
         private weak var viewModelContext: CallScreenViewModel.Context?
-        private let certificateValidator: CertificateValidatorHookProtocol
         
         private var webView: WKWebView!
         private var pictureInPictureController: AVPictureInPictureController?
@@ -88,9 +95,8 @@ private struct CallView: UIViewRepresentable {
         
         init(viewModelContext: CallScreenViewModel.Context) {
             self.viewModelContext = viewModelContext
-            certificateValidator = viewModelContext.viewState.certificateValidator
             pictureInPictureViewController = AVPictureInPictureVideoCallViewController()
-            pictureInPictureViewController.preferredContentSize = CGSize(width: 1920, height: 1080)
+            pictureInPictureViewController.preferredContentSize = PiPSize.portrait.size
             
             super.init()
             
@@ -111,6 +117,7 @@ private struct CallView: UIViewRepresentable {
             configuration.userContentController = userContentController
             configuration.allowsInlineMediaPlayback = true
             configuration.allowsPictureInPictureMediaPlayback = true
+            configuration.applicationNameForUserAgent = InfoPlistReader.main.bundleDisplayName
             
             if let script = viewModelContext.viewState.script {
                 let userScript = WKUserScript(source: script, injectionTime: .atDocumentEnd, forMainFrameOnly: false)
@@ -121,6 +128,7 @@ private struct CallView: UIViewRepresentable {
             webView.uiDelegate = self
             webView.navigationDelegate = self
             webView.isInspectable = true
+            webView.scrollView.contentInsetAdjustmentBehavior = .never // Let Element Call manage the safe areas within the web view.
             
             // https://stackoverflow.com/a/77963877/730924
             webView.allowsLinkPreview = true
@@ -148,6 +156,7 @@ private struct CallView: UIViewRepresentable {
         }
         
         func load(_ url: URL) {
+            guard self.url != url else { return }
             self.url = url
             // The only file URL we allow is the one coming from our own local ElementCall bundle, so it's okay to allow read permission only to our local EC bundle
             if url.isFileURL {
@@ -167,12 +176,16 @@ private struct CallView: UIViewRepresentable {
                     if let error {
                         continuaton.resume(throwing: error)
                     } else {
+                        // The completion is called on the main thread which the continuation
+                        // also resumes on, so the result never actually crosses threads.
+                        nonisolated(unsafe) let result = result
                         continuaton.resume(returning: result)
                     }
                 }
             }
         }
         
+        // periphery:ignore:parameters userContentController - delegate convention
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
             guard let handlerID = CallScreenJavaScriptMessageName(rawValue: message.name) else {
                 return
@@ -191,6 +204,33 @@ private struct CallView: UIViewRepresentable {
                 viewModelContext?.send(viewAction: .outputDeviceSelected(deviceID: deviceID))
             case .onBackButtonPressed:
                 viewModelContext?.send(viewAction: .navigateBack)
+            case .onPipMediaOrientationUpdate:
+                guard let orientation = message.body as? String else { return }
+                switch orientation {
+                case "portrait":
+                    pictureInPictureViewController.preferredContentSize = PiPSize.portrait.size
+                case "landscape":
+                    pictureInPictureViewController.preferredContentSize = PiPSize.landscape.size
+                default:
+                    break
+                }
+            case .forwardLogs:
+                guard let body = message.body as? [String: String],
+                      let level = body["level"],
+                      let logMessage = body["message"] else { return }
+                
+                switch level {
+                case "log", "debug":
+                    MXLog.debug("[ElementCall]: \(logMessage)")
+                case "info":
+                    MXLog.info("[ElementCall]: \(logMessage)")
+                case "warn":
+                    MXLog.warning("[ElementCall]: \(logMessage)")
+                case "error":
+                    MXLog.error("[ElementCall]: \(logMessage)")
+                default:
+                    break
+                }
             }
         }
         
@@ -217,10 +257,6 @@ private struct CallView: UIViewRepresentable {
         }
         
         // MARK: - WKNavigationDelegate
-        
-        func webView(_ webView: WKWebView, respondTo challenge: URLAuthenticationChallenge) async -> (URLSession.AuthChallengeDisposition, URLCredential?) {
-            await certificateValidator.respondTo(challenge)
-        }
         
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction) async -> WKNavigationActionPolicy {
             if let navigationURL = navigationAction.request.url {
@@ -259,10 +295,6 @@ private struct CallView: UIViewRepresentable {
             
             pictureInPictureController.startPictureInPicture()
             return .success(())
-        }
-        
-        func stopPictureInPicture() {
-            pictureInPictureController?.stopPictureInPicture()
         }
         
         nonisolated func pictureInPictureControllerWillStartPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
@@ -326,21 +358,41 @@ private struct CallView: UIViewRepresentable {
             coordinator?.userContentController(userContentController, didReceive: message)
         }
     }
+    
+    private enum PiPSize {
+        case portrait
+        case landscape
+        
+        var size: CGSize {
+            switch self {
+            case .portrait:
+                .init(width: 1080, height: 1920)
+            case .landscape:
+                .init(width: 1920, height: 1080)
+            }
+        }
+    }
 }
 
 // MARK: - Previews
 
 struct CallScreen_Previews: PreviewProvider {
-    static let viewModel = {
+    static let viewModel = makeViewModel()
+    
+    static var previews: some View {
+        CallScreen(context: viewModel.context)
+    }
+    
+    static func makeViewModel() -> CallScreenViewModel {
         let clientProxy = ClientProxyMock()
         clientProxy.deviceID = "call-device-id"
         
         let roomProxy = JoinedRoomProxyMock()
         
         let widgetDriver = ElementCallWidgetDriverMock()
-        widgetDriver.underlyingMessagePublisher = .init()
-        widgetDriver.underlyingActions = PassthroughSubject<ElementCallWidgetDriverAction, Never>().eraseToAnyPublisher()
-        widgetDriver.startBaseURLClientIDColorSchemeRageshakeURLAnalyticsConfigurationReturnValue = .success(URL.userDirectory)
+        widgetDriver.messagePublisher = .init()
+        widgetDriver.actions = PassthroughSubject<ElementCallWidgetDriverAction, Never>().eraseToAnyPublisher()
+        widgetDriver.startBaseURLClientIDColorSchemeVoiceOnlyRageshakeURLAnalyticsConfigurationReturnValue = .success(URL.userDirectory)
         
         roomProxy.elementCallWidgetDriverDeviceIDReturnValue = widgetDriver
         
@@ -350,14 +402,10 @@ struct CallScreen_Previews: PreviewProvider {
                                                         clientID: "io.element.elementx",
                                                         elementCallBaseURL: "https://call.element.io",
                                                         elementCallBaseURLOverride: nil,
+                                                        voiceOnly: false,
                                                         colorScheme: .light),
                                    allowPictureInPicture: false,
-                                   appHooks: AppHooks(),
-                                   appSettings: ServiceLocator.shared.settings,
-                                   analyticsService: ServiceLocator.shared.analytics)
-    }()
-    
-    static var previews: some View {
-        CallScreen(context: viewModel.context)
+                                   userSettings: .mock(),
+                                   analyticsService: AnalyticsServiceMock(.init()))
     }
 }

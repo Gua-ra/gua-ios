@@ -141,7 +141,7 @@ class SecureBackupControllerStateTests: XCTestCase {
             .sink { [weak self] in self?.published.append($0) }
             .store(in: &cancellables)
 
-        return await controller.generateRecoveryKey()
+        return await controller.generateRecoveryKey(withPassphrase: nil)
     }
 
     private func isFailure(_ result: Result<String, SecureBackupControllerError>) -> Bool {

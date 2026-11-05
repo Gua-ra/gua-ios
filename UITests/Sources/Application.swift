@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -32,13 +33,13 @@ enum Application {
     }
     
     private static func checkEnvironments() {
-        let requirediPhoneSimulator = "iPhone17,3" // iPhone 16
-        let requirediPadSimulator = "iPad13,18" // iPad (10th generation)
-        let requiredOSVersion = 18
+        let requirediPhoneSimulator = "iPhone18,3" // iPhone 17
+        let requirediPadSimulator = "iPad15,7" // iPad (A16)
+        let requiredOSVersion = (major: 27, minor: 0)
         
         let osVersion = ProcessInfo().operatingSystemVersion
-        guard osVersion.majorVersion == requiredOSVersion else {
-            fatalError("Switch to iOS \(requiredOSVersion) for these tests.")
+        guard osVersion.majorVersion == requiredOSVersion.major, osVersion.minorVersion == requiredOSVersion.minor else {
+            fatalError("Switch to iOS \(requiredOSVersion.major).\(requiredOSVersion.minor) for these tests.")
         }
         
         guard let deviceModel = ProcessInfo().environment["SIMULATOR_MODEL_IDENTIFIER"] else {
@@ -46,9 +47,6 @@ enum Application {
         }
         guard deviceModel == requirediPhoneSimulator || deviceModel == requirediPadSimulator else {
             fatalError("Running on \(deviceModel) but we only support \(requirediPhoneSimulator) and \(requirediPadSimulator).")
-        }
-        guard UIDevice.current.snapshotName == "iPhone-18.5" || UIDevice.current.snapshotName == "iPad-18.5" else {
-            fatalError("Running on a simulator that hasn't been renamed to match the expected snapshot filenames.")
         }
     }
 }
@@ -91,7 +89,11 @@ extension XCUIApplication {
     }
     
     private var deviceName: String {
-        UIDevice.current.snapshotName
+        switch UIDevice.current.userInterfaceIdiom {
+        case .pad: return "iPad"
+        case .phone: return "iPhone"
+        default: fatalError("Unsupported device type: \(UIDevice.current.userInterfaceIdiom)")
+        }
     }
     
     private var localeCode: String {
@@ -100,38 +102,12 @@ extension XCUIApplication {
         }
         return languageCode + "-" + regionCode
     }
-
+    
     private var languageCode: String {
         Locale.current.language.languageCode?.identifier ?? ""
     }
-
+    
     private var regionCode: String {
         Locale.current.language.region?.identifier ?? ""
-    }
-}
-
-private extension UIDevice {
-    var snapshotName: String {
-        var name = name
-        
-        // When running with parallel execution simulators are named "Clone 2 of iPhone 14" etc.
-        // Tidy this prefix out of the name to generate snapshots with the correct name.
-        if name.starts(with: "Clone "), let range = name.range(of: " of ") {
-            name = String(name[range.upperBound...])
-        }
-        
-        return name
-    }
-}
-
-private extension UIImage {
-    /// Adjusts the image by cropping it with the given edge insets.
-    func inset(by insets: UIEdgeInsets) -> UIImage {
-        let insetRect = CGRect(origin: .zero, size: size).inset(by: insets)
-        let renderer = UIGraphicsImageRenderer(size: insetRect.size)
-        
-        return renderer.image { _ in
-            draw(at: CGPoint(x: -insets.left, y: -insets.top))
-        }
     }
 }
