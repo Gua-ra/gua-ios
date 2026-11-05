@@ -90,3 +90,6 @@
 "gua_join_space_turns_on_spaces" = "Este es un espacio. Al unirte, se activan los Espacios para que veas sus chats.";
 
 "gua_settings_spaces_description" = "Organiza chats y comunidades relacionados en un solo lugar";
+
+"gua_notification_sound_default" = "Predeterminado de Gua";
+"gua_notification_sound_fade" = "Desvanecimiento de Gua";

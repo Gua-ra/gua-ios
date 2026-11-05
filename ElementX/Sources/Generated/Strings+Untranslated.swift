@@ -130,6 +130,10 @@ internal nonisolated enum UntranslatedL10n {
   internal static var guaJoinSpaceTurnsOnSpaces: String { return UntranslatedL10n.tr("Untranslated", "gua_join_space_turns_on_spaces") }
   /// Select text
   internal static var guaMessageTextSelectionTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_message_text_selection_title") }
+  /// Gua Default
+  internal static var guaNotificationSoundDefault: String { return UntranslatedL10n.tr("Untranslated", "gua_notification_sound_default") }
+  /// Gua Fade
+  internal static var guaNotificationSoundFade: String { return UntranslatedL10n.tr("Untranslated", "gua_notification_sound_fade") }
   /// Your passkey can’t be used for this right now.
   internal static var guaPasskeyUnavailable: String { return UntranslatedL10n.tr("Untranslated", "gua_passkey_unavailable") }
   /// That passkey didn’t confirm it was you. Please try again.

@@ -90,3 +90,6 @@
 "gua_join_space_turns_on_spaces" = "Este é um espaço. Ao entrar, os Espaços são ativados para você ver as conversas dele.";
 
 "gua_settings_spaces_description" = "Organize conversas e comunidades relacionadas em um só lugar";
+
+"gua_notification_sound_default" = "Padrão do Gua";
+"gua_notification_sound_fade" = "Gua suave";

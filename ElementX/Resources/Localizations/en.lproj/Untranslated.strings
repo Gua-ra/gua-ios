@@ -138,3 +138,6 @@
 "gua_settings_spaces_description" = "Organize related chats and communities in one place";
 "gua_join_space_action" = "Turn on Spaces and join";
 "gua_join_space_turns_on_spaces" = "This is a space. Joining turns on Spaces so you can see its chats.";
+
+"gua_notification_sound_default" = "Gua Default";
+"gua_notification_sound_fade" = "Gua Fade";
