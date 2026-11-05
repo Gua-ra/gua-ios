@@ -7,26 +7,27 @@
 
 import Combine
 @testable import ElementX
-import XCTest
+import Foundation
+import Testing
 
 @MainActor
-final class SessionVerificationOwnDeviceResponderTests: XCTestCase {
+final class SessionVerificationOwnDeviceResponderTests {
     private var controller: SessionVerificationControllerProxyMock!
     private var cancellables = Set<AnyCancellable>()
-
+    
     private let ownDeviceRequest = SessionVerificationRequestDetails(senderProfile: UserProfile(userID: "@alice:gua.test"),
                                                                      flowID: "flow",
                                                                      deviceID: "WEB",
                                                                      deviceDisplayName: "Gua Web",
                                                                      firstSeenDate: .init(timeIntervalSince1970: 0))
-
+    
     private let otherUserRequest = SessionVerificationRequestDetails(senderProfile: UserProfile(userID: "@bob:gua.test"),
                                                                      flowID: "flow",
                                                                      deviceID: "BOBPHONE",
                                                                      deviceDisplayName: nil,
                                                                      firstSeenDate: .init(timeIntervalSince1970: 0))
-
-    override func setUp() {
+    
+    init() {
         cancellables.removeAll()
         controller = SessionVerificationControllerProxyMock.configureMock(requestDelay: .milliseconds(10))
         let actions = controller.actions
@@ -35,33 +36,36 @@ final class SessionVerificationOwnDeviceResponderTests: XCTestCase {
             return .success(())
         }
     }
-
+    
     // MARK: - Starting the emoji check
-
-    func testAcceptingAnOwnDeviceRequestStartsTheEmojiCheckWithoutAnotherTap() async throws {
+    
+    @Test
+    func acceptingAnOwnDeviceRequestStartsTheEmojiCheckWithoutAnotherTap() async throws {
         let viewModel = makeViewModel(flow: .deviceResponder(requestDetails: ownDeviceRequest))
         let context = viewModel.context
         let deferred = deferFulfillment(context.$viewState) { $0.verificationState == .showingChallenge(emojis: SessionVerificationControllerProxyMock.emojis) }
-
+        
         context.send(viewAction: .acceptVerificationRequest)
         try await deferred.fulfill()
-
-        XCTAssertEqual(controller.acceptVerificationRequestCallsCount, 1)
-        XCTAssertEqual(controller.startSasVerificationCallsCount, 1)
+        
+        #expect(controller.acceptVerificationRequestCallsCount == 1)
+        #expect(controller.startSasVerificationCallsCount == 1)
     }
-
-    func testAcceptingAnotherUsersRequestAlsoStartsTheEmojiCheck() async throws {
+    
+    @Test
+    func acceptingAnotherUsersRequestAlsoStartsTheEmojiCheck() async throws {
         let viewModel = makeViewModel(flow: .userResponder(requestDetails: otherUserRequest))
         let context = viewModel.context
         let deferred = deferFulfillment(context.$viewState) { $0.verificationState == .showingChallenge(emojis: SessionVerificationControllerProxyMock.emojis) }
-
+        
         context.send(viewAction: .acceptVerificationRequest)
         try await deferred.fulfill()
-
-        XCTAssertEqual(controller.startSasVerificationCallsCount, 1)
+        
+        #expect(controller.startSasVerificationCallsCount == 1)
     }
-
-    func testOwnDeviceDoesNotStartTwiceWhenTheOtherSideStartedFirst() async throws {
+    
+    @Test
+    func ownDeviceDoesNotStartTwiceWhenTheOtherSideStartedFirst() async throws {
         let actions = controller.actions
         controller.acceptVerificationRequestClosure = {
             actions.send(.startedSasVerification)
@@ -71,47 +75,50 @@ final class SessionVerificationOwnDeviceResponderTests: XCTestCase {
         }
         let viewModel = makeViewModel(flow: .deviceResponder(requestDetails: ownDeviceRequest))
         let context = viewModel.context
-
+        
         context.send(viewAction: .acceptVerificationRequest)
         try await Task.sleep(for: .milliseconds(200))
-
-        XCTAssertEqual(context.viewState.verificationState, .sasVerificationStarted)
-        XCTAssertEqual(controller.acceptVerificationRequestCallsCount, 1)
-        XCTAssertEqual(controller.startSasVerificationCallsCount, 0)
+        
+        #expect(context.viewState.verificationState == .sasVerificationStarted)
+        #expect(controller.acceptVerificationRequestCallsCount == 1)
+        #expect(controller.startSasVerificationCallsCount == 0)
     }
-
+    
     // MARK: - Verified
-
-    func testOwnDeviceConfirmationStaysOpenUntilDone() async throws {
+    
+    @Test
+    func ownDeviceConfirmationStaysOpenUntilDone() async throws {
         let viewModel = makeViewModel(flow: .deviceResponder(requestDetails: ownDeviceRequest),
                                       verificationState: .showingChallenge(emojis: SessionVerificationControllerProxyMock.emojis))
         let finishedCount = countFinished(viewModel)
         let deferred = deferFulfillment(viewModel.context.$viewState) { $0.verificationState == .verified }
-
+        
         viewModel.context.send(viewAction: .accept)
         try await deferred.fulfill()
         try await Task.sleep(for: .milliseconds(100))
-        XCTAssertEqual(finishedCount(), 0)
-
+        #expect(finishedCount() == 0)
+        
         viewModel.context.send(viewAction: .done)
-        XCTAssertEqual(finishedCount(), 1)
+        #expect(finishedCount() == 1)
     }
-
-    func testAnotherUsersVerificationStillFinishesOnItsOwn() async throws {
+    
+    @Test
+    func anotherUsersVerificationStillFinishesOnItsOwn() async throws {
         let viewModel = makeViewModel(flow: .userResponder(requestDetails: otherUserRequest),
                                       verificationState: .showingChallenge(emojis: SessionVerificationControllerProxyMock.emojis))
         let finishedCount = countFinished(viewModel)
         let deferred = deferFulfillment(viewModel.context.$viewState) { $0.verificationState == .verified }
-
+        
         viewModel.context.send(viewAction: .accept)
         try await deferred.fulfill()
-
-        XCTAssertEqual(finishedCount(), 1)
+        
+        #expect(finishedCount() == 1)
     }
-
+    
     // MARK: - Ignore
-
-    func testIgnoringAnOwnDeviceRequestReportsTheDevice() {
+    
+    @Test
+    func ignoringAnOwnDeviceRequestReportsTheDevice() {
         let viewModel = makeViewModel(flow: .deviceResponder(requestDetails: ownDeviceRequest))
         var actions: [String] = []
         viewModel.actions
@@ -122,13 +129,14 @@ final class SessionVerificationOwnDeviceResponderTests: XCTestCase {
                 }
             }
             .store(in: &cancellables)
-
+        
         viewModel.context.send(viewAction: .ignoreVerificationRequest)
-
-        XCTAssertEqual(actions, ["ignored WEB", "finished"])
+        
+        #expect(actions == ["ignored WEB", "finished"])
     }
-
-    func testIgnoringAnotherUsersRequestReportsNoDevice() {
+    
+    @Test
+    func ignoringAnotherUsersRequestReportsNoDevice() {
         let viewModel = makeViewModel(flow: .userResponder(requestDetails: otherUserRequest))
         var actions: [String] = []
         viewModel.actions
@@ -139,34 +147,37 @@ final class SessionVerificationOwnDeviceResponderTests: XCTestCase {
                 }
             }
             .store(in: &cancellables)
-
+        
         viewModel.context.send(viewAction: .ignoreVerificationRequest)
-
-        XCTAssertEqual(actions, ["finished"])
+        
+        #expect(actions == ["finished"])
     }
-
+    
     // MARK: - Copy
-
-    func testOwnDeviceRequestCopy() {
+    
+    @Test
+    func ownDeviceRequestCopy() {
         let flow = SessionVerificationScreenFlow.deviceResponder(requestDetails: ownDeviceRequest)
-
-        XCTAssertEqual(state(.initial, flow).title, UntranslatedL10n.guaVerificationNewSignInTitle)
-        XCTAssertEqual(state(.initial, flow).message, UntranslatedL10n.guaVerificationNewSignInSubtitle)
-        XCTAssertEqual(state(.acceptingChallenge(emojis: []), flow).message, UntranslatedL10n.guaVerificationCompareEmojisSubtitle)
-        XCTAssertEqual(state(.decliningChallenge(emojis: []), flow).message, UntranslatedL10n.guaVerificationCompareEmojisSubtitle)
-        XCTAssertEqual(state(.verified, flow).message, UntranslatedL10n.guaVerificationCompleteOtherDeviceSubtitle)
+        
+        #expect(state(.initial, flow).title == UntranslatedL10n.guaVerificationNewSignInTitle)
+        #expect(state(.initial, flow).message == UntranslatedL10n.guaVerificationNewSignInSubtitle)
+        #expect(state(.acceptingChallenge(emojis: []), flow).message == UntranslatedL10n.guaVerificationCompareEmojisSubtitle)
+        #expect(state(.decliningChallenge(emojis: []), flow).message == UntranslatedL10n.guaVerificationCompareEmojisSubtitle)
+        #expect(state(.verified, flow).message == UntranslatedL10n.guaVerificationCompleteOtherDeviceSubtitle)
     }
-
-    func testOtherFlowsKeepTheirCopy() {
+    
+    @Test
+    func otherFlowsKeepTheirCopy() {
         let userFlow = SessionVerificationScreenFlow.userResponder(requestDetails: otherUserRequest)
-        XCTAssertEqual(state(.initial, userFlow).title, L10n.screenSessionVerificationRequestTitle)
-        XCTAssertEqual(state(.initial, userFlow).message, L10n.screenSessionVerificationUserResponderSubtitle)
-        XCTAssertEqual(state(.acceptingChallenge(emojis: []), userFlow).message, L10n.screenSessionVerificationCompareEmojisSubtitle)
-
-        XCTAssertEqual(state(.verified, .deviceInitiator).message, UntranslatedL10n.guaVerificationCompleteSubtitle)
+        #expect(state(.initial, userFlow).title == L10n.screenSessionVerificationRequestTitle)
+        #expect(state(.initial, userFlow).message == L10n.screenSessionVerificationUserResponderSubtitle)
+        #expect(state(.acceptingChallenge(emojis: []), userFlow).message == L10n.screenSessionVerificationCompareEmojisSubtitle)
+        
+        #expect(state(.verified, .deviceInitiator).message == UntranslatedL10n.guaVerificationCompleteSubtitle)
     }
-
-    func testOwnDeviceCopyNeverSaysSessionMatrixOrHomeserver() {
+    
+    @Test
+    func ownDeviceCopyNeverSaysSessionMatrixOrHomeserver() {
         let flow = SessionVerificationScreenFlow.deviceResponder(requestDetails: ownDeviceRequest)
         let states: [SessionVerificationScreenStateMachine.State] = [.initial, .acceptingVerificationRequest, .verificationRequestAccepted,
                                                                      .startingSasVerification, .sasVerificationStarted,
@@ -176,13 +187,13 @@ final class SessionVerificationOwnDeviceResponderTests: XCTestCase {
             let viewState = state(verificationState, flow)
             let text = "\(viewState.title ?? "") \(viewState.message)".lowercased()
             for word in ["session", "matrix", "homeserver"] {
-                XCTAssertFalse(text.contains(word), "\(verificationState) says \"\(word)\": \(text)")
+                #expect(!text.contains(word), "\(verificationState) says \"\(word)\": \(text)")
             }
         }
     }
-
+    
     // MARK: - Helpers
-
+    
     private func makeViewModel(flow: SessionVerificationScreenFlow,
                                verificationState: SessionVerificationScreenStateMachine.State = .initial) -> SessionVerificationScreenViewModel {
         SessionVerificationScreenViewModel(sessionVerificationControllerProxy: controller,
@@ -190,7 +201,7 @@ final class SessionVerificationOwnDeviceResponderTests: XCTestCase {
                                            userSession: UserSessionMock(.init()),
                                            verificationState: verificationState)
     }
-
+    
     private func countFinished(_ viewModel: SessionVerificationScreenViewModel) -> () -> Int {
         var count = 0
         viewModel.actions
@@ -202,7 +213,7 @@ final class SessionVerificationOwnDeviceResponderTests: XCTestCase {
             .store(in: &cancellables)
         return { count }
     }
-
+    
     private func state(_ verificationState: SessionVerificationScreenStateMachine.State, _ flow: SessionVerificationScreenFlow) -> SessionVerificationScreenViewState {
         SessionVerificationScreenViewState(flow: flow, learnMoreURL: URL(string: "https://gua.global")!, verificationState: verificationState)
     }

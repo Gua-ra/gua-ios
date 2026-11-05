@@ -72,9 +72,9 @@ final class RoomSummaryProviderTests {
         #expect(dynamicEntriesController.setFilterKindReceivedInvocations.last == .all(filters: [.fuzzyMatchRoomName(pattern: "Family")] + baseFilters))
         
         userSettings.app.fuzzyRoomListSearchEnabled = false
-        roomSummaryProvider.setFilter(.search(query: "Family"))
+        roomSummaryProvider.setFilter(.search(query: "Friends"))
         await Task.yield()
-        #expect(dynamicEntriesController.setFilterKindReceivedInvocations.last == .all(filters: [.normalizedMatchRoomName(pattern: "Family")] + baseFilters))
+        #expect(dynamicEntriesController.setFilterKindReceivedInvocations.last == .all(filters: [.normalizedMatchRoomName(pattern: "Friends")] + baseFilters))
     }
     
     @Test

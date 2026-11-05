@@ -6,33 +6,29 @@
 //
 
 @testable import ElementX
-import XCTest
+import Foundation
+import Testing
 
 @MainActor
-class ModerationAndSafetySettingsScreenViewModelTests: XCTestCase {
-    private var appSettings: AppSettings!
+final class ModerationAndSafetySettingsScreenViewModelTests {
+    private var userSettings: UserSettings!
     private var viewModel: ModerationAndSafetySettingsScreenViewModelProtocol!
     private var context: ModerationAndSafetySettingsScreenViewModelType.Context {
         viewModel.context
     }
     
-    @MainActor override func setUpWithError() throws {
-        AppSettings.resetAllSettings()
-        appSettings = AppSettings()
-        viewModel = ModerationAndSafetySettingsScreenViewModel(userSession: UserSessionMock(.init()),
-                                                               appSettings: appSettings,
+    init() {
+        userSettings = .mock()
+        viewModel = ModerationAndSafetySettingsScreenViewModel(userSession: UserSessionMock(.init(userSettings: userSettings)),
                                                                userIndicatorController: UserIndicatorControllerMock())
     }
     
-    override func tearDown() {
-        AppSettings.resetAllSettings()
-    }
-    
-    func testSharePresenceWritesTheSetting() {
-        XCTAssertTrue(context.sharePresence)
+    @Test
+    func sharePresenceWritesTheSetting() {
+        #expect(context.sharePresence)
         
         context.sharePresence = false
         
-        XCTAssertFalse(appSettings.sharePresence)
+        #expect(!userSettings.account.sharePresence)
     }
 }

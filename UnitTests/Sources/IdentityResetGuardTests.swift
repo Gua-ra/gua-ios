@@ -6,156 +6,170 @@
 //
 
 @testable import ElementX
+import Foundation
 import MatrixRustSDK
-import XCTest
+import MatrixRustSDKMocks
+import Testing
 
-class IdentityResetGuardTests: XCTestCase {
+final class IdentityResetGuardTests {
     private var events: [String] = []
     private var markerWrites: [Date?] = []
     private var syncRunning = true
-
+    
     private struct SomeError: Error { }
-
-    override func setUp() {
+    
+    init() {
         events = []
         markerWrites = []
         syncRunning = true
     }
-
+    
     // MARK: - acquire
-
-    func testAcquireWritesTheMarkerBeforeStoppingAndStopsTwice() async {
+    
+    @Test
+    func acquireWritesTheMarkerBeforeStoppingAndStopsTwice() async {
         let guardUnderTest = makeGuard()
-
+        
         await guardUnderTest.acquire { events.append("hold") }
-
-        XCTAssertEqual(events, ["marker-write", "hold", "stop", "stop"])
-        XCTAssertNotNil(markerWrites.first ?? nil)
-        XCTAssertTrue(guardUnderTest.isHeld)
+        
+        #expect(events == ["marker-write", "hold", "stop", "stop"])
+        #expect(markerWrites.first ?? nil != nil)
+        #expect(guardUnderTest.isHeld)
     }
-
+    
     // MARK: - release
-
-    func testReleasingAnIdleGuardRestoresSyncBeforeClearingTheMarkerOnce() async {
+    
+    @Test
+    func releasingAnIdleGuardRestoresSyncBeforeClearingTheMarkerOnce() async {
         let guardUnderTest = makeGuard()
         await guardUnderTest.acquire { }
         events = []
-
+        
         await guardUnderTest.releaseIfIdle()
         await guardUnderTest.releaseIfIdle()
-
-        XCTAssertEqual(events, ["hold-off", "start", "marker-clear"])
-        XCTAssertFalse(guardUnderTest.isHeld)
+        
+        #expect(events == ["hold-off", "start", "marker-clear"])
+        #expect(!guardUnderTest.isHeld)
     }
-
-    func testARunningResetKeepsTheGuardHeldUntilItReturns() async {
+    
+    @Test
+    func aRunningResetKeepsTheGuardHeldUntilItReturns() async {
         let guardUnderTest = makeGuard()
         await guardUnderTest.acquire { }
         events = []
         let signal = TestSignal()
         let handle = IdentityResetHandleSDKMock()
         handle.resetAuthClosure = { _ in await signal.wait() }
-
+        
         let operation = guardUnderTest.runReset(handle, auth: .oAuth(session: "session"))
-
+        
         try? await Task.sleep(for: .milliseconds(150))
-        XCTAssertTrue(guardUnderTest.isHeld)
-        XCTAssertNotNil(guardUnderTest.inFlightReset)
-        XCTAssertFalse(events.contains("start"))
-        XCTAssertFalse(events.contains("marker-clear"))
-
+        #expect(guardUnderTest.isHeld)
+        #expect(guardUnderTest.inFlightReset != nil)
+        #expect(!events.contains("start"))
+        #expect(!events.contains("marker-clear"))
+        
         await guardUnderTest.releaseIfIdle()
-        XCTAssertTrue(guardUnderTest.isHeld)
-        XCTAssertEqual(events, [])
-
+        #expect(guardUnderTest.isHeld)
+        #expect(events == [])
+        
         let second = IdentityResetHandleSDKMock()
         _ = guardUnderTest.runReset(second, auth: .oAuth(session: "session"))
-        XCTAssertEqual(second.resetAuthCallsCount, 0)
-
+        #expect(second.resetAuthCallsCount == 0)
+        
         signal.fire()
         let result = await operation.value
         try? await Task.sleep(for: .milliseconds(100))
-
-        XCTAssertNoThrow(try result.get())
-        XCTAssertEqual(handle.resetAuthCallsCount, 1)
-        XCTAssertEqual(events, ["landed", "hold-off", "start", "marker-clear", "provision"])
-        XCTAssertFalse(guardUnderTest.isHeld)
-
+        
+        #expect(throws: Never.self) {
+            try result.get()
+        }
+        #expect(handle.resetAuthCallsCount == 1)
+        #expect(events == ["landed", "hold-off", "start", "marker-clear", "provision"])
+        #expect(!guardUnderTest.isHeld)
+        
         await guardUnderTest.releaseIfIdle()
-        XCTAssertEqual(events.filter { $0 == "start" }.count, 1, "release is idempotent")
+        #expect(events.filter { $0 == "start" }.count == 1, "release is idempotent")
     }
-
-    func testAFailedResetReleasesOnceAndProvisionsNothing() async {
+    
+    @Test
+    func aFailedResetReleasesOnceAndProvisionsNothing() async {
         let guardUnderTest = makeGuard()
         await guardUnderTest.acquire { }
         events = []
         let handle = IdentityResetHandleSDKMock()
         handle.resetAuthThrowableError = SomeError()
-
+        
         let result = await guardUnderTest.runReset(handle, auth: .oAuth(session: "session")).value
         try? await Task.sleep(for: .milliseconds(100))
-
-        XCTAssertThrowsError(try result.get())
-        XCTAssertEqual(events, ["hold-off", "start", "marker-clear"])
-        XCTAssertFalse(guardUnderTest.isHeld)
+        
+        #expect(throws: (any Error).self) {
+            try result.get()
+        }
+        #expect(events == ["hold-off", "start", "marker-clear"])
+        #expect(!guardUnderTest.isHeld)
     }
-
-    func testTheMarkerOutlivesTheStoppedSync() async throws {
+    
+    @Test
+    func theMarkerOutlivesTheStoppedSync() async throws {
         let guardUnderTest = makeGuard()
         await guardUnderTest.acquire { }
         events = []
-
+        
         await guardUnderTest.releaseIfIdle()
-
-        let start = try XCTUnwrap(events.firstIndex(of: "start"))
-        let clear = try XCTUnwrap(events.firstIndex(of: "marker-clear"))
-        XCTAssertLessThan(start, clear)
-        XCTAssertEqual(markerWrites.last ?? Date(), nil)
+        
+        let start = try #require(events.firstIndex(of: "start"))
+        let clear = try #require(events.firstIndex(of: "marker-clear"))
+        #expect(start < clear)
+        #expect(markerWrites.last ?? Date() == nil)
     }
-
+    
     // MARK: - deinit
-
-    func testDeallocationAfterAReleaseStartsNothingTwice() async {
+    
+    @Test
+    func deallocationAfterAReleaseStartsNothingTwice() async {
         var guardUnderTest: IdentityResetGuard? = makeGuard()
         await guardUnderTest?.acquire { }
         await guardUnderTest?.releaseIfIdle()
-
+        
         guardUnderTest = nil
         try? await Task.sleep(for: .milliseconds(50))
-
-        XCTAssertEqual(events.filter { $0 == "start" }.count, 1)
-        XCTAssertEqual(events.filter { $0 == "marker-clear" }.count, 1)
+        
+        #expect(events.filter { $0 == "start" }.count == 1)
+        #expect(events.filter { $0 == "marker-clear" }.count == 1)
     }
-
-    func testDeallocationWhileHeldClearsTheMarkerAndStartsNothing() async {
+    
+    @Test
+    func deallocationWhileHeldClearsTheMarkerAndStartsNothing() async {
         var guardUnderTest: IdentityResetGuard? = makeGuard()
         await guardUnderTest?.acquire { }
         events = []
-
+        
         guardUnderTest = nil
         try? await Task.sleep(for: .milliseconds(50))
-
-        XCTAssertEqual(events, ["marker-clear"])
+        
+        #expect(events == ["marker-clear"])
     }
-
+    
     // MARK: - marker refresh
-
-    func testTheMarkerIsRefreshedWhileHeldAndNotAfter() async {
+    
+    @Test
+    func theMarkerIsRefreshedWhileHeldAndNotAfter() async {
         let guardUnderTest = makeGuard(refreshInterval: .milliseconds(40))
         await guardUnderTest.acquire { }
-
+        
         try? await Task.sleep(for: .milliseconds(220))
         let writesWhileHeld = markerWrites.compactMap { $0 }.count
-        XCTAssertGreaterThanOrEqual(writesWhileHeld, 3, "writes: \(markerWrites.count)")
-
+        #expect(writesWhileHeld >= 3, "writes: \(markerWrites.count)")
+        
         await guardUnderTest.releaseIfIdle()
         let writesAtRelease = markerWrites.count
         try? await Task.sleep(for: .milliseconds(150))
-        XCTAssertEqual(markerWrites.count, writesAtRelease)
+        #expect(markerWrites.count == writesAtRelease)
     }
-
+    
     // MARK: - helpers
-
+    
     private func makeGuard(refreshInterval: Duration = .seconds(30)) -> IdentityResetGuard {
         IdentityResetGuard(dependencies: .init(stopSync: { [weak self] in
                                                    self?.events.append("stop")
@@ -177,16 +191,18 @@ class IdentityResetGuardTests: XCTestCase {
     }
 }
 
-class ClientProxySyncGateTests: XCTestCase {
-    func testAHeldIdentityResetBlocksEveryStart() {
-        XCTAssertFalse(ClientProxy.maySyncStart(identityResetHeld: true, hasEncounteredAuthError: false, isReachable: true))
-        XCTAssertFalse(ClientProxy.maySyncStart(identityResetHeld: true, hasEncounteredAuthError: true, isReachable: false))
+final class ClientProxySyncGateTests {
+    @Test
+    func aHeldIdentityResetBlocksEveryStart() {
+        #expect(!ClientProxy.maySyncStart(identityResetHeld: true, hasEncounteredAuthError: false, isReachable: true))
+        #expect(!ClientProxy.maySyncStart(identityResetHeld: true, hasEncounteredAuthError: true, isReachable: false))
     }
-
-    func testTheOrdinaryGuardsStillApply() {
-        XCTAssertFalse(ClientProxy.maySyncStart(identityResetHeld: false, hasEncounteredAuthError: true, isReachable: true))
-        XCTAssertFalse(ClientProxy.maySyncStart(identityResetHeld: false, hasEncounteredAuthError: false, isReachable: false))
-        XCTAssertTrue(ClientProxy.maySyncStart(identityResetHeld: false, hasEncounteredAuthError: false, isReachable: true))
+    
+    @Test
+    func theOrdinaryGuardsStillApply() {
+        #expect(!ClientProxy.maySyncStart(identityResetHeld: false, hasEncounteredAuthError: true, isReachable: true))
+        #expect(!ClientProxy.maySyncStart(identityResetHeld: false, hasEncounteredAuthError: false, isReachable: false))
+        #expect(ClientProxy.maySyncStart(identityResetHeld: false, hasEncounteredAuthError: false, isReachable: true))
     }
 }
 
@@ -194,7 +210,7 @@ final class TestSignal: @unchecked Sendable {
     private let lock = NSLock()
     private var fired = false
     private var continuation: CheckedContinuation<Void, Never>?
-
+    
     func wait() async {
         await withCheckedContinuation { continuation in
             lock.lock()
@@ -207,7 +223,7 @@ final class TestSignal: @unchecked Sendable {
             }
         }
     }
-
+    
     func fire() {
         lock.lock()
         fired = true

@@ -7,14 +7,16 @@
 
 import Combine
 @testable import ElementX
-import XCTest
+import Foundation
+import Testing
+import UIKit
 
 @MainActor
-final class NewSignInNudgeMonitorTests: XCTestCase {
+final class NewSignInNudgeMonitorTests {
     private let userID = "@alice:gua.test"
     private let phoneID = "PHONE"
     private let start = Date(timeIntervalSince1970: 1_800_000_000)
-
+    
     private var clientProxy: ClientProxyMock!
     private var verificationState: CurrentValueSubject<SessionVerificationState, Never>!
     private var secureBackupController: SecureBackupControllerMock!
@@ -26,12 +28,15 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
     private var isAppActive = true
     private var isIdle = true
     private var monitor: NewSignInNudgeMonitor!
-    private var fixture: OwnDevicesFixture!
-
-    override func setUp() async throws {
+    private var fixture: OwnDevicesFixture! {
+        get { OwnDevicesHTTPStub.fixture }
+        set { OwnDevicesHTTPStub.fixture = newValue }
+    }
+    
+    init() async throws {
         OwnDevicesHTTPStub.reset()
         IdentityResetPendingStore.clear(for: userID)
-
+        
         clock = NewSignInNudgeTestClock(now: start)
         clientProxy = ClientProxyMock(.init(homeserver: "https://matrix.gua.test/", userID: userID, deviceID: phoneID))
         clientProxy.accessToken = "token-1"
@@ -41,209 +46,222 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
         secureBackupController.settledRecoveryStateTimeoutReturnValue = .enabled
         secureBackupController.sdkRecoveryStateReturnValue = .enabled
         clientProxy.secureBackupController = secureBackupController
-
+        
         appSettings = AppSettings.volatile()
         scheduler = ManualNewSignInNudgeScheduler()
         notificationCenter = NotificationCenter()
         history = NewSignInNudgeHistory()
         isAppActive = true
         isIdle = true
-
+        
         fixture = OwnDevicesFixture(userID: userID, devices: [
             .init(id: phoneID, lastSeen: start, signedBySelfSigningKey: true),
             .init(id: "LAPTOP", lastSeen: start.addingTimeInterval(-30), signedBySelfSigningKey: true),
             .init(id: "OLDWEB", lastSeen: start.addingTimeInterval(-300)),
             .init(id: "NEWWEB", lastSeen: start.addingTimeInterval(-60))
         ])
-        OwnDevicesHTTPStub.serve(devices: { [unowned self] in fixture.devicesJSON },
-                                 keys: { [unowned self] in fixture.keysJSON })
-
+        OwnDevicesHTTPStub.serveFixture()
+        
         monitor = makeMonitor()
     }
-
-    override func tearDown() async throws {
+    
+    isolated deinit {
         monitor?.stop()
         IdentityResetPendingStore.clear(for: userID)
         appSettings?.resetSessionSpecificSettings()
         OwnDevicesHTTPStub.reset()
     }
-
+    
     // MARK: - Candidate selection
-
-    func testNudgesOnlyTheNewestRecentDeviceWithoutASelfSigningSignature() async throws {
+    
+    @Test
+    func nudgesOnlyTheNewestRecentDeviceWithoutASelfSigningSignature() async throws {
         monitor.start()
         await runRound()
-
+        
         let requests = OwnDevicesHTTPStub.requests
-        XCTAssertEqual(requests.map(\.method), ["GET", "POST", "PUT"])
-
-        XCTAssertEqual(requests[0].path, "/_matrix/client/v3/devices")
-        XCTAssertEqual(requests[0].authorization, "Bearer token-1")
-
-        XCTAssertEqual(requests[1].path, "/_matrix/client/v3/keys/query")
-        XCTAssertEqual(requests[1].authorization, "Bearer token-1")
-        XCTAssertEqual(requests[1].json, ["device_keys": [userID: [String]()]] as NSDictionary)
-
+        #expect(requests.map(\.method) == ["GET", "POST", "PUT"])
+        
+        #expect(requests[0].path == "/_matrix/client/v3/devices")
+        #expect(requests[0].authorization == "Bearer token-1")
+        
+        #expect(requests[1].path == "/_matrix/client/v3/keys/query")
+        #expect(requests[1].authorization == "Bearer token-1")
+        #expect(requests[1].json == ["device_keys": [userID: [String]()]] as NSDictionary)
+        
         let nudge = requests[2]
-        let transactionID = try XCTUnwrap(nudge.path.split(separator: "/").last)
-        XCTAssertEqual(nudge.path, "/_matrix/client/v3/sendToDevice/global.gua.verification.retry_request/\(transactionID)")
-        XCTAssertFalse(transactionID.isEmpty)
-        XCTAssertEqual(nudge.authorization, "Bearer token-1")
-        XCTAssertEqual(nudge.json, ["messages": [userID: ["NEWWEB": ["from_device": phoneID]]]] as NSDictionary)
+        let transactionID = try #require(nudge.path.split(separator: "/").last)
+        #expect(nudge.path == "/_matrix/client/v3/sendToDevice/global.gua.verification.retry_request/\(transactionID)")
+        #expect(!transactionID.isEmpty)
+        #expect(nudge.authorization == "Bearer token-1")
+        #expect(nudge.json == ["messages": [userID: ["NEWWEB": ["from_device": phoneID]]]] as NSDictionary)
     }
-
-    func testEachNudgeUsesAFreshTransactionID() async {
+    
+    @Test
+    func eachNudgeUsesAFreshTransactionID() async {
         monitor.start()
         await runRound()
         clock.now = start.addingTimeInterval(120)
         await runRound()
-
+        
         let paths = OwnDevicesHTTPStub.nudges.map(\.path)
-        XCTAssertEqual(paths.count, 2)
-        XCTAssertNotEqual(paths.first, paths.last)
+        #expect(paths.count == 2)
+        #expect(paths.first != paths.last)
     }
-
-    func testDoesNotNudgeDevicesTheSelfSigningKeyHasSigned() async {
+    
+    @Test
+    func doesNotNudgeDevicesTheSelfSigningKeyHasSigned() async {
         fixture.devices = [.init(id: phoneID, lastSeen: start, signedBySelfSigningKey: true),
                            .init(id: "LAPTOP", lastSeen: start, signedBySelfSigningKey: true)]
         monitor.start()
         await runRound()
-
-        XCTAssertEqual(OwnDevicesHTTPStub.requests.map(\.method), ["GET", "POST"])
+        
+        #expect(OwnDevicesHTTPStub.requests.map(\.method) == ["GET", "POST"])
     }
-
-    func testDoesNotNudgeThisDevice() async {
+    
+    @Test
+    func doesNotNudgeThisDevice() async {
         fixture.devices = [.init(id: phoneID, lastSeen: start)]
         monitor.start()
         await runRound()
-
-        XCTAssertTrue(OwnDevicesHTTPStub.nudges.isEmpty)
+        
+        #expect(OwnDevicesHTTPStub.nudges.isEmpty)
     }
-
-    func testDoesNotNudgeADehydratedDevice() async {
+    
+    @Test
+    func doesNotNudgeADehydratedDevice() async {
         fixture.devices = [.init(id: phoneID, lastSeen: start, signedBySelfSigningKey: true),
                            .init(id: "DEHYDRATED", lastSeen: start, dehydrated: true),
                            .init(id: "WEB", lastSeen: start.addingTimeInterval(-120), dehydrated: false)]
         monitor.start()
         await runRound()
-
-        XCTAssertEqual(nudgedDevices, ["WEB"])
+        
+        #expect(nudgedDevices == ["WEB"])
     }
-
-    func testDoesNotNudgeADeviceNotSeenInTheLastTenMinutes() async {
+    
+    @Test
+    func doesNotNudgeADeviceNotSeenInTheLastTenMinutes() async {
         fixture.devices = [.init(id: phoneID, lastSeen: start, signedBySelfSigningKey: true),
                            .init(id: "STALE", lastSeen: start.addingTimeInterval(-601)),
                            .init(id: "NEVERSEEN", lastSeen: nil),
                            .init(id: "NOTLISTED", lastSeen: start, listedInDevices: false)]
         monitor.start()
         await runRound()
-
-        XCTAssertEqual(OwnDevicesHTTPStub.requests.map(\.method), ["GET", "POST"])
+        
+        #expect(OwnDevicesHTTPStub.requests.map(\.method) == ["GET", "POST"])
     }
-
-    func testNudgesADeviceSeenExactlyTenMinutesAgo() async {
+    
+    @Test
+    func nudgesADeviceSeenExactlyTenMinutesAgo() async {
         fixture.devices = [.init(id: phoneID, lastSeen: start, signedBySelfSigningKey: true),
                            .init(id: "WEB", lastSeen: start.addingTimeInterval(-600))]
         monitor.start()
         await runRound()
-
-        XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 1)
+        
+        #expect(OwnDevicesHTTPStub.nudges.count == 1)
     }
-
-    func testDoesNothingWhenTheAccountHasNoSelfSigningKey() async {
+    
+    @Test
+    func doesNothingWhenTheAccountHasNoSelfSigningKey() async {
         fixture.selfSigningPublicKey = nil
         monitor.start()
         await runRound()
-
-        XCTAssertEqual(OwnDevicesHTTPStub.requests.map(\.method), ["GET", "POST"])
+        
+        #expect(OwnDevicesHTTPStub.requests.map(\.method) == ["GET", "POST"])
     }
-
-    func testSkipsADismissedDeviceAndNudgesTheNextNewest() async {
+    
+    @Test
+    func skipsADismissedDeviceAndNudgesTheNextNewest() async {
         appSettings.addDismissedSignInDeviceID("NEWWEB", forUserID: userID)
         monitor.start()
         await runRound()
-
-        XCTAssertEqual(nudgedDevices, ["OLDWEB"])
+        
+        #expect(nudgedDevices == ["OLDWEB"])
     }
-
-    func testDismissedDevicesArePerAccountAndClearedOnSignOut() {
+    
+    @Test
+    func dismissedDevicesArePerAccountAndClearedOnSignOut() {
         appSettings.addDismissedSignInDeviceID("WEB", forUserID: userID)
         appSettings.addDismissedSignInDeviceID("WEB2", forUserID: userID)
-
-        XCTAssertEqual(appSettings.dismissedSignInDeviceIDs(forUserID: userID), ["WEB", "WEB2"])
-        XCTAssertEqual(appSettings.dismissedSignInDeviceIDs(forUserID: "@bob:gua.test"), [])
-
+        
+        #expect(appSettings.dismissedSignInDeviceIDs(forUserID: userID) == ["WEB", "WEB2"])
+        #expect(appSettings.dismissedSignInDeviceIDs(forUserID: "@bob:gua.test") == [])
+        
         appSettings.resetSessionSpecificSettings()
-
-        XCTAssertEqual(appSettings.dismissedSignInDeviceIDs(forUserID: userID), [])
+        
+        #expect(appSettings.dismissedSignInDeviceIDs(forUserID: userID) == [])
     }
-
-    func testDoesNotNudgeADeviceThatSentARequestInTheLastTenMinutes() async {
+    
+    @Test
+    func doesNotNudgeADeviceThatSentARequestInTheLastTenMinutes() async {
         monitor.start()
         monitor.recordVerificationRequest(fromDeviceID: "NEWWEB")
         await runRound()
-
-        XCTAssertEqual(nudgedDevices, ["OLDWEB"])
-
+        
+        #expect(nudgedDevices == ["OLDWEB"])
+        
         fixture.devices = [.init(id: phoneID, lastSeen: start, signedBySelfSigningKey: true),
                            .init(id: "NEWWEB", lastSeen: start.addingTimeInterval(599))]
         clock.now = start.addingTimeInterval(599)
         await runRound()
-        XCTAssertEqual(nudgedDevices, ["OLDWEB"])
-
+        #expect(nudgedDevices == ["OLDWEB"])
+        
         clock.now = start.addingTimeInterval(600)
         await runRound()
-        XCTAssertEqual(nudgedDevices, ["OLDWEB", "NEWWEB"])
+        #expect(nudgedDevices == ["OLDWEB", "NEWWEB"])
     }
-
+    
     // MARK: - Rate limits
-
-    func testNudgesADeviceAtMostOnceEveryTwoMinutesAndThreeTimesInAll() async {
+    
+    @Test
+    func nudgesADeviceAtMostOnceEveryTwoMinutesAndThreeTimesInAll() async {
         fixture.devices = [.init(id: phoneID, lastSeen: start, signedBySelfSigningKey: true),
                            .init(id: "WEB", lastSeen: start)]
         monitor.start()
-
+        
         await runRound(at: 0)
-        XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 1)
-
+        #expect(OwnDevicesHTTPStub.nudges.count == 1)
+        
         await runRound(at: 60)
         await runRound(at: 119)
-        XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 1, "A device is nudged at most once every 120 s.")
-
+        #expect(OwnDevicesHTTPStub.nudges.count == 1, "A device is nudged at most once every 120 s.")
+        
         await runRound(at: 120)
-        XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 2)
-
+        #expect(OwnDevicesHTTPStub.nudges.count == 2)
+        
         await runRound(at: 240)
-        XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 3)
-
+        #expect(OwnDevicesHTTPStub.nudges.count == 3)
+        
         await runRound(at: 360)
         await runRound(at: 480)
-        XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 3, "A device is nudged at most three times.")
+        #expect(OwnDevicesHTTPStub.nudges.count == 3, "A device is nudged at most three times.")
     }
-
-    func testTheNudgeLimitCountsFromAppLaunchNotFromSessionStart() async {
+    
+    @Test
+    func theNudgeLimitCountsFromAppLaunchNotFromSessionStart() async {
         fixture.devices = [.init(id: phoneID, lastSeen: start, signedBySelfSigningKey: true),
                            .init(id: "WEB", lastSeen: start)]
         monitor.start()
         await runRound(at: 0)
         await runRound(at: 120)
         await runRound(at: 240)
-        XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 3)
-
+        #expect(OwnDevicesHTTPStub.nudges.count == 3)
+        
         monitor.stop()
         scheduler = ManualNewSignInNudgeScheduler()
         monitor = makeMonitor()
         monitor.start()
         await runRound(at: 480)
-
-        XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 3)
-        XCTAssertIdentical(NewSignInNudgeMonitor.Environment().history, NewSignInNudgeHistory.shared)
+        
+        #expect(OwnDevicesHTTPStub.nudges.count == 3)
+        #expect(NewSignInNudgeMonitor.Environment().history === NewSignInNudgeHistory.shared)
     }
-
-    func testAFailedNudgeDoesNotCountTowardsTheLimits() async throws {
+    
+    @Test
+    func aFailedNudgeDoesNotCountTowardsTheLimits() async throws {
         fixture.devices = [.init(id: phoneID, lastSeen: start, signedBySelfSigningKey: true),
                            .init(id: "WEB", lastSeen: start)]
-        let base = try XCTUnwrap(fixture)
+        let base = try #require(fixture)
         OwnDevicesHTTPStub.respond { request in
             switch request.method {
             case "GET": return (200, base.devicesJSON)
@@ -252,75 +270,82 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
             }
         }
         monitor.start()
-
+        
         await runRound(at: 0)
         await runRound(at: 60)
         await runRound(at: 119)
-        XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 3, "A failed send leaves the cooldown and the limit untouched.")
-
+        #expect(OwnDevicesHTTPStub.nudges.count == 3, "A failed send leaves the cooldown and the limit untouched.")
+        
         OwnDevicesHTTPStub.serve(devices: { base.devicesJSON }, keys: { base.keysJSON })
         await runRound(at: 180)
-        XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 4)
-
+        #expect(OwnDevicesHTTPStub.nudges.count == 4)
+        
         await runRound(at: 240)
-        XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 4)
+        #expect(OwnDevicesHTTPStub.nudges.count == 4)
     }
-
+    
     // MARK: - Gating
-
-    func testDoesNothingWhileThisDeviceIsNotVerified() async {
+    
+    @Test
+    func doesNothingWhileThisDeviceIsNotVerified() async {
         verificationState.send(.unverified)
         monitor.start()
         await runRound()
-
-        XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
+        
+        #expect(OwnDevicesHTTPStub.requests.isEmpty)
     }
-
-    func testDoesNothingUntilRecoveryHasSettledAsEnabled() async {
+    
+    @Test
+    func doesNothingUntilRecoveryHasSettledAsEnabled() async {
         secureBackupController.settledRecoveryStateTimeoutReturnValue = .incomplete
         monitor.start()
         await runRound()
-
-        XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
+        
+        #expect(OwnDevicesHTTPStub.requests.isEmpty)
     }
-
-    func testDoesNothingWhileTheSDKDisagreesThatRecoveryIsEnabled() async {
+    
+    @Test
+    func doesNothingWhileTheSDKDisagreesThatRecoveryIsEnabled() async {
         secureBackupController.sdkRecoveryStateReturnValue = .incomplete
         monitor.start()
         await runRound()
-
-        XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
+        
+        #expect(OwnDevicesHTTPStub.requests.isEmpty)
     }
-
-    func testDoesNothingWhileAnIdentityResetIsPending() async {
+    
+    @Test
+    func doesNothingWhileAnIdentityResetIsPending() async {
         IdentityResetPendingStore.markPending(for: userID)
         monitor.start()
         await runRound()
-
-        XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
+        
+        #expect(OwnDevicesHTTPStub.requests.isEmpty)
     }
-
-    func testDoesNothingWhileAnIdentityResetIsRunning() async {
+    
+    @Test
+    func doesNothingWhileAnIdentityResetIsRunning() async {
         appSettings.setIdentityResetStartedAt(start, forUserID: userID)
         monitor.start()
         await runRound()
-
-        XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
+        
+        #expect(OwnDevicesHTTPStub.requests.isEmpty)
     }
-
-    func testDoesNothingWhileSomethingIsPresented() async {
+    
+    @Test
+    func doesNothingWhileSomethingIsPresented() async {
         isIdle = false
         monitor.start()
         await runRound()
-        XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
-
+        #expect(OwnDevicesHTTPStub.requests.isEmpty)
+        
         isIdle = true
         await runRound()
-        XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 1)
+        #expect(OwnDevicesHTTPStub.nudges.count == 1)
     }
-
-    func testDoesNotNudgeWhenAModalAppearsWhileReading() async throws {
-        let base = try XCTUnwrap(fixture)
+    
+    @Test
+    func doesNotNudgeWhenAModalAppearsWhileReading() async throws {
+        let base = try #require(fixture)
         OwnDevicesHTTPStub.respond { [unowned self] request in
             switch request.path {
             case "/_matrix/client/v3/devices":
@@ -334,44 +359,46 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
         }
         monitor.start()
         await runRound()
-
-        XCTAssertEqual(OwnDevicesHTTPStub.requests.map(\.method), ["GET", "POST"])
+        
+        #expect(OwnDevicesHTTPStub.requests.map(\.method) == ["GET", "POST"])
     }
-
-    func testDoesNothingWhileTheAppIsNotActive() async {
+    
+    @Test
+    func doesNothingWhileTheAppIsNotActive() async {
         isAppActive = false
         monitor.start()
         await settle()
-        XCTAssertEqual(scheduler.liveEntries.map(\.delay), [.seconds(5)])
-
+        #expect(scheduler.liveEntries.map(\.delay) == [.seconds(5)])
+        
         scheduler.fire(.seconds(5))
         await monitor.currentRound?.value
-
-        XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
+        
+        #expect(OwnDevicesHTTPStub.requests.isEmpty)
     }
-
+    
     // MARK: - Server errors
-
-    func testUnauthorizedReadSkipsTheRoundAndTheNextRoundReadsAFreshToken() async {
+    
+    @Test
+    func unauthorizedReadSkipsTheRoundAndTheNextRoundReadsAFreshToken() async {
         OwnDevicesHTTPStub.respond { _ in (401, #"{"errcode":"M_UNKNOWN_TOKEN","error":"Token expired"}"#) }
         monitor.start()
         await runRound()
-
-        XCTAssertEqual(OwnDevicesHTTPStub.requests.map(\.method), ["GET"])
-        XCTAssertFalse(clientProxy.logoutCalled)
-
+        
+        #expect(OwnDevicesHTTPStub.requests.map(\.method) == ["GET"])
+        #expect(!clientProxy.logoutCalled)
+        
         clientProxy.accessToken = "token-2"
-        OwnDevicesHTTPStub.serve(devices: { [unowned self] in fixture.devicesJSON },
-                                 keys: { [unowned self] in fixture.keysJSON })
+        OwnDevicesHTTPStub.serveFixture()
         await runRound()
-
+        
         let retried = OwnDevicesHTTPStub.requests.dropFirst()
-        XCTAssertEqual(retried.map(\.method), ["GET", "POST", "PUT"])
-        XCTAssertEqual(retried.map(\.authorization), Array(repeating: "Bearer token-2", count: 3))
+        #expect(retried.map(\.method) == ["GET", "POST", "PUT"])
+        #expect(retried.map(\.authorization) == Array(repeating: "Bearer token-2", count: 3))
     }
-
-    func testEachCallReadsAFreshAccessToken() async throws {
-        let base = try XCTUnwrap(fixture)
+    
+    @Test
+    func eachCallReadsAFreshAccessToken() async throws {
+        let base = try #require(fixture)
         OwnDevicesHTTPStub.respond { [unowned self] request in
             switch request.method {
             case "GET":
@@ -386,100 +413,108 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
         }
         monitor.start()
         await runRound()
-
-        XCTAssertEqual(OwnDevicesHTTPStub.requests.map(\.authorization), ["Bearer token-1", "Bearer token-2", "Bearer token-3"])
+        
+        #expect(OwnDevicesHTTPStub.requests.map(\.authorization) == ["Bearer token-1", "Bearer token-2", "Bearer token-3"])
     }
-
-    func testUnauthorizedKeyQuerySendsNoNudge() async {
+    
+    @Test
+    func unauthorizedKeyQuerySendsNoNudge() async {
         let devicesJSON = fixture.devicesJSON
         OwnDevicesHTTPStub.respond { request in
             request.method == "GET" ? (200, devicesJSON) : (401, #"{"errcode":"M_UNKNOWN_TOKEN"}"#)
         }
         monitor.start()
         await runRound()
-
-        XCTAssertEqual(OwnDevicesHTTPStub.requests.map(\.method), ["GET", "POST"])
-        XCTAssertFalse(clientProxy.logoutCalled)
+        
+        #expect(OwnDevicesHTTPStub.requests.map(\.method) == ["GET", "POST"])
+        #expect(!clientProxy.logoutCalled)
     }
-
-    func testMalformedDeviceListSendsNoNudge() async {
-        OwnDevicesHTTPStub.serve(devices: { #"{"unexpected": true}"# }, keys: { [unowned self] in fixture.keysJSON })
+    
+    @Test
+    func malformedDeviceListSendsNoNudge() async {
+        let keysJSON = fixture.keysJSON
+        OwnDevicesHTTPStub.serve(devices: { #"{"unexpected": true}"# }, keys: { keysJSON })
         monitor.start()
         await runRound()
-
-        XCTAssertEqual(OwnDevicesHTTPStub.requests.map(\.method), ["GET"])
+        
+        #expect(OwnDevicesHTTPStub.requests.map(\.method) == ["GET"])
     }
-
-    func testDoesNothingWithoutAnAccessToken() async {
+    
+    @Test
+    func doesNothingWithoutAnAccessToken() async {
         clientProxy.accessToken = nil
         monitor.start()
         await runRound()
-
-        XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
+        
+        #expect(OwnDevicesHTTPStub.requests.isEmpty)
     }
-
+    
     // MARK: - Scheduling
-
-    func testFirstVerificationSchedulesOneRoundFiveSecondsLater() async {
+    
+    @Test
+    func firstVerificationSchedulesOneRoundFiveSecondsLater() async {
         verificationState.send(.unverified)
         monitor.start()
         await settle()
-        XCTAssertTrue(scheduler.liveEntries.filter { $0.delay == .seconds(5) }.isEmpty)
-
+        #expect(scheduler.liveEntries.filter { $0.delay == .seconds(5) }.isEmpty)
+        
         verificationState.send(.verified)
         await settle()
         verificationState.send(.unverified)
         verificationState.send(.verified)
         await settle()
-
+        
         let settled = scheduler.entries.filter { $0.delay == .seconds(5) }
-        XCTAssertEqual(settled.count, 1, "Only the first verification in the session schedules a round.")
-        XCTAssertFalse(settled[0].repeats)
-
+        #expect(settled.count == 1, "Only the first verification in the session schedules a round.")
+        #expect(!settled[0].repeats)
+        
         scheduler.fire(.seconds(5))
         await monitor.currentRound?.value
-        XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 1)
+        #expect(OwnDevicesHTTPStub.nudges.count == 1)
     }
-
-    func testRoundsRepeatEveryMinuteOnlyWhileTheAppIsActive() async {
+    
+    @Test
+    func roundsRepeatEveryMinuteOnlyWhileTheAppIsActive() async {
         monitor.start()
         await settle()
-        XCTAssertEqual(scheduler.liveEntries.filter(\.repeats).map(\.delay), [.seconds(60)])
-
+        #expect(scheduler.liveEntries.filter(\.repeats).map(\.delay) == [.seconds(60)])
+        
         notificationCenter.post(name: UIApplication.willResignActiveNotification, object: nil)
-        XCTAssertTrue(scheduler.liveEntries.isEmpty, "Nothing runs while the app is inactive or in the background.")
-
+        #expect(scheduler.liveEntries.isEmpty, "Nothing runs while the app is inactive or in the background.")
+        
         notificationCenter.post(name: UIApplication.didBecomeActiveNotification, object: nil)
         let live = scheduler.liveEntries
-        XCTAssertEqual(live.filter(\.repeats).map(\.delay), [.seconds(60)])
-        XCTAssertEqual(live.filter { !$0.repeats }.map(\.delay), [.seconds(5)])
-
+        #expect(live.filter(\.repeats).map(\.delay) == [.seconds(60)])
+        #expect(live.filter { !$0.repeats }.map(\.delay) == [.seconds(5)])
+        
         scheduler.fire(.seconds(5))
         await monitor.currentRound?.value
-        XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 1)
+        #expect(OwnDevicesHTTPStub.nudges.count == 1)
     }
-
-    func testDoesNotRepeatWhenStartedInTheBackground() {
+    
+    @Test
+    func doesNotRepeatWhenStartedInTheBackground() {
         isAppActive = false
         monitor.start()
-
-        XCTAssertTrue(scheduler.liveEntries.filter(\.repeats).isEmpty)
+        
+        #expect(scheduler.liveEntries.filter(\.repeats).isEmpty)
     }
-
-    func testStopCancelsEverything() async {
+    
+    @Test
+    func stopCancelsEverything() async {
         monitor.start()
         await settle()
-        XCTAssertFalse(scheduler.liveEntries.isEmpty)
-
+        #expect(!scheduler.liveEntries.isEmpty)
+        
         monitor.stop()
-        XCTAssertTrue(scheduler.liveEntries.isEmpty)
-
+        #expect(scheduler.liveEntries.isEmpty)
+        
         notificationCenter.post(name: UIApplication.didBecomeActiveNotification, object: nil)
-        XCTAssertTrue(scheduler.liveEntries.isEmpty)
+        #expect(scheduler.liveEntries.isEmpty)
     }
-
+    
     // MARK: - Helpers
-
+    
     private func makeMonitor() -> NewSignInNudgeMonitor {
         NewSignInNudgeMonitor(clientProxy: clientProxy,
                               appSettings: appSettings,
@@ -491,14 +526,14 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
                               isAppActive: { [unowned self] in isAppActive },
                               isIdle: { [unowned self] in isIdle })
     }
-
+    
     private var nudgedDevices: [String] {
         OwnDevicesHTTPStub.nudges.flatMap { nudge in
             let messages = nudge.json?["messages"] as? [String: [String: Any]]
             return messages?[userID].map { Array($0.keys) } ?? []
         }
     }
-
+    
     private func runRound(at offset: TimeInterval? = nil) async {
         if let offset {
             clock.now = start.addingTimeInterval(offset)
@@ -506,7 +541,7 @@ final class NewSignInNudgeMonitorTests: XCTestCase {
         scheduler.fire(.seconds(60))
         await monitor.currentRound?.value
     }
-
+    
     /// Lets main-queue deliveries (`receive(on:)`) run.
     private func settle() async {
         for _ in 0..<5 {

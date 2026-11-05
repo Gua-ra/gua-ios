@@ -7,38 +7,35 @@
 
 import AnalyticsEvents
 @testable import ElementX
-import XCTest
+import Foundation
+import Testing
 
 @MainActor
-class MediaUploadQualitySettingsScreenViewModelTests: XCTestCase {
-    private var appSettings: AppSettings!
+final class MediaUploadQualitySettingsScreenViewModelTests {
+    private var userSettings: UserSettings!
     private var analyticsClient: AnalyticsClientMock!
     private var viewModel: MediaUploadQualitySettingsScreenViewModelProtocol!
     private var context: MediaUploadQualitySettingsScreenViewModelType.Context {
         viewModel.context
     }
     
-    @MainActor override func setUpWithError() throws {
-        AppSettings.resetAllSettings()
-        appSettings = AppSettings()
+    init() {
+        userSettings = .mock()
         analyticsClient = AnalyticsClientMock()
         analyticsClient.isRunning = true
-        viewModel = MediaUploadQualitySettingsScreenViewModel(appSettings: appSettings,
-                                                              analytics: AnalyticsService(client: analyticsClient, appSettings: appSettings))
+        viewModel = MediaUploadQualitySettingsScreenViewModel(userSettings: userSettings,
+                                                              analytics: AnalyticsService(client: analyticsClient, appSettings: userSettings.app))
     }
     
-    override func tearDown() {
-        AppSettings.resetAllSettings()
-    }
-    
-    func testTogglingWritesTheSettingAndTracksIt() throws {
-        XCTAssertTrue(context.optimizeMediaUploads)
+    @Test
+    func togglingWritesTheSettingAndTracksIt() throws {
+        #expect(context.optimizeMediaUploads)
         
         context.optimizeMediaUploads = false
         context.send(viewAction: .optimizeMediaUploadsChanged)
         
-        XCTAssertFalse(appSettings.optimizeMediaUploads)
-        let event = try XCTUnwrap(analyticsClient.captureReceivedEvent as? AnalyticsEvent.Interaction)
-        XCTAssertEqual(event.name, .MobileSettingsOptimizeMediaUploadsDisabled)
+        #expect(!userSettings.app.optimizeMediaUploads)
+        let event = try #require(analyticsClient.captureReceivedEvent as? AnalyticsEvent.Interaction)
+        #expect(event.name == .MobileSettingsOptimizeMediaUploadsDisabled)
     }
 }
