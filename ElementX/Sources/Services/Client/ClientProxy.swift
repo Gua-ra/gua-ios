@@ -483,7 +483,7 @@ class ClientProxy: ClientProxyProtocol {
         }
 
         let guardUserID = userID
-        let newGuard = IdentityResetGuard(dependencies: .init(stopSync: { [syncService] in await syncService.stop() },
+        let newGuard = IdentityResetGuard(dependencies: .init(stopSync: { [weak self] in await self?.stopSyncForIdentityReset() },
                                                               startSync: { [weak self] in await self?.startSyncAwaitingRunning() },
                                                               isSyncRunning: { [weak self] in self?.syncServiceState == .running },
                                                               writeMarker: { [userSettings] date in userSettings.app.setIdentityResetStartedAt(date, forUserID: guardUserID) },
@@ -511,8 +511,12 @@ class ClientProxy: ClientProxyProtocol {
         }
 
         MXLog.info("Starting sync after the identity reset")
-        await syncService.start()
-        await cacheAccountURL()
+        await transitionServices(to: .running(offline: false)).value
+    }
+    
+    private func stopSyncForIdentityReset() async {
+        await serviceStateTask?.value
+        await syncService.stop()
     }
     
     private func restartServices() {
