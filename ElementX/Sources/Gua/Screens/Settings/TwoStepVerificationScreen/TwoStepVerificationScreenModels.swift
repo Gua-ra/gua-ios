@@ -31,7 +31,7 @@ enum TwoStepVerificationScreenViewModelAction {
 /// GUA FORK: there is one overview phase, not one per PIN state. What the account holds is read
 /// from the server's factor report and rendered from ``TwoStepVerificationScreenViewState/factors``,
 /// so a passkey holder is not shown the screen of somebody with nothing.
-enum TwoStepVerificationScreenPhase: Equatable {
+nonisolated enum TwoStepVerificationScreenPhase: Equatable {
     case loading
     case overview
     case enteringPhone

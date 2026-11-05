@@ -114,6 +114,6 @@ struct EncryptionResetScreen_Previews: PreviewProvider, TestablePreview {
         ElementNavigationStack {
             EncryptionResetScreen(context: recoverViewModel.context)
         }
-        .snapshotPreferences(expect: recoverViewModel.context.observe(\.viewState.canRecoverFromOtherDevice).map { $0 == true }.eraseToStream())
+        .snapshotPreferences(expect: recoverViewModel.context.observe(\.viewState.canRecoverFromOtherDevice).map { $0 == true })
     }
 }

@@ -92,7 +92,7 @@ final class TwoStepVerificationScreenCoordinator: CoordinatorProtocol {
             MXLog.error("Failed to start factor enrollment: \(error)")
             parameters.userIndicatorController.retractIndicatorWithId(enrollmentIndicatorID)
             parameters.userIndicatorController.submitIndicator(UserIndicator(title: (error as? LocalizedError)?.errorDescription ?? L10n.errorUnknown,
-                                                                             iconName: "xmark"))
+                                                                             icon: \.close))
             return
         }
         parameters.userIndicatorController.retractIndicatorWithId(enrollmentIndicatorID)
@@ -106,7 +106,7 @@ final class TwoStepVerificationScreenCoordinator: CoordinatorProtocol {
         } catch {
             MXLog.error("Factor enrollment failed: \(error)")
             parameters.userIndicatorController.submitIndicator(UserIndicator(title: L10n.errorUnknown,
-                                                                             iconName: "xmark"))
+                                                                             icon: \.close))
         }
         enrollmentPresenter = nil
         // The session may have added the factor, and the screen has no other way to find out: the

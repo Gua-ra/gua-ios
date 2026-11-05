@@ -211,7 +211,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         } catch {
             MXLog.error("Failed to fetch the account's factor status for change-phone: \(error)")
             userIndicatorController.submitIndicator(UserIndicator(title: (error as? LocalizedError)?.errorDescription ?? L10n.errorUnknown,
-                                                                  iconName: "xmark"))
+                                                                  icon: \.close))
             state.phase = .intro
         }
     }
@@ -297,7 +297,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         } catch {
             MXLog.error("Failed to start account reauth for change-phone: \(error)")
             userIndicatorController.submitIndicator(UserIndicator(title: (error as? LocalizedError)?.errorDescription ?? L10n.errorUnknown,
-                                                                  iconName: "xmark"))
+                                                                  icon: \.close))
             state.phase = .intro
         }
     }
@@ -476,7 +476,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             // Keep the typed number so the user can see which one was rejected and tweak it, and
             // surface the reason on the way back, otherwise the restart reads as an unexplained loop.
             userIndicatorController.submitIndicator(UserIndicator(title: L10n.screenChangePhoneAlreadyLinked,
-                                                                  iconName: "xmark"))
+                                                                  icon: \.close))
             await restartAtReauth(message: L10n.screenChangePhoneAlreadyLinked)
         case .server(let status, let message) where status == 400:
             // Invalid or unsupported number for the configured SMS region.
@@ -520,7 +520,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         state.challengeID = ""
         state.errorMessage = nil
         state.phase = .intro
-        userIndicatorController.submitIndicator(UserIndicator(title: message, iconName: "xmark"))
+        userIndicatorController.submitIndicator(UserIndicator(title: message, icon: \.close))
     }
 
     /// Redeems the challenge with the code that arrived at the new number.
@@ -545,7 +545,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             userIndicatorController.submitIndicator(UserIndicator(id: successIndicatorID,
                                                                   type: .toast(progress: .none),
                                                                   title: L10n.screenChangePhoneSuccess,
-                                                                  iconName: "checkmark"))
+                                                                  icon: \.check))
         } catch IdentityServiceError.invalidOTP {
             state.errorMessage = L10n.screenChangePhoneOtpInvalid
             state.bindings.code = ""
@@ -558,7 +558,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             state.bindings.code = ""
             state.phase = .newPhone
             userIndicatorController.submitIndicator(UserIndicator(title: L10n.screenChangePhoneAlreadyLinked,
-                                                                  iconName: "xmark"))
+                                                                  icon: \.close))
         } catch IdentityServiceError.rateLimited {
             state.errorMessage = IdentityServiceError.rateLimited.errorDescription
             state.bindings.code = ""

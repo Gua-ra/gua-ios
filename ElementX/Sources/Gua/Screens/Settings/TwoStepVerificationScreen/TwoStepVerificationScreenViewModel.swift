@@ -448,7 +448,7 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
             userIndicatorController.submitIndicator(UserIndicator(id: successIndicatorID,
                                                                   type: .toast(progress: .none),
                                                                   title: L10n.screenTwoStepVerificationUpdated,
-                                                                  iconName: "checkmark"))
+                                                                  icon: \.check))
         } catch IdentityServiceError.invalidOTP {
             state.errorMessage = L10n.screenTwoStepVerificationOtpInvalid
             state.bindings.pin = ""

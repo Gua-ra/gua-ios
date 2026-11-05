@@ -283,6 +283,6 @@ struct TwoStepVerificationScreen_Previews: PreviewProvider, TestablePreview {
         ElementNavigationStack {
             TwoStepVerificationScreen(context: viewModel.context)
         }
-        .snapshotPreferences(expect: viewModel.context.observe(\.viewState.phase).map { $0 == .overview }.eraseToStream())
+        .snapshotPreferences(expect: viewModel.context.observe(\.viewState.phase).map { $0 == .overview })
     }
 }
