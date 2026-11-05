@@ -122,7 +122,7 @@ final class UserDiscoveryService: UserDiscoveryServiceProtocol {
     private func federatedProfile(for userID: String) async -> UserProfile? {
         await withTaskGroup(of: UserProfile?.self) { group in
             group.addTask {
-                try? await self.clientProxy.profile(for: userID).get()
+                await self.profile(for: userID)
             }
             group.addTask {
                 try? await Task.sleep(for: self.federatedLookupTimeout)
@@ -133,6 +133,10 @@ final class UserDiscoveryService: UserDiscoveryServiceProtocol {
             group.cancelAll()
             return profile
         }
+    }
+    
+    private func profile(for userID: String) async -> UserProfile? {
+        try? await clientProxy.profile(for: userID).get()
     }
     
     /// Local results first, then the federated exact matches that aren't already present.

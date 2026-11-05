@@ -9,7 +9,7 @@ import Foundation
 import MatrixRustSDK
 
 // sourcery: AutoMockable
-protocol IdentityResetGuardProtocol: AnyObject {
+protocol IdentityResetGuardProtocol: AnyObject, Sendable {
     var inFlightReset: Task<Result<Void, Error>, Never>? { get }
 
     /// Releases the guard when the call returns, even if no one awaits the task. A call while one
@@ -22,7 +22,7 @@ protocol IdentityResetGuardProtocol: AnyObject {
 /// Keeps the encryption sync stopped during an identity reset: an own-user `/keys/query` answered
 /// with the old identity makes the SDK clear the new private keys (matrix-rust-sdk#4728).
 /// The marker is written before the sync stops and cleared only after it restarts.
-final class IdentityResetGuard: IdentityResetGuardProtocol, @unchecked Sendable {
+final class IdentityResetGuard: IdentityResetGuardProtocol {
     struct Dependencies {
         let stopSync: () async -> Void
         let startSync: () async -> Void
@@ -45,7 +45,7 @@ final class IdentityResetGuard: IdentityResetGuardProtocol, @unchecked Sendable 
         self.refreshInterval = refreshInterval
     }
 
-    deinit {
+    isolated deinit {
         refreshTask?.cancel()
         if !isReleased {
             MXLog.error("GUA-KEYSTORE: identity reset guard deallocated while held; clearing the shared marker.")
