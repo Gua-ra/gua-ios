@@ -7,6 +7,7 @@
 
 @testable import ElementX
 import Foundation
+import Synchronization
 import Testing
 
 final class FederatedUserSearchTests {
@@ -203,8 +204,7 @@ final class FederatedUserSearchTests {
         
         #expect(first == rosterA)
         #expect(second == rosterA)
-        let fetchCount = await fetcher.fetchCount
-        #expect(fetchCount == 1)
+        #expect(fetcher.fetchCount == 1)
     }
     
     @Test
@@ -217,8 +217,7 @@ final class FederatedUserSearchTests {
         
         #expect(first == rosterA)
         #expect(second == rosterB)
-        let fetchCount = await fetcher.fetchCount
-        #expect(fetchCount == 2)
+        #expect(fetcher.fetchCount == 2)
     }
     
     @Test
@@ -305,17 +304,22 @@ final class FederatedUserSearchTests {
     """
 }
 
-private actor RosterFetcherStub: FederationRosterFetching {
-    private var results: [Result<FederationRoster, ResolverError>]
-    private(set) var fetchCount = 0
+private final nonisolated class RosterFetcherStub: FederationRosterFetching {
+    private let state: Mutex<(results: [Result<FederationRoster, ResolverError>], fetchCount: Int)>
+    
+    var fetchCount: Int {
+        state.withLock { $0.fetchCount }
+    }
     
     init(results: [Result<FederationRoster, ResolverError>]) {
-        self.results = results
+        state = Mutex((results, 0))
     }
     
     func fetchRoster() async throws -> FederationRoster {
-        fetchCount += 1
-        guard !results.isEmpty else { throw ResolverError.malformedResponse }
-        return try results.removeFirst().get()
+        try state.withLock { state in
+            state.fetchCount += 1
+            guard !state.results.isEmpty else { throw ResolverError.malformedResponse }
+            return try state.results.removeFirst().get()
+        }
     }
 }
