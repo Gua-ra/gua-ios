@@ -32,8 +32,6 @@ final class SessionVerificationOwnDeviceResponderTests: XCTestCase {
         controller.acceptVerificationRequestReturnValue = .success(())
     }
 
-    // MARK: - Starting the emoji check
-
     func testAcceptingAnOwnDeviceRequestStartsTheEmojiCheckWithoutAnotherTap() async throws {
         let viewModel = makeViewModel(flow: .deviceResponder(requestDetails: ownDeviceRequest))
         let context = viewModel.context
@@ -77,8 +75,6 @@ final class SessionVerificationOwnDeviceResponderTests: XCTestCase {
         XCTAssertEqual(controller.startSasVerificationCallsCount, 0)
     }
 
-    // MARK: - Verified
-
     func testOwnDeviceConfirmationStaysOpenUntilDone() async throws {
         let viewModel = makeViewModel(flow: .deviceResponder(requestDetails: ownDeviceRequest),
                                       verificationState: .showingChallenge(emojis: SessionVerificationControllerProxyMock.emojis))
@@ -105,8 +101,6 @@ final class SessionVerificationOwnDeviceResponderTests: XCTestCase {
 
         XCTAssertEqual(finishedCount(), 1)
     }
-
-    // MARK: - Ignore
 
     func testIgnoringAnOwnDeviceRequestReportsTheDevice() {
         let viewModel = makeViewModel(flow: .deviceResponder(requestDetails: ownDeviceRequest))
@@ -142,8 +136,6 @@ final class SessionVerificationOwnDeviceResponderTests: XCTestCase {
         XCTAssertEqual(actions, ["finished"])
     }
 
-    // MARK: - Copy
-
     func testOwnDeviceRequestCopy() {
         let flow = SessionVerificationScreenFlow.deviceResponder(requestDetails: ownDeviceRequest)
 
@@ -177,8 +169,6 @@ final class SessionVerificationOwnDeviceResponderTests: XCTestCase {
             }
         }
     }
-
-    // MARK: - Helpers
 
     private func makeViewModel(flow: SessionVerificationScreenFlow,
                                verificationState: SessionVerificationScreenStateMachine.State = .initial) -> SessionVerificationScreenViewModel {

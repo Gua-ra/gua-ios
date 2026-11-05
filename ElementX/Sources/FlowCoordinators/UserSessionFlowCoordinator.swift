@@ -382,7 +382,6 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
     
     // MARK: - Session Verification
     
-    /// GUA FORK: subscribe once per session; the security state re-emits on every recovery change.
     private func setupSessionVerificationRequestsObserverIfNeeded() {
         guard sessionVerificationRequestsCancellable == nil,
               let sessionVerificationController = userSession.clientProxy.sessionVerificationController else {
@@ -407,8 +406,6 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
             }
     }
     
-    /// GUA FORK: the nudged device's request is presented as a sheet, so nudge only when nothing
-    /// else is on screen.
     private var isIdleForNewSignInNudge: Bool {
         guard stateMachine.state == .tabBar,
               navigationTabCoordinator.sheetCoordinator == nil,

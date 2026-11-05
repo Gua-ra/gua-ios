@@ -253,7 +253,6 @@ final class AppSettings {
     /// The number of attempts the user has made to unlock the app with a PIN code (resets when unlocked).
     @UserPreference(key: UserDefaultsKeys.appLockNumberOfPINAttempts, defaultValue: 0, storageType: .userDefaults(store))
     var appLockNumberOfPINAttempts: Int
-    /// GUA FORK: biometric unlock defaults on with a PIN, so only the user's opt-out is stored.
     @UserPreference(key: UserDefaultsKeys.appLockBiometricUnlockOptOut, defaultValue: false, storageType: .userDefaults(store))
     var appLockBiometricUnlockOptOut: Bool
     

@@ -133,8 +133,6 @@ final class UserSessionFlowCoordinatorNewSignInTests: XCTestCase {
         OwnDevicesHTTPStub.reset()
     }
 
-    // MARK: - Responder
-
     func testSubscribesToVerificationRequestsOncePerSession() async throws {
         for recoveryState in [SecureBackupRecoveryState.incomplete, .settingUp, .enabled, .incomplete, .enabled] {
             securityState.send(.init(verificationState: .verified, recoveryState: recoveryState))
@@ -206,8 +204,6 @@ final class UserSessionFlowCoordinatorNewSignInTests: XCTestCase {
         await runRound()
         XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 1)
     }
-
-    // MARK: - Gate
 
     func testNudgesWhenNothingIsPresented() async {
         XCTAssertNil(tabCoordinator?.fullScreenCoverCoordinator)
@@ -314,8 +310,6 @@ final class UserSessionFlowCoordinatorNewSignInTests: XCTestCase {
 
         XCTAssertTrue(scheduler.liveEntries.isEmpty)
     }
-
-    // MARK: - Helpers
 
     private func requestDetails(from senderID: String, deviceID: String) -> SessionVerificationRequestDetails {
         SessionVerificationRequestDetails(senderProfile: UserProfileProxy(userID: senderID),

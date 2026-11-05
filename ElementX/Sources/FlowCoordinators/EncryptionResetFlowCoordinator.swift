@@ -130,7 +130,6 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
             case .recoverFromOtherDevice:
                 presentRecoveryFromOtherDevice()
             case .resetFinished:
-                // GUA FORK: stay until key storage is provisioned, which is what clears the setup banner.
                 Task { [weak self] in
                     guard let self else { return }
 
@@ -151,7 +150,6 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
                         MXLog.info("GUA-KEYSTORE: provisioned key storage after the reset.")
                         userIndicatorController.submitIndicator(UserIndicator(title: L10n.commonSuccess))
                     case .notYet, .resetRequired:
-                        // The setup banner stays up as the retry.
                         MXLog.error("GUA-KEYSTORE: could not provision key storage after the reset.")
                         userIndicatorController.submitIndicator(UserIndicator(title: L10n.errorUnknown))
                     case .identityIncompleteAfterReset:
@@ -190,8 +188,6 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
     
     // MARK: - Recovery from another device
 
-    /// GUA FORK: once the emojis match, the other device sends the keys, so success is the
-    /// recovery state turning enabled.
     private func presentRecoveryFromOtherDevice() {
         guard let sessionVerificationController = userSession.clientProxy.sessionVerificationController else {
             MXLog.error("GUA-KEYSTORE: no session verification controller yet, cannot recover from another device.")
@@ -277,8 +273,7 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
     private static let finishingIndicatorID = "\(EncryptionResetFlowCoordinator.self)-Finishing"
 
     private var accountSettingsPresenter: OIDCAccountSettingsPresenter?
-    /// GUA FORK: on approval MAS navigates to the scheme passed in `gua_return`, which dismisses the web session.
-    /// MAS checks it against an allow-list and builds the URL itself.
+    /// GUA FORK: on approval MAS opens the allow-listed `gua_return` scheme, which dismisses the web session.
     private func approvalURL(_ url: URL) -> URL {
         guard let scheme = appSettings.oidcRedirectURL.scheme,
               var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
@@ -307,7 +302,6 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
                                                      presentationAnchor: windowManager.mainWindow,
                                                      appSettings: appSettings)
         accountSettingsPresenter = presenter
-        // The reset must only run after the approval sheet closes.
         Task { @MainActor in
             let outcome = await presenter.start()
             completionPublisher.send(outcome)

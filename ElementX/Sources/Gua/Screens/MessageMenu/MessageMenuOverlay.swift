@@ -8,8 +8,6 @@
 import Compound
 import SwiftUI
 
-/// The message lifted above a dimmed timeline, with quick reactions above it and a card below it:
-/// who reacted after a double tap, the actions after a long press.
 struct MessageMenuOverlay: View {
     @EnvironmentObject private var context: TimelineViewModel.Context
     @Environment(\.layoutDirection) private var layoutDirection
@@ -19,12 +17,11 @@ struct MessageMenuOverlay: View {
     let actions: TimelineItemMenuActions
     let presentation: TimelineItemMenuPresentation
     let groupStyle: TimelineGroupStyle
-    /// Removes the overlay without animation. The overlay animates out before calling it.
+    /// Must remove the overlay without animation, since the overlay has already animated out.
     let dismiss: () -> Void
 
     @State private var isVisible: Bool
     @State private var isShowingMore: Bool
-    /// The bubble in window coordinates.
     @State private var sourceFrame: CGRect
     @State private var detailsContentHeight: CGFloat = 0
 
@@ -63,15 +60,14 @@ struct MessageMenuOverlay: View {
         showsActions || (!presentation.showsActions && !reactionRows.isEmpty)
     }
 
-    /// The bubble's visual side. Outgoing bubbles sit on the right, or on the left in right-to-left layouts.
+    /// Outgoing bubbles sit on the right, or on the left in right-to-left layouts.
     private var alignsRight: Bool {
         item.isOutgoing != (layoutDirection == .rightToLeft)
     }
 
-    /// The card's full height. The who-reacted card shows five and a half rows at most, then scrolls.
     private var detailsSize: CGSize? {
         guard showsDetails else { return nil }
-        let height = showsActions ? detailsContentHeight : min(detailsContentHeight, 5.5 * Self.summaryRowHeight + MessageMenuChrome.inset)
+        let height = showsActions ? detailsContentHeight : min(detailsContentHeight, Self.maximumVisibleSummaryRows * Self.summaryRowHeight + MessageMenuChrome.inset)
         return CGSize(width: Self.detailsWidth, height: height)
     }
 
@@ -301,6 +297,7 @@ struct MessageMenuOverlay: View {
     }
 
     private static let summaryRowHeight: CGFloat = 48
+    private static let maximumVisibleSummaryRows: CGFloat = 5.5
 
     private var reactionSummaryRows: some View {
         VStack(spacing: 0) {
@@ -415,7 +412,7 @@ private struct MessageMenuSurface<S: Shape>: ViewModifier {
 
     func body(content: Content) -> some View {
         if #available(iOS 26, *) {
-            // Untinted glass goes near-black over the dimmed dark timeline, darker than the Messages menu.
+            // Untinted glass goes near-black over the dimmed dark timeline.
             content.glassEffect(.regular.tint(colorScheme == .dark ? .white.opacity(0.15) : nil), in: shape)
         } else {
             content

@@ -14,8 +14,6 @@ class MessageMenuTests: XCTestCase {
         AppSettings.resetAllSettings()
     }
 
-    // MARK: - Quick reactions
-
     func testQuickReactionsStartWithTheGuaSet() throws {
         let actions = try XCTUnwrap(makeActions(for: makeTextItem(isOutgoing: false)))
 
@@ -35,8 +33,6 @@ class MessageMenuTests: XCTestCase {
 
         XCTAssertTrue(actions.reactions.isEmpty)
     }
-
-    // MARK: - Action sections
 
     func testIncomingTextMessage() throws {
         let item = makeTextItem(isOutgoing: false)
@@ -89,8 +85,6 @@ class MessageMenuTests: XCTestCase {
         XCTAssertNil(TimelineItemMenuAction.react.messageMenuPlacement)
         XCTAssertNil(TimelineItemMenuAction.toggleReaction(key: "❤️").messageMenuPlacement)
     }
-
-    // MARK: - Layout
 
     private let container = CGRect(x: 0, y: 60, width: 400, height: 760)
 
@@ -162,8 +156,6 @@ class MessageMenuTests: XCTestCase {
         XCTAssertEqual(layout.bubbleFrame, CGRect(x: 200, y: 300, width: 200, height: 44))
     }
     
-    // MARK: - Who reacted
-    
     func testWhoReactedListsTheCurrentUserFirstThenOldestFirst() {
         let reactions = [
             AggregatedReaction(accountOwnerID: "@me:gua", key: "❤️", senders: [sender("@rafa:gua", 3), sender("@me:gua", 5), sender("@camila:gua", 1)]),
@@ -199,8 +191,6 @@ class MessageMenuTests: XCTestCase {
         XCTAssertEqual(MessageReactionSummaryRow.rows(for: []), [])
     }
     
-    // MARK: - View model
-
     func testDoubleTapShowsReactionsOverTheBubble() async throws {
         let item = makeTextItem(isOutgoing: false)
         let viewModel = makeViewModel(items: [item])
@@ -336,8 +326,6 @@ class MessageMenuTests: XCTestCase {
     func testSelectionTextKeepsPlainBodiesAsTheyAre() {
         XCTAssertEqual(MessageSelectionText.make(body: "**not markdown here**", formattedBody: nil) { _ in "" }, "**not markdown here**")
     }
-    
-    // MARK: - Helpers
     
     private func sender(_ id: String, _ minute: Double) -> ReactionSender {
         ReactionSender(id: id, timestamp: Date(timeIntervalSince1970: minute * 60))

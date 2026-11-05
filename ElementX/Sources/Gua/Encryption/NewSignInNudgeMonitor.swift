@@ -158,8 +158,6 @@ final class NewSignInNudgeMonitor {
         appSettings.addDismissedSignInDeviceID(deviceID, forUserID: clientProxy.userID)
     }
 
-    // MARK: - Scheduling
-
     private func verificationStateChanged(_ state: SessionVerificationState) {
         guard state == .verified, !hasSeenVerified else { return }
         hasSeenVerified = true
@@ -198,8 +196,6 @@ final class NewSignInNudgeMonitor {
             }
         }
     }
-
-    // MARK: - Round
 
     private func runRound() async {
         guard mayRunRound(), await recoveryLetsThisDeviceSign(), !Task.isCancelled, mayRunRound() else { return }
@@ -247,8 +243,7 @@ final class NewSignInNudgeMonitor {
             && !identityResetRunning
     }
 
-    /// Only a device holding the private cross-signing keys can sign the new one. The published
-    /// recovery state is optimistic while recovery is being enabled, so the SDK's own must agree.
+    /// The published recovery state is optimistic while recovery is being enabled, so the SDK's own must agree.
     private func recoveryLetsThisDeviceSign() async -> Bool {
         let secureBackupController = clientProxy.secureBackupController
         guard await secureBackupController.settledRecoveryState() == .enabled else { return false }
