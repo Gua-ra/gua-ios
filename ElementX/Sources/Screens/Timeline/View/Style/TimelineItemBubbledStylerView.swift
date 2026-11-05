@@ -104,7 +104,7 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
                     if timelineItem.sender.displayName != nil, timelineItem.sender.isDisplayNameAmbiguous {
                         Text(timelineItem.sender.id.guaDisplayHandle)
                             .font(.compound.bodyXS)
-                            .foregroundColor(.legibleSecondaryText(isOnBackground: isChatBackgroundActive))
+                            .legibleSecondaryForeground()
                     }
                 }
                 .lineLimit(1)

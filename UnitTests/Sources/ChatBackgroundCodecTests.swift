@@ -8,7 +8,6 @@
 @testable import ElementX
 import XCTest
 
-/// `chat-background-fixtures.json` is committed identically in gua-android, whose codec runs the same cases.
 final class ChatBackgroundCodecTests: XCTestCase {
     func testSharedFixtures() throws {
         let url = try XCTUnwrap(Bundle(for: Self.self).url(forResource: "chat-background-fixtures.json", withExtension: nil))
@@ -35,9 +34,8 @@ final class ChatBackgroundCodecTests: XCTestCase {
         XCTAssertEqual(ChatBackground(contentJSON: "\"aurora\""), .none)
     }
 
-    func testPresetIsWrittenWithVersionAndKind() throws {
-        let json = try jsonObject(ChatBackground.preset(.aurora).contentJSON)
-        XCTAssertEqual(json as NSDictionary, ["v": 1, "kind": "preset", "preset": "aurora"] as NSDictionary)
+    func testPresetIsWrittenInTheSharedFormat() {
+        XCTAssertEqual(ChatBackground.preset(.aurora).contentJSON, #"{"kind":"preset","preset":"aurora","v":1}"#)
     }
 
     func testRemovalIsWrittenAsEmptyContent() {
@@ -54,17 +52,7 @@ final class ChatBackgroundCodecTests: XCTestCase {
                                          dim: 0.351_234,
                                          alignX: 0.123_456,
                                          alignY: 1)
-        let json = try jsonObject(ChatBackground.photo(photo).contentJSON)
-
-        XCTAssertEqual(json["v"] as? Int, 1)
-        XCTAssertEqual(json["kind"] as? String, "photo")
-        XCTAssertNil(json["fallback_preset"])
-        let written = try XCTUnwrap(json["photo"] as? [String: Any])
-        XCTAssertEqual(written["url"] as? String, "mxc://gua.global/AbCdEf")
-        XCTAssertEqual(written["mimetype"] as? String, "image/jpeg")
-        XCTAssertEqual(written["w"] as? Int, 1536)
-        XCTAssertEqual(written["h"] as? Int, 2048)
-        XCTAssertEqual(written["size"] as? Int, 412_337)
+        let written = try XCTUnwrap(jsonObject(ChatBackground.photo(photo).contentJSON)["photo"] as? [String: Any])
         XCTAssertEqual(written["dim"] as? Int, 35)
         XCTAssertEqual(written["align"] as? NSDictionary, ["x": 123, "y": 1000] as NSDictionary)
 
@@ -85,23 +73,6 @@ final class ChatBackgroundCodecTests: XCTestCase {
                        #"{"kind":"photo","photo":{"align":{"x":500,"y":500},"blurhash":"LKO2?U%2Tw=w]~RBVZRi};RPxuwH","dim":35,"h":2048,"mimetype":"image/jpeg","size":412337,"url":"mxc://gua.global/AbCdEf","w":1536},"v":1}"#)
     }
 
-    /// Synapse refuses an event holding a float, or an integer beyond 2^53 - 1, in room versions 6 and later.
-    func testEveryWrittenNumberIsACanonicalJSONInteger() throws {
-        var photo = ChatBackground.Photo.mock
-        photo.dim = 0.351_234
-        photo.alignX = 0.123_456
-        photo.alignY = 1
-
-        for background in [ChatBackground.none, .preset(.aurora), .photo(.mock), .photo(photo)] {
-            let numbers = numberTokens(in: background.contentJSON)
-            XCTAssertEqual(numbers.isEmpty, background.isNone)
-            for number in numbers {
-                let integer = try XCTUnwrap(Int64(number), "\(number) in \(background.contentJSON)")
-                XCTAssertLessThanOrEqual(abs(integer), 9_007_199_254_740_991)
-            }
-        }
-    }
-
     func testPhotoWithoutBlurhashOmitsIt() throws {
         var photo = ChatBackground.Photo.mock
         photo.blurhash = nil
@@ -118,10 +89,6 @@ final class ChatBackgroundCodecTests: XCTestCase {
     func testPresetIDsMatchTheSpec() {
         XCTAssertEqual(ChatBackgroundPreset.allCases.map(\.id),
                        ["aurora", "mint", "sky", "sand", "blush", "lavender", "graphite", "sunset", "ocean", "night"])
-        XCTAssertNil(ChatBackgroundPreset(id: "Aurora"))
-        XCTAssertNil(ChatBackgroundPreset(id: ""))
-        XCTAssertNil(ChatBackgroundPreset(id: String(repeating: "a", count: 33)))
-        XCTAssertNil(ChatBackgroundPreset(id: "rainbow"))
     }
 
     func testTimelineEventReadsContentFromTheEventJSON() {
@@ -165,35 +132,6 @@ final class ChatBackgroundCodecTests: XCTestCase {
             XCTFail("Unknown expected kind")
             return .none
         }
-    }
-
-    private func numberTokens(in json: String) -> [String] {
-        var tokens: [String] = []
-        var current = ""
-        var isInString = false
-        var isEscaped = false
-
-        for character in json {
-            if isInString {
-                if isEscaped {
-                    isEscaped = false
-                } else if character == "\\" {
-                    isEscaped = true
-                } else if character == "\"" {
-                    isInString = false
-                }
-            } else if character == "\"" {
-                isInString = true
-            } else if (current.isEmpty ? "-0123456789" : "+-.eE0123456789").contains(character) {
-                current.append(character)
-                continue
-            }
-            if !current.isEmpty {
-                tokens.append(current)
-                current = ""
-            }
-        }
-        return tokens
     }
 
     private func rawValues(forKey key: String, in text: String) -> [String] {

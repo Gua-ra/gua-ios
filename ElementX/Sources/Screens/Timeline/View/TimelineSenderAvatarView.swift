@@ -21,7 +21,7 @@ struct TimelineSenderAvatarView: View {
                             avatarSize: .user(on: .timeline),
                             mediaProvider: context?.mediaProvider)
             .overlay {
-                Circle().stroke(isChatBackgroundActive ? Color.clear : Color.compound.bgCanvasDefault, lineWidth: 3)
+                Circle().stroke(Color.cutOutRing(isOnBackground: isChatBackgroundActive), lineWidth: 3)
             }
     }
 }

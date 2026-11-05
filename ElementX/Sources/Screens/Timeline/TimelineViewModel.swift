@@ -517,10 +517,7 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
         
         let chatBackgroundService = userSession.chatBackgroundService
         let roomID = roomProxy.id
-        let backgroundPublisher = chatBackgroundService.backgroundPublisher(roomID: roomID)
-        state.chatBackground = backgroundPublisher.value
-        backgroundPublisher
-            .removeDuplicates()
+        chatBackgroundService.backgroundPublisher(roomID: roomID)
             .weakAssign(to: \.state.chatBackground, on: self)
             .store(in: &cancellables)
         

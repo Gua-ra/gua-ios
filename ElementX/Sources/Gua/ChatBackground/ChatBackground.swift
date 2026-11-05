@@ -7,7 +7,6 @@
 
 import Foundation
 
-/// Android reads and writes the same content, checked by the shared `chat-background-fixtures.json`.
 enum ChatBackground: Hashable {
     case none
     case preset(ChatBackgroundPreset)
@@ -46,10 +45,14 @@ enum ChatBackground: Hashable {
         guard case .photo(let photo) = self else { return nil }
         return photo
     }
+
+    static func sortedJSON(_ object: [String: Any]) -> String? {
+        guard let data = try? JSONSerialization.data(withJSONObject: object, options: .sortedKeys) else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
 }
 
 extension ChatBackground {
-    /// Anything that breaks the format reads as no background.
     init(contentJSON: String?) {
         guard let data = contentJSON?.data(using: .utf8),
               let content = try? JSONDecoder().decode(Content.self, from: data) else {
@@ -60,26 +63,25 @@ extension ChatBackground {
     }
 
     var contentJSON: String {
-        let content: EncodedContent? = switch self {
+        let content: EncodedContent
+        switch self {
         case .none:
-            nil
+            return Self.removedContent
         case .preset(let preset):
-            EncodedContent(kind: "preset", preset: preset.rawValue, photo: nil)
+            content = EncodedContent(kind: "preset", preset: preset.rawValue, photo: nil)
         case .photo(let photo):
-            EncodedContent(kind: "photo",
-                           preset: nil,
-                           photo: .init(url: photo.url,
-                                        mimetype: photo.mimetype,
-                                        w: photo.width,
-                                        h: photo.height,
-                                        size: photo.size,
-                                        blurhash: photo.blurhash,
-                                        dim: photo.dim.storedUnits(per: Photo.dimScale, upTo: Photo.maxDim),
-                                        align: .init(x: photo.alignX.storedUnits(per: Photo.alignScale, upTo: 1),
-                                                     y: photo.alignY.storedUnits(per: Photo.alignScale, upTo: 1))))
+            content = EncodedContent(kind: "photo",
+                                     preset: nil,
+                                     photo: .init(url: photo.url,
+                                                  mimetype: photo.mimetype,
+                                                  w: photo.width,
+                                                  h: photo.height,
+                                                  size: photo.size,
+                                                  blurhash: photo.blurhash,
+                                                  dim: photo.dim.storedUnits(per: Photo.dimScale),
+                                                  align: .init(x: photo.alignX.storedUnits(per: Photo.alignScale),
+                                                               y: photo.alignY.storedUnits(per: Photo.alignScale))))
         }
-
-        guard let content else { return Self.removedContent }
 
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
@@ -110,7 +112,7 @@ private struct Content: Decodable {
         case (1, "preset"):
             background = Self.preset(from: container, key: .preset)
         case (1, "photo"):
-            background = (try? container.decode(PhotoContent.self, forKey: .photo)).map { .photo($0.photo) } ?? .none
+            background = (try? container.decode(ChatBackground.Photo.self, forKey: .photo)).map(ChatBackground.photo) ?? .none
         default:
             background = Self.preset(from: container, key: .fallbackPreset)
         }
@@ -118,16 +120,14 @@ private struct Content: Decodable {
 
     private static func preset(from container: KeyedDecodingContainer<CodingKeys>, key: CodingKeys) -> ChatBackground {
         guard let id = try? container.decode(String.self, forKey: key),
-              let preset = ChatBackgroundPreset(id: id) else {
+              let preset = ChatBackgroundPreset(rawValue: id) else {
             return .none
         }
         return .preset(preset)
     }
 }
 
-private struct PhotoContent: Decodable {
-    let photo: ChatBackground.Photo
-
+extension ChatBackground.Photo: Decodable {
     private enum CodingKeys: String, CodingKey {
         case url, mimetype, w, h, size, blurhash, dim, align
     }
@@ -154,7 +154,7 @@ private struct PhotoContent: Decodable {
               mimetype.hasPrefix("image/"),
               (1...Self.maxDimension).contains(width),
               (1...Self.maxDimension).contains(height),
-              (1...ChatBackground.Photo.maxSize).contains(size) else {
+              (1...Self.maxSize).contains(size) else {
             throw InvalidContent()
         }
 
@@ -173,23 +173,23 @@ private struct PhotoContent: Decodable {
             alignY = try align.decodeIntegerIfPresentAndNotNull(forKey: .y)
         }
 
-        photo = .init(url: url,
-                      mimetype: mimetype,
-                      width: width,
-                      height: height,
-                      size: size,
-                      blurhash: blurhash,
-                      dim: dim.map(Self.dim) ?? ChatBackground.Photo.defaultDim,
-                      alignX: alignX.map(Self.align) ?? ChatBackground.Photo.defaultAlign,
-                      alignY: alignY.map(Self.align) ?? ChatBackground.Photo.defaultAlign)
+        self.init(url: url,
+                  mimetype: mimetype,
+                  width: width,
+                  height: height,
+                  size: size,
+                  blurhash: blurhash,
+                  dim: dim.map(Self.dim) ?? Self.defaultDim,
+                  alignX: alignX.map(Self.align) ?? Self.defaultAlign,
+                  alignY: alignY.map(Self.align) ?? Self.defaultAlign)
     }
 
     private static func dim(_ storedValue: Int) -> Double {
-        (Double(storedValue) / ChatBackground.Photo.dimScale).clamped(to: 0...ChatBackground.Photo.maxDim)
+        (Double(storedValue) / dimScale).clamped(to: 0...maxDim)
     }
 
     private static func align(_ storedValue: Int) -> Double {
-        (Double(storedValue) / ChatBackground.Photo.alignScale).clamped(to: 0...1)
+        (Double(storedValue) / alignScale).clamped(to: 0...1)
     }
 }
 
@@ -247,9 +247,8 @@ private extension KeyedDecodingContainer {
 }
 
 private extension Double {
-    func storedUnits(per scale: Double, upTo maximum: Double) -> Int {
-        guard isFinite else { return 0 }
-        return Int((clamped(to: 0...maximum) * scale).rounded())
+    func storedUnits(per scale: Double) -> Int {
+        Int((self * scale).rounded())
     }
 }
 
@@ -260,24 +259,17 @@ struct ChatBackgroundTimelineEvent: Equatable {
     /// Nil when the event's JSON cannot be read, which still reads as a change.
     let contentJSON: String?
 
-    init(eventID: String, timestamp: UInt64, contentJSON: String?) {
-        self.eventID = eventID
-        self.timestamp = timestamp
-        self.contentJSON = contentJSON
+    var isRemoval: Bool {
+        contentJSON == ChatBackground.removedContent
     }
+}
 
+extension ChatBackgroundTimelineEvent {
     init(eventID: String, timestamp: UInt64, eventJSON: String?) {
         let content = eventJSON
             .flatMap { $0.data(using: .utf8) }
             .flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
             .flatMap { $0["content"] as? [String: Any] }
-        let contentJSON = content
-            .flatMap { try? JSONSerialization.data(withJSONObject: $0, options: .sortedKeys) }
-            .flatMap { String(data: $0, encoding: .utf8) }
-        self.init(eventID: eventID, timestamp: timestamp, contentJSON: contentJSON)
-    }
-
-    var isRemoval: Bool {
-        contentJSON == ChatBackground.removedContent
+        self.init(eventID: eventID, timestamp: timestamp, contentJSON: content.flatMap(ChatBackground.sortedJSON))
     }
 }

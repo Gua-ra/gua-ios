@@ -187,7 +187,6 @@ protocol ClientProxyProtocol: AnyObject {
     
     func uploadMedia(_ media: MediaInfo) async -> Result<String, ClientProxyError>
     
-    /// GUA FORK: uploads unencrypted bytes with no filename and returns their mxc URL.
     func uploadMedia(data: Data, mimeType: String) async -> Result<String, ClientProxyError>
     
     func roomForIdentifier(_ identifier: String) async -> RoomProxyType?

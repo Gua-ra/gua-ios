@@ -8,7 +8,6 @@
 import Compound
 import SwiftUI
 
-/// Without permission the reason keeps the secondary text colour, which a disabled row would fade.
 struct ChatBackgroundRow: View {
     let background: ChatBackground
     let canChange: Bool
@@ -24,7 +23,8 @@ struct ChatBackgroundRow: View {
                                     description: UntranslatedL10n.guaChatBackgroundRowNoPermission,
                                     icon: icon),
                     details: .title(background.displayName),
-                    kind: .label)
+                    kind: .button(action: action))
+                .disabled(true)
         }
     }
 

@@ -11,7 +11,6 @@ import SwiftUI
 struct TimelineStartRoomTimelineView: View {
     let timelineItem: TimelineStartRoomTimelineItem
     @Environment(\.timelineContext) private var context
-    @Environment(\.chatBackgroundActive) private var isChatBackgroundActive
     
     var body: some View {
         VStack(spacing: 14) {
@@ -22,7 +21,7 @@ struct TimelineStartRoomTimelineView: View {
             if context?.viewState.isDirectOneToOneRoom != true {
                 Text(title)
                     .font(.compound.bodySM)
-                    .foregroundColor(.legibleSecondaryText(isOnBackground: isChatBackgroundActive))
+                    .legibleSecondaryForeground()
                     .legibilityCapsule()
                     .padding(.bottom, 24)
                     .padding(.top, context?.viewState.hasPredecessor == true ? 0 : 24)

@@ -164,7 +164,6 @@ class RoomDetailsScreenViewModel: RoomDetailsScreenViewModelType, RoomDetailsScr
         case .processTapReport:
             actionsSubject.send(.displayReportRoom)
         case .processTapChatBackground:
-            guard state.canChangeChatBackground else { return }
             actionsSubject.send(.displayChatBackground)
         }
     }
@@ -269,10 +268,7 @@ class RoomDetailsScreenViewModel: RoomDetailsScreenViewModelType, RoomDetailsScr
         guard appSettings.guaChatBackgroundsEnabled, !roomProxy.infoPublisher.value.isSpace else { return }
         
         let chatBackgroundService = userSession.chatBackgroundService
-        let backgroundPublisher = chatBackgroundService.backgroundPublisher(roomID: roomProxy.id)
-        state.chatBackground = backgroundPublisher.value
-        backgroundPublisher
-            .removeDuplicates()
+        chatBackgroundService.backgroundPublisher(roomID: roomProxy.id)
             .map { Optional($0) }
             .weakAssign(to: \.state.chatBackground, on: self)
             .store(in: &cancellables)

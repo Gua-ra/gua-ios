@@ -57,8 +57,8 @@ final class ChatBackgroundCache: ChatBackgroundCacheProtocol {
 
         guard let data = try? JSONEncoder().encode(updated) else { return }
         writeQueue.async { [fileURL] in
+            // Never recreates the directory, so a write landing after sign-out deleted the session's caches fails.
             do {
-                try FileManager.default.createDirectory(at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
                 try data.write(to: fileURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
             } catch {
                 MXLog.error("Failed writing the chat background cache: \(error)")

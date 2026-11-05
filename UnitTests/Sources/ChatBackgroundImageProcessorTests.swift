@@ -25,7 +25,6 @@ final class ChatBackgroundImageProcessorTests: XCTestCase {
         XCTAssertEqual(upload.width, 1536)
         XCTAssertEqual(upload.height, 2048)
         XCTAssertNotNil(upload.blurhash)
-        XCTAssertEqual(ChatBackgroundPhotoUpload.mimetype, "image/jpeg")
 
         let source = try XCTUnwrap(CGImageSourceCreateWithData(upload.data as CFData, nil))
         XCTAssertEqual(CGImageSourceGetType(source) as String?, UTType.jpeg.identifier)
@@ -144,7 +143,6 @@ final class ChatBackgroundImageProcessorTests: XCTestCase {
         return data as Data
     }
 
-    /// The red, green and blue of the pixel at the centre.
     private func centrePixel(of image: CGImage) -> [UInt8]? {
         guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
               let context = CGContext(data: nil,

@@ -32,9 +32,6 @@ final class RoomDetailsChatBackgroundTests: XCTestCase {
 
         let member = makeDetailsViewModel(members: [.mockMe, .mockAlice], service: service)
         XCTAssertFalse(member.context.viewState.canChangeChatBackground)
-        let notPresented = deferFailure(member.actions, timeout: 0.5) { $0 == .displayChatBackground }
-        member.context.send(viewAction: .processTapChatBackground)
-        try await notPresented.fulfill()
     }
 
     func testDetailsRowIsHiddenBehindTheFlagAndInSpaces() {

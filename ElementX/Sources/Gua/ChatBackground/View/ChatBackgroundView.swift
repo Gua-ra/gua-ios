@@ -13,7 +13,6 @@ struct ChatBackgroundView: View {
     let mediaProvider: MediaProviderProtocol?
 
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -34,14 +33,28 @@ struct ChatBackgroundView: View {
                 Color.compound.bgCanvasDefault
             case .preset(let preset):
                 ChatBackgroundFillView(fill: preset.fill(for: colorScheme))
+                ChatBackgroundScrim(photoDim: nil)
             case .photo(let photo):
                 ChatBackgroundPhotoView(photo: photo, mediaProvider: mediaProvider)
             }
+        }
+    }
+}
 
-            // Increase Contrast swaps in darker light bubbles, which this keeps apart from the background.
-            if !background.isNone, colorScheme == .light, colorSchemeContrast == .increased {
-                Color.black.opacity(0.06)
+struct ChatBackgroundScrim: View {
+    let photoDim: Double?
+
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+
+    var body: some View {
+        if colorScheme == .dark {
+            if let photoDim {
+                Color.black.opacity(colorSchemeContrast == .increased ? max(photoDim, 0.5) : photoDim)
             }
+        } else if colorSchemeContrast == .increased {
+            // Increase Contrast swaps in darker light bubbles, which this keeps apart from the background.
+            Color.black.opacity(0.06)
         }
     }
 }
@@ -84,12 +97,15 @@ struct ChatBackgroundPhotoLayout: View {
     let alignX: Double
     let alignY: Double
 
+    static func scaledSize(of content: CGSize, filling frame: CGSize) -> CGSize {
+        let scale = max(frame.width / max(content.width, 1), frame.height / max(content.height, 1))
+        return CGSize(width: content.width * scale, height: content.height * scale)
+    }
+
     var body: some View {
         GeometryReader { geometry in
             let frame = geometry.size
-            let content = contentSize ?? image.size
-            let scale = max(frame.width / max(content.width, 1), frame.height / max(content.height, 1))
-            let scaled = CGSize(width: content.width * scale, height: content.height * scale)
+            let scaled = Self.scaledSize(of: contentSize ?? image.size, filling: frame)
 
             Image(uiImage: image)
                 .resizable()
@@ -104,8 +120,6 @@ private struct ChatBackgroundPhotoView: View {
     let photo: ChatBackground.Photo
     let mediaProvider: MediaProviderProtocol?
 
-    @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
     @Environment(\.displayScale) private var displayScale
 
     @State private var loadedImage: UIImage?
@@ -128,8 +142,8 @@ private struct ChatBackgroundPhotoView: View {
                                               alignY: photo.alignY)
                 }
 
-                if colorScheme == .dark, image != nil || !hasFailed {
-                    Color.black.opacity(dim)
+                if image != nil || !hasFailed {
+                    ChatBackgroundScrim(photoDim: photo.dim)
                 }
             }
             .task(id: LoadRequest(url: photo.url, maxPixelSize: maxPixelSize)) {
@@ -138,10 +152,6 @@ private struct ChatBackgroundPhotoView: View {
                 hasFailed = loadedImage == nil
             }
         }
-    }
-
-    private var dim: Double {
-        colorSchemeContrast == .increased ? max(photo.dim, 0.5) : photo.dim
     }
 
     private struct LoadRequest: Equatable {

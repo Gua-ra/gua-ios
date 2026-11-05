@@ -10,12 +10,11 @@ import SwiftUI
 struct TypingIndicatorView: View {
     @ObservedObject var typingMembers: TypingMembersObservableObject
     @State private var didShowTextOnce = false
-    @Environment(\.chatBackgroundActive) private var isChatBackgroundActive
     
     var body: some View {
         content
             .font(.compound.bodySM)
-            .foregroundColor(.legibleSecondaryText(isOnBackground: isChatBackgroundActive))
+            .legibleSecondaryForeground()
             .lineLimit(1)
             .truncationMode(.middle)
             .legibilityCapsule(isEnabled: !typingMembers.members.isEmpty)

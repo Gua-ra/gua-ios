@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-/// In picker order. Android ships the same IDs and colours, all darker than the bubbles of their appearance.
+/// In picker order.
 enum ChatBackgroundPreset: String, CaseIterable, Identifiable {
     case aurora
     case mint
@@ -19,13 +19,6 @@ enum ChatBackgroundPreset: String, CaseIterable, Identifiable {
     case sunset
     case ocean
     case night
-
-    private static let idFormat = /^[a-z0-9_]{1,32}$/
-
-    init?(id: String) {
-        guard id.wholeMatch(of: Self.idFormat) != nil else { return nil }
-        self.init(rawValue: id)
-    }
 
     var id: String {
         rawValue
@@ -82,8 +75,8 @@ enum ChatBackgroundPreset: String, CaseIterable, Identifiable {
 }
 
 /// Points are in unit coordinates of the frame, never mirrored for right-to-left layouts.
-enum ChatBackgroundFill: Equatable {
-    struct Stop: Equatable {
+enum ChatBackgroundFill {
+    struct Stop {
         let color: UInt32
         let location: CGFloat
 
@@ -93,7 +86,7 @@ enum ChatBackgroundFill: Equatable {
         }
     }
 
-    struct Glow: Equatable {
+    struct Glow {
         let color: UInt32
         let center: UnitPoint
         /// A fraction of the frame's longest side.

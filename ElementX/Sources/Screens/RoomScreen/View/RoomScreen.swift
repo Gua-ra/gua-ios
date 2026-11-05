@@ -244,14 +244,6 @@ struct RoomScreen_Previews: PreviewProvider, TestablePreview {
                                                 hasOngoingCall: false,
                                                 timelineItems: RoomTimelineItemFixtures.chatBackgroundShowcase,
                                                 chatBackground: .photo(.mock))
-    static let auroraDarkViewModels = makeViewModels(roomName: "Weekend plans",
-                                                     hasOngoingCall: false,
-                                                     timelineItems: RoomTimelineItemFixtures.chatBackgroundShowcase,
-                                                     chatBackground: .preset(.aurora))
-    static let photoDarkViewModels = makeViewModels(roomName: "Weekend plans",
-                                                    hasOngoingCall: false,
-                                                    timelineItems: RoomTimelineItemFixtures.chatBackgroundShowcase,
-                                                    chatBackground: .photo(.mock))
 
     static var previews: some View {
         NavigationStack {
@@ -303,8 +295,8 @@ struct RoomScreen_Previews: PreviewProvider, TestablePreview {
         .previewDisplayName("Background aurora")
         
         NavigationStack {
-            RoomScreen(context: auroraDarkViewModels.room.context,
-                       timelineContext: auroraDarkViewModels.timeline.context,
+            RoomScreen(context: auroraViewModels.room.context,
+                       timelineContext: auroraViewModels.timeline.context,
                        composerToolbar: ComposerToolbar.mock())
         }
         .environment(\.colorScheme, .dark)
@@ -319,8 +311,8 @@ struct RoomScreen_Previews: PreviewProvider, TestablePreview {
         .previewDisplayName("Background photo")
         
         NavigationStack {
-            RoomScreen(context: photoDarkViewModels.room.context,
-                       timelineContext: photoDarkViewModels.timeline.context,
+            RoomScreen(context: photoViewModels.room.context,
+                       timelineContext: photoViewModels.timeline.context,
                        composerToolbar: ComposerToolbar.mock())
         }
         .environment(\.colorScheme, .dark)

@@ -9,7 +9,7 @@ import ImageIO
 import UIKit
 import UniformTypeIdentifiers
 
-struct ChatBackgroundPhotoUpload: Equatable {
+struct ChatBackgroundPhotoUpload {
     static let mimetype = "image/jpeg"
 
     let data: Data
@@ -27,8 +27,8 @@ enum ChatBackgroundImageProcessorError: Error {
 enum ChatBackgroundImageProcessor {
     static let maxEdge = 2048
     static let reducedMaxEdge = 1600
-    static let largeSize = 1_500_000
 
+    private static let largeSize = 1_500_000
     private static let quality = 0.8
     private static let reducedQuality = 0.75
     private static let blurhashWidth = 64

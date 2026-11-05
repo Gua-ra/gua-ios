@@ -56,7 +56,7 @@ final class ChatBackgroundServiceTests: XCTestCase {
     func testServerErrorsKeepTheCache() async {
         cache.values[roomID] = stored(.preset(.aurora), eventID: "$cached", timestamp: 10)
 
-        for error in [RoomStateClientError.server(status: 500), .unauthorized, .transport] {
+        for error in [ClientServerError.server(status: 500), .unauthorized, .transport] {
             roomStateClient.chatBackgroundRoomIDReturnValue = .failed(error)
             await service.refresh(roomID: roomID)
             XCTAssertEqual(service.backgroundPublisher(roomID: roomID).value, .preset(.aurora), "\(error)")
@@ -144,7 +144,7 @@ final class ChatBackgroundServiceTests: XCTestCase {
     func testRemoveSendsEmptyContent() async {
         cache.values[roomID] = stored(.preset(.aurora), eventID: "$current", timestamp: 1000)
 
-        _ = await service.remove(roomProxy: roomProxy)
+        _ = await service.set(.none, roomProxy: roomProxy)
 
         XCTAssertEqual(roomProxy.sendStateEventTypeStateKeyContentReceivedArguments?.content, "{}")
         XCTAssertEqual(service.backgroundPublisher(roomID: roomID).value, .none)
@@ -190,8 +190,9 @@ final class ChatBackgroundServiceTests: XCTestCase {
         XCTAssertEqual(service.backgroundPublisher(roomID: roomID).value, .preset(.graphite))
     }
 
-    func testCacheKeepsTheMostRecentlyUsedRoomsOnDisk() {
+    func testCacheKeepsTheMostRecentlyUsedRoomsOnDisk() throws {
         let directory = URL.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
 
         let diskCache = ChatBackgroundCache(directory: directory)

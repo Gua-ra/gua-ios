@@ -2255,13 +2255,13 @@ class ChatBackgroundServiceMock: ChatBackgroundServiceProtocol, @unchecked Senda
     var setRoomProxyReceivedArguments: (background: ChatBackground, roomProxy: JoinedRoomProxyProtocol)?
     var setRoomProxyReceivedInvocations: [(background: ChatBackground, roomProxy: JoinedRoomProxyProtocol)] = []
 
-    var setRoomProxyUnderlyingReturnValue: Result<Void, ChatBackgroundServiceError>!
-    var setRoomProxyReturnValue: Result<Void, ChatBackgroundServiceError>! {
+    var setRoomProxyUnderlyingReturnValue: Result<Void, RoomProxyError>!
+    var setRoomProxyReturnValue: Result<Void, RoomProxyError>! {
         get {
             if Thread.isMainThread {
                 return setRoomProxyUnderlyingReturnValue
             } else {
-                var returnValue: Result<Void, ChatBackgroundServiceError>? = nil
+                var returnValue: Result<Void, RoomProxyError>? = nil
                 DispatchQueue.main.sync {
                     returnValue = setRoomProxyUnderlyingReturnValue
                 }
@@ -2279,10 +2279,10 @@ class ChatBackgroundServiceMock: ChatBackgroundServiceProtocol, @unchecked Senda
             }
         }
     }
-    var setRoomProxyClosure: ((ChatBackground, JoinedRoomProxyProtocol) async -> Result<Void, ChatBackgroundServiceError>)?
+    var setRoomProxyClosure: ((ChatBackground, JoinedRoomProxyProtocol) async -> Result<Void, RoomProxyError>)?
 
     @MainActor
-    func set(_ background: ChatBackground, roomProxy: JoinedRoomProxyProtocol) async -> Result<Void, ChatBackgroundServiceError> {
+    func set(_ background: ChatBackground, roomProxy: JoinedRoomProxyProtocol) async -> Result<Void, RoomProxyError> {
         setRoomProxyCallsCount += 1
         setRoomProxyReceivedArguments = (background: background, roomProxy: roomProxy)
         DispatchQueue.main.async {

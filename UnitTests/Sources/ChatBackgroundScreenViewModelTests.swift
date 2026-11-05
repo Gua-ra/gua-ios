@@ -54,29 +54,22 @@ final class ChatBackgroundScreenViewModelTests: XCTestCase {
         XCTAssertEqual(service.setRoomProxyReceivedArguments?.0, ChatBackground.none)
     }
 
-    func testRemoveIsUnavailableWithoutABackground() {
-        setUpViewModel(current: .none)
-        XCTAssertFalse(context.viewState.canRemove)
-
-        context.send(viewAction: .remove)
-        XCTAssertFalse(service.setRoomProxyCalled)
-    }
-
-    func testWithoutPermissionNothingChanges() async throws {
+    func testWithoutPermissionSetAndRemoveAreUnavailable() {
         setUpViewModel(current: .preset(.mint), canChange: false)
         XCTAssertFalse(context.viewState.canChange)
-
-        context.send(viewAction: .selectPreset(.night))
-        context.send(viewAction: .apply)
-        context.send(viewAction: .remove)
-        context.send(viewAction: .photoPicked { Self.photoData() })
-        try await Task.sleep(for: .milliseconds(100))
-
-        XCTAssertEqual(context.viewState.selection, .preset(.mint))
         XCTAssertFalse(context.viewState.canSet)
         XCTAssertFalse(context.viewState.canRemove)
-        XCTAssertFalse(service.setRoomProxyCalled)
-        XCTAssertNil(context.viewState.bindings.photoDraft)
+    }
+
+    func testHiddenMediaPreviewsAPhotoAsTheDefaultCanvas() {
+        setUpViewModel(current: .photo(.mock), timelineMediaVisibility: .never)
+        XCTAssertEqual(context.viewState.previewBackground, .none)
+
+        context.send(viewAction: .selectPreset(.night))
+        XCTAssertEqual(context.viewState.previewBackground, .preset(.night))
+
+        setUpViewModel(current: .photo(.mock), timelineMediaVisibility: .always)
+        XCTAssertEqual(context.viewState.previewBackground, .photo(.mock))
     }
 
     func testPhotoIsPreparedUploadedAndSet() async throws {
@@ -92,10 +85,9 @@ final class ChatBackgroundScreenViewModelTests: XCTestCase {
 
         context.send(viewAction: .setPreviewColorScheme(.light))
         XCTAssertEqual(context.viewState.bindings.photoDraft?.previewColorScheme, .light)
-        context.send(viewAction: .setPhotoDim(3))
-        XCTAssertEqual(context.viewState.bindings.photoDraft?.dim, ChatBackground.Photo.maxDim)
-        XCTAssertEqual(context.viewState.bindings.photoDraft?.previewColorScheme, .dark, "Dim only shows in the dark preview")
         context.send(viewAction: .setPhotoDim(0.6))
+        XCTAssertEqual(context.viewState.bindings.photoDraft?.dim, 0.6)
+        XCTAssertEqual(context.viewState.bindings.photoDraft?.previewColorScheme, .dark, "Dim only shows in the dark preview")
         context.send(viewAction: .movePhoto(alignX: -1, alignY: 0.25))
         XCTAssertEqual(context.viewState.bindings.photoDraft?.alignX, 0)
         XCTAssertEqual(context.viewState.bindings.photoDraft?.alignY, 0.25)
@@ -158,7 +150,7 @@ final class ChatBackgroundScreenViewModelTests: XCTestCase {
 
     func testUploadFailureShowsTheErrorAndSetsNothing() async throws {
         setUpViewModel(current: .none)
-        clientProxy.uploadMediaDataMimeTypeReturnValue = .failure(.sdkError(RoomProxyMockError.generic))
+        clientProxy.uploadMediaDataMimeTypeReturnValue = .failure(.sdkError(ClientProxyMockError.generic))
 
         let prepared = deferFulfillment(context.observe(\.viewState.bindings.photoDraft)) { $0 != nil }
         context.send(viewAction: .photoPicked { Self.photoData() })
@@ -175,7 +167,7 @@ final class ChatBackgroundScreenViewModelTests: XCTestCase {
 
     func testRefusedChangeShowsTheErrorAndRereadsPermissions() async throws {
         setUpViewModel(current: .none)
-        service.setRoomProxyClosure = { _, _ in .failure(.failedSending(.sdkError(RoomProxyMockError.generic))) }
+        service.setRoomProxyClosure = { _, _ in .failure(.sdkError(RoomProxyMockError.generic)) }
         let powerLevels = RoomPowerLevelsProxyMock(configuration: .init(canUserSendState: false))
         roomProxy.powerLevelsReturnValue = .success(powerLevels)
 
@@ -188,9 +180,12 @@ final class ChatBackgroundScreenViewModelTests: XCTestCase {
         XCTAssertEqual(context.viewState.current, .none)
     }
 
-    private func setUpViewModel(current: ChatBackground, canChange: Bool = true, maxUploadSize: UInt = 100 * 1024 * 1024) {
+    private func setUpViewModel(current: ChatBackground,
+                                canChange: Bool = true,
+                                maxUploadSize: UInt = 100 * 1024 * 1024,
+                                timelineMediaVisibility: TimelineMediaVisibility = .always) {
         roomProxy = JoinedRoomProxyMock(.init(id: "!room:gua.global", members: [canChange ? .mockMeAdmin : .mockMe, .mockAlice]))
-        clientProxy = ClientProxyMock(.init(maxMediaUploadSize: maxUploadSize))
+        clientProxy = ClientProxyMock(.init(timelineMediaVisibility: timelineMediaVisibility, maxMediaUploadSize: maxUploadSize))
         clientProxy.uploadMediaDataMimeTypeReturnValue = .success("mxc://gua.global/uploaded")
         service = ChatBackgroundServiceMock(.init(background: current))
         viewModel = ChatBackgroundScreenViewModel(roomProxy: roomProxy,

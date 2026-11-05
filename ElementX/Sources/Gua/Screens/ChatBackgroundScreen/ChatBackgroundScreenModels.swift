@@ -31,10 +31,15 @@ struct ChatBackgroundScreenViewState: BindableState {
     /// Nil until a preset is picked, which leaves the current background selected.
     var pickedBackground: ChatBackground?
     var canChange: Bool
+    var isMediaHidden: Bool
     var bindings = ChatBackgroundScreenViewStateBindings()
 
     var selection: ChatBackground {
         pickedBackground ?? current
+    }
+
+    var previewBackground: ChatBackground {
+        isMediaHidden && selection.photo != nil ? .none : selection
     }
 
     var selectedPreset: ChatBackgroundPreset? {

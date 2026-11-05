@@ -175,8 +175,6 @@
 "gua_chat_background_a11y_move_up" = "Move the photo up";
 "gua_chat_background_a11y_move_down" = "Move the photo down";
 "gua_chat_background_notice_changed_by_you" = "You changed the chat background";
-/* %1$@ is the name of the person who changed it. */
 "gua_chat_background_notice_changed" = "%1$@ changed the chat background";
 "gua_chat_background_notice_removed_by_you" = "You removed the chat background";
-/* %1$@ is the name of the person who changed it. */
 "gua_chat_background_notice_removed" = "%1$@ removed the chat background";

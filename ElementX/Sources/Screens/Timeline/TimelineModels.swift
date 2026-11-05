@@ -138,7 +138,6 @@ struct TimelineViewState: BindableState {
     
     var mapTilerConfiguration: MapTilerConfiguration
     
-    /// GUA FORK: only the main timeline shows the chat's background.
     var chatBackground: ChatBackground = .none
     
     var bindings: TimelineViewStateBindings

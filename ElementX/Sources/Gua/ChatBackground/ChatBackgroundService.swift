@@ -9,10 +9,6 @@ import Combine
 import Foundation
 import MatrixRustSDK
 
-enum ChatBackgroundServiceError: Error {
-    case failedSending(RoomProxyError)
-}
-
 // sourcery: AutoMockable
 protocol ChatBackgroundServiceProtocol: AnyObject {
     @MainActor func backgroundPublisher(roomID: String) -> CurrentValuePublisher<ChatBackground, Never>
@@ -24,17 +20,10 @@ protocol ChatBackgroundServiceProtocol: AnyObject {
     @MainActor func handleTimelineEvent(roomID: String, eventID: String, timestamp: UInt64, contentJSON: String)
 
     /// A photo must be uploaded first.
-    @MainActor func set(_ background: ChatBackground, roomProxy: JoinedRoomProxyProtocol) async -> Result<Void, ChatBackgroundServiceError>
-}
-
-extension ChatBackgroundServiceProtocol {
-    @MainActor func remove(roomProxy: JoinedRoomProxyProtocol) async -> Result<Void, ChatBackgroundServiceError> {
-        await set(.none, roomProxy: roomProxy)
-    }
+    @MainActor func set(_ background: ChatBackground, roomProxy: JoinedRoomProxyProtocol) async -> Result<Void, RoomProxyError>
 }
 
 extension StateEventType {
-    /// The SDK 26.10 bindings build custom types with `stateEventTypeFromString(s:)` instead.
     static var guaChatBackground: StateEventType {
         .custom(value: ChatBackground.eventType)
     }
@@ -110,7 +99,7 @@ final class ChatBackgroundService: ChatBackgroundServiceProtocol {
         }
     }
 
-    func set(_ background: ChatBackground, roomProxy: JoinedRoomProxyProtocol) async -> Result<Void, ChatBackgroundServiceError> {
+    func set(_ background: ChatBackground, roomProxy: JoinedRoomProxyProtocol) async -> Result<Void, RoomProxyError> {
         let content = background.contentJSON
 
         switch await roomProxy.sendStateEvent(type: ChatBackground.eventType, stateKey: "", content: content) {
@@ -125,7 +114,7 @@ final class ChatBackgroundService: ChatBackgroundServiceProtocol {
             return .success(())
         case .failure(let error):
             MXLog.error("Failed sending the chat background of \(roomProxy.id): \(error)")
-            return .failure(.failedSending(error))
+            return .failure(error)
         }
     }
 

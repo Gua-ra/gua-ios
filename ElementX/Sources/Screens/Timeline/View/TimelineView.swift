@@ -112,7 +112,7 @@ struct TimelineViewRepresentable: UIViewControllerRepresentable {
     }
     
     func updateUIViewController(_ uiViewController: TimelineTableViewController, context: Context) {
-        context.coordinator.update(tableViewController: uiViewController, isChatBackgroundActive: context.environment.chatBackgroundActive)
+        context.coordinator.update(tableViewController: uiViewController)
     }
     
     func makeCoordinator() -> Coordinator {
@@ -130,7 +130,7 @@ struct TimelineViewRepresentable: UIViewControllerRepresentable {
         }
         
         /// Updates the specified table view's properties from the current view state.
-        func update(tableViewController: TimelineTableViewController, isChatBackgroundActive: Bool) {
+        func update(tableViewController: TimelineTableViewController) {
             if tableViewController.isSwitchingTimelines != context.viewState.timelineState.isSwitchingTimelines {
                 // Must come before timelineItemsDictionary in order to disable animations.
                 tableViewController.isSwitchingTimelines = context.viewState.timelineState.isSwitchingTimelines
@@ -150,6 +150,7 @@ struct TimelineViewRepresentable: UIViewControllerRepresentable {
             if tableViewController.hideTimelineMedia != context.viewState.hideTimelineMedia {
                 tableViewController.hideTimelineMedia = context.viewState.hideTimelineMedia
             }
+            let isChatBackgroundActive = !context.viewState.visibleChatBackground.isNone
             if tableViewController.isChatBackgroundActive != isChatBackgroundActive {
                 tableViewController.isChatBackgroundActive = isChatBackgroundActive
             }

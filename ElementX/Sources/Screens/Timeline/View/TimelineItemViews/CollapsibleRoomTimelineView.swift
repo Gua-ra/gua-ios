@@ -18,7 +18,6 @@ struct CollapsibleRoomTimelineView: View {
     
     @State private var isExpanded = false
     @AccessibilityFocusState private var accessibilityFocusState: AccessibilityFocus?
-    @Environment(\.chatBackgroundActive) private var isChatBackgroundActive
     
     init(timelineItem: CollapsibleTimelineItem) {
         self.timelineItem = timelineItem
@@ -44,7 +43,7 @@ struct CollapsibleRoomTimelineView: View {
                         .animation(.elementDefault, value: isExpanded)
                 }
                 .font(.compound.bodySM)
-                .foregroundColor(.legibleSecondaryText(isOnBackground: isChatBackgroundActive))
+                .legibleSecondaryForeground()
                 .legibilityCapsule()
                 .padding(.horizontal, 36.0)
                 .padding(.vertical, 12.0)

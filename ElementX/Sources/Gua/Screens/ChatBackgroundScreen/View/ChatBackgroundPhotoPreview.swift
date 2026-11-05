@@ -106,8 +106,6 @@ struct ChatBackgroundPhotoFrame: View {
     let draft: ChatBackgroundPhotoDraft
     let onMove: (_ alignX: Double, _ alignY: Double) -> Void
 
-    @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
     @State private var dragStart: (alignX: Double, alignY: Double)?
 
     private let nudge = 0.1
@@ -119,7 +117,7 @@ struct ChatBackgroundPhotoFrame: View {
             ZStack(alignment: .top) {
                 Color.compound.bgCanvasDefault
                 ChatBackgroundPhotoLayout(image: draft.image, alignX: draft.alignX, alignY: draft.alignY)
-                scrim
+                ChatBackgroundScrim(photoDim: draft.dim)
 
                 ChatBackgroundSampleMessages(isOnBackground: true)
                     .allowsHitTesting(false)
@@ -147,19 +145,9 @@ struct ChatBackgroundPhotoFrame: View {
         }
     }
 
-    @ViewBuilder
-    private var scrim: some View {
-        if colorScheme == .dark {
-            Color.black.opacity(colorSchemeContrast == .increased ? max(draft.dim, 0.5) : draft.dim)
-        } else if colorSchemeContrast == .increased {
-            Color.black.opacity(0.06)
-        }
-    }
-
     private func overflow(in frame: CGSize) -> CGSize {
-        let imageSize = draft.image.size
-        let scale = max(frame.width / max(imageSize.width, 1), frame.height / max(imageSize.height, 1))
-        return CGSize(width: imageSize.width * scale - frame.width, height: imageSize.height * scale - frame.height)
+        let scaled = ChatBackgroundPhotoLayout.scaledSize(of: draft.image.size, filling: frame)
+        return CGSize(width: scaled.width - frame.width, height: scaled.height - frame.height)
     }
 }
 

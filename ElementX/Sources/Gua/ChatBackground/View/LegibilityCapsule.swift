@@ -9,7 +9,6 @@ import Compound
 import SwiftUI
 
 extension EnvironmentValues {
-    /// Elements drawn straight on the timeline get a capsule while this is true.
     @Entry var chatBackgroundActive = false
 }
 
@@ -73,17 +72,28 @@ private struct LegibilityCapsuleModifier: ViewModifier {
     }
 }
 
+private struct LegibleSecondaryForegroundModifier: ViewModifier {
+    @Environment(\.chatBackgroundActive) private var isActive
+
+    func body(content: Content) -> some View {
+        content.foregroundColor(isActive ? .compound.textPrimary : .compound.textSecondary)
+    }
+}
+
 extension View {
-    /// Without a background nothing changes, so the timeline looks exactly as before.
     func legibilityCapsule(_ shape: LegibilityCapsuleShape = .capsule, hasPadding: Bool = true, isEnabled: Bool = true) -> some View {
         modifier(LegibilityCapsuleModifier(shape: shape, hasPadding: hasPadding, isEnabled: isEnabled))
+    }
+
+    func legibleSecondaryForeground() -> some View {
+        modifier(LegibleSecondaryForegroundModifier())
     }
 }
 
 extension Color {
-    /// `textSecondary` reads too faintly on a capsule over a background, so it becomes `textPrimary` there.
-    static func legibleSecondaryText(isOnBackground: Bool) -> Color {
-        isOnBackground ? .compound.textPrimary : .compound.textSecondary
+    /// The ring cuts a pill or avatar out of the bubble, and over a background it would show as a halo.
+    static func cutOutRing(isOnBackground: Bool) -> Color {
+        isOnBackground ? .clear : .compound.bgCanvasDefault
     }
 }
 
@@ -116,7 +126,7 @@ struct LegibilityCapsule_Previews: PreviewProvider, TestablePreview {
             Text(UntranslatedL10n.guaChatBackgroundNoticeChanged("Helena Martins, who has a long name that wraps"))
                 .font(.compound.bodySM)
                 .multilineTextAlignment(.center)
-                .foregroundColor(.legibleSecondaryText(isOnBackground: true))
+                .legibleSecondaryForeground()
                 .legibilityCapsule()
                 .frame(width: 240)
 

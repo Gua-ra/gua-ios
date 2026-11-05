@@ -35,11 +35,12 @@ class ChatBackgroundScreenViewModel: ChatBackgroundScreenViewModelType, ChatBack
 
         let backgroundPublisher = chatBackgroundService.backgroundPublisher(roomID: roomProxy.id)
         super.init(initialViewState: .init(current: backgroundPublisher.value,
-                                           canChange: Self.canChange(roomProxy.infoPublisher.value.powerLevels)),
+                                           canChange: Self.canChange(roomProxy.infoPublisher.value.powerLevels),
+                                           isMediaHidden: Self.isMediaHidden(clientProxy.timelineMediaVisibilityPublisher.value,
+                                                                             roomInfo: roomProxy.infoPublisher.value)),
                    mediaProvider: mediaProvider)
 
         backgroundPublisher
-            .removeDuplicates()
             .weakAssign(to: \.state.current, on: self)
             .store(in: &cancellables)
 
@@ -49,18 +50,24 @@ class ChatBackgroundScreenViewModel: ChatBackgroundScreenViewModelType, ChatBack
             .receive(on: DispatchQueue.main)
             .weakAssign(to: \.state.canChange, on: self)
             .store(in: &cancellables)
+
+        clientProxy.timelineMediaVisibilityPublisher
+            .combineLatest(roomProxy.infoPublisher)
+            .map { Self.isMediaHidden($0, roomInfo: $1) }
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .weakAssign(to: \.state.isMediaHidden, on: self)
+            .store(in: &cancellables)
     }
 
     override func process(viewAction: ChatBackgroundScreenViewAction) {
         switch viewAction {
         case .selectPreset(let preset):
-            guard state.canChange else { return }
             state.pickedBackground = .preset(preset)
         case .photoPicked(let load):
-            guard state.canChange else { return }
             Task { await preparePhoto(load: load) }
         case .setPhotoDim(let dim):
-            state.bindings.photoDraft?.dim = dim.clamped(to: 0...ChatBackground.Photo.maxDim)
+            state.bindings.photoDraft?.dim = dim
             // Dim only shows in dark mode.
             state.bindings.photoDraft?.previewColorScheme = .dark
         case .movePhoto(let alignX, let alignY):
@@ -71,20 +78,29 @@ class ChatBackgroundScreenViewModel: ChatBackgroundScreenViewModelType, ChatBack
         case .discardPhoto:
             state.bindings.photoDraft = nil
         case .apply:
-            guard state.canChange else { return }
             if let draft = state.bindings.photoDraft {
                 Task { await setPhoto(draft) }
-            } else if state.canSet {
+            } else {
                 Task { await set(state.selection, progressTitle: UntranslatedL10n.guaChatBackgroundProgress) }
             }
         case .remove:
-            guard state.canRemove else { return }
             Task { await set(.none, progressTitle: UntranslatedL10n.guaChatBackgroundProgressRemove) }
         }
     }
 
     private static func canChange(_ powerLevels: RoomPowerLevelsProxyProtocol?) -> Bool {
         powerLevels?.canOwnUser(sendStateEvent: .guaChatBackground) ?? false
+    }
+
+    private static func isMediaHidden(_ visibility: TimelineMediaVisibility, roomInfo: RoomInfoProxyProtocol) -> Bool {
+        switch visibility {
+        case .always:
+            false
+        case .privateOnly:
+            !(roomInfo.isPrivate ?? false)
+        case .never:
+            true
+        }
     }
 
     private func preparePhoto(load: () async -> Data?) async {

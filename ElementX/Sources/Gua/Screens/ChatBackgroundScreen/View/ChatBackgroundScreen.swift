@@ -18,7 +18,7 @@ struct ChatBackgroundScreen: View {
         Form {
             Section {
                 ListRow(kind: .custom {
-                    ChatBackgroundPreviewCard(background: context.viewState.selection, mediaProvider: context.mediaProvider)
+                    ChatBackgroundPreviewCard(background: context.viewState.previewBackground, mediaProvider: context.mediaProvider)
                         .padding(16)
                 })
             }

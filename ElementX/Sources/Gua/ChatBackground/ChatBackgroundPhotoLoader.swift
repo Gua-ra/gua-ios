@@ -53,7 +53,7 @@ enum ChatBackgroundPhotoLoader {
     }
 
     /// The declared size is not trusted: the file on disk is checked before anything is decoded.
-    nonisolated static func decodeImage(at url: URL?, maxPixelSize: Int) -> UIImage? {
+    private nonisolated static func decodeImage(at url: URL?, maxPixelSize: Int) -> UIImage? {
         guard let url,
               let fileSize = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize,
               fileSize <= ChatBackground.Photo.maxSize,
