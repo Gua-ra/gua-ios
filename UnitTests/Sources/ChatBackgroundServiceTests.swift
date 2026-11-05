@@ -127,6 +127,19 @@ final class ChatBackgroundServiceTests: XCTestCase {
         XCTAssertEqual(service.backgroundPublisher(roomID: roomID).value, .preset(.sand))
     }
 
+    func testAnOlderCopyOfAnEventDoesNotUndoItsRedaction() async {
+        cache.values[roomID] = stored(.preset(.sky), eventID: "$event", timestamp: 1000)
+        let redacted = ChatBackgroundStoredValue(contentJSON: ChatBackground.removedContent, eventID: "$event", timestamp: 1000)
+        roomStateClient.chatBackgroundRoomIDReturnValue = .found(redacted)
+        await service.refresh(roomID: roomID)
+        XCTAssertEqual(service.backgroundPublisher(roomID: roomID).value, .none)
+
+        service.handleTimelineEvent(roomID: roomID, eventID: "$event", timestamp: 1000, contentJSON: ChatBackground.preset(.sky).contentJSON)
+
+        XCTAssertEqual(service.backgroundPublisher(roomID: roomID).value, .none)
+        XCTAssertEqual(cache.saved.map(\.value), [redacted])
+    }
+
     func testFailedSendChangesNothing() async {
         cache.values[roomID] = stored(.preset(.aurora), eventID: "$current", timestamp: 1000)
         roomProxy.sendStateEventTypeStateKeyContentReturnValue = .failure(.sdkError(RoomProxyMockError.generic))

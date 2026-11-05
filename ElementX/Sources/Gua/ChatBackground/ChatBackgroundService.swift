@@ -89,13 +89,19 @@ final class ChatBackgroundService: ChatBackgroundServiceProtocol {
         let candidate = ChatBackgroundStoredValue(contentJSON: contentJSON, eventID: eventID, timestamp: timestamp)
 
         update(roomID: roomID) { current in
-            let isNewer = if let stored = current.stored {
-                candidate.eventID == stored.eventID || candidate.timestamp > stored.timestamp
-            } else {
-                true
+            guard let stored = current.stored else {
+                return Slot(stored: candidate, localRevision: current.localRevision + 1)
             }
-            guard isNewer, candidate != current.stored else { return current }
-            return Slot(stored: candidate, localRevision: current.localRevision + 1)
+            let accepted = if candidate.eventID == stored.eventID {
+                // A copy of the same event can predate its redaction, so only its server timestamp is taken.
+                ChatBackgroundStoredValue(contentJSON: stored.contentJSON, eventID: stored.eventID, timestamp: candidate.timestamp)
+            } else if candidate.timestamp > stored.timestamp {
+                candidate
+            } else {
+                stored
+            }
+            guard accepted != stored else { return current }
+            return Slot(stored: accepted, localRevision: current.localRevision + 1)
         }
     }
 
