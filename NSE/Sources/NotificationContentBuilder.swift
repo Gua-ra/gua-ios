@@ -139,7 +139,7 @@ nonisolated struct NotificationContentBuilder {
         let senderAvatarDisplayName = if let displayName = notificationItem.senderDisplayName {
             displayName
         } else {
-            notificationItem.senderID
+            notificationItem.senderID.guaDisplayHandle
         }
         
         let senderDisplayName = notificationItem.hasMention ? L10n.notificationSenderMentionReply(senderAvatarDisplayName) : senderAvatarDisplayName
@@ -156,7 +156,7 @@ nonisolated struct NotificationContentBuilder {
         if notificationItem.isDM {
             if userSession.threadsEnabled, let threadRootEventID = notificationItem.threadRootEventID {
                 .init(mediaSource: notificationItem.senderAvatarMediaSource,
-                      groupInfo: .init(avatarDisplayName: notificationItem.senderDisplayName ?? notificationItem.senderID,
+                      groupInfo: .init(avatarDisplayName: notificationItem.senderDisplayName ?? notificationItem.senderID.guaDisplayHandle,
                                        displayName: L10n.commonThread,
                                        id: "\(notificationItem.roomID)\(threadRootEventID)"))
             } else {
