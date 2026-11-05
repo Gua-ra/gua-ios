@@ -17,10 +17,10 @@ nonisolated extension URLComponents {
     /// raw `percentEncodedQuery` string leaves the existing `%2B` (and every other escape) untouched.
     mutating func appendUILocalesPreservingEncoding(languageCode: String? = Bundle.guaAppLanguage) {
         guard let languageCode, !languageCode.isEmpty else { return }
-
+        
         appendQueryItemPreservingEncoding(name: "ui_locales", value: languageCode)
     }
-
+    
     /// Names the signed-in account to MAS with `org.matrix.msc4198.login_hint=mxid:<userID>`, for the
     /// same reason as above appended to the raw query rather than through `queryItems`.
     ///
@@ -31,7 +31,7 @@ nonisolated extension URLComponents {
         guard !userID.isEmpty else { return }
         appendQueryItemPreservingEncoding(name: "org.matrix.msc4198.login_hint", value: "mxid:\(userID)")
     }
-
+    
     /// Appends one `name=value` pair to the percent-encoded query, leaving every existing escape as
     /// it is. Both halves are encoded as a query value: never a bare `+`, `&`, `=` that would be
     /// misread.
@@ -39,7 +39,7 @@ nonisolated extension URLComponents {
         let encodedName = name.addingPercentEncoding(withAllowedCharacters: .guaURLQueryValueAllowed) ?? name
         let encodedValue = value.addingPercentEncoding(withAllowedCharacters: .guaURLQueryValueAllowed) ?? value
         let param = "\(encodedName)=\(encodedValue)"
-
+        
         if let existing = percentEncodedQuery, !existing.isEmpty {
             percentEncodedQuery = existing + "&" + param
         } else {

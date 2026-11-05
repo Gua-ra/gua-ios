@@ -86,7 +86,7 @@ enum ChangePhoneScreenPhase: Equatable {
 struct ChangePhoneScreenViewState: BindableState {
     static let otpLength = 6
     static let pinLength = 6
-
+    
     var phase: ChangePhoneScreenPhase = .intro
     var selectedCountry: Country = .deviceDefault
     /// The confirmed new number in E.164 form (e.g. "+15551234567").
@@ -114,7 +114,7 @@ struct ChangePhoneScreenViewState: BindableState {
     var stepUpBlockReason: ChangePhoneStepUpBlockReason = .noFactorRegistered
     var errorMessage: String?
     var bindings = ChangePhoneScreenViewStateBindings()
-
+    
     /// Human-readable cooldown message shown on the `.cooldown` interstitial.
     var cooldownMessage: String {
         guard cooldownRemainingSeconds > 0 else {
@@ -122,7 +122,7 @@ struct ChangePhoneScreenViewState: BindableState {
         }
         return L10n.screenChangePhoneCooldownMessage(IdentityServiceError.humanReadableDuration(seconds: cooldownRemainingSeconds))
     }
-
+    
     /// The body of the hard-block screen. It explains what is missing without ever suggesting the
     /// block can be talked out of.
     var stepUpBlockMessage: String {
@@ -131,7 +131,7 @@ struct ChangePhoneScreenViewState: BindableState {
         case .passkeyUnusableHere: L10n.screenChangePhoneStepUpPasskeyUnusableMessage
         }
     }
-
+    
     var titleKey: String {
         switch phase {
         case .intro, .submitting, .done, .stepUpRequired, .cooldown:
@@ -148,7 +148,7 @@ struct ChangePhoneScreenViewState: BindableState {
             return L10n.screenChangePhoneOtpHeader
         }
     }
-
+    
     var footerKey: String {
         switch phase {
         case .newPhone:
@@ -165,7 +165,7 @@ struct ChangePhoneScreenViewState: BindableState {
             return ""
         }
     }
-
+    
     var canContinue: Bool {
         switch phase {
         case .newPhone, .currentPhone:
@@ -178,29 +178,29 @@ struct ChangePhoneScreenViewState: BindableState {
             return false
         }
     }
-
+    
     var isWorking: Bool {
         phase == .submitting
     }
-
+    
     /// Local subscriber digits typed by the user, stripped of any formatting characters.
     var localDigits: String {
         bindings.localPhoneNumber.filter(\.isNumber)
     }
-
+    
     /// Full E.164 phone number to send to the backend (e.g. "+15551234567").
     var e164PhoneNumber: String {
         "+" + selectedCountry.dialCode + localDigits
     }
-
+    
     static func isValid(pin: String) -> Bool {
         pin.count == pinLength && pin.allSatisfy(\.isNumber)
     }
-
+    
     static func isValid(otp: String) -> Bool {
         otp.count == otpLength && otp.allSatisfy(\.isNumber)
     }
-
+    
     /// Shared with the other two screens that submit a number for a reauthentication, so all three
     /// refuse the same shapes before anything is spent on them.
     static func isValid(phone: String) -> Bool {

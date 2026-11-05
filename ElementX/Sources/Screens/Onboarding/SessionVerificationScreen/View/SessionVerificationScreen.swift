@@ -168,7 +168,7 @@ struct SessionVerificationScreen: View {
                 .buttonStyle(.compound(.tertiary))
                 .accessibilityIdentifier(A11yIdentifiers.sessionVerificationScreen.declineChallenge)
             }
-
+            
         case .verified:
             switch context.viewState.flow {
             case .deviceResponder:
@@ -179,7 +179,7 @@ struct SessionVerificationScreen: View {
             case .deviceInitiator, .userInitiator, .userResponder:
                 EmptyView()
             }
-
+            
         default:
             EmptyView()
         }

@@ -20,17 +20,17 @@ import Foundation
 nonisolated enum GuaDeployment {
     case development
     case production
-
+    
     static var current: GuaDeployment {
         #if GUA_DEVELOPMENT
-        return .development
+        .development
         #elseif DEBUG
-        return .development
+        .development
         #else
-        return .production
+        .production
         #endif
     }
-
+    
     /// Federation resolver base URL. Gua phone auth requires this to route users to the correct
     /// homeserver/MAS.
     var resolverBaseURL: URL? {
@@ -41,7 +41,7 @@ nonisolated enum GuaDeployment {
             return Self.url(from: Secrets.resolverBaseURL)
         }
     }
-
+    
     /// identity-service base URL (phone/OTP IdP), or `nil` when unconfigured.
     var identityServiceBaseURL: URL? {
         switch self {
@@ -51,7 +51,7 @@ nonisolated enum GuaDeployment {
             return Self.url(from: Secrets.identityServiceBaseURL)
         }
     }
-
+    
     /// Push gateway base URL, the host the homeserver hands every notification to on its way to APNs.
     ///
     /// Registering a pusher publishes this URL and the device's APNs token to whoever owns that host.
@@ -67,9 +67,9 @@ nonisolated enum GuaDeployment {
     var pushGatewayBaseURL: URL {
         Self.pushGateway
     }
-
+    
     private static let pushGateway: URL = "https://push.gua.global"
-
+    
     /// Default account provider (homeserver host) offered on the login screen, or `nil` when unconfigured.
     /// Production is the committed `gua.global` brand host; development is injected via the `Secrets`
     /// pipeline — the committed placeholder keeps the non-public dev host out of this repo, same as the
@@ -83,7 +83,7 @@ nonisolated enum GuaDeployment {
             return provider
         }
     }
-
+    
     /// Brand host used to build user-facing share links (e.g. `https://gua.global/u/<handle>`).
     /// Production is the committed `gua.global` brand host; development falls back to the injected
     /// dev account provider so links never leak the non-public dev host into this repo, and never
@@ -97,7 +97,7 @@ nonisolated enum GuaDeployment {
             return provider
         }
     }
-
+    
     private static func url(from raw: String?) -> URL? {
         guard let raw, !raw.isEmpty else { return nil }
         return URL(string: raw)

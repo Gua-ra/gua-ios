@@ -19,15 +19,15 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
     /// exactly like a device that cannot produce an assertion: the PIN is offered instead. It is
     /// never turned into a claim to the server.
     private let passkeyStepUpPresenter: PasskeyStepUpPresenting?
-
+    
     private let actionsSubject: PassthroughSubject<ChangePhoneScreenViewModelAction, Never> = .init()
     var actionsPublisher: AnyPublisher<ChangePhoneScreenViewModelAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
-
+    
     private let indicatorID = "ChangePhoneScreen-Submit"
     private let successIndicatorID = "ChangePhoneScreen-Success"
-
+    
     init(clientProxy: ClientProxyProtocol,
          identityServiceClient: IdentityServiceClientProtocol,
          userIndicatorController: UserIndicatorControllerProtocol,
@@ -36,10 +36,10 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         self.identityServiceClient = identityServiceClient
         self.userIndicatorController = userIndicatorController
         self.passkeyStepUpPresenter = passkeyStepUpPresenter
-
+        
         super.init(initialViewState: ChangePhoneScreenViewState())
     }
-
+    
     override func process(viewAction: ChangePhoneScreenViewAction) {
         switch viewAction {
         case .start:
@@ -57,7 +57,9 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             normalizeInput()
             autoDetectCountry()
             reformatNumber()
-            if state.errorMessage != nil { state.errorMessage = nil }
+            if state.errorMessage != nil {
+                state.errorMessage = nil
+            }
         case .countrySelected(let country):
             state.selectedCountry = country
             state.bindings.isCountryPickerPresented = false
@@ -68,7 +70,9 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             if cleaned != state.bindings.code {
                 state.bindings.code = cleaned
             }
-            if state.errorMessage != nil { state.errorMessage = nil }
+            if state.errorMessage != nil {
+                state.errorMessage = nil
+            }
             if cleaned.count == length {
                 handleSubmittedCode(cleaned)
             }
@@ -90,15 +94,15 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             actionsSubject.send(.setUpStepUpFactor(factor))
         }
     }
-
+    
     // MARK: - Flow control
-
+    
     private var currentCodeLength: Int {
         state.phase == .pin
             ? ChangePhoneScreenViewState.pinLength
             : ChangePhoneScreenViewState.otpLength
     }
-
+    
     private func handleSubmittedPhone(_ phone: String) {
         let trimmed = phone.trimmingCharacters(in: .whitespacesAndNewlines)
         guard ChangePhoneScreenViewState.isValid(phone: trimmed) else {
@@ -109,7 +113,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         state.errorMessage = nil
         Task { await stepUp() }
     }
-
+    
     /// The current number, which is what `/account/reauth/start` weighs before it sends anything.
     /// It is kept for the verify call as well, because the server remembers nothing between the two.
     private func handleSubmittedCurrentPhone(_ phone: String) {
@@ -122,7 +126,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         state.errorMessage = nil
         Task { await sendReauthCode() }
     }
-
+    
     private func handleSubmittedCode(_ code: String) {
         switch state.phase {
         case .reauth:
@@ -138,7 +142,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             break
         }
     }
-
+    
     private func normalizeInput() {
         let raw = state.bindings.localPhoneNumber
         let (country, localDigits) = Country.normalize(rawInput: raw, current: state.selectedCountry)
@@ -149,7 +153,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             state.bindings.localPhoneNumber = localDigits
         }
     }
-
+    
     private func reformatNumber() {
         let digits = state.bindings.localPhoneNumber.filter(\.isNumber)
         let formatted = state.selectedCountry.formatNational(digits: digits)
@@ -157,16 +161,16 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             state.bindings.localPhoneNumber = formatted
         }
     }
-
+    
     private func autoDetectCountry() {
         if let detected = Country.detect(localDigits: state.localDigits,
                                          current: state.selectedCountry) {
             state.selectedCountry = detected
         }
     }
-
+    
     // MARK: - Backend interactions
-
+    
     /// Reads the account's factor report (`GET /security/pin/status`) and routes on it.
     ///
     /// This runs before anything is sent anywhere, which is the point of doing it first: an account
@@ -215,7 +219,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             state.phase = .intro
         }
     }
-
+    
     /// Refusals the number step has to answer rather than the code step: the digest comparison said
     /// no, the normalizer could not read the number, or nothing can be sent for the moment.
     private static func belongsOnTheNumberStep(_ error: IdentityServiceError) -> Bool {
@@ -224,7 +228,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         default: false
         }
     }
-
+    
     /// Of those, the ones that say the number itself is wrong. A 429 is not one of them: the server
     /// spends the same `rate_limited` on the per-account cap for wrong numbers and on the ordinary
     /// OTP per-phone and per-address quotas, so it is never read as a verdict on what was typed.
@@ -234,7 +238,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         default: false
         }
     }
-
+    
     /// Asks for the number the account is on today. It comes before any SMS because it is what the
     /// server weighs to decide whether to send one at all.
     ///
@@ -253,7 +257,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         state.errorMessage = message
         state.phase = .currentPhone
     }
-
+    
     /// Sends the reauth OTP to the CURRENT number, once the server agrees that is what it is.
     /// Nothing reaches the new number here, and nothing reaches this one either until the account is
     /// known to hold a factor that can finish.
@@ -301,7 +305,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             state.phase = .intro
         }
     }
-
+    
     /// Exchanges the reauth code for a token scoped to this one operation.
     private func verifyReauthCode(_ code: String) async {
         guard let accessToken = clientProxy.accessToken else {
@@ -344,7 +348,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             state.phase = .reauth
         }
     }
-
+    
     /// Produces the step-up factor, strongest first, and starts the change with it.
     ///
     /// The order is the server's published one. A passkey is attempted only when the account holds
@@ -375,7 +379,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
                 return
             }
             userIndicatorController.retractIndicatorWithId(indicatorID)
-
+            
             let assertion: PasskeyAssertion
             do {
                 assertion = try await passkeyStepUpPresenter.assertion(for: options)
@@ -388,20 +392,20 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             await startChange(pin: nil, passkey: (options.stepUpID, assertion))
             return
         }
-
+        
         if state.stepUpFactors.contains(.pin) {
             state.bindings.code = ""
             state.errorMessage = nil
             state.phase = .pin
             return
         }
-
+        
         // Either the account holds only a passkey and this build cannot present one, or the report
         // named nothing this client can produce. Both are the same answer to the user, and neither
         // is a reason to proceed on the reauth token alone.
         block(reason: state.stepUpFactors.contains(.passkey) ? .passkeyUnusableHere : .noFactorRegistered)
     }
-
+    
     /// Spends the reauth token together with the step-up factor. The SMS to the new number is sent
     /// by the server inside this call, and only after the step-up has been accepted.
     private func startChange(pin: String?, passkey: (stepUpID: String, assertion: PasskeyAssertion)?) async {
@@ -415,7 +419,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
                                                               title: L10n.commonLoading,
                                                               persistent: true))
         defer { userIndicatorController.retractIndicatorWithId(indicatorID) }
-
+        
         // `/start` consumes the single-use reauth token as its first act, BEFORE it looks at the
         // step-up, so the token is spent whatever the rest of the call then answers. Drop it here,
         // in one place, rather than per outcome: anything that carried it into a retry would earn
@@ -424,7 +428,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         let spentReauthToken = state.reauthToken
         state.reauthToken = ""
         state.bindings.code = ""
-
+        
         do {
             let challenge = try await identityServiceClient.startPhoneChange(accessToken: accessToken,
                                                                              reauthToken: spentReauthToken,
@@ -440,7 +444,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             await handleStartChangeFailure(error)
         }
     }
-
+    
     /// Routes a refusal from `/account/phone/change/start`.
     ///
     /// Every outcome here arrives with the reauth token already spent, so there are only three
@@ -491,7 +495,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             abandonFlow(message: (error as? LocalizedError)?.errorDescription ?? L10n.errorUnknown)
         }
     }
-
+    
     /// The server refused the assertion this device produced. The credential is registered and the
     /// ceremony did run, so running it again would reach the identical refusal; remember that for
     /// the rest of this flow so the PIN actually gets its turn. The server is told nothing, and the
@@ -507,13 +511,13 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         }
         await restartAtReauth(message: L10n.screenChangePhonePasskeyRefusedRestart)
     }
-
+    
     private func showCooldown(seconds: Int) {
         state.errorMessage = nil
         state.cooldownRemainingSeconds = seconds
         state.phase = .cooldown
     }
-
+    
     /// Ends the attempt without spending another code. The token is gone, so the flow starts again
     /// from the top when the user chooses to.
     private func abandonFlow(message: String) {
@@ -522,7 +526,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         state.phase = .intro
         userIndicatorController.submitIndicator(UserIndicator(title: message, icon: \.close))
     }
-
+    
     /// Redeems the challenge with the code that arrived at the new number.
     private func submitChange(code: String) async {
         guard let accessToken = clientProxy.accessToken else {
@@ -570,7 +574,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             state.phase = .otp
         }
     }
-
+    
     /// Goes back to where the reauth token is minted and sends a fresh code, so the step-up is
     /// produced again against a token that can actually be spent.
     ///
@@ -593,7 +597,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
             state.errorMessage = message
         }
     }
-
+    
     /// The assertion was not produced on this device, or the ceremony could not be started. Offer
     /// the next factor down, and tell the server nothing: it never learns that a passkey was
     /// unavailable, because that claim is free to make and could only ever ask for something weaker.
@@ -623,7 +627,7 @@ class ChangePhoneScreenViewModel: ChangePhoneScreenViewModelType, ChangePhoneScr
         state.errorMessage = cancelled ? nil : L10n.screenChangePhonePasskeyFallback
         state.phase = .pin
     }
-
+    
     private func block(reason: ChangePhoneStepUpBlockReason) {
         state.stepUpBlockReason = reason
         state.errorMessage = nil

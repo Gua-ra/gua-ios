@@ -39,7 +39,9 @@ struct DeactivateAccountScreen: View {
     
     private var canSubmit: Bool {
         if context.viewState.identityServiceAvailable {
-            if case .verified = context.viewState.reauthPhase { return true }
+            if case .verified = context.viewState.reauthPhase {
+                return true
+            }
             return false
         }
         return !context.password.isEmpty
@@ -143,7 +145,7 @@ struct DeactivateAccountScreen: View {
                 .compoundListSectionFooter()
         }
     }
-
+    
     private var canSendReauthCode: Bool {
         !context.phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }

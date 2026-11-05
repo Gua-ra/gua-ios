@@ -10,7 +10,7 @@ import AuthenticationServices
 struct FactorEnrollmentRefusal: LocalizedError {
     let code: String
     let serverDescription: String?
-
+    
     var errorDescription: String? {
         L10n.errorUnknown
     }
@@ -33,14 +33,14 @@ class FactorEnrollmentPresenter: NSObject {
     private let oAuthRedirectURL: URL
     /// Retained for the lifetime of the presentation so the session isn't cancelled early.
     private var session: ASWebAuthenticationSession?
-
+    
     init(enrollURL: URL, presentationAnchor: UIWindow, appSettings: AppSettings) {
         self.enrollURL = enrollURL
         self.presentationAnchor = presentationAnchor
         oAuthRedirectURL = appSettings.oAuthRedirectURL
         super.init()
     }
-
+    
     /// Presents the web authentication session and returns once it is dismissed —
     /// either because the page redirected to the callback URL or because the user
     /// closed the sheet.

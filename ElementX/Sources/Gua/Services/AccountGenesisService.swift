@@ -15,14 +15,18 @@ enum GuaBase64URL {
             .replacingOccurrences(of: "/", with: "_")
             .replacingOccurrences(of: "=", with: "")
     }
-
+    
     static func decode(_ value: String) -> [UInt8]? {
         var padded = value
             .replacingOccurrences(of: "-", with: "+")
             .replacingOccurrences(of: "_", with: "/")
         let remainder = padded.count % 4
-        if remainder == 1 { return nil }
-        if remainder > 0 { padded += String(repeating: "=", count: 4 - remainder) }
+        if remainder == 1 {
+            return nil
+        }
+        if remainder > 0 {
+            padded += String(repeating: "=", count: 4 - remainder)
+        }
         guard let data = Data(base64Encoded: padded) else { return nil }
         return [UInt8](data)
     }
@@ -36,7 +40,7 @@ struct PendingAccountGenesis: Equatable {
     let accountID: AccountID
     let attachHandle: String
     let expiresAt: Date
-
+    
     /// The attach-handle alphabet. identity-service issues 32 CSPRNG bytes as base64url without
     /// padding and validates what it receives against the same shape, answering anything else with a
     /// 400 that kills the whole authorize request. A handle this client would not accept is therefore
@@ -47,7 +51,7 @@ struct PendingAccountGenesis: Equatable {
             character.isASCII && (character.isLetter || character.isNumber || character == "-" || character == "_")
         }
     }
-
+    
     /// Whether the window the server put on this handle is still open. A handle presented outside it
     /// does not attach, and a handle that does not attach fails the signup, so it is worth knowing
     /// before it is presented rather than after.
@@ -86,18 +90,18 @@ protocol AccountGenesisServiceProtocol {
     /// The feature flag. While false nothing in this file runs and both auth paths are byte-identical
     /// to what they were before it existed.
     var isEnabled: Bool { get }
-
+    
     /// Generates the account authority key, registers the genesis, and returns the single-use attach
     /// handle for this signup.
     func registerGenesis() async throws -> AccountGenesisRegistration
-
+    
     /// The reserved `login_hint` grammar of ADM-008 decision 6: `gua:phone=<E.164>;genesis=<handle>`.
     nonisolated func loginHint(phoneNumber: String, pending: PendingAccountGenesis) -> String
-
+    
     /// Signs the fixed-length attach preimage with the committed authority key and returns the
     /// signature as base64url, for the profile step's `attachProof`.
     func attachProof(challenge: String, for pending: PendingAccountGenesis) throws -> String
-
+    
     /// Drops the keys of a signup that did not complete. Every path that abandons a registered genesis
     /// calls this: the keys are filed under an accountId only the pending signup knows, so keys left
     /// behind are unreadable and unremovable for the life of the install.
@@ -116,7 +120,7 @@ final class AccountGenesisService: AccountGenesisServiceProtocol {
     private let identityServiceClient: AccountGenesisRegistering
     private let keyStore: AccountAuthorityKeyStoreProtocol
     private let appSettings: AppSettings
-
+    
     init(identityServiceClient: AccountGenesisRegistering,
          keyStore: AccountAuthorityKeyStoreProtocol,
          appSettings: AppSettings) {
@@ -124,7 +128,7 @@ final class AccountGenesisService: AccountGenesisServiceProtocol {
         self.keyStore = keyStore
         self.appSettings = appSettings
     }
-
+    
     /// Convenience initializer for the app, returning `nil` when this build has no identity service
     /// configured (the same condition under which the phone path already fails closed).
     convenience init?(appSettings: AppSettings) {
@@ -133,25 +137,25 @@ final class AccountGenesisService: AccountGenesisServiceProtocol {
                   keyStore: AccountAuthorityKeyStore(),
                   appSettings: appSettings)
     }
-
+    
     var isEnabled: Bool {
         appSettings.guaAccountGenesisEnabled
     }
-
+    
     func registerGenesis() async throws -> AccountGenesisRegistration {
         // The flag gate, ahead of anything being generated, stored or sent. Callers check `isEnabled`
         // as well; this is here so the service cannot be made to act while the flag is down.
         guard isEnabled else { return .disabled }
-
+        
         let keyPair = keyStore.generateKeyPair()
-
+        
         // 16 CSPRNG bytes, so two devices choosing the same keys would still get distinct ids
         // (ADM-008 decision 3). Never derived from the phone or anything else identifying.
         var entropy = [UInt8](repeating: 0, count: AccountGenesis.entropyLength)
         guard SecRandomCopyBytes(kSecRandomDefault, entropy.count, &entropy) == errSecSuccess else {
             throw AccountGenesisServiceError.keyUnavailable
         }
-
+        
         let canonicalBytes = try AccountGenesis.encode(authorityPublicKey: [UInt8](keyPair.authority.publicKey.rawRepresentation),
                                                        recoveryAuthorityPublicKey: [UInt8](keyPair.recovery.publicKey.rawRepresentation),
                                                        entropy: entropy)
@@ -160,18 +164,18 @@ final class AccountGenesisService: AccountGenesisServiceProtocol {
         // account nobody can re-derive.
         let genesis = try AccountGenesis.decode(canonicalBytes)
         let accountID = try genesis.accountID()
-
+        
         let signature: Data
         do {
             signature = try keyPair.authority.signature(for: Data(GenesisProofs.genesisProofPreimage(canonicalBytes: canonicalBytes)))
         } catch {
             throw AccountGenesisServiceError.signingFailed
         }
-
+        
         // Stored before the call, so a registration that succeeds while the reply is lost still has its
         // key on this device. A registration that fails takes its keys with it, below.
         try keyStore.persist(keyPair, forAccountID: accountID.value)
-
+        
         do {
             let response = try await identityServiceClient.registerAccountGenesis(genesis: GuaBase64URL.encode(canonicalBytes),
                                                                                   proof: GuaBase64URL.encode([UInt8](signature)))
@@ -216,7 +220,7 @@ final class AccountGenesisService: AccountGenesisServiceProtocol {
             throw AccountGenesisServiceError.registrationFailed(error)
         }
     }
-
+    
     nonisolated func loginHint(phoneNumber: String, pending: PendingAccountGenesis) -> String {
         // The grammar is strict on the server: an unparsable hint, an unknown or duplicated key and a
         // malformed handle all fail the signup rather than being quietly dropped, because dropping a
@@ -228,17 +232,17 @@ final class AccountGenesisService: AccountGenesisServiceProtocol {
         // `;` or `=` that would let one field be read as another.
         "gua:phone=\(phoneNumber);genesis=\(pending.attachHandle)"
     }
-
+    
     func attachProof(challenge: String, for pending: PendingAccountGenesis) throws -> String {
         guard pending.isUsable() else {
             throw AccountGenesisServiceError.handleExpired
         }
-
+        
         guard let challengeBytes = GuaBase64URL.decode(challenge),
               challengeBytes.count == GenesisProofs.attachChallengeLength else {
             throw AccountGenesisServiceError.malformedChallenge
         }
-
+        
         let key: Curve25519.Signing.PrivateKey
         do {
             key = try keyStore.authorityKey(forAccountID: pending.accountID.value)
@@ -247,7 +251,7 @@ final class AccountGenesisService: AccountGenesisServiceProtocol {
             // Continuing here would create the silent bootstrap the decision warns about.
             throw AccountGenesisServiceError.keyUnavailable
         }
-
+        
         let preimage = try GenesisProofs.attachProofPreimage(challenge: challengeBytes, accountID: pending.accountID)
         do {
             return try GuaBase64URL.encode([UInt8](key.signature(for: Data(preimage))))
@@ -255,7 +259,7 @@ final class AccountGenesisService: AccountGenesisServiceProtocol {
             throw AccountGenesisServiceError.signingFailed
         }
     }
-
+    
     func discard(_ pending: PendingAccountGenesis) {
         keyStore.removeKeys(forAccountID: pending.accountID.value)
     }

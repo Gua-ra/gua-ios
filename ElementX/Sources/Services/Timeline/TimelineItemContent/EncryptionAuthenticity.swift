@@ -66,7 +66,7 @@ nonisolated enum EncryptionAuthenticity: Hashable {
         case .sentInClear: \.lockOff
         }
     }
-
+    
     /// GUA FORK: whether this state warrants alarm colour.
     ///
     /// Red in the send-status slot means "did not send" in every messenger, so it is reserved
@@ -78,7 +78,7 @@ nonisolated enum EncryptionAuthenticity: Hashable {
         case .notGuaranteed, .unknownDevice, .unsignedDevice, .unverifiedIdentity: false
         }
     }
-
+    
     /// GUA FORK: states that describe the *sender's own* setup rather than a risk to the reader.
     ///
     /// On your own message these say nothing you can act on and nothing you did wrong, so they

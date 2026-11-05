@@ -16,7 +16,7 @@ private struct GuaAppSettingsHook: AppSettingsHookProtocol {
         // reverse-DNS scheme matches the client_uri host — `global.gua` ⇄ `gua.global`.
         static let oidcRedirectURL = "global.gua:/oidc"
         static let localMasClientID = "01JXGA7E570000000000000000"
-
+        
         // OIDC dynamic client registration requires client_uri, logo_uri, tos_uri and
         // policy_uri to all share a single host, and (for a custom-scheme redirect) that
         // host must be the scheme's reverse-DNS. The redirect scheme is `global.gua`, so
@@ -39,7 +39,7 @@ private struct GuaAppSettingsHook: AppSettingsHookProtocol {
         static let infoPlistRedirectURLKey = "GuaOidcRedirectURL"
         static let infoPlistStaticRegistrationsKey = "GuaOidcStaticRegistrations"
     }
-
+    
     func configure(_ appSettings: AppSettings) -> AppSettings {
         // The account provider is injected, never hardcoded: an optional Info.plist override
         // (empty by default) wins, otherwise GuaDeployment supplies it — the production gua.global
@@ -49,14 +49,14 @@ private struct GuaAppSettingsHook: AppSettingsHookProtocol {
         let resolvedProvider = (injectedProvider?.isEmpty == false ? injectedProvider : nil) ?? GuaDeployment.current.defaultAccountProvider
         let accountProviders = resolvedProvider.map { [AccountProvider.generic($0)] } ?? appSettings.accountProviders
         let redirectURLString = string(for: Constants.infoPlistRedirectURLKey) ?? Constants.oidcRedirectURL
-
+        
         guard let redirectURL = URL(string: redirectURLString) else {
             MXLog.error("Invalid OIDC redirect URL: \(Constants.oidcRedirectURL)")
             return appSettings
         }
-
+        
         let staticRegistrations = makeStaticRegistrations()
-
+        
         appSettings.override(accountProviders: accountProviders,
                              allowOtherAccountProviders: true,
                              hideBrandChrome: appSettings.hideBrandChrome,
@@ -79,29 +79,29 @@ private struct GuaAppSettingsHook: AppSettingsHookProtocol {
                              analyticsTermsURL: appSettings.analyticsTermsURL,
                              mapTilerConfiguration: AppSettings.bundledMapTilerConfiguration,
                              oAuthStaticRegistrations: staticRegistrations)
-
+        
         return appSettings
     }
-
+    
     private func string(for key: String) -> String? {
         Bundle.main.object(forInfoDictionaryKey: key) as? String
     }
-
+    
     private func makeStaticRegistrations() -> [URL: String]? {
         var result: [URL: String] = [:]
-
+        
         for staticRegistrationURLString in Constants.localStaticRegistrationURLs {
             guard let staticRegistrationURL = URL(string: staticRegistrationURLString) else { continue }
             result[staticRegistrationURL] = Constants.localMasClientID
         }
-
+        
         guard let rawValue = string(for: Constants.infoPlistStaticRegistrationsKey)?.trimmingCharacters(in: .whitespacesAndNewlines),
               !rawValue.isEmpty else {
             return result.isEmpty ? nil : result
         }
-
+        
         let pairs = rawValue.split(separator: ",")
-
+        
         for pair in pairs {
             let components = pair.split(separator: "=", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }
             guard components.count == 2, let url = URL(string: components[0]) else {
@@ -110,7 +110,7 @@ private struct GuaAppSettingsHook: AppSettingsHookProtocol {
             }
             result[url] = components[1]
         }
-
+        
         return result.isEmpty ? nil : result
     }
 }

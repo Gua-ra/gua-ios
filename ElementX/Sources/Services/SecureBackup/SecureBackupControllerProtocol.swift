@@ -51,7 +51,7 @@ protocol SecureBackupControllerProtocol {
     var recoveryState: CurrentValuePublisher<SecureBackupRecoveryState, Never> { get }
     
     var keyBackupState: CurrentValuePublisher<SecureBackupKeyBackupState, Never> { get }
-
+    
     /// GUA FORK: true while key storage is being provisioned in the background.
     ///
     /// Provisioning after a reset runs behind the chat list, where the setup banner is still on
@@ -71,7 +71,7 @@ protocol SecureBackupControllerProtocol {
     func provisionRecoveryWithoutKey() async -> Result<String, SecureBackupControllerError>
     /// GUA FORK: everything that can finish encryption setup WITHOUT destroying anything.
     func repairWithoutReset() async -> EncryptionRepairOutcome
-
+    
     /// GUA FORK: provisions key storage straight after a reset, unconditionally.
     func provisionAfterReset() async -> EncryptionRepairOutcome
     /// GUA FORK: `recoveryState` once it is no longer `.unknown`, so callers never branch on the

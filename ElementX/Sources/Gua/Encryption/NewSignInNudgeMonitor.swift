@@ -24,7 +24,7 @@ struct TaskNewSignInNudgeScheduler: NewSignInNudgeScheduling {
         }
         return AnyCancellable { task.cancel() }
     }
-
+    
     func every(_ interval: Duration, _ work: @escaping @MainActor () -> Void) -> AnyCancellable {
         let task = Task { @MainActor in
             while !Task.isCancelled {
@@ -41,27 +41,27 @@ struct TaskNewSignInNudgeScheduler: NewSignInNudgeScheduling {
 @MainActor
 final class NewSignInNudgeHistory {
     static let shared = NewSignInNudgeHistory()
-
+    
     private struct Key: Hashable {
         let userID: String
         let deviceID: String
     }
-
+    
     private var nudges: [Key: [Date]] = [:]
     private var incomingRequests: [Key: Date] = [:]
-
+    
     func recordNudge(userID: String, deviceID: String, at date: Date) {
         nudges[Key(userID: userID, deviceID: deviceID), default: []].append(date)
     }
-
+    
     func nudges(userID: String, deviceID: String) -> [Date] {
         nudges[Key(userID: userID, deviceID: deviceID)] ?? []
     }
-
+    
     func recordIncomingRequest(userID: String, deviceID: String, at date: Date) {
         incomingRequests[Key(userID: userID, deviceID: deviceID)] = date
     }
-
+    
     func lastIncomingRequest(userID: String, deviceID: String) -> Date? {
         incomingRequests[Key(userID: userID, deviceID: deviceID)]
     }
@@ -79,7 +79,7 @@ final class NewSignInNudgeMonitor {
         var now: () -> Date = { Date() }
         var history: NewSignInNudgeHistory = .shared
     }
-
+    
     /// Gives the SDK one sync to download keys for changed device lists before a round reads them.
     static let settleDelay: Duration = .seconds(5)
     static let roundInterval: Duration = .seconds(60)
@@ -87,22 +87,22 @@ final class NewSignInNudgeMonitor {
     static let nudgeCooldown: TimeInterval = 120
     static let maxNudgesPerDevice = 3
     static let recentRequestWindow: TimeInterval = 10 * 60
-
+    
     private let clientProxy: ClientProxyProtocol
     private let appSettings: AppSettings
     private let client: OwnDevicesClient
     private let environment: Environment
     private let isAppActive: () -> Bool
     private let isIdle: () -> Bool
-
+    
     private var cancellables = Set<AnyCancellable>()
     private var settledRound: AnyCancellable?
     private var repeatingRounds: AnyCancellable?
     private var hasSeenVerified = false
     private var roundsStarted = 0
-
+    
     private(set) var currentRound: Task<Void, Never>?
-
+    
     init(clientProxy: ClientProxyProtocol,
          appSettings: AppSettings,
          environment: Environment? = nil,
@@ -116,66 +116,66 @@ final class NewSignInNudgeMonitor {
         self.isIdle = isIdle
         client = OwnDevicesClient(session: environment.urlSession)
     }
-
+    
     func start() {
         guard cancellables.isEmpty else { return }
-
+        
         clientProxy.verificationStatePublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] state in
                 self?.verificationStateChanged(state)
             }
             .store(in: &cancellables)
-
+        
         environment.notificationCenter.publisher(for: UIApplication.didBecomeActiveNotification)
             .sink { [weak self] _ in
                 self?.scheduleSettledRound()
                 self?.startRepeatingRounds()
             }
             .store(in: &cancellables)
-
+        
         environment.notificationCenter.publisher(for: UIApplication.willResignActiveNotification)
             .sink { [weak self] _ in
                 self?.cancelRounds()
             }
             .store(in: &cancellables)
-
+        
         if isAppActive() {
             startRepeatingRounds()
         }
     }
-
+    
     func stop() {
         cancellables.removeAll()
         cancelRounds()
     }
-
+    
     func recordVerificationRequest(fromDeviceID deviceID: String) {
         environment.history.recordIncomingRequest(userID: clientProxy.userID, deviceID: deviceID, at: environment.now())
     }
-
+    
     func recordDismissal(ofDeviceID deviceID: String) {
         appSettings.addDismissedSignInDeviceID(deviceID, forUserID: clientProxy.userID)
     }
-
+    
     private func verificationStateChanged(_ state: SessionVerificationState) {
         guard state == .verified, !hasSeenVerified else { return }
         hasSeenVerified = true
         scheduleSettledRound()
     }
-
+    
     private func scheduleSettledRound() {
         settledRound = environment.scheduler.after(Self.settleDelay) { [weak self] in
             self?.startRound()
         }
     }
-
+    
     private func startRepeatingRounds() {
         repeatingRounds = environment.scheduler.every(Self.roundInterval) { [weak self] in
             self?.startRound()
         }
     }
-
+    
     private func cancelRounds() {
         settledRound?.cancel()
         settledRound = nil
@@ -184,7 +184,7 @@ final class NewSignInNudgeMonitor {
         currentRound?.cancel()
         currentRound = nil
     }
-
+    
     private func startRound() {
         guard currentRound == nil else { return }
         roundsStarted += 1
@@ -196,14 +196,14 @@ final class NewSignInNudgeMonitor {
             }
         }
     }
-
+    
     private func runRound() async {
         guard mayRunRound(), await recoveryLetsThisDeviceSign(), !Task.isCancelled, mayRunRound() else { return }
-
+        
         let userID = clientProxy.userID
         let homeserver = clientProxy.homeserver
         guard let ownDeviceID = clientProxy.deviceID else { return }
-
+        
         let devices: [OwnDevice]
         let keys: OwnDeviceKeys
         do {
@@ -215,10 +215,9 @@ final class NewSignInNudgeMonitor {
             MXLog.warning("Skipping the new sign-in check, could not read this account's devices: \(error)")
             return
         }
-
-        guard let target = candidate(devices: devices, keys: keys, userID: userID, ownDeviceID: ownDeviceID) else { return }
-        guard !Task.isCancelled, mayRunRound(), let accessToken = clientProxy.accessToken else { return }
-
+        
+        guard let target = candidate(devices: devices, keys: keys, userID: userID, ownDeviceID: ownDeviceID), !Task.isCancelled, mayRunRound(), let accessToken = clientProxy.accessToken else { return }
+        
         MXLog.info("Asking device \(target.deviceID) to send its verification request to \(ownDeviceID) again.")
         do {
             try await client.sendVerificationRetryRequest(homeserver: homeserver,
@@ -232,7 +231,7 @@ final class NewSignInNudgeMonitor {
             MXLog.warning("Could not ask device \(target.deviceID) to send its verification request again: \(error)")
         }
     }
-
+    
     private func mayRunRound() -> Bool {
         let userID = clientProxy.userID
         let identityResetRunning = IdentityResetPendingStore.isPending(for: userID)
@@ -242,20 +241,20 @@ final class NewSignInNudgeMonitor {
             && clientProxy.verificationStatePublisher.value == .verified
             && !identityResetRunning
     }
-
+    
     /// The published recovery state is optimistic while recovery is being enabled, so the SDK's own must agree.
     private func recoveryLetsThisDeviceSign() async -> Bool {
         let secureBackupController = clientProxy.secureBackupController
         guard await secureBackupController.settledRecoveryState() == .enabled else { return false }
         return secureBackupController.sdkRecoveryState() == .enabled
     }
-
+    
     private func candidate(devices: [OwnDevice], keys: OwnDeviceKeys, userID: String, ownDeviceID: String) -> OwnDevice? {
         guard !keys.selfSigningKeyIDs.isEmpty else { return nil }
-
+        
         let now = environment.now()
         let dismissed = appSettings.dismissedSignInDeviceIDs(forUserID: userID)
-
+        
         let candidates = devices.filter { device in
             guard device.deviceID != ownDeviceID,
                   let deviceKeys = keys.devices[device.deviceID],
@@ -266,7 +265,7 @@ final class NewSignInNudgeMonitor {
                   !dismissed.contains(device.deviceID) else {
                 return false
             }
-
+            
             let nudges = environment.history.nudges(userID: userID, deviceID: device.deviceID)
             if nudges.count >= Self.maxNudgesPerDevice {
                 return false
@@ -280,7 +279,7 @@ final class NewSignInNudgeMonitor {
             }
             return true
         }
-
+        
         return candidates.max { ($0.lastSeen ?? .distantPast) < ($1.lastSeen ?? .distantPast) }
     }
 }

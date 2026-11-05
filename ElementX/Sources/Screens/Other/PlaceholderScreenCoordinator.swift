@@ -77,12 +77,12 @@ struct PlaceholderScreen: View {
 /// switcher, so it has to be completely drawn on its very first frame.
 private struct PrivacyScreenLogo: View {
     let size: CGFloat
-
+    
     /// Matches the proportions of the home screen icon, and of the welcome screen's logo tile.
     private var shape: RoundedRectangle {
         RoundedRectangle(cornerRadius: size * 0.25, style: .continuous)
     }
-
+    
     var body: some View {
         Image(asset: Asset.Images.appLogo)
             .resizable()

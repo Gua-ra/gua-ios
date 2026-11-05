@@ -229,7 +229,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         }
         
         // Gua phone-OAuth flow
-
+        
         stateMachine.addRoutes(event: .startPhoneAuth, transitions: [.initial => .phoneEntryScreen]) { [weak self] _ in
             self?.showPhoneEntryScreen(fromState: .initial)
         }
@@ -368,7 +368,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     }
     
     // MARK: - Gua Phone-OAuth
-
+    
     private func showPhoneEntryScreen(fromState: State) {
         let coordinator = PhoneEntryScreenCoordinator(parameters: .init(isLegacyAuthEnabled: appSettings.legacyAuthEnabled))
         
@@ -387,7 +387,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
             .store(in: &cancellables)
         
         phoneEntryScreenCoordinator = coordinator
-
+        
         navigationStackCoordinator.setRootCoordinator(coordinator)
         
         if fromState == .initial {
@@ -417,10 +417,10 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                 coordinator.displayError(message)
                 return
             }
-
+            
             let accountProvider = resolution.homeserver.baseURL
             let flow: AuthenticationFlow = resolution.exists ? .login : .register
-
+            
             switch await authenticationService.configure(for: accountProvider, flow: flow) {
             case .success:
                 break
@@ -455,7 +455,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                 coordinator.displayError(UntranslatedL10n.guaAccountGenesisSetupFailed)
                 return
             }
-
+            
             switch await authenticationService.urlForOAuthLogin(loginHint: loginHint) {
             case .success(let oAuthData):
                 showOAuthAuthentication(oAuthData: oAuthData, presentationAnchor: window)
@@ -466,7 +466,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
             }
         }
     }
-
+    
     /// GUA FORK: the `login_hint` this submission should send (ADM-008 decision 6).
     ///
     /// Returns the bare phone number, exactly as this flow has always sent it, in every case that is
@@ -479,7 +479,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         // A resubmitted number starts a new signup, so whatever the last one registered is abandoned
         // here rather than left in the keychain.
         discardPendingAccountGenesis()
-
+        
         // Sign-in never registers a genesis: only a new account gets one, so an existing user's path
         // through this method is the single `return` below, byte for byte what it was before.
         guard case .register = flow,
@@ -487,7 +487,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
               accountGenesisService.isEnabled else {
             return phoneNumber
         }
-
+        
         switch try await accountGenesisService.registerGenesis() {
         case .disabled, .notSupportedByDeployment:
             return phoneNumber
@@ -496,7 +496,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
             return accountGenesisService.loginHint(phoneNumber: phoneNumber, pending: pending)
         }
     }
-
+    
     /// GUA FORK: drop the genesis of a signup that will not complete.
     ///
     /// The authority and recovery keys are filed in the keychain under the accountId, and nothing but
@@ -538,11 +538,11 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         Task { [weak self] in
             guard let self else { return }
             defer { endPhoneEntrySubmission(coordinator: coordinator) }
-
+            
             // GUA FORK: signing in with a passkey abandons any genesis a signup on this screen had
             // already registered, so its keys go with it.
             discardPendingAccountGenesis()
-
+            
             // A build with no Gua deployment configured (a development build without the injected
             // Secrets) has no default account provider, and `appSettings.accountProviders` then
             // still holds upstream's fallback. The phone path fails closed in that build because its
@@ -554,7 +554,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                 coordinator.displayError(ResolverError.notConfigured.userFacingMessage)
                 return
             }
-
+            
             switch await authenticationService.configure(for: accountProvider, flow: .login) {
             case .success:
                 break
@@ -563,17 +563,17 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                 coordinator.displayError(L10n.errorUnknown)
                 return
             }
-
+            
             guard authenticationService.homeserver.value.loginMode.supportsOAuthFlow else {
                 coordinator.displayError(L10n.screenLoginErrorUnsupportedAuthentication)
                 return
             }
-
+            
             guard let window = appMediator.windowManager.mainWindow else {
                 coordinator.displayError(L10n.errorUnknown)
                 return
             }
-
+            
             switch await authenticationService.urlForOAuthLogin(loginHint: AuthenticationService.passkeyLoginHint) {
             case .success(let oAuthData):
                 showOAuthAuthentication(oAuthData: oAuthData, presentationAnchor: window)
@@ -583,7 +583,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
             }
         }
     }
-
+    
     /// The phone-entry screen stays disabled while the web authentication session is up and is
     /// enabled again when that session is cancelled.
     private func endPhoneEntrySubmission(coordinator: PhoneEntryScreenCoordinator) {
@@ -592,14 +592,14 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         }
         isHandlingPhoneSubmission = false
     }
-
+    
     /// GUA FORK: resolve a phone to its homeserver via the Gua resolver. The resolver is required for
     /// phone auth so the app doesn't silently route to the wrong MAS/homeserver.
     private func resolveHomeserver(forPhone phoneNumber: String) async throws -> HomeserverResolution {
         guard let resolverClient else { throw ResolverError.notConfigured }
         return try await resolverClient.resolve(phoneNumber: phoneNumber)
     }
-
+    
     // MARK: - QR Code
     
     private func showQRCodeLoginScreen() {

@@ -13,7 +13,7 @@ nonisolated enum IdentityResetMarker {
     static let refreshInterval: Duration = .seconds(30)
     static let maxAge: TimeInterval = 180
     static let futureTolerance: TimeInterval = 60
-
+    
     static func isFresh(startedAt: Date?, now: Date = .now) -> Bool {
         guard let startedAt else { return false }
         let age = now.timeIntervalSince(startedAt)

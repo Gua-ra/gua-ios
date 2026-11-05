@@ -24,7 +24,7 @@ struct RoomScreenFooterView: View {
             Color.compound.bgCanvasDefault
         }
     }
-
+    
     private var gradient: Gradient {
         switch details {
         case .pinViolation, .verificationViolation:
@@ -56,7 +56,7 @@ struct RoomScreenFooterView: View {
             identityChange(member: member, learnMoreURL: learnMoreURL, action: .resolveVerificationViolation(userID: member.userID))
         }
     }
-
+    
     private func identityChange(member: RoomMemberProxyProtocol,
                                 learnMoreURL: URL,
                                 action: RoomScreenFooterViewAction) -> some View {
@@ -67,14 +67,14 @@ struct RoomScreenFooterView: View {
                                     contentID: member.userID,
                                     avatarSize: .user(on: .timeline),
                                     mediaProvider: mediaProvider)
-
+                
                 Text(identityChangeDescriptionWithLearnMoreLink(displayName: member.displayName,
                                                                 userID: member.userID,
                                                                 url: learnMoreURL))
                     .font(.compound.bodyMD)
                     .foregroundColor(.compound.textPrimary)
             }
-
+            
             Button {
                 callback(action)
             } label: {
@@ -87,12 +87,12 @@ struct RoomScreenFooterView: View {
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
     }
-
+    
     private func identityChangeDescriptionWithLearnMoreLink(displayName: String?, userID: String, url: URL) -> AttributedString {
         let linkPlaceholder = "{link}"
         let displayName = displayName ?? fallbackDisplayName(userID)
         var description = AttributedString(UntranslatedL10n.guaIdentityChangeBannerDescription(displayName, linkPlaceholder))
-
+        
         var linkString = AttributedString(L10n.actionLearnMore)
         linkString.link = url
         linkString.bold()
@@ -111,7 +111,7 @@ struct RoomScreenFooterView_Previews: PreviewProvider, TestablePreview {
                                                                        learnMoreURL: "https://gua.global/help#security-changes")
     static let noNameDetails: RoomScreenFooterViewDetails = .pinViolation(member: RoomMemberProxyMock.mockNoName,
                                                                           learnMoreURL: "https://gua.global/help#security-changes")
-
+    
     static let verificationViolationDetails: RoomScreenFooterViewDetails = .verificationViolation(member: RoomMemberProxyMock.mockBob,
                                                                                                   learnMoreURL: "https://gua.global/help#security-changes")
     

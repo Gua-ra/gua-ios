@@ -12,21 +12,21 @@ enum TimelineItemMenuPresentation: Equatable {
     case sheet
     case reactions(MessageMenuAnchor)
     case reactionsAndActions(MessageMenuAnchor)
-
+    
     var anchor: MessageMenuAnchor? {
         switch self {
         case .sheet: nil
         case .reactions(let anchor), .reactionsAndActions(let anchor): anchor
         }
     }
-
+    
     var showsActions: Bool {
         switch self {
         case .sheet, .reactionsAndActions: true
         case .reactions: false
         }
     }
-
+    
     @MainActor
     static func floating(showsActions: Bool, over reader: WindowFrameReader) -> Self {
         guard let frame = reader.frame else { return .sheet }
@@ -40,21 +40,21 @@ enum TimelineItemMenuPresentation: Equatable {
 final class MessageMenuAnchor: Equatable {
     private let initialFrame: CGRect
     private weak var reader: WindowFrameReader?
-
+    
     init(frame: CGRect, reader: WindowFrameReader? = nil) {
         initialFrame = frame
         self.reader = reader
     }
-
+    
     var frame: CGRect {
         reader?.frame ?? initialFrame
     }
-
+    
     var isBubbleLifted: Bool {
         get { reader?.isLifted ?? false }
         set { reader?.isLifted = newValue }
     }
-
+    
     nonisolated static func == (lhs: MessageMenuAnchor, rhs: MessageMenuAnchor) -> Bool {
         lhs === rhs
     }
@@ -90,7 +90,7 @@ enum MessageQuickReactions {
         .init(key: "‼️", symbol: .exclamationmark2),
         .init(key: "❓\u{FE0F}", symbol: .questionmark)
     ]
-
+    
     static let maximumCount = 10
 }
 
@@ -144,11 +144,11 @@ struct MessageMenuLayout: Equatable {
     let bubbleFrame: CGRect
     let reactionBarFrame: CGRect?
     let detailsFrame: CGRect?
-
+    
     static let spacing: CGFloat = 8
     static let margin: CGFloat = 12
     static let minimumBubbleHeight: CGFloat = 44
-
+    
     /// All frames use the container's coordinate space, measured from its left edge.
     init(sourceFrame: CGRect,
          alignsRight: Bool,

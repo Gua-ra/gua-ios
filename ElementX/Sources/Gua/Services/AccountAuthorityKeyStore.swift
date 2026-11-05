@@ -53,10 +53,10 @@ protocol AccountAuthorityKeyStoreProtocol {
 @MainActor
 final class AccountAuthorityKeyStore: AccountAuthorityKeyStoreProtocol {
     private let keychain: Keychain
-
+    
     private static let authorityPrefix = "genesisAuthority."
     private static let recoveryPrefix = "genesisRecovery."
-
+    
     init(service: String, accessGroup: String?) {
         let keychain = if let accessGroup {
             Keychain(service: service, accessGroup: accessGroup)
@@ -67,13 +67,13 @@ final class AccountAuthorityKeyStore: AccountAuthorityKeyStoreProtocol {
             .synchronizable(false)
             .accessibility(.whenUnlockedThisDeviceOnly)
     }
-
+    
     /// The store the app uses, keyed to this build's bundle identifier like every other Gua keychain.
     convenience init() {
         self.init(service: KeychainControllerService.sessions.genesisID,
                   accessGroup: InfoPlistReader.main.keychainAccessGroupIdentifier)
     }
-
+    
     func generateKeyPair() -> AccountAuthorityKeyPair {
         // CryptoKit seeds both from the system CSPRNG. Two independent keys are overwhelmingly distinct;
         // the codec refuses a genesis whose keys are equal, so a freak collision fails closed rather
@@ -81,7 +81,7 @@ final class AccountAuthorityKeyStore: AccountAuthorityKeyStoreProtocol {
         AccountAuthorityKeyPair(authority: Curve25519.Signing.PrivateKey(),
                                 recovery: Curve25519.Signing.PrivateKey())
     }
-
+    
     func persist(_ keyPair: AccountAuthorityKeyPair, forAccountID accountID: String) throws {
         do {
             try keychain.set(keyPair.authority.rawRepresentation, key: Self.authorityPrefix + accountID)
@@ -92,7 +92,7 @@ final class AccountAuthorityKeyStore: AccountAuthorityKeyStoreProtocol {
             throw AccountAuthorityKeyStoreError.keychain(String(describing: error))
         }
     }
-
+    
     func authorityKey(forAccountID accountID: String) throws -> Curve25519.Signing.PrivateKey {
         let data: Data?
         do {
@@ -109,7 +109,7 @@ final class AccountAuthorityKeyStore: AccountAuthorityKeyStoreProtocol {
             throw AccountAuthorityKeyStoreError.keyMissing
         }
     }
-
+    
     func removeKeys(forAccountID accountID: String) {
         do {
             try keychain.remove(Self.authorityPrefix + accountID)

@@ -205,7 +205,7 @@ class ClientProxy: ClientProxyProtocol {
     }
     
     private let sendQueueStatusSubject = CurrentValueSubject<Bool, Never>(false)
-
+    
     /// GUA FORK: the SDK hands out the initialisation task's handle exactly once, so a second
     /// caller of `waitForE2eeInitializationTasks` returns immediately without waiting. Taking it
     /// here, once, lets every caller await the same completion.
@@ -470,18 +470,18 @@ class ClientProxy: ClientProxyProtocol {
     /// it when `pauseServices` is called (e.g. when signing out) to prevent an otherwise infinite
     /// loop that was triggered by trying to sync a signed out session.
     @CancellableTask private var restartTask: Task<Void, Never>?
-
+    
     private var identityResetGuard: IdentityResetGuard?
-
+    
     static func maySyncStart(identityResetHeld: Bool, hasEncounteredAuthError: Bool, isReachable: Bool) -> Bool {
         !identityResetHeld && !hasEncounteredAuthError && isReachable
     }
-
+    
     func acquireIdentityResetGuard() async -> IdentityResetGuardProtocol {
         if let identityResetGuard {
             return identityResetGuard
         }
-
+        
         let guardUserID = userID
         let newGuard = IdentityResetGuard(dependencies: .init(stopSync: { [weak self] in await self?.stopSyncForIdentityReset() },
                                                               startSync: { [weak self] in await self?.startSyncAwaitingRunning() },
@@ -496,7 +496,7 @@ class ClientProxy: ClientProxyProtocol {
         }
         return newGuard
     }
-
+    
     private func startSyncAwaitingRunning() async {
         guard case .running = desiredServiceState else {
             MXLog.info("Not restarting sync after the identity reset: services are paused.")
@@ -509,7 +509,7 @@ class ClientProxy: ClientProxyProtocol {
             MXLog.warning("Not restarting sync after the identity reset: auth error or network unreachable.")
             return
         }
-
+        
         MXLog.info("Starting sync after the identity reset")
         await transitionServices(to: .running(offline: false)).value
     }
@@ -1598,7 +1598,7 @@ class ClientProxy: ClientProxyProtocol {
     func waitForE2EEInitialization() async {
         await e2eeInitialization.value
     }
-
+    
     func resetIdentity() async -> Result<IdentityResetHandle?, ClientProxyError> {
         do {
             return try await .success(client.encryption().resetIdentity())

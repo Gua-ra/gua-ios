@@ -57,7 +57,7 @@ struct StartChatScreen: View {
         joinRoomByAddressSection
         usersSection
     }
-
+    
     private var findFriendsSection: some View {
         Section {
             // GUA FORK: Discover which phone contacts are already on Gua.

@@ -16,7 +16,7 @@ struct ReadReceiptCell: View {
     private var title: String {
         memberState?.displayName ?? readReceipt.userID.guaDisplayHandle
     }
-
+    
     private var subtitle: String {
         guard title != readReceipt.userID.guaDisplayHandle else {
             return ""

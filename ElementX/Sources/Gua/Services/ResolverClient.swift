@@ -101,7 +101,7 @@ struct FederationRosterServer: Decodable, Equatable {
 struct FederationRosterEntry: Decodable, Equatable {
     let homeserver: FederationRosterServer
     let status: String
-
+    
     var isActive: Bool {
         status == "ACTIVE"
     }
@@ -119,10 +119,10 @@ enum ResolverError: Error, LocalizedError {
     case server(status: Int)
     case transport(Error)
     case decoding(Error)
-
+    
     // Typed problem codes from the resolver's error body `{code, message}`; anything unrecognized
     // stays a plain `.server(status:)`. Mirrors how `IdentityServiceClient` maps its `code` field.
-
+    
     /// The resolver rejected the phone as not valid E.164 (`code: "invalid_phone"`, HTTP 400).
     case invalidPhone
     /// The signed routing-claims envelope failed verification (`code: "invalid_routing_claims"`, HTTP 400).
@@ -136,7 +136,7 @@ enum ResolverError: Error, LocalizedError {
     case rateLimited(retryAfter: TimeInterval?)
     /// The resolver is temporarily unavailable (HTTP 503 without a recognized problem code).
     case temporarilyUnavailable(retryAfter: TimeInterval?)
-
+    
     var errorDescription: String? {
         switch self {
         case .notConfigured: "The routing service is not configured."
@@ -153,7 +153,7 @@ enum ResolverError: Error, LocalizedError {
         case .temporarilyUnavailable: "The routing service is temporarily unavailable."
         }
     }
-
+    
     /// A short, user-facing message for the phone-entry screen. `errorDescription` stays technical for
     /// logs; this is what the user actually reads. Only `invalidPhone` asks the user to fix the number;
     /// rate limiting and unavailability ask them to retry, after the server's `Retry-After` when given.
@@ -173,7 +173,7 @@ enum ResolverError: Error, LocalizedError {
             L10n.errorUnknown
         }
     }
-
+    
     /// A wait such as "30 seconds" or "2 minutes". Waits of a minute or more are rounded up to whole
     /// minutes so the user is never told to retry early.
     static func formattedWait(_ retryAfter: TimeInterval?) -> String? {
@@ -196,7 +196,7 @@ protocol ResolverClientProtocol: Sendable {
     /// Resolve a phone number to the homeserver it belongs to (or should be created on).
     /// The resolver verifies nothing about the number (ADM-001 L16).
     func resolve(phoneNumber: String) async throws -> HomeserverResolution
-
+    
     /// Resolve with the additive v1 contract fields (carrier and geo hints, routing claims, trace).
     /// Existing callers should keep using `resolve(phoneNumber:)` until they have verified identity
     /// claims to transport.
@@ -224,23 +224,23 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
     private let session: URLSession
     private let decoder = JSONDecoder()
     private let encoder = JSONEncoder()
-
+    
     init(baseURL: URL, session: URLSession = .shared) {
         self.baseURL = baseURL
         self.session = session
     }
-
+    
     /// Convenience initializer using the active `GuaDeployment`'s resolver URL. Returns `nil` when the
     /// resolver is not configured.
     convenience init?() {
         guard let url = GuaDeployment.current.resolverBaseURL else { return nil }
         self.init(baseURL: url)
     }
-
+    
     func resolve(phoneNumber: String) async throws -> HomeserverResolution {
         try await resolve(phoneNumber: phoneNumber, options: ResolveOptions())
     }
-
+    
     func resolve(phoneNumber: String, options: ResolveOptions) async throws -> HomeserverResolution {
         // Optional fields are omitted when nil (synthesized Encodable uses encodeIfPresent), so a
         // plain resolve keeps sending the legacy `{"phone"}` body byte for byte.
@@ -267,7 +267,7 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
             let registerAt: HomeserverRef?
             let trace: DecisionTrace?
         }
-
+        
         guard let url = URL(string: "/resolve", relativeTo: baseURL) else { throw ResolverError.invalidURL }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -286,7 +286,7 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
         } catch {
             throw ResolverError.decoding(error)
         }
-
+        
         let data: Data
         let response: URLResponse
         do {
@@ -298,14 +298,14 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
         guard httpResponse.statusCode == 200 else {
             throw resolveError(response: httpResponse, body: data)
         }
-
+        
         let parsed: Response
         do {
             parsed = try decoder.decode(Response.self, from: data)
         } catch {
             throw ResolverError.decoding(error)
         }
-
+        
         guard let ref = parsed.exists ? parsed.homeserver : parsed.registerAt else {
             throw ResolverError.malformedResponse
         }
@@ -316,7 +316,7 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
                                                                    region: ref.region),
                                     trace: parsed.trace)
     }
-
+    
     /// Map a non-success `/resolve` response to a typed error. The resolver's error body is
     /// `{code, message}` (its `ProblemResponse`); a recognized code produces its dedicated case so the
     /// phone-entry screen can show distinct human copy. A 429 is rate limiting whatever its body, since
@@ -340,7 +340,7 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
         default: .server(status: status)
         }
     }
-
+    
     /// The `Retry-After` delay in seconds, from delta-seconds or an HTTP-date. An HTTP-date is measured
     /// from the response's `Date` header when there is one, so client clock skew does not change the wait.
     static func retryAfter(of response: HTTPURLResponse, now: Date = .now) -> TimeInterval? {
@@ -356,7 +356,7 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
         let delay = retryDate.timeIntervalSince(reference)
         return delay > 0 ? delay : nil
     }
-
+    
     /// Parses an RFC 9110 HTTP-date: IMF-fixdate, or the obsolete RFC 850 and asctime forms that
     /// recipients must still accept.
     private static func httpDate(from value: String) -> Date? {
@@ -372,13 +372,13 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
         }
         return nil
     }
-
+    
     func fetchRoster() async throws -> FederationRoster {
         guard let url = URL(string: "/roster", relativeTo: baseURL) else { throw ResolverError.invalidURL }
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-
+        
         let data: Data
         let response: URLResponse
         do {
@@ -388,7 +388,7 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
         }
         guard let httpResponse = response as? HTTPURLResponse else { throw ResolverError.malformedResponse }
         guard httpResponse.statusCode == 200 else { throw ResolverError.server(status: httpResponse.statusCode) }
-
+        
         do {
             return try decoder.decode(FederationRoster.self, from: data)
         } catch {

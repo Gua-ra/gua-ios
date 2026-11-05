@@ -12,7 +12,7 @@ import SwiftUI
 struct ChangePhoneScreen: View {
     @Bindable var context: ChangePhoneScreenViewModel.Context
     @FocusState private var isPhoneFieldFocused: Bool
-
+    
     var body: some View {
         screenContent
             .navigationTitle(context.viewState.titleKey)
@@ -31,7 +31,7 @@ struct ChangePhoneScreen: View {
                 }
             }
     }
-
+    
     /// The message phases (intro/stepUpRequired/cooldown/done) render as polished centered cards on
     /// a plain background. The entry phases (current number/reauth code/new number/PIN/OTP) keep
     /// the Compound list/`Form` styling.
@@ -58,7 +58,7 @@ struct ChangePhoneScreen: View {
             .compoundList()
         }
     }
-
+    
     private var isEnteringFlow: Bool {
         switch context.viewState.phase {
         case .currentPhone, .reauth, .newPhone, .pin, .otp, .submitting:
@@ -67,9 +67,9 @@ struct ChangePhoneScreen: View {
             return false
         }
     }
-
+    
     // MARK: - Intro
-
+    
     private var introSection: some View {
         ChangePhoneMessageScreen(icon: \.userProfile,
                                  iconTint: .compound.iconPrimary,
@@ -79,9 +79,9 @@ struct ChangePhoneScreen: View {
                                      context.send(viewAction: .start)
                                  })
     }
-
+    
     // MARK: - Step-up required interstitial
-
+    
     /// The hard block. It offers both ways to get a factor, strongest first, instead of the old
     /// single funnel into PIN setup: an account that wants a passkey should not have to create a
     /// PIN to be allowed to change its number.
@@ -97,18 +97,18 @@ struct ChangePhoneScreen: View {
                                      context.send(viewAction: .setUpStepUpFactor(.pin))
                                  })
     }
-
+    
     // MARK: - Cooldown interstitial
-
+    
     private var cooldownSection: some View {
         ChangePhoneMessageScreen(icon: \.time,
                                  iconTint: .compound.iconCriticalPrimary,
                                  title: L10n.screenChangePhoneCooldownHeader,
                                  message: context.viewState.cooldownMessage)
     }
-
+    
     // MARK: - New phone entry
-
+    
     @ViewBuilder
     private var phoneEntrySection: some View {
         Section {
@@ -124,7 +124,7 @@ struct ChangePhoneScreen: View {
         } footer: {
             footerText
         }
-
+        
         Section {
             ListRow(label: .centeredAction(title: L10n.actionContinue, icon: \.arrowRight),
                     kind: .button {
@@ -134,7 +134,7 @@ struct ChangePhoneScreen: View {
                     .disabled(!context.viewState.canContinue)
         }
     }
-
+    
     private var countryButton: some View {
         Button {
             isPhoneFieldFocused = false
@@ -156,7 +156,7 @@ struct ChangePhoneScreen: View {
         .accessibilityLabel(UntranslatedL10n.guaCountryCodeA11yLabel(context.viewState.selectedCountry.name, context.viewState.selectedCountry.dialCode))
         .accessibilityHint(UntranslatedL10n.guaCountryCodeA11yHint)
     }
-
+    
     private var phoneField: some View {
         TextField(context.viewState.selectedCountry.nationalExample, text: $context.localPhoneNumber)
             .keyboardType(.phonePad)
@@ -179,9 +179,9 @@ struct ChangePhoneScreen: View {
             }
             .onAppear { isPhoneFieldFocused = true }
     }
-
+    
     // MARK: - Code entry (re-auth OTP / PIN / new-number OTP)
-
+    
     @ViewBuilder
     private var codeEntrySection: some View {
         Section {
@@ -197,7 +197,7 @@ struct ChangePhoneScreen: View {
         } footer: {
             footerText
         }
-
+        
         Section {
             ListRow(label: .centeredAction(title: context.viewState.phase == .submitting ? L10n.commonLoading : L10n.actionContinue,
                                            icon: \.arrowRight),
@@ -205,15 +205,15 @@ struct ChangePhoneScreen: View {
                 .disabled(!context.viewState.canContinue)
         }
     }
-
+    
     private var codeFieldLength: Int {
         context.viewState.phase == .pin
             ? ChangePhoneScreenViewState.pinLength
             : ChangePhoneScreenViewState.otpLength
     }
-
+    
     // MARK: - Done
-
+    
     private var doneSection: some View {
         ChangePhoneMessageScreen(icon: \.checkCircle,
                                  iconTint: .compound.iconSuccessPrimary,
@@ -223,9 +223,9 @@ struct ChangePhoneScreen: View {
                                      context.send(viewAction: .done)
                                  })
     }
-
+    
     // MARK: - Shared
-
+    
     @ViewBuilder
     private var footerText: some View {
         if let errorMessage = context.viewState.errorMessage {
@@ -261,7 +261,7 @@ private struct ChangePhoneMessageScreen: View {
     let message: String
     let primary: ChangePhoneMessageButton?
     let secondary: ChangePhoneMessageButton?
-
+    
     init(icon: KeyPath<CompoundIcons, Image>,
          iconTint: Color,
          title: String,
@@ -275,17 +275,17 @@ private struct ChangePhoneMessageScreen: View {
         self.primary = primary
         self.secondary = secondary
     }
-
+    
     var body: some View {
         VStack(spacing: 16) {
             ChangePhoneMessageCard(icon: icon, iconTint: iconTint, title: title, message: message)
                 .padding(.bottom, 8)
-
+            
             if let primary {
                 Button(primary.title, action: primary.action)
                     .buttonStyle(.compound(.primary))
             }
-
+            
             if let secondary {
                 Button(secondary.title, action: secondary.action)
                     .buttonStyle(.compound(.secondary))
@@ -304,20 +304,20 @@ private struct ChangePhoneMessageCard: View {
     let iconTint: Color
     let title: String
     let message: String
-
+    
     var body: some View {
         VStack(spacing: 16) {
             CompoundIcon(icon, size: .custom(28), relativeTo: .compound.headingMD)
                 .foregroundStyle(iconTint)
                 .frame(width: 64, height: 64)
                 .background(.compound.bgSubtlePrimary, in: RoundedRectangle(cornerRadius: 16))
-
+            
             VStack(spacing: 8) {
                 Text(title)
                     .font(.compound.headingMD)
                     .foregroundStyle(.compound.textPrimary)
                     .multilineTextAlignment(.center)
-
+                
                 Text(message)
                     .font(.compound.bodyMD)
                     .foregroundStyle(.compound.textSecondary)
@@ -345,28 +345,28 @@ struct ChangePhoneScreen_Previews: PreviewProvider {
         viewModel.state.cooldownRemainingSeconds = cooldownRemainingSeconds
         return viewModel
     }
-
+    
     static let introViewModel = makeViewModel(phase: .intro)
     static let stepUpRequiredViewModel = makeViewModel(phase: .stepUpRequired)
     static let cooldownViewModel = makeViewModel(phase: .cooldown, cooldownRemainingSeconds: 3 * 86400 + 4 * 3600)
     static let doneViewModel = makeViewModel(phase: .done)
-
+    
     static var previews: some View {
         ElementNavigationStack {
             ChangePhoneScreen(context: introViewModel.context)
         }
         .previewDisplayName("Intro")
-
+        
         ElementNavigationStack {
             ChangePhoneScreen(context: stepUpRequiredViewModel.context)
         }
         .previewDisplayName("Step-up required")
-
+        
         ElementNavigationStack {
             ChangePhoneScreen(context: cooldownViewModel.context)
         }
         .previewDisplayName("Cooldown")
-
+        
         ElementNavigationStack {
             ChangePhoneScreen(context: doneViewModel.context)
         }

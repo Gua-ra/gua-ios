@@ -20,13 +20,13 @@ class OAuthAccountSettingsPresenter: NSObject {
     private let presentationAnchor: UIWindow
     private let appMediator: AppMediatorProtocol
     private let presenterHook: OAuthAccountSettingsPresenterHookProtocol
-
+    
     typealias Continuation = AsyncStream<Result<Void, OAuthError>>.Continuation
     private let continuation: Continuation?
-
+    
     /// Retained for the lifetime of the presentation so the session isn't cancelled early.
     private var session: ASWebAuthenticationSession?
-
+    
     /// GUA FORK: how the web sheet ended.
     nonisolated enum Outcome {
         /// The page navigated to the app's own scheme: whatever it was asked to do, it finished.
@@ -34,7 +34,7 @@ class OAuthAccountSettingsPresenter: NSObject {
         /// Closed by hand, or failed to present. Nothing on the page was completed.
         case dismissed
     }
-
+    
     init(accountURL: URL,
          presentationAnchor: UIWindow,
          appMediator: AppMediatorProtocol,
@@ -46,15 +46,15 @@ class OAuthAccountSettingsPresenter: NSObject {
         self.appMediator = appMediator
         presenterHook = userSession.userHooks.oAuthAccountSettingsPresenterHook
         self.continuation = continuation
-
+        
         super.init()
     }
-
+    
     /// Presents a web authentication session for the supplied data.
     func start() {
         present(outcomeContinuation: nil)
     }
-
+    
     /// GUA FORK: presents the web authentication session and resolves once the sheet is gone,
     /// saying whether the page came back to the app or was dismissed. Callers that need to act
     /// on the result of the web flow (e.g. the identity-reset approval) must `await` this before
@@ -64,7 +64,7 @@ class OAuthAccountSettingsPresenter: NSObject {
             present(outcomeContinuation: outcomeContinuation)
         }
     }
-
+    
     /// GUA FORK: closes the sheet from the app side.
     ///
     /// MAS's approval page never navigates to the callback URL, so the session has no reason to
@@ -74,15 +74,15 @@ class OAuthAccountSettingsPresenter: NSObject {
         session?.cancel()
         session = nil
     }
-
+    
     private func present(outcomeContinuation: CheckedContinuation<Outcome, Never>?) {
         let accountURL = presenterHook.update(accountURL)
-
+        
         let session = ASWebAuthenticationSession(url: accountURL, callback: .oAuthRedirectURL(redirectURL)) { [continuation] callbackURL, error in
             outcomeContinuation?.resume(returning: callbackURL == nil ? .dismissed : .returned)
-
+            
             guard let continuation else { return }
-
+            
             if error?.isOAuthUserCancellation == true {
                 continuation.yield(.failure(.userCancellation))
             } else {
@@ -90,17 +90,17 @@ class OAuthAccountSettingsPresenter: NSObject {
                 MXLog.error("A web authentication session error occurred: \(errorDescription)")
                 continuation.yield(.failure(.unknown))
             }
-
+            
             continuation.finish()
         }
-
+        
         session.prefersEphemeralWebBrowserSession = false
         session.presentationContextProvider = self
         session.additionalHeaderFields = [
             "X-Element-User-Agent": UserAgentBuilder.makeASCIIUserAgent(),
             "Accept-Language": Bundle.guaAppLanguage
         ]
-
+        
         if accountURL.scheme == "https" || accountURL.scheme == "http" {
             self.session = session
             session.start()

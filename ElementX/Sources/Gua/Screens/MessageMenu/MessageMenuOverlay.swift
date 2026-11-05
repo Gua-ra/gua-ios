@@ -12,21 +12,21 @@ struct MessageMenuOverlay: View {
     @EnvironmentObject private var context: TimelineViewModel.Context
     @Environment(\.layoutDirection) private var layoutDirection
     @Environment(\.colorScheme) private var colorScheme
-
+    
     let item: EventBasedTimelineItemProtocol
     let actions: TimelineItemMenuActions
     let presentation: TimelineItemMenuPresentation
     let groupStyle: TimelineGroupStyle
     /// Must remove the overlay without animation, since the overlay has already animated out.
     let dismiss: () -> Void
-
+    
     @State private var isVisible: Bool
     @State private var isShowingMore: Bool
     @State private var sourceFrame: CGRect
     @State private var detailsContentHeight: CGFloat = 0
-
+    
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .heavy)
-
+    
     init(item: EventBasedTimelineItemProtocol,
          actions: TimelineItemMenuActions,
          presentation: TimelineItemMenuPresentation,
@@ -43,38 +43,38 @@ struct MessageMenuOverlay: View {
         _isShowingMore = State(initialValue: isShowingMore)
         _sourceFrame = State(initialValue: presentation.anchor?.frame ?? .zero)
     }
-
+    
     private var sections: MessageMenuSections {
         MessageMenuSections(actions: actions.actions + actions.secondaryActions)
     }
-
+    
     private var showsActions: Bool {
         presentation.showsActions && !(sections.primary.isEmpty && sections.more.isEmpty && sections.destructive.isEmpty)
     }
-
+    
     private var reactionRows: [MessageReactionSummaryRow] {
         MessageReactionSummaryRow.rows(for: item.properties.reactions)
     }
-
+    
     private var showsDetails: Bool {
         showsActions || (!presentation.showsActions && !reactionRows.isEmpty)
     }
-
+    
     /// Outgoing bubbles sit on the right, or on the left in right-to-left layouts.
     private var alignsRight: Bool {
         item.isOutgoing != (layoutDirection == .rightToLeft)
     }
-
+    
     private var detailsSize: CGSize? {
         guard showsDetails else { return nil }
         let height = showsActions ? detailsContentHeight : min(detailsContentHeight, Self.maximumVisibleSummaryRows * Self.summaryRowHeight + MessageMenuChrome.inset)
         return CGSize(width: Self.detailsWidth, height: height)
     }
-
+    
     var body: some View {
         ZStack {
             backdrop
-
+            
             GeometryReader { geometry in
                 let container = geometry.frame(in: .global)
                 let source = sourceFrame.offsetBy(dx: -container.minX, dy: -container.minY)
@@ -83,14 +83,14 @@ struct MessageMenuOverlay: View {
                                                container: CGRect(origin: .zero, size: geometry.size).insetBy(dx: 0, dy: MessageMenuLayout.spacing),
                                                reactionBarSize: actions.reactions.isEmpty ? nil : reactionBarSize(in: geometry.size),
                                                detailsSize: detailsSize)
-
+                
                 ZStack(alignment: .topLeading) {
                     bubble(width: source.width)
                         .frame(width: layout.bubbleFrame.width, height: layout.bubbleFrame.height, alignment: .top)
                         .clipped()
                         .shadow(color: .black.opacity(isVisible ? 0.15 : 0), radius: 12, y: 4)
                         .offset(x: layout.bubbleFrame.minX, y: isVisible ? layout.bubbleFrame.minY : source.minY)
-
+                    
                     if let frame = layout.reactionBarFrame {
                         reactionBar
                             .frame(width: frame.width, height: frame.height)
@@ -98,7 +98,7 @@ struct MessageMenuOverlay: View {
                             .opacity(isVisible ? 1 : 0)
                             .offset(x: frame.minX, y: frame.minY)
                     }
-
+                    
                     if let frame = layout.detailsFrame {
                         detailsCard(height: frame.height)
                             .frame(width: frame.width)
@@ -134,7 +134,7 @@ struct MessageMenuOverlay: View {
             presentation.anchor?.isBubbleLifted = false
         }
     }
-
+    
     private var backdrop: some View {
         Color.black
             .opacity(colorScheme == .dark ? 0.4 : 0.1)
@@ -143,7 +143,7 @@ struct MessageMenuOverlay: View {
             .onTapGesture { close() }
             .accessibilityHidden(true)
     }
-
+    
     private func bubble(width: CGFloat) -> some View {
         RoomTimelineItemView(viewState: RoomTimelineItemViewState(item: item, groupStyle: groupStyle))
             .environment(\.isMessageMenuPreview, true)
@@ -152,11 +152,11 @@ struct MessageMenuOverlay: View {
             .fixedSize(horizontal: false, vertical: true)
             .allowsHitTesting(false)
     }
-
+    
     private static let reactionSize: CGFloat = 44
     private static let reactionSpacing: CGFloat = 2
     private static let reactionBarPadding: CGFloat = 6
-
+    
     private func reactionBarSize(in containerSize: CGSize) -> CGSize {
         let count = CGFloat(actions.reactions.count)
         let reactionsWidth = count * Self.reactionSize + (count - 1) * Self.reactionSpacing + 2 * Self.reactionBarPadding
@@ -164,7 +164,7 @@ struct MessageMenuOverlay: View {
         return CGSize(width: min(width, containerSize.width - 2 * MessageMenuLayout.margin),
                       height: Self.reactionSize + 2 * Self.reactionBarPadding)
     }
-
+    
     private var reactionBar: some View {
         HStack(spacing: 0) {
             ScrollView(.horizontal) {
@@ -177,7 +177,7 @@ struct MessageMenuOverlay: View {
             }
             .scrollIndicators(.hidden)
             .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
-
+            
             Button {
                 close {
                     context.send(viewAction: .displayEmojiPicker(itemID: item.id))
@@ -194,10 +194,10 @@ struct MessageMenuOverlay: View {
         .messageMenuSurface(in: Capsule())
         .environment(\.layoutDirection, layoutDirection)
     }
-
+    
     private func reactionButton(for key: String) -> some View {
         let hasReacted = item.properties.reactions.contains { $0.key == key && $0.isHighlighted }
-
+        
         return Button {
             feedbackGenerator.impactOccurred()
             context.send(viewAction: .toggleReaction(key: key, itemID: item.id))
@@ -211,9 +211,9 @@ struct MessageMenuOverlay: View {
         }
         .accessibilityLabel(hasReacted ? L10n.a11yRemoveReaction(key) : L10n.a11yAddReaction(key))
     }
-
+    
     private static let detailsWidth: CGFloat = 250
-
+    
     private func detailsCard(height: CGFloat) -> some View {
         ScrollView {
             Group {
@@ -232,7 +232,7 @@ struct MessageMenuOverlay: View {
         .messageMenuSurface(in: MessageMenuChrome.cardShape)
         .environment(\.layoutDirection, layoutDirection)
     }
-
+    
     private var actionList: some View {
         VStack(spacing: 0) {
             if isShowingMore {
@@ -248,13 +248,13 @@ struct MessageMenuOverlay: View {
                     .font(.compound.bodyLGSemibold)
                 }
                 .buttonStyle(MessageMenuButtonStyle())
-
+                
                 Divider()
-
+                
                 ForEach(sections.more, id: \.self) { actionButton(for: $0) }
             } else {
                 ForEach(sections.primary, id: \.self) { actionButton(for: $0) }
-
+                
                 if !sections.more.isEmpty {
                     Button {
                         withAnimation(.easeInOut(duration: 0.2).disabledDuringTests()) { isShowingMore = true }
@@ -263,16 +263,16 @@ struct MessageMenuOverlay: View {
                     }
                     .buttonStyle(MessageMenuButtonStyle(showsChevron: true))
                 }
-
+                
                 if !sections.destructive.isEmpty {
                     sectionSeparator
-
+                    
                     ForEach(sections.destructive, id: \.self) { actionButton(for: $0) }
                 }
             }
         }
     }
-
+    
     @ViewBuilder
     private var sectionSeparator: some View {
         if MessageMenuChrome.usesGlass {
@@ -284,7 +284,7 @@ struct MessageMenuOverlay: View {
                 .overlay(Color.compound.bgSubtlePrimary.opacity(0.6))
         }
     }
-
+    
     private func actionButton(for action: TimelineItemMenuAction) -> some View {
         Button(role: action.isDestructive ? .destructive : nil) {
             close {
@@ -295,10 +295,10 @@ struct MessageMenuOverlay: View {
         }
         .buttonStyle(MessageMenuButtonStyle())
     }
-
+    
     private static let summaryRowHeight: CGFloat = 48
     private static let maximumVisibleSummaryRows: CGFloat = 5.5
-
+    
     private var reactionSummaryRows: some View {
         VStack(spacing: 0) {
             ForEach(reactionRows) { row in
@@ -306,11 +306,11 @@ struct MessageMenuOverlay: View {
             }
         }
     }
-
+    
     private func reactionSummaryRow(_ row: MessageReactionSummaryRow) -> some View {
         let member = context.viewState.members[row.id]
         let memberName = member?.displayName ?? row.id.guaDisplayHandle
-
+        
         return HStack(spacing: 12) {
             LoadableAvatarImage(url: member?.avatarURL,
                                 name: memberName,
@@ -318,13 +318,13 @@ struct MessageMenuOverlay: View {
                                 avatarSize: .user(on: .timeline),
                                 mediaProvider: context.mediaProvider)
                 .accessibilityHidden(true)
-
+            
             Text(row.isOwnUser ? L10n.commonYou : memberName)
                 .font(.compound.bodyLG)
                 .foregroundStyle(.compound.textPrimary)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
-
+            
             Text(row.keys.joined(separator: " "))
                 .font(.system(size: 20))
                 .multilineTextAlignment(.trailing)
@@ -335,19 +335,19 @@ struct MessageMenuOverlay: View {
         .frame(minHeight: Self.summaryRowHeight)
         .accessibilityElement(children: .combine)
     }
-
+    
     private func close(then action: (() -> Void)? = nil) {
         withAnimation(.easeOut(duration: 0.18).disabledDuringTests()) {
             isVisible = false
         }
-
+        
         Task {
             if !ProcessInfo.isRunningTests {
                 try? await Task.sleep(for: .seconds(0.18))
             }
             presentation.anchor?.isBubbleLifted = false
             dismiss()
-
+            
             guard let action else { return }
             // A sheet presented while the overlay is still being removed would be refused.
             try? await Task.sleep(for: .seconds(0.1))
@@ -358,12 +358,12 @@ struct MessageMenuOverlay: View {
 
 private struct MessageMenuButtonStyle: ButtonStyle {
     var showsChevron = false
-
+    
     func makeBody(configuration: Configuration) -> some View {
         HStack(spacing: 12) {
             configuration.label
                 .labelStyle(MessageMenuLabelStyle())
-
+            
             if showsChevron {
                 CompoundIcon(\.chevronRight, size: .small, relativeTo: .compound.bodyLG)
                     .flipsForRightToLeftLayoutDirection(true)
@@ -388,10 +388,12 @@ private struct MessageMenuButtonStyle: ButtonStyle {
 
 private enum MessageMenuChrome {
     static let usesGlass: Bool = {
-        if #available(iOS 26, *) { return true }
+        if #available(iOS 26, *) {
+            return true
+        }
         return false
     }()
-
+    
     static let cornerRadius: CGFloat = usesGlass ? 32 : 16
     static let cardShape = RoundedRectangle(cornerRadius: cornerRadius)
     static let inset: CGFloat = usesGlass ? 8 : 0
@@ -407,9 +409,9 @@ private extension View {
 
 private struct MessageMenuSurface<S: Shape>: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
-
+    
     let shape: S
-
+    
     func body(content: Content) -> some View {
         if #available(iOS 26, *) {
             // Untinted glass goes near-black over the dimmed dark timeline.
@@ -437,7 +439,7 @@ private struct MessageMenuLabelStyle: LabelStyle {
 
 struct MessageMenuOverlay_Previews: PreviewProvider, TestablePreview {
     static let viewModel = TimelineViewModel.mock
-
+    
     static let incomingItem = TextRoomTimelineItem(id: .randomEvent,
                                                    timestamp: .mock,
                                                    isOutgoing: false,
@@ -445,7 +447,7 @@ struct MessageMenuOverlay_Previews: PreviewProvider, TestablePreview {
                                                    canBeRepliedTo: true,
                                                    sender: .init(id: "@camila:gua", displayName: "Camila Moraes"),
                                                    content: .init(body: "Me mudei pra Floripa ano passado, tô morando de frente pro mar agora 🌅"))
-
+    
     static let outgoingItem = TextRoomTimelineItem(id: .randomEvent,
                                                    timestamp: .mock,
                                                    isOutgoing: true,
@@ -453,7 +455,7 @@ struct MessageMenuOverlay_Previews: PreviewProvider, TestablePreview {
                                                    canBeRepliedTo: true,
                                                    sender: .init(id: "@voce:gua", displayName: "Você"),
                                                    content: .init(body: "Que paz nesse lugar 😍"))
-
+    
     static let reactedItem = {
         let me = RoomMemberProxyMock.mockMe.userID
         func sender(_ id: String, _ minute: Double) -> ReactionSender {
@@ -474,19 +476,19 @@ struct MessageMenuOverlay_Previews: PreviewProvider, TestablePreview {
         
         overlay(item: reactedItem, presentation: .reactions(MessageMenuAnchor(frame: CGRect(x: 16, y: 240, width: 300, height: 82))))
             .previewDisplayName("Double tap with reactions")
-
+        
         overlay(item: incomingItem, presentation: .reactionsAndActions(MessageMenuAnchor(frame: CGRect(x: 16, y: 240, width: 300, height: 82))))
             .previewDisplayName("Long press")
-
+        
         overlay(item: outgoingItem, presentation: .reactionsAndActions(MessageMenuAnchor(frame: CGRect(x: 120, y: 620, width: 240, height: 58))))
             .previewDisplayName("Long press near the bottom")
-
+        
         overlay(item: incomingItem,
                 presentation: .reactionsAndActions(MessageMenuAnchor(frame: CGRect(x: 16, y: 240, width: 300, height: 82))),
                 isShowingMore: true)
             .previewDisplayName("More")
     }
-
+    
     static func overlay(item: TextRoomTimelineItem,
                         presentation: TimelineItemMenuPresentation,
                         isShowingMore: Bool = false) -> some View {
@@ -501,10 +503,10 @@ struct MessageMenuOverlay_Previews: PreviewProvider, TestablePreview {
                                                      timelineKind: .live,
                                                      emojiProvider: EmojiProvider(userSettings: .mock()))
             .makeActions()
-
+        
         return ZStack {
             Color.compound.bgCanvasDefault.ignoresSafeArea()
-
+            
             if let actions {
                 MessageMenuOverlay(item: item,
                                    actions: actions,

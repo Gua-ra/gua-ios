@@ -354,7 +354,7 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
             presentAccountManagementURL(url)
         }
     }
-
+    
     /// GUA FORK: Find-friends-from-contacts entry-point.
     /// GUA FORK: Two-step verification entry-point.
     private func presentTwoStepVerification(initialSetup: AuthFactor? = nil) {
@@ -369,14 +369,14 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                                                                         appSettings: userSettings.app,
                                                                         initialSetup: initialSetup)
         let coordinator = TwoStepVerificationScreenCoordinator(parameters: parameters)
-
+        
         coordinator.actionsPublisher
             .sink { _ in }
             .store(in: &cancellables)
-
+        
         navigationStackCoordinator.push(coordinator)
     }
-
+    
     /// GUA FORK: Change-phone-number entry-point.
     private func presentChangePhone() {
         guard let identityServiceClient = IdentityServiceClient() else {
@@ -388,7 +388,7 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                                                                 userIndicatorController: flowParameters.userIndicatorController,
                                                                 windowManager: flowParameters.windowManager)
         let coordinator = ChangePhoneScreenCoordinator(parameters: parameters)
-
+        
         coordinator.actionsPublisher
             .sink { [weak self] action in
                 guard let self else { return }
@@ -405,11 +405,11 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                 }
             }
             .store(in: &cancellables)
-
+        
         coordinator.start()
         navigationStackCoordinator.push(coordinator)
     }
-
+    
     private func presentFindFriends() {
         guard let identityServiceClient = IdentityServiceClient() else {
             MXLog.warning("Identity service is not configured; cannot show Find Friends.")
@@ -425,7 +425,7 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                                                                 clientProxy: flowParameters.userSession.clientProxy,
                                                                 accessToken: accessToken)
         let coordinator = FindFriendsScreenCoordinator(parameters: parameters)
-
+        
         coordinator.actionsPublisher
             .sink { [weak self] action in
                 guard let self else { return }
@@ -441,10 +441,10 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                 }
             }
             .store(in: &cancellables)
-
+        
         navigationStackCoordinator.push(coordinator)
     }
-
+    
     private func presentFindFriendsUserProfile(userID: String) {
         let parameters = UserProfileScreenCoordinatorParameters(userID: userID,
                                                                 isPresentedModally: false,
@@ -466,7 +466,7 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
             }
         }
         .store(in: &cancellables)
-
+        
         navigationStackCoordinator.push(coordinator)
     }
     

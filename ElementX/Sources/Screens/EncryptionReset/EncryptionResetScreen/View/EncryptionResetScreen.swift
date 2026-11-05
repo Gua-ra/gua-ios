@@ -27,7 +27,7 @@ struct EncryptionResetScreen: View {
                     .disabled(context.viewState.isResetting)
                     .buttonStyle(.compound(.primary))
                 }
-
+                
                 Button(UntranslatedL10n.guaEncryptionResetRequiredAction, role: .destructive) {
                     context.send(viewAction: .reset)
                 }

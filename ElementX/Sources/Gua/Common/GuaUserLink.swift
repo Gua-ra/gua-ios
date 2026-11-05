@@ -21,10 +21,10 @@ nonisolated enum GuaUserLink {
     /// part between `@` and `:`. Returns `nil` for a malformed ID.
     static func url(for userID: String) -> URL? {
         guard userID.hasPrefix("@") else { return nil }
-
+        
         let localpart = userID.dropFirst().prefix { $0 != ":" }
         guard !localpart.isEmpty else { return nil }
-
+        
         // The development link host can carry a port (e.g. "localhost:8008"). Parse the whole
         // authority instead of assigning it to `URLComponents.host`, which rejects the colon
         // and would yield a nil URL.

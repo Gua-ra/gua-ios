@@ -121,7 +121,7 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
                 }
             }
             .store(in: &cancellables)
-
+        
         userSession.sessionSecurityStatePublisher
             .receive(on: DispatchQueue.main)
             .filter { state in
@@ -409,7 +409,7 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             state.isRepairingEncryptionSetupFromTap = false
             state.isFinishingEncryptionSetup = false
         }
-
+        
         let secureBackupController = userSession.clientProxy.secureBackupController
         switch await secureBackupController.repairWithoutReset() {
         case .repaired:
@@ -425,7 +425,7 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             MXLog.info("GUA-KEYSTORE: the account is incomplete after a reset, leaving the banner.")
         }
     }
-
+    
     // MARK: - Private
     
     private func updateFilter() {
@@ -513,7 +513,7 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             // GUA FORK: hide stray empty "orphan" DMs (no members, no name, no messages) so a
             // half-created or never-joined room doesn't clutter the chat list.
             guard !summary.isEmptyOrphanRoom else { continue }
-
+            
             let room = HomeScreenRoom(summary: summary,
                                       showAllActivity: userSettings.account.showAllRoomListActivity,
                                       seenInvites: seenInvites)
@@ -740,7 +740,7 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
                                          title: title ?? L10n.commonError,
                                          message: message ?? L10n.errorUnknown)
     }
-
+    
     /// GUA FORK: reads the account's security report and applies it to the banners built from it.
     ///
     /// The PIN reminder is a one-shot at session start. It asks for two-step verification, so it is
@@ -773,7 +773,7 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             return
         }
         cancelSecurityStatusRetry()
-
+        
         if read > securityStatusReadsSuperseded {
             securityStatusReadsSuperseded = read
             let previousBanner = state.accountRecoveryBanner
@@ -783,14 +783,14 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
                 startAccountRecoveryRefreshTimer()
             }
         }
-
+        
         guard updatingPinReminder else { return }
         if let snoozedUntil = userSettings.app.pinSetupReminderSnoozedUntil, snoozedUntil > Date() {
             return
         }
         state.pinSetupReminderVisible = !status.holdsStrongFactor
     }
-
+    
     /// GUA FORK: the security report is read at session start, again whenever the app comes back to
     /// the foreground, and on a timer while it stays there.
     private func setupSecurityStatusRefresh(notificationCenter: NotificationCenter) {
@@ -801,7 +801,7 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
                 startAccountRecoveryRefreshTimer()
             }
             .store(in: &cancellables)
-
+        
         notificationCenter.publisher(for: UIApplication.willResignActiveNotification)
             .sink { [weak self] _ in
                 self?.accountRecoveryRefreshTask?.cancel()
@@ -809,11 +809,11 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
                 self?.cancelSecurityStatusRetry()
             }
             .store(in: &cancellables)
-
+        
         Task { await refreshSecurityStatus(updatingPinReminder: true) }
         startAccountRecoveryRefreshTimer()
     }
-
+    
     /// Restarting the timer replaces the wait in progress with one worked out from the banner shown now.
     private func startAccountRecoveryRefreshTimer() {
         accountRecoveryRefreshTask?.cancel()
@@ -826,11 +826,11 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             }
         }
     }
-
+    
     private func nextAccountRecoveryReadDelay() -> Duration {
         Self.accountRecoveryReadDelay(for: state.accountRecoveryBanner, now: .now)
     }
-
+    
     /// GUA FORK: how long the timer waits before the next read: the regular interval, or less when the
     /// recovery on the banner becomes finishable or runs out before then, so the banner switches to
     /// "can be finished now" and comes down on time. Moments already past are ignored, so a server that
@@ -844,7 +844,7 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
         guard let nextMoment else { return accountRecoveryRefreshInterval }
         return min(accountRecoveryRefreshInterval, .seconds(nextMoment.timeIntervalSince(now)) + accountRecoveryMomentSlack)
     }
-
+    
     /// GUA FORK: a failed read, such as a 401 for an access token that expired while the app was in
     /// the background and is refreshed on return, is followed by one early re-read. Failures while one
     /// is waiting or running do not add another, so retries neither stack nor chain: when the re-read
@@ -861,14 +861,14 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             }
         }
     }
-
+    
     private func cancelSecurityStatusRetry() {
         securityStatusRetryTask?.cancel()
         securityStatusRetryTask = nil
     }
-
+    
     private static let cancelAccountRecoveryLoadingID = "CancelAccountRecoveryLoading"
-
+    
     /// GUA FORK: the owner cancels a recovery from a signed-in device.
     ///
     /// The server answers 204 whether or not anything was pending, so after a success the banner is
@@ -883,7 +883,7 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             displayError(message: L10n.screenAccountRecoveryCancelFailed)
             return
         }
-
+        
         userIndicatorController.submitIndicator(UserIndicator(id: Self.cancelAccountRecoveryLoadingID,
                                                               type: .modal,
                                                               title: L10n.commonLoading,
@@ -896,12 +896,12 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             displayError(message: L10n.screenAccountRecoveryCancelFailed)
             return
         }
-
+        
         securityStatusReadsSuperseded = securityStatusReadsStarted
         state.accountRecoveryBanner = nil
         await refreshSecurityStatus(updatingPinReminder: false)
         userIndicatorController.retractIndicatorWithId(Self.cancelAccountRecoveryLoadingID)
-
+        
         guard state.accountRecoveryBanner == nil else {
             MXLog.warning("The account recovery is still live after a successful cancel")
             displayError(message: L10n.screenAccountRecoveryCancelFailed)

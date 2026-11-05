@@ -61,7 +61,7 @@ protocol AuthenticationServiceProtocol: QRCodeLoginServiceProtocol {
                                         userId: String,
                                         deviceId: String,
                                         homeserverUrl: String) async -> Result<UserSessionProtocol, AuthenticationServiceError>
-
+    
     /// Resets the current configuration requiring `configure(for:flow:)` to be called again.
     func reset()
     

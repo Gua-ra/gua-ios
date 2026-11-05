@@ -303,7 +303,7 @@ extension Array where Element == RoomSummary {
         let startOfToday = calendar.startOfDay(for: .now)
         return calendar.date(byAdding: .minute, value: hour * 60 + minute, to: startOfToday) ?? startOfToday
     }
-
+    
     static let mockRoomsGuaMarketing: [Element] = [
         RoomSummary(room: RoomSDKMock(),
                     id: "gua1",
@@ -474,7 +474,7 @@ extension Array where Element == RoomSummary {
                     isFavourite: false,
                     isTombstoned: false)
     ]
-
+    
     static let mockRoomsWithNotificationsState: [Element] = {
         var result: [Element] = []
         

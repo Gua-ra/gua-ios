@@ -39,7 +39,7 @@ struct SessionVerificationRequestDetailsView: View {
                 Text(details.senderProfile.displayName ?? details.senderProfile.id.guaDisplayHandle)
                     .font(.compound.bodySM)
                     .foregroundColor(.compound.textSecondary)
-
+                
                 if details.senderProfile.displayName != nil {
                     Text(details.senderProfile.id.guaDisplayHandle)
                         .font(.compound.bodyMD)

@@ -181,9 +181,9 @@ enum TimelineFixtures {
         SeparatorRoomTimelineItem(id: .virtual(uniqueID: .init(UUID().uuidString)),
                                   timestamp: .now)
     }
-
+    
     // MARK: - Gua marketing fixtures
-
+    
     /// One to one reconnect showcase: incoming texts, an inline image and an outgoing reply.
     /// Portuguese, no em dashes.
     static var guaMarketing1to1: [RoomTimelineItemProtocol] {
@@ -226,7 +226,7 @@ enum TimelineFixtures {
                                  content: .init(body: "Que paz nesse lugar 😍"))
         ]
     }
-
+    
     /// French Canadian one to one showcase: brunch plans in clean Québécois French.
     /// No em dashes, no homeserver.
     static var guaMarketingCanadaFR: [RoomTimelineItemProtocol] {

@@ -30,7 +30,7 @@ enum AuthFactor: Equatable {
     /// client holds or can produce, so an unrecognized value can only ever make the app ask for a
     /// factor it does understand, never let it skip the step.
     case unrecognized(String)
-
+    
     init(wireValue: String) {
         switch wireValue {
         case "PASSKEY": self = .passkey
@@ -80,7 +80,7 @@ struct AccountSecurityStatus: Equatable {
     /// none. Also `nil` from a deployment that does not report recovery at all, which is the same
     /// answer an account with nothing pending gets: there is nothing for the owner to cancel.
     var pendingAccountRecovery: PendingAccountRecovery?
-
+    
     /// Whether the account holds this factor. Registration is the only question the server answers;
     /// `phoneOTP` and anything unrecognized are counted as not held, so neither can stand in for a
     /// step-up this client does not know how to produce.
@@ -91,7 +91,7 @@ struct AccountSecurityStatus: Equatable {
         case .phoneOTP, .unrecognized: false
         }
     }
-
+    
     /// The step-up factors this account can be offered for a phone change, strongest first.
     ///
     /// The accepted list is the server's. When a deployment does not publish one, the app falls
@@ -102,7 +102,7 @@ struct AccountSecurityStatus: Equatable {
         let accepted = phoneChangeStepUpFactors.isEmpty ? [AuthFactor.passkey, .pin] : phoneChangeStepUpFactors
         return accepted.filter(isRegistered)
     }
-
+    
     /// True when the account holds a factor stronger than an SMS code, which is what the
     /// "set up two-step verification" nudges are actually asking for. A passkey holder has one.
     var holdsStrongFactor: Bool {
@@ -141,18 +141,18 @@ struct PasskeyAssertion: Encodable, Equatable {
     let rawId: String
     let type: String
     let response: Response
-
+    
     struct Response: Encodable, Equatable {
         let clientDataJSON: String
         let authenticatorData: String
         let signature: String
         let userHandle: String?
     }
-
+    
     /// Sent as an empty object, matching what a browser posts for a ceremony that asked for no
     /// extensions.
     let clientExtensionResults = [String: String]()
-
+    
     init(id: String, response: Response) {
         self.id = id
         rawId = id

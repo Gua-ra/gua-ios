@@ -265,7 +265,7 @@ class AuthenticationService: AuthenticationServiceProtocol {
         flow = .login
         client = nil
     }
-
+    
     func loginWithExistingMatrixSession(accessToken: String,
                                         refreshToken: String?,
                                         userId: String,

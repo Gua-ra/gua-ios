@@ -13,7 +13,7 @@ import SwiftUI
 struct HomeScreenRecoveryKeyConfirmationBanner: View {
     enum State {
         case setUpRecovery, recoveryOutOfSync
-
+        
         /// The action the banner's button sends. Lives on the state, not the view, so a test can
         /// assert it without standing up SwiftUI.
         var primaryAction: HomeScreenViewAction {
@@ -27,7 +27,7 @@ struct HomeScreenRecoveryKeyConfirmationBanner: View {
             }
         }
     }
-
+    
     let state: State
     var context: HomeScreenViewModel.Context
     /// GUA FORK: owned by the view model, not by this view. As view-local state it was set on tap

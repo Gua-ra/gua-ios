@@ -10,13 +10,13 @@ import SwiftUI
 
 enum SettingsScreenViewModelAction {
     case close
-
+    
     case userDetails
     case userStatusEmojiPicker(EmojiPickerScreenContinuation)
-
+    
     case findFriends
     case addAccount
-
+    
     case manageAccount(url: URL)
     case twoStepVerification
     case changePhoneNumber
@@ -25,17 +25,17 @@ enum SettingsScreenViewModelAction {
     case secureBackup
     case moderationAndSafety
     case reportBug
-
+    
     case logout
     case deactivateAccount
-
+    
     case mediaUploadQuality
     case appLock
     case locationSharing
     case analytics
     case labs
     case about
-
+    
     case developerOptions
 }
 
@@ -53,25 +53,25 @@ struct SettingsScreenViewState: BindableState {
     var accountProfileURL: URL?
     var showAccountDeactivation: Bool
     var showDeveloperOptions: Bool
-
+    
     var securitySectionMode = SettingsScreenSecuritySectionMode.none
     var showSecuritySectionBadge = false
-
+    
     let showAnalyticsSettings: Bool
     /// GUA FORK: Labs toggles unfinished features, so release builds hide it (as on Android).
     let showLabsSettings: Bool
-
+    
     let isBugReportServiceEnabled: Bool
-
+    
     let navigationBarVisibility: Visibility
-
+    
     var bindings: SettingsScreenViewStateBindings
-
+    
     var userLocalpart: String {
         let userID = userProfile.id
         return userID.hasPrefix("@") ? String(userID.dropFirst().prefix { $0 != ":" }) : userID
     }
-
+    
     var userStatusRowMode: SettingsScreenUserStatusRow.Mode {
         if bindings.isShowingCustomStatusField {
             .customStatusInput(emoji: bindings.customStatusEmoji)
@@ -85,7 +85,7 @@ struct SettingsScreenViewState: BindableState {
 
 struct SettingsScreenViewStateBindings {
     private let userSettings: UserSettings
-
+    
     var isPresentingStatusPicker = false
     var customStatusEmoji: Character = "😄"
     var isShowingCustomStatusField = false {
@@ -95,15 +95,15 @@ struct SettingsScreenViewStateBindings {
             }
         }
     }
-
+    
     var isPresentingAccountDeactivationConfirmation = false
     var isSpacesEnabled = false
-
+    
     var appAppearance: AppAppearance {
         get { userSettings.app.appAppearance }
         set { userSettings.app.appAppearance = newValue }
     }
-
+    
     init(userSettings: UserSettings) {
         self.userSettings = userSettings
     }
@@ -111,13 +111,13 @@ struct SettingsScreenViewStateBindings {
 
 enum SettingsScreenViewAction {
     case close
-
+    
     case userDetails
     case userStatus(UserStatusAction)
-
+    
     case findFriends
     case addAccount
-
+    
     case manageAccount(url: URL)
     case twoStepVerification
     case changePhoneNumber
@@ -126,10 +126,10 @@ enum SettingsScreenViewAction {
     case secureBackup
     case moderationAndSafety
     case reportBug
-
+    
     case logout
     case deactivateAccount
-
+    
     case toggleSpaces
     case mediaUploadQuality
     case appLock
@@ -137,10 +137,10 @@ enum SettingsScreenViewAction {
     case analytics
     case labs
     case about
-
+    
     case enableDeveloperOptions
     case developerOptions
-
+    
     enum UserStatusAction {
         /// Show status picker sheet to select a preset status.
         case pickStatus

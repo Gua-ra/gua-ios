@@ -21,13 +21,13 @@ nonisolated enum KeychainControllerService: String {
     var mainID: String {
         InfoPlistReader.main.baseBundleIdentifier + ".keychain.\(rawValue)"
     }
-
+    
     /// GUA FORK: the recovery key lives in its own keychain so it can be marked
     /// `synchronizable` without also pushing session restoration tokens to iCloud.
     var recoveryID: String {
         InfoPlistReader.main.baseBundleIdentifier + ".keychain.recovery.\(rawValue)"
     }
-
+    
     /// GUA FORK: the account authority and recovery keys an `AccountGenesis` commits live in their own
     /// keychain, kept device-only and non-synced (ADM-008 decision 5). Deliberately separate from
     /// `recoveryID`, which syncs on purpose, and from the session tokens, which must not leave the device.
@@ -120,16 +120,16 @@ final nonisolated class KeychainController: KeychainControllerProtocol {
     
     func removeAllRestorationTokens() {
         MXLog.warning("Removing all user restoration tokens.")
-
+        
         do {
             try restorationTokenKeychain.removeAll()
         } catch {
             MXLog.error("Failed removing all tokens")
         }
     }
-
+    
     // MARK: - Recovery Keys
-
+    
     func setRecoveryKey(_ key: String, forUsername username: String) {
         do {
             try recoveryKeychain.set(key, key: Self.recoveryKeyPrefix + username)
@@ -137,31 +137,31 @@ final nonisolated class KeychainController: KeychainControllerProtocol {
             MXLog.error("Failed storing recovery key with error: \(error)")
         }
     }
-
+    
     func recoveryKey(forUsername username: String) -> String? {
         do {
             if let key = try recoveryKeychain.getString(Self.recoveryKeyPrefix + username) {
                 return key
             }
-
+            
             // GUA FORK: keys written before the recovery keychain existed live in the
             // restoration-token keychain and are device-local. Move them across on first
             // read so those installs also gain iCloud sync, then drop the old copy.
             guard let legacyKey = try restorationTokenKeychain.getString(Self.recoveryKeyPrefix + username) else {
                 return nil
             }
-
+            
             MXLog.info("Migrating recovery key to the synchronised keychain.")
             try recoveryKeychain.set(legacyKey, key: Self.recoveryKeyPrefix + username)
             try? restorationTokenKeychain.remove(Self.recoveryKeyPrefix + username)
-
+            
             return legacyKey
         } catch {
             MXLog.error("Failed retrieving recovery key")
             return nil
         }
     }
-
+    
     func removeRecoveryKey(forUsername username: String) {
         do {
             try recoveryKeychain.remove(Self.recoveryKeyPrefix + username)
@@ -171,7 +171,7 @@ final nonisolated class KeychainController: KeychainControllerProtocol {
             MXLog.error("Failed removing recovery key with error: \(error)")
         }
     }
-
+    
     // MARK: - ClientSessionDelegate
     
     func retrieveSessionFromKeychain(userId: String) throws -> Session {

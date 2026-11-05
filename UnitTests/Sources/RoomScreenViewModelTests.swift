@@ -472,7 +472,11 @@ final class RoomScreenViewModelTests {
         
         // Then the informational banner is shown with Gua's own learn more URL.
         let deferred = deferFulfillment(viewModel.context.$viewState) { state in
-            if case .pinViolation = state.footerDetails { true } else { false }
+            if case .pinViolation = state.footerDetails {
+                true
+            } else {
+                false
+            }
         }
         try await deferred.fulfill()
         #expect(footerURL() == userSession.userSettings.app.identityPinningViolationDetailsURL)
@@ -497,7 +501,11 @@ final class RoomScreenViewModelTests {
         
         // Then the informational banner is shown with Gua's own learn more URL.
         let deferred = deferFulfillment(viewModel.context.$viewState) { state in
-            if case .verificationViolation = state.footerDetails { true } else { false }
+            if case .verificationViolation = state.footerDetails {
+                true
+            } else {
+                false
+            }
         }
         try await deferred.fulfill()
         #expect(footerURL()?.host == "gua.global")

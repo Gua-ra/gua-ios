@@ -34,10 +34,16 @@ nonisolated struct RoomStateEventStringBuilder {
         
         // Joining, being invited and accepting an invite are all implicit in a 1:1 chat —
         // hide them so the DM doesn't read like a group.
-        if isDirectOneToOneRoom, case .joined = change { return nil }
-        if isDirectOneToOneRoom, case .invited = change { return nil }
-        if isDirectOneToOneRoom, case .invitationAccepted = change { return nil }
-
+        if isDirectOneToOneRoom, case .joined = change {
+            return nil
+        }
+        if isDirectOneToOneRoom, case .invited = change {
+            return nil
+        }
+        if isDirectOneToOneRoom, case .invitationAccepted = change {
+            return nil
+        }
+        
         switch change {
         case .joined:
             return memberIsYou ? L10n.stateEventRoomJoinByYou : L10n.stateEventRoomJoin(senderDisplayName)
@@ -176,7 +182,9 @@ nonisolated struct RoomStateEventStringBuilder {
             }
         case .roomCreate:
             // "You created the room" is group framing; a 1:1 chat just starts.
-            if isDirectOneToOneRoom { return nil }
+            if isDirectOneToOneRoom {
+                return nil
+            }
             return isOutgoing ? L10n.stateEventRoomCreatedByYou : L10n.stateEventRoomCreated(displayName)
         case .roomEncryption:
             return L10n.commonEncryptionEnabled

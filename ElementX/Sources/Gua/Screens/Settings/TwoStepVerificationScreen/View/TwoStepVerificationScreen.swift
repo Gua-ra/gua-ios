@@ -12,7 +12,7 @@ import SwiftUI
 struct TwoStepVerificationScreen: View {
     @Bindable var context: TwoStepVerificationScreenViewModel.Context
     @FocusState private var isPhoneFieldFocused: Bool
-
+    
     var body: some View {
         Form {
             switch context.viewState.phase {
@@ -42,7 +42,7 @@ struct TwoStepVerificationScreen: View {
             }
         }
     }
-
+    
     private var isEnteringFlow: Bool {
         switch context.viewState.phase {
         case .enteringPhone, .enteringCurrent, .enteringOtp, .enteringNew, .confirmingNew, .submitting:
@@ -51,7 +51,7 @@ struct TwoStepVerificationScreen: View {
             return false
         }
     }
-
+    
     private var loadingSection: some View {
         Section {
             HStack {
@@ -62,7 +62,7 @@ struct TwoStepVerificationScreen: View {
             .padding(.vertical, 24)
         }
     }
-
+    
     /// GUA FORK: the overview renders the account's factors as the server reports them, instead of
     /// branching on a single `hasPin`. A passkey holder sees a passkey, and a report that could not
     /// be read says so rather than claiming the account has nothing.
@@ -73,7 +73,7 @@ struct TwoStepVerificationScreen: View {
         } else {
             let hasPin = context.viewState.hasPin
             let hasPasskey = context.viewState.passkeyRegistered
-
+            
             Section {
                 ListRow(label: .default(title: hasPasskey ? L10n.screenTwoStepVerificationPasskeyStatusOn : L10n.screenTwoStepVerificationPasskeyStatusOff,
                                         icon: \.key),
@@ -86,7 +86,7 @@ struct TwoStepVerificationScreen: View {
             } footer: {
                 Text(overviewFooter(hasPin: hasPin, hasPasskey: hasPasskey))
             }
-
+            
             Section {
                 if hasPin {
                     ListRow(label: .centeredAction(title: L10n.screenTwoStepVerificationChangeButton,
@@ -111,7 +111,7 @@ struct TwoStepVerificationScreen: View {
                     Text(hasPasskey && !hasPin ? L10n.screenTwoStepVerificationPinBackupFooter : "")
                 }
             }
-
+            
             if !hasPasskey {
                 Section {
                     ListRow(label: .default(title: L10n.screenTwoStepVerificationPasskeyButton,
@@ -123,7 +123,7 @@ struct TwoStepVerificationScreen: View {
             }
         }
     }
-
+    
     private func overviewFooter(hasPin: Bool, hasPasskey: Bool) -> String {
         if hasPin {
             return L10n.screenTwoStepVerificationOverviewFooterOn
@@ -133,7 +133,7 @@ struct TwoStepVerificationScreen: View {
         }
         return L10n.screenTwoStepVerificationOverviewFooterOff
     }
-
+    
     /// Shown when the factor report could not be read. It offers a retry and nothing else: this
     /// screen has no way to know what the account holds, so it invites no setup.
     private var statusUnavailableSection: some View {
@@ -147,7 +147,7 @@ struct TwoStepVerificationScreen: View {
             Text(L10n.screenTwoStepVerificationOverviewHeader)
         }
     }
-
+    
     @ViewBuilder
     private var phoneEntrySection: some View {
         Section {
@@ -168,7 +168,7 @@ struct TwoStepVerificationScreen: View {
                 Text(context.viewState.footerKey)
             }
         }
-
+        
         Section {
             ListRow(label: .centeredAction(title: L10n.actionContinue, icon: \.arrowRight),
                     kind: .button {
@@ -178,7 +178,7 @@ struct TwoStepVerificationScreen: View {
                     .disabled(!context.viewState.canContinue)
         }
     }
-
+    
     private var countryButton: some View {
         Button {
             isPhoneFieldFocused = false
@@ -200,7 +200,7 @@ struct TwoStepVerificationScreen: View {
         .accessibilityLabel(UntranslatedL10n.guaCountryCodeA11yLabel(context.viewState.selectedCountry.name, context.viewState.selectedCountry.dialCode))
         .accessibilityHint(UntranslatedL10n.guaCountryCodeA11yHint)
     }
-
+    
     private var phoneField: some View {
         TextField(context.viewState.selectedCountry.nationalExample, text: $context.localPhoneNumber)
             .keyboardType(.phonePad)
@@ -223,7 +223,7 @@ struct TwoStepVerificationScreen: View {
             }
             .onAppear { isPhoneFieldFocused = true }
     }
-
+    
     @ViewBuilder
     private var pinEntrySection: some View {
         Section {
@@ -244,7 +244,7 @@ struct TwoStepVerificationScreen: View {
                 Text(context.viewState.footerKey)
             }
         }
-
+        
         Section {
             ListRow(label: .centeredAction(title: context.viewState.phase == .submitting ? L10n.commonLoading : L10n.actionContinue,
                                            icon: \.arrowRight),
@@ -252,7 +252,7 @@ struct TwoStepVerificationScreen: View {
                 .disabled(!context.viewState.canContinue)
         }
     }
-
+    
     private var codeFieldLength: Int {
         context.viewState.phase == .enteringOtp
             ? TwoStepVerificationScreenViewState.otpLength
@@ -278,7 +278,7 @@ struct TwoStepVerificationScreen_Previews: PreviewProvider, TestablePreview {
                                                   identityServiceClient: identityServiceClient,
                                                   userIndicatorController: userIndicatorController)
     }()
-
+    
     static var previews: some View {
         ElementNavigationStack {
             TwoStepVerificationScreen(context: viewModel.context)

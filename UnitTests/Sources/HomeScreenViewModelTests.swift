@@ -728,25 +728,25 @@ final class HomeScreenViewModelTests {
         #expect(HomeScreenViewModel.accountRecoveryReadDelay(for: .init(completableAt: now.addingTimeInterval(180),
                                                                         expiresAt: now.addingTimeInterval(360)),
                                                              now: now)
-            == .seconds(181))
+                == .seconds(181))
         
         // Finishable already and running out before the next tick: read a second after it runs out.
         #expect(HomeScreenViewModel.accountRecoveryReadDelay(for: .init(completableAt: now.addingTimeInterval(-60),
                                                                         expiresAt: now.addingTimeInterval(120)),
                                                              now: now)
-            == .seconds(121))
+                == .seconds(121))
         
         // Both moments further away than the next tick: the regular interval.
         #expect(HomeScreenViewModel.accountRecoveryReadDelay(for: .init(completableAt: now.addingTimeInterval(3 * 24 * 60 * 60),
                                                                         expiresAt: now.addingTimeInterval(10 * 24 * 60 * 60)),
                                                              now: now)
-            == interval)
+                == interval)
         
         // Both moments passed, or arriving right now, while the server still reports it: the regular interval.
         #expect(HomeScreenViewModel.accountRecoveryReadDelay(for: .init(completableAt: now.addingTimeInterval(-120),
                                                                         expiresAt: now.addingTimeInterval(-60)),
                                                              now: now)
-            == interval)
+                == interval)
         #expect(HomeScreenViewModel.accountRecoveryReadDelay(for: .init(completableAt: nil, expiresAt: now), now: now) == interval)
     }
     
@@ -925,7 +925,9 @@ final class HomeScreenViewModelTests {
     /// For state that is not published: polls until `condition` holds or a second has passed.
     private func waitUntil(sourceLocation: SourceLocation = #_sourceLocation, _ condition: () -> Bool) async throws {
         for _ in 0..<100 {
-            if condition() { return }
+            if condition() {
+                return
+            }
             try await Task.sleep(for: .milliseconds(10))
         }
         Issue.record("Timed out waiting for the condition", sourceLocation: sourceLocation)

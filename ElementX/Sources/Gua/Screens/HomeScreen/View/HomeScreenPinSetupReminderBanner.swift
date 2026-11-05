@@ -14,7 +14,7 @@ import SwiftUI
 /// reminder for a week.
 struct HomeScreenPinSetupReminderBanner: View {
     var context: HomeScreenViewModel.Context
-
+    
     var body: some View {
         VStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
@@ -31,12 +31,12 @@ struct HomeScreenPinSetupReminderBanner: View {
                             .frame(width: 12, height: 12)
                     }
                 }
-
+                
                 Text(L10n.screenTwoStepVerificationReminderMessage)
                     .font(.compound.bodyMD)
                     .foregroundColor(.compound.textSecondary)
             }
-
+            
             Button {
                 context.send(viewAction: .setUpPinReminder)
             } label: {

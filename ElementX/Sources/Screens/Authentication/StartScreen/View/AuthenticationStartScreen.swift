@@ -95,14 +95,14 @@ struct AuthenticationStartScreen: View {
         .padding(.horizontal, 16)
         .readableFrame()
     }
-
+    
     /// On-brand trust signals shown under the welcome message.
     private var trustPills: some View {
         VStack(spacing: 8) {
             TrustPill(systemImage: "lock.fill", title: L10n.screenOnboardingTrustEncrypted)
         }
     }
-
+    
     /// The main action buttons.
     var buttons: some View {
         VStack(spacing: 16) {
@@ -177,7 +177,7 @@ struct AuthenticationStartScreen: View {
 private struct TrustPill: View {
     let systemImage: String
     let title: String
-
+    
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: systemImage)

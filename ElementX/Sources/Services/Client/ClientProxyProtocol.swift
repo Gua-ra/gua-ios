@@ -166,7 +166,7 @@ protocol ClientProxyProtocol: AnyObject {
     var notificationSettings: NotificationSettingsProxyProtocol { get }
     
     var secureBackupController: SecureBackupControllerProtocol { get }
-
+    
     /// GUA FORK: awaits the SDK's own end-to-end encryption initialisation, which provisions key
     /// backup on a fresh account.
     ///

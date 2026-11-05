@@ -31,7 +31,7 @@ class SecureBackupController: SecureBackupControllerProtocol {
     
     /// Used to dedupe remote backup state requests
     @CancellableTask private var remoteBackupStateTask: Task<Void, Error>?
-
+    
     /// GUA FORK: in-flight post-reset provisioning, so two of them can never race.
     private var provisioningTask: Task<EncryptionRepairOutcome, Never>?
     private let isProvisioningKeyStorageSubject = CurrentValueSubject<Bool, Never>(false)
@@ -43,7 +43,7 @@ class SecureBackupController: SecureBackupControllerProtocol {
     var keyBackupState: CurrentValuePublisher<SecureBackupKeyBackupState, Never> {
         keyBackupStateSubject.asCurrentValuePublisher()
     }
-
+    
     var isProvisioningKeyStorage: CurrentValuePublisher<Bool, Never> {
         isProvisioningKeyStorageSubject.asCurrentValuePublisher()
     }
@@ -101,7 +101,7 @@ class SecureBackupController: SecureBackupControllerProtocol {
             MXLog.info("Recovery state changed to: \(state), setting local state to \(recoveryStateSubject.value)")
         })
     }
-
+    
     /// GUA FORK: whether the SDK's own end-to-end encryption initialisation has finished.
     ///
     /// That initialisation provisions the key backup on a fresh account. Every operation here that
@@ -118,18 +118,18 @@ class SecureBackupController: SecureBackupControllerProtocol {
                 await e2eeInitialization.value
                 return true
             }
-
+            
             group.addTask {
                 try? await Task.sleep(for: timeout)
                 return false
             }
-
+            
             let completed = await group.next() ?? false
             group.cancelAll()
             return completed
         }
     }
-
+    
     func enable() async -> Result<Void, SecureBackupControllerError> {
         MXLog.info("Enabling secure backup")
         
@@ -137,7 +137,7 @@ class SecureBackupController: SecureBackupControllerProtocol {
             MXLog.warning("GUA-KEYSTORE: encryption initialisation did not finish, not enabling backup.")
             return .failure(.failedEnablingBackup)
         }
-
+        
         do {
             try await encryption.enableBackups()
         } catch {
@@ -170,7 +170,7 @@ class SecureBackupController: SecureBackupControllerProtocol {
         case .incomplete: .incomplete
         }
     }
-
+    
     /// GUA FORK: replaces a transient `.settingUp` with the SDK's current recovery state.
     ///
     /// `.settingUp` is published only by the enable progress listener, so if an operation ends
@@ -181,7 +181,7 @@ class SecureBackupController: SecureBackupControllerProtocol {
         guard recoveryStateSubject.value == .settingUp else { return }
         recoveryStateSubject.send(sdkRecoveryState())
     }
-
+    
     /// GUA FORK: waits for `recoveryState` to report something other than `.unknown`.
     ///
     /// The subject starts at `.unknown` and only settles once the SDK has told us where the
@@ -192,7 +192,7 @@ class SecureBackupController: SecureBackupControllerProtocol {
         if recoveryState.value != .unknown {
             return recoveryState.value
         }
-
+        
         return await withTaskGroup(of: SecureBackupRecoveryState.self) { group in
             group.addTask { [recoveryState] in
                 for await state in recoveryState.values where state != .unknown {
@@ -200,27 +200,27 @@ class SecureBackupController: SecureBackupControllerProtocol {
                 }
                 return .unknown
             }
-
+            
             group.addTask {
                 try? await Task.sleep(for: timeout)
                 return .unknown
             }
-
+            
             let state = await group.next() ?? .unknown
             group.cancelAll()
             return state
         }
     }
-
+    
     func generateRecoveryKey(withPassphrase passphrase: String?) async -> Result<String, SecureBackupControllerError> {
         guard await e2eeInitializationCompleted() else {
             MXLog.warning("GUA-KEYSTORE: encryption initialisation did not finish, not generating a recovery key.")
             return .failure(.failedGeneratingRecoveryKey)
         }
-
+        
         do {
             let state = await settledRecoveryState()
-
+            
             // GUA FORK: `.unknown` here means the SDK never reported, i.e. the wait timed out.
             // Resetting on it would rotate the storage key while the account state is still
             // unknown and orphan an existing backup, which is the exact failure this method was
@@ -229,7 +229,7 @@ class SecureBackupController: SecureBackupControllerProtocol {
                 MXLog.warning("GUA-KEYSTORE: recovery state never settled, refusing to act.")
                 return .failure(.failedGeneratingRecoveryKey)
             }
-
+            
             // GUA FORK: not upstream's `enableRecovery` here, which creates a backup version when none is enabled locally.
             guard state == .disabled else {
                 MXLog.info("Resetting recovery key")
@@ -239,17 +239,17 @@ class SecureBackupController: SecureBackupControllerProtocol {
             }
             
             MXLog.info("Enabling recovery")
-
+            
             // GUA FORK: the progress listener owns only the transient `.settingUp`. Terminal values
             // are the SDK's: it recomputes recovery state before `enableRecovery` returns and
             // reports it through its own listener. Whether the call returns or throws, a
             // `.settingUp` still standing afterwards is replaced with the SDK's current answer.
             defer { publishSDKRecoveryStateIfStillSettingUp() }
-
+            
             let keyUploadErrored = Mutex(false)
             let recoveryKey = try await encryption.enableRecovery(waitForBackupsToUpload: false, passphrase: passphrase, progressListener: SDKListener.onMainActor { [weak self] state in
                 guard let self else { return }
-
+                
                 switch state {
                 case .starting, .creatingBackup, .creatingRecoveryKey, .backingUp:
                     recoveryStateSubject.send(.settingUp)
@@ -298,7 +298,7 @@ class SecureBackupController: SecureBackupControllerProtocol {
             return .failure(.failedConfirmingRecoveryKey)
         }
     }
-
+    
     /// GUA FORK: repairs an account that is `.incomplete` with NO recovery key available.
     ///
     /// This is the state every account damaged by the old silent bootstrap is in, so it is the
@@ -323,7 +323,7 @@ class SecureBackupController: SecureBackupControllerProtocol {
             // enableRecovery refuses to overwrite a backup, so on its own it can never get an
             // account out of .incomplete. This is why the previous attempt changed nothing.
             MXLog.info("GUA-KEYSTORE: blocked by BackupExistsOnServer; checking reachability.")
-
+            
             // A verified device would have gossiped the secrets to us already, and the state
             // would no longer be .incomplete. So give that a moment to land, and only treat the
             // backup as unreachable once it has not.
@@ -337,7 +337,7 @@ class SecureBackupController: SecureBackupControllerProtocol {
                 MXLog.info("GUA-KEYSTORE: secrets arrived from another device, nothing to repair.")
                 return .failure(.failedGeneratingRecoveryKey)
             }
-
+            
             // Nothing supplied the secrets and no key survives, so nothing can decrypt that
             // backup again. Keeping it preserves only a permanently broken account, so replace
             // it. This does not touch the cross-signing identity, so no contact is warned.
@@ -354,7 +354,7 @@ class SecureBackupController: SecureBackupControllerProtocol {
             return .failure(.failedGeneratingRecoveryKey)
         }
     }
-
+    
     /// GUA FORK: whether recovery reaches `.enabled` within `timeout`.
     ///
     /// Used to give secret gossip from an already-verified device a chance to land before we
@@ -364,7 +364,7 @@ class SecureBackupController: SecureBackupControllerProtocol {
         if recoveryState.value == .enabled {
             return true
         }
-
+        
         return await withTaskGroup(of: Bool.self) { group in
             group.addTask { [recoveryState] in
                 for await state in recoveryState.values where state == .enabled {
@@ -372,18 +372,18 @@ class SecureBackupController: SecureBackupControllerProtocol {
                 }
                 return false
             }
-
+            
             group.addTask {
                 try? await Task.sleep(for: timeout)
                 return false
             }
-
+            
             let enabled = await group.next() ?? false
             group.cancelAll()
             return enabled
         }
     }
-
+    
     /// GUA FORK: everything that can finish encryption setup without destroying anything.
     ///
     /// Split out from the reset so the banner can try this first and stay silent when it works.
@@ -397,9 +397,9 @@ class SecureBackupController: SecureBackupControllerProtocol {
             MXLog.info("GUA-KEYSTORE: an identity reset is still pending, refusing to repair around it.")
             return .resetRequired
         }
-
+        
         let state = await settledRecoveryState(timeout: .seconds(2))
-
+        
         switch state {
         case .enabled:
             return .repaired
@@ -424,7 +424,7 @@ class SecureBackupController: SecureBackupControllerProtocol {
             return await repairIncomplete()
         }
     }
-
+    
     /// GUA FORK: provisions key storage straight after a reset, and does NOT go through
     /// `repairWithoutReset`.
     ///
@@ -441,12 +441,12 @@ class SecureBackupController: SecureBackupControllerProtocol {
         if let provisioningTask {
             return await provisioningTask.value
         }
-
+        
         let task = Task<EncryptionRepairOutcome, Never> { [weak self] in
             guard let self else { return .resetRequired }
             return await performProvisionAfterReset()
         }
-
+        
         provisioningTask = task
         isProvisioningKeyStorageSubject.send(true)
         let outcome = await task.value
@@ -454,7 +454,7 @@ class SecureBackupController: SecureBackupControllerProtocol {
         isProvisioningKeyStorageSubject.send(false)
         return outcome
     }
-
+    
     /// Provisions key storage after a reset, and keeps trying until the state agrees.
     ///
     /// `Recovery::enable` exports whatever private cross-signing keys the crypto store can hand over
@@ -482,7 +482,7 @@ class SecureBackupController: SecureBackupControllerProtocol {
                                      return await waitForRecoveryEnabled(timeout: timeout)
                                  })
     }
-
+    
     /// The post-reset provisioning loop, as a pure function so it can be tested.
     /// Only a thrown attempt is retried: a successful mint that leaves recovery incomplete is final.
     static func provisionLoop(backoff: [Duration],
@@ -496,7 +496,7 @@ class SecureBackupController: SecureBackupControllerProtocol {
             if isEnabled() {
                 return .repaired
             }
-
+            
             do {
                 try await enableRecovery()
             } catch RecoveryError.BackupExistsOnServer {
@@ -509,14 +509,14 @@ class SecureBackupController: SecureBackupControllerProtocol {
                 return .resetRequired
             } catch {
                 MXLog.warning("GUA-KEYSTORE: post-reset provision attempt \(attempt + 1) threw: \(error)")
-
+                
                 if await waitForEnabled(delay) {
                     MXLog.info("GUA-KEYSTORE: key storage provisioned on attempt \(attempt + 1).")
                     return .repaired
                 }
                 continue
             }
-
+            
             switch authoritativeState() {
             case .enabled:
                 MXLog.info("GUA-KEYSTORE: key storage provisioned on attempt \(attempt + 1).")
@@ -536,17 +536,17 @@ class SecureBackupController: SecureBackupControllerProtocol {
                 return .identityIncompleteAfterReset
             }
         }
-
+        
         MXLog.error("GUA-KEYSTORE: could not provision key storage after the reset.")
         return .resetRequired
     }
-
+    
     /// How long to wait for the state to agree after each attempt, growing as the identity settles.
     ///
     /// Doubles as the retry schedule: the whole sequence spans about a minute, which is generous
     /// enough for a slow device and still bounded, and the user is not waiting on any of it.
     private static let provisionBackoff: [Duration] = [.seconds(3), .seconds(5), .seconds(10), .seconds(20), .seconds(20)]
-
+    
     /// Repairs an account whose secret storage exists but whose secrets this device cannot use.
     ///
     /// Deliberately does NOT call `enableRecovery`. `Recovery::enable` always runs
@@ -570,21 +570,21 @@ class SecureBackupController: SecureBackupControllerProtocol {
             try await encryption.enableBackups()
         } catch {
             MXLog.info("GUA-KEYSTORE: enableBackups failed, reading the state now: \(error)")
-
+            
             if recoveryState.value == .enabled {
                 return .repaired
             }
             MXLog.info("GUA-KEYSTORE: not enabled, this device needs a reset.")
             return .resetRequired
         }
-
+        
         if await waitForRecoveryEnabled(timeout: .seconds(2)) {
             return .repaired
         }
         MXLog.info("GUA-KEYSTORE: still not enabled, this device needs a reset.")
         return .resetRequired
     }
-
+    
     /// Provisions key storage, and reports honestly whether it actually worked.
     ///
     /// `enableRecovery` SUCCEEDS on a device that holds no private cross-signing keys: it mints a
@@ -603,7 +603,7 @@ class SecureBackupController: SecureBackupControllerProtocol {
             MXLog.warning("GUA-KEYSTORE: encryption initialisation did not finish, leaving key storage alone.")
             return .notYet
         }
-
+        
         // A post-reset provision may already be running behind the chat list. Join it rather than
         // starting a second one: two enableRecovery calls each mint a secret store, and the loser's
         // is the one that ends up in account data. This is the tap that lands while the background
@@ -611,21 +611,21 @@ class SecureBackupController: SecureBackupControllerProtocol {
         if let provisioningTask {
             return await provisioningTask.value
         }
-
+        
         do {
             _ = try await enableRecoveryReturningKey()
         } catch {
             // As in `repairIncomplete`, a failed call cannot be what flips the state, so read it
             // once and answer rather than holding the user on a spinner for three more seconds.
             MXLog.warning("GUA-KEYSTORE: could not provision recovery: \(error)")
-
+            
             if recoveryState.value == .enabled {
                 return .repaired
             }
             MXLog.info("GUA-KEYSTORE: not enabled, this device needs a reset.")
             return .resetRequired
         }
-
+        
         // Only the state can say whether that finished the job.
         if await waitForRecoveryEnabled(timeout: .seconds(3)) {
             return .repaired
@@ -633,7 +633,7 @@ class SecureBackupController: SecureBackupControllerProtocol {
         MXLog.info("GUA-KEYSTORE: still not enabled, this device needs a reset.")
         return .resetRequired
     }
-
+    
     /// GUA FORK: enables recovery and persists the recovery key it minted before returning it.
     ///
     /// The key is the only credential for the secret store that was just created, so it is stored
@@ -644,14 +644,14 @@ class SecureBackupController: SecureBackupControllerProtocol {
         guard await e2eeInitializationCompleted() else {
             throw SecureBackupControllerError.failedEnablingBackup
         }
-
+        
         let key = try await encryption.enableRecovery(waitForBackupsToUpload: false,
                                                       passphrase: nil,
                                                       progressListener: SDKListener { _ in })
         persistRecoveryKey(key)
         return key
     }
-
+    
     func waitForKeyBackupUpload(uploadStateSubject: CurrentValueSubject<SecureBackupSteadyState, Never>) async -> Result<Void, SecureBackupControllerError> {
         do {
             MXLog.info("Waiting for backup upload steady state")

@@ -191,7 +191,7 @@ struct HomeScreen_Previews: PreviewProvider, TestablePreview {
         let emptyViewModel = viewModel(.empty)
         let loadedViewModel = viewModel(.rooms)
         let guaMarketingViewModel = viewModel(roomSummaryProviderState: .loaded(.mockRoomsGuaMarketing))
-
+        
         ElementNavigationStack {
             HomeScreen(context: loadingViewModel.context)
         }
@@ -215,7 +215,7 @@ struct HomeScreen_Previews: PreviewProvider, TestablePreview {
             state.roomListMode == .rooms
         })
         .previewDisplayName("Loaded")
-
+        
         ElementNavigationStack {
             HomeScreen(context: guaMarketingViewModel.context)
         }
@@ -226,7 +226,7 @@ struct HomeScreen_Previews: PreviewProvider, TestablePreview {
         }, precision: 0.997)
         .previewDisplayName("GuaMarketingConversas")
     }
-
+    
     static func viewModel(_ mode: HomeScreenRoomListMode) -> HomeScreenViewModel {
         let roomSummaryProviderState: RoomSummaryProviderMockConfigurationState = switch mode {
         case .awaitingCachedRooms, .skeletons:
@@ -236,17 +236,17 @@ struct HomeScreen_Previews: PreviewProvider, TestablePreview {
         case .rooms:
             .loaded(.mockRooms)
         }
-
+        
         return viewModel(roomSummaryProviderState: roomSummaryProviderState)
     }
-
+    
     static func viewModel(roomSummaryProviderState: RoomSummaryProviderMockConfigurationState) -> HomeScreenViewModel {
         let userID = "@alice:example.com"
-
+        
         let clientProxy = ClientProxyMock(.init(userID: userID,
                                                 displayName: "Ana Costa",
                                                 roomSummaryProvider: RoomSummaryProviderMock(.init(state: roomSummaryProviderState))))
-
+        
         let userSession = UserSessionMock(.init(clientProxy: clientProxy))
         
         return HomeScreenViewModel(userSession: userSession,

@@ -80,7 +80,7 @@ struct AnalyticsPromptScreen: View {
             Button(L10n.actionOk) { context.send(viewAction: .enable) }
                 .buttonStyle(.compound(.primary))
                 .accessibilityIdentifier(A11yIdentifiers.analyticsPromptScreen.enable)
-
+            
             Button(L10n.actionNotNow) { context.send(viewAction: .disable) }
                 .buttonStyle(.compound(.primary))
                 .accessibilityIdentifier(A11yIdentifiers.analyticsPromptScreen.notNow)

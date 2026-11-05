@@ -15,12 +15,12 @@ typealias EncryptionResetScreenViewModelType = StateStoreViewModelV2<EncryptionR
 class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, EncryptionResetScreenViewModelProtocol {
     private let clientProxy: ClientProxyProtocol
     private let userIndicatorController: UserIndicatorControllerProtocol
-
+    
     private let actionsSubject: PassthroughSubject<EncryptionResetScreenViewModelAction, Never> = .init()
     var actionsPublisher: AnyPublisher<EncryptionResetScreenViewModelAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
-
+    
     private var identityResetHandle: IdentityResetHandle?
     private var passwordCancellable: AnyCancellable?
     private var oAuthCancellable: AnyCancellable?
@@ -33,7 +33,7 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
     private let approveReset: (URL, String) async -> Bool
     /// Bounds this screen's wait only; the reset call keeps running under the guard.
     private let resetCallCeiling: Duration
-
+    
     init(clientProxy: ClientProxyProtocol,
          userIndicatorController: UserIndicatorControllerProtocol,
          approveReset: ((URL, String) async -> Bool)? = nil,
@@ -42,28 +42,27 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
         self.userIndicatorController = userIndicatorController
         self.approveReset = approveReset ?? { url, accessToken in await Self.approveFromApp(approvalURL: url, accessToken: accessToken) }
         self.resetCallCeiling = resetCallCeiling
-
+        
         super.init(initialViewState: EncryptionResetScreenViewState(bindings: .init()))
-
+        
         Task { await checkForOtherDevice() }
     }
-
+    
     // MARK: - Recovery from another device
-
+    
     /// GUA FORK: offers recovery from another device only when there is one to recover from: this
     /// device is missing keys that exist on the server (recovery is incomplete) AND another device
     /// of the account is signed by the current identity. Whether that device still holds the keys
     /// and answers is only learnt by trying; the flow says so plainly when it does not. Anything
     /// else, and the reset stays the only option.
     private func checkForOtherDevice() async {
-        guard clientProxy.secureBackupController.recoveryState.value == .incomplete else { return }
-        guard case let .success(hasOtherDevice) = await clientProxy.hasDevicesToVerifyAgainst() else { return }
+        guard clientProxy.secureBackupController.recoveryState.value == .incomplete, case let .success(hasOtherDevice) = await clientProxy.hasDevicesToVerifyAgainst() else { return }
         MXLog.info("GUA-KEYSTORE: another device signed by the current identity exists: \(hasOtherDevice)")
         state.canRecoverFromOtherDevice = hasOtherDevice
     }
-
+    
     // MARK: - Public
-
+    
     override func process(viewAction: EncryptionResetScreenViewAction) {
         switch viewAction {
         case .reset:
@@ -85,23 +84,23 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
             actionsSubject.send(.cancel)
         }
     }
-
+    
     func stop() {
         Task {
             await identityResetHandle?.cancel()
             await resetGuard?.releaseIfIdle()
         }
     }
-
+    
     // MARK: - Private
-
+    
     private func startResetFlow() async {
         showLoadingIndicator()
-
+        
         defer {
             hideLoadingIndicator()
         }
-
+        
         // GUA FORK: the guard must be held before resetIdentity() runs. See IdentityResetGuard.
         let resetGuard = await clientProxy.acquireIdentityResetGuard()
         self.resetGuard = resetGuard
@@ -110,7 +109,7 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
             await awaitReset(inFlight)
             return
         }
-
+        
         switch await clientProxy.resetIdentity() {
         case let .success(handle):
             // If the handle is missing then interactive authentication wasn't
@@ -120,14 +119,14 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
                 actionsSubject.send(.resetFinished)
                 return
             }
-
+            
             identityResetHandle = handle
-
+            
             // GUA FORK: from here on this account carries a freshly minted identity that the
             // server has never seen. Until an approval lands it, the setup banner must not try
             // to repair around it. See IdentityResetPendingStore.
             IdentityResetPendingStore.markPending(for: clientProxy.userID)
-
+            
             switch handle.authType() {
             case .uiaa(let info):
                 let passwordPublisher = PassthroughSubject<String, Never>()
@@ -136,15 +135,15 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
                     passwordCancellable = nil
                     Task { await self.resetWith(password: password, session: info.session) }
                 }
-
+                
                 actionsSubject.send(.requestPassword(passwordPublisher: passwordPublisher))
             case .oAuth(let oAuthInfo):
                 guard let url = URL(string: oAuthInfo.approvalUrl) else {
                     fatalError("Invalid URL received through identity reset handle: \(oAuthInfo.approvalUrl)")
                 }
-
+                
                 hideLoadingIndicator()
-
+                
                 // GUA FORK: approve with the app's own access token first. The web sheet uses the
                 // system browser's cookies, which may belong to another account.
                 showFinishingIndicator()
@@ -153,7 +152,7 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
                     return
                 }
                 hideFinishingIndicator()
-
+                
                 // Older servers: fall back to the web sheet. Nothing runs while it is open. The
                 // approval page hands control back to the app once the user has approved, and
                 // that is the moment to upload. The sheet closing by hand means no approval.
@@ -163,7 +162,7 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
                     oAuthCancellable = nil
                     Task { await self.handleApprovalSheet(outcome: outcome, session: oAuthInfo.session) }
                 }
-
+                
                 actionsSubject.send(.requestOAuthAuthorisation(url: url, completionPublisher: outcomePublisher))
             }
         case let .failure(error):
@@ -173,20 +172,20 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
             showErrorToast()
         }
     }
-
+    
     func resetWith(password: String, session: String) async {
         guard let identityResetHandle, let resetGuard else {
             fatalError("Requested reset flow continuation without a stored handle")
         }
-
+        
         let operation = resetGuard.runReset(identityResetHandle,
                                             auth: .password(passwordDetails: .init(identifier: clientProxy.userID, password: password, session: session)))
         self.identityResetHandle = nil
         await awaitReset(operation)
     }
-
+    
     // MARK: Approval from the app's own session
-
+    
     /// Asks the server to open the reset window for this account, authenticated with the
     /// session's own access token. Returns false when the server does not offer this (an
     /// older deployment) or refuses, in which case the web sheet is the fallback.
@@ -198,11 +197,11 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
         components.query = nil
         components.fragment = nil
         guard let endpoint = components.url else { return false }
-
+        
         var request = URLRequest(url: endpoint, timeoutInterval: 10)
         request.httpMethod = "POST"
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-
+        
         do {
             let (_, response) = try await URLSession.shared.data(for: request)
             guard let status = (response as? HTTPURLResponse)?.statusCode else { return false }
@@ -217,9 +216,9 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
             return false
         }
     }
-
+    
     // MARK: Approval sheet outcome
-
+    
     private func handleApprovalSheet(outcome: OAuthAccountSettingsPresenter.Outcome, session: String) async {
         switch outcome {
         case .dismissed:
@@ -233,26 +232,26 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
             await finishApprovedReset(session: session)
         }
     }
-
+    
     private func finishApprovedReset(session: String) async {
         guard let identityResetHandle, let resetGuard, !isResetInFlight else { return }
-
+        
         isResetInFlight = true
         defer { isResetInFlight = false }
-
+        
         let operation = resetGuard.runReset(identityResetHandle, auth: .oAuth(session: session))
         // Cleared so that nothing can cancel a call that has started.
         self.identityResetHandle = nil
         actionsSubject.send(.dismissOAuthPresentation)
-
+        
         await awaitReset(operation)
     }
-
+    
     private func awaitReset(_ operation: Task<Result<Void, Error>, Never>) async {
         showFinishingIndicator()
         let outcome = await Self.race(operation, ceiling: resetCallCeiling)
         hideFinishingIndicator()
-
+        
         switch outcome {
         case .landed:
             reportLanded()
@@ -264,7 +263,7 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
             MXLog.warning("GUA-KEYSTORE: reset(auth:) has not returned within \(resetCallCeiling); it keeps running under the guard.")
             state.isResetting = false
             userIndicatorController.submitIndicator(UserIndicator(title: UntranslatedL10n.guaEncryptionResetStillFinishing))
-
+            
             Task { [weak self] in
                 let result = await operation.value
                 guard let self else { return }
@@ -278,7 +277,7 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
             }
         }
     }
-
+    
     private func reportLanded() {
         guard !hasReportedLanding else { return }
         hasReportedLanding = true
@@ -286,7 +285,7 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
         // isResetting stays set: the flow coordinator keeps this screen up while key storage is provisioned.
         actionsSubject.send(.resetFinished)
     }
-
+    
     private func abandonAttempt() async {
         actionsSubject.send(.dismissOAuthPresentation)
         if let identityResetHandle {
@@ -296,17 +295,17 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
         await resetGuard?.releaseIfIdle()
         state.isResetting = false
     }
-
+    
     private enum ResetCallOutcome {
         case landed
         case failed(Error)
         case timedOut
     }
-
+    
     /// Not a task group: a group waits for every child, and the child awaiting the call cannot be cancelled.
     private static func race(_ operation: Task<Result<Void, Error>, Never>, ceiling: Duration) async -> ResetCallOutcome {
         let gate = ResetOutcomeGate()
-
+        
         return await withCheckedContinuation { (continuation: CheckedContinuation<ResetCallOutcome, Never>) in
             Task {
                 switch await operation.value {
@@ -320,12 +319,12 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
             }
         }
     }
-
+    
     /// Resumes a continuation exactly once, whichever task gets there first.
     private final class ResetOutcomeGate: @unchecked Sendable {
         private let lock = NSLock()
         private var resumed = false
-
+        
         func resume(_ continuation: CheckedContinuation<ResetCallOutcome, Never>, with outcome: ResetCallOutcome) {
             lock.lock()
             defer { lock.unlock() }
@@ -334,34 +333,34 @@ class EncryptionResetScreenViewModel: EncryptionResetScreenViewModelType, Encryp
             continuation.resume(returning: outcome)
         }
     }
-
+    
     // MARK: Toasts and loading indicators
-
+    
     private static let loadingIndicatorIdentifier = "\(EncryptionResetScreenViewModel.self)-Loading"
     private static let finishingIndicatorIdentifier = "\(EncryptionResetScreenViewModel.self)-Finishing"
-
+    
     private func showLoadingIndicator() {
         userIndicatorController.submitIndicator(UserIndicator(id: Self.loadingIndicatorIdentifier,
                                                               type: .modal,
                                                               title: L10n.commonLoading,
                                                               persistent: true))
     }
-
+    
     private func hideLoadingIndicator() {
         userIndicatorController.retractIndicatorWithId(Self.loadingIndicatorIdentifier)
     }
-
+    
     private func showFinishingIndicator() {
         userIndicatorController.submitIndicator(UserIndicator(id: Self.finishingIndicatorIdentifier,
                                                               type: .modal,
                                                               title: UntranslatedL10n.guaEncryptionResetFinishing,
                                                               persistent: true))
     }
-
+    
     private func hideFinishingIndicator() {
         userIndicatorController.retractIndicatorWithId(Self.finishingIndicatorIdentifier)
     }
-
+    
     private func showErrorToast() {
         userIndicatorController.submitIndicator(UserIndicator(title: L10n.errorUnknown))
     }
