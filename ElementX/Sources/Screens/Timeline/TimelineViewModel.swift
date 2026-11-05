@@ -1061,23 +1061,6 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
     
     // MARK: Pills
     
-    /// The message as its bubble reads, with mentions written out the way their pills show them.
-    private func selectableText(for item: EventBasedMessageTimelineItemProtocol) -> String {
-        let formattedBody = switch item {
-        case let item as TextRoomTimelineItem: item.content.formattedBody
-        case let item as NoticeRoomTimelineItem: item.content.formattedBody
-        case let item as EmoteRoomTimelineItem: item.content.formattedBody
-        default: AttributedString?.none
-        }
-        
-        return MessageSelectionText.make(body: item.body, formattedBody: formattedBody) { pillType in
-            if case let .user(userID) = pillType {
-                return PillUtilities.userPillDisplayText(username: state.members[userID]?.displayName, userID: userID)
-            }
-            return PillContext(timelineContext: context, data: PillTextAttachmentData(type: pillType, font: .preferredFont(forTextStyle: .body))).viewState.displayText
-        }
-    }
-    
     private func pillContextUpdater(_ pillContext: PillContext) {
         switch pillContext.data.type {
         case let .user(id):
@@ -1295,6 +1278,25 @@ extension TimelineViewModel {
                                                               type: .toast,
                                                               title: L10n.screenRoomMaximumMessagesSelected,
                                                               icon: \.info))
+    }
+}
+
+extension TimelineViewModel {
+    /// The message as its bubble reads, with mentions written out the way their pills show them.
+    private func selectableText(for item: EventBasedMessageTimelineItemProtocol) -> String {
+        let formattedBody = switch item {
+        case let item as TextRoomTimelineItem: item.content.formattedBody
+        case let item as NoticeRoomTimelineItem: item.content.formattedBody
+        case let item as EmoteRoomTimelineItem: item.content.formattedBody
+        default: AttributedString?.none
+        }
+        
+        return MessageSelectionText.make(body: item.body, formattedBody: formattedBody) { pillType in
+            if case let .user(userID) = pillType {
+                return PillUtilities.userPillDisplayText(username: state.members[userID]?.displayName, userID: userID)
+            }
+            return PillContext(timelineContext: context, data: PillTextAttachmentData(type: pillType, font: .preferredFont(forTextStyle: .body))).viewState.displayText
+        }
     }
 }
 

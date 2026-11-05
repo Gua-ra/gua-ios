@@ -162,21 +162,7 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         
         configureNotificationManager()
         
-        guard let currentVersion = Version(InfoPlistReader(bundle: .main).bundleShortVersionString) else {
-            fatalError("The app's version number **must** use semver for migration purposes.")
-        }
-        
-        // GUA FORK: migrated data means the app was not deleted, so it must not trigger the
-        // fresh-install wipe.
-        if appGroupMigration != .deferred {
-            if let previousVersion = appSettings.lastVersionLaunched.flatMap(Version.init) {
-                performMigrationsIfNecessary(from: previousVersion, to: currentVersion)
-            } else if appGroupMigration == .nothingToMigrate {
-                // The app has been deleted since the previous run. Reset everything.
-                wipeUserData(includingSettings: true)
-            }
-            appSettings.lastVersionLaunched = currentVersion.description
-        }
+        performLaunchMigrations(appGroupMigration: appGroupMigration)
         
         setupStateMachine()
         
@@ -485,6 +471,22 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
     }
     
     // MARK: - Private
+    
+    private func performLaunchMigrations(appGroupMigration: AppGroupMigration.Outcome) {
+        guard let currentVersion = Version(InfoPlistReader(bundle: .main).bundleShortVersionString) else {
+            fatalError("The app's version number **must** use semver for migration purposes.")
+        }
+        
+        guard appGroupMigration != .deferred else { return }
+        
+        if let previousVersion = appSettings.lastVersionLaunched.flatMap(Version.init) {
+            performMigrationsIfNecessary(from: previousVersion, to: currentVersion)
+        } else if appGroupMigration == .nothingToMigrate {
+            // GUA FORK: migrated data means the app was not deleted, so only a true fresh install wipes.
+            wipeUserData(includingSettings: true)
+        }
+        appSettings.lastVersionLaunched = currentVersion.description
+    }
     
     /// Perform any required migrations for the app to function correctly.
     private func performMigrationsIfNecessary(from oldVersion: Version, to newVersion: Version) {

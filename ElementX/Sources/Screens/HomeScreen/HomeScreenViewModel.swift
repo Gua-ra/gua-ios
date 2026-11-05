@@ -259,36 +259,17 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
         case .setupRecovery:
             actionsSubject.send(.presentSecureBackupSettings)
         case .confirmRecoveryKey:
-            // GUA FORK: the banner's single button. Try everything non-destructive first and
-            // only surface the reset, with its warning, if one is genuinely required. Most
-            // devices repair silently here and the user never learns a reset existed.
-            //
-            // The flag is set here, synchronously on the main actor, so the spinner lands in the
-            // same frame as the tap rather than after the first await. It doubles as the re-entry
-            // guard, and finishEncryptionSetup clears it on every outcome.
-            guard !state.isFinishingEncryptionSetup else { return }
-            state.isRepairingEncryptionSetupFromTap = true
-            state.isFinishingEncryptionSetup = true
-            Task { await finishEncryptionSetup() }
+            startFinishingEncryptionSetup()
         case .resetEncryption:
             actionsSubject.send(.presentEncryptionResetScreen)
         case .skipRecoveryKeyConfirmation:
             state.securityBannerMode = .dismissed
         case .setUpPinReminder:
-            state.pinSetupReminderVisible = false
-            actionsSubject.send(.presentTwoStepVerificationSetup)
+            startPinSetupFromReminder()
         case .dismissPinReminder:
-            state.pinSetupReminderVisible = false
-            // Snooze for a week so we don't badger the user.
-            userSettings.app.pinSetupReminderSnoozedUntil = Date().addingTimeInterval(7 * 24 * 60 * 60)
+            snoozePinSetupReminder()
         case .cancelAccountRecovery:
-            state.bindings.alertInfo = AlertInfo(id: UUID(),
-                                                 title: L10n.screenAccountRecoveryCancelConfirmTitle,
-                                                 message: L10n.screenAccountRecoveryCancelConfirmMessage,
-                                                 primaryButton: .init(title: L10n.actionGoBack, role: .cancel, action: nil),
-                                                 secondaryButton: .init(title: L10n.screenAccountRecoveryBannerAction, role: .destructive) { [weak self] in
-                                                     Task { await self?.cancelAccountRecovery() }
-                                                 })
+            showCancelAccountRecoveryConfirmation()
         case .dismissNewSoundBanner:
             userSettings.app.hasSeenNewSoundBanner = true
         case .screenAppeared:
@@ -379,6 +360,41 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
                                                      self?.actionsSubject.send(.presentFeedbackScreen)
                                                  })
         }
+    }
+    
+    /// GUA FORK: the banner's single button. Try everything non-destructive first and only surface
+    /// the reset, with its warning, if one is genuinely required. Most devices repair silently here
+    /// and the user never learns a reset existed.
+    ///
+    /// The flag is set here, synchronously on the main actor, so the spinner lands in the same frame
+    /// as the tap rather than after the first await. It doubles as the re-entry guard, and
+    /// finishEncryptionSetup clears it on every outcome.
+    private func startFinishingEncryptionSetup() {
+        guard !state.isFinishingEncryptionSetup else { return }
+        state.isRepairingEncryptionSetupFromTap = true
+        state.isFinishingEncryptionSetup = true
+        Task { await finishEncryptionSetup() }
+    }
+    
+    private func startPinSetupFromReminder() {
+        state.pinSetupReminderVisible = false
+        actionsSubject.send(.presentTwoStepVerificationSetup)
+    }
+    
+    private func snoozePinSetupReminder() {
+        state.pinSetupReminderVisible = false
+        // Snooze for a week so we don't badger the user.
+        userSettings.app.pinSetupReminderSnoozedUntil = Date().addingTimeInterval(7 * 24 * 60 * 60)
+    }
+    
+    private func showCancelAccountRecoveryConfirmation() {
+        state.bindings.alertInfo = AlertInfo(id: UUID(),
+                                             title: L10n.screenAccountRecoveryCancelConfirmTitle,
+                                             message: L10n.screenAccountRecoveryCancelConfirmMessage,
+                                             primaryButton: .init(title: L10n.actionGoBack, role: .cancel, action: nil),
+                                             secondaryButton: .init(title: L10n.screenAccountRecoveryBannerAction, role: .destructive) { [weak self] in
+                                                 Task { await self?.cancelAccountRecovery() }
+                                             })
     }
     
     /// GUA FORK: completes encryption setup for a device that could not do it on its own.

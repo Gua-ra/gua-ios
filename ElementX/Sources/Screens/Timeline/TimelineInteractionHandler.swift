@@ -122,7 +122,7 @@ class TimelineInteractionHandler {
         Task { await timelineController.redact(eventOrTransactionID, reason: reason) }
     }
     
-    // swiftlint:disable:next cyclomatic_complexity
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     func handleTimelineItemMenuAction(_ action: TimelineItemMenuAction, itemID: TimelineItemIdentifier) {
         if case .redact = action {
             // An unsent message is only dropped from the send queue. No redaction event reaches
