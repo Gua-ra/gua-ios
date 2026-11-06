@@ -11417,7 +11417,7 @@
 			repositoryURL = "https://github.com/element-hq/matrix-rust-components-swift";
 			requirement = {
 				kind = exactVersion;
-				version = 26.10.30;
+				version = 26.11.05;
 			};
 		};
 		62E9E457EA2889B41B8E8F19 /* XCRemoteSwiftPackageReference "swift-async-algorithms" */ = {
