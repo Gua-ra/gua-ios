@@ -73,15 +73,17 @@ nonisolated struct MediaBatchForwarding {
     let files: [PendingMediaBatchStore.File]
     let pendingBatches: PendingMediaBatchStore
     
-    /// New markers for one chat, registered so that its local echoes stack before the server copies arrive.
-    func makeBatches(forRoomID roomID: String) -> [MediaBatch?] {
-        let batches = MediaBatch.makeBatches(count: files.count)
-        for (batch, file) in zip(batches, files) {
+    func makeBatches() -> [MediaBatch?] {
+        MediaBatch.makeBatches(count: files.count)
+    }
+    
+    /// Registers the members from `index` on before they are enqueued, so that the chat's local echoes stack before the server copies arrive.
+    func register(_ batches: [MediaBatch?], from index: Int, forRoomID roomID: String) {
+        for (batch, file) in zip(batches, files).dropFirst(index) {
             if let batch {
                 pendingBatches.register(batch, for: .init(roomID: roomID, file: file))
             }
         }
-        return batches
     }
     
     /// Drops the entries of the members from `index` on, which a forward that stopped there never enqueued.

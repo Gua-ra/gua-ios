@@ -501,6 +501,7 @@ final class TimelineProxy: TimelineProxyProtocol {
             _ = try await timeline.sendWithExtraContent(msg: messageContent, extraContentJson: extraContentJSON)
         } catch {
             MXLog.error("Failed sending message with error: \(error)")
+            // Gua: upstream returns success here, but a forward must stop a chat at a failed enqueue and resume there on retry.
             return .failure(.sdkError(error))
         }
         
