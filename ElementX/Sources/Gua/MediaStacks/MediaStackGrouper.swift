@@ -105,7 +105,7 @@ private nonisolated extension Candidate {
             guard let batch = member.mediaBatch else { return nil }
             self.init(batch: batch, sender: member.item.sender.id, headsThread: member.item.properties.threadSummary != nil)
         } else if let removed = item as? RedactedRoomTimelineItem, let eventID = removed.id.eventID, let batch = cache.knownBatch(forEventID: eventID) {
-            self.init(batch: batch, sender: removed.sender.id, headsThread: false)
+            self.init(batch: batch, sender: removed.sender.id, headsThread: removed.properties.threadSummary != nil)
         } else {
             return nil
         }

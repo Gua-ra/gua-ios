@@ -26,6 +26,22 @@ struct MediaStackGrouperTests {
     }
     
     @Test
+    func removedLaterMemberHeadingAThreadRendersOnItsOwn() {
+        let alice = "@alice:example.org"
+        let fixtureItems: [[String: Any]] = [["id": "$r1", "sender": alice, "kind": "image", "batch": ["t", 0, 4]],
+                                             ["id": "$r2", "sender": alice, "kind": "image", "batch": ["t", 1, 4]],
+                                             ["id": "$r3", "sender": alice, "kind": "redacted", "known": ["t", 2, 4], "threadRoot": true],
+                                             ["id": "$r4", "sender": alice, "kind": "image", "batch": ["t", 3, 4]]]
+        let cache = MediaBatchCache()
+        let items = fixtureItems.map { Self.timelineItem(from: $0, seeding: cache) }
+        
+        let grouped = MediaStackGrouper.group(items, cache: cache)
+        
+        #expect(Self.describe(grouped, input: fixtureItems) == [["stack", "photos", "$r1", "$r2"], ["removed", "$r3"], ["item", "$r4"]])
+        #expect((grouped[1] as? RedactedRoomTimelineItem)?.properties.threadSummary != nil, "The removed member's thread stays reachable.")
+    }
+    
+    @Test
     func stackIDSurvivesOlderMembersPaginatingIn() throws {
         let cache = MediaBatchCache()
         let newerMembers = [image("$2", batch: .init(id: "b", index: 1, count: 3)), image("$3", batch: .init(id: "b", index: 2, count: 3))]
@@ -103,7 +119,7 @@ struct MediaStackGrouperTests {
                 _ = cache.batch(forEventID: id) { known }
             }
             return RedactedRoomTimelineItem(id: eventID(id), body: "", timestamp: .mock, isOutgoing: false, isEditable: false,
-                                            canBeRepliedTo: false, sender: .init(id: sender))
+                                            canBeRepliedTo: false, sender: .init(id: sender), properties: .init(threadSummary: threadSummary))
         case "utd":
             return EncryptedRoomTimelineItem(id: eventID(id), body: "", encryptionType: .unknown, timestamp: .mock, isOutgoing: false,
                                              isEditable: false, canBeRepliedTo: false, sender: .init(id: sender))
