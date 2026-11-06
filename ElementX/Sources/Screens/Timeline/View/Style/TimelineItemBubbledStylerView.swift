@@ -121,7 +121,8 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
     
     private var bubble: some View {
         ZStack(alignment: .trailingFirstTextBaseline) {
-            VStack(alignment: alignment, spacing: -8) {
+            // The avatar overlaps a bubble's padded corner, but a stack has no bubble and the overlap would cover its count header.
+            VStack(alignment: alignment, spacing: isMediaStack ? 0 : -8) {
                 if !timelineItem.isOutgoing, !isDM {
                     header
                         .zIndex(1)
