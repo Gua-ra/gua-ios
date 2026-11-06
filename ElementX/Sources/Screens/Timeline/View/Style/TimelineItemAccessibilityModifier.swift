@@ -17,8 +17,6 @@ enum TimelineItemAccessibilityMessageSelection {
 }
 
 private struct TimelineItemAccessibilityModifier: ViewModifier {
-    @Environment(\.timelineContext) private var context
-    
     let timelineItem: RoomTimelineItemProtocol
     let selection: TimelineItemAccessibilityMessageSelection
     let action: () -> Void
@@ -41,7 +39,7 @@ private struct TimelineItemAccessibilityModifier: ViewModifier {
             }
         // Not wrapped in a representation, whose copy would rebuild the cards' gesture recognisers.
         case let stack as MediaStackRoomTimelineItem:
-            interactions(for: content.mediaStackAccessibility(stack, context: context))
+            interactions(for: content.mediaStackAccessibility(stack))
         // A gallery is a container so that each of its attachments can be focussed on its own.
         // Everything that isn't an attachment is announced when entering it, as the caption and
         // the send info are hidden where they're shown to avoid being read twice.

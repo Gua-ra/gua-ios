@@ -92,14 +92,15 @@ nonisolated extension MediaStackRoomTimelineItem {
 }
 
 extension View {
-    func mediaStackAccessibility(_ stack: MediaStackRoomTimelineItem, context: TimelineViewModel.Context?) -> some View {
-        modifier(MediaStackAccessibilityModifier(stack: stack, context: context))
+    func mediaStackAccessibility(_ stack: MediaStackRoomTimelineItem) -> some View {
+        modifier(MediaStackAccessibilityModifier(stack: stack))
     }
 }
 
 private struct MediaStackAccessibilityModifier: ViewModifier {
+    @Environment(\.timelineContext) private var context
+    
     let stack: MediaStackRoomTimelineItem
-    let context: TimelineViewModel.Context?
     
     private var positions: MediaStackPositions? {
         context?.viewState.mediaStackPositions
@@ -149,7 +150,7 @@ private struct MediaStackAccessibilityModifier: ViewModifier {
                 }
             }
             .accessibilityAction(.default) {
-                context?.send(viewAction: .mediaStackTapped(stackID: stack.id, index: frontIndex))
+                context?.send(viewAction: .mediaTapped(itemID: stack.members[frontIndex].id))
             }
             .accessibilityAction(named: UntranslatedL10n.guaMediaStackA11yNext) {
                 positions?.page(stack, by: 1)
@@ -166,7 +167,7 @@ private struct MediaStackAccessibilityModifier: ViewModifier {
 struct MediaStackRoomTimelineView_Previews: PreviewProvider, TestablePreview {
     static let viewModel: TimelineViewModel = {
         let viewModel = TimelineViewModel.mock
-        viewModel.state.mediaStackPositions.setFrontIndex(1, of: sending) // Shows the failed card in front.
+        viewModel.state.mediaStackPositions.bringToFront(sending.members[1], of: sending) // Shows the failed card in front.
         return viewModel
     }()
     

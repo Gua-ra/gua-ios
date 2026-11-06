@@ -11,7 +11,7 @@ import Synchronization
 import Testing
 
 struct PendingMediaBatchStoreTests {
-    private let key = PendingMediaBatchStore.Key(roomID: "!room:matrix.org", filename: "IMG_1.jpg", fileSize: 1024, mimeType: "image/jpeg")
+    private let key = PendingMediaBatchStore.Key(roomID: "!room:matrix.org", file: .init(filename: "IMG_1.jpg", fileSize: 1024, mimeType: "image/jpeg"))
     
     @Test
     func localEchoIsMatchedByItsFile() {
@@ -60,7 +60,7 @@ struct PendingMediaBatchStoreTests {
     }
     
     private var otherFileKey: PendingMediaBatchStore.Key {
-        .init(roomID: key.roomID, filename: "IMG_2.jpg", fileSize: key.fileSize, mimeType: key.mimeType)
+        .init(roomID: key.roomID, file: .init(filename: "IMG_2.jpg", fileSize: key.file.fileSize, mimeType: key.file.mimeType))
     }
 }
 

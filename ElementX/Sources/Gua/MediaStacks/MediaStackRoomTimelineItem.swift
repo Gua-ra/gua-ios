@@ -8,9 +8,7 @@
 import Foundation
 import UniformTypeIdentifiers
 
-/// Photos and videos sent together, shown as one stack. It stands for its first member, which reactions,
-/// replies, threads and the message menu act on.
-nonisolated struct MediaStackRoomTimelineItem: EventBasedMessageTimelineItemProtocol, Equatable {
+nonisolated struct MediaStackRoomTimelineItem: EventBasedMessageTimelineItemProtocol, Equatable, Identifiable {
     enum Member: Equatable {
         case image(ImageRoomTimelineItem)
         case video(VideoRoomTimelineItem)
@@ -47,6 +45,47 @@ nonisolated struct MediaStackRoomTimelineItem: EventBasedMessageTimelineItemProt
             case .video(let item): item.uploadProgress
             }
         }
+        
+        var mediaSource: MediaSourceProxy {
+            switch self {
+            case .image(let item): item.content.imageInfo.source
+            case .video(let item): item.content.videoInfo.source
+            }
+        }
+        
+        var thumbnailSource: MediaSourceProxy? {
+            switch self {
+            case .image(let item): item.content.thumbnailInfo?.source
+            case .video(let item): item.content.thumbnailInfo?.source
+            }
+        }
+        
+        var file: PendingMediaBatchStore.File {
+            switch self {
+            case .image(let item): .init(filename: item.content.filename, fileSize: item.content.imageInfo.fileSize, mimeType: item.content.imageInfo.mimeType)
+            case .video(let item): .init(filename: item.content.filename, fileSize: item.content.videoInfo.fileSize, mimeType: item.content.videoInfo.mimeType)
+            }
+        }
+        
+        var blurhash: String? {
+            switch self {
+            case .image(let item): item.content.blurhash
+            case .video(let item): item.content.blurhash
+            }
+        }
+        
+        var duration: TimeInterval? {
+            guard case let .video(item) = self else { return nil }
+            return item.content.videoInfo.duration
+        }
+        
+        init?(_ item: RoomTimelineItemProtocol) {
+            switch item {
+            case let item as ImageRoomTimelineItem: self = .image(item)
+            case let item as VideoRoomTimelineItem: self = .video(item)
+            default: return nil
+            }
+        }
     }
     
     enum Kind {
@@ -58,12 +97,15 @@ nonisolated struct MediaStackRoomTimelineItem: EventBasedMessageTimelineItemProt
     let id: TimelineItemIdentifier
     /// Ordered by their index in the batch, never fewer than two.
     let members: [Member]
+    /// The member last in timeline order that the server has, which read receipts go to.
+    let newestEventID: String?
     let timestamp: Date
     let properties: RoomTimelineItemProperties
     
-    init(stackID: TimelineItemIdentifier.UniqueID, members: [Member]) {
+    init(stackID: TimelineItemIdentifier.UniqueID, members: [Member], newestEventID: String?) {
         let first = members[0].item
         self.members = members
+        self.newestEventID = newestEventID
         id = first.id.replacingUniqueID(with: stackID)
         timestamp = members.reduce(first.timestamp) { max($0, $1.item.timestamp) }
         
@@ -111,7 +153,6 @@ nonisolated struct MediaStackRoomTimelineItem: EventBasedMessageTimelineItemProt
         first.item.contentType
     }
     
-    /// Reactions, replies and the reaction dock go to the first member, so its own state decides.
     var isFirstMemberReactable: Bool {
         first.item.isReactable
     }
@@ -153,9 +194,15 @@ nonisolated extension TimelineItemIdentifier {
     }
 }
 
+nonisolated extension RoomTimelineItemProtocol {
+    func represents(eventID: String) -> Bool {
+        id.eventID == eventID || (self as? MediaStackRoomTimelineItem)?.memberIndex(ofEventID: eventID) != nil
+    }
+}
+
 nonisolated extension MediaStackRoomTimelineItem {
     static func mock(id: String = "stack", members: [Member]) -> MediaStackRoomTimelineItem {
-        .init(stackID: .init(id), members: members)
+        .init(stackID: .init(id), members: members, newestEventID: members.last?.id.eventID)
     }
 }
 

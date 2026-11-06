@@ -8,14 +8,6 @@
 import Compound
 import SwiftUI
 
-struct MediaStackGridInfo: Identifiable {
-    let stack: MediaStackRoomTimelineItem
-    
-    var id: TimelineItemIdentifier {
-        stack.id
-    }
-}
-
 struct MediaStackGridScreen: View {
     @ObservedObject var context: TimelineViewModel.Context
     let stack: MediaStackRoomTimelineItem
@@ -26,9 +18,10 @@ struct MediaStackGridScreen: View {
                 ScrollView {
                     LazyVGrid(columns: columns(for: geometry.size.width), spacing: 2) {
                         ForEach(stack.members.indices, id: \.self) { index in
-                            MediaStackGridTile(member: stack.members[index], accessibilityLabel: stack.positionDescription(at: index))
+                            let member = stack.members[index]
+                            MediaStackGridTile(member: member, accessibilityLabel: stack.positionDescription(at: index))
                                 .onTapGesture {
-                                    context.send(viewAction: .mediaStackTapped(stackID: stack.id, index: index))
+                                    context.send(viewAction: .mediaTapped(itemID: member.id))
                                 }
                         }
                     }
@@ -55,73 +48,18 @@ struct MediaStackGridScreen: View {
 }
 
 private struct MediaStackGridTile: View {
-    @Environment(\.timelineContext) private var context
-    
     let member: MediaStackRoomTimelineItem.Member
     let accessibilityLabel: String
     
     var body: some View {
         Color.clear
             .aspectRatio(1, contentMode: .fit)
-            .overlay {
-                ContentScanningView(contentScannerService: context?.contentScannerService,
-                                    mediaSource: member.mediaSource,
-                                    thumbnailSource: member.thumbnailSource,
-                                    containerShowsFailure: false) {
-                    thumbnail
-                } scanningContent: {
-                    Color.compound.bgSubtleSecondary.overlay { ProgressView() }
-                } unsafeContent: { failure in
-                    ContentScanningFailureView(failure: failure)
-                }
-            }
-            .overlay {
-                if member.isVideo {
-                    videoOverlay
-                }
-            }
+            .overlay { MediaStackThumbnail(member: member, style: .tile) }
             .clipped()
             .contentShape(.rect)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(accessibilityLabel)
             .accessibilityAddTraits(.isButton)
-    }
-    
-    @ViewBuilder
-    private var thumbnail: some View {
-        if let source = member.stillSource {
-            LoadableImage(mediaSource: source,
-                          mediaType: .timelineItem(uniqueID: member.id.uniqueID),
-                          blurhash: member.blurhash,
-                          size: member.thumbnailSize,
-                          mediaProvider: context?.mediaProvider) { image in
-                image.scaledToFill()
-            } placeholder: {
-                Color.compound.bgSubtleSecondary
-            }
-        } else {
-            Color.compound.bgSubtleSecondary
-        }
-    }
-    
-    private var videoOverlay: some View {
-        ZStack(alignment: .bottomLeading) {
-            CompoundIcon(\.playSolid, size: .small, relativeTo: .compound.bodyMD)
-                .foregroundStyle(.white)
-                .frame(width: 32, height: 32)
-                .background(.black.opacity(0.45), in: .circle)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            
-            if let duration = member.duration {
-                Text(MediaStackDuration.formatted(duration))
-                    .font(.compound.bodyXSSemibold.monospacedDigit())
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(.black.opacity(0.45), in: .capsule)
-                    .padding(6)
-            }
-        }
     }
 }
 

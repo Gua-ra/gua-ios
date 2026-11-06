@@ -74,7 +74,7 @@ struct MessageForwardingPayload: Hashable {
     let roomID: String
     /// The contents to be forwarded, in timeline order.
     let contents: [RoomMessageEventContentWithoutRelation]
-    var sendsAsMediaBatch = false
+    var mediaBatch: MediaBatchForwarding?
     
     static func == (lhs: MessageForwardingPayload, rhs: MessageForwardingPayload) -> Bool {
         lhs.ids == rhs.ids && lhs.roomID == rhs.roomID

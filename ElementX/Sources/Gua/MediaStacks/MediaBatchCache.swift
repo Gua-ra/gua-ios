@@ -8,7 +8,6 @@
 import Foundation
 import Synchronization
 
-/// What one timeline knows about media batches: each event's marker, parsed once, and the IDs given to its stacks.
 final nonisolated class MediaBatchCache: Sendable {
     private struct State {
         var batchesByEventID: [String: MediaBatch?] = [:]
@@ -27,7 +26,6 @@ final nonisolated class MediaBatchCache: Sendable {
         return batch
     }
     
-    /// The marker an event had before it was removed, if it was seen then.
     func knownBatch(forEventID eventID: String) -> MediaBatch? {
         state.withLock { $0.batchesByEventID[eventID] ?? nil }
     }
@@ -57,39 +55,32 @@ final nonisolated class MediaBatchCache: Sendable {
     }
 }
 
-/// Where a timeline finds the marker of a photo or video: its event once the server has echoed it back, the pending send before that.
 nonisolated struct MediaBatchSources: Sendable {
     let cache: MediaBatchCache
     let pendingBatches: PendingMediaBatchStore
     let roomID: String
     
     func attachingBatch(to item: RoomTimelineItemProtocol, from proxy: EventTimelineItemProxy) -> RoomTimelineItemProtocol {
-        switch item {
-        case var image as ImageRoomTimelineItem:
-            image.mediaBatch = batch(of: proxy, key: .init(roomID: roomID,
-                                                           filename: image.content.filename,
-                                                           fileSize: image.content.imageInfo.fileSize,
-                                                           mimeType: image.content.imageInfo.mimeType))
+        guard let member = MediaStackRoomTimelineItem.Member(item) else { return item }
+        let batch = batch(of: proxy, key: .init(roomID: roomID, file: member.file))
+        
+        switch member {
+        case .image(var image):
+            image.mediaBatch = batch
             return image
-        case var video as VideoRoomTimelineItem:
-            video.mediaBatch = batch(of: proxy, key: .init(roomID: roomID,
-                                                           filename: video.content.filename,
-                                                           fileSize: video.content.videoInfo.fileSize,
-                                                           mimeType: video.content.videoInfo.mimeType))
+        case .video(var video):
+            video.mediaBatch = batch
             return video
-        default:
-            return item
         }
     }
     
     private func batch(of proxy: EventTimelineItemProxy, key: PendingMediaBatchStore.Key) -> MediaBatch? {
         let itemIDs = proxy.id.allIDs
         
-        if proxy.isLocalEcho {
-            return proxy.isOwn ? pendingBatches.batch(forItemIDs: itemIDs, key: key) : nil
+        guard !proxy.isLocalEcho, let eventID = proxy.id.eventID else {
+            return pendingBatches.batch(forItemIDs: itemIDs, key: key)
         }
         
-        guard let eventID = proxy.id.eventID else { return nil }
         let batch = cache.batch(forEventID: eventID) { proxy.mediaBatch }
         if batch != nil, proxy.isOwn {
             pendingBatches.complete(itemIDs: itemIDs)

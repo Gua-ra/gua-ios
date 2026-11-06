@@ -259,6 +259,15 @@
       "expected": [["item", "$q1"]]
     },
     {
+      "name": "the read marker keeps its place beside a lone member",
+      "items": [
+        {"id": "$rm1", "sender": "@alice:example.org", "kind": "image", "batch": ["b23", 0, 2]},
+        {"id": "marker", "kind": "readMarker"},
+        {"id": "$rm2", "sender": "@alice:example.org", "kind": "redacted", "known": ["b23", 1, 2]}
+      ],
+      "expected": [["item", "$rm1"], ["readMarker"]]
+    },
+    {
       "name": "a repeated index ends the stack and starts a new run",
       "items": [
         {"id": "$n1", "sender": "@alice:example.org", "kind": "image", "batch": ["b17", 0, 3]},
@@ -296,6 +305,17 @@
         {"id": "$t4", "sender": "@alice:example.org", "kind": "image", "batch": ["b21", 3, 4]}
       ],
       "expected": [["stack", "photos", "$t1", "$t2"], ["item", "$t3"], ["item", "$t4"]]
+    },
+    {
+      "name": "a later member that heads a thread after the read marker renders on its own",
+      "items": [
+        {"id": "$th1", "sender": "@alice:example.org", "kind": "image", "batch": ["b24", 0, 4]},
+        {"id": "$th2", "sender": "@alice:example.org", "kind": "image", "batch": ["b24", 1, 4]},
+        {"id": "marker", "kind": "readMarker"},
+        {"id": "$th3", "sender": "@alice:example.org", "kind": "image", "batch": ["b24", 2, 4], "threadRoot": true},
+        {"id": "$th4", "sender": "@alice:example.org", "kind": "image", "batch": ["b24", 3, 4]}
+      ],
+      "expected": [["stack", "photos", "$th1", "$th2"], ["readMarker"], ["item", "$th3"], ["item", "$th4"]]
     },
     {
       "name": "a first member that heads a thread stays in the stack",

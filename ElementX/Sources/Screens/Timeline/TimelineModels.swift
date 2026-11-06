@@ -54,7 +54,6 @@ enum TimelineViewAction {
     
     case mediaTapped(itemID: TimelineItemIdentifier)
     case galleryItemTapped(GalleryItemID)
-    case mediaStackTapped(stackID: TimelineItemIdentifier, index: Int)
     case mediaStackHeaderTapped(stackID: TimelineItemIdentifier)
     case itemSendInfoTapped(itemID: TimelineItemIdentifier)
     case toggleReaction(key: String, itemID: TimelineItemIdentifier)
@@ -207,7 +206,7 @@ struct TimelineViewStateBindings {
     
     var redactConfirmationInfo: TimelineRedactConfirmationInfo?
     
-    var mediaStackGrid: MediaStackGridInfo?
+    var mediaStackGrid: MediaStackRoomTimelineItem?
     var mediaStackGridPreviewViewModel: TimelineMediaPreviewViewModel?
     
     var showTranslation = false

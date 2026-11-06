@@ -12640,6 +12640,11 @@ nonisolated class StaticRoomSummaryProviderMock: StaticRoomSummaryProviderProtoc
     }
 }
 nonisolated class TimelineControllerFactoryMock: TimelineControllerFactoryProtocol, @unchecked Sendable {
+    var pendingMediaBatches: PendingMediaBatchStore {
+        get { return underlyingPendingMediaBatches }
+        set(value) { underlyingPendingMediaBatches = value }
+    }
+    nonisolated(unsafe) var underlyingPendingMediaBatches: PendingMediaBatchStore!
 
     //MARK: - buildTimelineController
 

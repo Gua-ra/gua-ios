@@ -186,7 +186,6 @@ final nonisolated class EventTimelineItemProxy: Sendable {
         item.readReceipts
     }
     
-    /// The item has not come back from the server yet, so its event JSON isn't available.
     var isLocalEcho: Bool {
         item.localSendState != nil
     }

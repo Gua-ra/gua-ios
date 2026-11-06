@@ -82,10 +82,9 @@ class MediaUploadPreviewScreenViewModel: MediaUploadPreviewScreenViewModelType, 
                             showError(label: L10n.screenMediaUploadPreviewErrorFailedSending)
                         }
                     } else {
-                        let mediaBatch = mediaBatch(for: mediaInfos)
                         var perItemCaption = caption
-                        for (index, mediaInfo) in mediaInfos.enumerated() {
-                            switch await sendAttachment(mediaInfo: mediaInfo, caption: perItemCaption, mediaBatch: mediaBatch?[index]) {
+                        for (mediaInfo, mediaBatch) in zip(mediaInfos, mediaBatches(for: mediaInfos)) {
+                            switch await sendAttachment(mediaInfo: mediaInfo, caption: perItemCaption, mediaBatch: mediaBatch) {
                             case .success:
                                 perItemCaption = nil // Set the caption only on the first uploaded file.
                             case .failure(let error):
@@ -175,9 +174,9 @@ class MediaUploadPreviewScreenViewModel: MediaUploadPreviewScreenViewModelType, 
         }
     }
     
-    private func mediaBatch(for mediaInfos: [MediaInfo]) -> [MediaBatch]? {
-        guard sendsMediaBatch, mediaInfos.count > 1, mediaInfos.allSatisfy(\.isPhotoOrVideo) else { return nil }
-        return MediaBatch.makeBatch(count: mediaInfos.count)
+    private func mediaBatches(for mediaInfos: [MediaInfo]) -> [MediaBatch?] {
+        guard sendsMediaBatch, mediaInfos.allSatisfy(\.isPhotoOrVideo) else { return Array(repeating: nil, count: mediaInfos.count) }
+        return MediaBatch.makeBatches(count: mediaInfos.count)
     }
     
     private func sendAttachment(mediaInfo: MediaInfo, caption: String?, mediaBatch: MediaBatch?) async -> Result<Void, TimelineControllerError> {

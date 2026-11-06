@@ -683,7 +683,7 @@ final class TimelineViewModelTests {
                 false
             }
         }
-        viewModel.context.send(viewAction: .mediaStackTapped(stackID: stack.id, index: 2))
+        viewModel.context.send(viewAction: .mediaTapped(itemID: stack.members[2].id))
         
         guard case let .displayMediaPreview(mediaPreviewViewModel) = try await deferred.fulfill() else {
             Issue.record("The viewer should open.")
@@ -699,7 +699,7 @@ final class TimelineViewModelTests {
         
         viewModel.context.send(viewAction: .mediaStackHeaderTapped(stackID: stack.id))
         
-        #expect(viewModel.state.bindings.mediaStackGrid?.stack == stack)
+        #expect(viewModel.state.bindings.mediaStackGrid == stack)
     }
     
     @Test

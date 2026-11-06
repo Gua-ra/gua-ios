@@ -8,24 +8,22 @@
 import Compound
 import SwiftUI
 
-/// The card each stack shows in front, kept per timeline so that a reused cell, the lifted copy in the
-/// message menu and VoiceOver all agree.
 @Observable
 final class MediaStackPositions {
-    private var frontIndexes: [TimelineItemIdentifier.UniqueID: Int] = [:]
+    private var frontMemberIDs: [TimelineItemIdentifier.UniqueID: TimelineItemIdentifier.UniqueID] = [:]
     private var revealedStackIDs: Set<TimelineItemIdentifier.UniqueID> = []
     
     func frontIndex(of stack: MediaStackRoomTimelineItem) -> Int {
-        min(frontIndexes[stack.id.uniqueID] ?? 0, stack.members.count - 1)
+        let memberID = frontMemberIDs[stack.id.uniqueID]
+        return stack.members.firstIndex { $0.id.uniqueID == memberID } ?? 0
     }
     
-    func setFrontIndex(_ index: Int, of stack: MediaStackRoomTimelineItem) {
-        frontIndexes[stack.id.uniqueID] = index
+    func bringToFront(_ member: MediaStackRoomTimelineItem.Member, of stack: MediaStackRoomTimelineItem) {
+        frontMemberIDs[stack.id.uniqueID] = member.id.uniqueID
     }
     
     func page(_ stack: MediaStackRoomTimelineItem, by step: Int) {
-        let count = stack.members.count
-        setFrontIndex(((frontIndex(of: stack) + step) % count + count) % count, of: stack)
+        bringToFront(stack.member(wrapping: frontIndex(of: stack) + step), of: stack)
     }
     
     func isRevealed(_ stack: MediaStackRoomTimelineItem) -> Bool {
@@ -40,6 +38,8 @@ final class MediaStackPositions {
 struct MediaStackCardsView: View {
     static let cardSize = CGSize(width: 220, height: 275)
     static let frameSize = CGSize(width: cardSize.width + 12, height: cardSize.height + 8)
+    
+    private static let pageAnimation = Animation.spring(response: 0.35, dampingFraction: 0.85)
     
     @Environment(\.timelineContext) private var context
     @Environment(\.isMessageMenuPreview) private var isMessageMenuPreview
@@ -64,12 +64,10 @@ struct MediaStackCardsView: View {
         !shouldAutomaticallyLoadImages && !positions.isRevealed(stack)
     }
     
-    /// The physical direction of the reading order's leading edge.
     private var leadingSign: CGFloat {
         layoutDirection == .rightToLeft ? 1 : -1
     }
     
-    /// Behind cards fan out toward the middle of the screen, away from the edge the stack is aligned to.
     private var fanSign: CGFloat {
         stack.isOutgoing ? leadingSign : -leadingSign
     }
@@ -86,7 +84,7 @@ struct MediaStackCardsView: View {
                     .environment(\.layoutDirection, layoutDirection)
                     .modifier(CardPlacement(slot: card.slot,
                                             dragOffset: card.slot == 0 && !reduceMotion ? dragOffset : 0,
-                                            dragProgress: min(abs(dragOffset) / Self.cardSize.width, 1),
+                                            dragProgress: reduceMotion ? 0 : min(abs(dragOffset) / Self.cardSize.width, 1),
                                             fanSign: fanSign))
                     .transition(.opacity)
                     .zIndex(Double(-card.slot))
@@ -102,15 +100,14 @@ struct MediaStackCardsView: View {
         .environment(\.shouldAutomaticallyLoadImages, shouldAutomaticallyLoadImages || positions.isRevealed(stack))
         .contentShape(.rect)
         .gesture(MediaStackTapGesture(isEnabled: isInteractive) { handleTap() })
-        .gesture(PanGestureRepresentable { handlePan($0) })
+        .gesture(PanGestureRepresentable(isEnabled: isInteractive) { handlePan($0) })
         .allowsHitTesting(isInteractive)
         .animation(reduceMotion ? .easeInOut(duration: 0.2) : nil, value: frontIndex)
     }
     
     private var visibleCards: [VisibleCard] {
-        let count = stack.members.count
-        return (0..<min(count, 3)).map { slot in
-            let member = stack.members[((frontIndex + slot * revealStep) % count + count) % count]
+        (0..<min(stack.members.count, 3)).map { slot in
+            let member = stack.member(wrapping: frontIndex + slot * revealStep)
             // With Reduce Motion the cards stay in place and only the front one cross-fades to the next.
             let id = reduceMotion && slot > 0 ? "slot-\(slot)" : member.id.uniqueID.value
             return VisibleCard(id: id, member: member, slot: slot)
@@ -127,13 +124,11 @@ struct MediaStackCardsView: View {
         if member.item.hasFailedToSend {
             context?.send(viewAction: .itemSendInfoTapped(itemID: member.id))
         } else {
-            context?.send(viewAction: .mediaStackTapped(stackID: stack.id, index: frontIndex))
+            context?.send(viewAction: .mediaTapped(itemID: member.id))
         }
     }
     
     private func handlePan(_ gesture: UIPanGestureRecognizer) {
-        guard isInteractive else { return }
-        
         switch gesture.state {
         case .began, .changed:
             dragOffset = gesture.translation(in: nil).x
@@ -161,10 +156,10 @@ struct MediaStackCardsView: View {
             return
         }
         
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.85).disabledDuringTests()) {
+        withAnimation(Self.pageAnimation.disabledDuringTests()) {
             dragOffset = (dragOffset < 0 ? -1 : 1) * Self.cardSize.width * 1.5
         } completion: {
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.85).disabledDuringTests()) {
+            withAnimation(Self.pageAnimation.disabledDuringTests()) {
                 positions.page(stack, by: step)
                 dragOffset = 0
             }
@@ -172,7 +167,7 @@ struct MediaStackCardsView: View {
     }
     
     private func springBack() {
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.85).disabledDuringTests()) {
+        withAnimation(Self.pageAnimation.disabledDuringTests()) {
             dragOffset = 0
         }
     }
@@ -193,13 +188,6 @@ private struct CardPlacement: ViewModifier {
     let dragProgress: CGFloat
     let fanSign: CGFloat
     
-    func body(content: Content) -> some View {
-        content
-            .scaleEffect(scale)
-            .rotationEffect(.degrees(rotation))
-            .offset(x: fanSign * 6 * CGFloat(slot) + dragOffset, y: -4 * CGFloat(slot))
-    }
-    
     private var scale: CGFloat {
         switch slot {
         case 0: 1
@@ -210,15 +198,21 @@ private struct CardPlacement: ViewModifier {
     
     private var rotation: Double {
         if slot == 0 {
-            Self.maximumDragRotation * Double(dragOffset / MediaStackCardsView.cardSize.width)
+            Self.maximumDragRotation * Double(min(max(dragOffset / MediaStackCardsView.cardSize.width, -1), 1))
         } else {
             Double(fanSign) * Self.rotations[min(slot, 2)]
         }
     }
+    
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(scale)
+            .rotationEffect(.degrees(rotation))
+            .offset(x: fanSign * 6 * CGFloat(slot) + dragOffset, y: -4 * CGFloat(slot))
+    }
 }
 
 private struct MediaStackCard: View {
-    @Environment(\.timelineContext) private var context
     @Environment(\.colorScheme) private var colorScheme
     
     let member: MediaStackRoomTimelineItem.Member
@@ -229,11 +223,59 @@ private struct MediaStackCard: View {
     }
     
     var body: some View {
+        MediaStackThumbnail(member: member, style: .card, isHidden: isHidden)
+            .frame(width: MediaStackCardsView.cardSize.width, height: MediaStackCardsView.cardSize.height)
+            .clipShape(.rect(cornerRadius: 18))
+            .opacity(isUnsent ? 0.6 : 1)
+            // Top-trailing, as the stack's send info sits in the bottom-trailing corner.
+            .overlay(alignment: .topTrailing) { sendStateBadge }
+            .overlay {
+                if colorScheme == .dark {
+                    RoundedRectangle(cornerRadius: 18).stroke(.compound.borderInteractiveSecondary, lineWidth: 0.5)
+                }
+            }
+            .shadow(color: .black.opacity(colorScheme == .light ? 0.12 : 0), radius: 3, y: 2)
+    }
+    
+    @ViewBuilder
+    private var sendStateBadge: some View {
+        if member.item.hasFailedToSend {
+            CompoundIcon(\.errorSolid, size: .small, relativeTo: .compound.bodyMD)
+                .foregroundStyle(.compound.iconCriticalPrimary)
+                .background(.compound.bgCanvasDefault, in: .circle)
+                .padding(8)
+        } else if isUnsent {
+            MediaStackUploadRing(progress: member.uploadProgress)
+                .padding(8)
+        }
+    }
+}
+
+struct MediaStackThumbnail: View {
+    enum Style {
+        case card
+        case tile
+    }
+    
+    @Environment(\.timelineContext) private var context
+    @Environment(\.displayScale) private var displayScale
+    
+    let member: MediaStackRoomTimelineItem.Member
+    let style: Style
+    var isHidden = false
+    
+    private var requestedSize: CGSize {
+        CGSize(width: MediaStackCardsView.cardSize.width * displayScale, height: MediaStackCardsView.cardSize.height * displayScale)
+    }
+    
+    var body: some View {
         ContentScanningView(contentScannerService: context?.contentScannerService,
                             mediaSource: member.mediaSource,
                             thumbnailSource: member.thumbnailSource,
                             containerShowsFailure: false) {
-            thumbnail
+            Color.clear
+                .overlay { image }
+                .clipped()
                 .overlay {
                     if member.isVideo {
                         videoOverlay
@@ -244,34 +286,22 @@ private struct MediaStackCard: View {
         } unsafeContent: { failure in
             ContentScanningFailureView(failure: failure)
         }
-        .frame(width: MediaStackCardsView.cardSize.width, height: MediaStackCardsView.cardSize.height)
-        .clipShape(.rect(cornerRadius: 18))
-        .opacity(isUnsent ? 0.6 : 1)
-        // Top-trailing, as the stack's send info sits in the bottom-trailing corner.
-        .overlay(alignment: .topTrailing) { sendStateBadge }
-        .overlay {
-            if colorScheme == .dark {
-                RoundedRectangle(cornerRadius: 18).stroke(.compound.borderInteractiveSecondary, lineWidth: 0.5)
-            }
-        }
-        .shadow(color: .black.opacity(colorScheme == .light ? 0.12 : 0), radius: 3, y: 2)
     }
     
     @ViewBuilder
-    private var thumbnail: some View {
+    private var image: some View {
         if isHidden {
             hiddenPlaceholder
         } else if let source = member.stillSource {
             LoadableImage(mediaSource: source,
                           mediaType: .timelineItem(uniqueID: member.id.uniqueID),
                           blurhash: member.blurhash,
-                          size: member.thumbnailSize,
+                          size: requestedSize,
                           mediaProvider: context?.mediaProvider) { image in
                 image.scaledToFill()
             } placeholder: {
                 placeholder
             }
-            .frame(width: MediaStackCardsView.cardSize.width, height: MediaStackCardsView.cardSize.height)
         } else {
             placeholder
         }
@@ -295,9 +325,9 @@ private struct MediaStackCard: View {
     
     private var videoOverlay: some View {
         ZStack(alignment: .bottomLeading) {
-            CompoundIcon(\.playSolid)
+            CompoundIcon(\.playSolid, size: style == .card ? .medium : .small, relativeTo: style == .card ? .compound.bodyLG : .compound.bodyMD)
                 .foregroundStyle(.white)
-                .frame(width: 44, height: 44)
+                .frame(width: style == .card ? 44 : 32, height: style == .card ? 44 : 32)
                 .background(.black.opacity(0.45), in: .circle)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             
@@ -308,21 +338,8 @@ private struct MediaStackCard: View {
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(.black.opacity(0.45), in: .capsule)
-                    .padding(8)
+                    .padding(style == .card ? 8 : 6)
             }
-        }
-    }
-    
-    @ViewBuilder
-    private var sendStateBadge: some View {
-        if member.item.hasFailedToSend {
-            CompoundIcon(\.errorSolid, size: .small, relativeTo: .compound.bodyMD)
-                .foregroundStyle(.compound.iconCriticalPrimary)
-                .background(.compound.bgCanvasDefault, in: .circle)
-                .padding(8)
-        } else if isUnsent {
-            MediaStackUploadRing(progress: member.uploadProgress)
-                .padding(8)
         }
     }
 }
@@ -404,45 +421,19 @@ nonisolated enum MediaStackDuration {
     }
 }
 
-nonisolated extension MediaStackRoomTimelineItem.Member {
-    var mediaSource: MediaSourceProxy {
-        switch self {
-        case .image(let item): item.content.imageInfo.source
-        case .video(let item): item.content.videoInfo.source
-        }
+extension MediaStackRoomTimelineItem {
+    func member(wrapping index: Int) -> Member {
+        members[(index % members.count + members.count) % members.count]
     }
-    
-    var thumbnailSource: MediaSourceProxy? {
-        switch self {
-        case .image(let item): item.content.thumbnailInfo?.source
-        case .video(let item): item.content.thumbnailInfo?.source
-        }
-    }
-    
-    /// The image a card shows, the thumbnail first so that GIFs and WebPs stay still in a stack.
+}
+
+private extension MediaStackRoomTimelineItem.Member {
     var stillSource: MediaSourceProxy? {
-        switch self {
+        let source = switch self {
         case .image(let item): item.content.thumbnailInfo?.source ?? item.content.imageInfo.source
         case .video(let item): item.content.thumbnailInfo?.source
         }
-    }
-    
-    var thumbnailSize: CGSize? {
-        switch self {
-        case .image(let item): item.content.thumbnailInfo?.size ?? item.content.imageInfo.size
-        case .video(let item): item.content.thumbnailInfo?.size
-        }
-    }
-    
-    var blurhash: String? {
-        switch self {
-        case .image(let item): item.content.blurhash
-        case .video(let item): item.content.blurhash
-        }
-    }
-    
-    var duration: TimeInterval? {
-        guard case let .video(item) = self else { return nil }
-        return item.content.videoInfo.duration
+        // Without a MIME type the loader decodes a single frame, so an animated GIF stays still.
+        return source.map { MediaSourceProxy(source: $0.underlyingSource, mimeType: nil) }
     }
 }

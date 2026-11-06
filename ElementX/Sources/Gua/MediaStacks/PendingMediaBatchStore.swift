@@ -8,13 +8,16 @@
 import Foundation
 import Synchronization
 
-/// Remembers the batches sent in this session, because a local echo has no event JSON to read the marker from.
 final nonisolated class PendingMediaBatchStore: Sendable {
-    struct Key: Hashable {
-        let roomID: String
+    struct File: Hashable {
         let filename: String
         let fileSize: UInt?
         let mimeType: String?
+    }
+    
+    struct Key: Hashable {
+        let roomID: String
+        let file: File
     }
     
     private struct Entry {
@@ -55,5 +58,21 @@ final nonisolated class PendingMediaBatchStore: Sendable {
     
     func complete(itemIDs: Set<String>) {
         entries.withLock { $0.removeAll { !$0.itemIDs.isDisjoint(with: itemIDs) } }
+    }
+}
+
+nonisolated struct MediaBatchForwarding {
+    let files: [PendingMediaBatchStore.File]
+    let pendingBatches: PendingMediaBatchStore
+    
+    /// New markers for one chat, registered so that its local echoes stack before the server copies arrive.
+    func makeBatches(forRoomID roomID: String) -> [MediaBatch?] {
+        let batches = MediaBatch.makeBatches(count: files.count)
+        for (batch, file) in zip(batches, files) {
+            if let batch {
+                pendingBatches.register(batch, for: .init(roomID: roomID, file: file))
+            }
+        }
+        return batches
     }
 }

@@ -14,6 +14,8 @@ enum TimelineFactoryControllerError: Error {
 }
 
 protocol TimelineControllerFactoryProtocol {
+    var pendingMediaBatches: PendingMediaBatchStore { get }
+    
     func buildTimelineController(roomProxy: JoinedRoomProxyProtocol,
                                  initialFocussedEventID: String?,
                                  timelineItemFactory: RoomTimelineItemFactoryProtocol,

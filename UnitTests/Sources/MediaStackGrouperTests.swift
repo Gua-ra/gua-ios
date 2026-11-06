@@ -64,6 +64,23 @@ struct MediaStackGrouperTests {
         #expect(stack.properties.deliveryStatus == failure)
         #expect(stack.firstFailedMember?.id.eventID == "$2")
         #expect(stack.properties.orderedReadReceipts.map(\.userID) == ["@carol:matrix.org", "@bob:matrix.org"])
+        #expect(stack.newestEventID == "$3")
+    }
+    
+    @Test
+    func readReceiptsGoToTheNewestSentMember() throws {
+        let localEcho = ImageRoomTimelineItem(id: .event(uniqueID: .init("echo"), eventOrTransactionID: .transactionID("txn")),
+                                              timestamp: .mock, isOutgoing: true, isEditable: true, canBeRepliedTo: true,
+                                              sender: .init(id: "@me:matrix.org"), content: .init(filename: "echo.jpg", imageInfo: .mockImage, thumbnailInfo: nil),
+                                              mediaBatch: .init(id: "b", index: 0, count: 3))
+        let members: [RoomTimelineItemProtocol] = [image("$2", batch: .init(id: "b", index: 2, count: 3)),
+                                                   image("$1", batch: .init(id: "b", index: 1, count: 3)),
+                                                   localEcho]
+        
+        let stack = try #require(MediaStackGrouper.group(members, cache: MediaBatchCache()).first as? MediaStackRoomTimelineItem)
+        
+        #expect(stack.members.map(\.id.uniqueID.value) == ["echo", "$1", "$2"])
+        #expect(stack.newestEventID == "$1", "The newest member in timeline order that has been sent.")
     }
     
     private static func timelineItem(from fixture: [String: Any], seeding cache: MediaBatchCache) -> RoomTimelineItemProtocol {

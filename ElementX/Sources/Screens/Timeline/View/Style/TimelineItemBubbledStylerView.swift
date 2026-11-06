@@ -34,8 +34,11 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
     }
     
     private var isFocussed: Bool {
-        guard let focussedEventID else { return false }
-        return timelineItem.id.eventID == focussedEventID || (timelineItem as? MediaStackRoomTimelineItem)?.memberIndex(ofEventID: focussedEventID) != nil
+        focussedEventID.map { timelineItem.represents(eventID: $0) } ?? false
+    }
+    
+    private var isMediaStack: Bool {
+        timelineItem is MediaStackRoomTimelineItem
     }
     
     private var isPinned: Bool {
@@ -222,18 +225,6 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
     }
     
     var messageBubbleWithActions: some View {
-        swipeableBubble
-            .contextMenu {
-                if !isMessageSelectionActive {
-                    macContextMenu
-                }
-            }
-            .readsWindowFrame(bubbleFrameReader)
-            .pinnedIndicator(isPinned: isPinned, isOutgoing: timelineItem.isOutgoing)
-            .padding(.top, messageBubbleTopPadding)
-    }
-    
-    private var interactiveBubble: some View {
         messageBubble
             .opacity(bubbleFrameReader.isLifted ? 0 : 1)
             .onDoubleTap(isEnabled: canDoubleTapToReact) {
@@ -249,26 +240,25 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
             .longPressWithFeedback(isEnabled: !isMessageSelectionActive) {
                 displayMenu(showsActions: true)
             }
-    }
-    
-    /// A stack pages its cards with a horizontal drag, so replying to one stays in the menu.
-    @ViewBuilder
-    private var swipeableBubble: some View {
-        if timelineItem is MediaStackRoomTimelineItem {
-            interactiveBubble
-        } else {
-            interactiveBubble
-                .swipeRightAction {
-                    CompoundIcon(\.reply)
-                        .foregroundColor(.compound.iconPrimary)
-                        .accessibilityHidden(true)
-                } shouldStartAction: {
-                    !isMessageSelectionActive && timelineItem.canBeRepliedTo
-                } action: {
-                    context.send(viewAction: .handleTimelineItemMenuAction(itemID: timelineItem.id,
-                                                                           action: .reply(isThread: timelineItem.properties.isThreaded)))
+            // A stack pages its cards with a horizontal drag, so its reply stays in the menu.
+            .swipeRightAction(isEnabled: !isMediaStack) {
+                CompoundIcon(\.reply)
+                    .foregroundColor(.compound.iconPrimary)
+                    .accessibilityHidden(true)
+            } shouldStartAction: {
+                !isMessageSelectionActive && timelineItem.canBeRepliedTo
+            } action: {
+                context.send(viewAction: .handleTimelineItemMenuAction(itemID: timelineItem.id,
+                                                                       action: .reply(isThread: timelineItem.properties.isThreaded)))
+            }
+            .contextMenu {
+                if !isMessageSelectionActive {
+                    macContextMenu
                 }
-        }
+            }
+            .readsWindowFrame(bubbleFrameReader)
+            .pinnedIndicator(isPinned: isPinned, isOutgoing: timelineItem.isOutgoing)
+            .padding(.top, messageBubbleTopPadding)
     }
     
     /// Only text and stacks react to a double tap: other content opens on a single tap, and the Mac keeps double-click for selecting words.
@@ -314,7 +304,7 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
                                   context: context)
         
         // A stack has no bubble, and its cards fan out past their frame and follow the finger, so nothing may clip them.
-        if timelineItem is MediaStackRoomTimelineItem {
+        if isMediaStack {
             content
         } else {
             content
@@ -351,7 +341,7 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
                     .hidden()
             }
             
-            if timelineItem is MediaStackRoomTimelineItem {
+            if isMediaStack {
                 content()
                     .timelineBubbleLayoutSize(.natural)
             } else {

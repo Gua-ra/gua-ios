@@ -8,6 +8,7 @@
 
 import Combine
 @testable import ElementX
+import Foundation
 import MatrixRustSDKMocks
 import Testing
 
@@ -213,6 +214,53 @@ struct MessageForwardingScreenViewModelTests {
     }
     
     @Test
+    mutating func forwardingAStackGivesEachRoomItsOwnBatch() async throws {
+        let clientProxy = ClientProxyMock(.init())
+        var roomProxies = [String: JoinedRoomProxyMock]()
+        clientProxy.roomForIdentifierClosure = { roomID in
+            let roomProxy = JoinedRoomProxyMock(.init(id: roomID))
+            roomProxies[roomID] = roomProxy
+            return .joined(roomProxy)
+        }
+        let pendingBatches = PendingMediaBatchStore()
+        let files = ["IMG_1.jpg", "IMG_2.jpg"].map { PendingMediaBatchStore.File(filename: $0, fileSize: 1024, mimeType: "image/jpeg") }
+        var stackPayload = forwardingPayload
+        stackPayload.mediaBatch = MediaBatchForwarding(files: files, pendingBatches: pendingBatches)
+        viewModel = MessageForwardingScreenViewModel(forwardingPayload: stackPayload,
+                                                     userSession: UserSessionMock(.init(clientProxy: clientProxy)),
+                                                     roomSummaryProvider: RoomSummaryProviderMock(.init(state: .loaded(.mockRooms))),
+                                                     userIndicatorController: UserIndicatorControllerMock())
+        context = viewModel.context
+        
+        context.send(viewAction: .selectRoom(roomID: "2"))
+        context.send(viewAction: .selectRoom(roomID: "3"))
+        
+        let deferred = deferFulfillment(viewModel.actions) { action in
+            if case .sent(let roomIDs) = action {
+                return Set(roomIDs) == ["2", "3"]
+            }
+            return false
+        }
+        context.send(viewAction: .send)
+        try await deferred.fulfill()
+        
+        var batchIDs = Set<String>()
+        for roomID in ["2", "3"] {
+            let timeline = try #require(roomProxies[roomID]?.timeline as? TimelineProxyMock)
+            let batches = try timeline.sendMessageEventContentExtraContentJSONReceivedInvocations.map { invocation in
+                try #require(Self.mediaBatch(in: invocation.extraContentJSON))
+            }
+            #expect(batches.map(\.index) == [0, 1])
+            #expect(Set(batches.map(\.id)).count == 1)
+            batchIDs.formUnion(batches.map(\.id))
+            
+            let echoKey = PendingMediaBatchStore.Key(roomID: roomID, file: files[1])
+            #expect(pendingBatches.batch(forItemIDs: ["echo-\(roomID)"], key: echoKey) == batches[1], "The room's local echoes stack before the server copies arrive.")
+        }
+        #expect(batchIDs.count == 2)
+    }
+    
+    @Test
     mutating func forwardingToSeveralRoomsShowsAToast() async throws {
         let userIndicatorController = UserIndicatorControllerMock()
         viewModel = makeViewModel(userIndicatorController: userIndicatorController)
@@ -284,6 +332,15 @@ struct MessageForwardingScreenViewModelTests {
     }
     
     // MARK: - Helpers
+    
+    private static func mediaBatch(in extraContentJSON: String?) -> MediaBatch? {
+        guard let extraContentJSON,
+              var content = try? JSONSerialization.jsonObject(with: Data(extraContentJSON.utf8)) as? [String: Any] else {
+            return nil
+        }
+        content["msgtype"] = "m.image"
+        return MediaBatch(content: content)
+    }
     
     private func makeViewModel(recentlyVisitedRoomIDs: [String] = [],
                                userIndicatorController: UserIndicatorControllerProtocol = UserIndicatorControllerMock()) -> MessageForwardingScreenViewModelProtocol {

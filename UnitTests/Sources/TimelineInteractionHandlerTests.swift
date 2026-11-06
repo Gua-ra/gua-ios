@@ -8,6 +8,7 @@
 import Combine
 @testable import ElementX
 import Foundation
+import Photos
 import Testing
 
 @MainActor
@@ -67,6 +68,51 @@ struct TimelineInteractionHandlerTests {
         self.mediaPlayerProvider = mediaPlayerProvider
         self.actionsSubject = actionsSubject
         self.loadedSourceURLsSubject = loadedSourceURLsSubject
+    }
+    
+    @Test
+    func savingAStackSavesEveryMemberUnderItsFilename() async throws {
+        let stack = MediaStackRoomTimelineItem.mock(members: [.mockImage(index: 0, count: 2, caption: "Beach day."), .mockVideo(index: 1, count: 2)])
+        let userSession = UserSessionMock(.init())
+        let userIndicatorController = UserIndicatorControllerMock()
+        let photoLibraryManager = PhotoLibraryManagerMock()
+        photoLibraryManager.addResourceAtReturnValue = .success(())
+        let handler = makeHandler(timelineItems: [stack],
+                                  userSession: userSession,
+                                  userIndicatorController: userIndicatorController,
+                                  photoLibraryManager: photoLibraryManager)
+        
+        await waitForConfirmation { confirmation in
+            userIndicatorController.submitIndicatorDelayClosure = { _, _ in confirmation() }
+            handler.handleTimelineItemMenuAction(.saveMedia, itemID: stack.id)
+        }
+        
+        let mediaProvider = try #require(userSession.mediaProvider as? MediaProviderMock)
+        #expect(mediaProvider.loadFileFromSourceFilenameReceivedInvocations.map(\.filename) == ["IMG_0.jpg", "IMG_1.mov"])
+        #expect(photoLibraryManager.addResourceAtReceivedInvocations.map(\.type) == [.photo, .video])
+        #expect(userIndicatorController.submitIndicatorDelayReceivedArguments?.indicator.title == UntranslatedL10n.guaMediaStackSaved(2))
+    }
+    
+    @Test
+    func savingAStackShowsAnErrorWhenAMemberFails() async throws {
+        let stack = MediaStackRoomTimelineItem.mock(members: [.mockImage(index: 0, count: 2), .mockVideo(index: 1, count: 2)])
+        let userIndicatorController = UserIndicatorControllerMock()
+        let photoLibraryManager = PhotoLibraryManagerMock()
+        photoLibraryManager.addResourceAtClosure = { type, _ in type == .video ? .failure(.notAuthorized) : .success(()) }
+        let handler = makeHandler(timelineItems: [stack], userIndicatorController: userIndicatorController, photoLibraryManager: photoLibraryManager)
+        
+        let deferred = deferFulfillment(handler.actions) { action in
+            if case .displayErrorToast = action {
+                true
+            } else {
+                false
+            }
+        }
+        handler.handleTimelineItemMenuAction(.saveMedia, itemID: stack.id)
+        try await deferred.fulfill()
+        
+        #expect(photoLibraryManager.addResourceAtCallsCount == 2)
+        #expect(!userIndicatorController.submitIndicatorDelayCalled)
     }
     
     // MARK: - Voice message autoplay
@@ -197,7 +243,10 @@ struct TimelineInteractionHandlerTests {
     }
     
     private func makeHandler(timelineItems: [RoomTimelineItemProtocol],
-                             voiceMessageRecorder: VoiceMessageRecorderMock? = nil) -> TimelineInteractionHandler {
+                             voiceMessageRecorder: VoiceMessageRecorderMock? = nil,
+                             userSession: UserSessionMock = UserSessionMock(.init()),
+                             userIndicatorController: UserIndicatorControllerMock = UserIndicatorControllerMock(),
+                             photoLibraryManager: PhotoLibraryManagerMock = PhotoLibraryManagerMock()) -> TimelineInteractionHandler {
         let voiceMessageRecorder = voiceMessageRecorder ?? {
             let recorder = VoiceMessageRecorderMock()
             recorder.isRecording = false
@@ -207,7 +256,6 @@ struct TimelineInteractionHandlerTests {
         let voiceMessageMediaManager = VoiceMessageMediaManagerMock()
         voiceMessageMediaManager.loadVoiceMessageFromSourceBodyReturnValue = URL("file:///voice-message.m4a")
         
-        let userSession = UserSessionMock(.init())
         userSession.voiceMessageMediaManager = voiceMessageMediaManager
         
         return TimelineInteractionHandler(roomProxy: JoinedRoomProxyMock(.init()),
@@ -215,12 +263,13 @@ struct TimelineInteractionHandlerTests {
                                           userSession: userSession,
                                           mediaPlayerProvider: mediaPlayerProvider,
                                           voiceMessageRecorder: voiceMessageRecorder,
-                                          userIndicatorController: UserIndicatorControllerMock(),
+                                          userIndicatorController: userIndicatorController,
                                           appMediator: AppMediatorMock(.init()),
                                           analyticsService: AnalyticsServiceMock(.init()),
                                           emojiProvider: EmojiProvider(userSettings: .mock()),
                                           linkMetadataProvider: LinkMetadataProvider(),
-                                          timelineControllerFactory: TimelineControllerFactoryMock(.init()))
+                                          timelineControllerFactory: TimelineControllerFactoryMock(.init()),
+                                          photoLibraryManager: photoLibraryManager)
     }
     
     private static func makeVoiceMessage(id: String, sourceURL: URL) -> VoiceMessageRoomTimelineItem {

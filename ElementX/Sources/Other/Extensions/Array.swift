@@ -74,6 +74,10 @@ nonisolated extension Array where Element == RoomTimelineItemProtocol {
         return nil
     }
     
+    func mediaStack(_ id: TimelineItemIdentifier) -> MediaStackRoomTimelineItem? {
+        firstUsingStableID(id) as? MediaStackRoomTimelineItem
+    }
+    
     /// The voice message that directly follows the item with the given ID, if there is one.
     ///
     /// Decorations such as date separators and the read marker are ignored, but any other

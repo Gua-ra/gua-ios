@@ -46,11 +46,11 @@ final class RoomTimelineItemViewState: Identifiable, Equatable, ObservableObject
     }
     
     func represents(eventID: String) -> Bool {
-        if identifier.eventID == eventID {
-            return true
+        if case let .mediaStack(stack) = type {
+            stack.represents(eventID: eventID)
+        } else {
+            identifier.eventID == eventID
         }
-        guard case let .mediaStack(stack) = type else { return false }
-        return stack.memberIndex(ofEventID: eventID) != nil
     }
 }
 

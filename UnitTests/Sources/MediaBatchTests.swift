@@ -9,7 +9,6 @@
 import Foundation
 import Testing
 
-/// The marker against the fixtures Gua's apps share, which are the wire format's contract.
 struct MediaBatchTests {
     @Test
     func fixtureMarkers() throws {
@@ -36,13 +35,23 @@ struct MediaBatchTests {
     }
     
     @Test
-    func newBatchesShareAnIDInPickOrder() {
-        let batch = MediaBatch.makeBatch(count: 3)
+    func newBatchesShareAnIDInPickOrder() throws {
+        let batch = try MediaBatch.makeBatches(count: 3).map { try #require($0) }
         
         #expect(Set(batch.map(\.id)).count == 1)
         #expect(batch.map(\.index) == [0, 1, 2])
         #expect(batch.allSatisfy { $0.count == 3 })
         #expect(batch[0].id == batch[0].id.lowercased())
+    }
+    
+    @Test
+    func largeSendsSplitIntoBatchesOfTwenty() {
+        let batches = MediaBatch.makeBatches(count: 41)
+        
+        #expect(batches.prefix(40).map { $0?.count } == Array(repeating: 20, count: 40))
+        #expect(Set(batches.prefix(40).compactMap { $0?.id }).count == 2)
+        #expect(batches[40] == nil, "A lone last item is sent on its own.")
+        #expect(MediaBatch.makeBatches(count: 1) == [nil])
     }
     
     private static func batch(from value: Any?) -> MediaBatch? {

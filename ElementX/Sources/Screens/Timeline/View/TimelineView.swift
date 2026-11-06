@@ -33,8 +33,8 @@ struct TimelineView: View {
                     timelineContext.send(viewAction: .redactConfirmed(itemID: info.id, reason: reason))
                 }
             }
-            .fullScreenCover(item: $timelineContext.mediaStackGrid) { grid in
-                MediaStackGridScreen(context: timelineContext, stack: grid.stack)
+            .fullScreenCover(item: $timelineContext.mediaStackGrid) { stack in
+                MediaStackGridScreen(context: timelineContext, stack: stack)
             }
             .sheet(item: actionMenuSheetInfo) { info in
                 if let actions = menuActions(for: info.item) {

@@ -134,7 +134,8 @@ class TimelineController: TimelineControllerProtocol {
     func sendReadReceipt(for itemID: TimelineItemIdentifier) async {
         let receiptType: MatrixRustSDK.ReceiptType = userSettings.account.sharePresence ? .read : .readPrivate
         
-        guard let eventID = itemID.eventID else {
+        // A stack carries its first member's ID, but everything up to its newest member has been seen.
+        guard let eventID = timelineItems.mediaStack(itemID)?.newestEventID ?? itemID.eventID else {
             return
         }
         
@@ -400,8 +401,9 @@ class TimelineController: TimelineControllerProtocol {
                    mediaBatch: MediaBatch?,
                    requestHandle: @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineControllerError> {
         if let mediaBatch {
-            pendingMediaBatches.register(mediaBatch, for: .init(roomID: roomID, filename: url.lastPathComponent,
-                                                                fileSize: imageInfo.size.map(UInt.init), mimeType: imageInfo.mimetype))
+            pendingMediaBatches.register(mediaBatch, for: .init(roomID: roomID, file: .init(filename: url.lastPathComponent,
+                                                                                            fileSize: imageInfo.size.map(UInt.init),
+                                                                                            mimeType: imageInfo.mimetype)))
         }
         
         switch await activeTimeline.sendImage(url: url,
@@ -425,8 +427,9 @@ class TimelineController: TimelineControllerProtocol {
                    mediaBatch: MediaBatch?,
                    requestHandle: @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineControllerError> {
         if let mediaBatch {
-            pendingMediaBatches.register(mediaBatch, for: .init(roomID: roomID, filename: url.lastPathComponent,
-                                                                fileSize: videoInfo.size.map(UInt.init), mimeType: videoInfo.mimetype))
+            pendingMediaBatches.register(mediaBatch, for: .init(roomID: roomID, file: .init(filename: url.lastPathComponent,
+                                                                                            fileSize: videoInfo.size.map(UInt.init),
+                                                                                            mimeType: videoInfo.mimetype)))
         }
         
         switch await activeTimeline.sendVideo(url: url,

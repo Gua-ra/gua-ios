@@ -11,7 +11,7 @@ import MatrixRustSDK
 
 struct TimelineControllerFactory: TimelineControllerFactoryProtocol {
     let userSettings: UserSettings
-    /// Shared by every timeline of the session, so a stack keeps showing while its photos upload after leaving the chat.
+    /// Shared by the session's timelines, as sends outlive the chat they started in and forwards land in another.
     let pendingMediaBatches = PendingMediaBatchStore()
     
     func buildTimelineController(roomProxy: JoinedRoomProxyProtocol,
@@ -56,8 +56,7 @@ struct TimelineControllerFactory: TimelineControllerFactoryProtocol {
                                                initialFocussedEventID: nil,
                                                timelineItemFactory: timelineItemFactory,
                                                mediaProvider: mediaProvider,
-                                               userSettings: userSettings,
-                                               pendingMediaBatches: pendingMediaBatches))
+                                               userSettings: userSettings))
         case .failure(let error):
             return .failure(.roomProxyError(error))
         }
@@ -77,7 +76,6 @@ struct TimelineControllerFactory: TimelineControllerFactoryProtocol {
                                                timelineItemFactory: timelineItemFactory,
                                                mediaProvider: mediaProvider,
                                                userSettings: userSettings,
-                                               pendingMediaBatches: pendingMediaBatches,
                                                allowedGalleryItemTypes: allowedMessageTypes.allowedGalleryItemTypes))
         case .failure(let error):
             return .failure(.roomProxyError(error))

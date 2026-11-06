@@ -90,8 +90,8 @@ private struct TimelineItemSendInfoLabel: View {
                 .padding(.vertical, 2)
                 .background(Color.compound.bgSubtleSecondary)
                 .cornerRadius(10)
-                .padding(.trailing, 4)
-                .padding(.bottom, 4)
+                .padding(.trailing, sendInfo.capsuleInset)
+                .padding(.bottom, sendInfo.capsuleInset)
         case .horizontal, .overlay(capsuleStyle: false):
             content
                 .padding(.bottom, -4)
@@ -140,6 +140,7 @@ private struct TimelineItemSendInfo {
     let localizedString: String
     var status: Status?
     let layoutType: LayoutType
+    var capsuleInset: CGFloat = 4
     
     var foregroundStyle: Color {
         switch status {
@@ -211,6 +212,11 @@ private extension TimelineItemSendInfo {
             default:
                 .horizontal()
             }
+        }
+        
+        // Without a caption the capsule sits on the cards, which are inset in the stack's frame.
+        if timelineItem is MediaStackRoomTimelineItem, !timelineItem.hasMediaCaption {
+            capsuleInset = 8
         }
     }
 }

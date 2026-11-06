@@ -48,7 +48,7 @@ class TimelineInteractionHandler {
     private let linkMetadataProvider: LinkMetadataProviderProtocol
     private let timelineControllerFactory: TimelineControllerFactoryProtocol
     private let pollInteractionHandler: PollInteractionHandlerProtocol
-    private let photoLibraryManager: PhotoLibraryManagerProtocol = PhotoLibraryManager()
+    private let photoLibraryManager: PhotoLibraryManagerProtocol
     
     private let actionsSubject: PassthroughSubject<TimelineInteractionHandlerAction, Never> = .init()
     var actions: AnyPublisher<TimelineInteractionHandlerAction, Never> {
@@ -84,7 +84,8 @@ class TimelineInteractionHandler {
          analyticsService: AnalyticsServiceProtocol,
          emojiProvider: EmojiProviderProtocol,
          linkMetadataProvider: LinkMetadataProviderProtocol,
-         timelineControllerFactory: TimelineControllerFactoryProtocol) {
+         timelineControllerFactory: TimelineControllerFactoryProtocol,
+         photoLibraryManager: PhotoLibraryManagerProtocol = PhotoLibraryManager()) {
         self.roomProxy = roomProxy
         self.timelineController = timelineController
         self.userSession = userSession
@@ -97,6 +98,7 @@ class TimelineInteractionHandler {
         self.emojiProvider = emojiProvider
         self.linkMetadataProvider = linkMetadataProvider
         self.timelineControllerFactory = timelineControllerFactory
+        self.photoLibraryManager = photoLibraryManager
         
         pollInteractionHandler = PollInteractionHandler(analyticsService: analyticsService,
                                                         timelineController: timelineController)
@@ -120,7 +122,7 @@ class TimelineInteractionHandler {
     func redact(_ itemID: TimelineItemIdentifier, reason: String?) {
         // Redacting needs the event alone, so it works even when the item isn't part of this timeline,
         // such as one held by a media preview that was built from a different one.
-        let itemIDs = mediaStack(itemID)?.members.map(\.id) ?? [itemID]
+        let itemIDs = timelineController.timelineItems.mediaStack(itemID)?.members.map(\.id) ?? [itemID]
         let eventOrTransactionIDs = itemIDs.map { itemID in
             guard case let .event(_, eventOrTransactionID) = itemID else { fatalError() }
             return eventOrTransactionID
@@ -141,7 +143,7 @@ class TimelineInteractionHandler {
             // the server, so there is nothing to attach a reason to, and asking for one would
             // only delay the abort while the message might still go out.
             // A stack whose first member is unsent may hold sent ones, and always confirms the count.
-            if itemID.eventID != nil || mediaStack(itemID) != nil {
+            if itemID.eventID != nil || timelineController.timelineItems.mediaStack(itemID) != nil {
                 actionsSubject.send(.showRedactConfirmation(itemID: itemID))
             } else {
                 redact(itemID, reason: nil)
@@ -218,7 +220,8 @@ class TimelineInteractionHandler {
             MXLog.info("Showing debug info for \(eventTimelineItem.id)")
             actionsSubject.send(.showDebugInfo(debugInfo))
         case .report:
-            let eventIDs = (eventTimelineItem as? MediaStackRoomTimelineItem)?.members.compactMap(\.id.eventID) ?? itemID.eventID.map { [$0] } ?? []
+            guard let eventID = itemID.eventID else { fatalError() }
+            let eventIDs = (eventTimelineItem as? MediaStackRoomTimelineItem)?.members.compactMap(\.id.eventID) ?? [eventID]
             actionsSubject.send(.displayReportContent(eventIDs: eventIDs, senderID: eventTimelineItem.sender.id))
         case .react:
             displayEmojiPicker(for: itemID)
@@ -619,7 +622,7 @@ class TimelineInteractionHandler {
     
     func displayEmojiPicker(for itemID: TimelineItemIdentifier) {
         // A stack takes its reactions from its first member.
-        let reactedItem: RoomTimelineItemProtocol? = mediaStack(itemID)?.first.item ?? timelineController.timelineItems.firstUsingStableID(itemID)
+        let reactedItem: RoomTimelineItemProtocol? = timelineController.timelineItems.mediaStack(itemID)?.first.item ?? timelineController.timelineItems.firstUsingStableID(itemID)
         guard let timelineItem = reactedItem,
               timelineItem.isReactable,
               let eventTimelineItem = timelineItem as? EventBasedTimelineItemProtocol,
@@ -677,21 +680,12 @@ class TimelineInteractionHandler {
     
     // MARK: - Private
     
-    private func mediaStack(_ itemID: TimelineItemIdentifier) -> MediaStackRoomTimelineItem? {
-        timelineController.timelineItems.firstUsingStableID(itemID) as? MediaStackRoomTimelineItem
-    }
-    
     private func save(_ stack: MediaStackRoomTimelineItem) async {
         var savedCount = 0
         for member in stack.members {
-            let (source, resourceType): (MediaSourceProxy, PHAssetResourceType) = switch member {
-            case .image(let item): (item.content.imageInfo.source, .photo)
-            case .video(let item): (item.content.videoInfo.source, .video)
-            }
-            
-            guard case let .success(fileHandle) = await userSession.mediaProvider.loadFileFromSource(source, filename: member.item.body),
+            guard case let .success(fileHandle) = await userSession.mediaProvider.loadFileFromSource(member.mediaSource, filename: member.file.filename),
                   let fileURL = fileHandle.url,
-                  case .success = await photoLibraryManager.addResource(resourceType, at: fileURL) else {
+                  case .success = await photoLibraryManager.addResource(member.isVideo ? .video : .photo, at: fileURL) else {
                 MXLog.error("Failed saving a member of the stack \(stack.id)")
                 continue
             }

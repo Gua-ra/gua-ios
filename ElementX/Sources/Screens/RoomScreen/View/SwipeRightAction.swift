@@ -21,6 +21,7 @@ struct SwipeRightAction<Label: View>: ViewModifier {
     @State private var hasReachedActionThreshold = false
     @State private var xOffset = 0.0
     
+    let isEnabled: Bool
     /// The view to be shown on the left side of the content
     let label: () -> Label
     /// Defer computing whether an action is available until the gesture is started
@@ -53,7 +54,7 @@ struct SwipeRightAction<Label: View>: ViewModifier {
         content
             .offset(x: xOffset, y: 0.0)
             .animation(.interactiveSpring().speed(0.5), value: xOffset)
-            .gesture(PanGestureRepresentable { gesture in
+            .gesture(PanGestureRepresentable(isEnabled: isEnabled) { gesture in
                 switch gesture.state {
                 case .ended, .cancelled, .failed:
                     if xOffset > actionThreshold {
@@ -106,10 +107,11 @@ struct SwipeRightAction<Label: View>: ViewModifier {
 }
 
 extension View {
-    func swipeRightAction(label: @escaping () -> some View,
+    func swipeRightAction(isEnabled: Bool = true,
+                          label: @escaping () -> some View,
                           shouldStartAction: @escaping () -> Bool,
                           action: @escaping () -> Void) -> some View {
-        modifier(SwipeRightAction(label: label, shouldStartAction: shouldStartAction, action: action))
+        modifier(SwipeRightAction(isEnabled: isEnabled, label: label, shouldStartAction: shouldStartAction, action: action))
     }
 }
 
@@ -151,6 +153,7 @@ struct SwipeRightAction_Previews: PreviewProvider, TestablePreview {
 /// Fixes the issue on iOS 18 where DragGesture conflicts with the scroll view
 /// https://github.com/feedback-assistant/reports/issues/542#issuecomment-2581322968
 struct PanGestureRepresentable: UIGestureRecognizerRepresentable {
+    var isEnabled = true
     var handle: (UIPanGestureRecognizer) -> Void
     
     func makeCoordinator(converter: CoordinateSpaceConverter) -> Coordinator {
@@ -160,8 +163,12 @@ struct PanGestureRepresentable: UIGestureRecognizerRepresentable {
     func makeUIGestureRecognizer(context: Context) -> UIPanGestureRecognizer {
         let gesture = UIPanGestureRecognizer()
         gesture.delegate = context.coordinator
-        gesture.isEnabled = true
+        gesture.isEnabled = isEnabled
         return gesture
+    }
+    
+    func updateUIGestureRecognizer(_ recognizer: UIPanGestureRecognizer, context: Context) {
+        recognizer.isEnabled = isEnabled
     }
     
     func handleUIGestureRecognizerAction(_ recognizer: UIPanGestureRecognizer, context: Context) {
