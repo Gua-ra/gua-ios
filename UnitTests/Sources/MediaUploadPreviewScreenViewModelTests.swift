@@ -332,6 +332,42 @@ final class MediaUploadPreviewScreenViewModelTests {
         #expect(sentMedia.map(\.extraContentJSON) == [nil])
     }
     
+    @Test
+    func stackSendStopsAtAFailureAndRetriesOnlyTheUnsentItems() async throws {
+        let caption = "Beach day"
+        setUpViewModel(urls: [imageURL, imageURL, imageURL], expectedCaption: nil, galleryEnabled: false, sendsMediaBatch: true)
+        failSending(onAttempt: 2)
+        context.caption = .init(string: caption)
+        
+        try await sendExpectingFailure()
+        
+        #expect(context.viewState.mediaURLs.count == 2, "Only the unsent items stay.")
+        #expect(context.caption.string.isEmpty, "The caption went out with the first item.")
+        
+        try await send()
+        
+        let batches = sentMedia.map(\.mediaBatch)
+        #expect(batches.map { $0?.index } == [0, 1, 1, 2])
+        #expect(batches.map { $0?.count } == [3, 3, 3, 3])
+        #expect(Set(batches.map { $0?.id }).count == 1)
+        #expect(sentMedia.map(\.caption) == [caption, nil, nil, nil])
+    }
+    
+    @Test
+    func stackSendKeepsTheCaptionOnTheFirstItemWhenItFails() async throws {
+        let caption = "Beach day"
+        setUpViewModel(urls: [imageURL, imageURL], expectedCaption: nil, galleryEnabled: false, sendsMediaBatch: true)
+        failSending(onAttempt: 1)
+        context.caption = .init(string: caption)
+        
+        try await sendExpectingFailure()
+        #expect(context.viewState.mediaURLs.count == 2)
+        try await send()
+        
+        #expect(sentMedia.map { $0.mediaBatch?.index } == [0, 0, 1])
+        #expect(sentMedia.map(\.caption) == [caption, caption, nil])
+    }
+    
     // MARK: - Helpers
     
     private struct SentMedia {
@@ -425,6 +461,23 @@ final class MediaUploadPreviewScreenViewModelTests {
             return .failure(.sdkError(TestError.unexpectedParameter))
         }
         return .success(())
+    }
+    
+    private func failSending(onAttempt failingAttempt: Int) {
+        timelineProxy.sendImageUrlThumbnailURLImageInfoCaptionExtraContentJSONRequestHandleClosure = { [weak self] _, _, _, caption, extraContentJSON, _ in
+            guard let self else { return .failure(.sdkError(TestError.unknown)) }
+            sentMedia.append(.init(caption: caption, extraContentJSON: extraContentJSON))
+            return sentMedia.count == failingAttempt ? .failure(.sdkError(TestError.unknown)) : .success(())
+        }
+    }
+    
+    private func sendExpectingFailure() async throws {
+        let deferredFailure = deferFailure(viewModel.actions, timeout: .seconds(1), message: "The screen should remain visible.") { $0 == .dismiss }
+        context.send(viewAction: .send)
+        let deferredInteraction = deferFulfillment(context.observe(\.viewState.shouldDisableInteraction)) { !$0 }
+        try await deferredFailure.fulfill()
+        try await deferredInteraction.fulfill()
+        #expect(userIndicatorController.submitIndicatorDelayCallsCount == 2, "An error indicator should be shown.")
     }
     
     private func send(timeout: Duration = .seconds(10)) async throws {

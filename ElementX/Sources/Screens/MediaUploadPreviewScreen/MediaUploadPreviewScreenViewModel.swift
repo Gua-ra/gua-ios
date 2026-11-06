@@ -24,6 +24,9 @@ class MediaUploadPreviewScreenViewModel: MediaUploadPreviewScreenViewModelType, 
     private let clientProxy: ClientProxyProtocol
     private let galleryEnabled: Bool
     private let sendsMediaBatch: Bool
+    /// The markers of the items in `mediaURLs`, fixed by the first send so that a retry stays in the same batch.
+    private var unsentMediaBatches: [MediaBatch?]?
+    private var hasSentFirstItem = false
     
     private var actionsSubject: PassthroughSubject<MediaUploadPreviewScreenViewModelAction, Never> = .init()
     
@@ -81,10 +84,12 @@ class MediaUploadPreviewScreenViewModel: MediaUploadPreviewScreenViewModelType, 
                             MXLog.error("Failed sending gallery with error: \(error)")
                             showError(label: L10n.screenMediaUploadPreviewErrorFailedSending)
                         }
+                    } else if let mediaBatches = unsentMediaBatches ?? mediaBatches(for: mediaInfos) {
+                        guard await sendMediaBatches(mediaInfos, mediaBatches: mediaBatches, caption: caption) else { return }
                     } else {
                         var perItemCaption = caption
-                        for (mediaInfo, mediaBatch) in zip(mediaInfos, mediaBatches(for: mediaInfos)) {
-                            switch await sendAttachment(mediaInfo: mediaInfo, caption: perItemCaption, mediaBatch: mediaBatch) {
+                        for mediaInfo in mediaInfos {
+                            switch await sendAttachment(mediaInfo: mediaInfo, caption: perItemCaption) {
                             case .success:
                                 perItemCaption = nil // Set the caption only on the first uploaded file.
                             case .failure(let error):
@@ -174,12 +179,39 @@ class MediaUploadPreviewScreenViewModel: MediaUploadPreviewScreenViewModelType, 
         }
     }
     
-    private func mediaBatches(for mediaInfos: [MediaInfo]) -> [MediaBatch?] {
-        guard sendsMediaBatch, mediaInfos.allSatisfy(\.isPhotoOrVideo) else { return Array(repeating: nil, count: mediaInfos.count) }
+    private func mediaBatches(for mediaInfos: [MediaInfo]) -> [MediaBatch?]? {
+        guard sendsMediaBatch, mediaInfos.count > 1, mediaInfos.allSatisfy(\.isPhotoOrVideo) else { return nil }
         return MediaBatch.makeBatches(count: mediaInfos.count)
     }
     
-    private func sendAttachment(mediaInfo: MediaInfo, caption: String?, mediaBatch: MediaBatch?) async -> Result<Void, TimelineControllerError> {
+    /// Stops at the first failure and keeps the unsent items, so a retry sends nothing twice and the caption never leaves the first item.
+    private func sendMediaBatches(_ mediaInfos: [MediaInfo], mediaBatches: [MediaBatch?], caption: String?) async -> Bool {
+        for (offset, (mediaInfo, mediaBatch)) in zip(mediaInfos, mediaBatches).enumerated() {
+            switch await sendAttachment(mediaInfo: mediaInfo, caption: hasSentFirstItem ? nil : caption, mediaBatch: mediaBatch) {
+            case .success:
+                hasSentFirstItem = true
+            case .failure(let error):
+                MXLog.error("Failed sending media with error: \(error)")
+                keepUnsentMedia(Array(mediaInfos[offset...]), mediaBatches: Array(mediaBatches[offset...]))
+                showError(label: L10n.screenMediaUploadPreviewErrorFailedSending)
+                return false
+            }
+        }
+        return true
+    }
+    
+    private func keepUnsentMedia(_ mediaInfos: [MediaInfo], mediaBatches: [MediaBatch?]) {
+        mediaURLs.removeFirst(mediaURLs.count - mediaInfos.count)
+        state.mediaURLs = mediaURLs
+        unsentMediaBatches = mediaBatches
+        processingTask = Task { .success(mediaInfos) }
+        
+        if hasSentFirstItem {
+            state.bindings.caption = NSAttributedString() // It went out with the first item.
+        }
+    }
+    
+    private func sendAttachment(mediaInfo: MediaInfo, caption: String?, mediaBatch: MediaBatch? = nil) async -> Result<Void, TimelineControllerError> {
         let requestHandle: (@MainActor @Sendable (SendAttachmentJoinHandleProtocol) -> Void) = { [weak self] handle in
             self?.requestHandle = handle
         }
