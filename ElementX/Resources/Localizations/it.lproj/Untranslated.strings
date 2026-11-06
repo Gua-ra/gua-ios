@@ -10,7 +10,7 @@
 "gua_encryption_reset_required_action" = "Reimposta e completa";
 "gua_signout_last_device_title" = "Uscire rimuoverà i tuoi messaggi da questo dispositivo";
 "gua_signout_last_device_message" = "Questo è il tuo unico dispositivo. I messaggi conservati solo qui non saranno disponibili al prossimo accesso.";
-"gua_settings_sign_out" = "Disconnetti";
+"gua_settings_sign_out" = "Esci";
 "gua_signout_confirmation_message" = "Sei sicuro di voler uscire?";
 "gua_signout_key_backup_ongoing_subtitle" = "Attendi il completamento dell'operazione prima di uscire.";
 "gua_signout_key_backup_offline_subtitle" = "Il backup delle chiavi era ancora in corso quando sei andato offline. Riconnettiti per eseguire il backup delle chiavi prima di uscire.";

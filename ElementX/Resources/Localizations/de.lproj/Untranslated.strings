@@ -15,7 +15,7 @@
 "gua_signout_key_backup_ongoing_subtitle" = "Bitte warte, bis dieser Vorgang abgeschlossen ist, bevor du dich abmeldest.";
 "gua_signout_key_backup_offline_subtitle" = "Das Backup deiner Schlüssel lief noch, als du offline gegangen bist. Verbinde dich erneut, damit deine Schlüssel vor dem Abmelden gesichert werden können.";
 "gua_app_lock_signout_alert_title" = "Du wirst abgemeldet";
-"gua_signing_out" = "Abmelden";
+"gua_signing_out" = "Wird abgemeldet";
 "gua_encryption_reset_finishing" = "Einrichtung wird abgeschlossen…";
 "gua_encryption_reset_failed" = "Die Einrichtung konnte nicht abgeschlossen werden. Tippe auf „Zurücksetzen und abschließen“, um es erneut zu versuchen.";
 "gua_encryption_recover_from_other_device_title" = "Stelle deine früheren Nachrichten wieder her";

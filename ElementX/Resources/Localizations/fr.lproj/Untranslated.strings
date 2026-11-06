@@ -14,7 +14,7 @@
 "gua_signout_confirmation_message" = "Êtes-vous sûr de vouloir vous déconnecter ?";
 "gua_signout_key_backup_ongoing_subtitle" = "Veuillez attendre que cela se termine avant de vous déconnecter.";
 "gua_signout_key_backup_offline_subtitle" = "Vos clés étaient en cours de sauvegarde lorsque vous avez perdu la connexion au réseau. Il faudrait rétablir cette connexion afin de pouvoir terminer la sauvegarde avant de vous déconnecter.";
-"gua_app_lock_signout_alert_title" = "Vous êtes en train de vous déconnecter";
+"gua_app_lock_signout_alert_title" = "Vous allez être déconnecté";
 "gua_signing_out" = "Déconnexion";
 "gua_encryption_reset_finishing" = "Finalisation de la configuration…";
 "gua_encryption_reset_failed" = "Impossible de terminer la configuration. Veuillez réessayer.";

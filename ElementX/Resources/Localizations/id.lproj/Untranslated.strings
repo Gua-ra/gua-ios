@@ -5,7 +5,7 @@
 "gua_signout_confirmation_message" = "Apakah Anda yakin ingin keluar dari akun?";
 "gua_signout_key_backup_ongoing_subtitle" = "Mohon tunggu hingga proses ini selesai sebelum keluar.";
 "gua_signout_key_backup_offline_subtitle" = "Kunci Anda masih dicadangkan saat Anda luring. Sambungkan kembali sehingga kunci Anda dapat dicadangkan sebelum keluar.";
-"gua_app_lock_signout_alert_title" = "Anda sedang dikeluarkan";
+"gua_app_lock_signout_alert_title" = "Anda sedang dikeluarkan dari akun";
 "gua_signing_out" = "Mengeluarkan dari akun";
 "gua_encryption_reset_required_title" = "Beberapa pesan sebelumnya tidak dapat dipulihkan";
 "gua_encryption_reset_required_message" = "Untuk menyelesaikan penyiapan obrolan terenkripsi di perangkat ini, cadangan terenkripsi Anda perlu disetel ulang. Pesan yang hanya tersimpan di cadangan itu akan hilang. Pesan yang sudah ada di perangkat Anda tidak akan terpengaruh.";

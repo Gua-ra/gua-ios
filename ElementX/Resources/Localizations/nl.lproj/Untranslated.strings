@@ -15,7 +15,7 @@
 "gua_signout_key_backup_ongoing_subtitle" = "Wacht tot dit voltooid is voordat je uitlogt.";
 "gua_signout_key_backup_offline_subtitle" = "De backup van je sleutels was nog bezig toen je offline ging. Maak opnieuw verbinding zodat er een back-up van je sleutels kan worden gemaakt voordat je uitlogt.";
 "gua_app_lock_signout_alert_title" = "Je wordt uitgelogd";
-"gua_signing_out" = "Uitloggen";
+"gua_signing_out" = "Bezig met uitloggen";
 "gua_encryption_reset_finishing" = "Installatie voltooien…";
 "gua_encryption_reset_failed" = "De installatie kon niet worden voltooid. Tik op “Opnieuw instellen en voltooien” om het opnieuw te proberen.";
 "gua_encryption_recover_from_other_device_title" = "Herstel je eerdere berichten";

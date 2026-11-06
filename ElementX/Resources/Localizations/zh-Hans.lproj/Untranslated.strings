@@ -14,7 +14,7 @@
 "gua_signout_confirmation_message" = "确定要登出吗？";
 "gua_signout_key_backup_ongoing_subtitle" = "请等待此操作完成后再登出。";
 "gua_signout_key_backup_offline_subtitle" = "当你离线时，密钥仍在备份中。重新连接以便在登出之前备份密钥。";
-"gua_app_lock_signout_alert_title" = "您正在登出";
+"gua_app_lock_signout_alert_title" = "你将被登出";
 "gua_signing_out" = "正在登出";
 "gua_encryption_reset_finishing" = "正在完成设置…";
 "gua_encryption_reset_failed" = "无法完成设置。点击“重置并完成”重试。";

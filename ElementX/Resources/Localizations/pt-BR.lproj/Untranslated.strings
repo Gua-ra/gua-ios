@@ -14,7 +14,7 @@
 "gua_signout_confirmation_message" = "Você tem certeza que deseja sair?";
 "gua_signout_key_backup_ongoing_subtitle" = "Aguarde até que isso seja concluído antes de sair.";
 "gua_signout_key_backup_offline_subtitle" = "O backup das suas chaves ainda estava sendo feito quando você ficou off-line. Reconecte-se para que você possa fazer o backup de suas chaves antes de sair.";
-"gua_app_lock_signout_alert_title" = "Você está sendo desconectado";
+"gua_app_lock_signout_alert_title" = "Saindo da sua conta";
 "gua_signing_out" = "Saindo";
 "gua_encryption_reset_finishing" = "Concluindo a configuração…";
 "gua_encryption_reset_failed" = "Não foi possível concluir a configuração. Tente novamente.";

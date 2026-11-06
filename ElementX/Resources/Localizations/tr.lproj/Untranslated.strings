@@ -15,7 +15,7 @@
 "gua_signout_key_backup_ongoing_subtitle" = "Lütfen oturumu kapatmadan önce bunun tamamlanmasını bekleyin.";
 "gua_signout_key_backup_offline_subtitle" = "Çevrimdışı olduğunuzda anahtarlarınız hala yedekleniyordu. Oturumu kapatmadan önce anahtarlarınızın yedeklenebilmesi için yeniden bağlanın.";
 "gua_app_lock_signout_alert_title" = "Oturumunuz kapatılıyor";
-"gua_signing_out" = "Oturumu kapatma";
+"gua_signing_out" = "Oturum kapatılıyor";
 "gua_encryption_reset_finishing" = "Kurulum tamamlanıyor…";
 "gua_encryption_reset_failed" = "Kurulum tamamlanamadı. Tekrar denemek için “Sıfırla ve tamamla”ya dokunun.";
 "gua_encryption_recover_from_other_device_title" = "Önceki mesajlarınızı geri getirin";
