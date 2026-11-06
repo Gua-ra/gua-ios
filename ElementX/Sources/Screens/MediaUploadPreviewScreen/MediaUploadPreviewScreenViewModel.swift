@@ -208,6 +208,7 @@ class MediaUploadPreviewScreenViewModel: MediaUploadPreviewScreenViewModelType, 
         
         if hasSentFirstItem {
             state.bindings.caption = NSAttributedString() // It went out with the first item.
+            state.canEditCaption = false
         }
     }
     

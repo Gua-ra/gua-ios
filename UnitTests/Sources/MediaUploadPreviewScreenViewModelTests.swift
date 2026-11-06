@@ -343,6 +343,7 @@ final class MediaUploadPreviewScreenViewModelTests {
         
         #expect(context.viewState.mediaURLs.count == 2, "Only the unsent items stay.")
         #expect(context.caption.string.isEmpty, "The caption went out with the first item.")
+        #expect(!context.viewState.canEditCaption, "A caption typed now could not be sent.")
         
         try await send()
         
@@ -362,6 +363,7 @@ final class MediaUploadPreviewScreenViewModelTests {
         
         try await sendExpectingFailure()
         #expect(context.viewState.mediaURLs.count == 2)
+        #expect(context.viewState.canEditCaption)
         try await send()
         
         #expect(sentMedia.map { $0.mediaBatch?.index } == [0, 0, 1])

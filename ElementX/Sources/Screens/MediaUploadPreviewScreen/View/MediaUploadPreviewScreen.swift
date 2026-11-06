@@ -96,20 +96,24 @@ struct MediaUploadPreviewScreen: View {
     
     private var composer: some View {
         HStack(spacing: 12) {
-            HStack(spacing: 6) {
-                MessageComposerTextField(placeholder: L10n.richTextEditorComposerCaptionPlaceholder,
-                                         text: $context.caption,
-                                         presendCallback: $context.presendCallback,
-                                         selectedRange: $context.selectedRange,
-                                         maxHeight: ComposerConstant.maxHeight,
-                                         keyHandler: handleKeyPress) { _ in }
-                    .focused($isComposerFocussed)
-                
-                if context.viewState.shouldShowCaptionWarning {
-                    captionWarningButton
+            if context.viewState.canEditCaption {
+                HStack(spacing: 6) {
+                    MessageComposerTextField(placeholder: L10n.richTextEditorComposerCaptionPlaceholder,
+                                             text: $context.caption,
+                                             presendCallback: $context.presendCallback,
+                                             selectedRange: $context.selectedRange,
+                                             maxHeight: ComposerConstant.maxHeight,
+                                             keyHandler: handleKeyPress) { _ in }
+                        .focused($isComposerFocussed)
+                    
+                    if context.viewState.shouldShowCaptionWarning {
+                        captionWarningButton
+                    }
                 }
+                .messageComposerStyle()
+            } else {
+                Spacer()
             }
-            .messageComposerStyle()
             
             SendButton {
                 context.send(viewAction: .send)
