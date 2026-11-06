@@ -48,14 +48,16 @@ class ElementCallService: NSObject, ElementCallServiceProtocol, PKPushRegistryDe
     private var incomingCallRoomInfoCancellable: AnyCancellable?
     private var incomingCallID: CallID? {
         didSet {
-            hasCallSubject.send(incomingCallID != nil || ongoingCallID != nil)
+            updateHasCall()
             Task { await observeIncomingCall() }
         }
     }
     
     private var endUnansweredCallTask: Task<Void, Never>?
     /// The ringing call was answered for the web view, which has yet to set its call session up.
-    private var isIncomingCallAnswered = false
+    private var isIncomingCallAnswered = false {
+        didSet { updateHasCall() }
+    }
     
     /// A call answered for the native stack, until the stack takes it over.
     private var answeredNativeCallID: CallID?
@@ -64,7 +66,7 @@ class ElementCallService: NSObject, ElementCallServiceProtocol, PKPushRegistryDe
     private var ongoingCallID: CallID? {
         didSet {
             ongoingCallRoomIDSubject.send(ongoingCallID?.roomID)
-            hasCallSubject.send(incomingCallID != nil || ongoingCallID != nil)
+            updateHasCall()
         }
     }
     
@@ -439,11 +441,13 @@ class ElementCallService: NSObject, ElementCallServiceProtocol, PKPushRegistryDe
         // whereas CallKit invokes its completion on a background queue.
         let mainActorCompletion = { @MainActor @Sendable in completion() }
         callProvider.reportNewIncomingCall(with: callID.callKitID, update: update) { [weak self] error in
+            let isRefused = error != nil
             if let error {
                 MXLog.error("Failed reporting new incoming call with error: \(error)")
             }
             
             Task { @MainActor in
+                self?.clearIncomingCallStateIfRefused(callID, isRefused: isRefused)
                 self?.actionsSubject.send(.receivedIncomingCallRequest)
                 
                 mainActorCompletion()
@@ -756,6 +760,17 @@ class ElementCallService: NSObject, ElementCallServiceProtocol, PKPushRegistryDe
         }
         
         declineListenerHandle = handle
+    }
+    
+    /// GUA FORK: an answer for the web view ends the CallKit call, so the app is no longer kept running for it.
+    private func updateHasCall() {
+        hasCallSubject.send((incomingCallID != nil && !isIncomingCallAnswered) || ongoingCallID != nil)
+    }
+    
+    /// GUA FORK: a call CallKit refused never rings, so it mustn't keep the client running.
+    private func clearIncomingCallStateIfRefused(_ callID: CallID, isRefused: Bool) {
+        guard isRefused, incomingCallID?.callKitID == callID.callKitID else { return }
+        clearIncomingCallState()
     }
     
     private func reportEndedCall(incomingCallID: CallID, reason: CXCallEndedReason) {

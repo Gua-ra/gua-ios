@@ -164,6 +164,26 @@ final class ElementCallServiceTests {
     }
     
     @Test
+    func aRingCallKitRefusedIsNotReported() async {
+        callProvider.reportNewIncomingCallWithUpdateCompletionClosure = { _, _, completion in
+            completion(CXErrorCodeIncomingCallError(.filteredByDoNotDisturb))
+        }
+        
+        await reportIncomingPush(isVoiceCall: false)
+        
+        #expect(!service.hasCallPublisher.value)
+    }
+    
+    @Test
+    func aRingAnsweredForTheWebViewIsNotReported() async throws {
+        await reportIncomingPush(isVoiceCall: false)
+        
+        try await answerReportedCall()
+        
+        #expect(!service.hasCallPublisher.value)
+    }
+    
+    @Test
     func aRingIsWatchedOnceItsRoomLoads() async throws {
         let roomInfoSubject = CurrentValueSubject<RoomInfoProxyProtocol, Never>(RoomInfoProxyMock(.init(id: "!room:example.com", hasOngoingCall: true)))
         let roomProxy = JoinedRoomProxyMock(.init(id: "!room:example.com"))

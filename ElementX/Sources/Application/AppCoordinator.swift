@@ -35,10 +35,16 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
     
     /// Common background task to continue long-running tasks in the background.
     private var backgroundTask: UIBackgroundTaskIdentifier?
+    private var isBackgroundTaskExpiring = false
     @CancellableTask private var delayedPauseTask: Task<Void, Never>?
     private var backgroundWorkCount = 0
-    private var isRunningBackgroundWork: Bool {
-        backgroundWorkCount > 0 || liveLocationManager.isAnyAccountSharingPublisher.value || elementCallService.hasCallPublisher.value
+    private var isKeptRunningInBackground: Bool {
+        searchBackfillTask != nil || liveLocationManager.isAnyAccountSharingPublisher.value || elementCallService.hasCallPublisher.value
+    }
+    
+    // GUA FORK: background work only has the background task's time, so its expiry no longer waits for it.
+    private var isPauseHeldOff: Bool {
+        isKeptRunningInBackground || (backgroundWorkCount > 0 && !isBackgroundTaskExpiring)
     }
     
     private var backgroundRefreshSyncObserver: AnyCancellable?
@@ -1281,7 +1287,7 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
             return
         }
         
-        if isBackgroundTask, isRunningBackgroundWork {
+        if isBackgroundTask, isPauseHeldOff {
             MXLog.info("Not pausing, the app is running background work.")
             return
         }
@@ -1409,6 +1415,7 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
                 // We're intentionally strongly retaining self here to an EXC_BAD_ACCESS
                 // `backgroundTask` will be eventually released in `endActiveBackgroundTask`
                 // https://sentry.tools.element.io/organizations/element/issues/4477794/events/9cfd04e4d045440f87498809cf718de5/
+                self.isBackgroundTaskExpiring = true
                 self.startDelayedPause(after: .zero)
             }
         }
@@ -1433,6 +1440,8 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
             await pauseClientServices(isBackgroundTask: true)
             // Cancelled by the app returning to the foreground, or by a newer pause that now owns the background task.
             guard !Task.isCancelled else { return }
+            // Kept while held off, so that its expiry still pauses unless iOS keeps the app running.
+            guard !isPauseHeldOff || isBackgroundTaskExpiring else { return }
             endActiveBackgroundTask()
         }
     }
@@ -1454,6 +1463,7 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
     
     private func endActiveBackgroundTask() {
         delayedPauseTask = nil
+        isBackgroundTaskExpiring = false
         
         guard let backgroundTask else {
             return
