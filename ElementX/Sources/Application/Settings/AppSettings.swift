@@ -473,7 +473,8 @@ final nonisolated class AppSettings: @unchecked Sendable {
     @UserPreference(defaultValue: false)
     var linkNewDeviceEnabled: Bool
     
-    @UserPreference(key: "clientPausingAndResumingEnabledV2", defaultValue: false, volatile: true)
+    // GUA FORK: iOS kills an app suspended mid-write to the app group stores (0xdead10cc). SDK 26.10.30 stops a pause losing events.
+    @UserPreference(key: "clientPausingAndResumingEnabledV2", defaultValue: true, volatile: true)
     var clientPausingAndResumingEnabled: Bool
     
     @UserPreference(defaultValue: false)

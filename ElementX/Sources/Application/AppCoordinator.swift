@@ -31,11 +31,18 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
     private let appHooks: AppHooks
     private let bugReportService: BugReportServiceProtocol
     private let elementCallService: ElementCallServiceProtocol
+    private let liveLocationManager: LiveLocationManagerProtocol
     
     /// Common background task to continue long-running tasks in the background.
     private var backgroundTask: UIBackgroundTaskIdentifier?
+    @CancellableTask private var delayedPauseTask: Task<Void, Never>?
+    private var backgroundWorkCount = 0
+    private var isRunningBackgroundWork: Bool {
+        backgroundWorkCount > 0 || liveLocationManager.isAnyAccountSharingPublisher.value || elementCallService.hasCallPublisher.value
+    }
     
     private var backgroundRefreshSyncObserver: AnyCancellable?
+    private var backgroundAppRefreshTask: BGAppRefreshTask?
     
     private var userSessionMigrationsOldVersion: Version?
     /// The accounts migrated since launch, so restoring one again (e.g. after clearing the cache) never migrates it twice.
@@ -138,7 +145,8 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
                                                 appHooks: appHooks,
                                                 networkMonitor: networkMonitor)
         notificationManager = NotificationManager(notificationCenter: UNUserNotificationCenter.current(), appSettings: appSettings)
-        userSessionManager = UserSessionManager(userSessionStore: userSessionStore, appSettings: appSettings, notificationManager: notificationManager, liveLocationManager: LiveLocationManager(appSettings: appSettings))
+        liveLocationManager = LiveLocationManager(appSettings: appSettings)
+        userSessionManager = UserSessionManager(userSessionStore: userSessionStore, appSettings: appSettings, notificationManager: notificationManager, liveLocationManager: liveLocationManager)
         
         let appLockService = AppLockService(keychainController: keychainController, appSettings: appSettings)
         // GUA FORK: unlocking with Face ID/Touch ID is the default, so switch it on for anyone who
@@ -167,6 +175,7 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         setupStateMachine()
         
         observeApplicationState()
+        observeBackgroundWork()
         observeUserSessionChanges()
         observeAppLockChanges()
         
@@ -192,6 +201,8 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
                     // a background task. Handle both manually here.
                     Task {
                         await self?.resumeClientServices()
+                        // GUA FORK: the ring was first observed before the resume, when the stores may have been closed.
+                        await self?.elementCallService.observeIncomingCallIfNeeded()
                         self?.scheduleDelayedPauseServices()
                     }
                 default:
@@ -467,7 +478,7 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
             return
         }
         
-        await processInlineReply(replyText, roomID: roomID, userSession: userSession)
+        await sendInlineReply(replyText, roomID: roomID, userSession: userSession)
     }
     
     // MARK: - Private
@@ -797,7 +808,7 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         self.storedInlineReply = nil
         
         Task {
-            await processInlineReply(storedInlineReply.message, roomID: storedInlineReply.roomID, userSession: userSession)
+            await sendInlineReply(storedInlineReply.message, roomID: storedInlineReply.roomID, userSession: userSession)
         }
     }
     
@@ -1048,6 +1059,8 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         elementCallService.setUserSession(userSession)
         Task {
             await resumeClientServices()
+            // GUA FORK: a session restored for a background launch must still be paused before the app is suspended.
+            scheduleDelayedPauseServicesIfInBackground()
         }
     }
     
@@ -1211,9 +1224,19 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         MXLog.info("Sentry configured (enabled: \(options.enabled))")
     }
     
+    /// GUA FORK: a reply from a notification can wake the app in the background, where the client is paused.
+    private func sendInlineReply(_ replyText: String, roomID: String, userSession: UserSessionProtocol) async {
+        await performBackgroundWork {
+            await processInlineReply(replyText, roomID: roomID, userSession: userSession)
+        }
+        scheduleDelayedPauseServicesIfInBackground()
+    }
+    
     private func processInlineReply(_ replyText: String, roomID: String, userSession: UserSessionProtocol) async {
         guard case let .joined(roomProxy) = await userSession.clientProxy.roomForIdentifier(roomID) else {
             MXLog.error("Tried to reply in an unjoined room: \(roomID)")
+            await notificationManager.showLocalNotification(with: "⚠️ " + L10n.commonError,
+                                                            subtitle: L10n.errorSomeMessagesHaveNotBeenSent)
             return
         }
         
@@ -1251,13 +1274,28 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
     // MARK: - Application State
     
     private func pauseClientServices(isBackgroundTask: Bool) async {
-        if isBackgroundTask, UIApplication.shared.applicationState == .active {
+        // GUA FORK: not on .inactive either, which is how Face ID app lock brings the app forward.
+        if isBackgroundTask, UIApplication.shared.applicationState != .background {
             // Attempt to pause the background task services cleanly, only if the app not already running
             return
         }
         
+        if isBackgroundTask, isRunningBackgroundWork {
+            MXLog.info("Not pausing, the app is running background work.")
+            return
+        }
+        
+        let pauseStart = ContinuousClock.now
         await userSessionManager.pauseServices()
+        MXLog.info("Paused the services in \(ContinuousClock.now - pauseStart)")
         clientProxyObserver = nil
+    }
+    
+    private func performBackgroundWork(_ work: @MainActor () async -> Void) async {
+        backgroundWorkCount += 1
+        await resumeClientServices()
+        await work()
+        backgroundWorkCount -= 1
     }
     
     private func resumeClientServices() async {
@@ -1323,6 +1361,20 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
                                                object: nil)
     }
     
+    /// GUA FORK: these keep the client running in the background, so it still needs pausing once they end.
+    private func observeBackgroundWork() {
+        liveLocationManager.isAnyAccountSharingPublisher
+            .combineLatest(elementCallService.hasCallPublisher)
+            .map { $0 || $1 }
+            .removeDuplicates()
+            .dropFirst()
+            .filter { !$0 }
+            .sink { [weak self] _ in
+                self?.scheduleDelayedPauseServicesIfInBackground()
+            }
+            .store(in: &cancellables)
+    }
+    
     @objc
     private func didChangeContentSizeCategory() {
         AttributedStringBuilder.invalidateCaches()
@@ -1349,20 +1401,38 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
     }
     
     private func scheduleDelayedPauseServices() {
-        guard backgroundTask == nil else {
-            return
+        if backgroundTask == nil {
+            backgroundTask = appMediator.beginBackgroundTask {
+                MXLog.info("Background task is about to expire.")
+                
+                // We're intentionally strongly retaining self here to an EXC_BAD_ACCESS
+                // `backgroundTask` will be eventually released in `endActiveBackgroundTask`
+                // https://sentry.tools.element.io/organizations/element/issues/4477794/events/9cfd04e4d045440f87498809cf718de5/
+                self.startDelayedPause(after: .zero)
+            }
         }
         
-        backgroundTask = appMediator.beginBackgroundTask {
-            MXLog.info("Background task is about to expire.")
-            
-            // We're intentionally strongly retaining self here to an EXC_BAD_ACCESS
-            // `backgroundTask` will be eventually released in `endActiveBackgroundTask`
-            // https://sentry.tools.element.io/organizations/element/issues/4477794/events/9cfd04e4d045440f87498809cf718de5/
-            Task { @MainActor in
-                await self.pauseClientServices(isBackgroundTask: true)
-                self.endActiveBackgroundTask()
+        startDelayedPause(after: .seconds(20))
+    }
+    
+    private func scheduleDelayedPauseServicesIfInBackground() {
+        guard appMediator.appState == .background else { return }
+        scheduleDelayedPauseServices()
+    }
+    
+    /// GUA FORK: closing the stores can take seconds, so the pause starts well before the background task expires.
+    private func startDelayedPause(after delay: Duration) {
+        delayedPauseTask = Task {
+            let deadline = ContinuousClock.now + delay
+            while !Task.isCancelled, ContinuousClock.now < deadline, UIApplication.shared.backgroundTimeRemaining > 10 {
+                try? await Task.sleep(for: .seconds(1))
             }
+            
+            guard !Task.isCancelled else { return }
+            await pauseClientServices(isBackgroundTask: true)
+            // Cancelled by the app returning to the foreground, or by a newer pause that now owns the background task.
+            guard !Task.isCancelled else { return }
+            endActiveBackgroundTask()
         }
     }
     
@@ -1370,6 +1440,7 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
     private func applicationWillEnterForeground() {
         MXLog.info("Application will enter foreground")
         endActiveBackgroundTask()
+        finishBackgroundAppRefreshEarly()
         Task {
             await resumeClientServices()
         }
@@ -1381,6 +1452,8 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
     }
     
     private func endActiveBackgroundTask() {
+        delayedPauseTask = nil
+        
         guard let backgroundTask else {
             return
         }
@@ -1437,13 +1510,12 @@ private extension AppCoordinator {
         // BGTask isn't annotated but is documented as thread-safe, with
         // setTaskCompleted(success:) being callable from any thread.
         nonisolated(unsafe) let task = task
+        backgroundAppRefreshTask = task
         task.expirationHandler = { @Sendable [weak self] in
             MXLog.info("Background app refresh task is about to expire.")
             
             Task { @MainActor in
-                await self?.pauseClientServices(isBackgroundTask: true)
-                MXLog.info("Marking Background app refresh task as complete.")
-                task.setTaskCompleted(success: true)
+                await self?.finishBackgroundAppRefresh(task)
             }
         }
         
@@ -1451,6 +1523,7 @@ private extension AppCoordinator {
         
         guard let userSession else {
             MXLog.info("Background app refresh: no user session, giving up.")
+            backgroundAppRefreshTask = nil
             task.setTaskCompleted(success: false)
             return
         }
@@ -1472,14 +1545,35 @@ private extension AppCoordinator {
                 MXLog.info("Background app refresh finished")
                 backgroundRefreshSyncObserver?.cancel()
                 
-                // Make sure we stop the sync loop, otherwise the ongoing request is immediately
-                // handled the next time the app refreshes, which can trigger timeout failures.
                 Task {
-                    await self.pauseClientServices(isBackgroundTask: true)
-                    MXLog.info("Marking Background app refresh task as complete.")
-                    task.setTaskCompleted(success: true)
+                    await self.finishBackgroundAppRefresh(task)
                 }
             }
+    }
+    
+    func finishBackgroundAppRefresh(_ task: BGAppRefreshTask) async {
+        // Already finished, possibly early by the app returning to the foreground.
+        guard backgroundAppRefreshTask === task else { return }
+        backgroundRefreshSyncObserver = nil
+        
+        // Make sure we stop the sync loop, otherwise the ongoing request is immediately
+        // handled the next time the app refreshes, which can trigger timeout failures.
+        await pauseClientServices(isBackgroundTask: true)
+        
+        guard backgroundAppRefreshTask === task else { return }
+        backgroundAppRefreshTask = nil
+        MXLog.info("Marking Background app refresh task as complete.")
+        task.setTaskCompleted(success: true)
+    }
+    
+    /// GUA FORK: a refresh outliving the return to the foreground would pause the client while the app is in use.
+    func finishBackgroundAppRefreshEarly() {
+        guard let backgroundAppRefreshTask else { return }
+        
+        backgroundRefreshSyncObserver = nil
+        self.backgroundAppRefreshTask = nil
+        MXLog.info("Marking Background app refresh task as complete on entering the foreground.")
+        backgroundAppRefreshTask.setTaskCompleted(success: true)
     }
     
     /// When iOS relaunches a terminated app for a background task, the session needs restoring before the task can run.
@@ -1533,19 +1627,24 @@ private extension AppCoordinator {
     func handleSearchBackfill(_ task: BGProcessingTask) async {
         MXLog.info("Started search backfill task")
         
-        await waitForSessionRestore()
-        
         task.expirationHandler = { @Sendable [weak self] in
             MXLog.info("Search backfill task is about to expire.")
             Task { @MainActor in self?.userSessionManager.stopSearchBackfill() }
         }
         
-        userSessionManager.startSearchBackfill(strategy: .background)
+        await waitForSessionRestore()
         
-        // TaskHandle can't be awaited, so poll until every sweep finishes or is stopped on expiry.
-        while userSessionManager.isSearchBackfillRunning {
-            try? await Task.sleep(for: .seconds(1))
+        // GUA FORK: the backfill fails on closed stores, and the app must be paused again before it's suspended.
+        await userSessionManager.configurePresence(.offline, sendImmediately: false)
+        await performBackgroundWork {
+            userSessionManager.startSearchBackfill(strategy: .background)
+            
+            // TaskHandle can't be awaited, so poll until every sweep finishes or is stopped on expiry.
+            while userSessionManager.isSearchBackfillRunning {
+                try? await Task.sleep(for: .seconds(1))
+            }
         }
+        await pauseClientServices(isBackgroundTask: true)
         
         MXLog.info("Marking search backfill task as complete.")
         task.setTaskCompleted(success: true)
