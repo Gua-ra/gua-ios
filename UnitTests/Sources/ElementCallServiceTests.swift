@@ -10,6 +10,7 @@ import Combine
 import ElementCall
 @testable import ElementX
 import PushKit
+import Synchronization
 import Testing
 
 @MainActor
@@ -210,15 +211,25 @@ final class ElementCallServiceTests {
         roomProxy.infoPublisher = roomInfoSubject.asCurrentValuePublisher()
         roomProxy.subscribeToCallDeclineEventsRtcNotificationEventIDListenerReturnValue = .failure(.eventNotFound)
         
-        var canLoadRoom = false
+        let canLoadRoom = Mutex(false)
+        let lookups = PassthroughSubject<Void, Never>()
         let clientProxy = ClientProxyMock(.init())
-        clientProxy.roomForIdentifierClosure = { _ in canLoadRoom ? .joined(roomProxy) : nil }
-        userSession = UserSessionMock(.init(clientProxy: clientProxy))
-        service.setUserSession(userSession)
+        clientProxy.roomForIdentifierClosure = { _ in
+            let room: RoomProxyType? = canLoadRoom.withLock { $0 } ? .joined(roomProxy) : nil
+            lookups.send(())
+            return room
+        }
         await reportIncomingPush(isVoiceCall: false)
         
-        canLoadRoom = true
+        let deferredFailedLookup = deferFulfillment(lookups) { _ in true }
+        userSession = UserSessionMock(.init(clientProxy: clientProxy))
+        service.setUserSession(userSession)
+        try await deferredFailedLookup.fulfill()
+        
+        canLoadRoom.withLock { $0 = true }
+        let lookupCount = clientProxy.roomForIdentifierCallsCount
         await service.observeIncomingCallIfNeeded()
+        #expect(clientProxy.roomForIdentifierCallsCount > lookupCount)
         
         let (endedCalls, endedCallsContinuation) = AsyncStream<CXCallEndedReason>.makeStream()
         callProvider.reportCallWithEndedAtReasonClosure = { _, _, reason in
