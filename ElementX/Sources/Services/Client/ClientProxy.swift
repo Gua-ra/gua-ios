@@ -1193,6 +1193,8 @@ class ClientProxy: ClientProxyProtocol {
                 // GUA FORK: only brings an offline client online. Resuming a new or paused client is the app's call.
                 if reachability == .reachable, case .running = self?.desiredServiceState {
                     Task {
+                        // GUA FORK: checked again, as a pause can land before this runs.
+                        guard case .running = self?.desiredServiceState else { return }
                         await self?.resumeServices()
                     }
                 }
