@@ -261,6 +261,66 @@ struct MessageForwardingScreenViewModelTests {
     }
     
     @Test
+    mutating func forwardingAStackStopsAtAFailureAndDropsTheUnsentBatchEntries() async throws {
+        let clientProxy = ClientProxyMock(.init())
+        var roomProxies = [String: JoinedRoomProxyMock]()
+        clientProxy.roomForIdentifierClosure = { roomID in
+            let roomProxy = JoinedRoomProxyMock(.init(id: roomID))
+            if roomID == "2", let timeline = roomProxy.timeline as? TimelineProxyMock {
+                timeline.sendMessageEventContentExtraContentJSONClosure = { [unowned timeline] _, _ in
+                    timeline.sendMessageEventContentExtraContentJSONCallsCount == 2 ? .failure(.sdkError(ClientProxyMockError.generic)) : .success(())
+                }
+            }
+            roomProxies[roomID] = roomProxy
+            return .joined(roomProxy)
+        }
+        let userIndicatorController = UserIndicatorControllerMock()
+        let pendingBatches = PendingMediaBatchStore()
+        let files = ["IMG_1.jpg", "IMG_2.jpg", "IMG_3.jpg"].map { PendingMediaBatchStore.File(filename: $0, fileSize: 1024, mimeType: "image/jpeg") }
+        var stackPayload = MessageForwardingPayload(ids: (1...3).map { .event(uniqueID: .init("t\($0)"), eventOrTransactionID: .eventID("t\($0)")) },
+                                                    roomID: "1",
+                                                    contents: (1...3).map { _ in RoomMessageEventContentWithoutRelationSDKMock() })
+        stackPayload.mediaBatch = MediaBatchForwarding(files: files, pendingBatches: pendingBatches)
+        viewModel = MessageForwardingScreenViewModel(forwardingPayload: stackPayload,
+                                                     userSession: UserSessionMock(.init(clientProxy: clientProxy)),
+                                                     roomSummaryProvider: RoomSummaryProviderMock(.init(state: .loaded(.mockRooms))),
+                                                     userIndicatorController: userIndicatorController)
+        context = viewModel.context
+        
+        context.send(viewAction: .selectRoom(roomID: "2"))
+        context.send(viewAction: .selectRoom(roomID: "3"))
+        
+        let deferred = deferFulfillment(viewModel.actions) { action in
+            if case .sent(let roomIDs) = action {
+                return roomIDs == ["3"]
+            }
+            return false
+        }
+        context.send(viewAction: .send)
+        try await deferred.fulfill()
+        
+        #expect(userIndicatorController.submitIndicatorDelayReceivedInvocations.map(\.indicator.title) == [L10n.errorUnknown])
+        
+        let failingTimeline = try #require(roomProxies["2"]?.timeline as? TimelineProxyMock)
+        let attemptedBatches = try failingTimeline.sendMessageEventContentExtraContentJSONReceivedInvocations.map { invocation in
+            try #require(Self.mediaBatch(in: invocation.extraContentJSON))
+        }
+        #expect(attemptedBatches.map(\.index) == [0, 1], "Nothing is sent after the failure.")
+        
+        let sentKey = PendingMediaBatchStore.Key(roomID: "2", file: files[0])
+        #expect(pendingBatches.batch(forItemIDs: ["sent-echo"], key: sentKey) == attemptedBatches[0], "The sent member's echo still stacks.")
+        for file in files[1...] {
+            let laterSendKey = PendingMediaBatchStore.Key(roomID: "2", file: file)
+            #expect(pendingBatches.batch(forItemIDs: ["later-\(file.filename)"], key: laterSendKey) == nil, "A later send of an unsent member's file must not bind to this batch.")
+        }
+        
+        let otherTimeline = try #require(roomProxies["3"]?.timeline as? TimelineProxyMock)
+        #expect(otherTimeline.sendMessageEventContentExtraContentJSONCallsCount == 3)
+        let otherKey = PendingMediaBatchStore.Key(roomID: "3", file: files[2])
+        #expect(pendingBatches.batch(forItemIDs: ["other-echo"], key: otherKey) != nil, "The other chat's entries survive.")
+    }
+    
+    @Test
     mutating func forwardingToSeveralRoomsShowsAToast() async throws {
         let userIndicatorController = UserIndicatorControllerMock()
         viewModel = makeViewModel(userIndicatorController: userIndicatorController)

@@ -501,6 +501,7 @@ final class TimelineProxy: TimelineProxyProtocol {
             _ = try await timeline.sendWithExtraContent(msg: messageContent, extraContentJson: extraContentJSON)
         } catch {
             MXLog.error("Failed sending message with error: \(error)")
+            return .failure(.sdkError(error))
         }
         
         MXLog.info("Finished sending message content")

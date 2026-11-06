@@ -83,4 +83,13 @@ nonisolated struct MediaBatchForwarding {
         }
         return batches
     }
+    
+    /// Drops the entries of the members from `index` on, which a forward that stopped there never enqueued.
+    func unregister(_ batches: [MediaBatch?], from index: Int, forRoomID roomID: String) {
+        for (batch, file) in zip(batches, files).dropFirst(index) {
+            if let batch {
+                pendingBatches.unregister(batch, for: .init(roomID: roomID, file: file))
+            }
+        }
+    }
 }

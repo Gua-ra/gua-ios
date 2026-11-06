@@ -139,11 +139,20 @@ class MessageForwardingScreenViewModel: MessageForwardingScreenViewModelType, Me
             
             // The contents are already in timeline order and the send queue preserves it.
             let mediaBatches = forwardingPayload.mediaBatch?.makeBatches(forRoomID: roomID) ?? Array(repeating: nil, count: forwardingPayload.contents.count)
-            for (content, mediaBatch) in zip(forwardingPayload.contents, mediaBatches) {
+            var failedIndex: Int?
+            for (index, (content, mediaBatch)) in zip(forwardingPayload.contents, mediaBatches).enumerated() {
                 if case .failure(let error) = await targetRoomProxy.timeline.sendMessageEventContent(content, extraContentJSON: mediaBatch?.extraContentJSON) {
                     MXLog.error("Failed forwarding message with error: \(error)")
-                    hasFailures = true
+                    failedIndex = index
+                    break
                 }
+            }
+            
+            // Stops at the first failure so the chat never gets the later contents out of order.
+            if let failedIndex {
+                forwardingPayload.mediaBatch?.unregister(mediaBatches, from: failedIndex, forRoomID: roomID)
+                hasFailures = true
+                continue
             }
             
             succeededRoomIdentifiers.append(roomID)
