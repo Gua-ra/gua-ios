@@ -699,9 +699,9 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
         
         guard isLastDevice else {
             navigationRootCoordinator.alertInfo = .init(id: .init(),
-                                                        title: L10n.screenSignoutConfirmationDialogTitle,
-                                                        message: L10n.screenSignoutConfirmationDialogContent,
-                                                        primaryButton: .init(title: L10n.screenSignoutConfirmationDialogSubmit, role: .destructive) { [weak self] in
+                                                        title: UntranslatedL10n.guaSettingsSignOut,
+                                                        message: UntranslatedL10n.guaSignoutConfirmationMessage,
+                                                        primaryButton: .init(title: UntranslatedL10n.guaSettingsSignOut, role: .destructive) { [weak self] in
                                                             self?.actionsSubject.send(.logout)
                                                         })
             return
@@ -713,7 +713,7 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
             navigationRootCoordinator.alertInfo = .init(id: .init(),
                                                         title: UntranslatedL10n.guaSignoutLastDeviceTitle,
                                                         message: UntranslatedL10n.guaSignoutLastDeviceMessage,
-                                                        primaryButton: .init(title: L10n.screenSignoutConfirmationDialogSubmit, role: .destructive) { [weak self] in
+                                                        primaryButton: .init(title: UntranslatedL10n.guaSettingsSignOut, role: .destructive) { [weak self] in
                                                             self?.actionsSubject.send(.logout)
                                                         }, secondaryButton: .init(title: L10n.actionCancel, role: .cancel) { })
             return

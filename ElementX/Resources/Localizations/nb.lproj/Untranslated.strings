@@ -10,6 +10,12 @@
 "gua_encryption_reset_required_action" = "Tilbakestill og fullfør";
 "gua_signout_last_device_title" = "Å logge ut fjerner meldingene dine fra denne enheten";
 "gua_signout_last_device_message" = "Dette er din eneste enhet. Meldinger som bare er lagret her, blir ikke tilgjengelige når du logger inn igjen.";
+"gua_settings_sign_out" = "Logg ut";
+"gua_signout_confirmation_message" = "Er du sikker på at du vil logge ut?";
+"gua_signout_key_backup_ongoing_subtitle" = "Vent til dette er fullført før du logger av.";
+"gua_signout_key_backup_offline_subtitle" = "Nøklene dine ble fortsatt sikkerhetskopiert da du koblet fra. Koble til igjen, slik at nøklene dine kan sikkerhetskopieres før du logger av.";
+"gua_app_lock_signout_alert_title" = "Du blir logget av";
+"gua_signing_out" = "Logger av";
 "gua_encryption_reset_finishing" = "Fullfører oppsettet…";
 "gua_encryption_reset_failed" = "Kunne ikke fullføre oppsettet. Trykk på «Tilbakestill og fullfør» for å prøve igjen.";
 "gua_encryption_recover_from_other_device_title" = "Gjenopprett de tidligere meldingene dine";

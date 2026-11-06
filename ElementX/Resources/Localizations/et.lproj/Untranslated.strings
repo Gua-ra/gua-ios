@@ -1,6 +1,12 @@
 
 "gua_signout_last_device_title" = "Väljalogimine eemaldab sinu sõnumid sellest seadmest";
 "gua_signout_last_device_message" = "See on sinu ainus seade. Ainult siin hoitavad sõnumid ei ole pärast uuesti sisselogimist saadaval.";
+"gua_settings_sign_out" = "Logi välja";
+"gua_signout_confirmation_message" = "Kas sa oled kindel, et soovid välja logida?";
+"gua_signout_key_backup_ongoing_subtitle" = "Enne väljalogimist palun oota, et pooleliolev toiming lõppeb.";
+"gua_signout_key_backup_offline_subtitle" = "Kui su võrguühendus katkes, siis sinu krüptovõtmed oli parasjagu varundamisel. Loo võrguühendus uuesti, oota kuni krüptovõtmete varundamine lõppeb ja alles siis logi rakendusest välja.";
+"gua_app_lock_signout_alert_title" = "Sa oled logimas välja";
+"gua_signing_out" = "Logime välja";
 "gua_encryption_reset_required_title" = "Mõnda varasemat sõnumit ei saa taastada";
 "gua_encryption_reset_required_message" = "Selles seadmes krüptitud vestluste seadistamise lõpetamiseks tuleb sinu krüptitud varukoopia lähtestada. Ainult selles varukoopias olevad sõnumid lähevad kaotsi. Sõnumid, mis on juba sinu seadmetes, ei muutu.";
 "gua_encryption_reset_required_action" = "Lähtesta ja lõpeta";

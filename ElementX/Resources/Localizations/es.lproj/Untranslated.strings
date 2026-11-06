@@ -11,6 +11,11 @@
 "gua_signout_last_device_title" = "Cerrar sesión eliminará tus mensajes de este dispositivo";
 "gua_signout_last_device_message" = "Los mensajes guardados solo aquí no estarán disponibles cuando vuelvas a iniciar sesión.";
 "gua_settings_sign_out" = "Cerrar sesión";
+"gua_signout_confirmation_message" = "¿Estás seguro de que quieres cerrar sesión?";
+"gua_signout_key_backup_ongoing_subtitle" = "Espera a que se complete antes de cerrar sesión.";
+"gua_signout_key_backup_offline_subtitle" = "Se estaba haciendo una copia de seguridad de tus claves cuando te desconectaste. Vuelve a conectarte para que se haga una copia de seguridad de tus claves antes de cerrar sesión.";
+"gua_app_lock_signout_alert_title" = "Se está cerrando tu sesión";
+"gua_signing_out" = "Cerrando sesión";
 "gua_encryption_reset_finishing" = "Finalizando la configuración…";
 "gua_encryption_reset_failed" = "No se pudo finalizar la configuración. Inténtalo de nuevo.";
 "gua_encryption_recover_from_other_device_title" = "Recupera tus mensajes anteriores";

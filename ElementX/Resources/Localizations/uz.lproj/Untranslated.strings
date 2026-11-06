@@ -1,6 +1,12 @@
 
 "gua_signout_last_device_title" = "Chiqish xabarlaringizni ushbu qurilmadan o'chiradi";
 "gua_signout_last_device_message" = "Bu sizning yagona qurilmangiz. Faqat shu yerda saqlangan xabarlar qayta kirganingizda mavjud bo'lmaydi.";
+"gua_settings_sign_out" = "Tizimdan chiqish";
+"gua_signout_confirmation_message" = "Haqiqatan ham tizimdan chiqmoqchimisiz?";
+"gua_signout_key_backup_ongoing_subtitle" = "Tizimdan chiqishdan oldin bu jarayon tugashini kuting.";
+"gua_signout_key_backup_offline_subtitle" = "Siz oflayn bo‘lganingizda ham kalitlaringiz zaxiralanish jarayonida edi. Tizimdan chiqishdan oldin kalitlaringizning to‘liq zaxiralanishini ta’minlash uchun qayta ulanishingiz zarur.";
+"gua_app_lock_signout_alert_title" = "Siz tizimdan chiqmoqdasiz";
+"gua_signing_out" = "Chiqish";
 "gua_encryption_reset_required_title" = "Ba'zi oldingi xabarlarni tiklab bo'lmaydi";
 "gua_encryption_reset_required_message" = "Ushbu qurilmada shifrlangan chatlarni sozlashni yakunlash uchun shifrlangan zaxira nusxangizni qayta tiklash kerak. Faqat o'sha zaxirada saqlangan xabarlar yo'qoladi. Qurilmalaringizda allaqachon mavjud xabarlarga ta'sir qilmaydi.";
 "gua_encryption_reset_required_action" = "Qayta tiklash va yakunlash";

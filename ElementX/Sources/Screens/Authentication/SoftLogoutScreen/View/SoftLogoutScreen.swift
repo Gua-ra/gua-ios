@@ -139,7 +139,7 @@ struct SoftLogoutScreen: View {
             .accessibilityIdentifier(A11yIdentifiers.softLogoutScreen.clearData)
             .alert(UntranslatedL10n.softLogoutClearDataDialogTitle,
                    isPresented: $showingClearDataConfirmation) {
-                Button(L10n.screenSignoutConfirmationDialogSubmit,
+                Button(UntranslatedL10n.guaSettingsSignOut,
                        role: .destructive,
                        action: clearData)
             } message: {

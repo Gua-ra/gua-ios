@@ -137,14 +137,14 @@ class AppLockSetupPINScreenViewModel: AppLockSetupPINScreenViewModelType, AppLoc
             state.bindings.alertInfo = .init(id: alertType)
         case .confirmResetPIN:
             state.bindings.alertInfo = .init(id: alertType,
-                                             title: L10n.screenAppLockSignoutAlertTitle,
+                                             title: UntranslatedL10n.guaAppLockSignoutAlertTitle,
                                              message: L10n.screenAppLockSignoutAlertMessage,
                                              primaryButton: .init(title: L10n.actionOk) { self.forceLogout() },
                                              secondaryButton: .init(title: L10n.actionCancel, role: .cancel, action: nil))
         case .forceLogout:
             state.isLoggingOut = true // Disable the screen before showing the alert.
             state.bindings.alertInfo = .init(id: alertType,
-                                             title: L10n.screenAppLockSignoutAlertTitle,
+                                             title: UntranslatedL10n.guaAppLockSignoutAlertTitle,
                                              message: L10n.screenAppLockSignoutAlertMessage,
                                              primaryButton: .init(title: L10n.actionOk) { self.forceLogout() })
         }
