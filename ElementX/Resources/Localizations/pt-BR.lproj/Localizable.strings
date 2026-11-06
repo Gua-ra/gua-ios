@@ -472,7 +472,7 @@
 "dialog_permission_camera" = "Para permitir que o aplicativo use a câmera, conceda a permissão nas configurações do sistema.";
 "dialog_permission_generic" = "Por favor, conceda a permissão nas configurações do sistema.";
 "dialog_permission_live_location_description_ios" = "To share your live location, %1$@ needs location access when the app is in the background. Go to Settings > Location and select Always";
-"dialog_permission_location_description_ios" = "To share your current location, %1$@ needs location access. Go to Settings > Location.";
+"dialog_permission_location_description_ios" = "Para compartilhar sua localização atual, o %1$@ precisa de acesso à localização. Acesse Ajustes > Localização.";
 "dialog_permission_location_title_ios" = "%1$@ não tem acesso à sua localização.";
 "dialog_permission_microphone" = "Para permitir que o aplicativo use o microfone, conceda a permissão nas configurações do sistema.";
 "dialog_permission_microphone_description_ios" = "Conceda o acesso para que você possa gravar e enviar mensagens com áudio.";
@@ -763,7 +763,7 @@
 "screen_chat_backup_recovery_action_confirm" = "Digitar chave de recuperação";
 "screen_chat_backup_recovery_action_confirm_description" = "Seu armazenamento de chaves está fora de sincronia no momento.";
 "screen_chat_backup_recovery_action_setup" = "Receber chave de recuperação";
-"screen_chat_backup_recovery_action_setup_description" = "Your chats are automatically backed up with end-to-end encryption. To restore this backup and retain your digital identity when you lose access to all your devices, you will need your recovery key.";
+"screen_chat_backup_recovery_action_setup_description" = "Suas conversas são salvas automaticamente com criptografia de ponta a ponta. Para restaurar esse backup e manter sua identidade digital caso você perca o acesso a todos os seus dispositivos, você vai precisar da sua chave de recuperação.";
 "screen_create_account_title" = "Criar conta";
 "screen_create_new_recovery_key_list_item_1" = "Abra o %1$@ em um computador";
 "screen_create_new_recovery_key_list_item_2" = "Entre na sua conta novamente";
@@ -795,10 +795,10 @@
 "screen_create_room_new_room_title" = "Nova sala";
 "screen_create_room_new_space_title" = "Novo espaço";
 "screen_create_room_private_option_description" = "Apenas pessoas convidadas podem entrar.";
-"screen_create_room_private_option_title" = "Private";
+"screen_create_room_private_option_title" = "Privada";
 "screen_create_room_public_option_description" = "Qualquer um pode encontrar esta sala.\nVocê pode mudar isso a qualquer momento nas configurações da sala.";
 "screen_create_room_public_option_short_description" = "Qualquer um pode entrar.";
-"screen_create_room_public_option_title" = "Public";
+"screen_create_room_public_option_title" = "Pública";
 "screen_create_room_room_access_section_knocking_option_description" = "Qualquer um pode pedir para entrar, mas um administrador ou moderador deve aceitar a solicitação";
 "screen_create_room_room_access_section_knocking_option_title" = "Permitir pedir para entrar";
 "screen_create_room_room_access_section_knocking_restricted_option_description" = "Qualquer um em %1$@ pode entrar, mas todos os outros devem pedir acesso.";
@@ -1426,7 +1426,7 @@
 "screen_room_notification_settings_error_setting_mode" = "Falha ao definir o modo, tente novamente.";
 "screen_room_notification_settings_mentions_only_disclaimer" = "Seu servidor-casa não suporta esta opção em salas criptografadas, você não será notificado nesta sala.";
 "screen_room_notification_settings_mode_all_messages" = "Todas as mensagens";
-"screen_room_notification_settings_mode_mentions_and_keywords" = "Mentions and replies only";
+"screen_room_notification_settings_mode_mentions_and_keywords" = "Somente menções e respostas";
 "screen_room_notification_settings_mode_mute" = "Mute";
 "screen_room_notification_settings_room_custom_settings_title" = "Nesta sala, notifique-me de";
 "screen_room_pinned_banner_indicator" = "%1$@ de %2$@";
@@ -1531,7 +1531,7 @@
 "screen_security_and_privacy_room_access_section_header" = "Acesso";
 "screen_security_and_privacy_room_access_space_members_option_multiple_parents_description" = "Qualquer um em espaços autorizados podem entrar.";
 "screen_security_and_privacy_room_access_space_members_option_single_parent_description" = "Qualquer pessoa em %1$@ pode participar.";
-"screen_security_and_privacy_room_access_space_members_option_title" = "Space members";
+"screen_security_and_privacy_room_access_space_members_option_title" = "Membros do espaço";
 "screen_security_and_privacy_room_access_space_members_option_unavailable_description" = "No momento, não há suporte aos espaços";
 "screen_security_and_privacy_room_address_section_footer" = "Você precisará de um endereço para torná-la visível no diretório.";
 "screen_security_and_privacy_room_address_section_header" = "Endereço publicado";

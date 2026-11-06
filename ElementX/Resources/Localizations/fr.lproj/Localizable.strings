@@ -638,8 +638,8 @@
 "screen_advanced_settings_share_presence_description" = "Si cette option est désactivée, vous ne pourrez ni envoyer ni recevoir de confirmations de lecture ni de notifications de saisie.";
 "screen_advanced_settings_show_media_timeline_always_hide" = "Toujours cacher";
 "screen_advanced_settings_show_media_timeline_always_show" = "Toujours montrer";
-"screen_advanced_settings_show_media_timeline_private_rooms" = "Show in private rooms";
-"screen_advanced_settings_show_media_timeline_subtitle" = "Hidden media can always be shown by tapping on it.";
+"screen_advanced_settings_show_media_timeline_private_rooms" = "Afficher dans les salons privés";
+"screen_advanced_settings_show_media_timeline_subtitle" = "Un média caché peut toujours être affiché en appuyant dessus.";
 "screen_advanced_settings_show_media_timeline_title" = "Afficher les médias dans les discussions.";
 "screen_advanced_settings_view_source_description" = "Activer cette option pour pouvoir voir la source des messages dans la discussion.";
 "screen_analytics_prompt_data_usage" = "Nous n’enregistrerons ni ne profilerons aucune donnée personnelle";
