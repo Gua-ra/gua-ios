@@ -9,13 +9,14 @@ import Compound
 import SwiftUI
 
 struct MediaStackRoomTimelineView: View {
+    private static let fallbackPositions = MediaStackPositions()
+    
     @Environment(\.timelineContext) private var context
-    @State private var fallbackPositions = MediaStackPositions()
     
     let timelineItem: MediaStackRoomTimelineItem
     
     private var positions: MediaStackPositions {
-        context?.viewState.mediaStackPositions ?? fallbackPositions
+        context?.viewState.mediaStackPositions ?? Self.fallbackPositions
     }
     
     var body: some View {
@@ -35,7 +36,6 @@ struct MediaStackRoomTimelineView: View {
         }
         .font(.compound.bodySMSemibold)
         .foregroundStyle(.compound.textSecondary)
-        .padding(.horizontal, 6)
         // At least 44 points tall to tap, without pushing the cards away.
         .contentShape(.rect.inset(by: -14))
         .gesture(MediaStackTapGesture(isEnabled: context?.viewState.messageSelection.isActive != true) {

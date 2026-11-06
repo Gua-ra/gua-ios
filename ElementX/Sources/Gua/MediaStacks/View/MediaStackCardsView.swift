@@ -72,6 +72,11 @@ struct MediaStackCardsView: View {
         stack.isOutgoing ? leadingSign : -leadingSign
     }
     
+    /// The front card sits in the frame's outer bottom corner, so the fan fills the frame toward the screen centre and up.
+    private var frontCardAlignment: Alignment {
+        fanSign > 0 ? .bottomLeading : .bottomTrailing
+    }
+    
     /// Dragging toward the leading edge reveals the next card, toward the trailing edge the previous one.
     private var revealStep: Int {
         dragOffset * leadingSign < 0 ? -1 : 1
@@ -94,7 +99,7 @@ struct MediaStackCardsView: View {
                 MediaStackRevealButton()
             }
         }
-        .frame(width: Self.frameSize.width, height: Self.frameSize.height)
+        .frame(width: Self.frameSize.width, height: Self.frameSize.height, alignment: frontCardAlignment)
         // The fan is placed in physical directions, picked from the reading order above. Each card keeps the reading order inside.
         .environment(\.layoutDirection, .leftToRight)
         .environment(\.shouldAutomaticallyLoadImages, shouldAutomaticallyLoadImages || positions.isRevealed(stack))
