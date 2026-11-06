@@ -40,13 +40,16 @@ struct SwipeRightAction<Label: View>: ViewModifier {
                 }
             }
             .overlay(alignment: .leading) {
-                // We want the action icon to follow the view translation and gradually fade in
-                label()
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: actionThreshold)
-                    .opacity(xOffset / 50)
-                    .animation(.interactiveSpring().speed(0.5), value: xOffset)
-                    .offset(x: -actionThreshold + min(xOffset, actionThreshold), y: 0.0)
+                // Left out when disabled, as the transparent icon still widens the content's accessibility frame.
+                if isEnabled {
+                    // We want the action icon to follow the view translation and gradually fade in
+                    label()
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: actionThreshold)
+                        .opacity(xOffset / 50)
+                        .animation(.interactiveSpring().speed(0.5), value: xOffset)
+                        .offset(x: -actionThreshold + min(xOffset, actionThreshold), y: 0.0)
+                }
             }
     }
     

@@ -38,8 +38,7 @@ struct MediaStackRoomTimelineView: View {
         }
         .font(.compound.bodySMSemibold)
         .foregroundStyle(.compound.textSecondary)
-        // At least 44 points tall to tap, without pushing the cards away.
-        .contentShape(.rect.inset(by: -14))
+        .contentShape(MediaStackHeaderHitShape())
         .gesture(MediaStackTapGesture(isEnabled: context?.viewState.messageSelection.isActive != true) {
             context?.send(viewAction: .mediaStackHeaderTapped(stackID: timelineItem.id))
         })
@@ -65,6 +64,13 @@ struct MediaStackRoomTimelineView: View {
             .bubbleBackground(isOutgoing: timelineItem.isOutgoing,
                               insets: .init(top: 8, leading: 8, bottom: 8, trailing: 8),
                               color: timelineItem.isOutgoing ? .compound._bgBubbleOutgoing : .compound._bgBubbleIncoming)
+    }
+}
+
+/// At least 44 points tall to tap, without pushing the cards away or widening the stack's accessibility frame.
+private nonisolated struct MediaStackHeaderHitShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        Path(rect.insetBy(dx: 0, dy: -14))
     }
 }
 
@@ -108,6 +114,7 @@ extension View {
 
 private struct MediaStackAccessibilityModifier: ViewModifier {
     @Environment(\.timelineContext) private var context
+    @Environment(\.shouldAutomaticallyLoadImages) private var shouldAutomaticallyLoadImages
     
     let stack: MediaStackRoomTimelineItem
     
@@ -159,7 +166,7 @@ private struct MediaStackAccessibilityModifier: ViewModifier {
                 }
             }
             .accessibilityAction(.default) {
-                context?.send(viewAction: .mediaTapped(itemID: stack.members[frontIndex].id))
+                positions?.activate(stack, hidesMedia: !shouldAutomaticallyLoadImages, context: context)
             }
             .accessibilityAction(named: UntranslatedL10n.guaMediaStackA11yNext) {
                 positions?.page(stack, by: 1)

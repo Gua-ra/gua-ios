@@ -33,6 +33,21 @@ final class MediaStackPositions {
     func reveal(_ stack: MediaStackRoomTimelineItem) {
         revealedStackIDs.insert(stack.id.uniqueID)
     }
+    
+    /// What a tap and VoiceOver's activation do: reveal hidden media, else run a failed front member's failure handler or open the viewer at it.
+    func activate(_ stack: MediaStackRoomTimelineItem, hidesMedia: Bool, context: TimelineViewModel.Context?) {
+        guard !hidesMedia || isRevealed(stack) else {
+            reveal(stack)
+            return
+        }
+        
+        let member = stack.members[frontIndex(of: stack)]
+        if member.item.hasFailedToSend {
+            context?.send(viewAction: .itemSendInfoTapped(itemID: member.id))
+        } else {
+            context?.send(viewAction: .mediaTapped(itemID: member.id))
+        }
+    }
 }
 
 struct MediaStackCardsView: View {
@@ -104,7 +119,9 @@ struct MediaStackCardsView: View {
         .environment(\.layoutDirection, .leftToRight)
         .environment(\.shouldAutomaticallyLoadImages, shouldAutomaticallyLoadImages || positions.isRevealed(stack))
         .contentShape(.rect)
-        .gesture(MediaStackTapGesture(isEnabled: isInteractive) { handleTap() })
+        .gesture(MediaStackTapGesture(isEnabled: isInteractive) {
+            positions.activate(stack, hidesMedia: !shouldAutomaticallyLoadImages, context: context)
+        })
         .gesture(PanGestureRepresentable(isEnabled: isInteractive) { handlePan($0) })
         .allowsHitTesting(isInteractive)
         .animation(reduceMotion ? .easeInOut(duration: 0.2) : nil, value: frontIndex)
@@ -116,20 +133,6 @@ struct MediaStackCardsView: View {
             // With Reduce Motion the cards stay in place and only the front one cross-fades to the next.
             let id = reduceMotion && slot > 0 ? "slot-\(slot)" : member.id.uniqueID.value
             return VisibleCard(id: id, member: member, slot: slot)
-        }
-    }
-    
-    private func handleTap() {
-        guard !isHidden else {
-            positions.reveal(stack)
-            return
-        }
-        
-        let member = stack.members[frontIndex]
-        if member.item.hasFailedToSend {
-            context?.send(viewAction: .itemSendInfoTapped(itemID: member.id))
-        } else {
-            context?.send(viewAction: .mediaTapped(itemID: member.id))
         }
     }
     

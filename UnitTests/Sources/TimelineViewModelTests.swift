@@ -753,6 +753,25 @@ final class TimelineViewModelTests {
     }
     
     @Test
+    func activatingAStackRevealsHiddenMediaBeforeRunningAFailedFrontMembersHandler() {
+        let stack = MediaStackRoomTimelineItem.mock(members: [.mockImage(index: 0, count: 2, isOutgoing: true,
+                                                                         properties: .init(deliveryStatus: .sendingFailed(.unknown(reason: "M_TOO_LARGE")))),
+                                                              .mockImage(index: 1, count: 2, isOutgoing: true)])
+        let timelineController = TimelineControllerMock(.init(timelineItems: [stack]))
+        timelineController.pendingSendTargetForReturnValue = .event
+        let viewModel = makeViewModel(timelineController: timelineController)
+        let positions = viewModel.state.mediaStackPositions
+        
+        positions.activate(stack, hidesMedia: true, context: viewModel.context)
+        #expect(positions.isRevealed(stack))
+        #expect(viewModel.state.bindings.alertInfo == nil, "The first activation only reveals the media.")
+        
+        positions.activate(stack, hidesMedia: true, context: viewModel.context)
+        #expect(viewModel.state.bindings.alertInfo?.message == "M_TOO_LARGE")
+        #expect(timelineController.pendingSendTargetForReceivedItemID == stack.members[0].id)
+    }
+    
+    @Test
     func focusingOnAStackMemberBringsItToTheFront() async {
         let stack = makeStack()
         let viewModel = makeViewModel(items: [stack])
