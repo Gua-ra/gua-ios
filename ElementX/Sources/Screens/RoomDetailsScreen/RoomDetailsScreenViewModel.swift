@@ -273,7 +273,8 @@ class RoomDetailsScreenViewModel: RoomDetailsScreenViewModelType, RoomDetailsScr
         state.joinedMembersCount = roomInfo.joinedMembersCount
         
         state.details = roomProxy.details
-        state.details.historySharingState = roomInfo.historySharingState
+        // GUA FORK: a 1:1 reads as a person, so no history-sharing badge; a direct room with a third member is a group again.
+        state.details.historySharingState = roomInfo.isDM ? nil : roomInfo.historySharingState
         
         let topic = attributedStringBuilder.fromPlain(roomInfo.topic)
         state.topic = topic

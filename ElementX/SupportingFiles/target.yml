@@ -231,8 +231,11 @@ targets:
         shell: /bin/sh
         script: |
           export PATH="$PATH:/opt/homebrew/bin"
-          if which swiftformat >/dev/null; then
-              swiftformat --lint --lenient "$PROJECT_DIR"
+          # Prefer the BuildTools pin CI uses: an older Homebrew swiftformat rejects options in .swiftformat.
+          swiftformat="$PROJECT_DIR/BuildTools/.build/release/swiftformat"
+          [ -x "$swiftformat" ] || swiftformat=swiftformat
+          if which "$swiftformat" >/dev/null; then
+              "$swiftformat" --lint --lenient "$PROJECT_DIR"
           else
               echo "warning: SwiftFormat not installed, download from https://github.com/nicklockwood/SwiftFormat"
           fi

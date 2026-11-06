@@ -163,8 +163,8 @@ class CallScreenViewModel: CallScreenViewModelType, CallScreenViewModelProtocol 
                 configuration.elementCallBaseURL
             }
             
-            // We only set the analytics configuration if analytics are enabled
-            let analyticsConfiguration: ElementCallAnalyticsConfiguration? = if analyticsService.isEnabled {
+            // GUA FORK: a build without analytics has no opt-out row, so an earlier opt-in must not reach Element Call.
+            let analyticsConfiguration: ElementCallAnalyticsConfiguration? = if userSettings.app.canPromptForAnalytics, analyticsService.isEnabled {
                 .init(posthogAPIHost: userSettings.app.elementCallPosthogAPIHost,
                       posthogAPIKey: userSettings.app.elementCallPosthogAPIKey,
                       sentryDSN: userSettings.app.elementCallPosthogSentryDSN)

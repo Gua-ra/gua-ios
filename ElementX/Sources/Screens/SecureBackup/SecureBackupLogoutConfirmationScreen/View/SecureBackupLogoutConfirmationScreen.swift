@@ -62,7 +62,7 @@ struct SecureBackupLogoutConfirmationScreen: View {
             Button(role: .destructive) {
                 context.send(viewAction: .logout)
             } label: {
-                Text(L10n.actionSignout)
+                Text(UntranslatedL10n.guaSettingsSignOut)
             }
             .buttonStyle(.compound(.primary))
         }
@@ -93,9 +93,9 @@ struct SecureBackupLogoutConfirmationScreen: View {
         case .saveRecoveryKey:
             return UntranslatedL10n.guaSignoutLastDeviceMessage
         case .waitingToStart, .backupOngoing:
-            return L10n.screenSignoutKeyBackupOngoingSubtitle
+            return UntranslatedL10n.guaSignoutKeyBackupOngoingSubtitle
         case .offline:
-            return L10n.screenSignoutKeyBackupOfflineSubtitle
+            return UntranslatedL10n.guaSignoutKeyBackupOfflineSubtitle
         }
     }
 }

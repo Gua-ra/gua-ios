@@ -24,7 +24,7 @@ struct DeactivateAccountScreen: View {
         }
         .compoundList()
         .safeAreaInset(edge: .bottom) {
-            Button(L10n.actionDeleteAccount, role: .destructive) {
+            Button(UntranslatedL10n.actionDeleteAccount, role: .destructive) {
                 context.send(viewAction: .deactivate)
             }
             .buttonStyle(.compound(.primary))
@@ -32,7 +32,7 @@ struct DeactivateAccountScreen: View {
             .padding(16)
             .background(Color.compound.bgSubtleSecondaryLevel0.ignoresSafeArea())
         }
-        .navigationTitle(L10n.screenDeactivateAccountTitle)
+        .navigationTitle(UntranslatedL10n.actionDeleteAccount)
         .navigationBarTitleDisplayMode(.inline)
         .alert(item: $context.alertInfo)
     }

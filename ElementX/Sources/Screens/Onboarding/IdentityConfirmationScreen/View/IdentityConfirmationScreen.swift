@@ -107,7 +107,7 @@ struct IdentityConfirmationScreen: View {
     @ToolbarContentBuilder
     var toolbar: some ToolbarContent {
         ToolbarItem(placement: .destructiveAction) {
-            Button(L10n.actionSignout) {
+            Button(UntranslatedL10n.guaSettingsSignOut) {
                 context.send(viewAction: .logout)
             }
         }

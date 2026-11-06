@@ -114,9 +114,9 @@ class DeactivateAccountScreenViewModel: DeactivateAccountScreenViewModelType, De
     
     func showDeactivationConfirmation() {
         state.bindings.alertInfo = .init(id: .confirmation,
-                                         title: L10n.screenDeactivateAccountTitle,
+                                         title: UntranslatedL10n.actionDeleteAccount,
                                          message: L10n.screenDeactivateAccountConfirmationDialogContent,
-                                         primaryButton: .init(title: L10n.actionDelete) {
+                                         primaryButton: .init(title: UntranslatedL10n.guaActionDelete) {
                                              Task { await self.deactivateAccount() }
                                          },
                                          secondaryButton: .init(title: L10n.actionCancel, role: .cancel, action: nil))

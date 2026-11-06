@@ -1,6 +1,12 @@
 
 "gua_signout_last_device_title" = "سائن آؤٹ کرنے سے آپ کے پیغامات اس ڈیوائس سے ہٹ جائیں گے";
 "gua_signout_last_device_message" = "یہ آپ کی واحد ڈیوائس ہے۔ صرف یہاں محفوظ پیغامات دوبارہ سائن ان کرنے پر دستیاب نہیں ہوں گے۔";
+"gua_settings_sign_out" = "خارج ہوں";
+"gua_signout_confirmation_message" = "کیا آپ واقعی خارج ہونا چاہتے ہیں؟";
+"gua_signout_key_backup_ongoing_subtitle" = "برائے مہربانی خارج ہونے سے پہلے اسکے مکمل ہونے کا انتظار کریں";
+"gua_signout_key_backup_offline_subtitle" = "جب آپ پرے خط تھے تب بھی آپ کی کلیدوں کا پشتارہ کیا جا رہا تھا۔ دوبارہ جڑیں تاکہ خارج ہونے سے پہلے آپ کی کلیدوں کا پشتارہ کیا جا سکے۔";
+"gua_app_lock_signout_alert_title" = "آپکو خارج کیا جا رہا ہے";
+"gua_signing_out" = "خارج ہو رہا ہے";
 "gua_encryption_reset_required_title" = "کچھ پچھلے پیغامات بازیافت نہیں کیے جا سکتے";
 "gua_encryption_reset_required_message" = "اس ڈیوائس پر خفیہ کردہ چیٹس کا سیٹ اپ مکمل کرنے کے لیے آپ کے خفیہ کردہ بیک اپ کو ری سیٹ کرنا ہوگا۔ صرف اسی بیک اپ میں محفوظ پیغامات ضائع ہو جائیں گے۔ جو پیغامات پہلے سے آپ کی ڈیوائسز پر ہیں وہ متاثر نہیں ہوں گے۔";
 "gua_encryption_reset_required_action" = "ری سیٹ کریں اور مکمل کریں";

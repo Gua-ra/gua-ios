@@ -1418,7 +1418,7 @@
 "screen_room_notification_settings_error_setting_mode" = "No se pudo cambiar el modo, por favor inténtalo de nuevo.";
 "screen_room_notification_settings_mentions_only_disclaimer" = "Tu servidor base no admite esta opción en salas cifradas, no recibirás notificaciones de esta sala.";
 "screen_room_notification_settings_mode_all_messages" = "Todos los mensajes";
-"screen_room_notification_settings_mode_mentions_and_keywords" = "Mentions and replies only";
+"screen_room_notification_settings_mode_mentions_and_keywords" = "Solo menciones y respuestas";
 "screen_room_notification_settings_mode_mute" = "Mute";
 "screen_room_notification_settings_room_custom_settings_title" = "En esta sala, notificarme por";
 "screen_room_pinned_banner_indicator" = "%1$@ de %2$@";

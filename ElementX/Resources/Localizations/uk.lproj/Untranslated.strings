@@ -10,6 +10,12 @@
 "gua_encryption_reset_required_action" = "Скинути й завершити";
 "gua_signout_last_device_title" = "Вихід видалить ваші повідомлення з цього пристрою";
 "gua_signout_last_device_message" = "Це ваш єдиний пристрій. Повідомлення, збережені лише тут, не будуть доступні після повторного входу.";
+"gua_settings_sign_out" = "Вийти";
+"gua_signout_confirmation_message" = "Ви впевнені, що бажаєте вийти?";
+"gua_signout_key_backup_ongoing_subtitle" = "Дочекайтеся завершення процесу, перш ніж вийти.";
+"gua_signout_key_backup_offline_subtitle" = "Коли ви вийшли з мережі, резервна копія ваших ключів все ще створювалася. Повторно під'єднайтеся, щоб зберегти резервну копію ключів перед виходом.";
+"gua_app_lock_signout_alert_title" = "Ви виходите з системи";
+"gua_signing_out" = "Вихід";
 "gua_encryption_reset_finishing" = "Завершуємо налаштування…";
 "gua_encryption_reset_failed" = "Не вдалося завершити налаштування. Натисніть «Скинути й завершити», щоб спробувати ще раз.";
 "gua_encryption_recover_from_other_device_title" = "Відновіть свої попередні повідомлення";

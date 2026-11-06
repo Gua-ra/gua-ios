@@ -184,7 +184,6 @@ jobs:
     # macos-26, not macos-15: the app calls APIs that only exist in the iOS 26 SDK
     # (ProcessInfo.isiOSAppOnVision, guarded by #available at runtime but still
     # required to exist at compile time), and macos-15 tops out at Xcode 16.4.
-    # unit_tests.yml already runs here for the same reason.
     runs-on: macos-26
     # Archive and upload take about 30 minutes; processing before external distribution
     # can take another 40.
@@ -229,7 +228,6 @@ jobs:
         # ProcessInfo.isiOSAppOnVision, which is guarded by #available at runtime
         # but must still exist in the SDK at compile time, so an older toolchain
         # fails deep in the archive with "has no member 'isiOSAppOnVision'".
-        # ci_scripts/ci_common.sh pins the same version for every other workflow.
         #
         # There is deliberately NO "newest Xcode" fallback: if the image drops 26.x
         # we want a clear failure here rather than a confusing one 20 minutes later.
@@ -345,14 +343,14 @@ jobs:
           EOF
           echo "Wrote Secrets.swift with dev backend endpoints (values masked by Actions)."
 
-      - name: Turn off analytics in the prod archive
-        # The committed placeholders enable the analytics opt-in, and opting in sends Element Call analytics to Element.
+      - name: Turn off analytics, maps and bug reports in the prod archive
+        # The committed placeholders turn on the analytics opt-in (Element Call analytics go to Element), maps with a dummy MapTiler key and bug reports to rageshake.localhost.
         if: needs.gate.outputs.target != 'dev'
         run: |
           set -euo pipefail
-          perl -pi -e 's/^(\s*static let (?:sentryDSN|sentryRustDSN|postHogHost|postHogAPIKey): String\?) = .*$/$1 = nil/' Components/Secrets/Secrets.swift
-          if [ "$(grep -cE 'static let (sentryDSN|sentryRustDSN|postHogHost|postHogAPIKey): String\? = nil$' Components/Secrets/Secrets.swift)" != 4 ]; then
-            echo "::error::Could not clear the analytics placeholders in Components/Secrets/Secrets.swift."
+          perl -pi -e 's/^(\s*static let (?:sentryDSN|sentryRustDSN|postHogHost|postHogAPIKey|mapLibreAPIKey|rageshakeURL): String\?) = .*$/$1 = nil/' Components/Secrets/Secrets.swift
+          if [ "$(grep -cE 'static let (sentryDSN|sentryRustDSN|postHogHost|postHogAPIKey|mapLibreAPIKey|rageshakeURL): String\? = nil$' Components/Secrets/Secrets.swift)" != 6 ]; then
+            echo "::error::Could not clear the analytics, map and bug report placeholders in Components/Secrets/Secrets.swift."
             exit 1
           fi
 

@@ -29,6 +29,7 @@ private struct GuaAppSettingsHook: AppSettingsHookProtocol {
         static let privacyURL: URL = "https://gua.global/privacy"
         // Key storage help lives on the Gua help page (see gua-deploy static/help.html).
         static let chatBackupDetailsURL: URL = "https://gua.global/help#key-backup"
+        static let historySharingDetailsURL: URL = "https://gua.global/help#history-sharing"
         static let localStaticRegistrationURLs = [
             "http://localhost:8008",
             "http://localhost:8008/",
@@ -41,6 +42,11 @@ private struct GuaAppSettingsHook: AppSettingsHookProtocol {
     }
     
     func configure(_ appSettings: AppSettings) -> AppSettings {
+        // Builds without analytics or Sentry hide the opt-out row, so an opt-in from an earlier build cannot stay on.
+        if !appSettings.canPromptForAnalytics, appSettings.analyticsConsentState == .optedIn {
+            appSettings.analyticsConsentState = .optedOut
+        }
+        
         // The account provider is injected, never hardcoded: an optional Info.plist override
         // (empty by default) wins, otherwise GuaDeployment supplies it — the production gua.global
         // host, or the dev host from the per-machine Secrets pipeline. Falls back to the existing
@@ -72,7 +78,7 @@ private struct GuaAppSettingsHook: AppSettingsHookProtocol {
                              deviceVerificationURL: appSettings.deviceVerificationURL,
                              chatBackupDetailsURL: Constants.chatBackupDetailsURL,
                              identityPinningViolationDetailsURL: appSettings.identityPinningViolationDetailsURL,
-                             historySharingDetailsURL: appSettings.historySharingDetailsURL,
+                             historySharingDetailsURL: Constants.historySharingDetailsURL,
                              elementWebHosts: appSettings.elementWebHosts,
                              accountProvisioningHost: appSettings.accountProvisioningHost,
                              bugReportApplicationID: appSettings.bugReportApplicationID,

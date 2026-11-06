@@ -776,4 +776,27 @@ struct RoomDetailsScreenViewModelTests {
         }
         try await deferredShared.fulfill()
     }
+    
+    @Test
+    mutating func historySharingPillHiddenInDirectMessage() async throws {
+        let configuration = JoinedRoomProxyMockConfiguration(isDirect: true,
+                                                             historyVisibility: .shared,
+                                                             members: [.mockMe, .mockDan])
+        
+        viewModel = RoomDetailsScreenViewModel(roomProxy: JoinedRoomProxyMock(configuration),
+                                               userSession: UserSessionMock(.init()),
+                                               analyticsService: AnalyticsServiceMock(.init()),
+                                               userIndicatorController: UserIndicatorControllerMock(),
+                                               notificationSettingsProxy: notificationSettingsProxyMock,
+                                               attributedStringBuilder: AttributedStringBuilder(mentionBuilder: MentionBuilder()))
+        
+        #expect(context.viewState.details.historySharingState == nil)
+        
+        let deferred = deferFailure(context.observe(\.viewState),
+                                    timeout: .seconds(1),
+                                    message: "A 1:1 should never show the history-sharing pill") { state in
+            state.details.historySharingState != nil
+        }
+        try await deferred.fulfill()
+    }
 }

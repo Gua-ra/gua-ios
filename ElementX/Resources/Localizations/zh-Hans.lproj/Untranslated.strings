@@ -10,6 +10,12 @@
 "gua_encryption_reset_required_action" = "重置并完成";
 "gua_signout_last_device_title" = "退出登录会从此设备上移除你的消息";
 "gua_signout_last_device_message" = "这是你唯一的设备。仅保存在此处的消息在你重新登录后将无法使用。";
+"gua_settings_sign_out" = "登出";
+"gua_signout_confirmation_message" = "确定要登出吗？";
+"gua_signout_key_backup_ongoing_subtitle" = "请等待此操作完成后再登出。";
+"gua_signout_key_backup_offline_subtitle" = "当你离线时，密钥仍在备份中。重新连接以便在登出之前备份密钥。";
+"gua_app_lock_signout_alert_title" = "你将被登出";
+"gua_signing_out" = "正在登出";
 "gua_encryption_reset_finishing" = "正在完成设置…";
 "gua_encryption_reset_failed" = "无法完成设置。点击“重置并完成”重试。";
 "gua_encryption_recover_from_other_device_title" = "恢复你的历史消息";

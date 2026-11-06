@@ -10,6 +10,12 @@
 "gua_encryption_reset_required_action" = "Сбросить и завершить";
 "gua_signout_last_device_title" = "Выход удалит ваши сообщения с этого устройства";
 "gua_signout_last_device_message" = "Это ваше единственное устройство. Сообщения, хранящиеся только здесь, не будут доступны при следующем входе.";
+"gua_settings_sign_out" = "Выйти";
+"gua_signout_confirmation_message" = "Вы уверены, что вы хотите выйти?";
+"gua_signout_key_backup_ongoing_subtitle" = "Пожалуйста, дождитесь завершения процесса, прежде чем выходить из системы.";
+"gua_signout_key_backup_offline_subtitle" = "Когда вы перешли в автономный режим, резервное копирование ваших ключей продолжалось. Повторно подключитесь, чтобы перед выходом из системы можно было создать резервную копию ключей.";
+"gua_app_lock_signout_alert_title" = "Выполняется выход из системы";
+"gua_signing_out" = "Выход…";
 "gua_encryption_reset_finishing" = "Завершение настройки…";
 "gua_encryption_reset_failed" = "Не удалось завершить настройку. Нажмите «Сбросить и завершить», чтобы попробовать ещё раз.";
 "gua_encryption_recover_from_other_device_title" = "Восстановите прошлые сообщения";

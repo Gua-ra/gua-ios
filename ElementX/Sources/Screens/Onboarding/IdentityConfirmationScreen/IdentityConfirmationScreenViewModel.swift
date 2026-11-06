@@ -94,9 +94,9 @@ class IdentityConfirmationScreenViewModel: IdentityConfirmationScreenViewModelTy
         // checks made in the UserSession flow as the user's account isn't verified so there's no much they can do unless
         // they complete verification.
         state.bindings.alertInfo = .init(id: .logout,
-                                         title: L10n.screenSignoutConfirmationDialogTitle,
-                                         message: L10n.screenSignoutConfirmationDialogContent,
-                                         primaryButton: .init(title: L10n.screenSignoutConfirmationDialogSubmit, role: .destructive) { [weak self] in
+                                         title: UntranslatedL10n.guaSettingsSignOut,
+                                         message: UntranslatedL10n.guaSignoutConfirmationMessage,
+                                         primaryButton: .init(title: UntranslatedL10n.guaSettingsSignOut, role: .destructive) { [weak self] in
                                              self?.actionsSubject.send(.logoutConfirmed)
                                          })
     }

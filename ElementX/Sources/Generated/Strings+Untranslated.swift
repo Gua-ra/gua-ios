@@ -24,12 +24,16 @@ internal nonisolated enum UntranslatedL10n {
   internal static var commonModerationAndSafety: String { return UntranslatedL10n.tr("Untranslated", "common_moderation_and_safety") }
   /// We couldn’t finish setting up your account on this device. Please try again.
   internal static var guaAccountGenesisSetupFailed: String { return UntranslatedL10n.tr("Untranslated", "gua_account_genesis_setup_failed") }
+  /// Delete
+  internal static var guaActionDelete: String { return UntranslatedL10n.tr("Untranslated", "gua_action_delete") }
   /// More
   internal static var guaActionMore: String { return UntranslatedL10n.tr("Untranslated", "gua_action_more") }
   /// Open in new window
   internal static var guaActionOpenInNewWindow: String { return UntranslatedL10n.tr("Untranslated", "gua_action_open_in_new_window") }
   /// Select
   internal static var guaActionSelect: String { return UntranslatedL10n.tr("Untranslated", "gua_action_select") }
+  /// You are being signed out
+  internal static var guaAppLockSignoutAlertTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_app_lock_signout_alert_title") }
   /// Global Search
   internal static var guaCommonGlobalSearch: String { return UntranslatedL10n.tr("Untranslated", "gua_common_global_search") }
   /// Contact info
@@ -222,6 +226,14 @@ internal nonisolated enum UntranslatedL10n {
   internal static var guaSettingsSpacesDescription: String { return UntranslatedL10n.tr("Untranslated", "gua_settings_spaces_description") }
   /// Sign in with a passkey
   internal static var guaSignInWithPasskey: String { return UntranslatedL10n.tr("Untranslated", "gua_sign_in_with_passkey") }
+  /// Signing out
+  internal static var guaSigningOut: String { return UntranslatedL10n.tr("Untranslated", "gua_signing_out") }
+  /// Are you sure you want to sign out?
+  internal static var guaSignoutConfirmationMessage: String { return UntranslatedL10n.tr("Untranslated", "gua_signout_confirmation_message") }
+  /// Your keys were still being backed up when you went offline. Reconnect so that your keys can be backed up before signing out.
+  internal static var guaSignoutKeyBackupOfflineSubtitle: String { return UntranslatedL10n.tr("Untranslated", "gua_signout_key_backup_offline_subtitle") }
+  /// Please wait for this to complete before signing out.
+  internal static var guaSignoutKeyBackupOngoingSubtitle: String { return UntranslatedL10n.tr("Untranslated", "gua_signout_key_backup_ongoing_subtitle") }
   /// Messages kept only here will not be available when you sign back in.
   internal static var guaSignoutLastDeviceMessage: String { return UntranslatedL10n.tr("Untranslated", "gua_signout_last_device_message") }
   /// Signing out will remove your messages from this device

@@ -59,13 +59,17 @@ jobs:
         run: |
           run_previews=true
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            run_previews=false
-            while IFS= read -r path; do
-              case "$path" in
-                .github/*|.gitignore|BuildTools/*|ci_scripts/*) ;;
-                *) run_previews=true; break ;;
-              esac
-            done < <(git diff --name-only "$BASE_SHA" HEAD)
+            # A stacked PR's base can be outside the shallow checkout; if it can't be diffed, run everything.
+            git fetch --no-tags --depth=1 origin "$BASE_SHA" || true
+            if changed=$(git diff --name-only "$BASE_SHA" HEAD); then
+              run_previews=false
+              while IFS= read -r path; do
+                case "$path" in
+                  ''|.github/*|.gitignore|BuildTools/*|ci_scripts/*) ;;
+                  *) run_previews=true; break ;;
+                esac
+              done <<< "$changed"
+            fi
           fi
           echo "run-previews=$run_previews" >> "$GITHUB_OUTPUT"
 

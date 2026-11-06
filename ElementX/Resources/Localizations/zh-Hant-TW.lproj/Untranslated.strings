@@ -1,6 +1,12 @@
 
 "gua_signout_last_device_title" = "登出會從這台裝置移除你的訊息";
 "gua_signout_last_device_message" = "這是你唯一的裝置。僅儲存在此處的訊息在你重新登入後將無法使用。";
+"gua_settings_sign_out" = "登出";
+"gua_signout_confirmation_message" = "您確定要登出嗎？";
+"gua_signout_key_backup_ongoing_subtitle" = "請等待此動作完成後再登出。";
+"gua_signout_key_backup_offline_subtitle" = "當您離線時，您的金鑰仍在備份中。請重新連線才能在您登出前備份金鑰。";
+"gua_app_lock_signout_alert_title" = "您即將登出";
+"gua_signing_out" = "正在登出";
 "gua_encryption_reset_required_title" = "部分先前的訊息無法復原";
 "gua_encryption_reset_required_message" = "若要在這台裝置上完成加密聊天的設定，必須重設你的加密備份。僅儲存在該備份中的訊息將會遺失。已在你裝置上的訊息不受影響。";
 "gua_encryption_reset_required_action" = "重設並完成";

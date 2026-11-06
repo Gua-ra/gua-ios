@@ -90,7 +90,7 @@ class AppLockScreenViewModel: AppLockScreenViewModelType, AppLockScreenViewModel
     
     private func handleForgotPIN() {
         state.bindings.alertInfo = .init(id: .confirmResetPIN,
-                                         title: L10n.screenAppLockSignoutAlertTitle,
+                                         title: UntranslatedL10n.guaAppLockSignoutAlertTitle,
                                          message: L10n.screenAppLockSignoutAlertMessage,
                                          primaryButton: .init(title: L10n.actionOk) { self.forceLogout() },
                                          secondaryButton: .init(title: L10n.actionCancel, role: .cancel, action: nil))
@@ -104,14 +104,14 @@ class AppLockScreenViewModel: AppLockScreenViewModelType, AppLockScreenViewModel
     private func showForceLogoutAlertIfNeeded() {
         if state.numberOfPINAttempts >= state.maximumAttempts {
             state.bindings.alertInfo = .init(id: .forcedLogout,
-                                             title: L10n.screenAppLockSignoutAlertTitle,
+                                             title: UntranslatedL10n.guaAppLockSignoutAlertTitle,
                                              message: L10n.screenAppLockSignoutAlertMessage,
                                              primaryButton: .init(title: L10n.actionOk) { self.forceLogout() })
         }
     }
     
     private func forceLogout() {
-        state.forcedLogoutIndicator = UserIndicator(type: .modal, title: L10n.commonSigningOut, persistent: true)
+        state.forcedLogoutIndicator = UserIndicator(type: .modal, title: UntranslatedL10n.guaSigningOut, persistent: true)
         actionsSubject.send(.forceLogout)
     }
 }

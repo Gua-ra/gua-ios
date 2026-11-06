@@ -10,6 +10,12 @@
 "gua_encryption_reset_required_action" = "Repor e concluir";
 "gua_signout_last_device_title" = "Terminar sessão vai remover as suas mensagens deste dispositivo";
 "gua_signout_last_device_message" = "Este é o seu único dispositivo. As mensagens guardadas apenas aqui não estarão disponíveis quando iniciar sessão novamente.";
+"gua_settings_sign_out" = "Terminar sessão";
+"gua_signout_confirmation_message" = "Tens a certeza que queres terminar a sessão?";
+"gua_signout_key_backup_ongoing_subtitle" = "Por favor, aguarda a conclusão desta operação antes de terminares a sessão.";
+"gua_signout_key_backup_offline_subtitle" = "As tuas chaves ainda estavam a ser guardadas quando ficaste desligado. Volta a ligar-te para que as tuas chaves possam ser guardadas antes de encerrares a sessão.";
+"gua_app_lock_signout_alert_title" = "Estás a terminar a sessão";
+"gua_signing_out" = "A terminar sessão";
 "gua_encryption_reset_finishing" = "A concluir a configuração…";
 "gua_encryption_reset_failed" = "Não foi possível concluir a configuração. Toque em Repor e concluir para tentar novamente.";
 "gua_encryption_recover_from_other_device_title" = "Recupere as suas mensagens anteriores";
