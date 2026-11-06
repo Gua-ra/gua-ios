@@ -64,8 +64,7 @@ struct AvatarHeaderView<Footer: View>: View {
         if room.isPublic {
             badges.append(.public)
         }
-        // GUA FORK: a 1:1 reads as a person, not a group, so it has no history-sharing badge.
-        if !room.isDirect, let state = room.historySharingState {
+        if let state = room.historySharingState {
             badges.append(.historySharingState(state))
         }
         self.badges = badges

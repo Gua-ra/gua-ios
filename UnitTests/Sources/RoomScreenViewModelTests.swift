@@ -462,7 +462,10 @@ final class RoomScreenViewModelTests {
     
     @Test
     func directRoomHidesHistorySharingBadge() async throws {
-        let configuration = JoinedRoomProxyMockConfiguration(isDirect: true, isEncrypted: true, historyVisibility: .shared)
+        let configuration = JoinedRoomProxyMockConfiguration(isDirect: true,
+                                                             isEncrypted: true,
+                                                             historyVisibility: .shared,
+                                                             members: [.mockMe, .mockDan])
         let viewModel = RoomScreenViewModel(userSession: UserSessionMock(.init()),
                                             roomProxy: JoinedRoomProxyMock(configuration),
                                             initialSelectedPinnedEventID: nil,
@@ -476,6 +479,26 @@ final class RoomScreenViewModelTests {
                                     timeout: .seconds(1),
                                     message: "A 1:1 should never show the history-sharing icon") { viewState in
             viewState.roomHistorySharingState != nil
+        }
+        try await deferred.fulfill()
+    }
+    
+    @Test
+    func directRoomWithThirdMemberShowsHistorySharingBadge() async throws {
+        let configuration = JoinedRoomProxyMockConfiguration(isDirect: true,
+                                                             isEncrypted: true,
+                                                             historyVisibility: .shared,
+                                                             members: [.mockMe, .mockDan, .mockAlice])
+        let viewModel = RoomScreenViewModel(userSession: UserSessionMock(.init()),
+                                            roomProxy: JoinedRoomProxyMock(configuration),
+                                            initialSelectedPinnedEventID: nil,
+                                            ongoingCallRoomIDPublisher: .init(.init(nil)),
+                                            analyticsService: AnalyticsServiceMock(.init()),
+                                            userIndicatorController: UserIndicatorControllerMock())
+        
+        let deferred = deferFulfillment(viewModel.context.$viewState,
+                                        message: "A direct room with a third member is a group, so it keeps the icon") { viewState in
+            viewState.roomHistorySharingState == .shared
         }
         try await deferred.fulfill()
     }
