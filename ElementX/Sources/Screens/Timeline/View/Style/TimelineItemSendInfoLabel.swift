@@ -188,11 +188,8 @@ private extension TimelineItemSendInfo {
                 liveLocationTimelineItem.layout
             case let message as EventBasedMessageTimelineItemProtocol:
                 switch message {
-                case is ImageRoomTimelineItem, is VideoRoomTimelineItem:
+                case is ImageRoomTimelineItem, is VideoRoomTimelineItem, is MediaStackRoomTimelineItem:
                     .overlay(capsuleStyle: !message.hasMediaCaption)
-                case is MediaStackRoomTimelineItem:
-                    // The stack has no bubble of its own, even under a caption.
-                    .overlay(capsuleStyle: true)
                 case is GalleryRoomTimelineItem:
                     // Without a caption, append the send info below the grid rather than overlaying
                     // a capsule on top of the media.

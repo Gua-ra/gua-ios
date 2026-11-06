@@ -304,7 +304,11 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
                                   context: context)
         
         // A stack has no bubble, and its cards fan out past their frame and follow the finger, so nothing may clip them.
-        if isMediaStack {
+        if isMediaStack, timelineItem.hasMediaCaption {
+            // Its caption bubble shows the send info instead, as a captioned photo's bubble does.
+            contentWithReply
+                .environment(\.mediaStackDeliveryStatus, adjustedDeliveryStatus)
+        } else if isMediaStack {
             content
         } else {
             content

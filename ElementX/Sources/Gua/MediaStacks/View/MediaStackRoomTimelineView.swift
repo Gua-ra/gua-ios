@@ -12,6 +12,8 @@ struct MediaStackRoomTimelineView: View {
     private static let fallbackPositions = MediaStackPositions()
     
     @Environment(\.timelineContext) private var context
+    @EnvironmentObject private var timelineContext: TimelineViewModel.Context
+    @Environment(\.mediaStackDeliveryStatus) private var deliveryStatus
     
     let timelineItem: MediaStackRoomTimelineItem
     
@@ -43,12 +45,13 @@ struct MediaStackRoomTimelineView: View {
         })
     }
     
+    /// Shown under the same `hasMediaCaption` test the styler uses to hand this bubble the send info.
     @ViewBuilder
     private var caption: some View {
-        if let formattedCaption = timelineItem.formattedMediaCaption {
+        if let formattedCaption = timelineItem.formattedMediaCaption, timelineItem.hasMediaCaption {
             captionBubble(FormattedBodyText(attributedString: formattedCaption,
                                             trailingReservedSize: timelineItem.trailingReservedSize))
-        } else if let caption = timelineItem.mediaCaption, !caption.isBlank {
+        } else if let caption = timelineItem.mediaCaption, timelineItem.hasMediaCaption {
             captionBubble(FormattedBodyText(text: caption,
                                             trailingReservedSize: timelineItem.trailingReservedSize))
         }
@@ -56,12 +59,18 @@ struct MediaStackRoomTimelineView: View {
     
     private func captionBubble(_ text: some View) -> some View {
         text
-            .frame(width: MediaStackCardsView.frameSize.width - 16, alignment: .leading)
+            .frame(width: MediaStackCardsView.cardSize.width - 16, alignment: .leading)
+            .timelineItemSendInfo(timelineItem: timelineItem, adjustedDeliveryStatus: deliveryStatus, context: timelineContext)
             .accessibilityHidden(true) // Read as part of the stack.
             .bubbleBackground(isOutgoing: timelineItem.isOutgoing,
                               insets: .init(top: 8, leading: 8, bottom: 8, trailing: 8),
                               color: timelineItem.isOutgoing ? .compound._bgBubbleOutgoing : .compound._bgBubbleIncoming)
     }
+}
+
+extension EnvironmentValues {
+    /// The delivery status the styler shows, for a captioned stack's send info in its caption bubble.
+    @Entry var mediaStackDeliveryStatus: TimelineItemDeliveryStatus?
 }
 
 nonisolated extension MediaStackRoomTimelineItem {
