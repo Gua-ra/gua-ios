@@ -184,6 +184,26 @@ final class ElementCallServiceTests {
     }
     
     @Test
+    func decliningARingAsksTheAppToSendTheDecline() async throws {
+        await reportIncomingPush(isVoiceCall: false)
+        let callID = try #require(callProvider.reportNewIncomingCallWithUpdateCompletionReceivedArguments?.uuid)
+        
+        var declines: [(roomID: String, rtcNotificationID: String)] = []
+        let cancellable = service.actions.sink { action in
+            if case .declineCall(let roomID, let rtcNotificationID) = action {
+                declines.append((roomID, rtcNotificationID))
+            }
+        }
+        defer { cancellable.cancel() }
+        
+        service.endCall(withCallKitID: callID)
+        
+        #expect(declines.map(\.roomID) == ["!room:example.com"])
+        #expect(declines.map(\.rtcNotificationID) == ["$000"])
+        #expect(!service.hasCallPublisher.value)
+    }
+    
+    @Test
     func aRingIsWatchedOnceItsRoomLoads() async throws {
         let roomInfoSubject = CurrentValueSubject<RoomInfoProxyProtocol, Never>(RoomInfoProxyMock(.init(id: "!room:example.com", hasOngoingCall: true)))
         let roomProxy = JoinedRoomProxyMock(.init(id: "!room:example.com"))

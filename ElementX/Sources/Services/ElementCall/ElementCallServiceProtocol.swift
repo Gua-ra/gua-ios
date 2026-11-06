@@ -22,6 +22,8 @@ enum ElementCallServiceAction {
     case receivedIncomingCallRequest
     case startCall(roomID: String, isVoiceCall: Bool)
     case endCall(roomID: String)
+    /// GUA FORK: the app sends the decline, as the client has to keep running until it's out.
+    case declineCall(roomID: String, rtcNotificationID: String)
     case setAudioEnabled(_ enabled: Bool, roomID: String)
     /// CallKit activated the audio session: a native call may start its audio engine now.
     case audioSessionActivated

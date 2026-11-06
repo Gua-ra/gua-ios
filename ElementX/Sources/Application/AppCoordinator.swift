@@ -212,6 +212,8 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
                         await self?.elementCallService.observeIncomingCallIfNeeded()
                         self?.scheduleDelayedPauseServices()
                     }
+                case .declineCall(let roomID, let rtcNotificationID):
+                    Task { await self?.declineCall(roomID: roomID, rtcNotificationID: rtcNotificationID) }
                 default:
                     break
                 }
@@ -1234,17 +1236,19 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
     /// GUA FORK: a reply from a notification can wake the app in the background, where the client is paused.
     private func sendInlineReply(_ replyText: String, roomID: String, userSession: UserSessionProtocol) async {
         await performBackgroundWork {
-            await processInlineReply(replyText, roomID: roomID, userSession: userSession)
+            await waitForSentEvent(in: roomID, clientProxy: userSession.clientProxy) {
+                await processInlineReply(replyText, roomID: roomID, userSession: userSession)
+            }
         }
         scheduleDelayedPauseServicesIfInBackground()
     }
     
-    private func processInlineReply(_ replyText: String, roomID: String, userSession: UserSessionProtocol) async {
+    private func processInlineReply(_ replyText: String, roomID: String, userSession: UserSessionProtocol) async -> Bool {
         guard case let .joined(roomProxy) = await userSession.clientProxy.roomForIdentifier(roomID) else {
             MXLog.error("Tried to reply in an unjoined room: \(roomID)")
             await notificationManager.showLocalNotification(with: "⚠️ " + L10n.commonError,
                                                             subtitle: L10n.errorSomeMessagesHaveNotBeenSent)
-            return
+            return false
         }
         
         switch await roomProxy.timeline.sendMessage(replyText,
@@ -1252,11 +1256,48 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
                                                     inReplyToEventID: nil,
                                                     intentionalMentions: .empty) {
         case .success:
-            break
+            return true
         default:
             await notificationManager.showLocalNotification(with: "⚠️ " + L10n.commonError,
                                                             subtitle: L10n.errorSomeMessagesHaveNotBeenSent)
+            return false
         }
+    }
+    
+    /// GUA FORK: a call can be declined from the lock screen, where the client may be paused.
+    private func declineCall(roomID: String, rtcNotificationID: String) async {
+        guard let userSession else { return }
+        
+        await performBackgroundWork {
+            guard case let .joined(roomProxy) = await userSession.clientProxy.roomForIdentifier(roomID) else {
+                MXLog.warning("Failed to fetch a joined room to decline the call.")
+                return
+            }
+            
+            await waitForSentEvent(in: roomID, clientProxy: userSession.clientProxy) {
+                guard case .success = await roomProxy.declineCall(notificationID: rtcNotificationID) else { return false }
+                return true
+            }
+        }
+        scheduleDelayedPauseServicesIfInBackground()
+    }
+    
+    /// GUA FORK: a pause disables the send queue, so the background work waits a while for the event to go out.
+    private func waitForSentEvent(in roomID: String, clientProxy: ClientProxyProtocol, sending send: @MainActor () async -> Bool) async {
+        let isSentSubject = CurrentValueSubject<Bool, Never>(false)
+        let sentEventObserver = clientProxy.actionsPublisher
+            .first { action in
+                guard case .sentEvent(roomID) = action else { return false }
+                return true
+            }
+            .sink { _ in isSentSubject.send(true) }
+        
+        guard await send() else { return }
+        
+        for await isSent in isSentSubject.timeout(.seconds(10), scheduler: DispatchQueue.main).values where isSent {
+            break
+        }
+        sentEventObserver.cancel()
     }
     
     // MARK: Toasts and loading indicators

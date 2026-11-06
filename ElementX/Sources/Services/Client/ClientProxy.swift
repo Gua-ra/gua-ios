@@ -1221,12 +1221,13 @@ class ClientProxy: ClientProxyProtocol {
             self?.sendQueueStatusSubject.send(false)
         })
         
-        sendQueueUpdatesListenerTaskHandle = try? await client.subscribeToSendQueueUpdates(listener: SDKListener.onMainActor { [analyticsService] _, update in
+        sendQueueUpdatesListenerTaskHandle = try? await client.subscribeToSendQueueUpdates(listener: SDKListener.onMainActor { [weak self, analyticsService] roomID, update in
             switch update {
             case .newLocalEvent(let transactionID):
                 analyticsService.signpost.startTransaction(.sendMessage(uuid: transactionID))
             case .sentEvent(let transactionID, _):
                 analyticsService.signpost.finishTransaction(.sendMessage(uuid: transactionID))
+                self?.actionsSubject.send(.sentEvent(roomID: roomID))
             default:
                 break
             }

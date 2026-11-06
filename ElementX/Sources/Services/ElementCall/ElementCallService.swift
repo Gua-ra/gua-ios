@@ -576,8 +576,8 @@ class ElementCallService: NSObject, ElementCallServiceProtocol, PKPushRegistryDe
         }
         
         if let incomingCallID, incomingCallID.callKitID == callKitID {
-            Task {
-                await sendDeclineCallEvent(incomingCallID)
+            if let rtcNotificationID = incomingCallID.rtcNotificationID {
+                actionsSubject.send(.declineCall(roomID: incomingCallID.roomID, rtcNotificationID: rtcNotificationID))
             }
             
             clearIncomingCallState()
@@ -671,25 +671,6 @@ class ElementCallService: NSObject, ElementCallServiceProtocol, PKPushRegistryDe
         
         callProvider.reportCall(with: answeredNativeCallID.callKitID, endedAt: nil, reason: .failed)
         clearIncomingCallState()
-    }
-    
-    private func sendDeclineCallEvent(_ incomingCallID: CallID) async {
-        guard let rtcNotificationID = incomingCallID.rtcNotificationID else {
-            MXLog.info("No rtc notification event to decline.")
-            return
-        }
-        
-        guard let clientProxy else {
-            MXLog.warning("A ClientProxy is needed to fetch the room.")
-            return
-        }
-        
-        guard case let .joined(roomProxy) = await clientProxy.roomForIdentifier(incomingCallID.roomID) else {
-            MXLog.warning("Failed to fetch a joined room for the incoming call.")
-            return
-        }
-        
-        _ = await roomProxy.declineCall(notificationID: rtcNotificationID)
     }
     
     private func observeIncomingCall() async {
