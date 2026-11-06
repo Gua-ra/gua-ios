@@ -400,10 +400,11 @@ class TimelineController: TimelineControllerProtocol {
                    caption: String?,
                    mediaBatch: MediaBatch?,
                    requestHandle: @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineControllerError> {
+        let pendingKey = PendingMediaBatchStore.Key(roomID: roomID, file: .init(filename: url.lastPathComponent,
+                                                                                fileSize: imageInfo.size.map(UInt.init),
+                                                                                mimeType: imageInfo.mimetype))
         if let mediaBatch {
-            pendingMediaBatches.register(mediaBatch, for: .init(roomID: roomID, file: .init(filename: url.lastPathComponent,
-                                                                                            fileSize: imageInfo.size.map(UInt.init),
-                                                                                            mimeType: imageInfo.mimetype)))
+            pendingMediaBatches.register(mediaBatch, for: pendingKey)
         }
         
         switch await activeTimeline.sendImage(url: url,
@@ -416,6 +417,9 @@ class TimelineController: TimelineControllerProtocol {
             callbacks.send(.messageSentOrEdited)
             return .success(())
         case .failure(let error):
+            if let mediaBatch {
+                pendingMediaBatches.unregister(mediaBatch, for: pendingKey)
+            }
             return .failure(error)
         }
     }
@@ -426,10 +430,11 @@ class TimelineController: TimelineControllerProtocol {
                    caption: String?,
                    mediaBatch: MediaBatch?,
                    requestHandle: @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineControllerError> {
+        let pendingKey = PendingMediaBatchStore.Key(roomID: roomID, file: .init(filename: url.lastPathComponent,
+                                                                                fileSize: videoInfo.size.map(UInt.init),
+                                                                                mimeType: videoInfo.mimetype))
         if let mediaBatch {
-            pendingMediaBatches.register(mediaBatch, for: .init(roomID: roomID, file: .init(filename: url.lastPathComponent,
-                                                                                            fileSize: videoInfo.size.map(UInt.init),
-                                                                                            mimeType: videoInfo.mimetype)))
+            pendingMediaBatches.register(mediaBatch, for: pendingKey)
         }
         
         switch await activeTimeline.sendVideo(url: url,
@@ -442,6 +447,9 @@ class TimelineController: TimelineControllerProtocol {
             callbacks.send(.messageSentOrEdited)
             return .success(())
         case .failure(let error):
+            if let mediaBatch {
+                pendingMediaBatches.unregister(mediaBatch, for: pendingKey)
+            }
             return .failure(error)
         }
     }

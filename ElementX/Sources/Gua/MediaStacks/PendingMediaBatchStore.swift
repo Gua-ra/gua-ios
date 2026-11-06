@@ -41,6 +41,14 @@ final nonisolated class PendingMediaBatchStore: Sendable {
         entries.withLock { $0.append(Entry(key: key, batch: batch, date: date)) }
     }
     
+    /// Drops the newest entry for this item that no echo has bound to, so a failed enqueue leaves nothing for a later send of the same file.
+    func unregister(_ batch: MediaBatch, for key: Key) {
+        entries.withLock { entries in
+            guard let index = entries.lastIndex(where: { $0.itemIDs.isEmpty && $0.key == key && $0.batch == batch }) else { return }
+            entries.remove(at: index)
+        }
+    }
+    
     /// Binds the echo to the oldest free entry for its file the first time it is seen, then finds it by any of its IDs.
     func batch(forItemIDs itemIDs: Set<String>, key: Key) -> MediaBatch? {
         let expiry = now().addingTimeInterval(-Self.lifetime)
