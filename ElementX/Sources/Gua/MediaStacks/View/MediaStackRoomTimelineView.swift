@@ -12,8 +12,6 @@ struct MediaStackRoomTimelineView: View {
     private static let fallbackPositions = MediaStackPositions()
     
     @Environment(\.timelineContext) private var context
-    @EnvironmentObject private var timelineContext: TimelineViewModel.Context
-    @Environment(\.mediaStackDeliveryStatus) private var deliveryStatus
     
     let timelineItem: MediaStackRoomTimelineItem
     
@@ -26,7 +24,10 @@ struct MediaStackRoomTimelineView: View {
             VStack(alignment: timelineItem.isOutgoing ? .trailing : .leading, spacing: 6) {
                 header
                 MediaStackCardsView(stack: timelineItem, positions: positions)
-                caption
+                
+                if timelineItem.hasMediaCaption {
+                    MediaStackCaptionBubble(stack: timelineItem)
+                }
             }
         }
     }
@@ -43,27 +44,32 @@ struct MediaStackRoomTimelineView: View {
             context?.send(viewAction: .mediaStackHeaderTapped(stackID: timelineItem.id))
         })
     }
+}
+
+/// Only shown with `hasMediaCaption`, the test the styler uses to hand this bubble the send info.
+private struct MediaStackCaptionBubble: View {
+    @EnvironmentObject private var context: TimelineViewModel.Context
+    @Environment(\.mediaStackDeliveryStatus) private var deliveryStatus
     
-    /// Shown under the same `hasMediaCaption` test the styler uses to hand this bubble the send info.
-    @ViewBuilder
-    private var caption: some View {
-        if let formattedCaption = timelineItem.formattedMediaCaption, timelineItem.hasMediaCaption {
-            captionBubble(FormattedBodyText(attributedString: formattedCaption,
-                                            trailingReservedSize: timelineItem.trailingReservedSize))
-        } else if let caption = timelineItem.mediaCaption, timelineItem.hasMediaCaption {
-            captionBubble(FormattedBodyText(text: caption,
-                                            trailingReservedSize: timelineItem.trailingReservedSize))
-        }
-    }
+    let stack: MediaStackRoomTimelineItem
     
-    private func captionBubble(_ text: some View) -> some View {
+    var body: some View {
         text
             .frame(width: MediaStackCardsView.cardSize.width - 16, alignment: .leading)
-            .timelineItemSendInfo(timelineItem: timelineItem, adjustedDeliveryStatus: deliveryStatus, context: timelineContext)
+            .timelineItemSendInfo(timelineItem: stack, adjustedDeliveryStatus: deliveryStatus, context: context)
             .accessibilityHidden(true) // Read as part of the stack.
-            .bubbleBackground(isOutgoing: timelineItem.isOutgoing,
+            .bubbleBackground(isOutgoing: stack.isOutgoing,
                               insets: .init(top: 8, leading: 8, bottom: 8, trailing: 8),
-                              color: timelineItem.isOutgoing ? .compound._bgBubbleOutgoing : .compound._bgBubbleIncoming)
+                              color: stack.isOutgoing ? .compound._bgBubbleOutgoing : .compound._bgBubbleIncoming)
+    }
+    
+    @ViewBuilder
+    private var text: some View {
+        if let formattedCaption = stack.formattedMediaCaption {
+            FormattedBodyText(attributedString: formattedCaption, trailingReservedSize: stack.trailingReservedSize)
+        } else if let caption = stack.mediaCaption {
+            FormattedBodyText(text: caption, trailingReservedSize: stack.trailingReservedSize)
+        }
     }
 }
 
