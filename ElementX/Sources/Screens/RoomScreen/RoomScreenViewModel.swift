@@ -71,7 +71,7 @@ class RoomScreenViewModel: RoomScreenViewModelType, RoomScreenViewModelProtocol 
                                             hasOngoingCall: roomProxy.infoPublisher.value.hasRoomCall,
                                             isDM: roomProxy.infoPublisher.value.isDM,
                                             hasSuccessor: roomProxy.infoPublisher.value.successor != nil,
-                                            roomHistorySharingState: roomProxy.infoPublisher.value.historySharingState)
+                                            roomHistorySharingState: roomProxy.infoPublisher.value.isDirect ? nil : roomProxy.infoPublisher.value.historySharingState)
         super.init(initialViewState: userSession.userHooks.roomScreenHook.update(viewState),
                    mediaProvider: userSession.mediaProvider)
         
@@ -367,7 +367,8 @@ class RoomScreenViewModel: RoomScreenViewModelType, RoomScreenViewModelProtocol 
             state.canBan = powerLevels.canOwnUserBan()
         }
         
-        state.roomHistorySharingState = roomInfo.historySharingState
+        // GUA FORK: a 1:1 reads as a person, not a group, so its header has no history-sharing icon.
+        state.roomHistorySharingState = roomInfo.isDirect ? nil : roomInfo.historySharingState
     }
     
     private func setupPinnedEventsTimelineItemProviderIfNeeded() {

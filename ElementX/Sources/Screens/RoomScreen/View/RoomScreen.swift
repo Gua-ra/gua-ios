@@ -353,9 +353,11 @@ struct RoomScreen_Previews: PreviewProvider, TestablePreview {
     static let tombstonedViewModels = makeViewModels(hasSuccessor: true)
     static let selectingViewModels = makeViewModels(isSelecting: true)
     static let guaMarketing1to1ViewModels = makeViewModels(roomName: "Camila Moraes",
+                                                           isDirect: true,
                                                            hasOngoingCall: false,
                                                            timelineItems: TimelineFixtures.guaMarketing1to1)
     static let guaMarketingCanadaFRViewModels = makeViewModels(roomName: "Émilie Tremblay",
+                                                               isDirect: true,
                                                                hasOngoingCall: false,
                                                                timelineItems: TimelineFixtures.guaMarketingCanadaFR)
     static let composerViewModel = ComposerToolbarViewModel.mock()
@@ -415,10 +417,12 @@ struct RoomScreen_Previews: PreviewProvider, TestablePreview {
                                hasSuccessor: Bool = false,
                                isSelecting: Bool = false,
                                roomName: String = "Preview room",
+                               isDirect: Bool = false,
                                hasOngoingCall: Bool = true,
                                timelineItems: [RoomTimelineItemProtocol] = TimelineFixtures.default) -> ViewModels {
         let roomProxyMock = JoinedRoomProxyMock(.init(id: "stable_id",
                                                       name: roomName,
+                                                      isDirect: isDirect,
                                                       hasOngoingCall: hasOngoingCall,
                                                       successor: hasSuccessor ? .init(roomId: UUID().uuidString, reason: nil) : nil,
                                                       powerLevelsConfiguration: .init(canUserSendMessage: canSendMessage)))
