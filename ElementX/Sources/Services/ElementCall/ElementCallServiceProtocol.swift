@@ -36,6 +36,9 @@ protocol ElementCallServiceProtocol: AnyObject {
     
     var ongoingCallRoomIDPublisher: CurrentValuePublisher<String?, Never> { get }
     
+    /// GUA FORK: whether a call is ringing or ongoing.
+    var hasCallPublisher: CurrentValuePublisher<Bool, Never> { get }
+    
     /// The controller for this session's native call stack, `nil` when native calls are unavailable.
     var nativeCallController: ElementCallController? { get }
     
@@ -73,4 +76,8 @@ protocol ElementCallServiceProtocol: AnyObject {
     func reportCallSessionEnded(roomID: String, reason: CXCallEndedReason)
     
     func setAudioEnabled(_ enabled: Bool, roomID: String)
+    
+    /// GUA FORK: watches the ringing call for being ended or answered elsewhere, unless that is already set up.
+    /// Watching it fails while the client is paused, so call this once it has resumed.
+    func observeIncomingCallIfNeeded() async
 }

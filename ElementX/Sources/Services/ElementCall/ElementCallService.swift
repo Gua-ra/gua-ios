@@ -48,6 +48,7 @@ class ElementCallService: NSObject, ElementCallServiceProtocol, PKPushRegistryDe
     private var incomingCallRoomInfoCancellable: AnyCancellable?
     private var incomingCallID: CallID? {
         didSet {
+            hasCallSubject.send(incomingCallID != nil || ongoingCallID != nil)
             Task { await observeIncomingCall() }
         }
     }
@@ -61,12 +62,20 @@ class ElementCallService: NSObject, ElementCallServiceProtocol, PKPushRegistryDe
     private var endPendingCallTask: Task<Void, Never>?
     
     private var ongoingCallID: CallID? {
-        didSet { ongoingCallRoomIDSubject.send(ongoingCallID?.roomID) }
+        didSet {
+            ongoingCallRoomIDSubject.send(ongoingCallID?.roomID)
+            hasCallSubject.send(incomingCallID != nil || ongoingCallID != nil)
+        }
     }
     
     let ongoingCallRoomIDSubject = CurrentValueSubject<String?, Never>(nil)
     var ongoingCallRoomIDPublisher: CurrentValuePublisher<String?, Never> {
         ongoingCallRoomIDSubject.asCurrentValuePublisher()
+    }
+    
+    private let hasCallSubject = CurrentValueSubject<Bool, Never>(false)
+    var hasCallPublisher: CurrentValuePublisher<Bool, Never> {
+        hasCallSubject.asCurrentValuePublisher()
     }
     
     private let actionsSubject: PassthroughSubject<ElementCallServiceAction, Never> = .init()
@@ -266,6 +275,11 @@ class ElementCallService: NSObject, ElementCallServiceProtocol, PKPushRegistryDe
         }
         
         self.ongoingCallID = nil
+    }
+    
+    func observeIncomingCallIfNeeded() async {
+        guard incomingCallRoomInfoCancellable == nil else { return }
+        await observeIncomingCall()
     }
     
     func setAudioEnabled(_ enabled: Bool, roomID: String) {

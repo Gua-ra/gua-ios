@@ -6,6 +6,7 @@
 //
 
 import CallKit
+import Combine
 import ElementCall
 @testable import ElementX
 import PushKit
@@ -146,6 +147,47 @@ final class ElementCallServiceTests {
         
         let reason = try await deferredEndedCall.fulfill()
         #expect(reason == .unanswered, "Call should have ended as unanswered")
+    }
+    
+    @Test
+    func aRingingOrOngoingCallIsReported() async {
+        #expect(!service.hasCallPublisher.value)
+        
+        await reportIncomingPush(isVoiceCall: false)
+        #expect(service.hasCallPublisher.value)
+        
+        await service.setupCallSession(roomID: "!room:example.com", roomDisplayName: "welcome", isVideo: true)
+        #expect(service.hasCallPublisher.value)
+        
+        service.tearDownCallSession(roomID: "!room:example.com")
+        #expect(!service.hasCallPublisher.value)
+    }
+    
+    @Test
+    func aRingIsWatchedOnceItsRoomLoads() async throws {
+        let roomInfoSubject = CurrentValueSubject<RoomInfoProxyProtocol, Never>(RoomInfoProxyMock(.init(id: "!room:example.com", hasOngoingCall: true)))
+        let roomProxy = JoinedRoomProxyMock(.init(id: "!room:example.com"))
+        roomProxy.infoPublisher = roomInfoSubject.asCurrentValuePublisher()
+        roomProxy.subscribeToCallDeclineEventsRtcNotificationEventIDListenerReturnValue = .failure(.eventNotFound)
+        
+        var canLoadRoom = false
+        let clientProxy = ClientProxyMock(.init())
+        clientProxy.roomForIdentifierClosure = { _ in canLoadRoom ? .joined(roomProxy) : nil }
+        userSession = UserSessionMock(.init(clientProxy: clientProxy))
+        service.setUserSession(userSession)
+        await reportIncomingPush(isVoiceCall: false)
+        
+        canLoadRoom = true
+        await service.observeIncomingCallIfNeeded()
+        
+        let (endedCalls, endedCallsContinuation) = AsyncStream<CXCallEndedReason>.makeStream()
+        callProvider.reportCallWithEndedAtReasonClosure = { _, _, reason in
+            endedCallsContinuation.yield(reason)
+        }
+        let deferredEndedCall = deferFulfillment(endedCalls) { _ in true }
+        roomInfoSubject.send(RoomInfoProxyMock(.init(id: "!room:example.com", hasOngoingCall: false)))
+        
+        #expect(try await deferredEndedCall.fulfill() == .remoteEnded)
     }
     
     @Test
