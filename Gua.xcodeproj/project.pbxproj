@@ -8585,7 +8585,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "export PATH=\"$PATH:/opt/homebrew/bin\"\nif which swiftformat >/dev/null; then\n    swiftformat --lint --lenient \"$PROJECT_DIR\"\nelse\n    echo \"warning: SwiftFormat not installed, download from https://github.com/nicklockwood/SwiftFormat\"\nfi\n";
+			shellScript = "export PATH=\"$PATH:/opt/homebrew/bin\"\n# Prefer the BuildTools pin CI uses: an older Homebrew swiftformat rejects options in .swiftformat.\nswiftformat=\"$PROJECT_DIR/BuildTools/.build/release/swiftformat\"\n[ -x \"$swiftformat\" ] || swiftformat=swiftformat\nif which \"$swiftformat\" >/dev/null; then\n    \"$swiftformat\" --lint --lenient \"$PROJECT_DIR\"\nelse\n    echo \"warning: SwiftFormat not installed, download from https://github.com/nicklockwood/SwiftFormat\"\nfi\n";
 		};
 		6CA6233EDEC880EF8D1A97F9 /* Alias pt to pt-BR */ = {
 			isa = PBXShellScriptBuildPhase;
