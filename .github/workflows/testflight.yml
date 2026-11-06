@@ -184,7 +184,6 @@ jobs:
     # macos-26, not macos-15: the app calls APIs that only exist in the iOS 26 SDK
     # (ProcessInfo.isiOSAppOnVision, guarded by #available at runtime but still
     # required to exist at compile time), and macos-15 tops out at Xcode 16.4.
-    # unit_tests.yml already runs here for the same reason.
     runs-on: macos-26
     # Archive and upload take about 30 minutes; processing before external distribution
     # can take another 40.
@@ -229,7 +228,6 @@ jobs:
         # ProcessInfo.isiOSAppOnVision, which is guarded by #available at runtime
         # but must still exist in the SDK at compile time, so an older toolchain
         # fails deep in the archive with "has no member 'isiOSAppOnVision'".
-        # ci_scripts/ci_common.sh pins the same version for every other workflow.
         #
         # There is deliberately NO "newest Xcode" fallback: if the image drops 26.x
         # we want a clear failure here rather than a confusing one 20 minutes later.

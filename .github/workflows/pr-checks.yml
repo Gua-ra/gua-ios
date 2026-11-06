@@ -15,8 +15,8 @@ jobs:
     timeout-minutes: 5
 
     concurrency:
-      # Only allow a single run of this workflow on each branch, automatically cancelling older runs.
-      group: ${{ format('pr-checks-{0}', github.ref) }}
+      # One run per PR, cancelling older ones. Not github.ref: under pull_request_target that is the base branch.
+      group: ${{ format('pr-checks-{0}', github.event.pull_request.number) }}
       cancel-in-progress: true
 
     permissions:
