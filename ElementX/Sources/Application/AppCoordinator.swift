@@ -43,6 +43,7 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
     
     private var backgroundRefreshSyncObserver: AnyCancellable?
     private var backgroundAppRefreshTask: BGAppRefreshTask?
+    private var searchBackfillTask: BGProcessingTask?
     
     private var userSessionMigrationsOldVersion: Version?
     /// The accounts migrated since launch, so restoring one again (e.g. after clearing the cache) never migrates it twice.
@@ -1521,6 +1522,9 @@ private extension AppCoordinator {
         
         await waitForSessionRestore()
         
+        // GUA FORK: returning to the foreground finishes the refresh early.
+        guard backgroundAppRefreshTask === task else { return }
+        
         guard let userSession else {
             MXLog.info("Background app refresh: no user session, giving up.")
             backgroundAppRefreshTask = nil
@@ -1531,6 +1535,7 @@ private extension AppCoordinator {
         // Configure the background-refresh sync to carry set_presence=offline so it doesn't mark the
         // user online or idle. Note: If already online/idle then setting offline shouldn't override that.
         await userSessionManager.configurePresence(.offline, sendImmediately: false)
+        guard backgroundAppRefreshTask === task else { return }
         
         await resumeClientServices()
         
@@ -1626,10 +1631,14 @@ private extension AppCoordinator {
     
     func handleSearchBackfill(_ task: BGProcessingTask) async {
         MXLog.info("Started search backfill task")
+        searchBackfillTask = task
         
         task.expirationHandler = { @Sendable [weak self] in
             MXLog.info("Search backfill task is about to expire.")
-            Task { @MainActor in self?.userSessionManager.stopSearchBackfill() }
+            Task { @MainActor in
+                self?.searchBackfillTask = nil
+                self?.userSessionManager.stopSearchBackfill()
+            }
         }
         
         await waitForSessionRestore()
@@ -1637,17 +1646,21 @@ private extension AppCoordinator {
         // GUA FORK: the backfill fails on closed stores, and the app must be paused again before it's suspended.
         await userSessionManager.configurePresence(.offline, sendImmediately: false)
         await performBackgroundWork {
+            // GUA FORK: the task can expire while the session restores or the client resumes, with nothing to stop yet.
+            guard searchBackfillTask === task else { return }
             userSessionManager.startSearchBackfill(strategy: .background)
             
             // TaskHandle can't be awaited, so poll until every sweep finishes or is stopped on expiry.
-            while userSessionManager.isSearchBackfillRunning {
+            while userSessionManager.isSearchBackfillRunning, searchBackfillTask === task {
                 try? await Task.sleep(for: .seconds(1))
             }
         }
+        let isExpired = searchBackfillTask !== task
+        searchBackfillTask = nil
         await pauseClientServices(isBackgroundTask: true)
         
         MXLog.info("Marking search backfill task as complete.")
-        task.setTaskCompleted(success: true)
+        task.setTaskCompleted(success: !isExpired)
     }
 }
 
