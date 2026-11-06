@@ -541,7 +541,7 @@ final class TimelineViewModelTests {
         
         viewModel.process(viewAction: .itemSendInfoTapped(itemID: items[0].id))
         
-        #expect(viewModel.state.bindings.alertInfo?.title == "alice (@alice:matrix.org) shared this message since you were not in the room when it was sent.")
+        #expect(viewModel.state.bindings.alertInfo?.title == "alice (@alice) shared this message since you were not in the room when it was sent.")
     }
     
     @Test

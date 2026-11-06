@@ -16,7 +16,7 @@ struct LocationShareSheet: View {
     }
     
     private var senderName: String? {
-        annotation.kind.displayName ?? annotation.kind.userProfile?.id
+        annotation.kind.displayName ?? annotation.kind.userProfile?.id.guaDisplayHandle
     }
     
     var body: some View {
