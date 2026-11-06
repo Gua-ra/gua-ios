@@ -520,7 +520,8 @@ class ClientProxy: ClientProxyProtocol {
     }
     
     private func restartServices() {
-        guard restartTask == nil, identityResetGuard == nil else { return }
+        // GUA FORK: a sync error can arrive after a pause, which mustn't resume the client in the background.
+        guard restartTask == nil, identityResetGuard == nil, case .running = desiredServiceState else { return }
         
         restartTask = Task { [weak self] in
             do {
@@ -1189,7 +1190,8 @@ class ClientProxy: ClientProxyProtocol {
             .removeDuplicates()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] reachability in
-                if reachability == .reachable {
+                // GUA FORK: only brings an offline client online. Resuming a new or paused client is the app's call.
+                if reachability == .reachable, case .running = self?.desiredServiceState {
                     Task {
                         await self?.resumeServices()
                     }
