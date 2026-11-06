@@ -211,7 +211,7 @@ private extension TimelineItemSendInfo {
             }
         }
         
-        // Without a caption the capsule sits on the cards, clear of their rounded corners.
+        // Without a caption the capsule is inset from the stack frame's corner, not the front card's, so on an incoming stack it overlaps the cards behind.
         if timelineItem is MediaStackRoomTimelineItem, !timelineItem.hasMediaCaption {
             capsuleInset = 8
         }

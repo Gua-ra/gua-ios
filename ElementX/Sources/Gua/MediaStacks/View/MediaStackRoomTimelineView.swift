@@ -139,7 +139,10 @@ private struct MediaStackAccessibilityModifier: ViewModifier {
         case .sent, .none: nil
         }
         
-        return [stack.positionDescription(at: frontIndex), stack.mediaCaption, stack.localizedSendInfo, deliveryState]
+        // Hidden media names the default action, as the Show button over a single hidden photo does.
+        let reveal = !shouldAutomaticallyLoadImages && positions?.isRevealed(stack) != true ? L10n.actionShow : nil
+        
+        return [stack.positionDescription(at: frontIndex), stack.mediaCaption, stack.localizedSendInfo, deliveryState, reveal]
             .compactMap { $0?.isBlank == false ? $0 : nil }
             .joined(separator: ", ")
     }
