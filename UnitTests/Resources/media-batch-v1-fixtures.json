@@ -1,0 +1,317 @@
+{
+  "version": 1,
+  "markers": [
+    {
+      "name": "first photo of four",
+      "content": {"msgtype": "m.image", "body": "IMG_0412.jpg", "url": "mxc://example.org/a", "global.gua.batch": {"v": 1, "id": "5b0f3c8e-1d2a-4c6b-9f3e-2a7d8c1b4e60", "index": 0, "count": 4}},
+      "batch": {"id": "5b0f3c8e-1d2a-4c6b-9f3e-2a7d8c1b4e60", "index": 0, "count": 4}
+    },
+    {
+      "name": "last video of four",
+      "content": {"msgtype": "m.video", "body": "IMG_0415.mp4", "url": "mxc://example.org/d", "global.gua.batch": {"v": 1, "id": "5b0f3c8e-1d2a-4c6b-9f3e-2a7d8c1b4e60", "index": 3, "count": 4}},
+      "batch": {"id": "5b0f3c8e-1d2a-4c6b-9f3e-2a7d8c1b4e60", "index": 3, "count": 4}
+    },
+    {
+      "name": "unknown fields inside the marker are ignored",
+      "content": {"msgtype": "m.image", "body": "a.jpg", "url": "mxc://example.org/a", "global.gua.batch": {"v": 1, "id": "b1", "index": 1, "count": 2, "layout": "grid"}},
+      "batch": {"id": "b1", "index": 1, "count": 2}
+    },
+    {
+      "name": "largest accepted count",
+      "content": {"msgtype": "m.image", "body": "a.jpg", "url": "mxc://example.org/a", "global.gua.batch": {"v": 1, "id": "b1", "index": 99, "count": 100}},
+      "batch": {"id": "b1", "index": 99, "count": 100}
+    },
+    {
+      "name": "no marker",
+      "content": {"msgtype": "m.image", "body": "a.jpg", "url": "mxc://example.org/a"},
+      "batch": null
+    },
+    {
+      "name": "missing version",
+      "content": {"msgtype": "m.image", "body": "a.jpg", "url": "mxc://example.org/a", "global.gua.batch": {"id": "b1", "index": 0, "count": 2}},
+      "batch": null
+    },
+    {
+      "name": "unknown version",
+      "content": {"msgtype": "m.image", "body": "a.jpg", "url": "mxc://example.org/a", "global.gua.batch": {"v": 2, "id": "b1", "index": 0, "count": 2}},
+      "batch": null
+    },
+    {
+      "name": "index equal to count",
+      "content": {"msgtype": "m.image", "body": "a.jpg", "url": "mxc://example.org/a", "global.gua.batch": {"v": 1, "id": "b1", "index": 2, "count": 2}},
+      "batch": null
+    },
+    {
+      "name": "negative index",
+      "content": {"msgtype": "m.image", "body": "a.jpg", "url": "mxc://example.org/a", "global.gua.batch": {"v": 1, "id": "b1", "index": -1, "count": 2}},
+      "batch": null
+    },
+    {
+      "name": "index as a string",
+      "content": {"msgtype": "m.image", "body": "a.jpg", "url": "mxc://example.org/a", "global.gua.batch": {"v": 1, "id": "b1", "index": "1", "count": 2}},
+      "batch": null
+    },
+    {
+      "name": "fractional index",
+      "content": {"msgtype": "m.image", "body": "a.jpg", "url": "mxc://example.org/a", "global.gua.batch": {"v": 1, "id": "b1", "index": 0.5, "count": 2}},
+      "batch": null
+    },
+    {
+      "name": "count below two",
+      "content": {"msgtype": "m.image", "body": "a.jpg", "url": "mxc://example.org/a", "global.gua.batch": {"v": 1, "id": "b1", "index": 0, "count": 1}},
+      "batch": null
+    },
+    {
+      "name": "count above one hundred",
+      "content": {"msgtype": "m.image", "body": "a.jpg", "url": "mxc://example.org/a", "global.gua.batch": {"v": 1, "id": "b1", "index": 0, "count": 101}},
+      "batch": null
+    },
+    {
+      "name": "empty id",
+      "content": {"msgtype": "m.image", "body": "a.jpg", "url": "mxc://example.org/a", "global.gua.batch": {"v": 1, "id": "", "index": 0, "count": 2}},
+      "batch": null
+    },
+    {
+      "name": "id longer than 64 characters",
+      "content": {"msgtype": "m.image", "body": "a.jpg", "url": "mxc://example.org/a", "global.gua.batch": {"v": 1, "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "index": 0, "count": 2}},
+      "batch": null
+    },
+    {
+      "name": "id of exactly 64 characters",
+      "content": {"msgtype": "m.image", "body": "a.jpg", "url": "mxc://example.org/a", "global.gua.batch": {"v": 1, "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "index": 0, "count": 2}},
+      "batch": {"id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "index": 0, "count": 2}
+    },
+    {
+      "name": "index as a boolean",
+      "content": {"msgtype": "m.image", "body": "a.jpg", "url": "mxc://example.org/a", "global.gua.batch": {"v": 1, "id": "b1", "index": true, "count": 2}},
+      "batch": null
+    },
+    {
+      "name": "index written as a float literal",
+      "content": {"msgtype": "m.image", "body": "a.jpg", "url": "mxc://example.org/a", "global.gua.batch": {"v": 1, "id": "b1", "index": 1.0, "count": 2}},
+      "batch": null
+    },
+    {
+      "name": "id with a space",
+      "content": {"msgtype": "m.image", "body": "a.jpg", "url": "mxc://example.org/a", "global.gua.batch": {"v": 1, "id": "b 1", "index": 0, "count": 2}},
+      "batch": null
+    },
+    {
+      "name": "marker that is not an object",
+      "content": {"msgtype": "m.image", "body": "a.jpg", "url": "mxc://example.org/a", "global.gua.batch": "b1"},
+      "batch": null
+    },
+    {
+      "name": "file messages never join a stack",
+      "content": {"msgtype": "m.file", "body": "a.pdf", "url": "mxc://example.org/a", "global.gua.batch": {"v": 1, "id": "b1", "index": 0, "count": 2}},
+      "batch": null
+    },
+    {
+      "name": "replacement content is never read for the marker",
+      "content": {"msgtype": "m.image", "body": "* a.jpg", "url": "mxc://example.org/a", "global.gua.batch": {"v": 1, "id": "b1", "index": 0, "count": 2}, "m.new_content": {"msgtype": "m.image", "body": "a.jpg", "url": "mxc://example.org/a", "global.gua.batch": {"v": 1, "id": "b1", "index": 0, "count": 2}}, "m.relates_to": {"rel_type": "m.replace", "event_id": "$a"}},
+      "batch": null
+    }
+  ],
+  "grouping": [
+    {
+      "name": "four photos in order",
+      "items": [
+        {"id": "$a1", "sender": "@alice:example.org", "kind": "image", "batch": ["b1", 0, 4]},
+        {"id": "$a2", "sender": "@alice:example.org", "kind": "image", "batch": ["b1", 1, 4]},
+        {"id": "$a3", "sender": "@alice:example.org", "kind": "image", "batch": ["b1", 2, 4]},
+        {"id": "$a4", "sender": "@alice:example.org", "kind": "image", "batch": ["b1", 3, 4]}
+      ],
+      "expected": [["stack", "photos", "$a1", "$a2", "$a3", "$a4"]]
+    },
+    {
+      "name": "two videos",
+      "items": [
+        {"id": "$v1", "sender": "@alice:example.org", "kind": "video", "batch": ["b2", 0, 2]},
+        {"id": "$v2", "sender": "@alice:example.org", "kind": "video", "batch": ["b2", 1, 2]}
+      ],
+      "expected": [["stack", "videos", "$v1", "$v2"]]
+    },
+    {
+      "name": "photos and a video make one mixed stack",
+      "items": [
+        {"id": "$p1", "sender": "@alice:example.org", "kind": "image", "batch": ["b3", 0, 3]},
+        {"id": "$p2", "sender": "@alice:example.org", "kind": "video", "batch": ["b3", 1, 3]},
+        {"id": "$p3", "sender": "@alice:example.org", "kind": "image", "batch": ["b3", 2, 3]}
+      ],
+      "expected": [["stack", "items", "$p1", "$p2", "$p3"]]
+    },
+    {
+      "name": "one member alone stays a single item",
+      "items": [
+        {"id": "$s1", "sender": "@alice:example.org", "kind": "image", "batch": ["b4", 0, 3]}
+      ],
+      "expected": [["item", "$s1"]]
+    },
+    {
+      "name": "members are ordered by index",
+      "items": [
+        {"id": "$c2", "sender": "@alice:example.org", "kind": "image", "batch": ["b5", 1, 2]},
+        {"id": "$c1", "sender": "@alice:example.org", "kind": "image", "batch": ["b5", 0, 2]}
+      ],
+      "expected": [["stack", "photos", "$c1", "$c2"]]
+    },
+    {
+      "name": "the same batch id from another sender does not join",
+      "items": [
+        {"id": "$x1", "sender": "@alice:example.org", "kind": "image", "batch": ["b6", 0, 2]},
+        {"id": "$x2", "sender": "@bob:example.org", "kind": "image", "batch": ["b6", 1, 2]}
+      ],
+      "expected": [["item", "$x1"], ["item", "$x2"]]
+    },
+    {
+      "name": "a message from the sender splits the batch",
+      "items": [
+        {"id": "$d1", "sender": "@alice:example.org", "kind": "image", "batch": ["b7", 0, 4]},
+        {"id": "$d2", "sender": "@alice:example.org", "kind": "image", "batch": ["b7", 1, 4]},
+        {"id": "$t1", "sender": "@alice:example.org", "kind": "text"},
+        {"id": "$d3", "sender": "@alice:example.org", "kind": "image", "batch": ["b7", 2, 4]},
+        {"id": "$d4", "sender": "@alice:example.org", "kind": "image", "batch": ["b7", 3, 4]}
+      ],
+      "expected": [["stack", "photos", "$d1", "$d2"], ["item", "$t1"], ["stack", "photos", "$d3", "$d4"]]
+    },
+    {
+      "name": "a message from someone else splits the batch",
+      "items": [
+        {"id": "$e1", "sender": "@alice:example.org", "kind": "image", "batch": ["b8", 0, 3]},
+        {"id": "$m1", "sender": "@bob:example.org", "kind": "text"},
+        {"id": "$e2", "sender": "@alice:example.org", "kind": "image", "batch": ["b8", 1, 3]},
+        {"id": "$e3", "sender": "@alice:example.org", "kind": "image", "batch": ["b8", 2, 3]}
+      ],
+      "expected": [["item", "$e1"], ["item", "$m1"], ["stack", "photos", "$e2", "$e3"]]
+    },
+    {
+      "name": "a day divider splits the batch",
+      "items": [
+        {"id": "$f1", "sender": "@alice:example.org", "kind": "image", "batch": ["b9", 0, 2]},
+        {"id": "day", "kind": "day"},
+        {"id": "$f2", "sender": "@alice:example.org", "kind": "image", "batch": ["b9", 1, 2]}
+      ],
+      "expected": [["item", "$f1"], ["day"], ["item", "$f2"]]
+    },
+    {
+      "name": "the read marker moves above the stack",
+      "items": [
+        {"id": "$g1", "sender": "@alice:example.org", "kind": "image", "batch": ["b10", 0, 3]},
+        {"id": "marker", "kind": "readMarker"},
+        {"id": "$g2", "sender": "@alice:example.org", "kind": "image", "batch": ["b10", 1, 3]},
+        {"id": "$g3", "sender": "@alice:example.org", "kind": "image", "batch": ["b10", 2, 3]}
+      ],
+      "expected": [["readMarker"], ["stack", "photos", "$g1", "$g2", "$g3"]]
+    },
+    {
+      "name": "a removed message from the sender between members is hidden",
+      "items": [
+        {"id": "$h1", "sender": "@alice:example.org", "kind": "image", "batch": ["b11", 0, 3]},
+        {"id": "$h2", "sender": "@alice:example.org", "kind": "redacted"},
+        {"id": "$h3", "sender": "@alice:example.org", "kind": "image", "batch": ["b11", 2, 3]}
+      ],
+      "expected": [["stack", "photos", "$h1", "$h3"]]
+    },
+    {
+      "name": "a removed message from someone else splits the batch",
+      "items": [
+        {"id": "$i1", "sender": "@alice:example.org", "kind": "image", "batch": ["b12", 0, 3]},
+        {"id": "$r1", "sender": "@bob:example.org", "kind": "redacted"},
+        {"id": "$i2", "sender": "@alice:example.org", "kind": "image", "batch": ["b12", 1, 3]},
+        {"id": "$i3", "sender": "@alice:example.org", "kind": "image", "batch": ["b12", 2, 3]}
+      ],
+      "expected": [["item", "$i1"], ["item", "$r1"], ["stack", "photos", "$i2", "$i3"]]
+    },
+    {
+      "name": "an unknown removed message at the edge stays visible",
+      "items": [
+        {"id": "$j0", "sender": "@alice:example.org", "kind": "redacted"},
+        {"id": "$j1", "sender": "@alice:example.org", "kind": "image", "batch": ["b13", 1, 3]},
+        {"id": "$j2", "sender": "@alice:example.org", "kind": "image", "batch": ["b13", 2, 3]}
+      ],
+      "expected": [["item", "$j0"], ["stack", "photos", "$j1", "$j2"]]
+    },
+    {
+      "name": "a known removed member at the edge is hidden",
+      "items": [
+        {"id": "$k0", "sender": "@alice:example.org", "kind": "redacted", "known": ["b14", 0, 3]},
+        {"id": "$k1", "sender": "@alice:example.org", "kind": "image", "batch": ["b14", 1, 3]},
+        {"id": "$k2", "sender": "@alice:example.org", "kind": "image", "batch": ["b14", 2, 3]}
+      ],
+      "expected": [["stack", "photos", "$k1", "$k2"]]
+    },
+    {
+      "name": "a fully removed known batch shows one removed message",
+      "items": [
+        {"id": "$l1", "sender": "@alice:example.org", "kind": "redacted", "known": ["b15", 0, 3]},
+        {"id": "$l2", "sender": "@alice:example.org", "kind": "redacted", "known": ["b15", 1, 3]},
+        {"id": "$l3", "sender": "@alice:example.org", "kind": "redacted", "known": ["b15", 2, 3]}
+      ],
+      "expected": [["removed", "$l1", "$l2", "$l3"]]
+    },
+    {
+      "name": "one member left after removals is a single item",
+      "items": [
+        {"id": "$q0", "sender": "@alice:example.org", "kind": "redacted", "known": ["b16", 0, 3]},
+        {"id": "$q1", "sender": "@alice:example.org", "kind": "image", "batch": ["b16", 1, 3]},
+        {"id": "$q2", "sender": "@alice:example.org", "kind": "redacted", "known": ["b16", 2, 3]}
+      ],
+      "expected": [["item", "$q1"]]
+    },
+    {
+      "name": "a repeated index ends the stack and starts a new run",
+      "items": [
+        {"id": "$n1", "sender": "@alice:example.org", "kind": "image", "batch": ["b17", 0, 3]},
+        {"id": "$n2", "sender": "@alice:example.org", "kind": "image", "batch": ["b17", 1, 3]},
+        {"id": "$n3", "sender": "@alice:example.org", "kind": "image", "batch": ["b17", 1, 3]}
+      ],
+      "expected": [["stack", "photos", "$n1", "$n2"], ["item", "$n3"]]
+    },
+    {
+      "name": "two batches back to back make two stacks",
+      "items": [
+        {"id": "$o1", "sender": "@alice:example.org", "kind": "image", "batch": ["b18", 0, 2]},
+        {"id": "$o2", "sender": "@alice:example.org", "kind": "image", "batch": ["b18", 1, 2]},
+        {"id": "$o3", "sender": "@alice:example.org", "kind": "image", "batch": ["b19", 0, 2]},
+        {"id": "$o4", "sender": "@alice:example.org", "kind": "image", "batch": ["b19", 1, 2]}
+      ],
+      "expected": [["stack", "photos", "$o1", "$o2"], ["stack", "photos", "$o3", "$o4"]]
+    },
+    {
+      "name": "an undecryptable message splits the batch",
+      "items": [
+        {"id": "$u1", "sender": "@alice:example.org", "kind": "image", "batch": ["b20", 0, 3]},
+        {"id": "$u2", "sender": "@alice:example.org", "kind": "utd"},
+        {"id": "$u3", "sender": "@alice:example.org", "kind": "image", "batch": ["b20", 1, 3]},
+        {"id": "$u4", "sender": "@alice:example.org", "kind": "image", "batch": ["b20", 2, 3]}
+      ],
+      "expected": [["item", "$u1"], ["item", "$u2"], ["stack", "photos", "$u3", "$u4"]]
+    },
+    {
+      "name": "a later member that heads a thread renders on its own",
+      "items": [
+        {"id": "$t1", "sender": "@alice:example.org", "kind": "image", "batch": ["b21", 0, 4]},
+        {"id": "$t2", "sender": "@alice:example.org", "kind": "image", "batch": ["b21", 1, 4]},
+        {"id": "$t3", "sender": "@alice:example.org", "kind": "image", "batch": ["b21", 2, 4], "threadRoot": true},
+        {"id": "$t4", "sender": "@alice:example.org", "kind": "image", "batch": ["b21", 3, 4]}
+      ],
+      "expected": [["stack", "photos", "$t1", "$t2"], ["item", "$t3"], ["item", "$t4"]]
+    },
+    {
+      "name": "a first member that heads a thread stays in the stack",
+      "items": [
+        {"id": "$y1", "sender": "@alice:example.org", "kind": "image", "batch": ["b22", 0, 2], "threadRoot": true},
+        {"id": "$y2", "sender": "@alice:example.org", "kind": "video", "batch": ["b22", 1, 2]}
+      ],
+      "expected": [["stack", "items", "$y1", "$y2"]]
+    },
+    {
+      "name": "photos without a marker never stack",
+      "items": [
+        {"id": "$w1", "sender": "@alice:example.org", "kind": "image"},
+        {"id": "$w2", "sender": "@alice:example.org", "kind": "image"}
+      ],
+      "expected": [["item", "$w1"], ["item", "$w2"]]
+    }
+  ]
+}

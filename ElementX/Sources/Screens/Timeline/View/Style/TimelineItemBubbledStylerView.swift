@@ -34,7 +34,8 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
     }
     
     private var isFocussed: Bool {
-        focussedEventID != nil && timelineItem.id.eventID == focussedEventID
+        guard let focussedEventID else { return false }
+        return timelineItem.id.eventID == focussedEventID || (timelineItem as? MediaStackRoomTimelineItem)?.memberIndex(ofEventID: focussedEventID) != nil
     }
     
     private var isPinned: Bool {
@@ -221,6 +222,18 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
     }
     
     var messageBubbleWithActions: some View {
+        swipeableBubble
+            .contextMenu {
+                if !isMessageSelectionActive {
+                    macContextMenu
+                }
+            }
+            .readsWindowFrame(bubbleFrameReader)
+            .pinnedIndicator(isPinned: isPinned, isOutgoing: timelineItem.isOutgoing)
+            .padding(.top, messageBubbleTopPadding)
+    }
+    
+    private var interactiveBubble: some View {
         messageBubble
             .opacity(bubbleFrameReader.isLifted ? 0 : 1)
             .onDoubleTap(isEnabled: canDoubleTapToReact) {
@@ -236,30 +249,33 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
             .longPressWithFeedback(isEnabled: !isMessageSelectionActive) {
                 displayMenu(showsActions: true)
             }
-            .swipeRightAction {
-                CompoundIcon(\.reply)
-                    .foregroundColor(.compound.iconPrimary)
-                    .accessibilityHidden(true)
-            } shouldStartAction: {
-                !isMessageSelectionActive && timelineItem.canBeRepliedTo
-            } action: {
-                context.send(viewAction: .handleTimelineItemMenuAction(itemID: timelineItem.id,
-                                                                       action: .reply(isThread: timelineItem.properties.isThreaded)))
-            }
-            .contextMenu {
-                if !isMessageSelectionActive {
-                    macContextMenu
-                }
-            }
-            .readsWindowFrame(bubbleFrameReader)
-            .pinnedIndicator(isPinned: isPinned, isOutgoing: timelineItem.isOutgoing)
-            .padding(.top, messageBubbleTopPadding)
     }
     
-    /// Only text reacts to a double tap: other content handles single taps itself, and the Mac keeps double-click for selecting words.
+    /// A stack pages its cards with a horizontal drag, so replying to one stays in the menu.
+    @ViewBuilder
+    private var swipeableBubble: some View {
+        if timelineItem is MediaStackRoomTimelineItem {
+            interactiveBubble
+        } else {
+            interactiveBubble
+                .swipeRightAction {
+                    CompoundIcon(\.reply)
+                        .foregroundColor(.compound.iconPrimary)
+                        .accessibilityHidden(true)
+                } shouldStartAction: {
+                    !isMessageSelectionActive && timelineItem.canBeRepliedTo
+                } action: {
+                    context.send(viewAction: .handleTimelineItemMenuAction(itemID: timelineItem.id,
+                                                                           action: .reply(isThread: timelineItem.properties.isThreaded)))
+                }
+        }
+    }
+    
+    /// Only text and stacks react to a double tap: other content opens on a single tap, and the Mac keeps double-click for selecting words.
     private var canDoubleTapToReact: Bool {
+        let isReactable = (timelineItem as? MediaStackRoomTimelineItem)?.isFirstMemberReactable ?? (timelineItem.isCopyable && timelineItem.isReactable)
         guard !ProcessInfo.processInfo.isiOSAppOnMac, !isMessageSelectionActive,
-              timelineItem.isCopyable, timelineItem.isReactable, !timelineItem.isRedacted else { return false }
+              isReactable, !timelineItem.isRedacted else { return false }
         
         switch context.viewState.timelineKind {
         case .live, .detached, .thread: return true
@@ -289,16 +305,24 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
         }
     }
     
+    @ViewBuilder
     var messageBubble: some View {
-        contentWithReply
+        let content = contentWithReply
             .timelineItemSendInfo(timelineItem: timelineItem,
                                   adjustedDeliveryStatus: adjustedDeliveryStatus,
                                   hasContentScanningFailure: hasContentScanningFailure,
                                   context: context)
-            .bubbleBackground(isOutgoing: timelineItem.isOutgoing,
-                              insets: timelineItem.bubbleInsets(hasContentScanningFailure: hasContentScanningFailure),
-                              color: hasContentScanningFailure ? .compound.bgCriticalSubtle : timelineItem.bubbleBackgroundColor,
-                              borderColor: hasContentScanningFailure ? .compound.borderCriticalSubtle : nil)
+        
+        // A stack has no bubble, and its cards fan out past their frame and follow the finger, so nothing may clip them.
+        if timelineItem is MediaStackRoomTimelineItem {
+            content
+        } else {
+            content
+                .bubbleBackground(isOutgoing: timelineItem.isOutgoing,
+                                  insets: timelineItem.bubbleInsets(hasContentScanningFailure: hasContentScanningFailure),
+                                  color: hasContentScanningFailure ? .compound.bgCriticalSubtle : timelineItem.bubbleBackgroundColor,
+                                  borderColor: hasContentScanningFailure ? .compound.borderCriticalSubtle : nil)
+        }
     }
     
     var contentWithReply: some View {
@@ -327,9 +351,14 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
                     .hidden()
             }
             
-            content()
-                .timelineBubbleLayoutSize(.natural)
-                .cornerRadius(timelineItem.contentCornerRadius)
+            if timelineItem is MediaStackRoomTimelineItem {
+                content()
+                    .timelineBubbleLayoutSize(.natural)
+            } else {
+                content()
+                    .timelineBubbleLayoutSize(.natural)
+                    .cornerRadius(timelineItem.contentCornerRadius)
+            }
         }
     }
     

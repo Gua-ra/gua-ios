@@ -11,6 +11,8 @@ import MatrixRustSDK
 
 struct TimelineControllerFactory: TimelineControllerFactoryProtocol {
     let userSettings: UserSettings
+    /// Shared by every timeline of the session, so a stack keeps showing while its photos upload after leaving the chat.
+    let pendingMediaBatches = PendingMediaBatchStore()
     
     func buildTimelineController(roomProxy: JoinedRoomProxyProtocol,
                                  initialFocussedEventID: String?,
@@ -21,7 +23,8 @@ struct TimelineControllerFactory: TimelineControllerFactoryProtocol {
                            initialFocussedEventID: initialFocussedEventID,
                            timelineItemFactory: timelineItemFactory,
                            mediaProvider: mediaProvider,
-                           userSettings: userSettings)
+                           userSettings: userSettings,
+                           pendingMediaBatches: pendingMediaBatches)
     }
     
     func buildThreadTimelineController(threadRootEventID: String,
@@ -36,7 +39,8 @@ struct TimelineControllerFactory: TimelineControllerFactoryProtocol {
                                                initialFocussedEventID: initialFocussedEventID,
                                                timelineItemFactory: timelineItemFactory,
                                                mediaProvider: mediaProvider,
-                                               userSettings: userSettings))
+                                               userSettings: userSettings,
+                                               pendingMediaBatches: pendingMediaBatches))
         case .failure(let error):
             return .failure(.roomProxyError(error))
         }
@@ -52,7 +56,8 @@ struct TimelineControllerFactory: TimelineControllerFactoryProtocol {
                                                initialFocussedEventID: nil,
                                                timelineItemFactory: timelineItemFactory,
                                                mediaProvider: mediaProvider,
-                                               userSettings: userSettings))
+                                               userSettings: userSettings,
+                                               pendingMediaBatches: pendingMediaBatches))
         case .failure(let error):
             return .failure(.roomProxyError(error))
         }
@@ -72,6 +77,7 @@ struct TimelineControllerFactory: TimelineControllerFactoryProtocol {
                                                timelineItemFactory: timelineItemFactory,
                                                mediaProvider: mediaProvider,
                                                userSettings: userSettings,
+                                               pendingMediaBatches: pendingMediaBatches,
                                                allowedGalleryItemTypes: allowedMessageTypes.allowedGalleryItemTypes))
         case .failure(let error):
             return .failure(.roomProxyError(error))

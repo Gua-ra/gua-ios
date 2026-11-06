@@ -95,3 +95,10 @@
 
 "gua_notification_sound_default" = "Gua - défaut";
 "gua_notification_sound_fade" = "Gua - doux";
+
+"gua_media_stack_remove_subtitle" = "La suppression s’applique à tous les participants de cette conversation.";
+"gua_media_stack_a11y_photo_position" = "Photo %1$d sur %2$d";
+"gua_media_stack_a11y_video_position" = "Vidéo %1$d sur %2$d, %3$@";
+"gua_media_stack_a11y_next" = "Suivant";
+"gua_media_stack_a11y_previous" = "Précédent";
+"gua_media_stack_show_all" = "Tout afficher";

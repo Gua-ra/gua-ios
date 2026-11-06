@@ -10,7 +10,7 @@ import Combine
 import SwiftUI
 
 struct ReportContentScreenCoordinatorParameters {
-    let eventID: String
+    let eventIDs: [String]
     let senderID: String
     let roomProxy: JoinedRoomProxyProtocol
     let clientProxy: ClientProxyProtocol
@@ -35,7 +35,7 @@ final class ReportContentScreenCoordinator: CoordinatorProtocol {
     init(parameters: ReportContentScreenCoordinatorParameters) {
         self.parameters = parameters
         
-        viewModel = ReportContentScreenViewModel(eventID: parameters.eventID,
+        viewModel = ReportContentScreenViewModel(eventIDs: parameters.eventIDs,
                                                  senderID: parameters.senderID,
                                                  roomProxy: parameters.roomProxy,
                                                  clientProxy: parameters.clientProxy)

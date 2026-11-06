@@ -13,6 +13,8 @@ struct RedactConfirmationView: View {
     @Environment(\.dismiss) private var dismiss
     
     @State var reason = ""
+    var title: String?
+    var message: String?
     let confirm: (String) -> Void
     
     @State private var sheetHeight: CGFloat = .zero
@@ -46,9 +48,15 @@ struct RedactConfirmationView: View {
     
     private var header: some View {
         VStack(spacing: 8) {
-            Text(L10n.screenRoomConfirmRemovalTitle)
+            Text(title ?? L10n.screenRoomConfirmRemovalTitle)
                 .font(.compound.headingMDBold)
                 .foregroundStyle(.compound.textPrimary)
+            
+            if let message {
+                Text(message)
+                    .font(.compound.bodyMD)
+                    .foregroundStyle(.compound.textSecondary)
+            }
         }
         .multilineTextAlignment(.center)
         .padding(.top, 8)

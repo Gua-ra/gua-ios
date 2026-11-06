@@ -132,6 +132,50 @@ internal nonisolated enum UntranslatedL10n {
   internal static var guaJoinSpaceAction: String { return UntranslatedL10n.tr("Untranslated", "gua_join_space_action") }
   /// This is a space. Joining turns on Spaces so you can see its chats.
   internal static var guaJoinSpaceTurnsOnSpaces: String { return UntranslatedL10n.tr("Untranslated", "gua_join_space_turns_on_spaces") }
+  /// Next
+  internal static var guaMediaStackA11yNext: String { return UntranslatedL10n.tr("Untranslated", "gua_media_stack_a11y_next") }
+  /// Photo %1$d of %2$d
+  internal static func guaMediaStackA11yPhotoPosition(_ p1: Int, _ p2: Int) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_media_stack_a11y_photo_position", p1, p2)
+  }
+  /// Previous
+  internal static var guaMediaStackA11yPrevious: String { return UntranslatedL10n.tr("Untranslated", "gua_media_stack_a11y_previous") }
+  /// Video %1$d of %2$d, %3$@
+  internal static func guaMediaStackA11yVideoPosition(_ p1: Int, _ p2: Int, _ p3: Any) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_media_stack_a11y_video_position", p1, p2, String(describing: p3))
+  }
+  /// Plural format key: "%#@COUNT@"
+  internal static func guaMediaStackItems(_ p1: Int) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_media_stack_items", p1)
+  }
+  /// Plural format key: "%#@COUNT@"
+  internal static func guaMediaStackPhotos(_ p1: Int) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_media_stack_photos", p1)
+  }
+  /// Plural format key: "%#@COUNT@"
+  internal static func guaMediaStackRemoveItemsTitle(_ p1: Int) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_media_stack_remove_items_title", p1)
+  }
+  /// Plural format key: "%#@COUNT@"
+  internal static func guaMediaStackRemovePhotosTitle(_ p1: Int) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_media_stack_remove_photos_title", p1)
+  }
+  /// They will be removed for everyone in this chat.
+  internal static var guaMediaStackRemoveSubtitle: String { return UntranslatedL10n.tr("Untranslated", "gua_media_stack_remove_subtitle") }
+  /// Plural format key: "%#@COUNT@"
+  internal static func guaMediaStackRemoveVideosTitle(_ p1: Int) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_media_stack_remove_videos_title", p1)
+  }
+  /// Plural format key: "%#@COUNT@"
+  internal static func guaMediaStackSaved(_ p1: Int) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_media_stack_saved", p1)
+  }
+  /// Show all
+  internal static var guaMediaStackShowAll: String { return UntranslatedL10n.tr("Untranslated", "gua_media_stack_show_all") }
+  /// Plural format key: "%#@COUNT@"
+  internal static func guaMediaStackVideos(_ p1: Int) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_media_stack_videos", p1)
+  }
   /// Select text
   internal static var guaMessageTextSelectionTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_message_text_selection_title") }
   /// Gua Default

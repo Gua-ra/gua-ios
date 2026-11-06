@@ -18,6 +18,8 @@ class TimelineController: TimelineControllerProtocol {
     private let timelineItemFactory: RoomTimelineItemFactoryProtocol
     private let mediaProvider: MediaProviderProtocol
     private let userSettings: UserSettings
+    private let pendingMediaBatches: PendingMediaBatchStore
+    private let mediaBatchCache = MediaBatchCache()
     
     let callbacks = PassthroughSubject<TimelineControllerCallback, Never>()
     
@@ -52,8 +54,10 @@ class TimelineController: TimelineControllerProtocol {
          timelineItemFactory: RoomTimelineItemFactoryProtocol,
          mediaProvider: MediaProviderProtocol,
          userSettings: UserSettings,
+         pendingMediaBatches: PendingMediaBatchStore = PendingMediaBatchStore(),
          allowedGalleryItemTypes: [TimelineAllowedGalleryItemType]? = nil) {
         self.allowedGalleryItemTypes = allowedGalleryItemTypes
+        self.pendingMediaBatches = pendingMediaBatches
         self.roomProxy = roomProxy
         liveTimelineItemProvider = timelineProxy.timelineItemProvider
         self.timelineItemFactory = timelineItemFactory
@@ -393,11 +397,18 @@ class TimelineController: TimelineControllerProtocol {
                    thumbnailURL: URL,
                    imageInfo: MatrixRustSDK.ImageInfo,
                    caption: String?,
+                   mediaBatch: MediaBatch?,
                    requestHandle: @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineControllerError> {
+        if let mediaBatch {
+            pendingMediaBatches.register(mediaBatch, for: .init(roomID: roomID, filename: url.lastPathComponent,
+                                                                fileSize: imageInfo.size.map(UInt.init), mimeType: imageInfo.mimetype))
+        }
+        
         switch await activeTimeline.sendImage(url: url,
                                               thumbnailURL: thumbnailURL,
                                               imageInfo: imageInfo,
                                               caption: caption,
+                                              extraContentJSON: mediaBatch?.extraContentJSON,
                                               requestHandle: requestHandle).mapError(TimelineControllerError.timelineProxyError) {
         case .success:
             callbacks.send(.messageSentOrEdited)
@@ -411,11 +422,18 @@ class TimelineController: TimelineControllerProtocol {
                    thumbnailURL: URL,
                    videoInfo: MatrixRustSDK.VideoInfo,
                    caption: String?,
+                   mediaBatch: MediaBatch?,
                    requestHandle: @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineControllerError> {
+        if let mediaBatch {
+            pendingMediaBatches.register(mediaBatch, for: .init(roomID: roomID, filename: url.lastPathComponent,
+                                                                fileSize: videoInfo.size.map(UInt.init), mimeType: videoInfo.mimetype))
+        }
+        
         switch await activeTimeline.sendVideo(url: url,
                                               thumbnailURL: thumbnailURL,
                                               videoInfo: videoInfo,
                                               caption: caption,
+                                              extraContentJSON: mediaBatch?.extraContentJSON,
                                               requestHandle: requestHandle).mapError(TimelineControllerError.timelineProxyError) {
         case .success:
             callbacks.send(.messageSentOrEdited)
@@ -499,6 +517,7 @@ class TimelineController: TimelineControllerProtocol {
         updateTimelineItemsCancellable = nil
         
         isSwitchingTimelines = true
+        mediaBatchCache.resetStackIDs()
         
         // Inform the world that the initial items are loading from the store
         paginationState = TimelinePaginationState(backward: .paginating, forward: .paginating)
@@ -527,6 +546,7 @@ class TimelineController: TimelineControllerProtocol {
         let isDM = roomProxy.infoPublisher.value.isDM
         let displayName = roomProxy.infoPublisher.value.displayName
         let hasPredecessor = roomProxy.predecessorRoom != nil
+        let mediaBatches = groupsMediaStacks ? MediaBatchSources(cache: mediaBatchCache, pendingBatches: pendingMediaBatches, roomID: roomID) : nil
         
         var newTimelineItems = await Task.detached { [timelineItemFactory, activeTimeline] in
             var newTimelineItems = [RoomTimelineItemProtocol]()
@@ -542,7 +562,8 @@ class TimelineController: TimelineControllerProtocol {
                                            hasPredecessor: hasPredecessor,
                                            roomDisplayName: displayName,
                                            timelineItemFactory: timelineItemFactory,
-                                           activeTimeline: activeTimeline)
+                                           activeTimeline: activeTimeline,
+                                           mediaBatches: mediaBatches)
                 }
                 
                 if items.isEmpty {
@@ -564,6 +585,10 @@ class TimelineController: TimelineControllerProtocol {
             
             return newTimelineItems
         }.value
+        
+        if let mediaBatches {
+            newTimelineItems = MediaStackGrouper.group(newTimelineItems, cache: mediaBatches.cache)
+        }
         
         // Check if we need to add anything to the top of the timeline.
         switch paginationState.backward {
@@ -591,10 +616,15 @@ class TimelineController: TimelineControllerProtocol {
                                                hasPredecessor: Bool,
                                                roomDisplayName: String?,
                                                timelineItemFactory: RoomTimelineItemFactoryProtocol,
-                                               activeTimeline: TimelineProxyProtocol) -> RoomTimelineItemProtocol? {
+                                               activeTimeline: TimelineProxyProtocol,
+                                               mediaBatches: MediaBatchSources?) -> RoomTimelineItemProtocol? {
         switch itemProxy {
         case .event(let eventTimelineItem):
-            let timelineItem = timelineItemFactory.buildTimelineItem(for: eventTimelineItem, isDM: isDM)
+            var timelineItem = timelineItemFactory.buildTimelineItem(for: eventTimelineItem, isDM: isDM)
+            
+            if let mediaBatches, let item = timelineItem {
+                timelineItem = mediaBatches.attachingBatch(to: item, from: eventTimelineItem)
+            }
             
             if let messageTimelineItem = timelineItem as? EventBasedMessageTimelineItemProtocol {
                 // Avoid fetching this over and over again as it changes states if it keeps failing to load
@@ -662,6 +692,13 @@ class TimelineController: TimelineControllerProtocol {
             }
         }
         return nil
+    }
+    
+    private var groupsMediaStacks: Bool {
+        switch timelineKind {
+        case .live, .detached, .thread: true
+        case .pinned, .media: false
+        }
     }
     
     private func donateSendMessageIntent() async {

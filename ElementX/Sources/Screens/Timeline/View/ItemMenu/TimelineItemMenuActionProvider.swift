@@ -36,6 +36,10 @@ struct TimelineItemMenuActionProvider {
             return makeEncryptedItemActions()
         }
         
+        if let stack = timelineItem as? MediaStackRoomTimelineItem {
+            return makeMediaStackActions(stack)
+        }
+        
         var actions: [TimelineItemMenuAction] = []
         var secondaryActions: [TimelineItemMenuAction] = []
         
@@ -147,6 +151,47 @@ struct TimelineItemMenuActionProvider {
         let isReactable = timelineKind == .live || timelineKind == .detached || timelineKind.isThread ? item.isReactable : false
         
         return .init(isReactable: isReactable, actions: actions, secondaryActions: secondaryActions, emojiProvider: emojiProvider)
+    }
+    
+    private func makeMediaStackActions(_ stack: MediaStackRoomTimelineItem) -> TimelineItemMenuActions? {
+        var actions: [TimelineItemMenuAction] = []
+        var secondaryActions: [TimelineItemMenuAction] = []
+        
+        if stack.canBeRepliedTo, canCurrentUserSendMessage {
+            actions.append(.reply(isThread: areThreadsEnabled ? false : stack.properties.isThreaded))
+            
+            if areThreadsEnabled, !timelineKind.isThread {
+                actions.append(.replyInThread)
+            }
+        }
+        
+        if stack.members.allSatisfy(\.item.isRemoteMessage) {
+            actions.append(.forward(itemID: stack.id))
+        }
+        
+        actions.append(.saveMedia)
+        
+        if stack.hasMediaCaption {
+            actions.append(.copyCaption)
+        }
+        
+        if stack.isRemoteMessage {
+            actions.append(.copyPermalink)
+        }
+        
+        if isViewSourceEnabled {
+            actions.append(.viewSource)
+        }
+        
+        if !stack.isOutgoing {
+            secondaryActions.append(.report)
+        }
+        
+        if canRedactItem(stack) {
+            secondaryActions.append(.redact(isMedia: false))
+        }
+        
+        return .init(isReactable: stack.isFirstMemberReactable, actions: actions, secondaryActions: secondaryActions, emojiProvider: emojiProvider)
     }
     
     private func makeEncryptedItemActions() -> TimelineItemMenuActions? {

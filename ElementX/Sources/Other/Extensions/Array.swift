@@ -61,8 +61,17 @@ nonisolated extension Array {
 }
 
 nonisolated extension Array where Element == RoomTimelineItemProtocol {
+    /// Members of a stack are found too, so taps, send info and retries keep working on the photo itself.
     func firstUsingStableID(_ id: TimelineItemIdentifier) -> Element? {
-        first { $0.id.uniqueID == id.uniqueID }
+        for item in self {
+            if item.id.uniqueID == id.uniqueID {
+                return item
+            }
+            if let stack = item as? MediaStackRoomTimelineItem, let member = stack.members.first(where: { $0.id.uniqueID == id.uniqueID }) {
+                return member.item
+            }
+        }
+        return nil
     }
     
     /// The voice message that directly follows the item with the given ID, if there is one.

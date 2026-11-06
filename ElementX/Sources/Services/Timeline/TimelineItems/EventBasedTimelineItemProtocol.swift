@@ -36,6 +36,7 @@ nonisolated extension EventBasedTimelineItemProtocol {
             && !(self is PollRoomTimelineItem)
             && !(self is LiveLocationRoomTimelineItem)
             && !(self is StickerRoomTimelineItem) // The SDK can only forward m.room.message content and stickers are m.sticker events.
+            && !(self is MediaStackRoomTimelineItem) // A stack is forwarded whole from its menu, as a selection is capped below its size.
     }
     
     var isRemoteMessage: Bool {

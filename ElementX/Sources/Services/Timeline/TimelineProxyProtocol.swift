@@ -125,6 +125,7 @@ protocol TimelineProxyProtocol: Sendable {
                    thumbnailURL: URL,
                    imageInfo: ImageInfo,
                    caption: String?,
+                   extraContentJSON: String?,
                    requestHandle: @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineProxyError>
     
     func sendLocation(body: String,
@@ -137,6 +138,7 @@ protocol TimelineProxyProtocol: Sendable {
                    thumbnailURL: URL,
                    videoInfo: VideoInfo,
                    caption: String?,
+                   extraContentJSON: String?,
                    requestHandle: @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineProxyError>
     
     func sendVoiceMessage(url: URL,
@@ -151,7 +153,7 @@ protocol TimelineProxyProtocol: Sendable {
     func sendReadReceipt(for eventID: String, type: ReceiptType) async -> Result<Void, TimelineProxyError>
     func markAsRead(receiptType: ReceiptType) async -> Result<Void, TimelineProxyError>
     
-    func sendMessageEventContent(_ messageContent: RoomMessageEventContentWithoutRelation) async -> Result<Void, TimelineProxyError>
+    func sendMessageEventContent(_ messageContent: RoomMessageEventContentWithoutRelation, extraContentJSON: String?) async -> Result<Void, TimelineProxyError>
     
     func sendMessage(_ message: String,
                      html: String?,

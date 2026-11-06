@@ -393,6 +393,7 @@ struct MediaUploadPreviewScreen_Previews: PreviewProvider, TestablePreview {
                                                              title: "App Icon.png",
                                                              shouldShowCaptionWarning: true,
                                                              galleryEnabled: true,
+                                                             sendsMediaBatch: false,
                                                              mediaUploadingPreprocessor: MediaUploadingPreprocessor(userSettings: .mock()),
                                                              timelineController: TimelineControllerMock(.init()),
                                                              clientProxy: ClientProxyMock(.init()),

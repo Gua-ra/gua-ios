@@ -207,7 +207,7 @@ struct MessageForwardingScreenViewModelTests {
         let expectedContents = forwardingPayload.contents.map { ObjectIdentifier($0) }
         for roomID in ["2", "3"] {
             let timeline = try #require(roomProxies[roomID]?.timeline as? TimelineProxyMock)
-            let sentContents = timeline.sendMessageEventContentReceivedInvocations.map { ObjectIdentifier($0) }
+            let sentContents = timeline.sendMessageEventContentExtraContentJSONReceivedInvocations.map { ObjectIdentifier($0.messageContent) }
             #expect(sentContents == expectedContents)
         }
     }

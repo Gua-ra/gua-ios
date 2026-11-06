@@ -122,6 +122,12 @@ class MessageForwardingScreenViewModel: MessageForwardingScreenViewModelType, Me
         }
     }
     
+    /// Each chat gets a stack of its own, so a marker with a new ID.
+    private func mediaBatch(for payload: MessageForwardingPayload) -> [MediaBatch]? {
+        guard payload.sendsAsMediaBatch, (2...MediaBatch.sendLimit).contains(payload.contents.count) else { return nil }
+        return MediaBatch.makeBatch(count: payload.contents.count)
+    }
+    
     private func forward() async {
         guard !state.selectedRoomIDs.isEmpty else {
             fatalError()
@@ -138,8 +144,9 @@ class MessageForwardingScreenViewModel: MessageForwardingScreenViewModelType, Me
             }
             
             // The contents are already in timeline order and the send queue preserves it.
-            for content in forwardingPayload.contents {
-                if case .failure(let error) = await targetRoomProxy.timeline.sendMessageEventContent(content) {
+            let mediaBatch = mediaBatch(for: forwardingPayload)
+            for (index, content) in forwardingPayload.contents.enumerated() {
+                if case .failure(let error) = await targetRoomProxy.timeline.sendMessageEventContent(content, extraContentJSON: mediaBatch?[index].extraContentJSON) {
                     MXLog.error("Failed forwarding message with error: \(error)")
                     hasFailures = true
                 }

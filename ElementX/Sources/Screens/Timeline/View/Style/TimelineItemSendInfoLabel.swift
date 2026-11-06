@@ -18,8 +18,8 @@ extension View {
         modifier(TimelineItemSendInfoModifier(sendInfo: .init(timelineItem: timelineItem,
                                                               adjustedDeliveryStatus: adjustedDeliveryStatus,
                                                               hasContentScanningFailure: hasContentScanningFailure),
-                                              // A gallery announces this when entering it instead.
-                                              isAccessibilityHidden: timelineItem is GalleryRoomTimelineItem,
+                                              // A gallery announces this when entering it instead, a stack as part of its value.
+                                              isAccessibilityHidden: timelineItem is GalleryRoomTimelineItem || timelineItem is MediaStackRoomTimelineItem,
                                               context: context))
     }
 }
@@ -189,6 +189,9 @@ private extension TimelineItemSendInfo {
                 switch message {
                 case is ImageRoomTimelineItem, is VideoRoomTimelineItem:
                     .overlay(capsuleStyle: !message.hasMediaCaption)
+                case is MediaStackRoomTimelineItem:
+                    // The stack has no bubble of its own, even under a caption.
+                    .overlay(capsuleStyle: true)
                 case is GalleryRoomTimelineItem:
                     // Without a caption, append the send info below the grid rather than overlaying
                     // a capsule on top of the media.

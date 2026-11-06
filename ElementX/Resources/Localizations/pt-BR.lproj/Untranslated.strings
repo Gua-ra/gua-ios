@@ -95,3 +95,10 @@
 
 "gua_notification_sound_default" = "Padrão do Gua";
 "gua_notification_sound_fade" = "Gua suave";
+
+"gua_media_stack_remove_subtitle" = "A exclusão vale para todos nesta conversa.";
+"gua_media_stack_a11y_photo_position" = "Foto %1$d de %2$d";
+"gua_media_stack_a11y_video_position" = "Vídeo %1$d de %2$d, %3$@";
+"gua_media_stack_a11y_next" = "Próximo";
+"gua_media_stack_a11y_previous" = "Anterior";
+"gua_media_stack_show_all" = "Ver tudo";

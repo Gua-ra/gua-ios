@@ -23,6 +23,7 @@ class MediaUploadPreviewScreenViewModel: MediaUploadPreviewScreenViewModelType, 
     private var requestHandle: SendAttachmentJoinHandleProtocol?
     private let clientProxy: ClientProxyProtocol
     private let galleryEnabled: Bool
+    private let sendsMediaBatch: Bool
     
     private var actionsSubject: PassthroughSubject<MediaUploadPreviewScreenViewModelAction, Never> = .init()
     
@@ -35,6 +36,7 @@ class MediaUploadPreviewScreenViewModel: MediaUploadPreviewScreenViewModelType, 
          title: String?,
          shouldShowCaptionWarning: Bool,
          galleryEnabled: Bool,
+         sendsMediaBatch: Bool,
          mediaUploadingPreprocessor: MediaUploadingPreprocessor,
          timelineController: TimelineControllerProtocol,
          clientProxy: ClientProxyProtocol,
@@ -45,6 +47,7 @@ class MediaUploadPreviewScreenViewModel: MediaUploadPreviewScreenViewModelType, 
         self.clientProxy = clientProxy
         self.userIndicatorController = userIndicatorController
         self.galleryEnabled = galleryEnabled
+        self.sendsMediaBatch = sendsMediaBatch
         
         // Start processing the media whilst the user is reviewing it/adding a caption.
         processingTask = Self.processMedia(at: mediaURLs, preprocessor: mediaUploadingPreprocessor, clientProxy: clientProxy)
@@ -79,9 +82,10 @@ class MediaUploadPreviewScreenViewModel: MediaUploadPreviewScreenViewModelType, 
                             showError(label: L10n.screenMediaUploadPreviewErrorFailedSending)
                         }
                     } else {
+                        let mediaBatch = mediaBatch(for: mediaInfos)
                         var perItemCaption = caption
-                        for mediaInfo in mediaInfos {
-                            switch await sendAttachment(mediaInfo: mediaInfo, caption: perItemCaption) {
+                        for (index, mediaInfo) in mediaInfos.enumerated() {
+                            switch await sendAttachment(mediaInfo: mediaInfo, caption: perItemCaption, mediaBatch: mediaBatch?[index]) {
                             case .success:
                                 perItemCaption = nil // Set the caption only on the first uploaded file.
                             case .failure(let error):
@@ -171,7 +175,12 @@ class MediaUploadPreviewScreenViewModel: MediaUploadPreviewScreenViewModelType, 
         }
     }
     
-    private func sendAttachment(mediaInfo: MediaInfo, caption: String?) async -> Result<Void, TimelineControllerError> {
+    private func mediaBatch(for mediaInfos: [MediaInfo]) -> [MediaBatch]? {
+        guard sendsMediaBatch, mediaInfos.count > 1, mediaInfos.allSatisfy(\.isPhotoOrVideo) else { return nil }
+        return MediaBatch.makeBatch(count: mediaInfos.count)
+    }
+    
+    private func sendAttachment(mediaInfo: MediaInfo, caption: String?, mediaBatch: MediaBatch?) async -> Result<Void, TimelineControllerError> {
         let requestHandle: (@MainActor @Sendable (SendAttachmentJoinHandleProtocol) -> Void) = { [weak self] handle in
             self?.requestHandle = handle
         }
@@ -182,12 +191,14 @@ class MediaUploadPreviewScreenViewModel: MediaUploadPreviewScreenViewModelType, 
                                                       thumbnailURL: thumbnailURL,
                                                       imageInfo: imageInfo,
                                                       caption: caption,
+                                                      mediaBatch: mediaBatch,
                                                       requestHandle: requestHandle)
         case let .video(videoURL, thumbnailURL, videoInfo):
             return await timelineController.sendVideo(url: videoURL,
                                                       thumbnailURL: thumbnailURL,
                                                       videoInfo: videoInfo,
                                                       caption: caption,
+                                                      mediaBatch: mediaBatch,
                                                       requestHandle: requestHandle)
         case let .audio(audioURL, audioInfo):
             return await timelineController.sendAudio(url: audioURL,
@@ -249,5 +260,14 @@ extension NSAttributedString {
     var nonBlankString: String? {
         guard !string.isBlank else { return nil }
         return string
+    }
+}
+
+private extension MediaInfo {
+    var isPhotoOrVideo: Bool {
+        switch self {
+        case .image, .video: true
+        case .audio, .file: false
+        }
     }
 }
