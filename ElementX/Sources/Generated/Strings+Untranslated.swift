@@ -24,6 +24,8 @@ internal nonisolated enum UntranslatedL10n {
   internal static var commonModerationAndSafety: String { return UntranslatedL10n.tr("Untranslated", "common_moderation_and_safety") }
   /// We couldn’t finish setting up your account on this device. Please try again.
   internal static var guaAccountGenesisSetupFailed: String { return UntranslatedL10n.tr("Untranslated", "gua_account_genesis_setup_failed") }
+  /// Delete
+  internal static var guaActionDelete: String { return UntranslatedL10n.tr("Untranslated", "gua_action_delete") }
   /// More
   internal static var guaActionMore: String { return UntranslatedL10n.tr("Untranslated", "gua_action_more") }
   /// Open in new window

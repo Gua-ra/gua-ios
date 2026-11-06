@@ -87,6 +87,7 @@
 "common_app_settings" = "Configurações do app";
 "action_manage_account_and_devices" = "Gerenciar conta e dispositivos";
 "action_delete_account" = "Excluir conta";
+"gua_action_delete" = "Excluir";
 "common_media_upload_quality" = "Qualidade de envio de mídia";
 
 "common_moderation_and_safety" = "Moderação e segurança";

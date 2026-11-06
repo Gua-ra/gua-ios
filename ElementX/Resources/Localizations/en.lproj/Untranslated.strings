@@ -131,6 +131,7 @@
 "common_app_settings" = "App settings";
 "action_manage_account_and_devices" = "Manage account & devices";
 "action_delete_account" = "Delete account";
+"gua_action_delete" = "Delete";
 "common_media_upload_quality" = "Media upload quality";
 
 "common_moderation_and_safety" = "Moderation & safety";

@@ -294,7 +294,6 @@ pt-BR:screen_custom_recovery_key_loading_a11y
 pt-BR:screen_custom_recovery_key_success_notice
 pt-BR:screen_custom_recovery_key_success_subtitle
 pt-BR:screen_custom_recovery_key_success_title
-pt-BR:screen_deactivate_account_title
 pt-BR:screen_encryption_reset_bullet_4
 es:screen_encryption_reset_bullet_4
 pt-BR:screen_encryption_reset_no_chats_message
