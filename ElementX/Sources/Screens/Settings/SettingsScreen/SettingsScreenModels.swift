@@ -58,6 +58,8 @@ struct SettingsScreenViewState: BindableState {
     var showSecuritySectionBadge = false
     
     let showAnalyticsSettings: Bool
+    /// GUA FORK: without a map configuration location sharing is unavailable, as in the composer.
+    let showLocationSharingSettings: Bool
     /// GUA FORK: Labs toggles unfinished features, so release builds hide it (as on Android).
     let showLabsSettings: Bool
     

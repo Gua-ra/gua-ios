@@ -213,11 +213,13 @@ struct SettingsScreen: View {
                     })
                     .accessibilityIdentifier(A11yIdentifiers.settingsScreen.screenLock)
             
-            ListRow(label: .default(title: L10n.commonLocationSharing,
-                                    icon: \.locationPin),
-                    kind: .navigationLink {
-                        context.send(viewAction: .locationSharing)
-                    })
+            if context.viewState.showLocationSharingSettings {
+                ListRow(label: .default(title: L10n.commonLocationSharing,
+                                        icon: \.locationPin),
+                        kind: .navigationLink {
+                            context.send(viewAction: .locationSharing)
+                        })
+            }
             
             if context.viewState.showAnalyticsSettings {
                 ListRow(label: .default(title: L10n.commonAnalytics,

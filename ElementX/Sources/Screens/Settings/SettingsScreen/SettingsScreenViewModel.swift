@@ -40,6 +40,7 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
                                            showAccountDeactivation: userSession.clientProxy.canDeactivateAccount,
                                            showDeveloperOptions: userSettings.app.developerOptionsEnabled,
                                            showAnalyticsSettings: userSettings.app.canPromptForAnalytics,
+                                           showLocationSharingSettings: userSettings.app.mapTilerConfiguration.publisher.value.isEnabled,
                                            showLabsSettings: AppSettings.appBuildType != .release,
                                            isBugReportServiceEnabled: isBugReportServiceEnabled,
                                            navigationBarVisibility: isInSecondaryWindow ? .hidden : .automatic,

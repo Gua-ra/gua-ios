@@ -345,14 +345,14 @@ jobs:
           EOF
           echo "Wrote Secrets.swift with dev backend endpoints (values masked by Actions)."
 
-      - name: Turn off analytics in the prod archive
-        # The committed placeholders enable the analytics opt-in, and opting in sends Element Call analytics to Element.
+      - name: Turn off analytics, maps and bug reports in the prod archive
+        # The committed placeholders turn on the analytics opt-in (Element Call analytics go to Element), maps with a dummy MapTiler key and bug reports to rageshake.localhost.
         if: needs.gate.outputs.target != 'dev'
         run: |
           set -euo pipefail
-          perl -pi -e 's/^(\s*static let (?:sentryDSN|sentryRustDSN|postHogHost|postHogAPIKey): String\?) = .*$/$1 = nil/' Components/Secrets/Secrets.swift
-          if [ "$(grep -cE 'static let (sentryDSN|sentryRustDSN|postHogHost|postHogAPIKey): String\? = nil$' Components/Secrets/Secrets.swift)" != 4 ]; then
-            echo "::error::Could not clear the analytics placeholders in Components/Secrets/Secrets.swift."
+          perl -pi -e 's/^(\s*static let (?:sentryDSN|sentryRustDSN|postHogHost|postHogAPIKey|mapLibreAPIKey|rageshakeURL): String\?) = .*$/$1 = nil/' Components/Secrets/Secrets.swift
+          if [ "$(grep -cE 'static let (sentryDSN|sentryRustDSN|postHogHost|postHogAPIKey|mapLibreAPIKey|rageshakeURL): String\? = nil$' Components/Secrets/Secrets.swift)" != 6 ]; then
+            echo "::error::Could not clear the analytics, map and bug report placeholders in Components/Secrets/Secrets.swift."
             exit 1
           fi
 

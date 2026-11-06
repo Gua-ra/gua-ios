@@ -41,6 +41,11 @@ private struct GuaAppSettingsHook: AppSettingsHookProtocol {
     }
     
     func configure(_ appSettings: AppSettings) -> AppSettings {
+        // Builds without analytics or Sentry hide the opt-out row, so an opt-in from an earlier build cannot stay on.
+        if !appSettings.canPromptForAnalytics, appSettings.analyticsConsentState == .optedIn {
+            appSettings.analyticsConsentState = .optedOut
+        }
+        
         // The account provider is injected, never hardcoded: an optional Info.plist override
         // (empty by default) wins, otherwise GuaDeployment supplies it — the production gua.global
         // host, or the dev host from the per-machine Secrets pipeline. Falls back to the existing
