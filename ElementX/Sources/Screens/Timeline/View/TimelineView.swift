@@ -29,9 +29,12 @@ struct TimelineView: View {
             }
             .sheet(item: $timelineContext.debugInfo) { TimelineItemDebugView(info: $0) }
             .sheet(item: $timelineContext.redactConfirmationInfo) { info in
-                RedactConfirmationView { reason in
+                RedactConfirmationView(title: info.title, message: info.message) { reason in
                     timelineContext.send(viewAction: .redactConfirmed(itemID: info.id, reason: reason))
                 }
+            }
+            .fullScreenCover(item: $timelineContext.mediaStackGrid) { stack in
+                MediaStackGridScreen(context: timelineContext, stack: stack)
             }
             .sheet(item: actionMenuSheetInfo) { info in
                 if let actions = menuActions(for: info.item) {

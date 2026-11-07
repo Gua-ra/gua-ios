@@ -37,6 +37,9 @@ private struct TimelineItemAccessibilityModifier: ViewModifier {
             } else {
                 interactions(for: content)
             }
+        // Not wrapped in a representation, whose copy would rebuild the cards' gesture recognisers.
+        case let stack as MediaStackRoomTimelineItem:
+            interactions(for: content.mediaStackAccessibility(stack))
         // A gallery is a container so that each of its attachments can be focussed on its own.
         // Everything that isn't an attachment is announced when entering it, as the caption and
         // the send info are hidden where they're shown to avoid being read twice.

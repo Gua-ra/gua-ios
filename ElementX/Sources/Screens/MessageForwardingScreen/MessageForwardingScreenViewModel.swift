@@ -19,6 +19,9 @@ class MessageForwardingScreenViewModel: MessageForwardingScreenViewModelType, Me
     private let roomSummaryProvider: RoomSummaryProviderProtocol
     private let userIndicatorController: UserIndicatorControllerProtocol
     
+    /// Where a forward that stopped part way left off in each chat, so that a retry sends only the rest in the same batches.
+    private var unsentForwards = [String: (index: Int, mediaBatches: [MediaBatch?])]()
+    
     private var actionsSubject: PassthroughSubject<MessageForwardingScreenViewModelAction, Never> = .init()
     
     var actions: AnyPublisher<MessageForwardingScreenViewModelAction, Never> {
@@ -138,11 +141,25 @@ class MessageForwardingScreenViewModel: MessageForwardingScreenViewModelType, Me
             }
             
             // The contents are already in timeline order and the send queue preserves it.
-            for content in forwardingPayload.contents {
-                if case .failure(let error) = await targetRoomProxy.timeline.sendMessageEventContent(content) {
+            let unsentForward = unsentForwards.removeValue(forKey: roomID)
+            let startIndex = unsentForward?.index ?? 0
+            let mediaBatches = unsentForward?.mediaBatches ?? forwardingPayload.mediaBatch?.makeBatches() ?? Array(repeating: nil, count: forwardingPayload.contents.count)
+            forwardingPayload.mediaBatch?.register(mediaBatches, from: startIndex, forRoomID: roomID)
+            var failedIndex: Int?
+            for (index, (content, mediaBatch)) in zip(forwardingPayload.contents, mediaBatches).enumerated().dropFirst(startIndex) {
+                if case .failure(let error) = await targetRoomProxy.timeline.sendMessageEventContent(content, extraContentJSON: mediaBatch?.extraContentJSON) {
                     MXLog.error("Failed forwarding message with error: \(error)")
-                    hasFailures = true
+                    failedIndex = index
+                    break
                 }
+            }
+            
+            // Stops at the first failure so the chat never gets the later contents out of order.
+            if let failedIndex {
+                forwardingPayload.mediaBatch?.unregister(mediaBatches, from: failedIndex, forRoomID: roomID)
+                unsentForwards[roomID] = (failedIndex, mediaBatches)
+                hasFailures = true
+                continue
             }
             
             succeededRoomIdentifiers.append(roomID)

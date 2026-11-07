@@ -18,8 +18,8 @@ extension View {
         modifier(TimelineItemSendInfoModifier(sendInfo: .init(timelineItem: timelineItem,
                                                               adjustedDeliveryStatus: adjustedDeliveryStatus,
                                                               hasContentScanningFailure: hasContentScanningFailure),
-                                              // A gallery announces this when entering it instead.
-                                              isAccessibilityHidden: timelineItem is GalleryRoomTimelineItem,
+                                              // A gallery announces this when entering it instead, a stack as part of its value.
+                                              isAccessibilityHidden: timelineItem is GalleryRoomTimelineItem || timelineItem is MediaStackRoomTimelineItem,
                                               context: context))
     }
 }
@@ -90,8 +90,8 @@ private struct TimelineItemSendInfoLabel: View {
                 .padding(.vertical, 2)
                 .background(Color.compound.bgSubtleSecondary)
                 .cornerRadius(10)
-                .padding(.trailing, 4)
-                .padding(.bottom, 4)
+                .padding(.trailing, sendInfo.capsuleInset)
+                .padding(.bottom, sendInfo.capsuleInset)
         case .horizontal, .overlay(capsuleStyle: false):
             content
                 .padding(.bottom, -4)
@@ -140,6 +140,7 @@ private struct TimelineItemSendInfo {
     let localizedString: String
     var status: Status?
     let layoutType: LayoutType
+    var capsuleInset: CGFloat = 4
     
     var foregroundStyle: Color {
         switch status {
@@ -187,7 +188,7 @@ private extension TimelineItemSendInfo {
                 liveLocationTimelineItem.layout
             case let message as EventBasedMessageTimelineItemProtocol:
                 switch message {
-                case is ImageRoomTimelineItem, is VideoRoomTimelineItem:
+                case is ImageRoomTimelineItem, is VideoRoomTimelineItem, is MediaStackRoomTimelineItem:
                     .overlay(capsuleStyle: !message.hasMediaCaption)
                 case is GalleryRoomTimelineItem:
                     // Without a caption, append the send info below the grid rather than overlaying
@@ -208,6 +209,11 @@ private extension TimelineItemSendInfo {
             default:
                 .horizontal()
             }
+        }
+        
+        // Without a caption the capsule is inset from the stack frame's corner, not the front card's, so on an incoming stack it overlaps the cards behind.
+        if timelineItem is MediaStackRoomTimelineItem, !timelineItem.hasMediaCaption {
+            capsuleInset = 8
         }
     }
 }

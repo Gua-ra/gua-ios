@@ -128,13 +128,14 @@ struct TimelineControllerMockConfiguration {
             return .success(())
         }
         
-        sendImageUrlThumbnailURLImageInfoCaptionRequestHandleClosure = { [weak self, timelineProxy] url, thumbnailURL, imageInfo, caption, requestHandle in
+        sendImageUrlThumbnailURLImageInfoCaptionMediaBatchRequestHandleClosure = { [weak self, timelineProxy] url, thumbnailURL, imageInfo, caption, mediaBatch, requestHandle in
             self?.callbacks.send(.messageSentOrEdited)
             if let timelineProxy {
                 return await timelineProxy.sendImage(url: url,
                                                      thumbnailURL: thumbnailURL,
                                                      imageInfo: imageInfo,
                                                      caption: caption,
+                                                     extraContentJSON: mediaBatch?.extraContentJSON,
                                                      requestHandle: requestHandle).mapError(TimelineControllerError.timelineProxyError)
             }
             return .success(())
@@ -152,13 +153,14 @@ struct TimelineControllerMockConfiguration {
             return .success(())
         }
         
-        sendVideoUrlThumbnailURLVideoInfoCaptionRequestHandleClosure = { [weak self, timelineProxy] url, thumbnailURL, videoInfo, caption, requestHandle in
+        sendVideoUrlThumbnailURLVideoInfoCaptionMediaBatchRequestHandleClosure = { [weak self, timelineProxy] url, thumbnailURL, videoInfo, caption, mediaBatch, requestHandle in
             self?.callbacks.send(.messageSentOrEdited)
             if let timelineProxy {
                 return await timelineProxy.sendVideo(url: url,
                                                      thumbnailURL: thumbnailURL,
                                                      videoInfo: videoInfo,
                                                      caption: caption,
+                                                     extraContentJSON: mediaBatch?.extraContentJSON,
                                                      requestHandle: requestHandle).mapError(TimelineControllerError.timelineProxyError)
             }
             return .success(())

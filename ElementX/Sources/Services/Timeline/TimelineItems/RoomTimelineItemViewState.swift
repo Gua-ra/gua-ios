@@ -44,6 +44,14 @@ final class RoomTimelineItemViewState: Identifiable, Equatable, ObservableObject
     var timestamp: Date? {
         type.timestamp
     }
+    
+    func represents(eventID: String) -> Bool {
+        if case let .mediaStack(stack) = type {
+            stack.represents(eventID: eventID)
+        } else {
+            identifier.eventID == eventID
+        }
+    }
 }
 
 enum RoomTimelineItemType: Equatable {
@@ -54,6 +62,7 @@ enum RoomTimelineItemType: Equatable {
     case audio(AudioRoomTimelineItem)
     case file(FileRoomTimelineItem)
     case gallery(GalleryRoomTimelineItem)
+    case mediaStack(MediaStackRoomTimelineItem)
     case emote(EmoteRoomTimelineItem)
     case notice(NoticeRoomTimelineItem)
     case redacted(RedactedRoomTimelineItem)
@@ -86,6 +95,8 @@ enum RoomTimelineItemType: Equatable {
             self = .file(item)
         case let item as GalleryRoomTimelineItem:
             self = .gallery(item)
+        case let item as MediaStackRoomTimelineItem:
+            self = .mediaStack(item)
         case let item as SeparatorRoomTimelineItem:
             self = .separator(item)
         case let item as NoticeRoomTimelineItem:
@@ -136,6 +147,7 @@ enum RoomTimelineItemType: Equatable {
              .audio(let item as RoomTimelineItemProtocol),
              .file(let item as RoomTimelineItemProtocol),
              .gallery(let item as RoomTimelineItemProtocol),
+             .mediaStack(let item as RoomTimelineItemProtocol),
              .emote(let item as RoomTimelineItemProtocol),
              .notice(let item as RoomTimelineItemProtocol),
              .redacted(let item as RoomTimelineItemProtocol),
@@ -176,6 +188,8 @@ enum RoomTimelineItemType: Equatable {
         case .file(let item):
             return item.timestamp
         case .gallery(let item):
+            return item.timestamp
+        case .mediaStack(let item):
             return item.timestamp
         case .emote(let item):
             return item.timestamp

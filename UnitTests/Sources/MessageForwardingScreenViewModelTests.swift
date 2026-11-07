@@ -8,6 +8,7 @@
 
 import Combine
 @testable import ElementX
+import Foundation
 import MatrixRustSDKMocks
 import Testing
 
@@ -207,9 +208,181 @@ struct MessageForwardingScreenViewModelTests {
         let expectedContents = forwardingPayload.contents.map { ObjectIdentifier($0) }
         for roomID in ["2", "3"] {
             let timeline = try #require(roomProxies[roomID]?.timeline as? TimelineProxyMock)
-            let sentContents = timeline.sendMessageEventContentReceivedInvocations.map { ObjectIdentifier($0) }
+            let sentContents = timeline.sendMessageEventContentExtraContentJSONReceivedInvocations.map { ObjectIdentifier($0.messageContent) }
             #expect(sentContents == expectedContents)
         }
+    }
+    
+    @Test
+    mutating func forwardingAStackGivesEachRoomItsOwnBatch() async throws {
+        let clientProxy = ClientProxyMock(.init())
+        var roomProxies = [String: JoinedRoomProxyMock]()
+        clientProxy.roomForIdentifierClosure = { roomID in
+            let roomProxy = JoinedRoomProxyMock(.init(id: roomID))
+            roomProxies[roomID] = roomProxy
+            return .joined(roomProxy)
+        }
+        let pendingBatches = PendingMediaBatchStore()
+        let files = ["IMG_1.jpg", "IMG_2.jpg"].map { PendingMediaBatchStore.File(filename: $0, fileSize: 1024, mimeType: "image/jpeg") }
+        var stackPayload = forwardingPayload
+        stackPayload.mediaBatch = MediaBatchForwarding(files: files, pendingBatches: pendingBatches)
+        viewModel = MessageForwardingScreenViewModel(forwardingPayload: stackPayload,
+                                                     userSession: UserSessionMock(.init(clientProxy: clientProxy)),
+                                                     roomSummaryProvider: RoomSummaryProviderMock(.init(state: .loaded(.mockRooms))),
+                                                     userIndicatorController: UserIndicatorControllerMock())
+        context = viewModel.context
+        
+        context.send(viewAction: .selectRoom(roomID: "2"))
+        context.send(viewAction: .selectRoom(roomID: "3"))
+        
+        let deferred = deferFulfillment(viewModel.actions) { action in
+            if case .sent(let roomIDs) = action {
+                return Set(roomIDs) == ["2", "3"]
+            }
+            return false
+        }
+        context.send(viewAction: .send)
+        try await deferred.fulfill()
+        
+        var batchIDs = Set<String>()
+        for roomID in ["2", "3"] {
+            let timeline = try #require(roomProxies[roomID]?.timeline as? TimelineProxyMock)
+            let batches = try timeline.sendMessageEventContentExtraContentJSONReceivedInvocations.map { invocation in
+                try #require(Self.mediaBatch(in: invocation.extraContentJSON))
+            }
+            #expect(batches.map(\.index) == [0, 1])
+            #expect(Set(batches.map(\.id)).count == 1)
+            batchIDs.formUnion(batches.map(\.id))
+            
+            let echoKey = PendingMediaBatchStore.Key(roomID: roomID, file: files[1])
+            #expect(pendingBatches.batch(forItemIDs: ["echo-\(roomID)"], key: echoKey) == batches[1], "The room's local echoes stack before the server copies arrive.")
+        }
+        #expect(batchIDs.count == 2)
+    }
+    
+    @Test
+    mutating func forwardingAStackStopsAtAFailureAndDropsTheUnsentBatchEntries() async throws {
+        let clientProxy = ClientProxyMock(.init())
+        var roomProxies = [String: JoinedRoomProxyMock]()
+        clientProxy.roomForIdentifierClosure = { roomID in
+            let roomProxy = JoinedRoomProxyMock(.init(id: roomID))
+            if roomID == "2", let timeline = roomProxy.timeline as? TimelineProxyMock {
+                timeline.sendMessageEventContentExtraContentJSONClosure = { [unowned timeline] _, _ in
+                    timeline.sendMessageEventContentExtraContentJSONCallsCount == 2 ? .failure(.sdkError(ClientProxyMockError.generic)) : .success(())
+                }
+            }
+            roomProxies[roomID] = roomProxy
+            return .joined(roomProxy)
+        }
+        let userIndicatorController = UserIndicatorControllerMock()
+        let pendingBatches = PendingMediaBatchStore()
+        let files = ["IMG_1.jpg", "IMG_2.jpg", "IMG_3.jpg"].map { PendingMediaBatchStore.File(filename: $0, fileSize: 1024, mimeType: "image/jpeg") }
+        var stackPayload = MessageForwardingPayload(ids: (1...3).map { .event(uniqueID: .init("t\($0)"), eventOrTransactionID: .eventID("t\($0)")) },
+                                                    roomID: "1",
+                                                    contents: (1...3).map { _ in RoomMessageEventContentWithoutRelationSDKMock() })
+        stackPayload.mediaBatch = MediaBatchForwarding(files: files, pendingBatches: pendingBatches)
+        viewModel = MessageForwardingScreenViewModel(forwardingPayload: stackPayload,
+                                                     userSession: UserSessionMock(.init(clientProxy: clientProxy)),
+                                                     roomSummaryProvider: RoomSummaryProviderMock(.init(state: .loaded(.mockRooms))),
+                                                     userIndicatorController: userIndicatorController)
+        context = viewModel.context
+        
+        context.send(viewAction: .selectRoom(roomID: "2"))
+        context.send(viewAction: .selectRoom(roomID: "3"))
+        
+        let deferred = deferFulfillment(viewModel.actions) { action in
+            if case .sent(let roomIDs) = action {
+                return roomIDs == ["3"]
+            }
+            return false
+        }
+        context.send(viewAction: .send)
+        try await deferred.fulfill()
+        
+        #expect(userIndicatorController.submitIndicatorDelayReceivedInvocations.map(\.indicator.title) == [L10n.errorUnknown])
+        
+        let failingTimeline = try #require(roomProxies["2"]?.timeline as? TimelineProxyMock)
+        let attemptedBatches = try failingTimeline.sendMessageEventContentExtraContentJSONReceivedInvocations.map { invocation in
+            try #require(Self.mediaBatch(in: invocation.extraContentJSON))
+        }
+        #expect(attemptedBatches.map(\.index) == [0, 1], "Nothing is sent after the failure.")
+        
+        let sentKey = PendingMediaBatchStore.Key(roomID: "2", file: files[0])
+        #expect(pendingBatches.batch(forItemIDs: ["sent-echo"], key: sentKey) == attemptedBatches[0], "The sent member's echo still stacks.")
+        for file in files[1...] {
+            let laterSendKey = PendingMediaBatchStore.Key(roomID: "2", file: file)
+            #expect(pendingBatches.batch(forItemIDs: ["later-\(file.filename)"], key: laterSendKey) == nil, "A later send of an unsent member's file must not bind to this batch.")
+        }
+        
+        let otherTimeline = try #require(roomProxies["3"]?.timeline as? TimelineProxyMock)
+        #expect(otherTimeline.sendMessageEventContentExtraContentJSONCallsCount == 3)
+        let otherKey = PendingMediaBatchStore.Key(roomID: "3", file: files[2])
+        #expect(pendingBatches.batch(forItemIDs: ["other-echo"], key: otherKey) != nil, "The other chat's entries survive.")
+    }
+    
+    @Test(arguments: [true, false])
+    mutating func aRetryAfterAForwardFailedPartWaySendsOnlyTheRest(isStack: Bool) async throws {
+        let roomProxy = JoinedRoomProxyMock(.init(id: "2"))
+        let timeline = try #require(roomProxy.timeline as? TimelineProxyMock)
+        timeline.sendMessageEventContentExtraContentJSONClosure = { [unowned timeline] _, _ in
+            timeline.sendMessageEventContentExtraContentJSONCallsCount == 2 ? .failure(.sdkError(ClientProxyMockError.generic)) : .success(())
+        }
+        let clientProxy = ClientProxyMock(.init())
+        clientProxy.roomForIdentifierClosure = { _ in .joined(roomProxy) }
+        let (toasts, toastsContinuation) = AsyncStream<String>.makeStream()
+        let userIndicatorController = UserIndicatorControllerMock()
+        userIndicatorController.submitIndicatorDelayClosure = { indicator, _ in toastsContinuation.yield(indicator.title) }
+        let pendingBatches = PendingMediaBatchStore()
+        let files = ["IMG_1.jpg", "IMG_2.jpg", "IMG_3.jpg"].map { PendingMediaBatchStore.File(filename: $0, fileSize: 1024, mimeType: "image/jpeg") }
+        let contents = (1...3).map { _ in RoomMessageEventContentWithoutRelationSDKMock() }
+        var payload = MessageForwardingPayload(ids: (1...3).map { .event(uniqueID: .init("t\($0)"), eventOrTransactionID: .eventID("t\($0)")) },
+                                               roomID: "1",
+                                               contents: contents)
+        if isStack {
+            payload.mediaBatch = MediaBatchForwarding(files: files, pendingBatches: pendingBatches)
+        }
+        viewModel = MessageForwardingScreenViewModel(forwardingPayload: payload,
+                                                     userSession: UserSessionMock(.init(clientProxy: clientProxy)),
+                                                     roomSummaryProvider: RoomSummaryProviderMock(.init(state: .loaded(.mockRooms))),
+                                                     userIndicatorController: userIndicatorController)
+        context = viewModel.context
+        var actions = [MessageForwardingScreenViewModelAction]()
+        let cancellable = viewModel.actions.sink { actions.append($0) }
+        defer { cancellable.cancel() }
+        
+        context.send(viewAction: .selectRoom(roomID: "2"))
+        
+        let deferredToast = deferFulfillment(toasts) { _ in true }
+        context.send(viewAction: .send)
+        let toast = try await deferredToast.fulfill()
+        
+        #expect(toast == L10n.errorUnknown)
+        #expect(timeline.sendMessageEventContentExtraContentJSONCallsCount == 2, "Nothing is sent after the failure.")
+        #expect(actions.isEmpty, "The sheet stays open on the failed chat.")
+        
+        let deferredSent = deferFulfillment(viewModel.actions) { action in
+            if case .sent(let roomIDs) = action {
+                return roomIDs == ["2"]
+            }
+            return false
+        }
+        context.send(viewAction: .send)
+        try await deferredSent.fulfill()
+        
+        let invocations = timeline.sendMessageEventContentExtraContentJSONReceivedInvocations
+        #expect(invocations.map { ObjectIdentifier($0.messageContent) } == [0, 1, 1, 2].map { ObjectIdentifier(contents[$0]) }, "The retry resumes at the failed item.")
+        #expect(userIndicatorController.submitIndicatorDelayCallsCount == 1)
+        
+        let batches = invocations.map { Self.mediaBatch(in: $0.extraContentJSON) }
+        guard isStack else {
+            #expect(batches.allSatisfy { $0 == nil })
+            return
+        }
+        #expect(batches.map { $0?.index } == [0, 1, 1, 2])
+        #expect(Set(batches.map { $0?.id }).count == 1, "The retry stays in the same batch.")
+        let retriedKey = PendingMediaBatchStore.Key(roomID: "2", file: files[1])
+        #expect(pendingBatches.batch(forItemIDs: ["retried-echo"], key: retriedKey) == batches[2])
+        #expect(pendingBatches.batch(forItemIDs: ["later-echo"], key: retriedKey) == nil, "The retried member is registered once.")
     }
     
     @Test
@@ -284,6 +457,15 @@ struct MessageForwardingScreenViewModelTests {
     }
     
     // MARK: - Helpers
+    
+    private static func mediaBatch(in extraContentJSON: String?) -> MediaBatch? {
+        guard let extraContentJSON,
+              var content = try? JSONSerialization.jsonObject(with: Data(extraContentJSON.utf8)) as? [String: Any] else {
+            return nil
+        }
+        content["msgtype"] = "m.image"
+        return MediaBatch(content: content)
+    }
     
     private func makeViewModel(recentlyVisitedRoomIDs: [String] = [],
                                userIndicatorController: UserIndicatorControllerProtocol = UserIndicatorControllerMock()) -> MessageForwardingScreenViewModelProtocol {

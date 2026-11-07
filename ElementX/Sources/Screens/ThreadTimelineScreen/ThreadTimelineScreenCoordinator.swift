@@ -28,7 +28,7 @@ struct ThreadTimelineScreenCoordinatorParameters {
 }
 
 enum ThreadTimelineScreenCoordinatorAction {
-    case presentReportContent(itemID: TimelineItemIdentifier, senderID: String)
+    case presentReportContent(eventIDs: [String], senderID: String)
     case presentMediaUploadPicker(mode: MediaPickerScreenMode, caption: NSAttributedString)
     case presentMediaUploadPreviewScreen(mediaURLs: [URL], caption: NSAttributedString)
     case presentLocationPicker
@@ -105,13 +105,14 @@ final class ThreadTimelineScreenCoordinator: CoordinatorProtocol {
                 switch action {
                 case .displayEmojiPicker(let selectedEmojis, let continuation):
                     actionsSubject.send(.presentEmojiPicker(selectedEmojis: selectedEmojis, continuation: continuation))
-                case .displayReportContent(let itemID, let senderID):
-                    actionsSubject.send(.presentReportContent(itemID: itemID, senderID: senderID))
+                case .displayReportContent(let eventIDs, let senderID):
+                    actionsSubject.send(.presentReportContent(eventIDs: eventIDs, senderID: senderID))
                 case .displayCameraPicker:
                     actionsSubject.send(.presentMediaUploadPicker(mode: .init(source: .camera, selectionType: .multiple(galleryEnabled: userSettings.app.galleryEnabled)),
                                                                   caption: composerViewModel.context.plainComposerText))
                 case .displayMediaPicker:
-                    actionsSubject.send(.presentMediaUploadPicker(mode: .init(source: .photoLibrary, selectionType: .multiple(galleryEnabled: userSettings.app.galleryEnabled)),
+                    actionsSubject.send(.presentMediaUploadPicker(mode: .init(source: .photoLibrary, selectionType: .multiple(galleryEnabled: userSettings.app.galleryEnabled,
+                                                                                                                              mediaStacksEnabled: userSettings.app.guaMediaStacksEnabled)),
                                                                   caption: composerViewModel.context.plainComposerText))
                 case .displayDocumentPicker:
                     actionsSubject.send(.presentMediaUploadPicker(mode: .init(source: .documents(), selectionType: .multiple(galleryEnabled: userSettings.app.galleryEnabled)),

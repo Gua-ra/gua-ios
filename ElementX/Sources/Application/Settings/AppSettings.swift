@@ -462,10 +462,11 @@ final nonisolated class AppSettings: @unchecked Sendable {
     @UserPreference(defaultValue: false)
     var linkPreviewsEnabled: Bool
     
-    /// Enables *sending* gallery messages (multiple media in a single message).
-    /// Received galleries are always rendered regardless of this flag.
-    @UserPreference(defaultValue: false)
-    var galleryEnabled: Bool
+    /// GUA FORK: never send a gallery, which Gua web can't show, whatever an older build stored. Photos go out as a stack instead.
+    let galleryEnabled = false
+    
+    @UserPreference(defaultValue: GuaDeployment.current == .development)
+    var guaMediaStacksEnabled: Bool
     
     @UserPreference(defaultValue: false)
     var jumpToReadMarkerEnabled: Bool

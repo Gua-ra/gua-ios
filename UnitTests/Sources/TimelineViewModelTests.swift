@@ -666,6 +666,122 @@ final class TimelineViewModelTests {
         #expect(timelineController.redactReasonReceivedArguments?.reason == nil)
     }
     
+    @Test
+    func tappingAStackCardOpensTheViewerAtThatMember() async throws {
+        let stack = makeStack()
+        let timelineControllerFactory = TimelineControllerFactoryMock(.init())
+        let mediaTimelineItems: [RoomTimelineItemProtocol] = stack.members.map(\.item)
+        timelineControllerFactory.buildMessageFilteredTimelineControllerFocusAllowedMessageTypesPresentationRoomProxyTimelineItemFactoryMediaProviderReturnValue =
+            .success(TimelineControllerMock(.init(timelineKind: .media(.roomScreenLive), timelineItems: mediaTimelineItems)))
+        let viewModel = makeViewModel(timelineController: TimelineControllerMock(.init(timelineItems: [stack])),
+                                      timelineControllerFactory: timelineControllerFactory)
+        
+        let deferred = deferFulfillment(viewModel.actions) { action in
+            if case .displayMediaPreview = action {
+                true
+            } else {
+                false
+            }
+        }
+        viewModel.context.send(viewAction: .mediaTapped(itemID: stack.members[2].id))
+        
+        guard case let .displayMediaPreview(mediaPreviewViewModel) = try await deferred.fulfill() else {
+            Issue.record("The viewer should open.")
+            return
+        }
+        #expect(mediaPreviewViewModel.state.currentItem.mediaItem?.timelineItem.id == stack.members[2].id)
+    }
+    
+    @Test
+    func tappingAStackHeaderOpensTheGrid() {
+        let stack = makeStack()
+        let viewModel = makeViewModel(items: [stack])
+        
+        viewModel.context.send(viewAction: .mediaStackHeaderTapped(stackID: stack.id))
+        
+        #expect(viewModel.state.bindings.mediaStackGrid == stack)
+    }
+    
+    @Test
+    func removingAStackConfirmsTheCountAndRemovesEveryMember() async throws {
+        let stack = makeStack()
+        let timelineController = TimelineControllerMock(.init(timelineItems: [stack]))
+        let viewModel = makeViewModel(timelineController: timelineController)
+        
+        let deferred = deferFulfillment(viewModel.context.$viewState) { $0.bindings.redactConfirmationInfo?.id == stack.id }
+        viewModel.context.send(viewAction: .handleTimelineItemMenuAction(itemID: stack.id, action: .redact(isMedia: false)))
+        try await deferred.fulfill()
+        #expect(viewModel.state.bindings.redactConfirmationInfo?.title == stack.removeConfirmationTitle)
+        
+        await waitForConfirmation(expectedCount: 3) { confirmation in
+            timelineController.redactReasonClosure = { _, _ in confirmation() }
+            viewModel.context.send(viewAction: .redactConfirmed(itemID: stack.id, reason: nil))
+        }
+        #expect(timelineController.redactReasonReceivedInvocations.map(\.eventOrTransactionID) == stack.members.compactMap(\.id.eventOrTransactionID))
+    }
+    
+    @Test
+    func forwardingAStackSkipsTheSelection() async throws {
+        let stack = makeStack()
+        let viewModel = makeViewModel(items: [stack])
+        
+        let deferred = deferFulfillment(viewModel.actions) { action in
+            if case .displayMessageForwarding(let forwardingPayload) = action {
+                return forwardingPayload.ids == stack.members.map(\.id)
+            }
+            return false
+        }
+        viewModel.process(viewAction: .handleTimelineItemMenuAction(itemID: stack.id, action: .forward(itemID: stack.id)))
+        try await deferred.fulfill()
+        
+        #expect(!viewModel.state.messageSelection.isActive)
+    }
+    
+    @Test
+    func stackSendInfoShowsItsFailedMember() {
+        let stack = MediaStackRoomTimelineItem.mock(members: [.mockImage(index: 0, count: 2, isOutgoing: true),
+                                                              .mockImage(index: 1, count: 2, isOutgoing: true,
+                                                                         properties: .init(deliveryStatus: .sendingFailed(.unknown(reason: "M_TOO_LARGE"))))])
+        let timelineController = TimelineControllerMock(.init(timelineItems: [stack]))
+        timelineController.pendingSendTargetForReturnValue = .event
+        let viewModel = makeViewModel(timelineController: timelineController)
+        
+        viewModel.process(viewAction: .itemSendInfoTapped(itemID: stack.id))
+        
+        #expect(viewModel.state.bindings.alertInfo?.message == "M_TOO_LARGE")
+        #expect(timelineController.pendingSendTargetForReceivedItemID == stack.members[1].id)
+    }
+    
+    @Test
+    func activatingAStackRevealsHiddenMediaBeforeRunningAFailedFrontMembersHandler() {
+        let stack = MediaStackRoomTimelineItem.mock(members: [.mockImage(index: 0, count: 2, isOutgoing: true,
+                                                                         properties: .init(deliveryStatus: .sendingFailed(.unknown(reason: "M_TOO_LARGE")))),
+                                                              .mockImage(index: 1, count: 2, isOutgoing: true)])
+        let timelineController = TimelineControllerMock(.init(timelineItems: [stack]))
+        timelineController.pendingSendTargetForReturnValue = .event
+        let viewModel = makeViewModel(timelineController: timelineController)
+        let positions = viewModel.state.mediaStackPositions
+        
+        positions.activate(stack, hidesMedia: true, context: viewModel.context)
+        #expect(positions.isRevealed(stack))
+        #expect(viewModel.state.bindings.alertInfo == nil, "The first activation only reveals the media.")
+        
+        positions.activate(stack, hidesMedia: true, context: viewModel.context)
+        #expect(viewModel.state.bindings.alertInfo?.message == "M_TOO_LARGE")
+        #expect(timelineController.pendingSendTargetForReceivedItemID == stack.members[0].id)
+    }
+    
+    @Test
+    func focusingOnAStackMemberBringsItToTheFront() async {
+        let stack = makeStack()
+        let viewModel = makeViewModel(items: [stack])
+        
+        await viewModel.focusOnEvent(eventID: "$batch-1")
+        
+        #expect(viewModel.state.timelineState.focussedEvent?.eventID == "$batch-1")
+        #expect(viewModel.state.mediaStackPositions.frontIndex(of: stack) == 1)
+    }
+    
     // MARK: - Selection
     
     @Test
@@ -922,7 +1038,8 @@ final class TimelineViewModelTests {
                                focussedEventID: String? = nil,
                                timelineController: TimelineControllerProtocol,
                                userIndicatorController: UserIndicatorControllerProtocol = UserIndicatorControllerMock(),
-                               appMediator: AppMediatorProtocol = AppMediatorMock(.init())) -> TimelineViewModel {
+                               appMediator: AppMediatorProtocol = AppMediatorMock(.init()),
+                               timelineControllerFactory: TimelineControllerFactoryProtocol = TimelineControllerFactoryMock(.init())) -> TimelineViewModel {
         TimelineViewModel(roomProxy: roomProxy ?? JoinedRoomProxyMock(.init(name: "")),
                           focussedEventID: focussedEventID,
                           timelineController: timelineController,
@@ -933,7 +1050,11 @@ final class TimelineViewModelTests {
                           analyticsService: AnalyticsServiceMock(.init()),
                           emojiProvider: EmojiProvider(userSettings: .mock()),
                           linkMetadataProvider: LinkMetadataProvider(),
-                          timelineControllerFactory: TimelineControllerFactoryMock(.init()))
+                          timelineControllerFactory: timelineControllerFactory)
+    }
+    
+    private func makeStack() -> MediaStackRoomTimelineItem {
+        .mock(members: (0..<3).map { .mockImage(index: $0, count: 3) })
     }
     
     /// Starts a selection the way the app does, by choosing Forward on the item.

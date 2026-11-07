@@ -13,7 +13,7 @@ import SwiftUI
 
 enum TimelineViewModelAction {
     case displayEmojiPicker(selectedEmojis: Set<String>, continuation: EmojiPickerScreenContinuation)
-    case displayReportContent(itemID: TimelineItemIdentifier, senderID: String)
+    case displayReportContent(eventIDs: [String], senderID: String)
     case displayCameraPicker
     case displayMediaPicker
     case displayDocumentPicker
@@ -54,6 +54,7 @@ enum TimelineViewAction {
     
     case mediaTapped(itemID: TimelineItemIdentifier)
     case galleryItemTapped(GalleryItemID)
+    case mediaStackHeaderTapped(stackID: TimelineItemIdentifier)
     case itemSendInfoTapped(itemID: TimelineItemIdentifier)
     case toggleReaction(key: String, itemID: TimelineItemIdentifier)
     case sendReadReceiptIfNeeded(TimelineItemIdentifier)
@@ -139,6 +140,8 @@ struct TimelineViewState: BindableState {
     
     var messageSelection = TimelineMessageSelectionState()
     
+    let mediaStackPositions = MediaStackPositions()
+    
     let hasPredecessor: Bool
     
     /// The `pinnedEventIDs` are used only to determine if an item is already pinned or not.
@@ -203,6 +206,9 @@ struct TimelineViewStateBindings {
     
     var redactConfirmationInfo: TimelineRedactConfirmationInfo?
     
+    var mediaStackGrid: MediaStackRoomTimelineItem?
+    var mediaStackGridPreviewViewModel: TimelineMediaPreviewViewModel?
+    
     var showTranslation = false
     var textToBeTranslated: String?
 }
@@ -264,6 +270,8 @@ struct ReadReceiptSummaryInfo: Identifiable {
 /// The item that the user has asked to remove and must confirm, optionally giving a reason.
 struct TimelineRedactConfirmationInfo: Identifiable {
     let id: TimelineItemIdentifier
+    var title: String?
+    var message: String?
 }
 
 enum TimelineAlertInfoType: Hashable {
@@ -347,7 +355,7 @@ struct TimelineState {
     }
     
     func hasLoadedItem(with eventID: String) -> Bool {
-        itemViewStates.contains { $0.identifier.eventID == eventID }
+        itemViewStates.contains { $0.represents(eventID: eventID) }
     }
 }
 

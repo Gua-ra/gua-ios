@@ -22,7 +22,7 @@ extension TimelineProxyMock {
     convenience init(_ configuration: Configuration) {
         self.init()
         
-        sendMessageEventContentReturnValue = .success(())
+        sendMessageEventContentExtraContentJSONReturnValue = .success(())
         sendMessageHtmlInReplyToEventIDIntentionalMentionsReturnValue = .success(())
         editNewContentReturnValue = .success(())
         buildMessageContentForHtmlIntentionalMentionsReturnValue = RoomMessageEventContentWithoutRelationSDKMock()

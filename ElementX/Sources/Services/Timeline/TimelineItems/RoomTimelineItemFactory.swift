@@ -246,7 +246,8 @@ nonisolated struct RoomTimelineItemFactory: RoomTimelineItemFactoryProtocol {
                                                 deliveryStatus: eventItemProxy.deliveryStatus,
                                                 orderedReadReceipts: buildOrderedReadReceipts(eventItemProxy.readReceipts),
                                                 encryptionAuthenticity: buildEncryptionAuthenticity(eventItemProxy.shieldState),
-                                                encryptionForwarder: eventItemProxy.forwarder))
+                                                encryptionForwarder: eventItemProxy.forwarder),
+                              uploadProgress: eventItemProxy.uploadProgress)
     }
     
     private func buildVideoTimelineItem(for eventItemProxy: EventTimelineItemProxy,
@@ -270,7 +271,8 @@ nonisolated struct RoomTimelineItemFactory: RoomTimelineItemFactoryProtocol {
                                                 deliveryStatus: eventItemProxy.deliveryStatus,
                                                 orderedReadReceipts: buildOrderedReadReceipts(eventItemProxy.readReceipts),
                                                 encryptionAuthenticity: buildEncryptionAuthenticity(eventItemProxy.shieldState),
-                                                encryptionForwarder: eventItemProxy.forwarder))
+                                                encryptionForwarder: eventItemProxy.forwarder),
+                              uploadProgress: eventItemProxy.uploadProgress)
     }
     
     private func buildAudioTimelineItem(for eventItemProxy: EventTimelineItemProxy,

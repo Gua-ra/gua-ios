@@ -427,7 +427,7 @@ class TimelineTableViewController: UIViewController {
     private func scrollToItem(eventID: String, animated: Bool) {
         DispatchQueue.main.async { [weak self] in // Fixes #2805
             guard let self else { return }
-            if let kvPair = timelineItemsDictionary.first(where: { $0.value.identifier.eventID == eventID }),
+            if let kvPair = timelineItemsDictionary.first(where: { $0.value.represents(eventID: eventID) }),
                let indexPath = dataSource?.indexPath(for: kvPair.key) {
                 // Scrolling to the middle created a small bump in the timeline
                 // Using top, which is bottom in the reversed timeline helps with rendering

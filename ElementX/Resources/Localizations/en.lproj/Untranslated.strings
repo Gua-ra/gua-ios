@@ -150,3 +150,10 @@
 
 "gua_notification_sound_default" = "Gua Default";
 "gua_notification_sound_fade" = "Gua Fade";
+
+"gua_media_stack_remove_subtitle" = "They will be removed for everyone in this chat.";
+"gua_media_stack_a11y_photo_position" = "Photo %1$d of %2$d";
+"gua_media_stack_a11y_video_position" = "Video %1$d of %2$d, %3$@";
+"gua_media_stack_a11y_next" = "Next";
+"gua_media_stack_a11y_previous" = "Previous";
+"gua_media_stack_show_all" = "Show all";
