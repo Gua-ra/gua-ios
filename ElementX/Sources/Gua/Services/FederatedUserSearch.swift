@@ -19,7 +19,7 @@ enum RosterSearchVisibility: Equatable {
     /// Discoverable only from the user's own server, i.e. never via federated search.
     case server
     case unrecognized(String)
-
+    
     init(rawValue: String?) {
         // The resolver serializes the policy like the entry status, i.e. uppercase (`GLOBAL`);
         // match case-insensitively so either casing works.
@@ -48,7 +48,7 @@ enum FederatedUserSearch {
         guard handle.range(of: "^[a-z0-9._=/-]{3,}$", options: .regularExpression) != nil else { return nil }
         return handle
     }
-
+    
     /// The full user IDs to look up for a bare handle: the searcher's own server first, then one
     /// per ACTIVE roster server that allows discovery from it, in roster order.
     ///
@@ -61,7 +61,7 @@ enum FederatedUserSearch {
     /// to do. Duplicates are dropped downstream, so a local hit costs nothing.
     static func candidates(forHandle handle: String, roster: FederationRoster, ownServerName: String) -> [String] {
         let ownGroups = Set(roster.entries.first { $0.homeserver.serverName == ownServerName }?.homeserver.searchGroups ?? [])
-
+        
         let federated = roster.entries
             .filter { entry in
                 guard entry.isActive, entry.homeserver.serverName != ownServerName else { return false }
@@ -75,7 +75,7 @@ enum FederatedUserSearch {
                 }
             }
             .map { "@\(handle):\($0.homeserver.serverName)" }
-
+        
         // Own server first: it is the likeliest match and the one a person expects to be instant.
         return ["@\(handle):\(ownServerName)"] + federated
     }
@@ -94,11 +94,11 @@ protocol FederationRosterProviding: Sendable {
 /// the last good roster when a refresh fails.
 actor FederationRosterCache: FederationRosterProviding {
     static let shared = FederationRosterCache()
-
+    
     private let fetcher: FederationRosterFetching?
     private let timeToLive: TimeInterval
     private var cached: (roster: FederationRoster, fetchedAt: Date)?
-
+    
     /// - Parameters:
     ///   - fetcher: Where the roster comes from; `nil` (an unconfigured resolver) disables federated search.
     ///   - timeToLive: How long a fetched roster stays fresh.
@@ -106,7 +106,7 @@ actor FederationRosterCache: FederationRosterProviding {
         self.fetcher = fetcher
         self.timeToLive = timeToLive
     }
-
+    
     func currentRoster() async -> FederationRoster? {
         if let cached, Date().timeIntervalSince(cached.fetchedAt) < timeToLive {
             return cached.roster

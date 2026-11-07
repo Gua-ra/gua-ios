@@ -23,12 +23,12 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
     /// cancelled change (a passkey sheet, a request in flight) can tell that its answer is no longer
     /// wanted and must not send a code or move the screen.
     private var flowID = UUID()
-
+    
     private let actionsSubject: PassthroughSubject<TwoStepVerificationScreenViewModelAction, Never> = .init()
     var actionsPublisher: AnyPublisher<TwoStepVerificationScreenViewModelAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
-
+    
     /// A factor the caller asked this screen to set up on arrival, from the change-phone block
     /// screen. It decides which setup opens, which is the whole point of carrying it: the block
     /// screen offers a choice and this honours it instead of always opening PIN setup.
@@ -36,16 +36,16 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
     /// One shot. The screen honours the arriving request once; a later reload must not reopen a
     /// ceremony the user has already dealt with.
     private var appliedInitialSetup = false
-
+    
     private let indicatorID = "TwoStepVerificationScreen-Submit"
     private let successIndicatorID = "TwoStepVerificationScreen-Success"
-
+    
     /// What the account holds. Read from the server rather than assembled here, so this screen, the
     /// change-phone step-up and the home-screen nudge all answer "which factor" the same way.
     private var userHasPin: Bool {
         state.factors?.hasPin ?? false
     }
-
+    
     init(clientProxy: ClientProxyProtocol,
          identityServiceClient: IdentityServiceClientProtocol,
          userIndicatorController: UserIndicatorControllerProtocol,
@@ -56,12 +56,12 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
         self.userIndicatorController = userIndicatorController
         self.passkeyStepUpPresenter = passkeyStepUpPresenter
         self.initialSetup = initialSetup
-
+        
         super.init(initialViewState: TwoStepVerificationScreenViewState())
-
+        
         Task { await loadStatus() }
     }
-
+    
     override func process(viewAction: TwoStepVerificationScreenViewAction) {
         switch viewAction {
         case .startSetup:
@@ -76,7 +76,9 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
             normalizeInput()
             autoDetectCountry()
             reformatNumber()
-            if state.errorMessage != nil { state.errorMessage = nil }
+            if state.errorMessage != nil {
+                state.errorMessage = nil
+            }
         case .countrySelected(let country):
             state.selectedCountry = country
             state.bindings.isCountryPickerPresented = false
@@ -89,7 +91,9 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
             if cleaned != state.bindings.pin {
                 state.bindings.pin = cleaned
             }
-            if state.errorMessage != nil { state.errorMessage = nil }
+            if state.errorMessage != nil {
+                state.errorMessage = nil
+            }
             if cleaned.count == length {
                 handleSubmittedCode(cleaned)
             }
@@ -110,9 +114,9 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
             actionsSubject.send(.setUpPasskey)
         }
     }
-
+    
     // MARK: - Flow control
-
+    
     private func resetFlowState() {
         flowID = UUID()
         state.errorMessage = nil
@@ -125,7 +129,7 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
         state.bindings.localPhoneNumber = ""
         state.bindings.isCountryPickerPresented = false
     }
-
+    
     /// Strips an international prefix ("+1…" or a redundant leading dial code) that iOS
     /// autofill pastes into the local-number field, switching the country when needed.
     /// Mirrors the same method in `PhoneEntryScreenViewModel`.
@@ -139,7 +143,7 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
             state.bindings.localPhoneNumber = localDigits
         }
     }
-
+    
     /// Rewrites the local phone digits with the country-specific live-formatted version
     /// (e.g. `"51985550619"` → `"(51) 98555-0619"`), mirroring the sign-up phone screen.
     private func reformatNumber() {
@@ -149,7 +153,7 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
             state.bindings.localPhoneNumber = formatted
         }
     }
-
+    
     /// Recomputes `selectedCountry` from the typed digits (e.g. typing a Canadian area code
     /// flips the flag from US to CA), matching the sign-up phone screen's behaviour.
     private func autoDetectCountry() {
@@ -158,7 +162,7 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
             state.selectedCountry = detected
         }
     }
-
+    
     private func handleSubmittedPhone(_ phone: String) {
         let trimmed = phone.trimmingCharacters(in: .whitespacesAndNewlines)
         guard TwoStepVerificationScreenViewState.isValid(phone: trimmed) else {
@@ -175,7 +179,7 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
         }
         state.phase = .enteringCurrent
     }
-
+    
     private func handleSubmittedCode(_ code: String) {
         switch state.phase {
         case .enteringCurrent:
@@ -212,9 +216,9 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
             break
         }
     }
-
+    
     // MARK: - Backend interactions
-
+    
     private func loadStatus() async {
         guard let accessToken = clientProxy.accessToken else {
             state.factors = nil
@@ -239,7 +243,7 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
             state.errorMessage = (error as? LocalizedError)?.errorDescription ?? L10n.errorUnknown
         }
     }
-
+    
     /// Opens the setup the caller asked for, once the report says it is still needed. A factor the
     /// account already holds opens nothing, so arriving here twice cannot start a ceremony that is
     /// certain to fail.
@@ -255,7 +259,7 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
             break
         }
     }
-
+    
     /// Authorizes the change with a passkey assertion and, once the server accepts it, goes straight to
     /// the code it texted. The current PIN is never asked for on this path.
     ///
@@ -286,7 +290,7 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
         }
         userIndicatorController.retractIndicatorWithId(indicatorID)
         guard flow == flowID else { return }
-
+        
         let assertion: PasskeyAssertion
         do {
             assertion = try await presenter.assertion(for: options)
@@ -303,7 +307,7 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
         // Cancelled while the sheet was up: nothing is sent, so no code goes out for a change the
         // person has already abandoned.
         guard flow == flowID else { return }
-
+        
         state.phase = .submitting
         userIndicatorController.submitIndicator(UserIndicator(id: indicatorID,
                                                               type: .modal,
@@ -326,7 +330,7 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
             handlePasskeyFailure(error)
         }
     }
-
+    
     /// Sorts a failure on the passkey path into the three places it can go.
     private func handlePasskeyFailure(_ error: Error) {
         switch error {
@@ -353,13 +357,13 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
             state.phase = .enteringPhone
         }
     }
-
+    
     private func fallBackToCurrentPin(message: String?) {
         state.bindings.pin = ""
         state.errorMessage = message
         state.phase = .enteringCurrent
     }
-
+    
     private func verifyCurrentPinAndRequestOtp(_ currentPin: String) async {
         guard let accessToken = clientProxy.accessToken else {
             state.errorMessage = L10n.errorUnknown
@@ -409,14 +413,14 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
             state.phase = .enteringCurrent
         }
     }
-
+    
     /// Where a failed PIN submission returns to. A change authorized by the passkey never asked for
     /// the current PIN, so it goes back to the new PIN with its challenge intact rather than asking
     /// for a PIN the person was told they did not need.
     private var retryPhaseAfterFailedSubmission: TwoStepVerificationScreenPhase {
         state.challengeId != nil && state.currentPin.isEmpty ? .enteringNew : .enteringCurrent
     }
-
+    
     private func submitNewPin(_ pin: String) async {
         guard let accessToken = clientProxy.accessToken else {
             state.errorMessage = L10n.errorUnknown
@@ -448,7 +452,7 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
             userIndicatorController.submitIndicator(UserIndicator(id: successIndicatorID,
                                                                   type: .toast(progress: .none),
                                                                   title: L10n.screenTwoStepVerificationUpdated,
-                                                                  iconName: "checkmark"))
+                                                                  icon: \.check))
         } catch IdentityServiceError.invalidOTP {
             state.errorMessage = L10n.screenTwoStepVerificationOtpInvalid
             state.bindings.pin = ""
@@ -476,7 +480,7 @@ class TwoStepVerificationScreenViewModel: TwoStepVerificationScreenViewModelType
             state.phase = retryPhaseAfterFailedSubmission
         }
     }
-
+    
     private func isWeak(pin: String) -> Bool {
         let weakPins: Set = ["000000", "111111", "222222", "333333", "444444",
                              "555555", "666666", "777777", "888888", "999999",

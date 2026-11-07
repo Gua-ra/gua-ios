@@ -1,8 +1,9 @@
 //
-// Copyright 2024 New Vector Ltd.
-// Copyright 2021-2024 The Matrix.org Foundation C.I.C
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
+// Copyright 2021-2025 The Matrix.org Foundation C.I.C
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -11,23 +12,15 @@ import MatrixRustSDK
 
 /// Logging utility that provies multiple logging levels as well as file output and rolling.
 /// Its purpose is to provide a common entry for customizing logging and should be used throughout the code.
-enum MXLog {
+nonisolated enum MXLog {
     private nonisolated(unsafe) static var rootSpan: Span!
     private nonisolated(unsafe) static var currentTarget: String!
     
     static func configure(currentTarget: String) {
         self.currentTarget = currentTarget
         
-        rootSpan = Span(file: #file, line: UInt32(#line), level: .info, target: self.currentTarget, name: "root", bridgeTraceId: nil)
+        rootSpan = Span(file: #file, line: #line, level: .info, target: self.currentTarget, name: "root", bridgeTraceId: nil)
         rootSpan.enter()
-    }
-    
-    static func createSpan(_ name: String,
-                           file: String = #file,
-                           function: String = #function,
-                           line: Int = #line,
-                           column: Int = #column) -> Span {
-        createSpan(name, level: .info, file: file, function: function, line: line, column: column)
     }
     
     static func verbose(_ message: Any,
@@ -95,6 +88,7 @@ enum MXLog {
     
     #if DEBUG
     private static let devPrefix = URL.documentsDirectory.pathComponents[2].uppercased()
+    // periphery:ignore - used for debugging
     /// A helper method for print debugging, only available on debug builds.
     ///
     /// When running on the simulator this will log `[USERNAME] message` so that
@@ -109,20 +103,6 @@ enum MXLog {
     #endif
     
     // MARK: - Private
-    
-    // periphery:ignore:parameters function,column
-    private static func createSpan(_ name: String,
-                                   level: LogLevel,
-                                   file: String = #file,
-                                   function: String = #function,
-                                   line: Int = #line,
-                                   column: Int = #column) -> Span {
-        if Span.current().isNone() {
-            rootSpan.enter()
-        }
-        
-        return Span(file: file, line: UInt32(line), level: level.rustLogLevel, target: currentTarget, name: name, bridgeTraceId: nil)
-    }
     
     // periphery:ignore:parameters function,column
     private static func log(_ message: Any,

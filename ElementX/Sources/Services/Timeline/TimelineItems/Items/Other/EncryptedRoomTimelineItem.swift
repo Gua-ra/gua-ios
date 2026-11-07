@@ -1,13 +1,14 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import UIKit
 
-struct EncryptedRoomTimelineItem: EventBasedTimelineItemProtocol, Equatable {
+nonisolated struct EncryptedRoomTimelineItem: EventBasedTimelineItemProtocol, Equatable {
     enum EncryptionType: Hashable {
         case megolmV1AesSha2(sessionID: String, cause: UTDCause)
         case olmV1Curve25519AesSha2(senderKey: String)

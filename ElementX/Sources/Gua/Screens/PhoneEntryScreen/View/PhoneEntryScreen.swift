@@ -13,7 +13,7 @@ struct PhoneEntryScreen: View {
     @Bindable var context: PhoneEntryScreenViewModel.Context
     @FocusState private var isPhoneFieldFocused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
+    
     var body: some View {
         ScrollView {
             VStack(spacing: 32) {
@@ -38,15 +38,15 @@ struct PhoneEntryScreen: View {
             }
         }
     }
-
+    
     // MARK: - Header
-
+    
     private var header: some View {
         VStack(spacing: 20) {
             // App-icon logo: a one-shot fly-in/spin entrance, raised wolf+bubble relief, device-motion
             // parallax, and a contained Gua-green aura (see GuaWelcomeLogo).
             GuaWelcomeLogo(animated: !reduceMotion)
-
+            
             VStack(spacing: 8) {
                 Text(L10n.screenPhoneLoginWelcome)
                     .font(.compound.headingLGBold)
@@ -60,16 +60,16 @@ struct PhoneEntryScreen: View {
         }
         .padding(.top, 24)
     }
-
+    
     // MARK: - Input
-
+    
     private var inputCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 countryButton
                 phoneField
             }
-
+            
             if let errorMessage = context.viewState.errorMessage {
                 Text(errorMessage)
                     .font(.compound.bodySM)
@@ -83,7 +83,7 @@ struct PhoneEntryScreen: View {
             }
         }
     }
-
+    
     private var countryButton: some View {
         Button {
             isPhoneFieldFocused = false
@@ -105,7 +105,7 @@ struct PhoneEntryScreen: View {
         .accessibilityLabel(UntranslatedL10n.guaCountryCodeA11yLabel(context.viewState.selectedCountry.name, context.viewState.selectedCountry.dialCode))
         .accessibilityHint(UntranslatedL10n.guaCountryCodeA11yHint)
     }
-
+    
     private var phoneField: some View {
         TextField(context.viewState.selectedCountry.nationalExample, text: $context.localPhoneNumber)
             .keyboardType(.phonePad)
@@ -127,9 +127,9 @@ struct PhoneEntryScreen: View {
             }
             .onAppear { isPhoneFieldFocused = true }
     }
-
+    
     // MARK: - Actions
-
+    
     private var actions: some View {
         VStack(spacing: 16) {
             Button {
@@ -141,7 +141,7 @@ struct PhoneEntryScreen: View {
             }
             .buttonStyle(.compound(.primary))
             .disabled(!context.viewState.canContinue)
-
+            
             Button {
                 context.send(viewAction: .signInWithPasskeyTapped)
             } label: {
@@ -149,7 +149,7 @@ struct PhoneEntryScreen: View {
             }
             .buttonStyle(.compound(.tertiary))
             .disabled(context.viewState.isSubmitting)
-
+            
             if context.viewState.isLegacyAuthEnabled {
                 Button {
                     context.send(viewAction: .useLegacyAuthTapped)
@@ -161,9 +161,9 @@ struct PhoneEntryScreen: View {
             }
         }
     }
-
+    
     // MARK: - Trust
-
+    
     /// On-brand trust signal reassuring the user before they hand over a number.
     private var trustPills: some View {
         TrustPill(systemImage: "lock.fill", title: L10n.screenOnboardingTrustEncrypted)
@@ -175,7 +175,7 @@ struct PhoneEntryScreen: View {
 private struct TrustPill: View {
     let systemImage: String
     let title: String
-
+    
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: systemImage)
@@ -196,19 +196,19 @@ private struct TrustPill: View {
 struct PhoneEntryScreen_Previews: PreviewProvider, TestablePreview {
     static let viewModel = PhoneEntryScreenViewModel(isLegacyAuthEnabled: false)
     static let viewModelLegacy = PhoneEntryScreenViewModel(isLegacyAuthEnabled: true)
-
+    
     static var previews: some View {
-        NavigationStack {
+        ElementNavigationStack {
             PhoneEntryScreen(context: viewModel.context)
         }
         .previewDisplayName("Default")
-
-        NavigationStack {
+        
+        ElementNavigationStack {
             PhoneEntryScreen(context: viewModelLegacy.context)
         }
         .previewDisplayName("Legacy enabled")
-
-        NavigationStack {
+        
+        ElementNavigationStack {
             PhoneEntryScreen(context: viewModel.context)
         }
         .environment(\.colorScheme, .dark)

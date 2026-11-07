@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -81,11 +82,23 @@ struct TimelineThreadSummaryView: View {
                                plainBody: L10n.commonSharedLocation,
                                formattedBody: nil,
                                numberOfReplies: numberOfReplies)
+                case .gallery(let content):
+                    ThreadView(senderID: senderID,
+                               sender: sender,
+                               plainBody: content.caption ?? content.body,
+                               formattedBody: content.formattedCaption,
+                               numberOfReplies: numberOfReplies)
                 }
             case .poll(let question):
                 ThreadView(senderID: senderID,
                            sender: sender,
                            plainBody: question,
+                           formattedBody: nil,
+                           numberOfReplies: numberOfReplies)
+            case .liveLocation:
+                ThreadView(senderID: senderID,
+                           sender: sender,
+                           plainBody: L10n.commonSharedLiveLocation,
                            formattedBody: nil,
                            numberOfReplies: numberOfReplies)
             case .redacted:
@@ -133,7 +146,7 @@ struct TimelineThreadSummaryView: View {
                 
                 LoadableAvatarImage(url: sender?.avatarURL,
                                     name: sender?.displayName,
-                                    contentID: sender?.id,
+                                    contentID: senderID,
                                     avatarSize: .user(on: .threadSummary),
                                     mediaProvider: context.mediaProvider)
                     .accessibilityHidden(true)
@@ -253,6 +266,11 @@ struct TimelineThreadSummaryView_Previews: PreviewProvider, TestablePreview {
             TimelineThreadSummaryView(threadSummary: .loaded(senderID: "@alice:matrix.org",
                                                              sender: .init(id: "@alice:matrix.org", displayName: "Alice"),
                                                              latestEventContent: .message(.location(.init(body: ""))),
+                                                             numberOfReplies: 42)),
+            
+            TimelineThreadSummaryView(threadSummary: .loaded(senderID: "@alice:matrix.org",
+                                                             sender: .init(id: "@alice:matrix.org", displayName: "Alice"),
+                                                             latestEventContent: .liveLocation,
                                                              numberOfReplies: 42)),
             
             TimelineThreadSummaryView(threadSummary: .loaded(senderID: "@alice:matrix.org",

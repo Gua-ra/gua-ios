@@ -1,7 +1,8 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -47,7 +48,7 @@ struct StackedAvatarsView_Previews: PreviewProvider, TestablePreview {
         .init(url: nil, name: "Charlie", contentID: "@charlie:matrix.org"),
         .init(url: nil, name: "Dan", contentID: "@charlie:matrix.org")
     ]
-
+    
     static var previews: some View {
         VStack(spacing: 10) {
             StackedAvatarsView(overlap: 16,

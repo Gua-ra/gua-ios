@@ -22,23 +22,23 @@ struct PhoneEntryScreenViewState: BindableState {
     var selectedCountry: Country
     var isSubmitting = false
     var errorMessage: String?
-
+    
     var bindings: PhoneEntryScreenViewStateBindings
-
+    
     /// User-entered digits, stripped of any non-numeric characters.
     var localDigits: String {
         bindings.localPhoneNumber.filter(\.isNumber)
     }
-
+    
     /// Full E.164 phone number to send to the backend (e.g. "+15551234567").
     var e164PhoneNumber: String {
         "+" + selectedCountry.dialCode + localDigits
     }
-
+    
     var canContinue: Bool {
         !isSubmitting && Self.isValid(localDigits: localDigits, dialCode: selectedCountry.dialCode)
     }
-
+    
     /// E.164 numbers are 7–15 digits including the country code. The resolver enforces the same
     /// floor (`+[1-9]\d{6,14}`), so we keep the two in sync — otherwise a number that passes here
     /// would be rejected by `/resolve` and surface as a confusing error. We also require at least a

@@ -16,13 +16,13 @@ struct PinBubbleField: View {
     var hasError = false
     /// Bound from the parent so we can keep the keyboard up across `step` transitions.
     @FocusState private var isFocused: Bool
-
+    
     init(pin: Binding<String>, length: Int = 6, hasError: Bool = false) {
         _pin = pin
         self.length = length
         self.hasError = hasError
     }
-
+    
     var body: some View {
         ZStack {
             // Invisible field that owns the keyboard. We keep it focusable but visually hidden.
@@ -35,9 +35,11 @@ struct PinBubbleField: View {
                 .accessibilityHidden(true)
                 .onChange(of: pin) { _, newValue in
                     let filtered = String(newValue.filter(\.isNumber).prefix(length))
-                    if filtered != newValue { pin = filtered }
+                    if filtered != newValue {
+                        pin = filtered
+                    }
                 }
-
+            
             HStack(spacing: 14) {
                 ForEach(0..<length, id: \.self) { index in
                     bubble(filled: index < pin.count)
@@ -50,7 +52,7 @@ struct PinBubbleField: View {
         .padding(.vertical, 12)
         .onAppear { isFocused = true }
     }
-
+    
     private func bubble(filled: Bool) -> some View {
         let fill: Color = hasError ? .compound.iconCriticalPrimary : .compound.iconPrimary
         let stroke: Color = hasError ? .compound.iconCriticalPrimary : .compound.iconSecondary

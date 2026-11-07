@@ -10,6 +10,12 @@
 "gua_encryption_reset_required_action" = "Sıfırla ve tamamla";
 "gua_signout_last_device_title" = "Çıkış yapmak mesajlarınızı bu cihazdan kaldırır";
 "gua_signout_last_device_message" = "Bu tek cihazınız. Yalnızca burada tutulan mesajlar, yeniden giriş yaptığınızda kullanılamaz.";
+"gua_settings_sign_out" = "Oturumu kapat";
+"gua_signout_confirmation_message" = "Çıkış yapmak istediğinize emin misiniz?";
+"gua_signout_key_backup_ongoing_subtitle" = "Lütfen oturumu kapatmadan önce bunun tamamlanmasını bekleyin.";
+"gua_signout_key_backup_offline_subtitle" = "Çevrimdışı olduğunuzda anahtarlarınız hala yedekleniyordu. Oturumu kapatmadan önce anahtarlarınızın yedeklenebilmesi için yeniden bağlanın.";
+"gua_app_lock_signout_alert_title" = "Oturumunuz kapatılıyor";
+"gua_signing_out" = "Oturum kapatılıyor";
 "gua_encryption_reset_finishing" = "Kurulum tamamlanıyor…";
 "gua_encryption_reset_failed" = "Kurulum tamamlanamadı. Tekrar denemek için “Sıfırla ve tamamla”ya dokunun.";
 "gua_encryption_recover_from_other_device_title" = "Önceki mesajlarınızı geri getirin";

@@ -1,14 +1,15 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import SceneKit
 import SwiftUI
 
-class EffectsScene: SCNScene {
+nonisolated class EffectsScene: SCNScene {
     static let colors: [Color] = [
         .blue,
         .red,
@@ -53,7 +54,7 @@ class EffectsScene: SCNScene {
     }
 }
 
-private extension Color {
+private nonisolated extension Color {
     /// The color's components as an array of floats in the extended linear sRGB colorspace.
     ///
     /// SceneKit works in a colorspace with a linear gamma, which is why this conversion is necessary.

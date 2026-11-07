@@ -1,7 +1,8 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -63,13 +64,13 @@ struct RoomInviterLabel_Previews: PreviewProvider, TestablePreview {
     static var previews: some View {
         VStack(spacing: 10) {
             RoomInviterLabel(inviter: .init(member: RoomMemberProxyMock.mockAlice),
-                             mediaProvider: MediaProviderMock(configuration: .init()))
+                             mediaProvider: MediaProviderMock(.init()))
             RoomInviterLabel(inviter: .init(member: RoomMemberProxyMock.mockDan),
-                             mediaProvider: MediaProviderMock(configuration: .init()))
+                             mediaProvider: MediaProviderMock(.init()))
             RoomInviterLabel(inviter: .init(member: RoomMemberProxyMock.mockNoName),
-                             mediaProvider: MediaProviderMock(configuration: .init()))
+                             mediaProvider: MediaProviderMock(.init()))
             RoomInviterLabel(inviter: .init(member: RoomMemberProxyMock.mockCharlie),
-                             mediaProvider: MediaProviderMock(configuration: .init()))
+                             mediaProvider: MediaProviderMock(.init()))
                 .foregroundStyle(.compound.textPrimary)
         }
         .font(.compound.bodyMD)

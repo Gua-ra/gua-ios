@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -45,8 +46,6 @@ class SessionVerificationScreenStateMachine {
         case requestVerification
         /// The current verification request has been accepted
         case didAcceptVerificationRequest
-        /// Start a SaS verification flow
-        case startSasVerification
         /// Started a SaS verification flow
         case didStartSasVerification
         /// Has received emojis
@@ -72,7 +71,7 @@ class SessionVerificationScreenStateMachine {
     var state: State {
         stateMachine.state
     }
-
+    
     init(state: State) {
         stateMachine = StateMachine(state: state)
         configure()
@@ -84,8 +83,6 @@ class SessionVerificationScreenStateMachine {
         
         stateMachine.addRoutes(event: .didAcceptVerificationRequest, transitions: [.acceptingVerificationRequest => .verificationRequestAccepted,
                                                                                    .requestingVerification => .verificationRequestAccepted])
-        
-        stateMachine.addRoutes(event: .startSasVerification, transitions: [.verificationRequestAccepted => .startingSasVerification])
         
         stateMachine.addRoutes(event: .didFail, transitions: [.requestingVerification => .initial,
                                                               .acceptingVerificationRequest => .initial])

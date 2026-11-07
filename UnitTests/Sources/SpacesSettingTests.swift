@@ -6,93 +6,97 @@
 
 import Combine
 @testable import ElementX
-import XCTest
+import Foundation
+import Testing
 
 @MainActor
-class SpacesSettingTests: XCTestCase {
+final class SpacesSettingTests {
+    private var store: VolatileUserDefaults!
     private var appSettings: AppSettings!
     private var clientProxy: ClientProxyMock!
     private var spaceService: SpaceServiceProxyMock!
     private var spacesSetting: SpacesSetting!
-
-    override func setUp() {
-        AppSettings.resetAllSettings()
-        appSettings = AppSettings()
+    
+    init() {
+        store = VolatileUserDefaults()
+        appSettings = AppSettings(store: store)
         clientProxy = ClientProxyMock(.init())
         clientProxy.setAccountDataTypeContentReturnValue = .success(())
         spaceService = SpaceServiceProxyMock(.init())
         clientProxy.spaceService = spaceService
         spacesSetting = SpacesSetting(clientProxy: clientProxy, appSettings: appSettings)
     }
-
-    override func tearDown() {
-        AppSettings.resetAllSettings()
-    }
-
-    func testStoredValueIsCopiedToThisDevice() async {
+    
+    @Test
+    func storedValueIsCopiedToThisDevice() async {
         clientProxy.accountDataTypeReturnValue = .success(#"{"enabled":true}"#)
-
+        
         await spacesSetting.refresh()
-
-        XCTAssertTrue(appSettings.spacesEnabled)
-        XCTAssertFalse(clientProxy.setAccountDataTypeContentCalled)
+        
+        #expect(appSettings.spacesEnabled)
+        #expect(!clientProxy.setAccountDataTypeContentCalled)
     }
-
-    func testStoredFalseIsKeptForAnAccountInASpace() async {
+    
+    @Test
+    func storedFalseIsKeptForAnAccountInASpace() async {
         appSettings.spacesEnabled = true
         clientProxy.accountDataTypeReturnValue = .success(#"{"enabled":false}"#)
         joinASpace()
-
+        
         await spacesSetting.refresh(afterSync: true)
-
-        XCTAssertFalse(appSettings.spacesEnabled)
-        XCTAssertFalse(clientProxy.setAccountDataTypeContentCalled)
+        
+        #expect(!appSettings.spacesEnabled)
+        #expect(!clientProxy.setAccountDataTypeContentCalled)
     }
-
-    func testAccountInASpaceWithNoStoredValueStartsWithSpacesOn() async {
+    
+    @Test
+    func accountInASpaceWithNoStoredValueStartsWithSpacesOn() async {
         clientProxy.accountDataTypeReturnValue = .success(nil)
         joinASpace()
-
+        
         await spacesSetting.refresh(afterSync: true)
-
-        XCTAssertTrue(appSettings.spacesEnabled)
-        XCTAssertEqual(clientProxy.setAccountDataTypeContentReceivedArguments?.type, SpacesSetting.accountDataType)
-        XCTAssertEqual(clientProxy.setAccountDataTypeContentReceivedArguments?.content, #"{"enabled":true}"#)
+        
+        #expect(appSettings.spacesEnabled)
+        #expect(clientProxy.setAccountDataTypeContentReceivedArguments?.type == SpacesSetting.accountDataType)
+        #expect(clientProxy.setAccountDataTypeContentReceivedArguments?.content == #"{"enabled":true}"#)
     }
-
-    func testFailedOneTimeWriteIsRetriedOnTheNextSyncThenNotRepeatedBeforeItSyncs() async {
+    
+    @Test
+    func failedOneTimeWriteIsRetriedOnTheNextSyncThenNotRepeatedBeforeItSyncs() async {
         clientProxy.accountDataTypeReturnValue = .success(nil)
         joinASpace()
         var results: [Result<Void, ClientProxyError>] = [.failure(.forbiddenAccess), .success(())]
         clientProxy.setAccountDataTypeContentClosure = { _, _ in results.removeFirst() }
-
+        
         await spacesSetting.refresh(afterSync: true)
-        XCTAssertFalse(appSettings.spacesEnabled)
-
+        #expect(!appSettings.spacesEnabled)
+        
         await spacesSetting.refresh(afterSync: true)
-        XCTAssertTrue(appSettings.spacesEnabled)
-
+        #expect(appSettings.spacesEnabled)
+        
         await spacesSetting.refresh(afterSync: true)
-        XCTAssertTrue(appSettings.spacesEnabled)
-        XCTAssertEqual(clientProxy.setAccountDataTypeContentCallsCount, 2, "A nil read while the echo is pending must not write again.")
+        #expect(appSettings.spacesEnabled)
+        #expect(clientProxy.setAccountDataTypeContentCallsCount == 2, "A nil read while the echo is pending must not write again.")
     }
-
-    func testFailingOneTimeWriteNeverTurnsSpacesOn() async {
+    
+    @Test
+    func failingOneTimeWriteNeverTurnsSpacesOn() async {
         clientProxy.accountDataTypeReturnValue = .success(nil)
         clientProxy.setAccountDataTypeContentReturnValue = .failure(.forbiddenAccess)
         joinASpace()
         var values: [Bool] = []
-        let cancellable = appSettings.$spacesEnabled.sink { values.append($0) }
+        let cancellable = appSettings.spacesEnabledPublisher.sink { values.append($0) }
         
         await spacesSetting.refresh(afterSync: true)
         await spacesSetting.refresh(afterSync: true)
         cancellable.cancel()
         
-        XCTAssertEqual(clientProxy.setAccountDataTypeContentCallsCount, 2)
-        XCTAssertEqual(values, [false], "The device copy must only change once the account holds the value.")
+        #expect(clientProxy.setAccountDataTypeContentCallsCount == 2)
+        #expect(values == [false], "The device copy must only change once the account holds the value.")
     }
     
-    func testOneTimeWriteTurnsSpacesOnOnlyOnceStored() async {
+    @Test
+    func oneTimeWriteTurnsSpacesOnOnlyOnceStored() async {
         let gate = WriteGate()
         clientProxy.setAccountDataTypeContentClosure = { _, _ in await gate.write() }
         clientProxy.accountDataTypeReturnValue = .success(nil)
@@ -100,197 +104,210 @@ class SpacesSettingTests: XCTestCase {
         
         let refresh = Task { await spacesSetting.refresh(afterSync: true) }
         await gate.waitForWriters(1)
-        XCTAssertFalse(appSettings.spacesEnabled)
+        #expect(!appSettings.spacesEnabled)
         
         gate.release()
         await refresh.value
-        XCTAssertTrue(appSettings.spacesEnabled)
+        #expect(appSettings.spacesEnabled)
     }
     
-    func testAccountWithoutSpacesStoresOffAsItsDefault() async {
+    @Test
+    func accountWithoutSpacesStoresOffAsItsDefault() async {
         let gate = WriteGate()
         clientProxy.setAccountDataTypeContentClosure = { _, _ in await gate.write() }
         clientProxy.accountDataTypeReturnValue = .success(nil)
         appSettings.spacesEnabled = true
-
+        
         let refresh = Task { await spacesSetting.refresh(afterSync: true) }
         await gate.waitForWriters(1)
-        XCTAssertTrue(appSettings.spacesEnabled, "The device copy must only change once the account holds the value.")
-
+        #expect(appSettings.spacesEnabled, "The device copy must only change once the account holds the value.")
+        
         gate.release()
         await refresh.value
-        XCTAssertFalse(appSettings.spacesEnabled)
-
+        #expect(!appSettings.spacesEnabled)
+        
         await spacesSetting.refresh(afterSync: true)
-        XCTAssertEqual(clientProxy.setAccountDataTypeContentCallsCount, 1)
-        XCTAssertEqual(clientProxy.setAccountDataTypeContentReceivedArguments?.content, #"{"enabled":false}"#)
+        #expect(clientProxy.setAccountDataTypeContentCallsCount == 1)
+        #expect(clientProxy.setAccountDataTypeContentReceivedArguments?.content == #"{"enabled":false}"#)
     }
-
-    func testNoDefaultIsDecidedBeforeASync() async {
+    
+    @Test
+    func noDefaultIsDecidedBeforeASync() async {
         clientProxy.accountDataTypeReturnValue = .success(nil)
         joinASpace()
-
+        
         await spacesSetting.refresh()
-
-        XCTAssertFalse(clientProxy.setAccountDataTypeContentCalled, "The stored value may not have synced yet.")
-        XCTAssertFalse(spaceService.topLevelJoinedSpacesCalled)
+        
+        #expect(!clientProxy.setAccountDataTypeContentCalled, "The stored value may not have synced yet.")
+        #expect(!spaceService.topLevelJoinedSpacesCalled)
     }
-
-    func testMembershipIsReadWhenTheDefaultIsDecided() async {
+    
+    @Test
+    func membershipIsReadWhenTheDefaultIsDecided() async {
         clientProxy.accountDataTypeReturnValue = .success(nil)
-        XCTAssertTrue(spaceService.joinedSpacesPublisher.value.isEmpty)
+        #expect(spaceService.topLevelSpacesPublisher.value.isEmpty)
         joinASpace()
-
+        
         await spacesSetting.refresh(afterSync: true)
-
-        XCTAssertTrue(appSettings.spacesEnabled)
-        XCTAssertEqual(clientProxy.setAccountDataTypeContentReceivedArguments?.content, #"{"enabled":true}"#)
+        
+        #expect(appSettings.spacesEnabled)
+        #expect(clientProxy.setAccountDataTypeContentReceivedArguments?.content == #"{"enabled":true}"#)
     }
-
-    func testReadFailureAfterASyncWritesNothing() async {
+    
+    @Test
+    func readFailureAfterASyncWritesNothing() async {
         appSettings.spacesEnabled = true
         clientProxy.accountDataTypeReturnValue = .failure(.forbiddenAccess)
         joinASpace()
-
+        
         await spacesSetting.refresh(afterSync: true)
-
-        XCTAssertTrue(appSettings.spacesEnabled)
-        XCTAssertFalse(clientProxy.setAccountDataTypeContentCalled)
+        
+        #expect(appSettings.spacesEnabled)
+        #expect(!clientProxy.setAccountDataTypeContentCalled)
     }
-
-    func testSwitchChangedDuringTheDecisionWins() async {
+    
+    @Test
+    func switchChangedDuringTheDecisionWins() async {
         let gate = SpacesReadGate()
         spaceService.topLevelJoinedSpacesClosure = { await gate.read() }
         clientProxy.accountDataTypeReturnValue = .success(nil)
-
+        
         let refresh = Task { await spacesSetting.refresh(afterSync: true) }
         await gate.waitForReaders(1)
         await spacesSetting.setEnabled(false)
         gate.release(.mockJoinedSpaces)
         await refresh.value
-
-        XCTAssertFalse(appSettings.spacesEnabled)
-        XCTAssertEqual(clientProxy.setAccountDataTypeContentCallsCount, 1)
-        XCTAssertEqual(clientProxy.setAccountDataTypeContentReceivedArguments?.content, #"{"enabled":false}"#)
+        
+        #expect(!appSettings.spacesEnabled)
+        #expect(clientProxy.setAccountDataTypeContentCallsCount == 1)
+        #expect(clientProxy.setAccountDataTypeContentReceivedArguments?.content == #"{"enabled":false}"#)
     }
-
-    func testInvalidatingDuringTheDecisionWritesNothing() async {
+    
+    @Test
+    func invalidatingDuringTheDecisionWritesNothing() async {
         let gate = SpacesReadGate()
         spaceService.topLevelJoinedSpacesClosure = { await gate.read() }
         clientProxy.accountDataTypeReturnValue = .success(nil)
-
+        
         let refresh = Task { await spacesSetting.refresh(afterSync: true) }
         await gate.waitForReaders(1)
         spacesSetting.invalidate()
         gate.release(.mockJoinedSpaces)
         await refresh.value
-
-        XCTAssertFalse(appSettings.spacesEnabled)
-        XCTAssertFalse(clientProxy.setAccountDataTypeContentCalled)
+        
+        #expect(!appSettings.spacesEnabled)
+        #expect(!clientProxy.setAccountDataTypeContentCalled)
     }
-
-    func testNewerValueFromAnotherPhoneWinsOnceTheEchoTimesOut() async {
+    
+    @Test
+    func newerValueFromAnotherPhoneWinsOnceTheEchoTimesOut() async {
         spacesSetting = SpacesSetting(clientProxy: clientProxy, appSettings: appSettings, echoTimeout: 0)
-
+        
         await spacesSetting.setEnabled(true)
         clientProxy.accountDataTypeReturnValue = .success(#"{"enabled":false}"#)
         await spacesSetting.refresh(afterSync: true)
-
-        XCTAssertFalse(appSettings.spacesEnabled)
+        
+        #expect(!appSettings.spacesEnabled)
     }
-
-    func testASpaceJoinedAfterTheDefaultWasStoredDoesNotTurnSpacesOn() async {
+    
+    @Test
+    func aSpaceJoinedAfterTheDefaultWasStoredDoesNotTurnSpacesOn() async {
         clientProxy.accountDataTypeReturnValue = .success(nil)
         await spacesSetting.refresh(afterSync: true)
         clientProxy.accountDataTypeReturnValue = .success(#"{"enabled":false}"#)
         joinASpace()
-
+        
         await spacesSetting.refresh(afterSync: true)
-
-        XCTAssertFalse(appSettings.spacesEnabled)
-        XCTAssertEqual(clientProxy.setAccountDataTypeContentCallsCount, 1)
+        
+        #expect(!appSettings.spacesEnabled)
+        #expect(clientProxy.setAccountDataTypeContentCallsCount == 1)
     }
-
-    func testFailedWriteKeepsThePreviousValue() async {
+    
+    @Test
+    func failedWriteKeepsThePreviousValue() async {
         clientProxy.setAccountDataTypeContentReturnValue = .failure(.forbiddenAccess)
-
+        
         let result = await spacesSetting.setEnabled(true)
-
+        
         guard case .failure = result else {
-            XCTFail("Expected the write to fail")
+            Issue.record("Expected the write to fail")
             return
         }
-        XCTAssertFalse(appSettings.spacesEnabled)
+        #expect(!appSettings.spacesEnabled)
     }
-
-    func testPendingWriteIsNotUndoneByAStaleRead() async {
+    
+    @Test
+    func pendingWriteIsNotUndoneByAStaleRead() async {
         let gate = WriteGate()
         clientProxy.setAccountDataTypeContentClosure = { _, _ in await gate.write() }
         clientProxy.accountDataTypeReturnValue = .success(#"{"enabled":false}"#)
-
+        
         let write = Task { await spacesSetting.setEnabled(true) }
         await gate.waitForWriters(1)
-
+        
         await spacesSetting.refresh()
-        XCTAssertTrue(appSettings.spacesEnabled, "A read while the write is in flight must not undo it.")
-
+        #expect(appSettings.spacesEnabled, "A read while the write is in flight must not undo it.")
+        
         gate.release()
         _ = await write.value
-
+        
         await spacesSetting.refresh()
-        XCTAssertTrue(appSettings.spacesEnabled, "A read before sync brings the write back must not undo it.")
-
+        #expect(appSettings.spacesEnabled, "A read before sync brings the write back must not undo it.")
+        
         clientProxy.accountDataTypeReturnValue = .success(#"{"enabled":true}"#)
         await spacesSetting.refresh()
-        XCTAssertTrue(appSettings.spacesEnabled)
-
+        #expect(appSettings.spacesEnabled)
+        
         clientProxy.accountDataTypeReturnValue = .success(#"{"enabled":false}"#)
         await spacesSetting.refresh()
-        XCTAssertFalse(appSettings.spacesEnabled, "Once the write has synced, a change from another phone applies.")
+        #expect(!appSettings.spacesEnabled, "Once the write has synced, a change from another phone applies.")
     }
-
-    func testFailedWriteDoesNotUndoANewerRequest() async {
+    
+    @Test
+    func failedWriteDoesNotUndoANewerRequest() async {
         let gate = WriteGate()
         clientProxy.setAccountDataTypeContentClosure = { _, _ in await gate.write() }
-
+        
         let firstWrite = Task { await spacesSetting.setEnabled(true) }
         await gate.waitForWriters(1)
         let secondWrite = Task { await spacesSetting.setEnabled(true) }
         await Task.yield()
-
+        
         gate.release(.failure(.forbiddenAccess))
         await gate.waitForWriters(1)
-        XCTAssertTrue(appSettings.spacesEnabled, "The first write failed, but a newer request is pending.")
-
+        #expect(appSettings.spacesEnabled, "The first write failed, but a newer request is pending.")
+        
         gate.release()
         _ = await firstWrite.value
         _ = await secondWrite.value
-
-        XCTAssertTrue(appSettings.spacesEnabled)
-        XCTAssertEqual(clientProxy.setAccountDataTypeContentCallsCount, 2)
+        
+        #expect(appSettings.spacesEnabled)
+        #expect(clientProxy.setAccountDataTypeContentCallsCount == 2)
     }
-
-    func testOverlappingFailedWritesEndOnTheLastChoice() async {
+    
+    @Test
+    func overlappingFailedWritesEndOnTheLastChoice() async {
         let gate = WriteGate()
         clientProxy.setAccountDataTypeContentClosure = { _, _ in await gate.write() }
-
+        
         let turnOn = Task { await spacesSetting.setEnabled(true) }
         await gate.waitForWriters(1)
         let turnOff = Task { await spacesSetting.setEnabled(false) }
         await Task.yield()
-        XCTAssertFalse(appSettings.spacesEnabled)
-
+        #expect(!appSettings.spacesEnabled)
+        
         gate.release(.failure(.forbiddenAccess))
         await gate.waitForWriters(1)
         gate.release(.failure(.forbiddenAccess))
         _ = await turnOn.value
         _ = await turnOff.value
-
-        XCTAssertFalse(appSettings.spacesEnabled)
-        XCTAssertEqual(clientProxy.setAccountDataTypeContentReceivedArguments?.content, #"{"enabled":false}"#)
+        
+        #expect(!appSettings.spacesEnabled)
+        #expect(clientProxy.setAccountDataTypeContentReceivedArguments?.content == #"{"enabled":false}"#)
     }
-
-    func testConfirmedWriteIsKeptWhenItsEchoIsLate() async {
+    
+    @Test
+    func confirmedWriteIsKeptWhenItsEchoIsLate() async {
         spacesSetting = SpacesSetting(clientProxy: clientProxy, appSettings: appSettings, echoTimeout: 0)
         clientProxy.accountDataTypeReturnValue = .success(nil)
         
@@ -299,11 +316,12 @@ class SpacesSettingTests: XCTestCase {
         await spacesSetting.setEnabled(false)
         await spacesSetting.refresh(afterSync: true)
         
-        XCTAssertFalse(appSettings.spacesEnabled)
-        XCTAssertEqual(clientProxy.setAccountDataTypeContentCallsCount, 1, "A nil read after a confirmed write must not trigger the one-time write.")
+        #expect(!appSettings.spacesEnabled)
+        #expect(clientProxy.setAccountDataTypeContentCallsCount == 1, "A nil read after a confirmed write must not trigger the one-time write.")
     }
     
-    func testInvalidatedSettingIgnoresLateResults() async {
+    @Test
+    func invalidatedSettingIgnoresLateResults() async {
         let gate = WriteGate()
         clientProxy.setAccountDataTypeContentClosure = { _, _ in await gate.write() }
         
@@ -311,41 +329,44 @@ class SpacesSettingTests: XCTestCase {
         let write = Task { await spacesSetting.setEnabled(false) }
         await gate.waitForWriters(1)
         spacesSetting.invalidate()
-        AppSettings.resetSessionSpecificSettings()
+        appSettings.resetSessionSpecificSettings()
         
         gate.release(.failure(.forbiddenAccess))
         _ = await write.value
-        XCTAssertFalse(appSettings.spacesEnabled)
+        #expect(!appSettings.spacesEnabled)
         
         clientProxy.accountDataTypeReturnValue = .success(#"{"enabled":true}"#)
         await spacesSetting.refresh()
-        XCTAssertFalse(appSettings.spacesEnabled)
+        #expect(!appSettings.spacesEnabled)
     }
     
-    func testTheSwitchSurvivesAnAppRestart() async {
+    @Test
+    func theSwitchSurvivesAnAppRestart() async {
         await spacesSetting.setEnabled(true)
         
-        XCTAssertTrue(AppSettings().spacesEnabled, "A new AppSettings instance reads the persisted device copy.")
+        #expect(AppSettings(store: store).spacesEnabled, "A new AppSettings instance reads the persisted device copy.")
     }
     
-    func testTurningSpacesOffOnlyWritesThePreference() async {
+    @Test
+    func turningSpacesOffOnlyWritesThePreference() async {
         appSettings.spacesEnabled = true
         
         await spacesSetting.setEnabled(false)
         
-        XCTAssertFalse(appSettings.spacesEnabled)
-        XCTAssertEqual(clientProxy.setAccountDataTypeContentReceivedArguments?.type, SpacesSetting.accountDataType)
-        XCTAssertEqual(clientProxy.setAccountDataTypeContentReceivedArguments?.content, #"{"enabled":false}"#)
-        XCTAssertFalse(clientProxy.joinRoomViaCalled)
-        XCTAssertFalse(clientProxy.joinRoomAliasCalled)
+        #expect(!appSettings.spacesEnabled)
+        #expect(clientProxy.setAccountDataTypeContentReceivedArguments?.type == SpacesSetting.accountDataType)
+        #expect(clientProxy.setAccountDataTypeContentReceivedArguments?.content == #"{"enabled":false}"#)
+        #expect(!clientProxy.joinRoomViaCalled)
+        #expect(!clientProxy.joinRoomAliasCalled)
     }
     
-    func testSignOutResetsTheDeviceCopy() {
+    @Test
+    func signOutResetsTheDeviceCopy() {
         appSettings.spacesEnabled = true
-
-        AppSettings.resetSessionSpecificSettings()
-
-        XCTAssertFalse(appSettings.spacesEnabled)
+        
+        appSettings.resetSessionSpecificSettings()
+        
+        #expect(!appSettings.spacesEnabled)
     }
     
     private func joinASpace() {
@@ -355,23 +376,25 @@ class SpacesSettingTests: XCTestCase {
 
 @MainActor
 private final class SpacesReadGate {
-    private var waiting: [CheckedContinuation<[SpaceRoomProxyProtocol], Never>] = []
-
-    func read() async -> [SpaceRoomProxyProtocol] {
+    private var waiting: [CheckedContinuation<[SpaceServiceRoom], Never>] = []
+    
+    func read() async -> [SpaceServiceRoom] {
         await withCheckedContinuation { waiting.append($0) }
     }
-
-    func waitForReaders(_ count: Int, file: StaticString = #filePath, line: UInt = #line) async {
+    
+    func waitForReaders(_ count: Int, sourceLocation: SourceLocation = #_sourceLocation) async {
         for _ in 0..<1000 {
-            if waiting.count >= count { return }
+            if waiting.count >= count {
+                return
+            }
             await Task.yield()
         }
-        XCTFail("Expected \(count) pending reads, found \(waiting.count)", file: file, line: line)
+        Issue.record("Expected \(count) pending reads, found \(waiting.count)", sourceLocation: sourceLocation)
     }
-
-    func release(_ spaces: [SpaceRoomProxyProtocol], file: StaticString = #filePath, line: UInt = #line) {
+    
+    func release(_ spaces: [SpaceServiceRoom], sourceLocation: SourceLocation = #_sourceLocation) {
         guard !waiting.isEmpty else {
-            XCTFail("No membership read is waiting to be released.", file: file, line: line)
+            Issue.record("No membership read is waiting to be released.", sourceLocation: sourceLocation)
             return
         }
         waiting.removeFirst().resume(returning: spaces)
@@ -381,22 +404,24 @@ private final class SpacesReadGate {
 @MainActor
 private final class WriteGate {
     private var waiting: [CheckedContinuation<Result<Void, ClientProxyError>, Never>] = []
-
+    
     func write() async -> Result<Void, ClientProxyError> {
         await withCheckedContinuation { waiting.append($0) }
     }
-
-    func waitForWriters(_ count: Int, file: StaticString = #filePath, line: UInt = #line) async {
+    
+    func waitForWriters(_ count: Int, sourceLocation: SourceLocation = #_sourceLocation) async {
         for _ in 0..<1000 {
-            if waiting.count >= count { return }
+            if waiting.count >= count {
+                return
+            }
             await Task.yield()
         }
-        XCTFail("Expected \(count) pending writes, found \(waiting.count)", file: file, line: line)
+        Issue.record("Expected \(count) pending writes, found \(waiting.count)", sourceLocation: sourceLocation)
     }
-
-    func release(_ result: Result<Void, ClientProxyError> = .success(()), file: StaticString = #filePath, line: UInt = #line) {
+    
+    func release(_ result: Result<Void, ClientProxyError> = .success(()), sourceLocation: SourceLocation = #_sourceLocation) {
         guard !waiting.isEmpty else {
-            XCTFail("No write is waiting to be released.", file: file, line: line)
+            Issue.record("No write is waiting to be released.", sourceLocation: sourceLocation)
             return
         }
         waiting.removeFirst().resume(returning: result)

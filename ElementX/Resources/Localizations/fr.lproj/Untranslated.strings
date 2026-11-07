@@ -10,6 +10,12 @@
 "gua_encryption_reset_required_action" = "Réinitialiser et terminer";
 "gua_signout_last_device_title" = "Se déconnecter supprimera vos messages de cet appareil";
 "gua_signout_last_device_message" = "Les messages conservés uniquement ici ne seront plus disponibles à votre prochaine connexion.";
+"gua_settings_sign_out" = "Se déconnecter";
+"gua_signout_confirmation_message" = "Êtes-vous sûr de vouloir vous déconnecter ?";
+"gua_signout_key_backup_ongoing_subtitle" = "Veuillez attendre que cela se termine avant de vous déconnecter.";
+"gua_signout_key_backup_offline_subtitle" = "Vos clés étaient en cours de sauvegarde lorsque vous avez perdu la connexion au réseau. Il faudrait rétablir cette connexion afin de pouvoir terminer la sauvegarde avant de vous déconnecter.";
+"gua_app_lock_signout_alert_title" = "Vous allez être déconnecté";
+"gua_signing_out" = "Déconnexion";
 "gua_encryption_reset_finishing" = "Finalisation de la configuration…";
 "gua_encryption_reset_failed" = "Impossible de terminer la configuration. Veuillez réessayer.";
 "gua_encryption_recover_from_other_device_title" = "Restaurez vos messages précédents";
@@ -73,12 +79,15 @@
 
 "gua_action_select" = "Sélectionner";
 "gua_action_more" = "Plus";
+"gua_action_open_in_new_window" = "Ouvrir dans une nouvelle fenêtre";
+"gua_common_global_search" = "Recherche globale";
 "gua_message_text_selection_title" = "Sélectionner le texte";
 
 "common_account_settings" = "Paramètres du compte";
 "common_app_settings" = "Paramètres de l’application";
 "action_manage_account_and_devices" = "Gérer le compte et les appareils";
 "action_delete_account" = "Supprimer le compte";
+"gua_action_delete" = "Supprimer";
 "common_media_upload_quality" = "Qualité d’envoi des médias";
 
 "common_moderation_and_safety" = "Modération & sécurité";
@@ -89,3 +98,6 @@
 "gua_join_space_turns_on_spaces" = "Ceci est un espace. En le rejoignant, vous activez les Espaces pour voir ses conversations.";
 
 "gua_settings_spaces_description" = "Regroupez les conversations et communautés liées en un seul endroit";
+
+"gua_notification_sound_default" = "Gua - défaut";
+"gua_notification_sound_fade" = "Gua - doux";

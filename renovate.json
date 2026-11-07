@@ -7,23 +7,41 @@
   "labels" : [
     "pr-misc"
   ],
+  "minimumReleaseAge": "7 days",
   "packageRules" : [
     {
       "matchManagers": ["github-actions"],
       "groupName" : "GitHub Actions"
     },
     {
+      "matchManagers": ["xcodegen"],
+      "groupName": "Project Dependencies",
+      "schedule": [
+          "every 2 weeks on wednesday before 4:00 am",
+      ]
+    },
+    {
+      "matchManagers": ["swift"],
+      "groupName" : "Tool Dependencies",
+      "schedule": [
+          "every 2 weeks on wednesday before 4:00 am",
+      ]
+    },
+    {
       "matchManagers": ["swift", "cocoapods"],
-      "groupName" : "Swift"
+      "matchFileNames": ["compound-ios/Package.swift"],
+      "groupName": "Compound Dependencies",
+      "schedule": [
+          "every 2 weeks on wednesday before 4:00 am",
+      ]
     },
     {
-      "matchManagers": ["bundler"],
-      "groupName" : "Ruby"
+      "description": "Shared between Compound and the app, keep them in sync.",
+      "matchPackageNames": ["pointfreeco/swift-snapshot-testing", "https://github.com/pointfreeco/swift-snapshot-testing"],
+      "groupName": "Shared Dependencies",
+      "schedule": [
+          "every 2 weeks on wednesday before 4:00 am",
+      ]
     },
-    {
-      "matchPackageNames": ["codecov/codecov-action"],
-      "allowedVersions": "^3.0.0"
-    }
   ]
 }
-

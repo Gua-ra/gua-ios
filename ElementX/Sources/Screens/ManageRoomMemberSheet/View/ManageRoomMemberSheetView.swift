@@ -1,7 +1,8 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -17,13 +18,17 @@ struct ManageRoomMemberSheetView: View {
             case .memberDetails(let member):
                 AvatarHeaderView(member: member,
                                  avatarSize: .user(on: .memberDetails),
-                                 mediaProvider: context.mediaProvider) {
+                                 mediaProvider: context.mediaProvider) { url in
+                    context.send(viewAction: .displayAvatar(url))
+                } footer: {
                     EmptyView()
                 }
             case .loadingMemberDetails(let sender):
                 AvatarHeaderView(sender: sender,
                                  avatarSize: .user(on: .memberDetails),
-                                 mediaProvider: context.mediaProvider) {
+                                 mediaProvider: context.mediaProvider) { url in
+                    context.send(viewAction: .displayAvatar(url))
+                } footer: {
                     EmptyView()
                 }
             }
@@ -38,7 +43,7 @@ struct ManageRoomMemberSheetView: View {
             }
             
             Section {
-                if context.viewState.permissions.canKick {
+                if context.viewState.permissions.canKick, !context.viewState.isMemberBanned {
                     ListRow(label: .default(title: L10n.screenBottomSheetManageRoomMemberRemove,
                                             icon: \.close,
                                             role: .destructive),
@@ -49,17 +54,24 @@ struct ManageRoomMemberSheetView: View {
                 }
                 
                 if context.viewState.permissions.canBan {
-                    let title = context.viewState.isMemberBanned ? L10n.screenBottomSheetManageRoomMemberUnban : L10n.screenBottomSheetManageRoomMemberBan
-                    let icon: KeyPath<CompoundIcons, Image> = context.viewState.isMemberBanned ? \.restart : \.block
-                    let action: ManageRoomMemberSheetViewAction = context.viewState.isMemberBanned ? .unban : .ban
-                    
-                    ListRow(label: .default(title: title,
-                                            icon: icon,
-                                            role: .destructive),
-                            kind: .button {
-                                context.send(viewAction: action)
-                            })
-                            .disabled(context.viewState.isBanUnbanDisabled)
+                    if !context.viewState.isMemberBanned {
+                        ListRow(label: .default(title: L10n.screenBottomSheetManageRoomMemberBan,
+                                                icon: \.block,
+                                                role: .destructive),
+                                kind: .button {
+                                    context.send(viewAction: .ban)
+                                })
+                                .disabled(context.viewState.isBanUnbanDisabled)
+                        // Kick permission is also needed to unban
+                    } else if context.viewState.permissions.canKick {
+                        ListRow(label: .default(title: L10n.screenBottomSheetManageRoomMemberUnban,
+                                                icon: \.restart,
+                                                role: .destructive),
+                                kind: .button {
+                                    context.send(viewAction: .unban)
+                                })
+                                .disabled(context.viewState.isBanUnbanDisabled)
+                    }
                 }
             }
         }
@@ -68,6 +80,7 @@ struct ManageRoomMemberSheetView: View {
         .presentationDragIndicator(.visible)
         .presentationDetents([.large, .fraction(0.67)]) // Maybe find a way to use the ideal height somehow?
         .alert(item: $context.alertInfo)
+        .interactiveQuickLook(item: $context.mediaPreviewItem, allowEditing: false)
     }
 }
 
@@ -80,7 +93,7 @@ struct ManageRoomMemberSheetView_Previews: PreviewProvider, TestablePreview {
     
     static let banOnlyViewModel = ManageRoomMemberSheetViewModel.mock(canKick: false)
     
-    static let unbanOnlyViewModel = ManageRoomMemberSheetViewModel.mock(canKick: false, memberIsBanned: true)
+    static let unbanOnlyViewModel = ManageRoomMemberSheetViewModel.mock(canKick: true, memberIsBanned: true)
     
     static var previews: some View {
         ManageRoomMemberSheetView(context: allActionsViewModel.context)
@@ -112,7 +125,7 @@ private extension ManageRoomMemberSheetViewModel {
                                                                  ownPowerLevel: powerLevel),
                                               roomProxy: JoinedRoomProxyMock(.init()),
                                               userIndicatorController: UserIndicatorControllerMock(),
-                                              analyticsService: ServiceLocator.shared.analytics,
-                                              mediaProvider: MediaProviderMock(configuration: .init()))
+                                              analyticsService: AnalyticsServiceMock(.init()),
+                                              mediaProvider: MediaProviderMock(.init()))
     }
 }

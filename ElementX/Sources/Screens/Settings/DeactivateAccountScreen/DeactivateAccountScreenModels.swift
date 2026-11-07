@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -41,17 +42,17 @@ struct DeactivateAccountScreenViewState: BindableState {
     let infoPoint2 = AttributedString(L10n.screenDeactivateAccountListItem2)
     let infoPoint3 = AttributedString(L10n.screenDeactivateAccountListItem3)
     let infoPoint4 = AttributedString(L10n.screenDeactivateAccountListItem4)
-
+    
     /// True only when the identity-service client is configured. When false we fall back to the
     /// SDK's legacy password flow (preserved for development environments without a backend).
     let identityServiceAvailable: Bool
-
+    
     var reauthPhase: DeactivateAccountReauthPhase = .idle
     var bindings = DeactivateAccountScreenViewStateBindings()
     
     init(identityServiceAvailable: Bool = false) {
         self.identityServiceAvailable = identityServiceAvailable
-
+        
         let boldPlaceholder = "{bold}"
         var attributedString = AttributedString(L10n.screenDeactivateAccountDescription(boldPlaceholder))
         var boldString = AttributedString(L10n.screenDeactivateAccountDescriptionBoldPart)

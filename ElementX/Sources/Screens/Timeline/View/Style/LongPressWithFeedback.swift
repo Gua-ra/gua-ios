@@ -1,13 +1,15 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import SwiftUI
 
 struct LongPressWithFeedback: ViewModifier {
+    let isEnabled: Bool
     let action: () -> Void
     
     @State private var triggerTask: Task<Void, Never>?
@@ -15,26 +17,19 @@ struct LongPressWithFeedback: ViewModifier {
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .heavy)
     
     func body(content: Content) -> some View {
-        if #available(iOS 18, *) {
-            mainContent(content: content)
-                .gesture(LongPressGestureRepresentable { gesture in
-                    switch gesture.state {
-                    case .began:
-                        handleLongPress(isPressing: true)
-                    case .ended, .cancelled, .failed:
-                        handleLongPress(isPressing: false)
-                    case .possible, .changed:
-                        break
-                    @unknown default:
-                        break
-                    }
-                })
-        } else {
-            mainContent(content: content)
-                .onLongPressGesture(minimumDuration: 0.25) { } onPressingChanged: { isPressing in
-                    handleLongPress(isPressing: isPressing)
+        mainContent(content: content)
+            .gesture(LongPressGestureRepresentable(isEnabled: isEnabled) { gesture in
+                switch gesture.state {
+                case .began:
+                    handleLongPress(isPressing: true)
+                case .ended, .cancelled, .failed:
+                    handleLongPress(isPressing: false)
+                case .possible, .changed:
+                    break
+                @unknown default:
+                    break
                 }
-        }
+            })
     }
     
     /// The gesture's minimum duration doesn't actually invoke the perform block when elapsed (thus
@@ -75,8 +70,10 @@ struct LongPressWithFeedback: ViewModifier {
 }
 
 extension View {
-    func longPressWithFeedback(action: @escaping () -> Void) -> some View {
-        modifier(LongPressWithFeedback(action: action))
+    /// Adds a long press gesture with scale and haptic feedback. Pass `isEnabled: false` to
+    /// disable the recogniser entirely, so that neither the feedback nor the action fire.
+    func longPressWithFeedback(isEnabled: Bool = true, action: @escaping () -> Void) -> some View {
+        modifier(LongPressWithFeedback(isEnabled: isEnabled, action: action))
     }
 }
 
@@ -90,7 +87,7 @@ struct LongPressWithFeedback_Previews: PreviewProvider, TestablePreview {
         @State private var isPresentingSheet = false
         
         var body: some View {
-            NavigationStack {
+            ElementNavigationStack {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 8) {
                         mockBubble("This is a message from somebody with a couple of lines of text.")
@@ -132,8 +129,8 @@ struct LongPressWithFeedback_Previews: PreviewProvider, TestablePreview {
 
 /// Fixes the issue on iOS 18 where LongPress conflicts with the scroll view
 /// https://github.com/feedback-assistant/reports/issues/542#issuecomment-2581322968
-@available(iOS 18, *)
 private struct LongPressGestureRepresentable: UIGestureRecognizerRepresentable {
+    var isEnabled: Bool
     var handle: (UILongPressGestureRecognizer) -> Void
     
     func makeCoordinator(converter: CoordinateSpaceConverter) -> Coordinator {
@@ -144,8 +141,12 @@ private struct LongPressGestureRepresentable: UIGestureRecognizerRepresentable {
         let gesture = UILongPressGestureRecognizer()
         gesture.minimumPressDuration = 0.25
         gesture.delegate = context.coordinator
-        gesture.isEnabled = true
+        gesture.isEnabled = isEnabled
         return gesture
+    }
+    
+    func updateUIGestureRecognizer(_ recognizer: UILongPressGestureRecognizer, context: Context) {
+        recognizer.isEnabled = isEnabled
     }
     
     func handleUIGestureRecognizerAction(_ recognizer: UILongPressGestureRecognizer, context: Context) {

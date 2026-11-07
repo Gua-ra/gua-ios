@@ -1,4 +1,5 @@
 //
+// Copyright 2025 Element Creations Ltd.
 // Copyright 2025 New Vector Ltd.
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
@@ -12,8 +13,12 @@ import SwiftUI
 class AccessibilityTestsAppCoordinator: AppCoordinatorProtocol {
     var windowManager: any SecureWindowManagerProtocol
     
-    func handleDeepLink(_ url: URL, isExternalURL: Bool) -> Bool {
+    func handleDeepLink(_ url: URL, isExternalURL: Bool, windowType: SecondaryWindowType?) -> Bool {
         fatalError("Not implemented")
+    }
+    
+    func handleAppRoute(_ appRoute: AppRoute, windowType: SecondaryWindowType?) {
+        fatalError("Not implemented.")
     }
     
     func handlePotentialPhishingAttempt(url: URL, openURLAction: @escaping (URL) -> Void) -> Bool {
@@ -34,17 +39,6 @@ class AccessibilityTestsAppCoordinator: AppCoordinatorProtocol {
         UIView.setAnimationsEnabled(false)
         
         MXLog.configure(currentTarget: "accessibility-tests")
-        
-        ServiceLocator.shared.register(userIndicatorController: UserIndicatorController())
-        
-        AppSettings.configureWithSuiteName("io.element.elementx.accessibilitytests")
-        AppSettings.resetAllSettings()
-        ServiceLocator.shared.register(appSettings: AppSettings())
-        
-        let analyticsClient = AnalyticsClientMock()
-        analyticsClient.isRunning = false
-        ServiceLocator.shared.register(analytics: AnalyticsService(client: analyticsClient,
-                                                                   appSettings: ServiceLocator.shared.settings))
         
         guard let name = ProcessInfo.accessibilityViewID,
               let previewType = TestablePreviewsDictionary.dictionary[name] else {
@@ -103,9 +97,7 @@ struct PreviewsWrapperView: View {
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
     
     var body: some View {
-        if wrapper.currentIndex < 0 || wrapper.isDone {
-            EmptyView()
-        } else {
+        if wrapper.currentIndex >= 0, !wrapper.isDone {
             wrapper.currentPreview.content
                 .id("\(wrapper.previewName)-\(dynamicTypeSize)")
         }
@@ -122,6 +114,9 @@ struct PreviewsWrapperView: View {
     
     private(set) var isDone = false
     
+    /// On iOS 27, releasing an ImageRenderer that rendered a preview crashes SwiftUI, so keep them alive for the app's lifetime.
+    @ObservationIgnored private var imageRenderers = [AnyObject]()
+    
     var previewName: String {
         "\(name)-\(currentPreview.displayName ?? String(currentIndex))"
     }
@@ -131,7 +126,6 @@ struct PreviewsWrapperView: View {
         self.previews = previews
     }
     
-    @MainActor
     func updateCurrentIndex() async {
         let newIndex = currentIndex + 1
         guard newIndex < previews.count else {
@@ -145,17 +139,28 @@ struct PreviewsWrapperView: View {
         // Render an image of the view in order to trigger the preference updates to occur.
         let imageRenderer = ImageRenderer(content: preferenceReadingView)
         _ = imageRenderer.uiImage
+        imageRenderers.append(imageRenderer)
         
         switch fulfillmentSource {
         case .publisher(let publisher):
-            _ = await publisher
-                // Not sure whye byt some publisher seem to not properly comunicate their completion,
-                // so we added a timeout. Since we are going to migrate from publishers to stream,
-                // this is a temporary solution
+            // Not sure why but some publishers seem to not properly communicate their completion,
+            // so we added a timeout. Since we are going to migrate from publishers to streams,
+            // this is a temporary solution
+            var iterator = publisher
+                .subscribe(on: DispatchQueue.main)
                 .timeout(.seconds(1), scheduler: DispatchQueue.main)
-                .values.first { $0 == true }
-        case .stream(let stream):
-            _ = await stream.first { $0 == true }
+                .values
+                .makeAsyncIterator()
+            while let value = await iterator.next(isolation: #isolation), value == false { }
+        case .sequence(let sequence):
+            // Mirror the publisher timeout above so a preview expecting a state that never
+            // arrives (e.g. a transient one that already expired) doesn't hang the suite.
+            let task = Task {
+                var iterator = sequence.makeAsyncIterator()
+                while let value = await iterator.next(isolation: #isolation), value == false { }
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { task.cancel() }
+            await task.value
         case .none:
             break
         }

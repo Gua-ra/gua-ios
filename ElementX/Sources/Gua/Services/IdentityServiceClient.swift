@@ -74,7 +74,7 @@ enum IdentityServiceError: Error, LocalizedError {
     case server(status: Int, message: String?)
     case transport(Error)
     case decoding(Error)
-
+    
     /// The server's `message` is English, so it is logged and never shown.
     var errorDescription: String? {
         switch self {
@@ -84,11 +84,15 @@ enum IdentityServiceError: Error, LocalizedError {
         case let .pinLocked(retry):
             if let retry, retry > 0 {
                 UntranslatedL10n.guaPinLockedRetry(IdentityServiceError.humanReadableDuration(seconds: retry))
-            } else { L10n.screenTwoStepVerificationLocked }
+            } else {
+                L10n.screenTwoStepVerificationLocked
+            }
         case let .pinChangeCooldown(retry):
             if let retry, retry > 0 {
                 UntranslatedL10n.guaPinChangeCooldownRetry(IdentityServiceError.humanReadableDuration(seconds: retry))
-            } else { L10n.screenTwoStepVerificationCooldown }
+            } else {
+                L10n.screenTwoStepVerificationCooldown
+            }
         case .pinChangeChallengeInvalid, .phoneChangeChallengeInvalid: UntranslatedL10n.guaFlowExpired
         case .stepUpRequired: UntranslatedL10n.guaStepUpRequired
         case .passkeyStepUpUnavailable: UntranslatedL10n.guaPasskeyUnavailable
@@ -96,7 +100,9 @@ enum IdentityServiceError: Error, LocalizedError {
         case let .twoFactorCooldown(retry), let .phoneChangeCooldown(retry):
             if let retry, retry > 0 {
                 L10n.screenChangePhoneCooldownMessage(IdentityServiceError.humanReadableDuration(seconds: retry))
-            } else { L10n.screenChangePhoneCooldownMessageGeneric }
+            } else {
+                L10n.screenChangePhoneCooldownMessageGeneric
+            }
         case .invalidReauthToken: UntranslatedL10n.guaReauthExpired
         case .phoneAlreadyLinked: L10n.screenChangePhoneAlreadyLinked
         case .reauthPhoneMismatch: L10n.screenAccountReauthPhoneMismatch
@@ -109,7 +115,7 @@ enum IdentityServiceError: Error, LocalizedError {
             L10n.errorUnknown
         }
     }
-
+    
     /// Rounds up so the reader is never told to retry early.
     static func humanReadableDuration(seconds: Int) -> String {
         let seconds = max(0, seconds)
@@ -227,7 +233,7 @@ struct ContactMatch: Equatable, Identifiable {
     let userId: String
     let username: String?
     let displayName: String?
-
+    
     var id: String {
         userId
     }
@@ -238,22 +244,22 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
     private let session: URLSession
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
-
+    
     init(baseURL: URL, session: URLSession = .shared) {
         self.baseURL = baseURL
         self.session = session
         decoder = JSONDecoder()
         encoder = JSONEncoder()
     }
-
+    
     /// Convenience initializer using the active `GuaDeployment`'s identity-service URL.
     convenience init?() {
         guard let url = GuaDeployment.current.identityServiceBaseURL else { return nil }
         self.init(baseURL: url)
     }
-
+    
     // MARK: - Contact discovery
-
+    
     func lookupContacts(accessToken: String, phones: [String]) async throws -> [ContactMatch] {
         struct Body: Encodable { let phones: [String] }
         struct Response: Decodable {
@@ -263,7 +269,7 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
                 let username: String?
                 let displayName: String?
             }
-
+            
             let matches: [Match]
         }
         let (data, _) = try await sendAuthenticated(path: "/directory/lookup",
@@ -280,9 +286,9 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
             throw IdentityServiceError.decoding(error)
         }
     }
-
+    
     // MARK: - Account reauthentication
-
+    
     func startAccountReauth(accessToken: String, phone: String, language: String?) async throws {
         struct Body: Encodable { let phone: String }
         try await sendAuthenticated(path: "/account/reauth/start",
@@ -291,7 +297,7 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
                                     language: language,
                                     expectsBody: false)
     }
-
+    
     func verifyAccountReauth(accessToken: String, phone: String, code: String, operation: ReauthOperation) async throws -> String {
         struct Body: Encodable { let phone: String; let code: String; let operation: String }
         struct Response: Decodable { let reauthToken: String; let expiresInSeconds: Int }
@@ -306,7 +312,7 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
             throw IdentityServiceError.decoding(error)
         }
     }
-
+    
     func deactivateAccount(accessToken: String, reauthToken: String, eraseData: Bool) async throws {
         struct Body: Encodable { let reauthToken: String; let eraseData: Bool }
         try await sendAuthenticated(path: "/account/deactivate",
@@ -315,7 +321,7 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
                                     language: nil,
                                     expectsBody: false)
     }
-
+    
     func resetIdentityCredentials(accessToken: String, reauthToken: String) async throws -> IdentityResetCredentials {
         struct Body: Encodable { let reauthToken: String }
         struct Response: Decodable { let userId: String; let password: String }
@@ -331,9 +337,9 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
             throw IdentityServiceError.decoding(error)
         }
     }
-
+    
     // MARK: - Two-step verification (PIN)
-
+    
     func securityStatus(accessToken: String) async throws -> AccountSecurityStatus {
         struct Response: Decodable {
             let hasPin: Bool
@@ -384,7 +390,7 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
             throw IdentityServiceError.decoding(error)
         }
     }
-
+    
     /// An older deployment sends none of the recovery fields, which reads as nothing pending. The
     /// dates only mean something while a recovery is live, so they are dropped when it is not.
     private static func pendingAccountRecovery(pending: Bool?, completableAt: Int64?, expiresAt: Int64?) -> PendingAccountRecovery? {
@@ -392,7 +398,7 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         return PendingAccountRecovery(completableAt: completableAt.map { Date(timeIntervalSince1970: TimeInterval($0)) },
                                       expiresAt: expiresAt.map { Date(timeIntervalSince1970: TimeInterval($0)) })
     }
-
+    
     func startPinChange(accessToken: String,
                         phone: String,
                         currentPin: String?,
@@ -422,7 +428,7 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
             throw IdentityServiceError.decoding(error)
         }
     }
-
+    
     func completePinChange(accessToken: String, challengeId: String, otpCode: String, newPin: String) async throws {
         struct Body: Encodable {
             let challengeId: String
@@ -435,9 +441,9 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
                                     language: nil,
                                     expectsBody: false)
     }
-
+    
     // MARK: - Account recovery
-
+    
     func cancelAccountRecovery(accessToken: String) async throws {
         struct EmptyBody: Encodable { }
         try await sendAuthenticated(path: "/security/recovery/cancel",
@@ -446,9 +452,9 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
                                     language: nil,
                                     expectsBody: false)
     }
-
+    
     // MARK: - Change phone number
-
+    
     /// Mints a user-verifying passkey ceremony pinned to the authenticated caller
     /// (`POST /security/passkey/stepup/options`), whose assertion settles the phone-change step-up
     /// on its own.
@@ -461,12 +467,12 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         struct Response: Decodable {
             let stepUpId: String
             let publicKey: PublicKey
-
+            
             struct PublicKey: Decodable {
                 let challenge: String
                 let rpId: String?
                 let allowCredentials: [Descriptor]?
-
+                
                 struct Descriptor: Decodable {
                     let id: String
                 }
@@ -497,7 +503,7 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
                                     challenge: challenge,
                                     allowedCredentialIDs: allowed)
     }
-
+    
     /// Starts the change (`POST /account/phone/change/start`): spends the PHONE_CHANGE-scoped reauth
     /// token together with the step-up factor, and only then texts the NEW number, returning the
     /// challenge to redeem. The ordering is the server's and matters: no SMS reaches the new number
@@ -542,7 +548,7 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
             throw IdentityServiceError.decoding(error)
         }
     }
-
+    
     /// Redeems the challenge with the OTP delivered to the new number
     /// (`POST /account/phone/change/complete`). The server swaps the mapping atomically and revokes
     /// the outstanding sessions. 204 on success.
@@ -557,21 +563,21 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
                                     language: nil,
                                     expectsBody: false)
     }
-
+    
     // MARK: - Factor enrollment
-
+    
     func startPasskeyEnrollment(accessToken: String, redirectURI: String?) async throws -> URL {
         try await startFactorEnrollment(path: "/security/passkey/enroll/start",
                                         accessToken: accessToken,
                                         redirectURI: redirectURI)
     }
-
+    
     func startPinEnrollment(accessToken: String, redirectURI: String?) async throws -> URL {
         try await startFactorEnrollment(path: "/security/pin/enroll/start",
                                         accessToken: accessToken,
                                         redirectURI: redirectURI)
     }
-
+    
     /// Both enrollments answer the same way: a one-time URL on the sign-in origin, opened in an
     /// authenticated web view, which is where the account is confirmed before anything is stored.
     ///
@@ -591,7 +597,7 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
             return try await requestEnrollmentURL(path: path, accessToken: accessToken, redirectURI: nil)
         }
     }
-
+    
     private func requestEnrollmentURL(path: String, accessToken: String, redirectURI: String?) async throws -> URL {
         struct Body: Encodable { let redirectUri: String? }
         struct Response: Decodable { let enrollUrl: String }
@@ -612,9 +618,9 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
             throw IdentityServiceError.decoding(error)
         }
     }
-
+    
     // MARK: - Account genesis
-
+    
     func registerAccountGenesis(genesis: String, proof: String) async throws -> AccountGenesisRegistrationResponse {
         struct Body: Encodable {
             let genesis: String
@@ -625,7 +631,7 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
             let attachHandle: String
             let expiresAt: Date
         }
-
+        
         guard let url = URL(string: "/account/genesis", relativeTo: baseURL) else {
             throw IdentityServiceError.invalidURL
         }
@@ -638,7 +644,7 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         } catch {
             throw IdentityServiceError.transport(error)
         }
-
+        
         let data: Data
         let response: URLResponse
         do {
@@ -659,7 +665,7 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
             throw IdentityServiceError.server(status: httpResponse.statusCode,
                                               message: errorBody?.message ?? errorBody?.error)
         }
-
+        
         do {
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
@@ -671,7 +677,7 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
             throw IdentityServiceError.decoding(error)
         }
     }
-
+    
     @discardableResult
     private func sendAuthenticated(path: String,
                                    accessToken: String,
@@ -702,7 +708,7 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         guard let httpResponse = response as? HTTPURLResponse else {
             throw IdentityServiceError.server(status: -1, message: "Non-HTTP response.")
         }
-
+        
         switch httpResponse.statusCode {
         case 200, 202, 204:
             return (data, httpResponse)
@@ -713,7 +719,7 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
                                    path: path)
         }
     }
-
+    
     /// Turns a refusal into the typed error the screens branch on.
     ///
     /// The mapping is by error code rather than by status, because the code is what the server
@@ -733,7 +739,7 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         }
         return .server(status: status, message: body?.message ?? body?.errorDescription ?? body?.error)
     }
-
+    
     /// Everything that means "the passkey path is not available to this caller right now". All of
     /// it falls back to the next factor rather than ending the operation, which is why a refused
     /// assertion and an account with no credential land in the same place.
@@ -748,7 +754,7 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
             return status == 404 && path.hasPrefix("/security/passkey/") ? .passkeyStepUpUnavailable : nil
         }
     }
-
+    
     /// The refusals that expire on their own. They are kept apart because waiting out one of them
     /// does nothing for the others.
     private static func waitError(code: String?, retryAfterSeconds: Int?) -> IdentityServiceError? {
@@ -760,7 +766,7 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         default: nil
         }
     }
-
+    
     /// Wrong, missing or spent proofs, and the one refusal that ends the operation outright.
     ///
     /// The mismatch drops the server's message. That message is one fixed English sentence, so
@@ -784,16 +790,16 @@ final class IdentityServiceClient: IdentityServiceClientProtocol, AccountGenesis
         default: nil
         }
     }
-
+    
     // MARK: - Private
-
+    
     private struct ErrorBody: Decodable {
         let code: String?
         let message: String?
         let error: String?
         let errorDescription: String?
         let retryAfterSeconds: Int?
-
+        
         enum CodingKeys: String, CodingKey {
             case code
             case message

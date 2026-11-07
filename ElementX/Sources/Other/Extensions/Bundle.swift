@@ -1,13 +1,15 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Foundation
+import Synchronization
 
-public extension Bundle {
+public nonisolated extension Bundle {
     /// The top-level bundle that contains the entire app.
     static var app: Bundle {
         var bundle = Bundle.main
@@ -23,11 +25,11 @@ public extension Bundle {
     
     // MARK: - Localisation
     
-    /// Overrides `Bundle.app.preferredLocalizations` for testing translations.
-    static var overrideLocalizations: [String]?
+    /// Overrides `Bundle.app.preferredLocalizations` for testing translations since this is
+    /// only for testing, and is changed at runtime only in tests, it's fine to keep as `nonisolated(unsafe)`
+    nonisolated(unsafe) static var overrideLocalizations: [String]?
     
-    private static let cacheDispatchQueue = DispatchQueue(label: "io.element.elementx.localization_bundle_cache")
-    private static var cachedBundles = [String: Bundle]()
+    private static let cachedBundles = Mutex<[String: Bundle]>([:])
     
     /// Get an lproj language bundle from the receiver bundle.
     /// - Parameter language: The language to try to load.
@@ -51,17 +53,10 @@ public extension Bundle {
     // MARK: - Private
     
     private static func cacheValue(_ value: Bundle?, forKey key: String) {
-        cacheDispatchQueue.sync {
-            cachedBundles[key] = value
-        }
+        cachedBundles.withLock { $0[key] = value }
     }
     
     private static func cachedValue(forKey key: String) -> Bundle? {
-        var result: Bundle?
-        cacheDispatchQueue.sync {
-            result = cachedBundles[key]
-        }
-        
-        return result
+        cachedBundles.withLock { $0[key] }
     }
 }

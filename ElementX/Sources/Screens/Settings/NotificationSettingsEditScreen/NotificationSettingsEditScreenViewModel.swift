@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -17,9 +18,7 @@ class NotificationSettingsEditScreenViewModel: NotificationSettingsEditScreenVie
     private let userSession: UserSessionProtocol
     private let roomSummaryProvider: RoomSummaryProviderProtocol?
     
-    // periphery:ignore - cancellable tasks get cancelled when reassigned
     @CancellableTask private var fetchDefaultRoomNotificationModesTask: Task<Void, Error>?
-    // periphery:ignore - cancellable tasks get cancelled when reassigned
     @CancellableTask private var updateRoomsWithUserDefinedModeTask: Task<Void, Error>?
     
     var actions: AnyPublisher<NotificationSettingsEditScreenViewModelAction, Never> {
@@ -167,7 +166,7 @@ class NotificationSettingsEditScreenViewModel: NotificationSettingsEditScreenVie
             roomNotificationModeProxy = .mentionsAndKeywordsOnly
         }
         state.pendingMode = mode
-        Task {
+        Task { [self] in
             do {
                 // On modern clients, we don't have different settings for encrypted and non-encrypted rooms.
                 let isOneToOne = chatType == .oneToOneChat

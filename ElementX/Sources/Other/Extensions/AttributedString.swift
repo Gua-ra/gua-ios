@@ -1,21 +1,27 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Foundation
 
-extension AttributedString {
+nonisolated extension AttributedString {
     /// faster than doing `String(characters)`: https://forums.swift.org/t/attributedstring-to-string/61667
     var string: String {
         String(characters[...])
     }
     
     var formattedComponents: [AttributedStringBuilderComponent] {
-        runs[\.blockquote].map { value, range in
-            var attributedString = AttributedString(self[range])
+        var components = [AttributedStringBuilderComponent]()
+        
+        for run in runs[\.blockquote, \.codeBlock, \.details] {
+            let isBlockquote = run.0 != nil
+            let isCodeBlock = run.1 != nil
+            let details = run.2
+            var attributedString = AttributedString(self[run.3])
             
             // Remove trailing new lines if any
             if attributedString.characters.last?.isNewline ?? false,
@@ -23,22 +29,24 @@ extension AttributedString {
                 attributedString.removeSubrange(range)
             }
             
-            let isBlockquote = value != nil
+            let componentType: AttributedStringBuilderComponent.ComponentType = switch (details, isBlockquote, isCodeBlock) {
+            case (.some(let summary), _, _):
+                .details(summary: summary)
+            case (_, true, _):
+                .blockquote
+            case (_, false, true):
+                .codeBlock
+            case (_, false, false):
+                .plainText
+            }
             
-            return AttributedStringBuilderComponent(id: String(attributedString.characters), attributedString: attributedString, isBlockquote: isBlockquote)
+            // Hash attributes as well as characters so formatting-only edits change the ID and refresh the view.
+            components.append(AttributedStringBuilderComponent(id: String(attributedString.hashValue),
+                                                               attributedString: attributedString,
+                                                               type: componentType))
         }
-    }
-    
-    /// Replaces the specified placeholder with a string that links to the specified URL.
-    /// - Parameters:
-    ///   - linkPlaceholder: The text in the string that will be replaced. Make sure this is unique within the string.
-    ///   - string: The text for the link that will be substituted into the placeholder.
-    ///   - url: The URL that the link should open.
-    mutating func replace(_ linkPlaceholder: String, with string: String, asLinkTo url: URL) {
-        // Replace the placeholder with a link.
-        var replacement = AttributedString(string)
-        replacement.link = url
-        replace(linkPlaceholder, with: replacement)
+        
+        return components
     }
     
     /// Replaces the specified placeholder with the supplied attributed string.

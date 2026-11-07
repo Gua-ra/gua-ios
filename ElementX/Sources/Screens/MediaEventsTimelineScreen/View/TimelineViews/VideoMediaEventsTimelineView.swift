@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -13,15 +14,23 @@ struct VideoMediaEventsTimelineView: View {
     let timelineItem: VideoRoomTimelineItem
     
     var body: some View {
-        Color.clear // Let the image aspect fill in place
-            .aspectRatio(1, contentMode: .fill)
-            .overlay {
-                thumbnail
-            }
-            .clipped()
-            .overlay(alignment: .bottom) { overlay }
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(L10n.commonVideo)
+        ContentScanningView(contentScannerService: context?.contentScannerService,
+                            mediaSource: timelineItem.content.videoInfo.source,
+                            thumbnailSource: timelineItem.content.thumbnailInfo?.source) {
+            Color.clear // Let the image aspect fill in place
+                .aspectRatio(1, contentMode: .fill)
+                .overlay {
+                    thumbnail
+                }
+                .clipped()
+                .overlay(alignment: .bottom) { overlay }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(L10n.commonVideo)
+        } scanningContent: {
+            ScanningMediaEventsTimelineView()
+        } unsafeContent: { failure in
+            UnsafeMediaEventsTimelineView(failure: failure)
+        }
     }
     
     @ViewBuilder
@@ -76,7 +85,7 @@ struct VideoMediaEventsTimelineView_Previews: PreviewProvider, TestablePreview {
             .background(.black)
     }
     
-    private static func makeTimelineItem(caption: String? = nil, isEdited: Bool = false) -> VideoRoomTimelineItem {
+    private static func makeTimelineItem() -> VideoRoomTimelineItem {
         VideoRoomTimelineItem(id: .randomEvent,
                               timestamp: .mock,
                               isOutgoing: false,

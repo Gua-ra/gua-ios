@@ -1,11 +1,13 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Combine
+import ElementCall
 import Foundation
 import MatrixRustSDK
 
@@ -28,13 +30,19 @@ enum ClientProxyLoadingState {
     case notLoading
 }
 
+enum ClientProxyPresence: Equatable, Sendable {
+    case online
+    case unavailable
+    case offline
+}
+
 enum ClientProxyError: Error {
     case sdkError(Error)
     case forbiddenAccess
     
     case invalidMedia
     case invalidServerName
-    case invalidResponse
+    case invalidHomeserverURL
     case failedUploadingMedia(ErrorKind)
     case roomPreviewIsPrivate
     case failedRetrievingUserIdentity
@@ -47,16 +55,35 @@ enum SlidingSyncConstants {
     static let maximumVisibleRangeSize = 30
 }
 
+enum CreateRoomAccessType: Equatable {
+    case `public`
+    case spaceMembers(spaceID: String)
+    case askToJoinWithSpaceMembers(spaceID: String)
+    case askToJoin
+    case `private`
+    
+    var isVisibilityPrivate: Bool {
+        switch self {
+        case .private, .spaceMembers, .askToJoinWithSpaceMembers:
+            true
+        case .public, .askToJoin:
+            false
+        }
+    }
+}
+
 /// This struct represents the configuration that we are using to register the application through Pusher to Sygnal
 /// using the Matrix Rust SDK, more info here:
 /// https://github.com/matrix-org/sygnal
-struct PusherConfiguration {
+struct PusherConfiguration: Equatable {
     let identifiers: PusherIdentifiers
     let kind: PusherKind
     let appDisplayName: String
     let deviceDisplayName: String
     let profileTag: String?
     let lang: String
+    /// Whether to keep the pushers of the other accounts using the same pushkey on this device.
+    let append: Bool
 }
 
 enum SessionVerificationState {
@@ -72,6 +99,16 @@ enum TimelineMediaVisibility: Decodable {
     case never
 }
 
+/// Represents a server-echoed update about the current user's own beacon info state in a room.
+struct LiveLocationOwnInfoUpdate: Equatable {
+    /// The room where the beacon info event was sent.
+    let roomID: String
+    /// The event ID of the beacon info state event.
+    let eventID: String
+    /// Whether the beacon is currently active (live) or has been stopped.
+    let isLive: Bool
+}
+
 // sourcery: AutoMockable
 protocol ClientProxyProtocol: AnyObject {
     var actionsPublisher: AnyPublisher<ClientProxyAction, Never> { get }
@@ -80,26 +117,24 @@ protocol ClientProxyProtocol: AnyObject {
     
     var verificationStatePublisher: CurrentValuePublisher<SessionVerificationState, Never> { get }
     
-    var homeserverReachabilityPublisher: CurrentValuePublisher<NetworkMonitorReachability, Never> { get }
+    var homeserverReachabilityPublisher: CurrentValuePublisher<HomeserverReachability, Never> { get }
     
     var userID: String { get }
-
+    
     var deviceID: String? { get }
-
+    
     /// Current Matrix access token for the active session, if available. Used to authenticate
     /// requests to the Gua identity-service for privileged account operations (deactivate, etc.).
     var accessToken: String? { get }
-
+    
     var homeserver: String { get }
     
     var canDeactivateAccount: Bool { get }
     
     var userIDServerName: String? { get }
     
-    var userDisplayNamePublisher: CurrentValuePublisher<String?, Never> { get }
-
-    var userAvatarURLPublisher: CurrentValuePublisher<URL?, Never> { get }
-
+    var userProfilePublisher: CurrentValuePublisher<UserProfile, Never> { get }
+    
     /// We delay fetching this until after the first sync. Nil until then
     var ignoredUsersPublisher: CurrentValuePublisher<[String]?, Never> { get }
     
@@ -109,13 +144,18 @@ protocol ClientProxyProtocol: AnyObject {
     
     var pusherNotificationClientIdentifier: String? { get }
     
+    /// The total number of unread notifications across all joined, non-muted rooms, as computed by the SDK.
+    var totalUnreadNotifications: UInt64 { get }
+    
     var mediaLoader: MediaLoaderProtocol { get }
+    
+    var contentScanner: ContentScannerProxyProtocol? { get }
     
     var roomSummaryProvider: RoomSummaryProviderProtocol { get }
     
     /// Used for listing rooms that shouldn't be affected by the main `roomSummaryProvider` filtering
     /// But can still be filtered by queries, since this may be shared across multiple views, remember to reset
-    /// The filtering state when you are done with it
+    /// The filtering state when you are done with it. Only lists joined rooms.
     var alternateRoomSummaryProvider: RoomSummaryProviderProtocol { get }
     
     /// Used for listing rooms, can't be filtered nor its state observed
@@ -126,7 +166,7 @@ protocol ClientProxyProtocol: AnyObject {
     var notificationSettings: NotificationSettingsProxyProtocol { get }
     
     var secureBackupController: SecureBackupControllerProtocol { get }
-
+    
     /// GUA FORK: awaits the SDK's own end-to-end encryption initialisation, which provisions key
     /// backup on a fresh account.
     ///
@@ -141,36 +181,50 @@ protocol ClientProxyProtocol: AnyObject {
     
     var spaceService: SpaceServiceProxyProtocol { get }
     
-    var isReportRoomSupported: Bool { get async }
+    var searchService: SearchServiceProxyProtocol { get }
     
+    var capabilities: HomeserverCapabilitiesProxyProtocol { get }
+    
+    var isReportRoomSupported: Bool { get async }
     var isLiveKitRTCSupported: Bool { get async }
+    
+    /// Builds a Matrix transport for the call package, `nil` when not backed by a real SDK client.
+    func makeNativeCallTransport() -> ElementCallMatrixTransportProtocol?
+    
+    var isLoginWithQRCodeSupported: Bool { get async }
     
     var maxMediaUploadSize: Result<UInt, ClientProxyError> { get async }
     
     func isOnlyDeviceLeft() async -> Result<Bool, ClientProxyError>
     
-    func startSync()
-
-    func stopSync()
-
+    func hasDevicesToVerifyAgainst() async -> Result<Bool, ClientProxyError>
+    
     /// GUA FORK: returns once the sync has stopped; sync starts are suppressed until the guard is
     /// released. A call while a guard is held returns that guard.
     func acquireIdentityResetGuard() async -> IdentityResetGuardProtocol
     
-    func stopSync(completion: (() -> Void)?) // Hopefully this will become async once we get SE-0371.
+    func resumeServices() async
+    
+    func pauseServices() async
+    
+    func startSearchBackfill(strategy: SearchBackfillStrategy)
+    
+    func stopSearchBackfill()
+    
+    var isSearchBackfillRunning: Bool { get }
     
     func expireSyncSessions() async
-        
+    
     func accountURL(action: AccountManagementAction) async -> URL?
     
     func directRoomForUserID(_ userID: String) -> Result<String?, ClientProxyError>
     
     func createDirectRoom(with userID: String, expectedRoomName: String?) async -> Result<String, ClientProxyError>
     
-    func createRoom(name: String,
+    func createRoom(name: String?,
                     topic: String?,
-                    isRoomPrivate: Bool,
-                    isKnockingOnly: Bool,
+                    accessType: CreateRoomAccessType,
+                    isSpace: Bool,
                     userIDs: [String],
                     avatarURL: URL?,
                     aliasLocalPart: String?) async -> Result<String, ClientProxyError>
@@ -198,25 +252,32 @@ protocol ClientProxyProtocol: AnyObject {
     /// Will only work for rooms that are in our room list/local store
     func reportRoomForIdentifier(_ identifier: String, reason: String) async -> Result<Void, ClientProxyError>
     
-    @discardableResult func loadUserDisplayName() async -> Result<Void, ClientProxyError>
-    
+    /// Loads the user's own profile when the server doesn't support MSC4262 and both returns the profile
+    /// as well as publishing it via ``userProfilePublisher``.
+    ///
+    /// When the server does support the MSC, then the client automatically publishes profile and keeps it up to date.
+    @discardableResult func loadUserProfileIfNeeded() async -> Result<Void, ClientProxyError>
     func setUserDisplayName(_ name: String) async -> Result<Void, ClientProxyError>
-
-    @discardableResult func loadUserAvatarURL() async -> Result<Void, ClientProxyError>
-    
     func setUserAvatar(media: MediaInfo) async -> Result<Void, ClientProxyError>
-    
     func removeUserAvatar() async -> Result<Void, ClientProxyError>
-
-    func deactivateAccount(password: String?, eraseData: Bool) async -> Result<Void, ClientProxyError>
+    func isUserStatusSupported() async -> Result<Bool, ClientProxyError>
+    func setUserStatus(_ status: UserStatus.Raw) async -> Result<Void, ClientProxyError>
+    /// Removes both the `m.status` and `m.call` fields from the user's profile.
+    func clearUserStatus() async -> Result<Void, ClientProxyError>
+    
+    func linkNewDeviceService() -> LinkNewDeviceServiceProtocol
+    
+    func deactivateAccount(password: String, eraseData: Bool) async -> Result<Void, ClientProxyError>
     
     func logout() async
-
+    
     func setPusher(with configuration: PusherConfiguration) async throws
     
-    func searchUsers(searchTerm: String, limit: UInt) async -> Result<SearchUsersResultsProxy, ClientProxyError>
+    func deletePusher(with identifiers: PusherIdentifiers) async throws
     
-    func profile(for userID: String) async -> Result<UserProfileProxy, ClientProxyError>
+    func searchUsers(searchTerm: String, limit: UInt) async -> Result<SearchUsersResults, ClientProxyError>
+    
+    func profile(for userID: String) async -> Result<UserProfile, ClientProxyError>
     
     func roomDirectorySearchProxy() -> RoomDirectorySearchProxyProtocol
     
@@ -226,8 +287,14 @@ protocol ClientProxyProtocol: AnyObject {
     
     @discardableResult func clearCaches() async -> Result<Void, ClientProxyError>
     
+    @discardableResult func optimizeStores() async -> Result<Void, ClientProxyError>
+    
+    @discardableResult func markAllRoomsAsRead() async -> Result<Void, ClientProxyError>
+    
+    func storeSizes() async -> Result<StoreSizes, ClientProxyError>
+    
     func fetchMediaPreviewConfiguration() async -> Result<MediaPreviewConfig?, ClientProxyError>
-
+    
     func accountData(type: String) async -> Result<String?, ClientProxyError>
     
     func setAccountData(type: String, content: String) async -> Result<Void, ClientProxyError>
@@ -242,9 +309,10 @@ protocol ClientProxyProtocol: AnyObject {
     
     func trackRecentlyVisitedRoom(_ roomID: String) async -> Result<Void, ClientProxyError>
     
-    func recentlyVisitedRooms() async -> Result<[String], ClientProxyError>
-    
-    func recentConversationCounterparts() async -> [UserProfileProxy]
+    /// The identifiers of the rooms the user visited most recently, newest first.
+    func recentlyVisitedRoomIDs() async -> Result<[String], ClientProxyError>
+    func recentlyVisitedRooms(filter: @Sendable (JoinedRoomProxyProtocol) async -> Bool) async -> [JoinedRoomProxyProtocol]
+    func recentConversationCounterparts() async -> [UserProfile]
     
     // MARK: - Crypto
     
@@ -255,13 +323,21 @@ protocol ClientProxyProtocol: AnyObject {
     func withdrawUserIdentityVerification(_ userID: String) async -> Result<Void, ClientProxyError>
     func resetIdentity() async -> Result<IdentityResetHandle?, ClientProxyError>
     
-    func userIdentity(for userID: String) async -> Result<UserIdentityProxyProtocol?, ClientProxyError>
-    /// GUA FORK: whether another device of this account is signed by the current identity, i.e.
-    /// could hand this device its keys through a verification.
-    func hasDevicesToVerifyAgainst() async -> Result<Bool, ClientProxyError>
+    func userIdentity(for userID: String, fallBackToServer: Bool) async -> Result<UserIdentityProxyProtocol?, ClientProxyError>
+    
+    // MARK: - Live Location
+    
+    /// Publishes updates about the current user's own live location beacon info state changes (start/stop) as echoed by the server.
+    var liveLocationOwnInfoUpdatesPublisher: AnyPublisher<LiveLocationOwnInfoUpdate, Never> { get }
     
     // MARK: - Moderation & Safety
     
     func setTimelineMediaVisibility(_ value: TimelineMediaVisibility) async -> Result<Void, ClientProxyError>
     func setHideInviteAvatars(_ value: Bool) async -> Result<Void, ClientProxyError>
+    
+    // MARK: - Presence
+    
+    /// Configures the client-owned presence used by future sync requests and shared with clones and notification children.
+    /// When `sendImmediately` is `true` this also asks the SDK to send a direct presence update.
+    func configurePresence(_ presence: ClientProxyPresence, sendImmediately: Bool) async -> Result<Void, ClientProxyError>
 }

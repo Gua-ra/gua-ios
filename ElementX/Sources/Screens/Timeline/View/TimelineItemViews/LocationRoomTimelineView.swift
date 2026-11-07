@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -15,82 +16,53 @@ struct LocationRoomTimelineView: View {
         TimelineStyler(timelineItem: timelineItem) {
             mainContent
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel(accessibilityLabel)
+                .accessibilityLabel(L10n.commonSharedLocation)
                 .onTapGesture {
                     guard context.viewState.mapTilerConfiguration.isEnabled else { return }
                     context.send(viewAction: .mediaTapped(itemID: timelineItem.id))
                 }
         }
     }
-                                    
+    
     @ViewBuilder
     private var mainContent: some View {
         if let geoURI = timelineItem.content.geoURI {
-            VStack(alignment: .leading, spacing: 0) {
-                descriptionView
-                    .frame(maxWidth: mapAspectRatio * mapMaxHeight, alignment: .leading)
-                
-                MapLibreStaticMapView(geoURI: geoURI,
-                                      mapURLBuilder: context.viewState.mapTilerConfiguration,
-                                      mapSize: .init(width: mapAspectRatio * mapMaxHeight, height: mapMaxHeight)) {
-                    LocationMarkerView()
-                }
-                .frame(maxHeight: mapMaxHeight)
-                .aspectRatio(mapAspectRatio, contentMode: .fit)
-                .clipped()
+            MapLibreStaticMapView(geoURI: geoURI,
+                                  mapURLBuilder: context.viewState.mapTilerConfiguration,
+                                  mapSize: .init(width: mapAspectRatio * mapMaxHeight, height: mapMaxHeight)) {
+                LocationMarkerView(kind: timelineItem.content.kind == .sender ? .staticUser(.init(sender: timelineItem.sender)) : .pin,
+                                   mediaProvider: context.mediaProvider)
             }
+            .frame(maxHeight: mapMaxHeight)
+            .aspectRatio(mapAspectRatio, contentMode: .fit)
+            .clipped()
         } else {
-            FormattedBodyText(text: timelineItem.body, additionalWhitespacesCount: timelineItem.additionalWhitespaces())
+            FormattedBodyText(text: timelineItem.body,
+                              trailingReservedSize: timelineItem.trailingReservedSize)
         }
     }
-
+    
     // MARK: - Private
     
-    private var accessibilityLabel: String {
-        if let description = timelineItem.content.description {
-            return "\(L10n.commonSharedLocation), \(description)"
-        }
-        
-        return L10n.commonSharedLocation
-    }
-
-    @ViewBuilder
-    private var descriptionView: some View {
-        if let description = timelineItem.content.description, !description.isEmpty {
-            FormattedBodyText(text: description)
-                .padding(8)
-        }
-    }
-
     private let mapAspectRatio: Double = 3 / 2
     private let mapMaxHeight: Double = 300
 }
 
-private extension MapLibreStaticMapView {
-    init(geoURI: GeoURI, mapURLBuilder: MapTilerURLBuilderProtocol, mapSize: CGSize, @ViewBuilder pinAnnotationView: () -> PinAnnotation) {
-        self.init(coordinates: .init(latitude: geoURI.latitude, longitude: geoURI.longitude),
-                  zoomLevel: 15,
-                  attributionPlacement: .bottomLeft,
-                  mapURLBuilder: mapURLBuilder,
-                  mapSize: mapSize,
-                  pinAnnotationView: pinAnnotationView)
-    }
-}
-
 struct LocationRoomTimelineView_Previews: PreviewProvider, TestablePreview {
     static let viewModel = TimelineViewModel.mock
-
+    
     static var previews: some View {
-        ScrollView {
+        PreviewScrollView {
             VStack(spacing: 8) {
                 states
             }
         }
         .environmentObject(viewModel.context)
         .environment(\.timelineContext, viewModel.context)
+        .previewLayout(.sizeThatFits)
         .previewDisplayName("Bubbles")
     }
-
+    
     @ViewBuilder
     static var states: some View {
         LocationRoomTimelineView(timelineItem: .init(id: .randomEvent,
@@ -100,7 +72,15 @@ struct LocationRoomTimelineView_Previews: PreviewProvider, TestablePreview {
                                                      canBeRepliedTo: true,
                                                      sender: .init(id: "Bob"),
                                                      content: .init(body: "Fallback geo uri description")))
-
+        
+        LocationRoomTimelineView(timelineItem: .init(id: .randomEvent,
+                                                     timestamp: .mock,
+                                                     isOutgoing: false,
+                                                     isEditable: false,
+                                                     canBeRepliedTo: true,
+                                                     sender: .init(id: "@bob:matrix.org", displayName: "Bob", avatarURL: .mockMXCUserAvatar),
+                                                     content: .init(body: "Fallback geo uri description",
+                                                                    geoURI: .init(latitude: 41.902782, longitude: 12.496366))))
         LocationRoomTimelineView(timelineItem: .init(id: .randomEvent,
                                                      timestamp: .mock,
                                                      isOutgoing: false,
@@ -108,18 +88,10 @@ struct LocationRoomTimelineView_Previews: PreviewProvider, TestablePreview {
                                                      canBeRepliedTo: true,
                                                      sender: .init(id: "Bob"),
                                                      content: .init(body: "Fallback geo uri description",
-                                                                    geoURI: .init(latitude: 41.902782, longitude: 12.496366), description: "Location description description description description description description description description")))
-        LocationRoomTimelineView(timelineItem: .init(id: .randomEvent,
-                                                     timestamp: .mock,
-                                                     isOutgoing: false,
-                                                     isEditable: false,
-                                                     canBeRepliedTo: true,
-                                                     sender: .init(id: "Bob"),
-                                                     content: .init(body: "Fallback geo uri description",
-                                                                    geoURI: .init(latitude: 41.902782, longitude: 12.496366), description: "Location description description description description description description description description"),
-                                                     properties: .init(replyDetails: .loaded(sender: .init(id: "Someone"),
+                                                                    geoURI: .init(latitude: 41.902782, longitude: 12.496366),
+                                                                    kind: .pin),
+                                                     properties: .init(replyDetails: .loaded(sender: .init(id: "@alice:matrix.org", displayName: "Alice"),
                                                                                              eventID: "123",
-                                                                                             eventContent: .message(.text(.init(body: "The thread content goes 'ere.")))),
-                                                                       isThreaded: true)))
+                                                                                             eventContent: .message(.location(.init(body: "")))))))
     }
 }

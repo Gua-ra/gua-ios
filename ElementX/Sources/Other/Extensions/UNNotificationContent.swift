@@ -1,18 +1,19 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Foundation
 import UserNotifications
 
-extension UNNotificationContent {
+nonisolated extension UNNotificationContent {
     @objc var receiverID: String? {
         userInfo[NotificationConstants.UserInfoKey.receiverIdentifier] as? String
     }
-
+    
     @objc var roomID: String? {
         userInfo[NotificationConstants.UserInfoKey.roomIdentifier] as? String
     }
@@ -20,13 +21,21 @@ extension UNNotificationContent {
     @objc var eventID: String? {
         userInfo[NotificationConstants.UserInfoKey.eventIdentifier] as? String
     }
-
+    
+    @objc var eventDate: Date? {
+        userInfo[NotificationConstants.UserInfoKey.eventDate] as? Date
+    }
+    
     @objc var pusherNotificationClientIdentifier: String? {
         userInfo[NotificationConstants.UserInfoKey.pusherNotificationClientIdentifier] as? String
     }
+    
+    @objc var threadRootEventID: String? {
+        userInfo[NotificationConstants.UserInfoKey.threadRootEventIdentifier] as? String
+    }
 }
 
-extension UNMutableNotificationContent {
+nonisolated extension UNMutableNotificationContent {
     override var receiverID: String? {
         get {
             userInfo[NotificationConstants.UserInfoKey.receiverIdentifier] as? String
@@ -35,7 +44,7 @@ extension UNMutableNotificationContent {
             userInfo[NotificationConstants.UserInfoKey.receiverIdentifier] = newValue
         }
     }
-
+    
     override var roomID: String? {
         get {
             userInfo[NotificationConstants.UserInfoKey.roomIdentifier] as? String
@@ -54,7 +63,21 @@ extension UNMutableNotificationContent {
         }
     }
     
-    var unreadCount: Int? {
-        userInfo[NotificationConstants.UserInfoKey.unreadCount] as? Int
+    override var eventDate: Date? {
+        get {
+            userInfo[NotificationConstants.UserInfoKey.eventDate] as? Date
+        }
+        set {
+            userInfo[NotificationConstants.UserInfoKey.eventDate] = newValue
+        }
+    }
+    
+    override var threadRootEventID: String? {
+        get {
+            userInfo[NotificationConstants.UserInfoKey.threadRootEventIdentifier] as? String
+        }
+        set {
+            userInfo[NotificationConstants.UserInfoKey.threadRootEventIdentifier] = newValue
+        }
     }
 }

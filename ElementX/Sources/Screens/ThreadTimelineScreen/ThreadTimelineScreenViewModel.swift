@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -24,7 +25,7 @@ class ThreadTimelineScreenViewModel: ThreadTimelineScreenViewModelType, ThreadTi
         self.roomProxy = roomProxy
         self.userSession = userSession
         
-        super.init(initialViewState: ThreadTimelineScreenViewState(roomTitle: roomProxy.infoPublisher.value.displayName ?? roomProxy.id,
+        super.init(initialViewState: ThreadTimelineScreenViewState(roomTitle: roomProxy.infoPublisher.value.displayNameOrID,
                                                                    roomAvatar: roomProxy.infoPublisher.value.avatar), mediaProvider: userSession.mediaProvider)
         
         roomProxy.infoPublisher
@@ -61,11 +62,18 @@ class ThreadTimelineScreenViewModel: ThreadTimelineScreenViewModelType, ThreadTi
     
     func displayMediaPreview(_ mediaPreviewViewModel: TimelineMediaPreviewViewModel) {
         mediaPreviewViewModel.actions.sink { [weak self] action in
+            guard let self else { return }
             switch action {
             case .viewInRoomTimeline:
-                fatalError("viewInRoomTimeline should not be visible on a thread preview.")
+                fatalError("\(action) should not be visible on a thread preview.")
+            case .displayMessageForwarding(let forwardingPayload):
+                state.bindings.mediaPreviewViewModel = nil
+                // We need a small delay because we need to wait for the media preview to be fully dismissed.
+                DispatchQueue.main.asyncAfter(deadline: .now() + TimelineMediaPreviewViewModel.displayMessageForwardingDelay) {
+                    self.actionsSubject.send(.displayMessageForwarding(forwardingPayload))
+                }
             case .dismiss:
-                self?.state.bindings.mediaPreviewViewModel = nil
+                state.bindings.mediaPreviewViewModel = nil
             }
         }
         .store(in: &cancellables)
@@ -76,25 +84,27 @@ class ThreadTimelineScreenViewModel: ThreadTimelineScreenViewModelType, ThreadTi
     // MARK: - Private
     
     private func updateVerificationBadge() async {
-        guard roomProxy.isDirectOneToOneRoom,
+        guard roomProxy.infoPublisher.value.isDM,
               let dmRecipient = roomProxy.membersPublisher.value.first(where: { $0.userID != roomProxy.ownUserID }),
-              case let .success(userIdentity) = await userSession.clientProxy.userIdentity(for: dmRecipient.userID) else {
-            state.dmRecipientVerificationState = .notVerified
+              case let .success(userIdentity) = await userSession.clientProxy.userIdentity(for: dmRecipient.userID, fallBackToServer: true) else {
+            state.dmRecipientDetails.verification = .notVerified
             return
         }
         
         guard let userIdentity else {
             MXLog.failure("User identity should be known at this point")
-            state.dmRecipientVerificationState = .notVerified
+            state.dmRecipientDetails.verification = .notVerified
             return
         }
         
-        state.dmRecipientVerificationState = userIdentity.verificationState
+        state.dmRecipientDetails.verification = userIdentity.verificationState
     }
     
     private func updateRoomInfo(_ roomInfo: RoomInfoProxyProtocol) {
-        state.roomTitle = roomInfo.displayName ?? roomProxy.id
+        state.roomTitle = roomInfo.displayNameOrID
         state.roomAvatar = roomInfo.avatar
+        state.dmRecipientDetails.statusEmoji = roomInfo.statusEmoji
+        
         if let powerLevels = roomInfo.powerLevels {
             state.canSendMessage = powerLevels.canOwnUser(sendMessage: .roomMessage)
         }

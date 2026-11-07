@@ -1,14 +1,15 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Foundation
 @preconcurrency import MatrixRustSDK
 
-struct MediaSourceProxy: Hashable {
+nonisolated struct MediaSourceProxy: Hashable {
     /// The media source provided by Rust.
     let underlyingSource: MediaSource
     /// The media's mime type, used when loading the media's file.

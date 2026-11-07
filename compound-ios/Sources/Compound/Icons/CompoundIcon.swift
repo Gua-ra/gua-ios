@@ -27,7 +27,7 @@ public struct CompoundIcon: View {
         /// A custom icon size.
         case custom(CGFloat)
         
-        var value: CGFloat {
+        public var value: CGFloat {
             switch self {
             case .xSmall: return 16
             case .small: return 20
@@ -168,9 +168,9 @@ struct CompoundIcon_Previews: PreviewProvider, TestablePreview {
     }
     
     static var accessibilityIcons: some View {
-        VStack {
+        VStack(spacing: 8) {
             ForEach(DynamicTypeSize.allCases, id: \.self) { size in
-                HStack {
+                HStack(spacing: 8) {
                     CompoundIcon(\.userProfile, size: .xSmall, relativeTo: .compound.bodyXS)
                     CompoundIcon(\.userProfile, size: .small, relativeTo: .compound.bodySM)
                     CompoundIcon(\.userProfile, size: .medium, relativeTo: .compound.bodyLG)
@@ -182,8 +182,7 @@ struct CompoundIcon_Previews: PreviewProvider, TestablePreview {
     
     static var accessibilityLabels: some View {
         Grid(alignment: .leading) {
-            ForEach(DynamicTypeSize.allCases, id: \.self) {
-                size in
+            ForEach(DynamicTypeSize.allCases, id: \.self) { size in
                 GridRow {
                     Label("Test XS", icon: \.userProfile, iconSize: .xSmall, relativeTo: .compound.bodyXS)
                         .font(.compound.bodyXS)
@@ -220,7 +219,7 @@ struct CompoundIcon_Previews: PreviewProvider, TestablePreview {
     }
     
     static var buttons: some View {
-        VStack {
+        VStack(spacing: 8) {
             Button { } label: {
                 Label { Text("Body Large") } icon: {
                     CompoundIcon(\.userProfile, size: .medium, relativeTo: .compound.bodyLG)

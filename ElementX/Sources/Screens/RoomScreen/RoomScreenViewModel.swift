@@ -1,5 +1,6 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
@@ -16,8 +17,8 @@ typealias RoomScreenViewModelType = StateStoreViewModel<RoomScreenViewState, Roo
 class RoomScreenViewModel: RoomScreenViewModelType, RoomScreenViewModelProtocol {
     private let clientProxy: ClientProxyProtocol
     private let roomProxy: JoinedRoomProxyProtocol
-    private let appSettings: AppSettings
-    private let analyticsService: AnalyticsService
+    private let userSettings: UserSettings
+    private let analyticsService: AnalyticsServiceProtocol
     private let userIndicatorController: UserIndicatorControllerProtocol
     
     private var initialSelectedPinnedEventID: String?
@@ -53,24 +54,25 @@ class RoomScreenViewModel: RoomScreenViewModelType, RoomScreenViewModelProtocol 
          roomProxy: JoinedRoomProxyProtocol,
          initialSelectedPinnedEventID: String?,
          ongoingCallRoomIDPublisher: CurrentValuePublisher<String?, Never>,
-         appSettings: AppSettings,
-         appHooks: AppHooks,
-         analyticsService: AnalyticsService,
+         analyticsService: AnalyticsServiceProtocol,
          userIndicatorController: UserIndicatorControllerProtocol) {
         clientProxy = userSession.clientProxy
         self.roomProxy = roomProxy
-        self.appSettings = appSettings
+        userSettings = userSession.userSettings
         self.analyticsService = analyticsService
         self.userIndicatorController = userIndicatorController
         
         self.initialSelectedPinnedEventID = initialSelectedPinnedEventID
         pinnedEventStringBuilder = .pinnedEventStringBuilder(userID: roomProxy.ownUserID)
-
-        let viewState = RoomScreenViewState(roomTitle: roomProxy.infoPublisher.value.displayName ?? roomProxy.id,
+        
+        let viewState = RoomScreenViewState(roomTitle: roomProxy.infoPublisher.value.displayNameOrID,
                                             roomAvatar: roomProxy.infoPublisher.value.avatar,
+                                            isNativeCallingEnabled: userSettings.app.nativeCallEnabled,
                                             hasOngoingCall: roomProxy.infoPublisher.value.hasRoomCall,
-                                            hasSuccessor: roomProxy.infoPublisher.value.successor != nil)
-        super.init(initialViewState: appHooks.roomScreenHook.update(viewState),
+                                            isDM: roomProxy.infoPublisher.value.isDM,
+                                            hasSuccessor: roomProxy.infoPublisher.value.successor != nil,
+                                            roomHistorySharingState: roomProxy.infoPublisher.value.isDM ? nil : roomProxy.infoPublisher.value.historySharingState)
+        super.init(initialViewState: userSession.userHooks.roomScreenHook.update(viewState),
                    mediaProvider: userSession.mediaProvider)
         
         updateRoomInfo(roomProxy.infoPublisher.value)
@@ -80,22 +82,18 @@ class RoomScreenViewModel: RoomScreenViewModelType, RoomScreenViewModelProtocol 
             await updateVerificationBadge()
         }
     }
-
+    
     override func process(viewAction: RoomScreenViewAction) {
         switch viewAction {
         case .tappedPinnedEventsBanner:
-            analyticsService.trackInteraction(name: .PinnedMessageBannerClick)
-            if let eventID = state.pinnedEventsBannerState.selectedPinnedEventID {
-                actionsSubject.send(.focusEvent(eventID: eventID))
-            }
-            state.pinnedEventsBannerState.previousPin()
+            handleTappedPinnedEventsBanner()
         case .viewAllPins:
             analyticsService.trackInteraction(name: .PinnedMessageBannerViewAllButton)
             actionsSubject.send(.displayPinnedEventsTimeline)
         case .displayRoomDetails:
             actionsSubject.send(.displayRoomDetails)
-        case .displayCall:
-            actionsSubject.send(.displayCall)
+        case .displayCall(let isVoiceCall):
+            actionsSubject.send(.displayCall(isVoiceCall: isVoiceCall))
             actionsSubject.send(.removeComposerFocus)
             analyticsService.trackInteraction(name: .MobileRoomCallButton)
         case .footerViewAction(let action):
@@ -115,13 +113,22 @@ class RoomScreenViewModel: RoomScreenViewModelType, RoomScreenViewModelProtocol 
             guard let successorID = roomProxy.infoPublisher.value.successor?.roomId else { return }
             let serverNames = roomProxy.knownServerNames(maxCount: 50) // Limit to the same number used by ClientProxy.resolveRoomAlias(_:)
             actionsSubject.send(.displayRoom(roomID: successorID, via: Array(serverNames)))
+        case .displayThreadList:
+            actionsSubject.send(.displayThreadList)
+        case .tappedStopLiveLocation:
+            actionsSubject.send(.stopLiveLocationSharing)
+        case .tappedOpenLiveLocation:
+            actionsSubject.send(.displayLiveLocation)
         }
     }
     
     func stop() {
-        // When navigating away from the room, we need to mark the room as fully read.
-        // This does not affect the read receipts only the notification count.
-        Task { await roomProxy.markAsRead(receiptType: .fullyRead) }
+        Task {
+            // When navigating away from the room, we need to mark the room as both read
+            // and fully read for Synapse to clear this room from the app's badge count.
+            _ = await roomProxy.markAsRead(receiptType: userSettings.account.sharePresence ? .read : .readPrivate)
+            _ = await roomProxy.markAsRead(receiptType: .fullyRead)
+        }
         // Work around QLPreviewController dismissal issues, see the InteractiveQuickLookModifier.
         state.bindings.mediaPreviewViewModel = nil
     }
@@ -136,11 +143,18 @@ class RoomScreenViewModel: RoomScreenViewModelType, RoomScreenViewModelProtocol 
     
     func displayMediaPreview(_ mediaPreviewViewModel: TimelineMediaPreviewViewModel) {
         mediaPreviewViewModel.actions.sink { [weak self] action in
+            guard let self else { return }
             switch action {
-            case .viewInRoomTimeline:
-                fatalError("viewInRoomTimeline should not be visible on a room preview.")
             case .dismiss:
-                self?.state.bindings.mediaPreviewViewModel = nil
+                state.bindings.mediaPreviewViewModel = nil
+            case .displayMessageForwarding(let forwardingPayload):
+                state.bindings.mediaPreviewViewModel = nil
+                // We need a small delay because we need to wait for the media preview to be fully dismissed.
+                DispatchQueue.main.asyncAfter(deadline: .now() + TimelineMediaPreviewViewModel.displayMessageForwardingDelay) {
+                    self.actionsSubject.send(.displayMessageForwarding(forwardingPayload))
+                }
+            case .viewInRoomTimeline:
+                fatalError("\(action) should not be visible on a room preview.")
             }
         }
         .store(in: &cancellables)
@@ -151,10 +165,18 @@ class RoomScreenViewModel: RoomScreenViewModelType, RoomScreenViewModelProtocol 
     // MARK: - Private
     
     private func setupSubscriptions(ongoingCallRoomIDPublisher: CurrentValuePublisher<String?, Never>) {
-        appSettings.$knockingEnabled
-            .weakAssign(to: \.state.isKnockingEnabled, on: self)
+        userSettings.app.threadsEnabledPublisher
+            .weakAssign(to: \.state.roomThreadListEnabled, on: self)
             .store(in: &cancellables)
-                
+        
+        userSettings.account.liveLocationSharingSessionsByRoomIDPublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] sessionsByRoomID in
+                guard let self else { return }
+                state.isSharingLiveLocation = sessionsByRoomID.keys.contains(roomProxy.id)
+            }
+            .store(in: &cancellables)
+        
         roomProxy.infoPublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] roomInfo in
@@ -231,7 +253,7 @@ class RoomScreenViewModel: RoomScreenViewModelType, RoomScreenViewModelProtocol 
                     MXLog.error("Failed retrieving room member for identity status change: \(change)")
                     continue
                 }
-
+                
                 identityVerificationViolations[change.userId] = member
             default:
                 identityVerificationViolations[change.userId] = nil
@@ -241,20 +263,20 @@ class RoomScreenViewModel: RoomScreenViewModelType, RoomScreenViewModelProtocol 
         
         if let member = identityVerificationViolations.values.first {
             state.footerDetails = .verificationViolation(member: member,
-                                                         learnMoreURL: appSettings.identityPinningViolationDetailsURL)
+                                                         learnMoreURL: userSettings.app.identityPinningViolationDetailsURL)
         } else if let member = identityPinningViolations.values.first {
             state.footerDetails = .pinViolation(member: member,
-                                                learnMoreURL: appSettings.identityPinningViolationDetailsURL)
+                                                learnMoreURL: userSettings.app.identityPinningViolationDetailsURL)
         } else {
             state.footerDetails = nil
         }
     }
     
     private func updateVerificationBadge() async {
-        guard roomProxy.isDirectOneToOneRoom,
+        guard roomProxy.infoPublisher.value.isDM,
               let dmRecipient = roomProxy.membersPublisher.value.first(where: { $0.userID != roomProxy.ownUserID }),
-              case let .success(userIdentity) = await clientProxy.userIdentity(for: dmRecipient.userID) else {
-            state.dmRecipientVerificationState = .notVerified
+              case let .success(userIdentity) = await clientProxy.userIdentity(for: dmRecipient.userID, fallBackToServer: true) else {
+            state.dmRecipientDetails.verification = .notVerified
             return
         }
         
@@ -263,11 +285,11 @@ class RoomScreenViewModel: RoomScreenViewModelType, RoomScreenViewModelProtocol 
             // was just created from contact discovery. This is an expected transient state, not a
             // programming error, so don't assert (MXLog.failure traps in debug builds).
             MXLog.info("User identity not available yet; showing DM as not verified for now")
-            state.dmRecipientVerificationState = .notVerified
+            state.dmRecipientDetails.verification = .notVerified
             return
         }
         
-        state.dmRecipientVerificationState = userIdentity.verificationState
+        state.dmRecipientDetails.verification = userIdentity.verificationState
     }
     
     private func resolveIdentityPinningViolation(_ userID: String) async {
@@ -278,7 +300,7 @@ class RoomScreenViewModel: RoomScreenViewModelType, RoomScreenViewModelProtocol 
         showLoadingIndicator()
         
         if case .failure = await clientProxy.pinUserIdentity(userID) {
-            userIndicatorController.alertInfo = .init(id: .init(), title: L10n.commonError)
+            state.bindings.alertInfo = .init(id: .unknown, title: L10n.commonError)
         }
     }
     
@@ -286,11 +308,11 @@ class RoomScreenViewModel: RoomScreenViewModelType, RoomScreenViewModelProtocol 
         defer {
             hideLoadingIndicator()
         }
-
+        
         showLoadingIndicator()
-
+        
         if case .failure = await clientProxy.withdrawUserIdentityVerification(userID) {
-            userIndicatorController.alertInfo = .init(id: .init(), title: L10n.commonError)
+            state.bindings.alertInfo = .init(id: .unknown, title: L10n.commonError)
         }
     }
     
@@ -316,10 +338,13 @@ class RoomScreenViewModel: RoomScreenViewModelType, RoomScreenViewModelProtocol 
     }
     
     private func updateRoomInfo(_ roomInfo: RoomInfoProxyProtocol) {
-        state.roomTitle = roomInfo.displayName ?? roomProxy.id
+        state.roomTitle = roomInfo.displayNameOrID
         state.roomAvatar = roomInfo.avatar
+        state.dmRecipientDetails.statusEmoji = roomInfo.statusEmoji
         state.hasOngoingCall = roomInfo.hasRoomCall
+        state.activeRoomCallIntent = roomInfo.activeRoomCallIntent
         state.hasSuccessor = roomInfo.successor != nil
+        state.isDM = roomInfo.isDM
         
         let pinnedEventIDs = roomInfo.pinnedEventIDs
         // Only update the loading state of the banner
@@ -327,13 +352,13 @@ class RoomScreenViewModel: RoomScreenViewModelType, RoomScreenViewModelProtocol 
             state.pinnedEventsBannerState = .loading(numbersOfEvents: pinnedEventIDs.count)
         }
         
-        switch (roomProxy.isDirectOneToOneRoom, roomInfo.joinRule) {
+        switch (roomInfo.isDM, roomInfo.joinRule) {
         case (false, .knock), (false, .knockRestricted):
             state.isKnockableRoom = true
         default:
             state.isKnockableRoom = false
         }
-
+        
         if let powerLevels = roomInfo.powerLevels {
             state.canSendMessage = powerLevels.canOwnUser(sendMessage: .roomMessage)
             state.canJoinCall = powerLevels.canOwnUserJoinCall()
@@ -341,6 +366,9 @@ class RoomScreenViewModel: RoomScreenViewModelType, RoomScreenViewModelProtocol 
             state.canDeclineKnocks = powerLevels.canOwnUserKick()
             state.canBan = powerLevels.canOwnUserBan()
         }
+        
+        // GUA FORK: a 1:1 reads as a person, so no history-sharing icon; a direct room with a third member is a group again.
+        state.roomHistorySharingState = roomInfo.isDM ? nil : roomInfo.historySharingState
     }
     
     private func setupPinnedEventsTimelineItemProviderIfNeeded() {
@@ -358,7 +386,7 @@ class RoomScreenViewModel: RoomScreenViewModelType, RoomScreenViewModelProtocol 
             }
         }
     }
-        
+    
     private func acceptKnock(eventID: String) async {
         guard case let .loaded(requests) = roomProxy.knockRequestsStatePublisher.value,
               let request = requests.first(where: { $0.eventID == eventID }) else {
@@ -397,6 +425,27 @@ class RoomScreenViewModel: RoomScreenViewModelType, RoomScreenViewModelProtocol 
         state.handledEventIDs.subtract(failedIDs)
     }
     
+    private func handleTappedPinnedEventsBanner() {
+        analyticsService.trackInteraction(name: .PinnedMessageBannerClick)
+        if let eventID = state.pinnedEventsBannerState.selectedPinnedEventID {
+            Task {
+                switch await roomProxy.loadOrFetchEventDetails(for: eventID) {
+                case .success(let event):
+                    if userSettings.app.threadsEnabled,
+                       let threadRootEventID = event.threadRootEventId() {
+                        actionsSubject.send(.focusEvent(eventID: threadRootEventID))
+                        actionsSubject.send(.displayThread(threadRootEventID: threadRootEventID, focussedEventID: eventID))
+                    } else {
+                        actionsSubject.send(.focusEvent(eventID: eventID))
+                    }
+                case .failure:
+                    userIndicatorController.submitIndicator(.init(title: L10n.errorUnknown))
+                }
+            }
+        }
+        state.pinnedEventsBannerState.previousPin()
+    }
+    
     // MARK: Loading indicators
     
     private static let loadingIndicatorIdentifier = "\(RoomScreenViewModel.self)-Loading"
@@ -413,16 +462,13 @@ class RoomScreenViewModel: RoomScreenViewModelType, RoomScreenViewModelProtocol 
 
 extension RoomScreenViewModel {
     static func mock(roomProxyMock: JoinedRoomProxyMock,
-                     clientProxyMock: ClientProxyMock = ClientProxyMock(.init()),
-                     appHooks: AppHooks = AppHooks()) -> RoomScreenViewModel {
-        RoomScreenViewModel(userSession: UserSessionMock(.init(clientProxy: clientProxyMock)),
+                     userSession: UserSessionProtocol = UserSessionMock(.init())) -> RoomScreenViewModel {
+        RoomScreenViewModel(userSession: userSession,
                             roomProxy: roomProxyMock,
                             initialSelectedPinnedEventID: nil,
                             ongoingCallRoomIDPublisher: .init(.init(nil)),
-                            appSettings: ServiceLocator.shared.settings,
-                            appHooks: appHooks,
-                            analyticsService: ServiceLocator.shared.analytics,
-                            userIndicatorController: ServiceLocator.shared.userIndicatorController)
+                            analyticsService: AnalyticsServiceMock(.init()),
+                            userIndicatorController: UserIndicatorControllerMock())
     }
 }
 

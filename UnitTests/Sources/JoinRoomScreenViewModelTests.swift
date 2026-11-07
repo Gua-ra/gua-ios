@@ -1,102 +1,112 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
+import Combine
 @testable import ElementX
-import XCTest
+import Testing
 
 @MainActor
-class JoinRoomScreenViewModelTests: XCTestCase {
+final class JoinRoomScreenViewModelTests {
     private enum TestMode {
         case joined
         case joinableSpace
         case knocked
         case invited
         case banned
+        case alreadyJoined
     }
     
     var viewModel: JoinRoomScreenViewModelProtocol!
     
     var clientProxy: ClientProxyMock!
-    var appSettings: AppSettings!
     var userIndicatorController: UserIndicatorControllerMock!
+    
+    /// Backs the client's static room summary provider so tests can push membership changes.
+    var roomListSubject: CurrentValueSubject<[RoomSummary], Never>!
     
     var context: JoinRoomScreenViewModelType.Context {
         viewModel.context
     }
     
-    override func setUp() {
-        AppSettings.resetAllSettings()
-        appSettings = AppSettings()
-        ServiceLocator.shared.register(appSettings: appSettings)
+    private let userSettings: UserSettings
+    
+    init() {
+        userSettings = UserSettings.mock()
     }
     
-    override func tearDown() {
+    isolated deinit {
         viewModel = nil
         clientProxy = nil
         userIndicatorController = nil
-        AppSettings.resetAllSettings()
+        roomListSubject = nil
     }
-
-    func testInteraction() async throws {
-        XCTAssertTrue(appSettings.seenInvites.isEmpty, "There shouldn't be any seen invites before running the tests.")
+    
+    @Test
+    func interaction() async throws {
+        #expect(userSettings.account.seenInvites.isEmpty, "There shouldn't be any seen invites before running the tests.")
         
         setupViewModel()
         try await deferFulfillment(viewModel.context.$viewState) { $0.mode == .joinable }.fulfill()
         
-        XCTAssertTrue(appSettings.seenInvites.isEmpty, "Only an invited room should register the room ID as a seen invite.")
+        #expect(userSettings.account.seenInvites.isEmpty, "Only an invited room should register the room ID as a seen invite.")
         
         let deferred = deferFulfillment(viewModel.actionsPublisher) { $0 == .joined(.roomID("1")) }
         context.send(viewAction: .join)
         try await deferred.fulfill()
     }
     
-    func testAcceptInviteInteraction() async throws {
-        XCTAssertTrue(appSettings.seenInvites.isEmpty, "There shouldn't be any seen invites before running the tests.")
+    @Test
+    func acceptInviteInteraction() async throws {
+        #expect(userSettings.account.seenInvites.isEmpty, "There shouldn't be any seen invites before running the tests.")
         
         setupViewModel(mode: .invited)
         try await deferFulfillment(viewModel.context.$viewState) { $0.mode == .invited(isDM: false) }.fulfill()
         
-        XCTAssertEqual(appSettings.seenInvites, ["1"], "The invited room's ID should be registered as a seen invite.")
+        #expect(userSettings.account.seenInvites == ["1"], "The invited room's ID should be registered as a seen invite.")
         
         let deferred = deferFulfillment(viewModel.actionsPublisher) { $0 == .joined(.roomID("1")) }
         context.send(viewAction: .acceptInvite)
         try await deferred.fulfill()
         
-        XCTAssertTrue(appSettings.seenInvites.isEmpty, "The after accepting an invite the invite should be forgotten in case the user leaves.")
+        #expect(userSettings.account.seenInvites.isEmpty, "The after accepting an invite the invite should be forgotten in case the user leaves.")
     }
     
-    func testDeclineInviteInteraction() async throws {
-        XCTAssertTrue(appSettings.seenInvites.isEmpty, "There shouldn't be any seen invites before running the tests.")
+    @Test
+    func declineInviteInteraction() async throws {
+        #expect(userSettings.account.seenInvites.isEmpty, "There shouldn't be any seen invites before running the tests.")
         
         setupViewModel(mode: .invited)
         
         try await deferFulfillment(viewModel.context.$viewState) { $0.mode == .invited(isDM: false) }.fulfill()
-        XCTAssertEqual(appSettings.seenInvites, ["1"], "The invited room's ID should be registered as a seen invite.")
+        #expect(userSettings.account.seenInvites == ["1"], "The invited room's ID should be registered as a seen invite.")
         
         context.send(viewAction: .declineInvite)
         
-        XCTAssertEqual(viewModel.context.alertInfo?.id, .declineInvite)
+        #expect(viewModel.context.alertInfo?.id == .declineInvite)
         let deferred = deferFulfillment(viewModel.actionsPublisher) { $0 == .dismiss }
         context.alertInfo?.secondaryButton?.action?()
         try await deferred.fulfill()
         
-        XCTAssertTrue(appSettings.seenInvites.isEmpty, "The after declining an invite the invite should be forgotten in case another invite is received.")
+        #expect(userSettings.account.seenInvites.isEmpty, "The after declining an invite the invite should be forgotten in case another invite is received.")
     }
     
-    func testKnockedState() async throws {
-        XCTAssertTrue(appSettings.seenInvites.isEmpty, "There shouldn't be any seen invites before running the tests.")
+    @Test
+    func knockedState() async throws {
+        #expect(userSettings.account.seenInvites.isEmpty, "There shouldn't be any seen invites before running the tests.")
         setupViewModel(mode: .knocked)
         
         try await deferFulfillment(viewModel.context.$viewState) { $0.mode == .knocked }.fulfill()
         
-        XCTAssertTrue(appSettings.seenInvites.isEmpty, "Only an invited room should register the room ID as a seen invite.")
+        #expect(userSettings.account.seenInvites.isEmpty, "Only an invited room should register the room ID as a seen invite.")
     }
     
-    func testCancelKnock() async throws {
+    @Test
+    func cancelKnock() async throws {
         setupViewModel(mode: .knocked)
         
         try await deferFulfillment(viewModel.context.$viewState) { state in
@@ -104,7 +114,7 @@ class JoinRoomScreenViewModelTests: XCTestCase {
         }.fulfill()
         
         context.send(viewAction: .cancelKnock)
-        XCTAssertEqual(viewModel.context.alertInfo?.id, .cancelKnock)
+        #expect(viewModel.context.alertInfo?.id == .cancelKnock)
         
         let deferred = deferFulfillment(viewModel.actionsPublisher) { action in
             action == .dismiss
@@ -113,32 +123,56 @@ class JoinRoomScreenViewModelTests: XCTestCase {
         try await deferred.fulfill()
     }
     
-    func testDeclineAndBlockInviteLegacyInteraction() async throws {
+    @Test
+    func alreadyJoinedRoomAdvancesTheScreen() async throws {
+        setupViewModel(mode: .alreadyJoined)
+        
+        let deferred = deferFulfillment(viewModel.actionsPublisher) { $0 == .joined(.roomID("1")) }
+        try await deferred.fulfill()
+    }
+    
+    @Test
+    func membershipChangeWhileInvitedAdvancesTheScreen() async throws {
+        setupViewModel(mode: .invited)
+        try await deferFulfillment(viewModel.context.$viewState) { $0.mode == .invited(isDM: false) }.fulfill()
+        
+        // Simulate the server-side join arriving through the room list.
+        clientProxy.roomForIdentifierClosure = { .joined(JoinedRoomProxyMock(.init(id: $0))) }
+        let deferred = deferFulfillment(viewModel.actionsPublisher) { $0 == .joined(.roomID("1")) }
+        roomListSubject.send([.mock(id: "1", name: "Test")])
+        try await deferred.fulfill()
+    }
+    
+    @Test
+    func declineAndBlockInviteLegacyInteraction() async throws {
         setupViewModel(mode: .invited)
         clientProxy.underlyingIsReportRoomSupported = false
-        let expectation = expectation(description: "Wait for the user to be ignored")
-        clientProxy.ignoreUserClosure = { userID in
-            defer { expectation.fulfill() }
-            XCTAssertEqual(userID, "@test:matrix.org")
-            return .success(())
-        }
         
         try await deferFulfillment(viewModel.context.$viewState) { $0.roomDetails != nil }.fulfill()
         
         context.send(viewAction: .declineInviteAndBlock(userID: "@test:matrix.org"))
         
         try await deferFulfillment(viewModel.context.$viewState) { $0.bindings.alertInfo != nil }.fulfill()
-        XCTAssertEqual(viewModel.context.alertInfo?.id, .declineInviteAndBlock)
+        #expect(viewModel.context.alertInfo?.id == .declineInviteAndBlock)
         
         let deferred = deferFulfillment(viewModel.actionsPublisher) { action in
             action == .dismiss
         }
-        context.alertInfo?.secondaryButton?.action?()
-        await fulfillment(of: [expectation], timeout: 10)
+        
+        await waitForConfirmation("Wait for the user to be ignored") { confirm in
+            clientProxy.ignoreUserClosure = { userID in
+                defer { confirm() }
+                #expect(userID == "@test:matrix.org")
+                return .success(())
+            }
+            context.alertInfo?.secondaryButton?.action?()
+        }
+        
         try await deferred.fulfill()
     }
     
-    func testDeclineAndBlockInviteInteraction() async throws {
+    @Test
+    func declineAndBlockInviteInteraction() async throws {
         setupViewModel(mode: .invited)
         try await deferFulfillment(viewModel.context.$viewState) { $0.roomDetails != nil }.fulfill()
         let deferredAction = deferFulfillment(viewModel.actionsPublisher) { $0 == .presentDeclineAndBlock(userID: "@test:matrix.org") }
@@ -146,7 +180,8 @@ class JoinRoomScreenViewModelTests: XCTestCase {
         try await deferredAction.fulfill()
     }
     
-    func testForgetRoom() async throws {
+    @Test
+    func forgetRoom() async throws {
         setupViewModel(mode: .banned)
         
         try await deferFulfillment(viewModel.context.$viewState) { $0.roomDetails != nil }.fulfill()
@@ -158,42 +193,47 @@ class JoinRoomScreenViewModelTests: XCTestCase {
         try await deferred.fulfill()
     }
     
-    func testJoiningASpaceOffersToTurnOnSpaces() async throws {
+    @Test
+    func joiningASpaceOffersToTurnOnSpaces() async throws {
         setupViewModel(mode: .joinableSpace)
         try await deferFulfillment(viewModel.context.$viewState) { $0.mode == .joinable }.fulfill()
         
-        XCTAssertTrue(context.viewState.joiningTurnsOnSpaces)
+        #expect(context.viewState.joiningTurnsOnSpaces)
     }
     
-    func testJoiningARoomDoesNotOfferToTurnOnSpaces() async throws {
+    @Test
+    func joiningARoomDoesNotOfferToTurnOnSpaces() async throws {
         setupViewModel()
         try await deferFulfillment(viewModel.context.$viewState) { $0.mode == .joinable }.fulfill()
         
-        XCTAssertFalse(context.viewState.joiningTurnsOnSpaces)
+        #expect(!context.viewState.joiningTurnsOnSpaces)
     }
     
-    func testJoiningASpaceWithSpacesOnDoesNotOfferToTurnItOn() async throws {
-        appSettings.spacesEnabled = true
+    @Test
+    func joiningASpaceWithSpacesOnDoesNotOfferToTurnItOn() async throws {
+        userSettings.app.spacesEnabled = true
         setupViewModel(mode: .joinableSpace)
         try await deferFulfillment(viewModel.context.$viewState) { $0.mode == .joinable }.fulfill()
         
-        XCTAssertFalse(context.viewState.joiningTurnsOnSpaces)
+        #expect(!context.viewState.joiningTurnsOnSpaces)
     }
     
-    func testJoiningASpaceTurnsSpacesOn() async throws {
+    @Test
+    func joiningASpaceTurnsSpacesOn() async throws {
         setupViewModel(mode: .joinableSpace)
         try await deferFulfillment(viewModel.context.$viewState) { $0.mode == .joinable }.fulfill()
         
-        let deferred = deferFulfillment(viewModel.actionsPublisher) { $0 == .joined(.space(SpaceRoomListProxyMock(.init(spaceRoomProxy: SpaceRoomProxyMock(.init(id: "1", isSpace: true)))))) }
+        let deferred = deferFulfillment(viewModel.actionsPublisher) { $0 == .joined(.space(SpaceRoomListProxyMock(.init(spaceServiceRoom: SpaceServiceRoom.mock(id: "1", isSpace: true))))) }
         context.send(viewAction: .join)
         try await deferred.fulfill()
         
-        XCTAssertTrue(appSettings.spacesEnabled)
-        XCTAssertEqual(clientProxy.setAccountDataTypeContentCallsCount, 1)
-        XCTAssertEqual(clientProxy.setAccountDataTypeContentReceivedArguments?.content, #"{"enabled":true}"#)
+        #expect(userSettings.app.spacesEnabled)
+        #expect(clientProxy.setAccountDataTypeContentCallsCount == 1)
+        #expect(clientProxy.setAccountDataTypeContentReceivedArguments?.content == #"{"enabled":true}"#)
     }
     
-    func testSpaceIsNotJoinedWhenSpacesCannotBeTurnedOn() async throws {
+    @Test
+    func spaceIsNotJoinedWhenSpacesCannotBeTurnedOn() async throws {
         setupViewModel(mode: .joinableSpace)
         clientProxy.setAccountDataTypeContentReturnValue = .failure(.forbiddenAccess)
         try await deferFulfillment(viewModel.context.$viewState) { $0.mode == .joinable }.fulfill()
@@ -202,18 +242,19 @@ class JoinRoomScreenViewModelTests: XCTestCase {
         context.send(viewAction: .join)
         try await deferred.fulfill()
         
-        XCTAssertFalse(appSettings.spacesEnabled)
-        XCTAssertFalse(clientProxy.joinRoomAliasCalled)
-        XCTAssertFalse(clientProxy.joinRoomViaCalled)
-        XCTAssertTrue(context.viewState.joiningTurnsOnSpaces, "The offer stays so the user can try again.")
-        XCTAssertTrue(userIndicatorController.submitIndicatorDelayReceivedInvocations.contains { $0.indicator.title == L10n.errorUnknown })
+        #expect(!userSettings.app.spacesEnabled)
+        #expect(!clientProxy.joinRoomAliasCalled)
+        #expect(!clientProxy.joinRoomViaCalled)
+        #expect(context.viewState.joiningTurnsOnSpaces, "The offer stays so the user can try again.")
+        #expect(userIndicatorController.submitIndicatorDelayReceivedInvocations.contains { $0.indicator.title == L10n.errorUnknown })
     }
     
-    func testSpacesIsTurnedOnBeforeTheJoin() async throws {
+    @Test
+    func spacesIsTurnedOnBeforeTheJoin() async throws {
         setupViewModel(mode: .joinableSpace)
-        let appSettings = try XCTUnwrap(appSettings)
+        let appSettings = userSettings.app
         clientProxy.joinRoomAliasClosure = { _ in
-            XCTAssertTrue(appSettings.spacesEnabled, "Spaces must be on before the join starts.")
+            #expect(appSettings.spacesEnabled, "Spaces must be on before the join starts.")
             return .failure(.forbiddenAccess)
         }
         try await deferFulfillment(viewModel.context.$viewState) { $0.mode == .joinable }.fulfill()
@@ -222,11 +263,12 @@ class JoinRoomScreenViewModelTests: XCTestCase {
         context.send(viewAction: .join)
         try await deferred.fulfill()
         
-        XCTAssertTrue(appSettings.spacesEnabled, "The user chose to turn Spaces on, so a failed join keeps it on.")
-        XCTAssertEqual(clientProxy.setAccountDataTypeContentCallsCount, 1)
+        #expect(appSettings.spacesEnabled, "The user chose to turn Spaces on, so a failed join keeps it on.")
+        #expect(clientProxy.setAccountDataTypeContentCallsCount == 1)
     }
     
-    func testJoiningARoomNeverTouchesTheSpacesSwitch() async throws {
+    @Test
+    func joiningARoomNeverTouchesTheSpacesSwitch() async throws {
         setupViewModel()
         try await deferFulfillment(viewModel.context.$viewState) { $0.mode == .joinable }.fulfill()
         
@@ -234,17 +276,20 @@ class JoinRoomScreenViewModelTests: XCTestCase {
         context.send(viewAction: .join)
         try await deferred.fulfill()
         
-        XCTAssertFalse(appSettings.spacesEnabled)
-        XCTAssertFalse(clientProxy.setAccountDataTypeContentCalled)
+        #expect(!userSettings.app.spacesEnabled)
+        #expect(!clientProxy.setAccountDataTypeContentCalled)
     }
     
     // MARK: - Helpers
     
     private func setupViewModel(throwing: Bool = false, mode: TestMode = .joined) {
-        ServiceLocator.shared.settings.knockingEnabled = true
-        
         clientProxy = ClientProxyMock(.init())
         userIndicatorController = UserIndicatorControllerMock()
+        
+        roomListSubject = .init([])
+        let summaryProvider = RoomSummaryProviderMock(.init())
+        summaryProvider.roomListPublisher = roomListSubject.asCurrentValuePublisher()
+        clientProxy.staticRoomSummaryProvider = summaryProvider
         
         clientProxy.joinRoomViaReturnValue = throwing ? .failure(.sdkError(ClientProxyMockError.generic)) : .success(())
         clientProxy.joinRoomAliasReturnValue = clientProxy.joinRoomViaReturnValue
@@ -256,14 +301,14 @@ class JoinRoomScreenViewModelTests: XCTestCase {
             clientProxy.roomForIdentifierClosure = { _ in
                 let roomProxy = KnockedRoomProxyMock(.init())
                 // to test the cancel knock function
-                roomProxy.cancelKnockUnderlyingReturnValue = .success(())
+                roomProxy.cancelKnockReturnValue = .success(())
                 return .knocked(roomProxy)
             }
         case .joined:
             clientProxy.roomPreviewForIdentifierViaReturnValue = .success(RoomPreviewProxyMock.joinable)
         case .joinableSpace:
             clientProxy.roomPreviewForIdentifierViaReturnValue = .success(RoomPreviewProxyMock(.init(roomType: .space, membership: nil, joinRule: .public)))
-            let spaceRoomList = SpaceRoomListProxyMock(.init(spaceRoomProxy: SpaceRoomProxyMock(.init(id: "1", isSpace: true))))
+            let spaceRoomList = SpaceRoomListProxyMock(.init(spaceServiceRoom: SpaceServiceRoom.mock(id: "1", isSpace: true)))
             clientProxy.spaceService = SpaceServiceProxyMock(.init(spaceRoomLists: ["1": spaceRoomList]))
             clientProxy.setAccountDataTypeContentReturnValue = .success(())
         case .invited:
@@ -280,25 +325,29 @@ class JoinRoomScreenViewModelTests: XCTestCase {
                 roomProxy.forgetRoomReturnValue = .success(())
                 return .banned(roomProxy)
             }
+        case .alreadyJoined:
+            clientProxy.roomPreviewForIdentifierViaReturnValue = .success(RoomPreviewProxyMock.joinable)
+            clientProxy.roomForIdentifierClosure = { roomID in
+                .joined(JoinedRoomProxyMock(.init(id: roomID)))
+            }
         }
         
-        viewModel = JoinRoomScreenViewModel(roomID: "1",
-                                            via: [],
-                                            appSettings: appSettings,
-                                            spacesSetting: SpacesSetting(clientProxy: clientProxy, appSettings: appSettings),
-                                            userSession: UserSessionMock(.init(clientProxy: clientProxy)),
+        viewModel = JoinRoomScreenViewModel(source: .generic(roomID: "1", via: []),
+                                            spacesSetting: SpacesSetting(clientProxy: clientProxy, appSettings: userSettings.app),
+                                            userSession: UserSessionMock(.init(clientProxy: clientProxy, userSettings: userSettings)),
                                             userIndicatorController: userIndicatorController)
     }
 }
 
-extension JoinRoomScreenViewModelAction: @retroactive Equatable {
+@MainActor
+extension JoinRoomScreenViewModelAction: @MainActor @retroactive Equatable {
     /// A close enough approximation for tests.
     public static func == (lhs: JoinRoomScreenViewModelAction, rhs: JoinRoomScreenViewModelAction) -> Bool {
         switch (lhs, rhs) {
         case (.joined(.roomID(let lhsRoomID)), .joined(.roomID(let rhsRoomID))):
             lhsRoomID == rhsRoomID
         case (.joined(.space(let lhsSpace)), .joined(.space(let rhsSpace))):
-            lhsSpace.spaceRoomProxy.id == rhsSpace.spaceRoomProxy.id
+            lhsSpace.id == rhsSpace.id
         case (.dismiss, .dismiss):
             true
         case (.presentDeclineAndBlock(let lhsUserID), .presentDeclineAndBlock(let rhsUserID)):

@@ -6,7 +6,7 @@
 
 import Foundation
 
-extension Bundle {
+nonisolated extension Bundle {
     /// Sent to servers instead of the device locale, whose `pt-CA` or `pt-PT` match no server template.
     /// The bundled `pt` localization is a copy of pt-BR.
     static var guaAppLanguage: String {

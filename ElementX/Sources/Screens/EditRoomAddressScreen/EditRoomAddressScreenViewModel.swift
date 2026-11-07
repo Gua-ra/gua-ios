@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE in the repository root for full details.
 //
 
@@ -22,7 +23,7 @@ class EditRoomAddressScreenViewModel: EditRoomAddressScreenViewModelType, EditRo
     }
     
     @CancellableTask private var checkAliasAvailabilityTask: Task<Void, Never>?
-
+    
     init(initialViewState: EditRoomAddressScreenViewState? = nil,
          roomProxy: JoinedRoomProxyProtocol,
          clientProxy: ClientProxyProtocol,
@@ -156,11 +157,10 @@ class EditRoomAddressScreenViewModel: EditRoomAddressScreenViewModelType, EditRo
         }
         
         // Then try remove the old alias from the room directory on our current HS
-        if let savedAliasFromHomeserver {
-            if case .failure = await roomProxy.removeRoomAliasFromRoomDirectory(savedAliasFromHomeserver) {
-                userIndicatorController.submitIndicator(.init(title: L10n.errorUnknown))
-                return
-            }
+        if let savedAliasFromHomeserver,
+           case .failure = await roomProxy.removeRoomAliasFromRoomDirectory(savedAliasFromHomeserver) {
+            userIndicatorController.submitIndicator(.init(title: L10n.errorUnknown))
+            return
         }
         
         // Finally update the canonical alias state..
@@ -168,7 +168,7 @@ class EditRoomAddressScreenViewModel: EditRoomAddressScreenViewModelType, EditRo
         if savedCanonicalAlias == nil || savedCanonicalAlias?.hasSuffix(state.serverName) == true {
             var newAlternativeAliases = roomProxy.infoPublisher.value.alternativeAliases
             newAlternativeAliases.removeAll { $0 == savedAliasFromHomeserver }
-
+            
             if case .failure = await roomProxy.updateCanonicalAlias(desiredCanonicalAlias, altAliases: newAlternativeAliases) {
                 userIndicatorController.submitIndicator(.init(title: L10n.errorUnknown))
                 return

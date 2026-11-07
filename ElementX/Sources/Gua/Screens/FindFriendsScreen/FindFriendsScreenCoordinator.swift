@@ -22,20 +22,20 @@ enum FindFriendsScreenCoordinatorAction {
 
 final class FindFriendsScreenCoordinator: CoordinatorProtocol {
     private let viewModel: FindFriendsScreenViewModelProtocol
-
+    
     private var cancellables = Set<AnyCancellable>()
-
+    
     private let actionsSubject: PassthroughSubject<FindFriendsScreenCoordinatorAction, Never> = .init()
     var actionsPublisher: AnyPublisher<FindFriendsScreenCoordinatorAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
-
+    
     init(parameters: FindFriendsScreenCoordinatorParameters) {
         viewModel = FindFriendsScreenViewModel(contactDiscoveryService: parameters.contactDiscoveryService,
                                                clientProxy: parameters.clientProxy,
                                                accessToken: parameters.accessToken)
     }
-
+    
     func start() {
         viewModel.actionsPublisher.sink { [weak self] action in
             MXLog.info("Coordinator: received view model action: \(action)")
@@ -51,7 +51,7 @@ final class FindFriendsScreenCoordinator: CoordinatorProtocol {
         }
         .store(in: &cancellables)
     }
-
+    
     func toPresentable() -> AnyView {
         AnyView(FindFriendsScreen(context: viewModel.context))
     }

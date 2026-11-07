@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -13,9 +14,8 @@ struct RoomDetailsEditScreenCoordinatorParameters {
     let userSession: UserSessionProtocol
     let mediaUploadingPreprocessor: MediaUploadingPreprocessor
     weak var navigationStackCoordinator: NavigationStackCoordinator?
+    let appMediator: AppMediatorProtocol
     let userIndicatorController: UserIndicatorControllerProtocol
-    let orientationManager: OrientationManagerProtocol
-    let appSettings: AppSettings
 }
 
 enum RoomDetailsEditScreenCoordinatorAction {
@@ -38,6 +38,7 @@ final class RoomDetailsEditScreenCoordinator: CoordinatorProtocol {
         viewModel = RoomDetailsEditScreenViewModel(roomProxy: parameters.roomProxy,
                                                    userSession: parameters.userSession,
                                                    mediaUploadingPreprocessor: parameters.mediaUploadingPreprocessor,
+                                                   appMediator: parameters.appMediator,
                                                    userIndicatorController: parameters.userIndicatorController)
     }
     
@@ -51,6 +52,8 @@ final class RoomDetailsEditScreenCoordinator: CoordinatorProtocol {
                     self?.displayMediaPickerWithMode(.init(source: .camera, selectionType: .single))
                 case .displayMediaPicker:
                     self?.displayMediaPickerWithMode(.init(source: .photoLibrary, selectionType: .single))
+                case .displayFilePicker:
+                    self?.displayMediaPickerWithMode(.init(source: .documents(types: [.image]), selectionType: .single))
                 }
             }
             .store(in: &cancellables)
@@ -67,7 +70,7 @@ final class RoomDetailsEditScreenCoordinator: CoordinatorProtocol {
         
         let mediaPickerCoordinator = MediaPickerScreenCoordinator(mode: mode,
                                                                   userIndicatorController: parameters.userIndicatorController,
-                                                                  orientationManager: parameters.orientationManager) { [weak self] action in
+                                                                  orientationManager: parameters.appMediator.windowManager) { [weak self] action in
             guard let self else { return }
             switch action {
             case .cancel:

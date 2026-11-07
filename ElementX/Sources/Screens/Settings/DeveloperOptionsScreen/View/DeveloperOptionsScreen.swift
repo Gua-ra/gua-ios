@@ -1,13 +1,17 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import SwiftUI
 
 struct DeveloperOptionsScreen: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var showMarkAllRoomsAsReadAlert = false
+    
     @Bindable var context: DeveloperOptionsScreenViewModel.Context
     
     @State private var showConfetti = false
@@ -20,6 +24,14 @@ struct DeveloperOptionsScreen: View {
     
     var body: some View {
         Form {
+            if let storeSizes = context.viewState.storeSizes {
+                Section("Usage") {
+                    ForEach(storeSizes) { storeSize in
+                        LabeledContent(storeSize.name, value: storeSize.size)
+                    }
+                }
+            }
+            
             Section("Logging") {
                 LogLevelConfigurationView(logLevel: $context.logLevel)
                 
@@ -33,24 +45,26 @@ struct DeveloperOptionsScreen: View {
             }
             
             Section("General") {
-                Toggle(isOn: $context.threadsEnabled) {
-                    Text("Threads")
+                Toggle(isOn: $context.linkNewDeviceEnabled) {
+                    Text("Link new device with QR code")
                 }
-
-                Toggle(isOn: $context.nextGenHTMLParserEnabled) {
-                    Text("Next gen HTML parsing")
+                
+                Toggle(isOn: $context.globalSearchEnabled) {
+                    Text("Global search")
+                    Text("Moves search to a separate tab")
+                }
+                
+                context.viewState.screenHook.generalSectionRows()
+            }
+            
+            Section("Accounts") {
+                Toggle(isOn: $context.multiAccountEnabled) {
+                    Text("Multi-account")
+                    Text("Switching it on shows the announcement again.")
                 }
             }
             
             Section("Room List") {
-                Toggle(isOn: $context.publicSearchEnabled) {
-                    Text("Public search")
-                }
-                
-                Toggle(isOn: $context.hideUnreadMessagesBadge) {
-                    Text("Hide grey dots")
-                }
-                
                 Toggle(isOn: $context.fuzzyRoomListSearchEnabled) {
                     Text("Fuzzy searching")
                 }
@@ -59,13 +73,12 @@ struct DeveloperOptionsScreen: View {
                     Text("Low priority filter")
                 }
                 
-                Toggle(isOn: $context.latestEventSorterEnabled) {
-                    Text("Latest event sorter")
-                    Text("Requires app reboot")
+                Toggle(isOn: $context.mentionsFilterEnabled) {
+                    Text("Mentions filter")
                 }
             }
             
-            Section("Timeline") {
+            Section("Room") {
                 Toggle(isOn: $context.linkPreviewsEnabled) {
                     Text("Link previews")
                     Text("Follows the timeline media visibility settings.")
@@ -73,15 +86,13 @@ struct DeveloperOptionsScreen: View {
                         .foregroundStyle(.compound.textCriticalPrimary)
                 }
                 
+                Toggle(isOn: $context.jumpToReadMarkerEnabled) {
+                    Text("Jump to unread")
+                    Text("Adds a button to jump to the read marker, plus a presence dot on the scroll-to-bottom button when new messages arrive while scrolled away.")
+                }
+                
                 Toggle(isOn: $context.viewSourceEnabled) {
                     Text(L10n.actionViewSource)
-                }
-            }
-                        
-            Section("Join rules") {
-                Toggle(isOn: $context.knockingEnabled) {
-                    Text("Knocking")
-                    Text("Ask to join rooms")
                 }
             }
             
@@ -95,17 +106,7 @@ struct DeveloperOptionsScreen: View {
             } footer: {
                 Text("This setting controls how end-to-end encryption (E2EE) keys are exchanged. Enabling it will prevent the inclusion of devices that have not been explicitly verified by their owners.")
             }
-
-            Section {
-                Toggle(isOn: $context.enableKeyShareOnInvite) {
-                    Text("Share encrypted history with new members")
-                    Text("Requires app reboot")
-                }
-            } footer: {
-                Text("When inviting a user to an encrypted room that has history visibility set to \"shared\", share encrypted history with that user, and accept encrypted history when you are invited to such a room.")
-                Text("WARNING: this feature is EXPERIMENTAL and not all security precautions are implemented. Do not enable on production accounts.")
-            }
-
+            
             Section {
                 TextField("Leave empty to use EC locally", text: $elementCallURLOverrideString)
                     .autocorrectionDisabled(true)
@@ -119,8 +120,13 @@ struct DeveloperOptionsScreen: View {
                             context.elementCallBaseURLOverride = url
                         }
                     }
+                Toggle(isOn: $context.nativeCallEnabled) {
+                    Text("Experimental native calls")
+                }
             } header: {
-                Text("Element Call remote URL override")
+                Text("Calls")
+            } footer: {
+                Text("The URL override only applies to calls run in the Element Call web view, which native calls replace.")
             }
             
             Section("Notifications") {
@@ -128,6 +134,30 @@ struct DeveloperOptionsScreen: View {
                     Text("Hide quiet alerts")
                     Text("The badge count will still be updated")
                 }
+                
+                Toggle(isOn: $context.focusEventOnNotificationTap) {
+                    Text("Focus event on notification tap")
+                }
+            }
+            
+            Section {
+                Button {
+                    showMarkAllRoomsAsReadAlert = true
+                } label: {
+                    Text("Mark all rooms as read")
+                }.alert("Are you sure you want to mark all the rooms as read?", isPresented: $showMarkAllRoomsAsReadAlert) {
+                    Button("Cancel", role: .cancel) { }
+                    
+                    Button("Yes") {
+                        context.send(viewAction: .markAllRoomsAsRead)
+                    }
+                }
+            } footer: {
+                Text("""
+                This will send a private read receipt and a read marker in every room you are part of. \ 
+                It's a long running operation that might get rate limited. \
+                It will run in the background but the app must be alive for it to finish.
+                """)
             }
             
             Section {
@@ -139,22 +169,24 @@ struct DeveloperOptionsScreen: View {
                         .alignmentGuide(.listRowSeparatorLeading) { _ in 0 } // Fix separator alignment
                 }
             }
-
-            Section {
-                Button(role: .destructive) {
-                    context.send(viewAction: .clearCache)
-                } label: {
-                    Text("Clear cache")
-                        .frame(maxWidth: .infinity)
+            
+            if context.viewState.isSignedIn {
+                Section {
+                    Button(role: .destructive) {
+                        context.send(viewAction: .clearCache)
+                    } label: {
+                        Text("Clear cache")
+                            .frame(maxWidth: .infinity)
+                    }
                 }
             }
         }
         .overlay(effectsView)
-        .compoundList()
         .navigationTitle(L10n.commonDeveloperOptions)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar { toolbar }
     }
-
+    
     @ViewBuilder
     private var effectsView: some View {
         if showConfetti {
@@ -164,10 +196,23 @@ struct DeveloperOptionsScreen: View {
                 .task { await removeConfettiAfterDelay() }
         }
     }
-
+    
     private func removeConfettiAfterDelay() async {
         try? await Task.sleep(for: .seconds(4))
         showConfetti = false
+    }
+    
+    @ToolbarContentBuilder
+    private var toolbar: some ToolbarContent {
+        if !context.viewState.isSignedIn {
+            ToolbarItem(placement: .primaryAction) {
+                if #available(iOS 26.0, *) {
+                    Button(role: .close, action: dismiss.callAsFunction)
+                } else {
+                    Button(L10n.actionDone, action: dismiss.callAsFunction)
+                }
+            }
+        }
     }
 }
 
@@ -208,10 +253,12 @@ private extension Set<TraceLogPack> {
 // MARK: - Previews
 
 struct DeveloperOptionsScreen_Previews: PreviewProvider {
-    static let viewModel = DeveloperOptionsScreenViewModel(developerOptions: ServiceLocator.shared.settings,
-                                                           elementCallBaseURL: ServiceLocator.shared.settings.elementCallBaseURL)
+    static let viewModel = DeveloperOptionsScreenViewModel(developerOptions: AppSettings.volatile(),
+                                                           screenHook: DefaultDeveloperOptionsScreenHook(),
+                                                           clientProxy: ClientProxyMock(.init()))
+    
     static var previews: some View {
-        NavigationStack {
+        ElementNavigationStack {
             DeveloperOptionsScreen(context: viewModel.context)
         }
     }

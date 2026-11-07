@@ -9,7 +9,7 @@ import Foundation
 
 // swiftlint:disable explicit_type_interface function_parameter_count identifier_name line_length
 // swiftlint:disable nesting type_body_length type_name vertical_whitespace_opening_braces
-internal enum UntranslatedL10n {
+internal nonisolated enum UntranslatedL10n {
   /// Delete account
   internal static var actionDeleteAccount: String { return UntranslatedL10n.tr("Untranslated", "action_delete_account") }
   /// Manage account & devices
@@ -24,10 +24,18 @@ internal enum UntranslatedL10n {
   internal static var commonModerationAndSafety: String { return UntranslatedL10n.tr("Untranslated", "common_moderation_and_safety") }
   /// We couldn’t finish setting up your account on this device. Please try again.
   internal static var guaAccountGenesisSetupFailed: String { return UntranslatedL10n.tr("Untranslated", "gua_account_genesis_setup_failed") }
+  /// Delete
+  internal static var guaActionDelete: String { return UntranslatedL10n.tr("Untranslated", "gua_action_delete") }
   /// More
   internal static var guaActionMore: String { return UntranslatedL10n.tr("Untranslated", "gua_action_more") }
+  /// Open in new window
+  internal static var guaActionOpenInNewWindow: String { return UntranslatedL10n.tr("Untranslated", "gua_action_open_in_new_window") }
   /// Select
   internal static var guaActionSelect: String { return UntranslatedL10n.tr("Untranslated", "gua_action_select") }
+  /// You are being signed out
+  internal static var guaAppLockSignoutAlertTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_app_lock_signout_alert_title") }
+  /// Global Search
+  internal static var guaCommonGlobalSearch: String { return UntranslatedL10n.tr("Untranslated", "gua_common_global_search") }
   /// Contact info
   internal static var guaContactInfoTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_contact_info_title") }
   /// Opens country picker
@@ -130,6 +138,10 @@ internal enum UntranslatedL10n {
   internal static var guaJoinSpaceTurnsOnSpaces: String { return UntranslatedL10n.tr("Untranslated", "gua_join_space_turns_on_spaces") }
   /// Select text
   internal static var guaMessageTextSelectionTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_message_text_selection_title") }
+  /// Gua Default
+  internal static var guaNotificationSoundDefault: String { return UntranslatedL10n.tr("Untranslated", "gua_notification_sound_default") }
+  /// Gua Fade
+  internal static var guaNotificationSoundFade: String { return UntranslatedL10n.tr("Untranslated", "gua_notification_sound_fade") }
   /// Your passkey can’t be used for this right now.
   internal static var guaPasskeyUnavailable: String { return UntranslatedL10n.tr("Untranslated", "gua_passkey_unavailable") }
   /// That passkey didn’t confirm it was you. Please try again.
@@ -164,10 +176,20 @@ internal enum UntranslatedL10n {
   }
   /// We couldn’t sign you back in. Please sign in again.
   internal static var guaRestoreSigninFailed: String { return UntranslatedL10n.tr("Untranslated", "gua_restore_signin_failed") }
+  /// Sign out
+  internal static var guaSettingsSignOut: String { return UntranslatedL10n.tr("Untranslated", "gua_settings_sign_out") }
   /// Organize related chats and communities in one place
   internal static var guaSettingsSpacesDescription: String { return UntranslatedL10n.tr("Untranslated", "gua_settings_spaces_description") }
   /// Sign in with a passkey
   internal static var guaSignInWithPasskey: String { return UntranslatedL10n.tr("Untranslated", "gua_sign_in_with_passkey") }
+  /// Signing out
+  internal static var guaSigningOut: String { return UntranslatedL10n.tr("Untranslated", "gua_signing_out") }
+  /// Are you sure you want to sign out?
+  internal static var guaSignoutConfirmationMessage: String { return UntranslatedL10n.tr("Untranslated", "gua_signout_confirmation_message") }
+  /// Your keys were still being backed up when you went offline. Reconnect so that your keys can be backed up before signing out.
+  internal static var guaSignoutKeyBackupOfflineSubtitle: String { return UntranslatedL10n.tr("Untranslated", "gua_signout_key_backup_offline_subtitle") }
+  /// Please wait for this to complete before signing out.
+  internal static var guaSignoutKeyBackupOngoingSubtitle: String { return UntranslatedL10n.tr("Untranslated", "gua_signout_key_backup_ongoing_subtitle") }
   /// Messages kept only here will not be available when you sign back in.
   internal static var guaSignoutLastDeviceMessage: String { return UntranslatedL10n.tr("Untranslated", "gua_signout_last_device_message") }
   /// Signing out will remove your messages from this device
@@ -229,7 +251,7 @@ internal enum UntranslatedL10n {
 
 // MARK: - Implementation Details
 
-extension UntranslatedL10n {
+nonisolated extension UntranslatedL10n {
   static func tr(_ table: String, _ key: String, _ args: CVarArg...) -> String {
     // Gua keeps its own translations in this table, so resolve the app language exactly like L10n does.
     let languages = Bundle.overrideLocalizations ?? Bundle.app.preferredLocalizations

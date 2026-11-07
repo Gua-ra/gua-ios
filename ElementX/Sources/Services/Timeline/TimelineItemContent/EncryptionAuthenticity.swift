@@ -1,7 +1,8 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -9,10 +10,10 @@ import Compound
 import MatrixRustSDK
 import SwiftUI
 
-/// Represents and issue with a timeline item's authenticity such as coming from an
+/// Represents an issue with a timeline item's authenticity such as coming from an
 /// unsigned session or being sent unencrypted in an encrypted room. See Rust's
 /// `ShieldStateCode` for more information about the meaning of the cases.
-enum EncryptionAuthenticity: Hashable {
+nonisolated enum EncryptionAuthenticity: Hashable {
     enum Color { case red, gray }
     
     case notGuaranteed(color: Color)
@@ -26,19 +27,19 @@ enum EncryptionAuthenticity: Hashable {
     var message: String {
         switch self {
         case .notGuaranteed:
-            L10n.eventShieldReasonAuthenticityNotGuaranteed
+            L10n.cryptoEventAuthenticityNotGuaranteed
         case .unknownDevice:
-            L10n.eventShieldReasonUnknownDevice
+            L10n.cryptoEventAuthenticityUnknownDevice
         case .unsignedDevice:
-            L10n.eventShieldReasonUnsignedDevice
+            L10n.cryptoEventAuthenticityUnsignedDevice
         case .unverifiedIdentity:
-            L10n.eventShieldReasonUnverifiedIdentity
+            L10n.cryptoEventAuthenticityUnverifiedIdentity
         case .verificationViolation:
-            L10n.eventShieldReasonPreviouslyVerified
+            L10n.cryptoEventAuthenticityPreviouslyVerified
         case .sentInClear:
-            L10n.eventShieldReasonSentInClear
+            L10n.cryptoEventAuthenticitySentInClear
         case .mismatchedSender:
-            L10n.eventShieldMismatchedSender
+            L10n.cryptoEventAuthenticityMismatchedSender
         }
     }
     
@@ -65,7 +66,7 @@ enum EncryptionAuthenticity: Hashable {
         case .sentInClear: \.lockOff
         }
     }
-
+    
     /// GUA FORK: whether this state warrants alarm colour.
     ///
     /// Red in the send-status slot means "did not send" in every messenger, so it is reserved
@@ -77,7 +78,7 @@ enum EncryptionAuthenticity: Hashable {
         case .notGuaranteed, .unknownDevice, .unsignedDevice, .unverifiedIdentity: false
         }
     }
-
+    
     /// GUA FORK: states that describe the *sender's own* setup rather than a risk to the reader.
     ///
     /// On your own message these say nothing you can act on and nothing you did wrong, so they
@@ -90,7 +91,7 @@ enum EncryptionAuthenticity: Hashable {
     }
 }
 
-extension EncryptionAuthenticity {
+nonisolated extension EncryptionAuthenticity {
     init?(shieldState: ShieldState) {
         switch shieldState {
         case .red(let code):

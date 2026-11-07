@@ -18,8 +18,8 @@ name: Feedback fix
 # an iOS change means an iOS simulator, which GitHub's hosted runners do not give
 # us in a form worth trusting. FIX_RUNNER selects the runner; point it at a
 # self-hosted macOS runner to get the simulator QA steps. Until one exists it
-# falls back to macos-latest, which can build and run unit tests but cannot be
-# asked to drive the app.
+# falls back to xcode-27, the runner the test workflows use, which can build and
+# run unit tests but cannot be asked to drive the app.
 
 on:
   issues:
@@ -48,7 +48,7 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       github.event.label.name == 'feedback:approved'
-    runs-on: ${{ vars.FIX_RUNNER || 'macos-latest' }}
+    runs-on: ${{ vars.FIX_RUNNER || 'xcode-27' }}
     timeout-minutes: 90
     env:
       ISSUE: ${{ github.event.issue.number || inputs.issue }}
@@ -139,8 +139,8 @@ jobs:
              `--base develop`. In the body: what was wrong, why, what you changed,
              and a "Verification" section containing the ACTUAL commands and
              output from step 4. Add `Fixes #ISSUE_NUMBER` so the issue closes on
-             merge. Add a `pr-` label (`pr-bugfix` for a fix), which the Danger
-             check requires.
+             merge. Add a `pr-` label (`pr-bugfix` for a fix), which the PR
+             Checks workflow requires.
 
           Honesty requirements, which matter more than producing a pull request:
           - If you cannot find the cause, do not invent one. Push nothing, and

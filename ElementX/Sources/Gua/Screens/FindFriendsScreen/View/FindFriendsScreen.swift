@@ -9,14 +9,14 @@ import SwiftUI
 
 struct FindFriendsScreen: View {
     @Bindable var context: FindFriendsScreenViewModel.Context
-
+    
     var body: some View {
         content
             .navigationTitle(L10n.screenFindFriendsTitle)
             .navigationBarTitleDisplayMode(.inline)
             .alert(item: $context.alertInfo)
     }
-
+    
     @ViewBuilder
     private var content: some View {
         switch context.viewState.phase {
@@ -50,7 +50,7 @@ struct FindFriendsScreen: View {
             contactsList
         }
     }
-
+    
     private var contactsList: some View {
         List {
             Section {
@@ -63,11 +63,11 @@ struct FindFriendsScreen: View {
         }
         .listStyle(.insetGrouped)
     }
-
+    
     private var headerText: String {
         UntranslatedL10n.guaFindFriendsResultsHeader(context.viewState.contacts.count)
     }
-
+    
     private func contactRow(_ contact: DiscoveredContact) -> some View {
         HStack(spacing: 12) {
             // Tapping the avatar opens the contact's profile (photo + details).
@@ -78,7 +78,7 @@ struct FindFriendsScreen: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(UntranslatedL10n.guaFindFriendsViewProfileA11y(contact.localName))
-
+            
             // Tapping the rest of the row starts (or opens) the chat.
             Button {
                 context.send(viewAction: .selectContact(contact))
@@ -106,7 +106,7 @@ struct FindFriendsScreen: View {
         }
         .disabled(context.viewState.startingChatUserID != nil)
     }
-
+    
     private func avatar(for contact: DiscoveredContact) -> some View {
         Circle()
             .fill(Color.accentColor.opacity(0.15))
@@ -117,12 +117,12 @@ struct FindFriendsScreen: View {
                     .foregroundStyle(Color.accentColor)
             }
     }
-
+    
     private func initial(for name: String) -> String {
         guard let first = name.trimmingCharacters(in: .whitespaces).first else { return "?" }
         return String(first).uppercased()
     }
-
+    
     private func messageState(systemImage: String?,
                               title: String,
                               message: String?,

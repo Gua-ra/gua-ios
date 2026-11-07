@@ -14,7 +14,7 @@ import SwiftUI
 struct PhoneEntryScreenCoordinatorParameters {
     let isLegacyAuthEnabled: Bool
     let initialPhoneNumber: String
-
+    
     init(isLegacyAuthEnabled: Bool, initialPhoneNumber: String = "") {
         self.isLegacyAuthEnabled = isLegacyAuthEnabled
         self.initialPhoneNumber = initialPhoneNumber
@@ -30,21 +30,21 @@ enum PhoneEntryScreenCoordinatorAction {
 final class PhoneEntryScreenCoordinator: CoordinatorProtocol {
     private let parameters: PhoneEntryScreenCoordinatorParameters
     let viewModel: PhoneEntryScreenViewModel
-
+    
     private var cancellables = Set<AnyCancellable>()
-
+    
     private let actionsSubject: PassthroughSubject<PhoneEntryScreenCoordinatorAction, Never> = .init()
     var actionsPublisher: AnyPublisher<PhoneEntryScreenCoordinatorAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
-
+    
     init(parameters: PhoneEntryScreenCoordinatorParameters) {
         self.parameters = parameters
-
+        
         viewModel = PhoneEntryScreenViewModel(isLegacyAuthEnabled: parameters.isLegacyAuthEnabled,
                                               initialPhoneNumber: parameters.initialPhoneNumber)
     }
-
+    
     func start() {
         viewModel.actionsPublisher.sink { [weak self] action in
             guard let self else { return }
@@ -59,15 +59,15 @@ final class PhoneEntryScreenCoordinator: CoordinatorProtocol {
         }
         .store(in: &cancellables)
     }
-
+    
     func setSubmitting(_ isSubmitting: Bool) {
         viewModel.setSubmitting(isSubmitting)
     }
-
+    
     func displayError(_ message: String) {
         viewModel.displayError(message)
     }
-
+    
     func toPresentable() -> AnyView {
         AnyView(PhoneEntryScreen(context: viewModel.context))
     }

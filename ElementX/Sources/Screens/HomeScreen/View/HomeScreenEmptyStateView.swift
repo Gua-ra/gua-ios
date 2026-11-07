@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -14,7 +15,7 @@ struct HomeScreenEmptyStateView: View {
     let context: HomeScreenViewModel.Context
     
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 2) {
             Text(L10n.screenRoomlistEmptyTitle)
                 .font(.compound.bodyLG)
                 .foregroundColor(.compound.textSecondary)
@@ -24,14 +25,14 @@ struct HomeScreenEmptyStateView: View {
                 .font(.compound.bodyLG)
                 .foregroundColor(.compound.textSecondary)
                 .multilineTextAlignment(.center)
-                .padding(.bottom, 12)
+                .padding(.bottom, 16)
             
             Button { context.send(viewAction: .startChat) } label: {
-                Label(L10n.actionStartChat, icon: \.compose)
+                Label(L10n.actionStartChat, icon: \.chat)
                     .font(.compound.bodyLGSemibold)
                     .foregroundColor(.compound.textOnSolidPrimary)
                     .padding(.vertical, 6)
-                    .padding(.horizontal, 22)
+                    .padding(.horizontal, 8)
             }
             .buttonStyle(.borderedProminent)
             .buttonBorderShape(.capsule)
@@ -78,7 +79,7 @@ struct HomeScreenEmptyStateLayout: Layout {
         
         // Place the main view in the center if there is space, otherwise add it to the stack.
         guard let mainView else { return }
-
+        
         let mainViewSize = mainView.sizeThatFits(proposal)
         if (y + mainViewSize.height / 2) < bounds.height / 2 {
             let center = CGPoint(x: bounds.midX, y: bounds.midY)
@@ -142,12 +143,11 @@ struct HomeScreenEmptyStateView_Previews: PreviewProvider, TestablePreview {
     static let viewModel = {
         let userSession = UserSessionMock(.init(clientProxy: ClientProxyMock(.init(userID: "@user:example.com",
                                                                                    roomSummaryProvider: RoomSummaryProviderMock(.init(state: .loaded([])))))))
-        
         return HomeScreenViewModel(userSession: userSession,
+                                   availableSessionsPublisher: .init([.init(userSession: userSession)]),
                                    selectedRoomPublisher: CurrentValueSubject<String?, Never>(nil).asCurrentValuePublisher(),
-                                   appSettings: ServiceLocator.shared.settings,
-                                   analyticsService: ServiceLocator.shared.analytics,
-                                   notificationManager: NotificationManagerMock(),
-                                   userIndicatorController: ServiceLocator.shared.userIndicatorController)
+                                   analyticsService: AnalyticsServiceMock(.init()),
+                                   bugReportService: BugReportServiceMock(.init()),
+                                   userIndicatorController: UserIndicatorControllerMock())
     }()
 }

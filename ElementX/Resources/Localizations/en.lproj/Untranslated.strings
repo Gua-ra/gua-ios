@@ -27,6 +27,13 @@
    screen_signout_key_backup_disabled_*. */
 "gua_signout_last_device_title" = "Signing out will remove your messages from this device";
 "gua_signout_last_device_message" = "Messages kept only here will not be available when you sign back in.";
+/* Upstream's sign-out strings say "Remove this device"; Gua keeps "Sign out". */
+"gua_settings_sign_out" = "Sign out";
+"gua_signout_confirmation_message" = "Are you sure you want to sign out?";
+"gua_signout_key_backup_ongoing_subtitle" = "Please wait for this to complete before signing out.";
+"gua_signout_key_backup_offline_subtitle" = "Your keys were still being backed up when you went offline. Reconnect so that your keys can be backed up before signing out.";
+"gua_app_lock_signout_alert_title" = "You are being signed out";
+"gua_signing_out" = "Signing out";
 
 // MARK: - Gua identity change, other surfaces
 
@@ -124,6 +131,7 @@
 "common_app_settings" = "App settings";
 "action_manage_account_and_devices" = "Manage account & devices";
 "action_delete_account" = "Delete account";
+"gua_action_delete" = "Delete";
 "common_media_upload_quality" = "Media upload quality";
 
 "common_moderation_and_safety" = "Moderation & safety";
@@ -132,8 +140,13 @@
 
 "gua_action_select" = "Select";
 "gua_action_more" = "More";
+"gua_action_open_in_new_window" = "Open in new window";
+"gua_common_global_search" = "Global Search";
 "gua_message_text_selection_title" = "Select text";
 
 "gua_settings_spaces_description" = "Organize related chats and communities in one place";
 "gua_join_space_action" = "Turn on Spaces and join";
 "gua_join_space_turns_on_spaces" = "This is a space. Joining turns on Spaces so you can see its chats.";
+
+"gua_notification_sound_default" = "Gua Default";
+"gua_notification_sound_fade" = "Gua Fade";

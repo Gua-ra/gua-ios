@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -15,7 +16,7 @@ enum AudioPlayerError: Error {
 /// There used to be a MediaPlayerProtocol that AudioPlayerProtocol inherited from.
 /// This should be called something else but we already have an AudioPlayerState,
 /// AudioPlayerPlaybackState and InternalAudioPlayerState so who knows what to call this.
-enum MediaPlayerState {
+nonisolated enum MediaPlayerState {
     case loading
     case playing
     case paused
@@ -48,6 +49,7 @@ protocol AudioPlayerProtocol: AnyObject {
     func pause()
     func stop()
     func seek(to progress: Double) async
+    func setPlaybackSpeed(_ speed: Float)
 }
 
 // sourcery: AutoMockable

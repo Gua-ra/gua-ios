@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -13,8 +14,18 @@ import SwiftUI
 class SceneDelegate: NSObject, UIWindowSceneDelegate {
     weak static var windowManager: SecureWindowManagerProtocol!
     
+    /// The app's main window scene identifier.
+    static let mainSceneID = "Main"
+    /// The user info key used by SwiftUI for a `WindowGroup`s `id` parameter.
+    static let sceneIDKey = "com.apple.SwiftUI.sceneID"
+    
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = scene as? UIWindowScene else { return }
-        Self.windowManager.configure(with: windowScene)
+        Self.windowManager.configure(withScene: windowScene, session: session)
+    }
+    
+    func sceneDidDisconnect(_ scene: UIScene) {
+        guard let windowScene = scene as? UIWindowScene else { return }
+        Self.windowManager.handleSceneDisconnection(windowScene)
     }
 }

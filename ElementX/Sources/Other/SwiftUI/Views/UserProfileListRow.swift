@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -10,7 +11,7 @@ import MatrixRustSDK
 import SwiftUI
 
 struct UserProfileListRow: View {
-    let user: UserProfileProxy
+    let user: UserProfile
     let membership: MembershipState?
     let mediaProvider: MediaProviderProtocol?
     
@@ -23,14 +24,14 @@ struct UserProfileListRow: View {
         if let membershipText = membership?.localizedDescription {
             return membershipText
         } else if user.displayName != nil {
-            return user.userID.guaDisplayHandle
+            return user.id.guaDisplayHandle
         } else {
             return nil
         }
     }
-
+    
     var body: some View {
-        ListRow(label: .avatar(title: user.displayName ?? user.userID.guaDisplayHandle,
+        ListRow(label: .avatar(title: user.displayName ?? user.id.guaDisplayHandle,
                                description: subtitle,
                                icon: avatar,
                                role: nil),
@@ -40,7 +41,7 @@ struct UserProfileListRow: View {
     var avatar: LoadableAvatarImage {
         LoadableAvatarImage(url: user.avatarURL,
                             name: user.displayName,
-                            contentID: user.userID,
+                            contentID: user.id,
                             avatarSize: .user(on: .startChat),
                             mediaProvider: mediaProvider)
     }
@@ -64,21 +65,21 @@ struct UserProfileCell_Previews: PreviewProvider, TestablePreview {
     
     static var previews: some View {
         Form {
-            UserProfileListRow(user: .mockAlice, membership: nil, mediaProvider: MediaProviderMock(configuration: .init()),
+            UserProfileListRow(user: .mockAlice, membership: nil, mediaProvider: MediaProviderMock(.init()),
                                kind: .multiSelection(isSelected: true, action: action))
             
-            UserProfileListRow(user: .mockBob, membership: nil, mediaProvider: MediaProviderMock(configuration: .init()),
+            UserProfileListRow(user: .mockBob, membership: nil, mediaProvider: MediaProviderMock(.init()),
                                kind: .multiSelection(isSelected: false, action: action))
             
-            UserProfileListRow(user: .mockCharlie, membership: .join, mediaProvider: MediaProviderMock(configuration: .init()),
+            UserProfileListRow(user: .mockCharlie, membership: .join, mediaProvider: MediaProviderMock(.init()),
                                kind: .multiSelection(isSelected: true, action: action))
                 .disabled(true)
             
-            UserProfileListRow(user: .init(userID: "@someone:matrix.org"), membership: .join, mediaProvider: MediaProviderMock(configuration: .init()),
+            UserProfileListRow(user: .init(userID: "@someone:matrix.org"), membership: .join, mediaProvider: MediaProviderMock(.init()),
                                kind: .multiSelection(isSelected: false, action: action))
                 .disabled(true)
             
-            UserProfileListRow(user: .init(userID: "@someone:matrix.org"), membership: nil, mediaProvider: MediaProviderMock(configuration: .init()),
+            UserProfileListRow(user: .init(userID: "@someone:matrix.org"), membership: nil, mediaProvider: MediaProviderMock(.init()),
                                kind: .multiSelection(isSelected: false, action: action))
         }
         .compoundList()

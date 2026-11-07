@@ -31,7 +31,7 @@ enum TwoStepVerificationScreenViewModelAction {
 /// GUA FORK: there is one overview phase, not one per PIN state. What the account holds is read
 /// from the server's factor report and rendered from ``TwoStepVerificationScreenViewState/factors``,
 /// so a passkey holder is not shown the screen of somebody with nothing.
-enum TwoStepVerificationScreenPhase: Equatable {
+nonisolated enum TwoStepVerificationScreenPhase: Equatable {
     case loading
     case overview
     case enteringPhone
@@ -45,7 +45,7 @@ enum TwoStepVerificationScreenPhase: Equatable {
 struct TwoStepVerificationScreenViewState: BindableState {
     static let pinLength = 6
     static let otpLength = 6
-
+    
     var phase: TwoStepVerificationScreenPhase = .loading
     /// What the account has registered, as reported by the identity service. `nil` means the report
     /// could not be read, which is deliberately not the same as "nothing registered": the overview
@@ -59,16 +59,16 @@ struct TwoStepVerificationScreenViewState: BindableState {
     var stagedNewPin = ""
     var errorMessage: String?
     var bindings = TwoStepVerificationScreenViewStateBindings()
-
+    
     /// True only when the account is known to have a PIN. An unknown report never reads as "no PIN".
     var hasPin: Bool {
         factors?.hasPin ?? false
     }
-
+    
     var passkeyRegistered: Bool {
         factors?.passkeyRegistered ?? false
     }
-
+    
     var titleKey: String {
         switch phase {
         case .loading, .overview, .submitting:
@@ -85,7 +85,7 @@ struct TwoStepVerificationScreenViewState: BindableState {
             return L10n.screenTwoStepVerificationConfirmHeader
         }
     }
-
+    
     var footerKey: String {
         switch phase {
         case .enteringPhone:
@@ -102,7 +102,7 @@ struct TwoStepVerificationScreenViewState: BindableState {
             return ""
         }
     }
-
+    
     var canContinue: Bool {
         switch phase {
         case .enteringPhone:
@@ -115,29 +115,29 @@ struct TwoStepVerificationScreenViewState: BindableState {
             return false
         }
     }
-
+    
     var isWorking: Bool {
         phase == .submitting
     }
-
+    
     /// Local subscriber digits typed by the user, stripped of any formatting characters.
     var localDigits: String {
         bindings.localPhoneNumber.filter(\.isNumber)
     }
-
+    
     /// Full E.164 phone number to send to the backend (e.g. "+15551234567").
     var e164PhoneNumber: String {
         "+" + selectedCountry.dialCode + localDigits
     }
-
+    
     static func isValid(pin: String) -> Bool {
         pin.count == pinLength && pin.allSatisfy(\.isNumber)
     }
-
+    
     static func isValid(otp: String) -> Bool {
         otp.count == otpLength && otp.allSatisfy(\.isNumber)
     }
-
+    
     static func isValid(phone: String) -> Bool {
         let trimmed = phone.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.hasPrefix("+") else { return false }

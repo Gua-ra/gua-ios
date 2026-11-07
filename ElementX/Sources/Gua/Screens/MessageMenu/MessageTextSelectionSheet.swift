@@ -10,11 +10,11 @@ import SwiftUI
 
 struct MessageTextSelectionSheet: View {
     @Environment(\.dismiss) private var dismiss
-
+    
     let info: TimelineItemTextSelectionInfo
-
+    
     var body: some View {
-        NavigationStack {
+        ElementNavigationStack {
             SelectableTextView(text: info.text)
                 .background(Color.compound.bgCanvasDefault)
                 .navigationTitle(UntranslatedL10n.guaMessageTextSelectionTitle)

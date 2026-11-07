@@ -1,0 +1,135 @@
+name: Unit Tests
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches: [develop]
+
+  pull_request:
+
+permissions: {}
+
+jobs:
+  tests:
+    name: Tests
+    runs-on: xcode-27
+    timeout-minutes: 150
+
+    concurrency:
+      # Only allow a single run of this workflow on each branch, automatically cancelling older runs.
+      group: ${{ format('unit-tests-{0}', github.ref) }}
+      cancel-in-progress: true
+
+    steps:
+      - uses: nschloe/action-cached-lfs-checkout@385a8ecc719e50b8c71af6ab01a624b486b7c3bc # v1.2.5
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: BuildTools/.build
+          key: ${{ runner.os }}-swiftformat-${{ hashFiles('BuildTools/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-swiftformat-
+
+      - name: Setup environment
+        run: |
+          source ci_scripts/ci_common.sh
+          setup_github_actions_environment
+          use_pinned_swiftformat
+
+      - name: Install iOS 27.0 simulator runtime
+        run: |
+          source ci_scripts/ci_common.sh
+          install_ios_simulator_runtime 27.0
+          ensure_ios_simulator "iPhone 17" com.apple.CoreSimulator.SimDeviceType.iPhone-17 27.0
+          xcrun simctl list devices "iOS 27.0"
+
+      - name: Check translations
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: python3 Tools/Scripts/check_translations.py ${BASE_SHA:+--base "$BASE_SHA"}
+
+      - name: Determine test scope
+        id: test-scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          run_previews=true
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            # A stacked PR's base can be outside the shallow checkout; if it can't be diffed, run everything.
+            git fetch --no-tags --depth=1 origin "$BASE_SHA" || true
+            if changed=$(git diff --name-only "$BASE_SHA" HEAD); then
+              run_previews=false
+              while IFS= read -r path; do
+                case "$path" in
+                  ''|.github/*|.gitignore|BuildTools/*|ci_scripts/*) ;;
+                  *) run_previews=true; break ;;
+                esac
+              done <<< "$changed"
+            fi
+          fi
+          echo "run-previews=$run_previews" >> "$GITHUB_OUTPUT"
+
+      - name: Restore compilation cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/Library/Developer/Xcode/CompilationCache.noindex
+          key: compilation-cache-unit-tests-${{ github.sha }}
+          restore-keys: compilation-cache-unit-tests-
+
+      - name: Run tests
+        env:
+          RUN_PREVIEW_TESTS: ${{ steps.test-scope.outputs.run-previews }}
+        run: |
+          if [ "$RUN_PREVIEW_TESTS" = "true" ]; then
+            swift run -q tools ci unit-tests
+          else
+            swift run -q tools ci unit-tests --skip-previews
+          fi
+
+      - name: Save compilation cache
+        # Only develop populates the cache, all of the other runs simply read from it.
+        if: ${{ !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/Library/Developer/Xcode/CompilationCache.noindex
+          key: compilation-cache-unit-tests-${{ github.sha }}
+
+      - name: Archive artifacts
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        # We only care about artefacts if the tests fail
+        if: failure()
+        with:
+          name: Results
+          path: test_output/UnitTests.zip
+          retention-days: 1
+          if-no-files-found: ignore
+
+      - name: Upload coverage to Codecov
+        # Skip if not successful and in forks
+        if: ${{ success() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        continue-on-error: true # No CODECOV_TOKEN is configured for this repo yet; don't block CI on upload issues.
+        with:
+          report_type: coverage
+          files: test_output/unit-cobertura.xml,test_output/preview-cobertura.xml
+          disable_search: true
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: unittests
+
+      - name: Upload test results to Codecov
+        # Skip if cancelled and in forks
+        if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        continue-on-error: true
+        with:
+          report_type: test_results
+          files: test_output/unit-junit.xml,test_output/preview-junit.xml
+          disable_search: true
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: unittests

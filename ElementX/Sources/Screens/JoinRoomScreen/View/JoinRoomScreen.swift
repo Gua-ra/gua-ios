@@ -1,5 +1,6 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
@@ -23,9 +24,9 @@ struct JoinRoomScreen: View {
         if context.viewState.roomDetails?.inviter != nil {
             return 32
         }
-        return context.viewState.mode == .knocked ? 151 : 44
+        return context.viewState.mode == .knocked ? 151 : 32
     }
-
+    
     var body: some View {
         FullscreenDialog(topPadding: topPadding) {
             if context.viewState.mode == .loading {
@@ -39,8 +40,8 @@ struct JoinRoomScreen: View {
         .alert(item: $context.alertInfo)
         .background()
         .backgroundStyle(.compound.bgCanvasDefault)
+        .toolbarRole(RoomHeaderView.toolbarRole)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarRole(RoomHeaderView.toolbarRole) // Leading aligns the header on iOS 26.
         .toolbar { toolbar }
         .shouldScrollOnKeyboardDidShow(focus == .knockMessage, to: Focus.knockMessage)
     }
@@ -57,67 +58,66 @@ struct JoinRoomScreen: View {
     
     private var defaultView: some View {
         VStack(spacing: 16) {
-            if let inviter = context.viewState.roomDetails?.inviter {
-                RoomInviterLabel(inviter: inviter,
-                                 shouldHideAvatar: context.viewState.hideInviteAvatars,
-                                 mediaProvider: context.mediaProvider)
-                    .multilineTextAlignment(.center)
-                    .font(.compound.bodyMD)
-                    .foregroundStyle(.compound.textSecondary)
-                    .padding(.bottom, 44)
-            }
-            
-            if let avatar = context.viewState.avatar {
-                RoomAvatarImage(avatar: avatar,
-                                avatarSize: .room(on: .joinRoom),
-                                mediaProvider: context.mediaProvider)
-                    .dynamicTypeSize(dynamicTypeSize < .accessibility1 ? dynamicTypeSize : .accessibility1)
-                    .accessibilityHidden(true)
-            } else {
-                RoomAvatarImage(avatar: .room(id: "", name: nil, avatarURL: nil),
-                                avatarSize: .room(on: .joinRoom),
-                                mediaProvider: context.mediaProvider)
-                    .dynamicTypeSize(dynamicTypeSize < .accessibility1 ? dynamicTypeSize : .accessibility1)
-                    .hidden()
-                    .accessibilityHidden(true)
-            }
+            RoomAvatarImage(avatar: context.viewState.avatar ?? .room(id: "", name: nil, avatarURL: nil),
+                            avatarSize: .room(on: .joinRoom),
+                            mediaProvider: context.mediaProvider)
+                .dynamicTypeSize(dynamicTypeSize < .accessibility1 ? dynamicTypeSize : .accessibility1)
+                .opacity(context.viewState.avatar == nil ? 0 : 1)
+                .accessibilityHidden(true)
             
             VStack(spacing: 8) {
                 Text(context.viewState.title)
-                    .font(.compound.headingMDBold)
+                    .font(.compound.headingLGBold)
                     .foregroundStyle(.compound.textPrimary)
                     .multilineTextAlignment(.center)
                 
                 if let subtitle = context.viewState.subtitle {
-                    Text(subtitle)
-                        .font(.compound.bodyLG)
-                        .foregroundStyle(.compound.textSecondary)
-                        .multilineTextAlignment(.center)
+                    Label {
+                        Text(subtitle)
+                            .font(.compound.bodyLG)
+                            .foregroundStyle(.compound.textSecondary)
+                            .multilineTextAlignment(.center)
+                    } icon: {
+                        if let icon = context.viewState.subtitleIcon {
+                            CompoundIcon(icon, size: .small, relativeTo: .compound.bodyLG)
+                                .foregroundStyle(.compound.iconTertiary)
+                        }
+                    }
                 }
                 
                 if !context.viewState.isDMInvite, let memberCount = context.viewState.roomDetails?.memberCount {
-                    BadgeLabel(title: "\(memberCount)", icon: \.userProfile, style: .default)
+                    JoinedMembersBadgeView(heroes: context.viewState.roomDetails?.heroes ?? [],
+                                           shouldHideAvatars: context.viewState.shouldHideAvatars,
+                                           joinedCount: memberCount,
+                                           mediaProvider: context.mediaProvider)
                 }
-                
-                if let topic = context.viewState.roomDetails?.topic {
-                    Text(topic)
-                        .font(.compound.bodyMD)
-                        .foregroundStyle(.compound.textSecondary)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(3)
-                }
-                
-                if context.viewState.joiningTurnsOnSpaces {
-                    Text(UntranslatedL10n.guaJoinSpaceTurnsOnSpaces)
-                        .font(.compound.bodyMD)
-                        .foregroundStyle(.compound.textSecondary)
-                        .multilineTextAlignment(.center)
-                }
-                
-                if context.viewState.mode == .knockable {
-                    knockMessage
-                        .padding(.top, 19)
-                }
+            }
+            
+            if let topic = context.viewState.roomDetails?.topic {
+                Text(topic)
+                    .font(.compound.bodyMD)
+                    .foregroundStyle(.compound.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+            }
+            
+            if context.viewState.joiningTurnsOnSpaces {
+                Text(UntranslatedL10n.guaJoinSpaceTurnsOnSpaces)
+                    .font(.compound.bodyMD)
+                    .foregroundStyle(.compound.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
+            
+            if let inviter = context.viewState.roomDetails?.inviter {
+                InviterView(inviter: inviter,
+                            shouldHideAvatar: context.viewState.shouldHideAvatars,
+                            mediaProvider: context.mediaProvider)
+                    .padding(.top, 16)
+            }
+            
+            if context.viewState.mode == .knockable {
+                knockMessage
+                    .padding(.top, 19)
             }
         }
     }
@@ -137,7 +137,7 @@ struct JoinRoomScreen: View {
             }
         }
     }
-        
+    
     private var knockMessage: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 0) {
@@ -300,6 +300,7 @@ struct JoinRoomScreen: View {
             context.send(viewAction: .join)
         }
         .buttonStyle(.compound(.super))
+        .accessibilityIdentifier(A11yIdentifiers.joinRoomScreen.join)
     }
     
     @ToolbarContentBuilder
@@ -309,79 +310,114 @@ struct JoinRoomScreen: View {
                 if let avatar = context.viewState.avatar {
                     RoomHeaderView(roomName: context.viewState.title,
                                    roomAvatar: avatar,
-                                   mediaProvider: context.mediaProvider)
+                                   mediaProvider: context.mediaProvider) {
+                        // There is no action but the iOS 26 designs have it looking like a button.
+                    }
                 }
             }
         }
     }
 }
 
+private struct InviterView: View {
+    let inviter: RoomInviterDetails
+    let shouldHideAvatar: Bool
+    
+    let mediaProvider: MediaProviderProtocol?
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            Text(L10n.screenJoinRoomInvitedBy)
+                .font(.compound.bodyMD)
+                .foregroundStyle(.compound.textPrimary)
+                .multilineTextAlignment(.center)
+            
+            LoadableAvatarImage(url: shouldHideAvatar ? nil : inviter.avatarURL,
+                                name: inviter.displayName,
+                                contentID: inviter.id,
+                                avatarSize: .custom(52),
+                                mediaProvider: mediaProvider)
+                .accessibilityHidden(true)
+            
+            VStack(spacing: 4) {
+                if let displayName = inviter.displayName {
+                    Text(displayName)
+                        .font(.compound.bodyLGSemibold)
+                        .foregroundStyle(.compound.textPrimary)
+                        .multilineTextAlignment(.center)
+                }
+                
+                Text(inviter.id.guaDisplayHandle)
+                    .font(.compound.bodySM)
+                    .foregroundStyle(.compound.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
 // MARK: - Previews
 
 struct JoinRoomScreen_Previews: PreviewProvider, TestablePreview {
-    static let unknownViewModel = makeViewModel(mode: .unknown)
-    static let joinableViewModel = makeViewModel(mode: .joinable)
-    static let restrictedViewModel = makeViewModel(mode: .restricted, canJoinRoom: false)
-    static let restrictedJoinableViewModel = makeViewModel(mode: .restricted)
-    static let inviteRequiredViewModel = makeViewModel(mode: .inviteRequired)
-    static let invitedViewModel = makeViewModel(mode: .invited(isDM: false))
-    static let invitedDMViewModel = makeViewModel(mode: .invited(isDM: true))
-    static let invitedViewModelWithHiddenAvatars = makeViewModel(mode: .invited(isDM: false), hideInviteAvatars: true)
-    static let invitedDMViewModelWithHiddenAvatars = makeViewModel(mode: .invited(isDM: true), hideInviteAvatars: true)
-    static let knockableViewModel = makeViewModel(mode: .knockable)
-    static let knockedViewModel = makeViewModel(mode: .knocked)
-    static let bannedViewModel = makeViewModel(mode: .banned(sender: "Bob", reason: "Spamming"))
-    static let forbiddenViewModel = makeViewModel(mode: .forbidden)
+    static let previewWrappers: [JoinRoomScreenPreviewWrapper] = [
+        .init(mode: .unknown),
+        .init(mode: .joinable),
+        .init(mode: .restricted, canJoinRoom: false),
+        .init(mode: .restricted, customPreviewName: "RestrictedJoinable"),
+        .init(mode: .inviteRequired),
+        .init(mode: .invited(isDM: false)),
+        .init(mode: .invited(isDM: true)),
+        .init(mode: .invited(isDM: false), hideInviteAvatars: true, customPreviewName: "InvitedWithHiddenAvatars"),
+        .init(mode: .knockable),
+        .init(mode: .knocked),
+        .init(mode: .banned(sender: "Bob", reason: "Spamming")),
+        .init(mode: .forbidden)
+    ]
     
     static var previews: some View {
-        makePreview(viewModel: unknownViewModel, mode: .unknown)
-        makePreview(viewModel: joinableViewModel, mode: .joinable)
-        makePreview(viewModel: restrictedViewModel, mode: .restricted)
-        makePreview(viewModel: restrictedJoinableViewModel, mode: .restricted,
-                    customPreviewName: "RestrictedJoinable")
-        makePreview(viewModel: inviteRequiredViewModel, mode: .inviteRequired)
-        makePreview(viewModel: invitedViewModel, mode: .invited(isDM: false))
-        makePreview(viewModel: invitedDMViewModel, mode: .invited(isDM: true))
-        makePreview(viewModel: invitedViewModelWithHiddenAvatars,
-                    mode: .invited(isDM: false),
-                    customPreviewName: "InvitedWithHiddenAvatars")
-        makePreview(viewModel: knockableViewModel, mode: .knockable)
-        makePreview(viewModel: knockedViewModel, mode: .knocked)
-        makePreview(viewModel: bannedViewModel, mode: .banned(sender: nil, reason: nil))
-        makePreview(viewModel: forbiddenViewModel, mode: .forbidden)
-    }
-    
-    @ViewBuilder
-    static func makePreview(viewModel: JoinRoomScreenViewModel,
-                            mode: JoinRoomScreenMode,
-                            customPreviewName: String? = nil) -> some View {
-        if mode == .forbidden {
-            NavigationStack {
-                JoinRoomScreen(context: viewModel.context)
-            }
-            .snapshotPreferences(expect: viewModel.context.$viewState.map { state in
-                state.mode == .forbidden
-            })
-            .onAppear {
-                forbiddenViewModel.context.send(viewAction: .join)
-            }
-            .previewDisplayName(customPreviewName ?? mode.previewDisplayName)
-        } else {
-            NavigationStack {
-                JoinRoomScreen(context: viewModel.context)
-            }
-            .snapshotPreferences(expect: viewModel.context.$viewState.map { state in
-                state.roomDetails != nil
-            })
-            .previewDisplayName(customPreviewName ?? mode.previewDisplayName)
+        ForEach(previewWrappers) { wrapper in
+            wrapper.preview
         }
     }
+}
+
+struct JoinRoomScreenSpace_Previews: PreviewProvider, TestablePreview {
+    static let previewWrappers: [JoinRoomScreenPreviewWrapper] = [
+        .init(isSpace: true, mode: .joinable),
+        .init(isSpace: true, mode: .restricted, canJoinRoom: false),
+        .init(isSpace: true, mode: .restricted, customPreviewName: "RestrictedJoinable"),
+        .init(isSpace: true, mode: .inviteRequired),
+        .init(isSpace: true, mode: .invited(isDM: false)),
+        .init(isSpace: true, mode: .invited(isDM: false), hideInviteAvatars: true, customPreviewName: "InvitedWithHiddenAvatars"),
+        .init(isSpace: true, mode: .knockable),
+        .init(isSpace: true, mode: .knocked),
+        .init(isSpace: true, mode: .banned(sender: "Bob", reason: "Spamming")),
+        .init(isSpace: true, mode: .forbidden)
+    ]
     
-    static func makeViewModel(mode: JoinRoomScreenMode,
-                              canJoinRoom: Bool = true,
-                              hideInviteAvatars: Bool = false) -> JoinRoomScreenViewModel {
-        let appSettings = AppSettings()
-        appSettings.knockingEnabled = true
+    static var previews: some View {
+        ForEach(previewWrappers) { wrapper in
+            wrapper.preview
+        }
+    }
+}
+
+struct JoinRoomScreenPreviewWrapper: Identifiable {
+    let id = UUID()
+    let viewModel: JoinRoomScreenViewModel
+    let mode: JoinRoomScreenMode
+    let isSpace: Bool
+    let customPreviewName: String?
+    
+    init(isSpace: Bool = false,
+         mode: JoinRoomScreenMode,
+         canJoinRoom: Bool = true,
+         hideInviteAvatars: Bool = false,
+         customPreviewName: String? = nil) {
+        self.mode = mode
+        self.isSpace = isSpace
+        self.customPreviewName = customPreviewName
         
         let clientProxy = ClientProxyMock(.init(hideInviteAvatars: hideInviteAvatars))
         clientProxy.canJoinRoomWithReturnValue = canJoinRoom
@@ -400,16 +436,9 @@ struct JoinRoomScreen_Previews: PreviewProvider, TestablePreview {
             clientProxy.roomPreviewForIdentifierViaReturnValue = .success(RoomPreviewProxyMock.inviteRequired)
             clientProxy.roomForIdentifierReturnValue = nil
         case .invited(let isDM):
-            if isDM {
-                clientProxy.roomPreviewForIdentifierViaReturnValue = .success(RoomPreviewProxyMock.inviteDM())
-                clientProxy.roomForIdentifierClosure = { _ in
-                    .invited(InvitedRoomProxyMock(.init(avatarURL: .mockMXCAvatar)))
-                }
-            } else {
-                clientProxy.roomPreviewForIdentifierViaReturnValue = .success(RoomPreviewProxyMock.invited())
-                clientProxy.roomForIdentifierClosure = { _ in
-                    .invited(InvitedRoomProxyMock(.init(avatarURL: .mockMXCAvatar)))
-                }
+            clientProxy.roomPreviewForIdentifierViaReturnValue = .success(isDM ? RoomPreviewProxyMock.inviteDM() : .invited())
+            clientProxy.roomForIdentifierClosure = { _ in
+                .invited(InvitedRoomProxyMock(.init(avatarURL: .mockMXCAvatar, inviter: .mockDan)))
             }
         case .knockable:
             clientProxy.roomPreviewForIdentifierViaReturnValue = .success(RoomPreviewProxyMock.knockable)
@@ -434,18 +463,21 @@ struct JoinRoomScreen_Previews: PreviewProvider, TestablePreview {
             break
         }
         
-        return JoinRoomScreenViewModel(roomID: "1",
-                                       via: [],
-                                       appSettings: appSettings,
-                                       spacesSetting: SpacesSetting(clientProxy: clientProxy, appSettings: appSettings),
-                                       userSession: UserSessionMock(.init(clientProxy: clientProxy)),
-                                       userIndicatorController: ServiceLocator.shared.userIndicatorController)
+        let source: JoinRoomScreenSource = if isSpace {
+            .space(SpaceServiceRoom.mock(joinRoomScreenMode: mode))
+        } else {
+            .generic(roomID: "1", via: [])
+        }
+        
+        let userSession = UserSessionMock(.init(clientProxy: clientProxy))
+        viewModel = JoinRoomScreenViewModel(source: source,
+                                            spacesSetting: SpacesSetting(clientProxy: clientProxy, appSettings: userSession.userSettings.app),
+                                            userSession: userSession,
+                                            userIndicatorController: UserIndicatorControllerMock())
     }
-}
-
-private extension JoinRoomScreenMode {
+    
     var previewDisplayName: String {
-        switch self {
+        switch mode {
         case .unknown:
             return "Unknown"
         case .loading:
@@ -466,6 +498,32 @@ private extension JoinRoomScreenMode {
             return "Banned"
         case .forbidden:
             return "Forbidden"
+        }
+    }
+    
+    @ViewBuilder
+    var preview: some View {
+        let previewDisplayName = customPreviewName ?? previewDisplayName
+        let previewDisplayNameSuffix = isSpace ? " Space" : ""
+        if mode == .forbidden {
+            ElementNavigationStack {
+                JoinRoomScreen(context: viewModel.context)
+            }
+            .snapshotPreferences(expect: viewModel.context.$viewState.map { state in
+                state.mode == .forbidden
+            })
+            .onAppear {
+                viewModel.context.send(viewAction: .join)
+            }
+            .previewDisplayName(previewDisplayName + previewDisplayNameSuffix)
+        } else {
+            ElementNavigationStack {
+                JoinRoomScreen(context: viewModel.context)
+            }
+            .snapshotPreferences(expect: viewModel.context.$viewState.map { state in
+                state.roomDetails != nil
+            })
+            .previewDisplayName(previewDisplayName + previewDisplayNameSuffix)
         }
     }
 }

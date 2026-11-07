@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -18,11 +19,10 @@ enum CallScreenViewModelAction {
 struct CallScreenViewState: BindableState {
     let script: String?
     var url: URL?
-    let isGenericCallLink: Bool
-    
-    let certificateValidator: CertificateValidatorHookProtocol
     
     var bindings = Bindings()
+    
+    var swiftUICallViewCoordinator: CallView.Coordinator?
 }
 
 struct Bindings {
@@ -59,6 +59,11 @@ enum CallScreenJavaScriptMessageName: String, CaseIterable {
     case onOutputDeviceSelect
     /// Used to handle the webview back button
     case onBackButtonPressed
+    /// Used to handle PiP orientation changes
+    case onPipMediaOrientationUpdate
+    
+    /// Forward logs to the native side for debugging purposes.
+    case forwardLogs
     
     private var postMessageScript: String {
         switch self {
@@ -96,6 +101,31 @@ enum CallScreenJavaScriptMessageName: String, CaseIterable {
                 window.webkit.messageHandlers.\(rawValue).postMessage("");
             }
             """
+        case .onPipMediaOrientationUpdate:
+            """
+            window.controls.\(rawValue) = (orientation) => {
+                window.webkit.messageHandlers.\(rawValue).postMessage(orientation);
+            }
+            """
+        case .forwardLogs:
+            """
+            (function() {
+                function forwardLog(level, args) {
+                    const message = Array.from(args).map(a => {
+                        try { return typeof a === 'object' ? JSON.stringify(a) : String(a); }
+                        catch(e) { return String(a); }
+                    }).join(' ');
+                    window.webkit.messageHandlers.\(rawValue).postMessage({ level: level, message: message });
+                }
+                ['log', 'debug', 'info', 'warn', 'error'].forEach(function(level) {
+                    const original = console[level].bind(console);
+                    console[level] = function(...args) {
+                        original(...args);
+                        forwardLog(level, args);
+                    };
+                });
+            })();
+            """
         }
     }
     
@@ -106,7 +136,7 @@ enum CallScreenJavaScriptMessageName: String, CaseIterable {
 
 struct DecodedWidgetMessage: Decodable {
     private static let decoder = JSONDecoder()
-    private static let joinAction = "io.element.join"
+    private static let contentLoadedAction = "content_loaded"
     private static let fromWidget = "fromWidget"
     
     let action: String?
@@ -119,7 +149,7 @@ struct DecodedWidgetMessage: Decodable {
         return try decoder.decode(DecodedWidgetMessage.self, from: data)
     }
     
-    var hasJoined: Bool {
-        action == Self.joinAction && api == Self.fromWidget
+    var hasLoaded: Bool {
+        action == Self.contentLoadedAction && api == Self.fromWidget
     }
 }

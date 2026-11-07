@@ -26,14 +26,14 @@ enum ChangePhoneScreenCoordinatorAction {
 final class ChangePhoneScreenCoordinator: CoordinatorProtocol {
     private let parameters: ChangePhoneScreenCoordinatorParameters
     private let viewModel: ChangePhoneScreenViewModelProtocol
-
+    
     private var cancellables = Set<AnyCancellable>()
-
+    
     private let actionsSubject: PassthroughSubject<ChangePhoneScreenCoordinatorAction, Never> = .init()
     var actionsPublisher: AnyPublisher<ChangePhoneScreenCoordinatorAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
-
+    
     init(parameters: ChangePhoneScreenCoordinatorParameters) {
         self.parameters = parameters
         // The assertion is run natively here rather than in a web view: the step-up ceremony hands
@@ -43,7 +43,7 @@ final class ChangePhoneScreenCoordinator: CoordinatorProtocol {
                                                userIndicatorController: parameters.userIndicatorController,
                                                passkeyStepUpPresenter: PasskeyStepUpPresenter(presentationAnchor: parameters.windowManager.mainWindow))
     }
-
+    
     func start() {
         viewModel.actionsPublisher.sink { [weak self] action in
             MXLog.info("Coordinator: received view model action: \(action)")
@@ -57,7 +57,7 @@ final class ChangePhoneScreenCoordinator: CoordinatorProtocol {
         }
         .store(in: &cancellables)
     }
-
+    
     func toPresentable() -> AnyView {
         AnyView(ChangePhoneScreen(context: viewModel.context))
     }

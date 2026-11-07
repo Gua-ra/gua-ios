@@ -1,5 +1,6 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
@@ -11,13 +12,17 @@ import SwiftUI
 
 class ShareExtensionViewController: UIViewController {
     private static var targetConfiguration: Target.ConfigurationResult?
-    private let appSettings: CommonSettingsProtocol = AppSettings()
+    private let appSettings: AppSettings = {
+        guard let userDefaults = TrackedUserDefaults(suiteName: AppSettings.suiteName) else {
+            fatalError("Catastrophic error retrieving user defaults for \(AppSettings.suiteName)")
+        }
+        return AppSettings(store: userDefaults)
+    }()
+    
     private var appHooks: AppHooks!
     
     private let keychainController = KeychainController(service: .sessions,
                                                         accessGroup: InfoPlistReader.main.keychainAccessGroupIdentifier)
-    
-    private var cancellables: Set<AnyCancellable> = []
     
     private let hostingController = UIHostingController(rootView: ShareExtensionView())
     
@@ -46,6 +51,7 @@ class ShareExtensionViewController: UIViewController {
         if let credentials = keychainController.restorationTokens().first {
             let homeserverURL = credentials.restorationToken.session.homeserverUrl
             appHooks.remoteSettingsHook.loadCache(forHomeserver: homeserverURL, applyingTo: appSettings)
+            _ = appHooks.userSessionHook.configure(appSettings.userSettings(for: credentials.userID), forHomeserver: homeserverURL)
         } else {
             // We should really show a different state when there isn't a logged in user, but for now this is fine.
             MXLog.error("Not logged in, launching app to show the authentication flow.")

@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -13,9 +14,8 @@ struct CallScreenCoordinatorParameters {
     let elementCallService: ElementCallServiceProtocol
     let configuration: ElementCallConfiguration
     let allowPictureInPicture: Bool
-    let appSettings: AppSettings
-    let appHooks: AppHooks
-    let analytics: AnalyticsService
+    let userSettings: UserSettings
+    let analytics: AnalyticsServiceProtocol
 }
 
 enum CallScreenCoordinatorAction {
@@ -45,8 +45,7 @@ final class CallScreenCoordinator: CoordinatorProtocol {
         viewModel = CallScreenViewModel(elementCallService: parameters.elementCallService,
                                         configuration: parameters.configuration,
                                         allowPictureInPicture: parameters.allowPictureInPicture,
-                                        appHooks: parameters.appHooks,
-                                        appSettings: parameters.appSettings,
+                                        userSettings: parameters.userSettings,
                                         analyticsService: parameters.analytics)
     }
     
@@ -71,7 +70,7 @@ final class CallScreenCoordinator: CoordinatorProtocol {
     func stop() {
         viewModel.stop()
     }
-        
+    
     func toPresentable() -> AnyView {
         AnyView(CallScreen(context: viewModel.context))
     }

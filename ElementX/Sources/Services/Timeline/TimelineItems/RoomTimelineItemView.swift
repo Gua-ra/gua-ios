@@ -1,9 +1,10 @@
 //
 import OrderedCollections
 
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 import SwiftUI
@@ -24,7 +25,7 @@ struct RoomTimelineItemView: View {
                 context?.send(viewAction: .itemDisappeared(itemID: viewState.identifier))
             }
     }
-
+    
     @ViewBuilder private var timelineView: some View {
         switch viewState.type {
         case .text(let item):
@@ -39,6 +40,8 @@ struct RoomTimelineItemView: View {
             AudioRoomTimelineView(timelineItem: item)
         case .file(let item):
             FileRoomTimelineView(timelineItem: item)
+        case .gallery(let item):
+            GalleryRoomTimelineView(timelineItem: item)
         case .emote(let item):
             EmoteRoomTimelineView(timelineItem: item)
         case .notice(let item):
@@ -47,10 +50,10 @@ struct RoomTimelineItemView: View {
             RedactedRoomTimelineView(timelineItem: item)
         case .encrypted(let item):
             EncryptedRoomTimelineView(timelineItem: item)
-        case .readMarker(let item):
-            ReadMarkerRoomTimelineView(timelineItem: item)
-        case .paginationIndicator(let item):
-            PaginationIndicatorRoomTimelineView(timelineItem: item)
+        case .readMarker:
+            ReadMarkerRoomTimelineView()
+        case .paginationIndicator:
+            PaginationIndicatorRoomTimelineView()
         case .sticker(let item):
             StickerRoomTimelineView(timelineItem: item)
         case .unsupported(let item):
@@ -70,10 +73,12 @@ struct RoomTimelineItemView: View {
                                                                                                         title: L10n.commonVoiceMessage,
                                                                                                         duration: 0)
             VoiceMessageRoomTimelineView(timelineItem: item, playerState: playerState)
-        case .callInvite(let item):
-            CallInviteRoomTimelineView(timelineItem: item)
+        case .callInvite:
+            CallInviteRoomTimelineView()
         case .callNotification(let item):
             CallNotificationRoomTimelineView(timelineItem: item)
+        case .liveLocation(let item):
+            LiveLocationRoomTimelineView(timelineItem: item, isStopped: context?.viewState.stoppedLiveLocationIDs.contains(item.id) ?? false)
         }
     }
     
@@ -83,7 +88,7 @@ struct RoomTimelineItemView: View {
             if let item = context?.viewState.linkMetadataProvider?.metadataItems[url] {
                 linkMetadata[url] = item
             } else {
-                linkMetadata[url] = LinkMetadataProviderItem(url: url, metadata: nil)
+                linkMetadata[url] = LinkMetadataProviderItem(metadata: nil)
             }
         }
         return linkMetadata

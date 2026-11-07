@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -19,8 +20,6 @@ class VoiceMessageRecorder: VoiceMessageRecorderProtocol {
     var actions: AnyPublisher<VoiceMessageRecorderAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
-
-    private let mp4accMimeType = "audio/m4a"
     
     var isRecording: Bool {
         audioRecorder.isRecording
@@ -35,11 +34,11 @@ class VoiceMessageRecorder: VoiceMessageRecorderProtocol {
     }
     
     private var recordingCancelled = false
-
+    
     private(set) var previewAudioPlayerState: AudioPlayerState?
     private(set) var previewAudioPlayer: AudioPlayerProtocol?
     private var cancellables = Set<AnyCancellable>()
-        
+    
     init(audioRecorder: AudioRecorderProtocol = AudioRecorder(),
          mediaPlayerProvider: MediaPlayerProviderProtocol,
          voiceMessageCache: VoiceMessageCacheProtocol = VoiceMessageCache()) {
@@ -50,7 +49,7 @@ class VoiceMessageRecorder: VoiceMessageRecorderProtocol {
         addObservers()
     }
     
-    deinit {
+    isolated deinit {
         removeObservers()
     }
     
@@ -85,20 +84,18 @@ class VoiceMessageRecorder: VoiceMessageRecorderProtocol {
         previewAudioPlayer?.reset()
         previewAudioPlayerState = nil
     }
-
+    
     // MARK: - Preview
     
     func startPlayback() async -> Result<Void, VoiceMessageRecorderError> {
-        guard let previewAudioPlayerState, let url = audioRecorder.audioFileURL else {
+        guard let previewAudioPlayerState,
+              let url = audioRecorder.audioFileURL,
+              let audioPlayer = previewAudioPlayer else {
             return .failure(.previewNotAvailable)
         }
         
-        guard let audioPlayer = previewAudioPlayer else {
-            return .failure(.previewNotAvailable)
-        }
-        
-        if await !previewAudioPlayerState.isAttached {
-            await previewAudioPlayerState.attachAudioPlayer(audioPlayer)
+        if !previewAudioPlayerState.isAttached {
+            previewAudioPlayerState.attachAudioPlayer(audioPlayer)
         }
         
         if audioPlayer.playbackURL == url {
@@ -118,7 +115,7 @@ class VoiceMessageRecorder: VoiceMessageRecorderProtocol {
         guard let previewAudioPlayerState else {
             return
         }
-        await previewAudioPlayerState.detachAudioPlayer()
+        previewAudioPlayerState.detachAudioPlayer()
         previewAudioPlayer?.stop()
     }
     
@@ -126,17 +123,17 @@ class VoiceMessageRecorder: VoiceMessageRecorderProtocol {
         await previewAudioPlayerState?.updateState(progress: progress)
     }
     
-    func buildRecordingWaveform() async -> Result<[UInt16], VoiceMessageRecorderError> {
+    func buildRecordingWaveform() async -> Result<[Float], VoiceMessageRecorderError> {
         guard let url = audioRecorder.audioFileURL else {
             return .failure(.missingRecordingFile)
         }
         // build the waveform
-        var waveformData: [UInt16] = []
+        var waveformData: [Float] = []
         let analyzer = WaveformAnalyzer()
         do {
             let samples = try await analyzer.samples(fromAudioAt: url, count: 100)
             // linearly normalized to [0, 1] (1 -> -50 dB)
-            waveformData = samples.map { UInt16(max(0, (1 - $0) * 1024)) }
+            waveformData = samples.map { max(0, 1 - $0) }
         } catch {
             MXLog.error("Waveform analysis failed. \(error)")
             return .failure(.waveformAnalysisError)
@@ -157,13 +154,13 @@ class VoiceMessageRecorder: VoiceMessageRecorderProtocol {
             // delete the temporary file
             try? FileManager.default.removeItem(at: oggFile)
         }
-
+        
         do {
             try audioConverter.convertToOpusOgg(sourceURL: url, destinationURL: oggFile)
         } catch {
             return .failure(.failedSendingVoiceMessage)
         }
-
+        
         // send it
         let size: UInt64
         do {
@@ -188,11 +185,12 @@ class VoiceMessageRecorder: VoiceMessageRecorderProtocol {
         
         return .success(())
     }
-        
+    
     // MARK: - Private
     
     private func addObservers() {
         audioRecorder.actions
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] action in
                 guard let self else { return }
                 self.handleAudioRecorderAction(action)
@@ -213,15 +211,14 @@ class VoiceMessageRecorder: VoiceMessageRecorderProtocol {
             MXLog.info("audio recorder did stop recording")
             if !recordingCancelled {
                 Task {
-                    guard case .success = await finalizeRecording() else {
+                    guard case .success = await finalizeRecording(),
+                          let recordingURL = audioRecorder.audioFileURL,
+                          let previewAudioPlayerState else {
                         actionsSubject.send(.didFailWithError(error: VoiceMessageRecorderError.previewNotAvailable))
                         return
                     }
-                    guard let recordingURL = audioRecorder.audioFileURL, let previewAudioPlayerState else {
-                        actionsSubject.send(.didFailWithError(error: VoiceMessageRecorderError.previewNotAvailable))
-                        return
-                    }
-                    await mediaPlayerProvider.register(audioPlayerState: previewAudioPlayerState)
+                    
+                    mediaPlayerProvider.register(audioPlayerState: previewAudioPlayerState)
                     actionsSubject.send(.didStopRecording(previewState: previewAudioPlayerState, url: recordingURL))
                 }
             }
@@ -236,12 +233,12 @@ class VoiceMessageRecorder: VoiceMessageRecorderProtocol {
         guard audioRecorder.audioFileURL != nil, audioRecorder.currentTime > 0 else {
             return .failure(.previewNotAvailable)
         }
-
+        
         // Build the preview audio player state
-        previewAudioPlayerState = await AudioPlayerState(id: .recorderPreview, title: L10n.commonVoiceMessage, duration: recordingDuration, waveform: EstimatedWaveform(data: []))
-
+        previewAudioPlayerState = AudioPlayerState(id: .recorderPreview, title: L10n.commonVoiceMessage, duration: recordingDuration, waveform: EstimatedWaveform(data: []))
+        
         // Build the preview audio player
-        let audioPlayer = await mediaPlayerProvider.player
+        let audioPlayer = mediaPlayerProvider.player
         previewAudioPlayer = audioPlayer
         
         return .success(())

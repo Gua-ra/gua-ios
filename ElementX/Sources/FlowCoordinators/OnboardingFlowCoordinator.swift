@@ -1,7 +1,8 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -12,18 +13,18 @@ import SwiftState
 enum OnboardingFlowCoordinatorAction {
     case requestPresentation(animated: Bool)
     case dismiss
-    case logout
+    case logoutConfirmed
 }
 
 class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
     private let userSession: UserSessionProtocol
     private let appLockService: AppLockServiceProtocol
-    private let analyticsService: AnalyticsService
-    private let appSettings: AppSettings
-    private let notificationManager: NotificationManagerProtocol
+    private let analyticsService: AnalyticsServiceProtocol
+    private let appMediator: AppMediatorProtocol
+    private let userSettings: UserSettings
     private let userIndicatorController: UserIndicatorControllerProtocol
     private let windowManager: WindowManagerProtocol
-    private let isNewLogin: Bool
+    private var isNewLogin: Bool
     
     private var navigationStackCoordinator: NavigationStackCoordinator!
     
@@ -65,8 +66,8 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
         userSession = flowParameters.userSession
         self.appLockService = appLockService
         analyticsService = flowParameters.analytics
-        appSettings = flowParameters.appSettings
-        notificationManager = flowParameters.notificationManager
+        appMediator = flowParameters.appMediator
+        userSettings = flowParameters.userSession.userSettings
         userIndicatorController = flowParameters.userIndicatorController
         windowManager = flowParameters.windowManager
         
@@ -89,7 +90,7 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
                       value == .verified,
                       stateMachine.state == .identityConfirmation else { return }
                 
-                appSettings.hasRunIdentityConfirmationOnboarding = true
+                userSettings.account.hasRunIdentityConfirmationOnboarding = true
                 stateMachine.tryEvent(.nextSkippingIdentityConfirmed)
             }
     }
@@ -102,13 +103,13 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
         return isNewLogin || requiresVerification || requiresAppLockSetup || requiresAnalyticsSetup || requiresNotificationsSetup
     }
     
-    func start() {
+    func start(animated: Bool) {
         guard shouldStart else {
             fatalError("This flow coordinator shouldn't have been started")
         }
         
         actionsSubject.send(.requestPresentation(animated: !isNewLogin))
-
+        
         stateMachine.tryEvent(.next)
     }
     
@@ -128,7 +129,7 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
     }
     
     private var requiresAppLockSetup: Bool {
-        appSettings.appLockIsMandatory && !appLockService.isEnabled
+        userSettings.app.appLockIsMandatory && !appLockService.isEnabled
     }
     
     private var requiresAnalyticsSetup: Bool {
@@ -136,7 +137,7 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
     }
     
     private var requiresNotificationsSetup: Bool {
-        !appSettings.hasRunNotificationPermissionsOnboarding
+        !userSettings.app.hasRunNotificationPermissionsOnboarding
     }
     
     private func configureStateMachine() {
@@ -198,7 +199,7 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
                 
             case (.notificationPermissions, _, _, _, _):
                 return .finished
-            
+                
             default:
                 return nil
             }
@@ -219,6 +220,8 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
             case (_, _, .notificationPermissions):
                 presentNotificationPermissionsScreen()
             case (_, _, .finished):
+                isNewLogin = false
+                userSettings.app.hasSignedInBefore = true
                 actionsSubject.send(.dismiss)
                 stateMachine.tryState(.initial)
             case (.finished, _, .initial):
@@ -241,7 +244,7 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
     
     private func presentIdentityConfirmationScreen() {
         let parameters = IdentityConfirmationScreenCoordinatorParameters(userSession: userSession,
-                                                                         appSettings: appSettings,
+                                                                         userSettings: userSettings,
                                                                          userIndicatorController: userIndicatorController)
         
         let coordinator = IdentityConfirmationScreenCoordinator(parameters: parameters)
@@ -254,12 +257,12 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
             case .recoveryKey:
                 presentRecoveryKeyScreen()
             case .skip:
-                appSettings.hasRunIdentityConfirmationOnboarding = true
+                userSettings.account.hasRunIdentityConfirmationOnboarding = true
                 stateMachine.tryEvent(.nextSkippingIdentityConfirmed)
             case .reset:
                 startEncryptionResetFlow()
-            case .logout:
-                actionsSubject.send(.logout)
+            case .logoutConfirmed:
+                actionsSubject.send(.logoutConfirmed)
             }
         }
         .store(in: &cancellables)
@@ -274,8 +277,7 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
         
         let parameters = SessionVerificationScreenCoordinatorParameters(sessionVerificationControllerProxy: sessionVerificationController,
                                                                         flow: .deviceInitiator,
-                                                                        appSettings: appSettings,
-                                                                        mediaProvider: userSession.mediaProvider)
+                                                                        userSession: userSession)
         
         let coordinator = SessionVerificationScreenCoordinator(parameters: parameters)
         
@@ -298,7 +300,7 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
                                                                             userIndicatorController: userIndicatorController,
                                                                             isModallyPresented: false)
         
-        let coordinator = SecureBackupRecoveryKeyScreenCoordinator(parameters: parameters)
+        let coordinator = userSession.userHooks.recoveryKeyScreenHook.makeCoordinator(parameters: parameters)
         
         coordinator.actions
             .sink { action in
@@ -315,7 +317,7 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
     private func startEncryptionResetFlow() {
         let resetNavigationStackCoordinator = NavigationStackCoordinator()
         let coordinator = EncryptionResetFlowCoordinator(parameters: .init(userSession: userSession,
-                                                                           appSettings: appSettings,
+                                                                           appMediator: appMediator,
                                                                            userIndicatorController: userIndicatorController,
                                                                            navigationStackCoordinator: resetNavigationStackCoordinator,
                                                                            windowManger: windowManager))
@@ -328,7 +330,7 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
                 // A completed reset may never reach `.verified`, so advance here or the reset screen
                 // is presented again.
                 if stateMachine.state == .identityConfirmation {
-                    appSettings.hasRunIdentityConfirmationOnboarding = true
+                    userSettings.account.hasRunIdentityConfirmationOnboarding = true
                     stateMachine.tryEvent(.nextSkippingIdentityConfirmed)
                 }
             case .cancel:
@@ -346,7 +348,7 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
     }
     
     private func presentIdentityConfirmedScreen() {
-        let coordinator = IdentityConfirmedScreenCoordinator(parameters: .init())
+        let coordinator = IdentityConfirmedScreenCoordinator()
         coordinator.actionsPublisher
             .sink { [weak self] action in
                 guard let self else { return }
@@ -380,9 +382,9 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
         appLockFlowCoordinator = coordinator
         coordinator.start()
     }
-
+    
     private func presentAnalyticsPromptScreen() {
-        let coordinator = AnalyticsPromptScreenCoordinator(analytics: analyticsService, termsURL: appSettings.analyticsTermsURL)
+        let coordinator = AnalyticsPromptScreenCoordinator(analytics: analyticsService, termsURL: userSettings.app.analyticsTermsURL)
         
         coordinator.actions
             .sink { [weak self] action in
@@ -398,14 +400,14 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
     }
     
     private func presentNotificationPermissionsScreen() {
-        let coordinator = NotificationPermissionsScreenCoordinator(parameters: .init(notificationManager: notificationManager))
+        let coordinator = NotificationPermissionsScreenCoordinator(parameters: .init(notificationService: userSession.notificationService))
         
         coordinator.actions
             .sink { [weak self] action in
                 guard let self else { return }
                 switch action {
                 case .done:
-                    appSettings.hasRunNotificationPermissionsOnboarding = true
+                    userSettings.app.hasRunNotificationPermissionsOnboarding = true
                     stateMachine.tryEvent(.next)
                 }
             }

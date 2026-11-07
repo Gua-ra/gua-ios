@@ -95,14 +95,13 @@ struct ModerationAndSafetySettingsScreen: View {
 
 struct ModerationAndSafetySettingsScreen_Previews: PreviewProvider, TestablePreview {
     static let viewModel = ModerationAndSafetySettingsScreenViewModel(userSession: UserSessionMock(.init()),
-                                                                      appSettings: ServiceLocator.shared.settings,
                                                                       userIndicatorController: UserIndicatorControllerMock())
     
     static var previews: some View {
-        NavigationStack {
+        ElementNavigationStack {
             ModerationAndSafetySettingsScreen(context: viewModel.context)
         }
-        .snapshotPreferences(expect: viewModel.context.observe(\.viewState.showBlockedUsers).eraseToStream())
+        .snapshotPreferences(expect: viewModel.context.observe(\.viewState.showBlockedUsers))
     }
 }
 

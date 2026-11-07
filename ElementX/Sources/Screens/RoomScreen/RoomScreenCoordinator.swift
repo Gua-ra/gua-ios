@@ -1,5 +1,6 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
@@ -23,9 +24,7 @@ struct RoomScreenCoordinatorParameters {
     let completionSuggestionService: CompletionSuggestionServiceProtocol
     let ongoingCallRoomIDPublisher: CurrentValuePublisher<String?, Never>
     let appMediator: AppMediatorProtocol
-    let appSettings: AppSettings
-    let appHooks: AppHooks
-    let analytics: AnalyticsService
+    let analytics: AnalyticsServiceProtocol
     let composerDraftService: ComposerDraftServiceProtocol
     let timelineControllerFactory: TimelineControllerFactoryProtocol
     let userIndicatorController: UserIndicatorControllerProtocol
@@ -33,20 +32,22 @@ struct RoomScreenCoordinatorParameters {
 
 enum RoomScreenCoordinatorAction {
     case presentReportContent(itemID: TimelineItemIdentifier, senderID: String)
-    case presentMediaUploadPicker(mode: MediaPickerScreenMode)
-    case presentMediaUploadPreviewScreen(mediaURLs: [URL])
+    case presentMediaUploadPicker(mode: MediaPickerScreenMode, caption: NSAttributedString)
+    case presentMediaUploadPreviewScreen(mediaURLs: [URL], caption: NSAttributedString)
     case presentRoomDetails
     case presentLocationPicker
     case presentPollForm(mode: PollFormMode)
-    case presentLocationViewer(body: String, geoURI: GeoURI, description: String?)
-    case presentEmojiPicker(itemID: TimelineItemIdentifier, selectedEmojis: Set<String>)
+    case presentLocationViewer(StaticLocationData)
+    case presentLiveLocationViewer(sender: TimelineItemSender?, initialLiveLocationShare: LiveLocationShare?)
+    case presentEmojiPicker(selectedEmojis: Set<String>, continuation: EmojiPickerScreenContinuation)
     case presentRoomMemberDetails(userID: String)
-    case presentMessageForwarding(forwardingItem: MessageForwardingItem)
-    case presentCallScreen
+    case presentMessageForwarding(forwardingPayload: MessageForwardingPayload)
+    case presentCallScreen(isVoiceCall: Bool)
     case presentPinnedEventsTimeline
     case presentResolveSendFailure(failure: TimelineItemSendFailure.VerifiedUser, sendHandle: SendHandleProxy)
     case presentKnockRequestsList
-    case presentThread(itemID: TimelineItemIdentifier)
+    case presentThreadList
+    case presentThread(threadRootEventID: String, focussedEventID: String?)
     case presentRoom(roomID: String, via: [String])
 }
 
@@ -54,15 +55,18 @@ final class RoomScreenCoordinator: CoordinatorProtocol {
     private var roomViewModel: RoomScreenViewModelProtocol
     private var timelineViewModel: TimelineViewModelProtocol
     private var composerViewModel: ComposerToolbarViewModelProtocol
-
+    private let userSettings: UserSettings
+    
     private var cancellables = Set<AnyCancellable>()
-
+    
     private let actionsSubject: PassthroughSubject<RoomScreenCoordinatorAction, Never> = .init()
     var actions: AnyPublisher<RoomScreenCoordinatorAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
     
     init(parameters: RoomScreenCoordinatorParameters) {
+        userSettings = parameters.userSession.userSettings
+        
         var selectedPinnedEventID: String?
         if let focussedEvent = parameters.focussedEvent {
             selectedPinnedEventID = focussedEvent.shouldSetPin ? focussedEvent.eventID : nil
@@ -72,8 +76,6 @@ final class RoomScreenCoordinator: CoordinatorProtocol {
                                             roomProxy: parameters.roomProxy,
                                             initialSelectedPinnedEventID: selectedPinnedEventID,
                                             ongoingCallRoomIDPublisher: parameters.ongoingCallRoomIDPublisher,
-                                            appSettings: parameters.appSettings,
-                                            appHooks: parameters.appHooks,
                                             analyticsService: parameters.analytics,
                                             userIndicatorController: parameters.userIndicatorController)
         
@@ -84,7 +86,6 @@ final class RoomScreenCoordinator: CoordinatorProtocol {
                                               mediaPlayerProvider: parameters.mediaPlayerProvider,
                                               userIndicatorController: parameters.userIndicatorController,
                                               appMediator: parameters.appMediator,
-                                              appSettings: parameters.appSettings,
                                               analyticsService: parameters.analytics,
                                               emojiProvider: parameters.emojiProvider,
                                               linkMetadataProvider: parameters.linkMetadataProvider,
@@ -100,7 +101,7 @@ final class RoomScreenCoordinator: CoordinatorProtocol {
                                                          completionSuggestionService: parameters.completionSuggestionService,
                                                          mediaProvider: parameters.userSession.mediaProvider,
                                                          mentionDisplayHelper: ComposerMentionDisplayHelper(timelineContext: timelineViewModel.context),
-                                                         appSettings: parameters.appSettings,
+                                                         userSettings: parameters.userSession.userSettings,
                                                          analyticsService: parameters.analytics,
                                                          composerDraftService: parameters.composerDraftService)
         self.composerViewModel = composerViewModel
@@ -112,52 +113,65 @@ final class RoomScreenCoordinator: CoordinatorProtocol {
         timelineViewModel.actions
             .sink { [weak self] action in
                 guard let self else { return }
-
+                
                 switch action {
-                case .displayEmojiPicker(let itemID, let selectedEmojis):
-                    actionsSubject.send(.presentEmojiPicker(itemID: itemID, selectedEmojis: selectedEmojis))
+                case .displayEmojiPicker(let selectedEmojis, let continuation):
+                    actionsSubject.send(.presentEmojiPicker(selectedEmojis: selectedEmojis, continuation: continuation))
                 case .displayReportContent(let itemID, let senderID):
                     actionsSubject.send(.presentReportContent(itemID: itemID, senderID: senderID))
                 case .displayCameraPicker:
-                    actionsSubject.send(.presentMediaUploadPicker(mode: .init(source: .camera, selectionType: .multiple)))
+                    actionsSubject.send(.presentMediaUploadPicker(mode: .init(source: .camera, selectionType: .multiple(galleryEnabled: userSettings.app.galleryEnabled)),
+                                                                  caption: composerViewModel.context.plainComposerText))
                 case .displayMediaPicker:
-                    actionsSubject.send(.presentMediaUploadPicker(mode: .init(source: .photoLibrary, selectionType: .multiple)))
+                    actionsSubject.send(.presentMediaUploadPicker(mode: .init(source: .photoLibrary, selectionType: .multiple(galleryEnabled: userSettings.app.galleryEnabled)),
+                                                                  caption: composerViewModel.context.plainComposerText))
                 case .displayDocumentPicker:
-                    actionsSubject.send(.presentMediaUploadPicker(mode: .init(source: .documents, selectionType: .multiple)))
+                    actionsSubject.send(.presentMediaUploadPicker(mode: .init(source: .documents(), selectionType: .multiple(galleryEnabled: userSettings.app.galleryEnabled)),
+                                                                  caption: composerViewModel.context.plainComposerText))
                 case .displayMediaPreview(let mediaPreviewViewModel):
                     roomViewModel.displayMediaPreview(mediaPreviewViewModel)
                 case .displayLocationPicker:
                     actionsSubject.send(.presentLocationPicker)
-                case .displayPollForm(let mode):
-                    actionsSubject.send(.presentPollForm(mode: mode))
+                case .displayNewPollForm:
+                    actionsSubject.send(.presentPollForm(mode: .new(topic: composerViewModel.context.plainComposerText.string)))
+                case .displayEditPollForm(let eventID, let poll):
+                    actionsSubject.send(.presentPollForm(mode: .edit(eventID: eventID, poll: poll)))
                 case .displayMediaUploadPreviewScreen(let mediaURLs):
-                    actionsSubject.send(.presentMediaUploadPreviewScreen(mediaURLs: mediaURLs))
+                    actionsSubject.send(.presentMediaUploadPreviewScreen(mediaURLs: mediaURLs,
+                                                                         caption: composerViewModel.context.plainComposerText))
                 case .displaySenderDetails(userID: let userID):
                     actionsSubject.send(.presentRoomMemberDetails(userID: userID))
-                case .displayMessageForwarding(let forwardingItem):
-                    actionsSubject.send(.presentMessageForwarding(forwardingItem: forwardingItem))
-                case .displayLocation(let body, let geoURI, let description):
-                    actionsSubject.send(.presentLocationViewer(body: body, geoURI: geoURI, description: description))
+                case .displayMessageForwarding(let forwardingPayload):
+                    actionsSubject.send(.presentMessageForwarding(forwardingPayload: forwardingPayload))
+                case .displayLocation(let location):
+                    actionsSubject.send(.presentLocationViewer(location))
+                case .displayLiveLocation(let sender, let initialLiveLocationShare):
+                    actionsSubject.send(.presentLiveLocationViewer(sender: sender, initialLiveLocationShare: initialLiveLocationShare))
                 case .displayResolveSendFailure(let failure, let sendHandle):
                     actionsSubject.send(.presentResolveSendFailure(failure: failure, sendHandle: sendHandle))
                 case .displayThread(let itemID):
-                    actionsSubject.send(.presentThread(itemID: itemID))
+                    guard let eventID = itemID.eventID else {
+                        fatalError("A thread root has always an eventID")
+                    }
+                    actionsSubject.send(.presentThread(threadRootEventID: eventID, focussedEventID: nil))
                 case .composer(let action):
                     composerViewModel.process(timelineAction: action)
                 case .hasScrolled(direction: let direction):
                     roomViewModel.timelineHasScrolled(direction: direction)
                 case .displayRoom(let roomID, let via):
                     actionsSubject.send(.presentRoom(roomID: roomID, via: via))
+                case .presentCallScreen(let isVoiceCall):
+                    actionsSubject.send(.presentCallScreen(isVoiceCall: isVoiceCall))
                 case .viewInRoomTimeline, .displayMediaDetails:
                     fatalError("The action: \(action) should not be sent to this coordinator")
                 }
             }
             .store(in: &cancellables)
-
+        
         composerViewModel.actions
             .sink { [weak self] action in
                 guard let self else { return }
-
+                
                 timelineViewModel.process(composerAction: action)
             }
             .store(in: &cancellables)
@@ -173,14 +187,24 @@ final class RoomScreenCoordinator: CoordinatorProtocol {
                     actionsSubject.send(.presentPinnedEventsTimeline)
                 case .displayRoomDetails:
                     actionsSubject.send(.presentRoomDetails)
-                case .displayCall:
-                    actionsSubject.send(.presentCallScreen)
+                case .displayCall(let isVoiceCall):
+                    actionsSubject.send(.presentCallScreen(isVoiceCall: isVoiceCall))
                 case .removeComposerFocus:
                     composerViewModel.process(timelineAction: .removeFocus)
                 case .displayKnockRequests:
                     actionsSubject.send(.presentKnockRequestsList)
                 case .displayRoom(let roomID, let via):
                     actionsSubject.send(.presentRoom(roomID: roomID, via: via))
+                case .displayMessageForwarding(let forwardingPayload):
+                    actionsSubject.send(.presentMessageForwarding(forwardingPayload: forwardingPayload))
+                case .displayThreadList:
+                    actionsSubject.send(.presentThreadList)
+                case .displayThread(let threadRootEventID, let focussedEventID):
+                    actionsSubject.send(.presentThread(threadRootEventID: threadRootEventID, focussedEventID: focussedEventID))
+                case .stopLiveLocationSharing:
+                    Task { [weak self] in await self?.timelineViewModel.stopLiveLocationSharing() }
+                case .displayLiveLocation:
+                    actionsSubject.send(.presentLiveLocationViewer(sender: nil, initialLiveLocationShare: nil))
                 }
             }
             .store(in: &cancellables)
@@ -198,10 +222,19 @@ final class RoomScreenCoordinator: CoordinatorProtocol {
         Task { await timelineViewModel.focusOnEvent(eventID: eventID) }
     }
     
+    /// Sets the banner to selection to a specific event ID, even if not visible in the main timeline (like a threaded event).
+    func setSelectedPin(eventID: String) {
+        roomViewModel.setSelectedPinnedEventID(eventID)
+    }
+    
     func shareText(_ string: String) {
         composerViewModel.process(timelineAction: .setMode(mode: .default)) // Make sure we're not e.g. replying.
         composerViewModel.process(timelineAction: .setText(plainText: string, htmlText: nil))
         composerViewModel.process(timelineAction: .setFocus)
+    }
+    
+    func clearMessageSelection() {
+        timelineViewModel.clearMessageSelection()
     }
     
     func stop() {
@@ -211,7 +244,7 @@ final class RoomScreenCoordinator: CoordinatorProtocol {
     
     func toPresentable() -> AnyView {
         let composerToolbar = ComposerToolbar(context: composerViewModel.context)
-
+        
         return AnyView(RoomScreen(context: roomViewModel.context,
                                   timelineContext: timelineViewModel.context,
                                   composerToolbar: composerToolbar))

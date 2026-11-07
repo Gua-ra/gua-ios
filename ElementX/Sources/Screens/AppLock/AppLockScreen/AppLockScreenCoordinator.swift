@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -11,6 +12,8 @@ import SwiftUI
 struct AppLockScreenCoordinatorParameters {
     /// The service used to unlock the app.
     let appLockService: AppLockServiceProtocol
+    /// The context in which the screen is being shown.
+    var mode: AppLockScreenMode = .appUnlock
 }
 
 enum AppLockScreenCoordinatorAction {
@@ -18,6 +21,8 @@ enum AppLockScreenCoordinatorAction {
     case appUnlocked
     /// The user failed to unlock the app (or forgot their PIN).
     case forceLogout
+    /// The user cancelled device owner verification. Only sent in the `.verifyDeviceOwner` mode.
+    case cancelVerifyDeviceOwner
 }
 
 final class AppLockScreenCoordinator: CoordinatorProtocol {
@@ -30,7 +35,7 @@ final class AppLockScreenCoordinator: CoordinatorProtocol {
     }
     
     init(parameters: AppLockScreenCoordinatorParameters) {
-        viewModel = AppLockScreenViewModel(appLockService: parameters.appLockService)
+        viewModel = AppLockScreenViewModel(appLockService: parameters.appLockService, mode: parameters.mode)
     }
     
     func start() {
@@ -43,11 +48,13 @@ final class AppLockScreenCoordinator: CoordinatorProtocol {
                 self.actionsSubject.send(.appUnlocked)
             case .forceLogout:
                 self.actionsSubject.send(.forceLogout)
+            case .cancelVerifyDeviceOwner:
+                self.actionsSubject.send(.cancelVerifyDeviceOwner)
             }
         }
         .store(in: &cancellables)
     }
-        
+    
     func toPresentable() -> AnyView {
         AnyView(AppLockScreen(context: viewModel.context))
     }

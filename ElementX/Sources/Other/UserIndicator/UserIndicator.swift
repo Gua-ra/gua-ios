@@ -1,12 +1,14 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Combine
-import Foundation
+import Compound
+import SwiftUI
 
 enum UserIndicatorType: Equatable {
     case toast(progress: UserIndicator.Progress?)
@@ -15,7 +17,7 @@ enum UserIndicatorType: Equatable {
     static var toast: Self {
         .toast(progress: .none)
     }
-
+    
     static var modal: Self {
         .modal(progress: .indeterminate, interactiveDismissDisabled: false, allowsInteraction: false)
     }
@@ -39,7 +41,7 @@ struct UserIndicator: Equatable, Identifiable {
     var type: UserIndicatorType = .toast
     var title: String
     var message: String?
-    var iconName: String?
+    var icon: KeyPath<CompoundIcons, Image>?
     var persistent = false
     
     // MARK: - Associated values from the type

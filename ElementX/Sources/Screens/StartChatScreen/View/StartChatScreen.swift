@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -31,9 +32,10 @@ struct StartChatScreen: View {
                           disablesInteractiveDismiss: true)
         .compoundSearchField()
         .alert(item: $context.alertInfo)
-        .sheet(item: $context.selectedUserToInvite) { user in
-            SendInviteConfirmationView(userToInvite: user, mediaProvider: context.mediaProvider) {
-                context.send(viewAction: .createDM(user: user))
+        .sheet(item: $context.selectedUserToInvite) { userToInvite in
+            SendInviteConfirmationView(userToInvite: userToInvite,
+                                       mediaProvider: context.mediaProvider) {
+                context.send(viewAction: .createDM(user: userToInvite.user))
             }
         }
         .sheet(isPresented: $context.isJoinRoomByAddressSheetPresented) {
@@ -42,22 +44,20 @@ struct StartChatScreen: View {
             JoinRoomByAddressView(context: context)
         }
     }
-
+    
     // MARK: - Private
-
+    
     /// The content shown in the form when the search query is empty.
     @ViewBuilder
     private var mainContent: some View {
         findFriendsSection
         createRoomSection
-        if context.viewState.isRoomDirectoryEnabled {
-            roomDirectorySearch
-        }
+        roomDirectorySearch
         inviteFriendsSection
         joinRoomByAddressSection
         usersSection
     }
-
+    
     private var findFriendsSection: some View {
         Section {
             // GUA FORK: Discover which phone contacts are already on Gua.
@@ -123,7 +123,7 @@ struct StartChatScreen: View {
     private var usersSection: some View {
         if !context.viewState.usersSection.users.isEmpty {
             Section {
-                ForEach(context.viewState.usersSection.users, id: \.userID) { user in
+                ForEach(context.viewState.usersSection.users, id: \.id) { user in
                     UserProfileListRow(user: user,
                                        membership: nil,
                                        mediaProvider: context.mediaProvider,
@@ -165,20 +165,18 @@ struct StartChatScreen: View {
 
 struct StartChatScreen_Previews: PreviewProvider, TestablePreview {
     static let viewModel = {
-        let appSettings = AppSettings()
-        appSettings.publicSearchEnabled = true
+        let userSettings = UserSettings.mock()
         let userSession = UserSessionMock(.init(clientProxy: ClientProxyMock(.init(userID: "@userid:example.com"))))
         let userDiscoveryService = UserDiscoveryServiceMock()
         userDiscoveryService.searchProfilesWithReturnValue = .success([.mockAlice])
         return StartChatScreenViewModel(userSession: userSession,
-                                        analytics: ServiceLocator.shared.analytics,
+                                        analytics: AnalyticsServiceMock(.init()),
                                         userIndicatorController: UserIndicatorControllerMock(),
-                                        userDiscoveryService: userDiscoveryService,
-                                        appSettings: appSettings)
+                                        userDiscoveryService: userDiscoveryService)
     }()
     
     static var previews: some View {
-        NavigationStack {
+        ElementNavigationStack {
             StartChatScreen(context: viewModel.context)
         }
     }

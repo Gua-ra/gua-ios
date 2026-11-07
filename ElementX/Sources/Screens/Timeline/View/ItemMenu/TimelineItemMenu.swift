@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -35,14 +36,14 @@ struct TimelineItemMenu: View {
                     if !actions.reactions.isEmpty {
                         reactionsSection
                             .padding(.bottom, 8.0)
-
+                        
                         Divider()
                             .background(Color.compound.bgSubtlePrimary)
                     }
-
+                    
                     if !actions.actions.isEmpty {
                         viewsForActions(actions.actions)
-
+                        
                         Divider()
                             .background(Color.compound.bgSubtlePrimary)
                     }
@@ -52,7 +53,7 @@ struct TimelineItemMenu: View {
             }
         }
         .accessibilityIdentifier(A11yIdentifiers.roomScreen.timelineItemActionMenu)
-        .presentationPage()
+        .presentationSizing(.page)
         .presentationDetents([.medium, .large])
         .presentationBackground(Color.compound.bgCanvasDefault)
         .presentationDragIndicator(.visible)
@@ -251,17 +252,6 @@ private extension EncryptionAuthenticity {
     }
 }
 
-private extension View {
-    /// Uses the old page style modal so that on iPadOS 18 the presentation detents have no effect.
-    @ViewBuilder func presentationPage() -> some View {
-        if #available(iOS 18.0, *) {
-            presentationSizing(.page)
-        } else {
-            self
-        }
-    }
-}
-
 // MARK: - Previews
 
 struct TimelineItemMenu_Previews: PreviewProvider, TestablePreview {
@@ -272,7 +262,7 @@ struct TimelineItemMenu_Previews: PreviewProvider, TestablePreview {
     static let (backupItem, _) = makeActions(authenticity: .notGuaranteed(color: .gray))
     static let (unsignedItem, _) = makeActions(authenticity: .unsignedDevice(color: .red))
     static let (unencryptedItem, _) = makeActions(authenticity: .sentInClear(color: .red))
-    static let (unknownFailureItem, _) = makeActions(deliveryStatus: .sendingFailed(.unknown))
+    static let (unknownFailureItem, _) = makeActions(deliveryStatus: .sendingFailed(.unknown(reason: nil)))
     static let (identityChangedItem, _) = makeActions(deliveryStatus: .sendingFailed(.verifiedUser(.changedIdentity(users: [
         "@alice:matrix.org"
     ]))))
@@ -287,7 +277,7 @@ struct TimelineItemMenu_Previews: PreviewProvider, TestablePreview {
     
     static let (mediaItem, mediaItemActions) = makeActions(itemType: .outgoingMedia)
     static let (mediaItemWithCaption, mediaItemWithCaptionActions) = makeActions(itemType: .outgoingMediaWithCaption)
-
+    
     static var previews: some View {
         TimelineItemMenu(item: item, actions: actions)
             .environmentObject(viewModel.context)
@@ -347,11 +337,10 @@ struct TimelineItemMenu_Previews: PreviewProvider, TestablePreview {
                                                       canCurrentUserRedactOthers: false,
                                                       canCurrentUserPin: true,
                                                       pinnedEventIDs: [],
-                                                      isDM: true,
                                                       isViewSourceEnabled: true,
                                                       areThreadsEnabled: true,
                                                       timelineKind: .live,
-                                                      emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings))
+                                                      emojiProvider: EmojiProvider(userSettings: .mock()))
         guard let actions = provider.makeActions() else { return nil }
         
         if var textItem = item as? TextRoomTimelineItem {
@@ -371,11 +360,11 @@ struct TimelineItemMenu_Previews: PreviewProvider, TestablePreview {
     static func makeItem(itemType: ItemType) -> EventBasedTimelineItemProtocol? {
         switch itemType {
         case .incomingText:
-            RoomTimelineItemFixtures.singleMessageChunk.first as? EventBasedTimelineItemProtocol
+            TimelineFixtures.singleMessageChunk.first as? EventBasedTimelineItemProtocol
         case .outgoingMedia:
-            RoomTimelineItemFixtures.mediaChunk[1] as? EventBasedTimelineItemProtocol
+            TimelineFixtures.mediaChunk[1] as? EventBasedTimelineItemProtocol
         case .outgoingMediaWithCaption:
-            RoomTimelineItemFixtures.mediaChunk[5] as? EventBasedTimelineItemProtocol
+            TimelineFixtures.mediaChunk[5] as? EventBasedTimelineItemProtocol
         }
     }
 }

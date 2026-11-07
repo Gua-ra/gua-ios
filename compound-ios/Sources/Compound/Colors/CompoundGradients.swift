@@ -1,7 +1,8 @@
 //
+// Copyright 2025 Element Creations Ltd.
 // Copyright 2025 New Vector Ltd
 //
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE in the repository root for full details.
 //
 
@@ -24,7 +25,7 @@ public struct CompoundGradients {
                        .compound.gradientActionStop3,
                        .compound.gradientActionStop4])
     }
-
+    
     public var subtle: Gradient {
         .init(colors: [.compound.gradientSubtleStop1,
                        .compound.gradientSubtleStop2,
@@ -33,13 +34,12 @@ public struct CompoundGradients {
                        .compound.gradientSubtleStop5,
                        .compound.gradientSubtleStop6])
     }
-
+    
     public var info: Gradient {
-        .init(colors: [.compound.gradientInfoStop1,
-                       .compound.gradientInfoStop2,
-                       .compound.gradientInfoStop3,
-                       .compound.gradientInfoStop4,
-                       .compound.gradientInfoStop5,
-                       .compound.gradientInfoStop6])
+        .init(colors: [.compound.gradientInfoStop1, .compound.gradientInfoStop2])
+    }
+    
+    public var critical: Gradient {
+        .init(colors: [.compound.gradientCriticalStop1, .compound.gradientCriticalStop2])
     }
 }

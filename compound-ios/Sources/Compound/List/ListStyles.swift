@@ -1,18 +1,37 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import SwiftUI
 
+public enum CompoundListKind {
+    /// The default style for `List` or `Form`.
+    case inset
+    /// The `.plain` style when using a `List`.
+    case plain
+}
+
 public extension View {
     /// Styles a list using the Compound design tokens.
-    func compoundList() -> some View {
-        environment(\.defaultMinListRowHeight, 48)
-            .scrollContentBackground(.hidden)
-            .background(Color.compound.bgSubtleSecondaryLevel0.ignoresSafeArea())
+    @ViewBuilder
+    func compoundList(_ kind: CompoundListKind = .inset) -> some View {
+        switch kind {
+        case .inset:
+            environment(\.defaultMinListRowHeight, 48)
+                .scrollContentBackground(.hidden)
+                .background(Color.compound.bgSubtleSecondaryLevel0.ignoresSafeArea())
+                .preference(key: CompoundBackgroundPreferenceKey.self, value: .color(.compound.bgSubtleSecondaryLevel0))
+        case .plain:
+            listStyle(.plain)
+                .environment(\.defaultMinListRowHeight, 48)
+                .scrollContentBackground(.hidden)
+                .background(Color.compound.bgCanvasDefault.ignoresSafeArea())
+                .preference(key: CompoundBackgroundPreferenceKey.self, value: .default)
+        }
     }
     
     /// Styles a list section header using the Compound design tokens.
@@ -34,6 +53,8 @@ public extension View {
                                       bottom: 10,
                                       trailing: ListRowPadding.horizontal))
     }
+    
+    // MARK: - Private
     
     private var headerFont: Font {
         if #available(iOS 26.0, *) {

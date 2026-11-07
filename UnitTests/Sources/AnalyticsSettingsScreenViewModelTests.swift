@@ -1,49 +1,49 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 @testable import ElementX
-import XCTest
+import Testing
 
 @MainActor
-class AnalyticsSettingsScreenViewModelTests: XCTestCase {
-    private var appSettings: AppSettings!
+final class AnalyticsSettingsScreenViewModelTests {
+    private let appSettings: AppSettings
+    private let analytics: AnalyticsService
+    
     private var viewModel: AnalyticsSettingsScreenViewModelProtocol!
     private var context: AnalyticsSettingsScreenViewModelType.Context!
     
-    override func tearDown() {
-        AppSettings.resetAllSettings()
-    }
-    
-    @MainActor override func setUpWithError() throws {
-        AppSettings.resetAllSettings()
-        appSettings = AppSettings()
-        let analyticsClient = AnalyticsClientMock()
-        analyticsClient.isRunning = false
-        ServiceLocator.shared.register(analytics: AnalyticsService(client: analyticsClient,
-                                                                   appSettings: appSettings))
+    init() {
+        appSettings = AppSettings.volatile()
+        let client = AnalyticsClientMock()
+        client.isRunning = false
+        analytics = AnalyticsService(client: client, appSettings: appSettings)
         
-        viewModel = AnalyticsSettingsScreenViewModel(appSettings: appSettings,
-                                                     analytics: ServiceLocator.shared.analytics)
+        viewModel = AnalyticsSettingsScreenViewModel(userSettings: appSettings.userSettings(for: "@me:matrix.org"),
+                                                     analytics: analytics)
         context = viewModel.context
     }
-
-    func testInitialState() {
-        XCTAssertFalse(context.enableAnalytics)
-    }
-
-    func testOptIn() {
-        appSettings.analyticsConsentState = .optedOut
-        context.send(viewAction: .toggleAnalytics)
-        XCTAssertTrue(context.enableAnalytics)
+    
+    @Test
+    func initialState() {
+        #expect(!context.enableAnalytics)
     }
     
-    func testOptOut() {
+    @Test
+    func optIn() {
+        appSettings.analyticsConsentState = .optedOut
+        context.send(viewAction: .toggleAnalytics)
+        #expect(context.enableAnalytics)
+    }
+    
+    @Test
+    func optOut() {
         appSettings.analyticsConsentState = .optedIn
         context.send(viewAction: .toggleAnalytics)
-        XCTAssertFalse(context.enableAnalytics)
+        #expect(!context.enableAnalytics)
     }
 }

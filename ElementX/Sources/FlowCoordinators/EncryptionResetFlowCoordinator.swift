@@ -1,7 +1,8 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -18,7 +19,7 @@ enum EncryptionResetFlowCoordinatorAction: Equatable {
 
 struct EncryptionResetFlowCoordinatorParameters {
     let userSession: UserSessionProtocol
-    let appSettings: AppSettings
+    let appMediator: AppMediatorProtocol
     let userIndicatorController: UserIndicatorControllerProtocol
     let navigationStackCoordinator: NavigationStackCoordinator
     let windowManger: WindowManagerProtocol
@@ -26,7 +27,7 @@ struct EncryptionResetFlowCoordinatorParameters {
 
 class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
     private let userSession: UserSessionProtocol
-    private let appSettings: AppSettings
+    private let appMediator: AppMediatorProtocol
     private let userIndicatorController: UserIndicatorControllerProtocol
     
     private let navigationStackCoordinator: NavigationStackCoordinator
@@ -61,7 +62,7 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
     
     init(parameters: EncryptionResetFlowCoordinatorParameters) {
         userSession = parameters.userSession
-        appSettings = parameters.appSettings
+        appMediator = parameters.appMediator
         userIndicatorController = parameters.userIndicatorController
         navigationStackCoordinator = parameters.navigationStackCoordinator
         windowManager = parameters.windowManger
@@ -70,7 +71,7 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
         configureStateMachine()
     }
     
-    func start() {
+    func start(animated: Bool) {
         stateMachine.tryEvent(.start)
     }
     
@@ -118,9 +119,9 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
             guard let self else { return }
             
             switch action {
-            case .requestOIDCAuthorisation(let url, let completionPublisher):
-                presentOIDCAuthorization(for: url, completionPublisher: completionPublisher)
-            case .dismissOIDCPresentation:
+            case .requestOAuthAuthorisation(let url, let completionPublisher):
+                presentOAuthAuthorization(for: url, completionPublisher: completionPublisher)
+            case .dismissOAuthPresentation:
                 accountSettingsPresenter?.dismiss()
                 accountSettingsPresenter = nil
             case .requestPassword(let passwordPublisher):
@@ -132,19 +133,19 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
             case .resetFinished:
                 Task { [weak self] in
                     guard let self else { return }
-
+                    
                     // Only a reset that returned normally proves the upload, so the pending marker is
                     // cleared here and nowhere earlier.
                     IdentityResetPendingStore.clear(for: userSession.clientProxy.userID)
-
+                    
                     userIndicatorController.submitIndicator(UserIndicator(id: Self.finishingIndicatorID,
                                                                           type: .modal,
                                                                           title: UntranslatedL10n.guaEncryptionResetFinishing,
                                                                           persistent: true))
-
+                    
                     let outcome = await userSession.clientProxy.secureBackupController.provisionAfterReset()
                     userIndicatorController.retractIndicatorWithId(Self.finishingIndicatorID)
-
+                    
                     switch outcome {
                     case .repaired:
                         MXLog.info("GUA-KEYSTORE: provisioned key storage after the reset.")
@@ -156,7 +157,7 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
                         MXLog.error("GUA-KEYSTORE: the account is incomplete after the reset; leaving it to the banner.")
                         userIndicatorController.submitIndicator(UserIndicator(title: UntranslatedL10n.guaEncryptionResetFailed))
                     }
-
+                    
                     actionsSubject.send(.resetComplete)
                 }
             }
@@ -187,18 +188,17 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
     }
     
     // MARK: - Recovery from another device
-
+    
     private func presentRecoveryFromOtherDevice() {
         guard let sessionVerificationController = userSession.clientProxy.sessionVerificationController else {
             MXLog.error("GUA-KEYSTORE: no session verification controller yet, cannot recover from another device.")
             userIndicatorController.submitIndicator(UserIndicator(title: UntranslatedL10n.guaEncryptionRecoverFromOtherDeviceFailed))
             return
         }
-
+        
         let parameters = SessionVerificationScreenCoordinatorParameters(sessionVerificationControllerProxy: sessionVerificationController,
                                                                         flow: .deviceInitiator,
-                                                                        appSettings: appSettings,
-                                                                        mediaProvider: userSession.mediaProvider)
+                                                                        userSession: userSession)
         let coordinator = SessionVerificationScreenCoordinator(parameters: parameters)
         coordinator.actions
             .sink { [weak self] action in
@@ -214,7 +214,7 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
             .store(in: &cancellables)
         navigationStackCoordinator.push(coordinator)
     }
-
+    
     private func finishRecoveryFromOtherDevice() async {
         userIndicatorController.submitIndicator(UserIndicator(id: Self.finishingIndicatorID,
                                                               type: .modal,
@@ -222,7 +222,7 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
                                                               persistent: true))
         let recovered = await waitForRecoveryEnabled(timeout: Self.recoveryFromOtherDeviceCeiling)
         userIndicatorController.retractIndicatorWithId(Self.finishingIndicatorID)
-
+        
         if recovered {
             MXLog.info("GUA-KEYSTORE: keys arrived from the other device.")
             userIndicatorController.submitIndicator(UserIndicator(title: L10n.commonSuccess))
@@ -232,10 +232,12 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
             userIndicatorController.submitIndicator(UserIndicator(title: UntranslatedL10n.guaEncryptionRecoverFromOtherDeviceFailed))
         }
     }
-
+    
     private func waitForRecoveryEnabled(timeout: Duration) async -> Bool {
         let publisher = userSession.clientProxy.secureBackupController.recoveryState
-        if publisher.value == .enabled { return true }
+        if publisher.value == .enabled {
+            return true
+        }
         return await withCheckedContinuation { continuation in
             let gate = OnceGate()
             var cancellable: AnyCancellable?
@@ -253,11 +255,11 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
             }
         }
     }
-
-    private final class OnceGate: @unchecked Sendable {
+    
+    private final nonisolated class OnceGate: @unchecked Sendable {
         private let lock = NSLock()
         private var resumed = false
-
+        
         func resume(_ continuation: CheckedContinuation<Bool, Never>, with value: Bool) {
             lock.lock()
             defer { lock.unlock() }
@@ -266,44 +268,45 @@ class EncryptionResetFlowCoordinator: FlowCoordinatorProtocol {
             continuation.resume(returning: value)
         }
     }
-
+    
     /// Covers one 30 s encryption sync poll with margin; keys that arrive later still clear the banner.
     private static let recoveryFromOtherDeviceCeiling: Duration = .seconds(60)
-
+    
     private static let finishingIndicatorID = "\(EncryptionResetFlowCoordinator.self)-Finishing"
-
-    private var accountSettingsPresenter: OIDCAccountSettingsPresenter?
+    
+    private var accountSettingsPresenter: OAuthAccountSettingsPresenter?
     /// GUA FORK: on approval MAS opens the allow-listed `gua_return` scheme, which dismisses the web session.
     private func approvalURL(_ url: URL) -> URL {
-        guard let scheme = appSettings.oidcRedirectURL.scheme,
+        guard let scheme = userSession.userSettings.app.oAuthRedirectURL.scheme,
               var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
             return url
         }
-
+        
         // GUA FORK: the sheet shares browser cookies, so name this account or MAS may approve the
         // reset for another one.
         let userID = userSession.clientProxy.userID
         let localpart = String(userID.dropFirst().prefix { $0 != ":" })
-
+        
         var items = components.queryItems ?? []
         items.append(URLQueryItem(name: "gua_return", value: scheme))
         items.append(URLQueryItem(name: "gua_user", value: localpart))
         items.append(URLQueryItem(name: "org.matrix.msc4198.login_hint", value: "mxid:\(userID)"))
         items.append(URLQueryItem(name: "ui_locales", value: Bundle.guaAppLanguage))
         components.queryItems = items
-
+        
         return components.url ?? url
     }
-
-    private func presentOIDCAuthorization(for url: URL, completionPublisher: PassthroughSubject<OIDCAccountSettingsPresenter.Outcome, Never>) {
+    
+    private func presentOAuthAuthorization(for url: URL, completionPublisher: PassthroughSubject<OAuthAccountSettingsPresenter.Outcome, Never>) {
         // Note to anyone in the future if you come back here to make this open in Safari instead of a WAS.
         // As of iOS 16, there is an issue on the simulator with accessing the cookie but it works on a device. 🤷‍♂️
-        let presenter = OIDCAccountSettingsPresenter(accountURL: approvalURL(url),
-                                                     presentationAnchor: windowManager.mainWindow,
-                                                     appSettings: appSettings)
+        let presenter = OAuthAccountSettingsPresenter(accountURL: approvalURL(url),
+                                                      presentationAnchor: windowManager.mainWindow,
+                                                      appMediator: appMediator,
+                                                      userSession: userSession)
         accountSettingsPresenter = presenter
         Task { @MainActor in
-            let outcome = await presenter.start()
+            let outcome = await presenter.startAndWaitForOutcome()
             completionPublisher.send(outcome)
         }
     }

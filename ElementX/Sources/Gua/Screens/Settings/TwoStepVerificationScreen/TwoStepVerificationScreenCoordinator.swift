@@ -27,18 +27,18 @@ enum TwoStepVerificationScreenCoordinatorAction {
 final class TwoStepVerificationScreenCoordinator: CoordinatorProtocol {
     private let parameters: TwoStepVerificationScreenCoordinatorParameters
     private let viewModel: TwoStepVerificationScreenViewModelProtocol
-
+    
     private var cancellables = Set<AnyCancellable>()
     /// Retained for the lifetime of the web flow so the session isn't cancelled early.
     private var enrollmentPresenter: FactorEnrollmentPresenter?
-
+    
     private let enrollmentIndicatorID = "TwoStepVerificationScreen-Enrollment"
-
+    
     private let actionsSubject: PassthroughSubject<TwoStepVerificationScreenCoordinatorAction, Never> = .init()
     var actionsPublisher: AnyPublisher<TwoStepVerificationScreenCoordinatorAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
-
+    
     init(parameters: TwoStepVerificationScreenCoordinatorParameters) {
         self.parameters = parameters
         viewModel = TwoStepVerificationScreenViewModel(clientProxy: parameters.clientProxy,
@@ -47,7 +47,7 @@ final class TwoStepVerificationScreenCoordinator: CoordinatorProtocol {
                                                        passkeyStepUpPresenter: PasskeyStepUpPresenter(presentationAnchor: parameters.windowManager.mainWindow),
                                                        initialSetup: parameters.initialSetup)
     }
-
+    
     func start() {
         viewModel.actionsPublisher.sink { [weak self] action in
             MXLog.info("Coordinator: received view model action: \(action)")
@@ -63,7 +63,7 @@ final class TwoStepVerificationScreenCoordinator: CoordinatorProtocol {
         }
         .store(in: &cancellables)
     }
-
+    
     /// The two factors this screen can enroll. Its own small type rather than ``AuthFactor``, which
     /// also names things no enrollment URL exists for: a phone code, and whatever a newer server
     /// calls a factor this build has never heard of.
@@ -71,7 +71,7 @@ final class TwoStepVerificationScreenCoordinator: CoordinatorProtocol {
         case passkey
         case pin
     }
-
+    
     /// Opens the enrollment web session for one factor. Both factors take the same route because
     /// both are durable: the session confirms the account before anything is stored, which a bearer
     /// token on its own does not.
@@ -80,7 +80,7 @@ final class TwoStepVerificationScreenCoordinator: CoordinatorProtocol {
             MXLog.warning("No access token available; cannot start factor enrollment.")
             return
         }
-
+        
         parameters.userIndicatorController.submitIndicator(UserIndicator(id: enrollmentIndicatorID,
                                                                          type: .modal,
                                                                          title: L10n.commonLoading,
@@ -92,11 +92,11 @@ final class TwoStepVerificationScreenCoordinator: CoordinatorProtocol {
             MXLog.error("Failed to start factor enrollment: \(error)")
             parameters.userIndicatorController.retractIndicatorWithId(enrollmentIndicatorID)
             parameters.userIndicatorController.submitIndicator(UserIndicator(title: (error as? LocalizedError)?.errorDescription ?? L10n.errorUnknown,
-                                                                             iconName: "xmark"))
+                                                                             icon: \.close))
             return
         }
         parameters.userIndicatorController.retractIndicatorWithId(enrollmentIndicatorID)
-
+        
         let presenter = FactorEnrollmentPresenter(enrollURL: enrollURL,
                                                   presentationAnchor: parameters.windowManager.mainWindow,
                                                   appSettings: parameters.appSettings)
@@ -106,14 +106,14 @@ final class TwoStepVerificationScreenCoordinator: CoordinatorProtocol {
         } catch {
             MXLog.error("Factor enrollment failed: \(error)")
             parameters.userIndicatorController.submitIndicator(UserIndicator(title: L10n.errorUnknown,
-                                                                             iconName: "xmark"))
+                                                                             icon: \.close))
         }
         enrollmentPresenter = nil
         // The session may have added the factor, and the screen has no other way to find out: the
         // report it is rendering was read before the sheet opened.
         viewModel.context.send(viewAction: .retryStatus)
     }
-
+    
     /// The redirect asked for is this build's own, taken from the same setting the sheet waits on
     /// below (`FactorEnrollmentPresenter` closes when the page redirects to it). The release, QA and
     /// debug builds answer to different schemes, so a deployment that only knows one of them returns
@@ -121,7 +121,7 @@ final class TwoStepVerificationScreenCoordinator: CoordinatorProtocol {
     /// server keeps the allowlist, and a value it does not hold costs nothing because the client
     /// asks again without one.
     private func enrollmentURL(for factor: EnrollableFactor, accessToken: String) async throws -> URL {
-        let redirectURI = parameters.appSettings.oidcRedirectURL.absoluteString
+        let redirectURI = parameters.appSettings.oAuthRedirectURL.absoluteString
         switch factor {
         case .passkey:
             return try await parameters.identityServiceClient.startPasskeyEnrollment(accessToken: accessToken,
@@ -131,7 +131,7 @@ final class TwoStepVerificationScreenCoordinator: CoordinatorProtocol {
                                                                                  redirectURI: redirectURI)
         }
     }
-
+    
     func toPresentable() -> AnyView {
         AnyView(TwoStepVerificationScreen(context: viewModel.context))
     }

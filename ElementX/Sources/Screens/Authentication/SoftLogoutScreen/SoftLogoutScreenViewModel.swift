@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -16,7 +17,7 @@ class SoftLogoutScreenViewModel: SoftLogoutScreenViewModelType, SoftLogoutScreen
     var actions: AnyPublisher<SoftLogoutScreenViewModelAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
-
+    
     init(credentials: SoftLogoutScreenCredentials,
          homeserver: LoginHomeserver,
          keyBackupNeeded: Bool,
@@ -37,15 +38,15 @@ class SoftLogoutScreenViewModel: SoftLogoutScreenViewModelType, SoftLogoutScreen
             actionsSubject.send(.forgotPassword)
         case .clearAllData:
             actionsSubject.send(.clearAllData)
-        case .continueWithOIDC:
-            actionsSubject.send(.continueWithOIDC)
+        case .continueWithOAuth:
+            actionsSubject.send(.continueWithOAuth)
         case .updateWindow(let window):
             guard state.window != window else { return }
             Task { state.window = window }
         }
     }
-
-    @MainActor func displayError(_ type: SoftLogoutScreenErrorType) {
+    
+    func displayError(_ type: SoftLogoutScreenErrorType) {
         switch type {
         case .alert(let message):
             state.bindings.alertInfo = AlertInfo(id: type,

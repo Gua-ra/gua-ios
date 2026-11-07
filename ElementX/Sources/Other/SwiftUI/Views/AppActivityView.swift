@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -10,13 +11,13 @@ import SwiftUI
 struct AppActivityView: UIViewControllerRepresentable {
     typealias UIViewControllerType = UIActivityViewController
     typealias CompletionType = (Result<(activity: UIActivity.ActivityType, items: [Any]?), Error>) -> Void
-
+    
     private let activityItems: [Any]
     private let applicationActivities: [UIActivity]?
     private var excludedActivityTypes: [UIActivity.ActivityType]
     private var onCancel: (() -> Void)?
     private var onComplete: CompletionType?
-
+    
     init(activityItems: [Any],
          applicationActivities: [UIActivity]? = nil,
          excludedActivityTypes: [UIActivity.ActivityType] = [],
@@ -28,11 +29,11 @@ struct AppActivityView: UIViewControllerRepresentable {
         self.onCancel = onCancel
         self.onComplete = onComplete
     }
-
+    
     func makeUIViewController(context: Context) -> UIViewControllerType {
         let viewController = UIViewControllerType(activityItems: activityItems, applicationActivities: applicationActivities)
         viewController.excludedActivityTypes = excludedActivityTypes
-
+        
         viewController.completionWithItemsHandler = { activity, completed, items, error in
             if let error {
                 onComplete?(.failure(error))
@@ -44,12 +45,12 @@ struct AppActivityView: UIViewControllerRepresentable {
                 assertionFailure()
             }
         }
-
+        
         return viewController
     }
-
+    
     func updateUIViewController(_ uiViewController: UIViewControllerType, context: Context) { }
-
+    
     static func dismantleUIViewController(_ uiViewController: UIViewControllerType, coordinator: Coordinator) {
         uiViewController.completionWithItemsHandler = nil
     }

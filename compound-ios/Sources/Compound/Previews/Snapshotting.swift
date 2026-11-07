@@ -1,7 +1,8 @@
 //
+// Copyright 2025 Element Creations Ltd.
 // Copyright 2025 New Vector Ltd
 //
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE in the repository root for full details.
 //
 
@@ -10,7 +11,7 @@ import SwiftUI
 
 struct SnapshotPrecisionPreferenceKey: PreferenceKey {
     static var defaultValue: Float = 1.0
-
+    
     static func reduce(value: inout Float, nextValue: () -> Float) {
         value = nextValue()
     }
@@ -18,7 +19,7 @@ struct SnapshotPrecisionPreferenceKey: PreferenceKey {
 
 struct SnapshotPerceptualPrecisionPreferenceKey: PreferenceKey {
     static var defaultValue: Float = 0.98
-
+    
     static func reduce(value: inout Float, nextValue: () -> Float) {
         value = nextValue()
     }

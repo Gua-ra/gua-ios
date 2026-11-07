@@ -1,24 +1,28 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
-import Foundation
-import UIKit
+import SwiftUI
 
-enum SettingsScreenViewModelAction: Equatable {
+enum SettingsScreenViewModelAction {
     case close
     
     case userDetails
+    case userStatusEmojiPicker(EmojiPickerScreenContinuation)
     
     case findFriends
+    case addAccount
     
     case manageAccount(url: URL)
     case twoStepVerification
     case changePhoneNumber
+    case linkNewDevice
     case notifications
+    case secureBackup
     case moderationAndSafety
     case reportBug
     
@@ -27,45 +31,83 @@ enum SettingsScreenViewModelAction: Equatable {
     
     case mediaUploadQuality
     case appLock
+    case locationSharing
     case analytics
+    case labs
     case about
     
     case developerOptions
 }
 
+enum SettingsScreenSecuritySectionMode {
+    case none
+    case secureBackup
+}
+
 struct SettingsScreenViewState: BindableState {
     var deviceID: String?
-    var userID: String
+    var userProfile: UserProfile
+    var showUserStatusInput = false
+    var showLinkNewDeviceButton: Bool
+    var showAddAccountButton: Bool
     var accountProfileURL: URL?
     var showAccountDeactivation: Bool
-    var userAvatarURL: URL?
-    var userDisplayName: String?
     var showDeveloperOptions: Bool
     
-    var userLocalpart: String {
-        userID.hasPrefix("@") ? String(userID.dropFirst().prefix { $0 != ":" }) : userID
-    }
+    var securitySectionMode = SettingsScreenSecuritySectionMode.none
+    var showSecuritySectionBadge = false
     
     let showAnalyticsSettings: Bool
+    /// GUA FORK: without a map configuration location sharing is unavailable, as in the composer.
+    let showLocationSharingSettings: Bool
+    /// GUA FORK: Labs toggles unfinished features, so release builds hide it (as on Android).
+    let showLabsSettings: Bool
     
     let isBugReportServiceEnabled: Bool
     
+    let navigationBarVisibility: Visibility
+    
     var bindings: SettingsScreenViewStateBindings
+    
+    var userLocalpart: String {
+        let userID = userProfile.id
+        return userID.hasPrefix("@") ? String(userID.dropFirst().prefix { $0 != ":" }) : userID
+    }
+    
+    var userStatusRowMode: SettingsScreenUserStatusRow.Mode {
+        if bindings.isShowingCustomStatusField {
+            .customStatusInput(emoji: bindings.customStatusEmoji)
+        } else if let displayedStatus = userProfile.status.displayed {
+            .showingStatus(displayedStatus)
+        } else {
+            .pickStatusButton
+        }
+    }
 }
 
 struct SettingsScreenViewStateBindings {
-    private let appSettings: AppSettings
+    private let userSettings: UserSettings
+    
+    var isPresentingStatusPicker = false
+    var customStatusEmoji: Character = "😄"
+    var isShowingCustomStatusField = false {
+        didSet {
+            if !isShowingCustomStatusField {
+                customStatusEmoji = "😄" // Reset the emoji.
+            }
+        }
+    }
     
     var isPresentingAccountDeactivationConfirmation = false
     var isSpacesEnabled = false
     
     var appAppearance: AppAppearance {
-        get { appSettings.appAppearance }
-        set { appSettings.appAppearance = newValue }
+        get { userSettings.app.appAppearance }
+        set { userSettings.app.appAppearance = newValue }
     }
     
-    init(appSettings: AppSettings) {
-        self.appSettings = appSettings
+    init(userSettings: UserSettings) {
+        self.userSettings = userSettings
     }
 }
 
@@ -73,13 +115,17 @@ enum SettingsScreenViewAction {
     case close
     
     case userDetails
+    case userStatus(UserStatusAction)
     
     case findFriends
+    case addAccount
     
     case manageAccount(url: URL)
     case twoStepVerification
     case changePhoneNumber
+    case linkNewDevice
     case notifications
+    case secureBackup
     case moderationAndSafety
     case reportBug
     
@@ -89,9 +135,26 @@ enum SettingsScreenViewAction {
     case toggleSpaces
     case mediaUploadQuality
     case appLock
+    case locationSharing
     case analytics
+    case labs
     case about
     
     case enableDeveloperOptions
     case developerOptions
+    
+    enum UserStatusAction {
+        /// Show status picker sheet to select a preset status.
+        case pickStatus
+        /// Dismiss the picker sheet and show the custom status input.
+        case customStatus
+        /// Show the emoji picker to select the emoji for the custom status.
+        case pickCustomEmoji
+        /// Set the user's status to the provided value.
+        case set(UserStatus.Raw)
+        /// Clears the user's currently displayed status.
+        case clear
+        /// Cancel user status picking/input.
+        case cancel
+    }
 }

@@ -1,6 +1,12 @@
 
 "gua_signout_last_device_title" = "Deconectarea îți va elimina mesajele de pe acest dispozitiv";
 "gua_signout_last_device_message" = "Acesta este singurul tău dispozitiv. Mesajele păstrate doar aici nu vor fi disponibile când te vei conecta din nou.";
+"gua_settings_sign_out" = "Deconectați-vă";
+"gua_signout_confirmation_message" = "Sunteți sigur că vreți să vă deconectați?";
+"gua_signout_key_backup_ongoing_subtitle" = "Vă rugăm să așteptați până la finalizarea acestui proces înainte de a vă deconecta.";
+"gua_signout_key_backup_offline_subtitle" = "Cheile dumneavoastră erau încă în curs de backup atunci când ați fost deconectat. Reconectați-vă pentru ca cheile dumneavoastră să poată fi salvate înainte de a vă deconecta.";
+"gua_app_lock_signout_alert_title" = "Sunteți deconectat";
+"gua_signing_out" = "Deconectare în curs";
 "gua_encryption_reset_required_title" = "Unele mesaje anterioare nu pot fi recuperate";
 "gua_encryption_reset_required_message" = "Pentru a finaliza configurarea conversațiilor criptate pe acest dispozitiv, copia ta de rezervă criptată trebuie resetată. Mesajele stocate doar în acea copie vor fi pierdute. Mesajele aflate deja pe dispozitivele tale nu vor fi afectate.";
 "gua_encryption_reset_required_action" = "Resetează și finalizează";

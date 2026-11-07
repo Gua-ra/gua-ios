@@ -1,14 +1,15 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Combine
 import Foundation
 
-enum SecureBackupRecoveryState {
+nonisolated enum SecureBackupRecoveryState {
     case unknown
     case disabled
     case enabled
@@ -18,7 +19,7 @@ enum SecureBackupRecoveryState {
     case settingUp
 }
 
-enum SecureBackupKeyBackupState {
+nonisolated enum SecureBackupKeyBackupState {
     /// Any state where backups couldn't have been enabled but we didn't explicitly disable them on this client.
     /// For all intents and purposes, within the client, this can be treated as `disabled`.
     case unknown
@@ -41,7 +42,7 @@ enum SecureBackupControllerError: Error {
     
     case failedGeneratingRecoveryKey
     case failedConfirmingRecoveryKey
-        
+    
     case failedUploadingForBackup
 }
 
@@ -50,7 +51,7 @@ protocol SecureBackupControllerProtocol {
     var recoveryState: CurrentValuePublisher<SecureBackupRecoveryState, Never> { get }
     
     var keyBackupState: CurrentValuePublisher<SecureBackupKeyBackupState, Never> { get }
-
+    
     /// GUA FORK: true while key storage is being provisioned in the background.
     ///
     /// Provisioning after a reset runs behind the chat list, where the setup banner is still on
@@ -62,7 +63,7 @@ protocol SecureBackupControllerProtocol {
     func enable() async -> Result<Void, SecureBackupControllerError>
     func disable() async -> Result<Void, SecureBackupControllerError>
     
-    func generateRecoveryKey() async -> Result<String, SecureBackupControllerError>
+    func generateRecoveryKey(withPassphrase passphrase: String?) async -> Result<String, SecureBackupControllerError>
     func confirmRecoveryKey(_ key: String) async -> Result<Void, SecureBackupControllerError>
     /// GUA FORK: pull the secrets this device is missing, using a key we already hold.
     func repairRecovery(with key: String) async -> Result<Void, SecureBackupControllerError>
@@ -70,7 +71,7 @@ protocol SecureBackupControllerProtocol {
     func provisionRecoveryWithoutKey() async -> Result<String, SecureBackupControllerError>
     /// GUA FORK: everything that can finish encryption setup WITHOUT destroying anything.
     func repairWithoutReset() async -> EncryptionRepairOutcome
-
+    
     /// GUA FORK: provisions key storage straight after a reset, unconditionally.
     func provisionAfterReset() async -> EncryptionRepairOutcome
     /// GUA FORK: `recoveryState` once it is no longer `.unknown`, so callers never branch on the

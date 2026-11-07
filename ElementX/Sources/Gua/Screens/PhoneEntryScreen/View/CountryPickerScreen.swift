@@ -11,27 +11,33 @@ import SwiftUI
 struct CountryPickerScreen: View {
     let selectedCountry: Country
     let onSelect: (Country) -> Void
-
+    
     @Environment(\.dismiss) private var dismiss
     @State private var searchQuery = ""
-
+    
     private var filteredCountries: [Country] {
         let sorted = Country.all.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         let query = searchQuery.trimmingCharacters(in: .whitespaces)
         guard !query.isEmpty else { return sorted }
-
+        
         let lower = query.lowercased()
         let digits = query.filter(\.isNumber)
         return sorted.filter { country in
-            if country.name.lowercased().contains(lower) { return true }
-            if country.isoCode.lowercased().contains(lower) { return true }
-            if !digits.isEmpty, country.dialCode.hasPrefix(digits) { return true }
+            if country.name.lowercased().contains(lower) {
+                return true
+            }
+            if country.isoCode.lowercased().contains(lower) {
+                return true
+            }
+            if !digits.isEmpty, country.dialCode.hasPrefix(digits) {
+                return true
+            }
             return false
         }
     }
-
+    
     var body: some View {
-        NavigationStack {
+        ElementNavigationStack {
             List(filteredCountries) { country in
                 Button {
                     onSelect(country)

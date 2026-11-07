@@ -1,15 +1,17 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Foundation
 import MatrixRustSDK
+import MatrixRustSDKMocks
 
 /// A light wrapper around timeline items returned from Rust.
-enum TimelineItemProxy {
+nonisolated enum TimelineItemProxy {
     case event(EventTimelineItemProxy)
     case virtual(MatrixRustSDK.VirtualTimelineItem, uniqueID: TimelineItemIdentifier.UniqueID)
     case unknown(MatrixRustSDK.TimelineItem)
@@ -35,7 +37,7 @@ enum TimelineItemProxy {
 }
 
 /// The delivery status for the item.
-enum TimelineItemDeliveryStatus: Hashable {
+nonisolated enum TimelineItemDeliveryStatus: Hashable {
     case sending
     case sent
     case sendingFailed(TimelineItemSendFailure)
@@ -49,7 +51,7 @@ enum TimelineItemDeliveryStatus: Hashable {
 }
 
 /// The reason a timeline item failed to send.
-enum TimelineItemSendFailure: Hashable {
+nonisolated enum TimelineItemSendFailure: Hashable {
     enum VerifiedUser: Hashable {
         case hasUnsignedDevice(devices: [String: [String]])
         case changedIdentity(users: [String])
@@ -63,11 +65,15 @@ enum TimelineItemSendFailure: Hashable {
     }
     
     case verifiedUser(VerifiedUser)
-    case unknown
+    case unknown(reason: String?)
 }
 
 /// A light wrapper around event timeline items returned from Rust.
-class EventTimelineItemProxy {
+///
+/// The proxy is shared between the main actor and the background timeline item
+/// building, so it's stateless and forwards everything to the underlying
+/// (internally synchronised) Rust object.
+final nonisolated class EventTimelineItemProxy: Sendable {
     let item: MatrixRustSDK.EventTimelineItem
     let id: TimelineItemIdentifier
     
@@ -77,70 +83,115 @@ class EventTimelineItemProxy {
         id = .event(uniqueID: uniqueID, eventOrTransactionID: .init(rustValue: item.eventOrTransactionId))
     }
     
-    lazy var deliveryStatus: TimelineItemDeliveryStatus? = {
-        guard let localSendState = item.localSendState else {
+    var deliveryStatus: TimelineItemDeliveryStatus? {
+        guard let pendingSend else {
             return nil
         }
         
-        switch localSendState {
-        case .sendingFailed(let error, let isRecoverable):
+        switch pendingSend.state {
+        case .sendingFailed(let error, _):
             switch error {
             case .identityViolations(let users):
                 return .sendingFailed(.verifiedUser(.changedIdentity(users: users)))
             case .insecureDevices(let userDeviceMap):
                 return .sendingFailed(.verifiedUser(.hasUnsignedDevice(devices: userDeviceMap)))
+            case .genericApiError(let message):
+                return .sendingFailed(.unknown(reason: message))
             default:
-                return .sendingFailed(.unknown)
+                return .sendingFailed(.unknown(reason: nil))
             }
         case .notSentYet:
             return .sending
         case .sent:
             return .sent
         }
-    }()
+    }
     
-    lazy var canBeRepliedTo = item.canBeRepliedTo
-            
-    lazy var content = item.content
-
-    lazy var isOwn = item.isOwn
-
-    lazy var isEditable = item.isEditable
-    
-    lazy var sender: TimelineItemSender = {
-        let profile = item.senderProfile
-        
-        switch profile {
-        case let .ready(displayName, isDisplayNameAmbiguous, avatarUrl):
-            return .init(id: item.sender,
-                         displayName: displayName,
-                         isDisplayNameAmbiguous: isDisplayNameAmbiguous,
-                         avatarURL: avatarUrl.flatMap(URL.init(string:)))
-        default:
-            return .init(id: item.sender,
-                         displayName: nil,
-                         isDisplayNameAmbiguous: false,
-                         avatarURL: nil)
+    /// The item's own pending send or, when it has already gone out, our pending edit, redaction or failed reaction on it.
+    var pendingSend: (target: SendTarget, state: EventSendState)? {
+        if let state = item.localSendState {
+            (.event, state)
+        } else if let state = item.editSendState {
+            (.edit, state)
+        } else if let state = item.redactionSendState {
+            (.redaction, state)
+        } else if let (key, state) = failedReaction {
+            (.reaction(key: key), state)
+        } else {
+            nil
         }
-    }()
+    }
     
-    lazy var timestamp = Date(timeIntervalSince1970: TimeInterval(item.timestamp / 1000))
+    /// Only failed reactions are surfaced as they block the send queue, in-flight ones would flash a sending indicator on every tap.
+    private var failedReaction: (key: String, state: EventSendState)? {
+        for reaction in item.reactions {
+            for sender in reaction.senders {
+                if let state = sender.sendState, case .sendingFailed = state {
+                    return (reaction.key, state)
+                }
+            }
+        }
+        return nil
+    }
     
-    lazy var debugInfo: TimelineItemDebugInfo = {
+    var canBeRepliedTo: Bool {
+        item.canBeRepliedTo
+    }
+    
+    var content: TimelineItemContent {
+        item.content
+    }
+    
+    var isOwn: Bool {
+        item.isOwn
+    }
+    
+    var isEditable: Bool {
+        item.isEditable
+    }
+    
+    var sender: TimelineItemSender {
+        TimelineItemSender(senderID: item.sender, senderProfile: item.senderProfile)
+    }
+    
+    var forwarder: TimelineItemKeyForwarder? {
+        guard let forwarderID = item.forwarder, let forwarderProfile = item.forwarderProfile else {
+            return nil
+        }
+        return TimelineItemKeyForwarder(forwarderID: forwarderID, forwarderProfile: forwarderProfile)
+    }
+    
+    var timestamp: Date {
+        Date(timeIntervalSince1970: TimeInterval(item.timestamp / 1000))
+    }
+    
+    var debugInfo: TimelineItemDebugInfo {
         let debugInfo = item.lazyProvider.debugInfo()
         return TimelineItemDebugInfo(model: debugInfo.model, originalJSON: debugInfo.originalJson, latestEditJSON: debugInfo.latestEditJson)
-    }()
+    }
     
-    lazy var shieldState = item.lazyProvider.getShields(strict: false)
+    var shieldState: ShieldState? {
+        item.lazyProvider.getShields(strict: false)
+    }
     
-    lazy var sendHandle = item.lazyProvider.getSendHandle()
+    var sendHandle: SendHandle? {
+        item.lazyProvider.getSendHandle()
+    }
     
-    lazy var shouldBoost = item.lazyProvider.containsOnlyEmojis()
+    var shouldBoost: Bool {
+        item.lazyProvider.containsOnlyEmojis()
+    }
     
-    lazy var readReceipts = item.readReceipts
+    var readReceipts: [String: Receipt] {
+        item.readReceipts
+    }
+    
+    var reactions: [Reaction] {
+        item.reactions
+    }
 }
 
-struct TimelineItemDebugInfo: Identifiable, CustomStringConvertible {
+nonisolated struct TimelineItemDebugInfo: Identifiable, CustomStringConvertible {
     let id = UUID()
     let model: String
     let originalJSON: String?
@@ -181,7 +232,7 @@ struct TimelineItemDebugInfo: Identifiable, CustomStringConvertible {
     }
 }
 
-struct SendHandleProxy: Hashable {
+nonisolated struct SendHandleProxy: Hashable {
     enum Error: Swift.Error {
         case sdkError(Swift.Error)
     }
@@ -199,11 +250,11 @@ struct SendHandleProxy: Hashable {
     }
     
     // MARK: - Hashable
-
+    
     static func == (lhs: SendHandleProxy, rhs: SendHandleProxy) -> Bool {
         lhs.itemID == rhs.itemID
     }
-
+    
     func hash(into hasher: inout Hasher) {
         hasher.combine(itemID)
     }
@@ -211,15 +262,18 @@ struct SendHandleProxy: Hashable {
     static var mock: SendHandleProxy {
         .init(itemID: .event(uniqueID: .init(UUID().uuidString),
                              eventOrTransactionID: .eventID(UUID().uuidString)),
-              underlyingHandle: .init(noHandle: .init()))
+              underlyingHandle: SendHandleSDKMock())
     }
 }
 
-struct VideoInfoProxy: Hashable {
+nonisolated struct VideoInfoProxy: Hashable {
     let source: MediaSourceProxy
     private(set) var duration: TimeInterval
+    // periphery:ignore - used via the synthesized Hashable conformance
     private(set) var size: CGSize?
+    // periphery:ignore - used via the synthesized Hashable conformance
     private(set) var aspectRatio: CGFloat?
+    // periphery:ignore - used via the synthesized Hashable conformance
     private(set) var mimeType: String?
     private(set) var fileSize: UInt?
     
@@ -257,12 +311,22 @@ struct VideoInfoProxy: Hashable {
                      mimeType: nil,
                      fileSize: 45_167_000)
     }
+    
+    static func mockVideo(duration: TimeInterval) -> VideoInfoProxy {
+        .init(source: mockVideo.source,
+              duration: duration,
+              size: .init(width: 1920, height: 1080),
+              aspectRatio: 1.78,
+              mimeType: nil,
+              fileSize: 45_167_000)
+    }
 }
 
-struct ImageInfoProxy: Hashable {
+nonisolated struct ImageInfoProxy: Hashable {
     let source: MediaSourceProxy
     private(set) var size: CGSize?
     private(set) var aspectRatio: CGFloat?
+    // periphery:ignore - used via the synthesized Hashable conformance
     private(set) var mimeType: String?
     private(set) var fileSize: UInt?
     
@@ -323,7 +387,7 @@ struct ImageInfoProxy: Hashable {
     }
 }
 
-private struct MediaInfoProxy: Hashable {
+private nonisolated struct MediaInfoProxy: Hashable {
     private(set) var size: CGSize?
     private(set) var mimeType: String?
     private(set) var aspectRatio: CGFloat?

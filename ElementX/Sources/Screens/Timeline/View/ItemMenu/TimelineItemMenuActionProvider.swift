@@ -1,13 +1,13 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Foundation
 
-@MainActor
 struct TimelineItemMenuActionProvider {
     let timelineItem: RoomTimelineItemProtocol
     let canCurrentUserSendMessage: Bool
@@ -15,7 +15,6 @@ struct TimelineItemMenuActionProvider {
     let canCurrentUserRedactOthers: Bool
     let canCurrentUserPin: Bool
     let pinnedEventIDs: Set<String>
-    let isDM: Bool
     let isViewSourceEnabled: Bool
     let areThreadsEnabled: Bool
     let timelineKind: TimelineKind
@@ -27,14 +26,14 @@ struct TimelineItemMenuActionProvider {
             // Don't show a context menu for non-event based items.
             return nil
         }
-
+        
         if timelineItem is StateRoomTimelineItem {
             // Don't show a context menu for state events.
             return nil
         }
-
-        if let encryptedItem = timelineItem as? EncryptedRoomTimelineItem {
-            return makeEncryptedItemActions(encryptedItem)
+        
+        if timelineItem is EncryptedRoomTimelineItem {
+            return makeEncryptedItemActions()
         }
         
         var actions: [TimelineItemMenuAction] = []
@@ -47,7 +46,7 @@ struct TimelineItemMenuActionProvider {
         if canRedactItem(item), let poll = item.pollIfAvailable, !poll.hasEnded, let eventID = item.id.eventID {
             actions.append(.endPoll(pollStartID: eventID))
         }
-
+        
         if item.canBeRepliedTo, canCurrentUserSendMessage {
             if let messageItem = item as? EventBasedMessageTimelineItemProtocol {
                 // If threads are enabled we will have the dedicated `replyInThread` action
@@ -87,12 +86,16 @@ struct TimelineItemMenuActionProvider {
         if canCurrentUserPin, let eventID = item.id.eventID {
             actions.append(pinnedEventIDs.contains(eventID) ? .unpin : .pin)
         }
-
+        
         if item.isCopyable {
             actions.append(.copy)
-            // The Mac selects message text in place.
+            
             if !ProcessInfo.processInfo.isiOSAppOnMac {
+                // The Mac selects message text in place.
                 actions.append(.select)
+                // As of macOS 26.2, the sheet isn't presented, but it is easy enough
+                // to select some text and right click on Mac anyway so hide this one.
+                actions.append(.translate)
             }
         } else if item.hasMediaCaption {
             actions.append(.copyCaption)
@@ -111,7 +114,12 @@ struct TimelineItemMenuActionProvider {
         }
         
         if canRedactItem(item) {
-            secondaryActions.append(.redact)
+            let isMedia = if case .media = timelineKind {
+                true
+            } else {
+                false
+            }
+            secondaryActions.append(.redact(isMedia: isMedia))
         }
         
         switch timelineKind {
@@ -119,8 +127,7 @@ struct TimelineItemMenuActionProvider {
             actions = actions.filter(\.canAppearInPinnedEventsTimeline)
             secondaryActions = secondaryActions.filter(\.canAppearInPinnedEventsTimeline)
         case .media:
-            actions.append(.share)
-            actions.append(.save)
+            actions.append(.downloadMedia)
             actions = actions.filter(\.canAppearInMediaDetails)
             secondaryActions = secondaryActions.filter(\.canAppearInMediaDetails)
         case .live, .detached, .thread:
@@ -138,17 +145,17 @@ struct TimelineItemMenuActionProvider {
         }
         
         let isReactable = timelineKind == .live || timelineKind == .detached || timelineKind.isThread ? item.isReactable : false
-
+        
         return .init(isReactable: isReactable, actions: actions, secondaryActions: secondaryActions, emojiProvider: emojiProvider)
     }
     
-    private func makeEncryptedItemActions(_ encryptedItem: EncryptedRoomTimelineItem) -> TimelineItemMenuActions? {
+    private func makeEncryptedItemActions() -> TimelineItemMenuActions? {
         var actions: [TimelineItemMenuAction] = [.copyPermalink]
-
+        
         if isViewSourceEnabled {
             actions.append(.viewSource)
         }
-                
+        
         return .init(isReactable: false,
                      actions: actions,
                      secondaryActions: [],
@@ -156,6 +163,6 @@ struct TimelineItemMenuActionProvider {
     }
     
     private func canRedactItem(_ item: EventBasedTimelineItemProtocol) -> Bool {
-        item.isOutgoing ? canCurrentUserRedactSelf : canCurrentUserRedactOthers && !isDM
+        item.isOutgoing ? canCurrentUserRedactSelf : canCurrentUserRedactOthers
     }
 }

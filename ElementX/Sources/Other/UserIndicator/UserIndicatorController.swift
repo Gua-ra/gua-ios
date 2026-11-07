@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -31,8 +32,6 @@ class UserIndicatorController: ObservableObject, UserIndicatorControllerProtocol
         }
     }
     
-    @Published var alertInfo: AlertInfo<UUID>?
-    
     var window: UIWindow? {
         didSet {
             let hostingController = UIHostingController(rootView: UserIndicatorPresenter(userIndicatorController: self).statusBarHidden(ProcessInfo.isRunningUITests))
@@ -45,17 +44,18 @@ class UserIndicatorController: ObservableObject, UserIndicatorControllerProtocol
         if let index = indicatorQueue.firstIndex(where: { $0.id == indicator.id }) {
             indicatorQueue[index] = indicator
             displayTimes[indicator.id] = .now
+            announceIfNeeded(indicator)
         } else {
             if let delay {
                 delayedIndicators.insert(indicator.id)
                 
                 Task {
-                    try await Task.sleep(for: .seconds(delay.seconds))
+                    try? await Task.sleep(for: .seconds(delay.seconds))
                     
                     guard delayedIndicators.contains(indicator.id) else {
                         return
                     }
-
+                    
                     enqueue(indicator: indicator)
                 }
             } else {
@@ -86,10 +86,21 @@ class UserIndicatorController: ObservableObject, UserIndicatorControllerProtocol
     }
     
     // MARK: - Private
-
+    
     private func enqueue(indicator: UserIndicator) {
         retractIndicatorWithId(indicator.id)
         indicatorQueue.append(indicator)
         displayTimes[indicator.id] = .now
+        announceIfNeeded(indicator)
+    }
+    
+    private func announceIfNeeded(_ indicator: UserIndicator) {
+        guard case .toast = indicator.type else {
+            return
+        }
+        
+        var announcement = AttributedString(indicator.title)
+        announcement.accessibilitySpeechAnnouncementPriority = .high
+        AccessibilityNotification.Announcement(announcement).post()
     }
 }

@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -11,6 +12,10 @@ import SwiftUI
 struct PinnedEventsTimelineScreen: View {
     @ObservedObject var context: PinnedEventsTimelineScreenViewModel.Context
     @ObservedObject var timelineContext: TimelineViewModel.Context
+    
+    private var isMessageSelectionActive: Bool {
+        timelineContext.viewState.messageSelection.isActive
+    }
     
     private var title: String {
         let pinnedEventIDs = timelineContext.viewState.pinnedEventIDs
@@ -25,6 +30,11 @@ struct PinnedEventsTimelineScreen: View {
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbar }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if isMessageSelectionActive {
+                    TimelineMessageSelectionActionBar(context: timelineContext)
+                }
+            }
             .background(.compound.bgCanvasDefault)
             .interactiveDismissDisabled()
             .timelineMediaPreview(viewModel: $context.mediaPreviewViewModel)
@@ -54,9 +64,15 @@ struct PinnedEventsTimelineScreen: View {
     
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
-        ToolbarItem(placement: .confirmationAction) {
-            Button(L10n.actionClose) {
-                context.send(viewAction: .close)
+        if isMessageSelectionActive {
+            TimelineMessageSelectionToolbar {
+                timelineContext.send(viewAction: .clearMessageSelection)
+            }
+        } else {
+            ToolbarItem(placement: .confirmationAction) {
+                Button(L10n.actionClose) {
+                    context.send(viewAction: .close)
+                }
             }
         }
     }
@@ -65,27 +81,47 @@ struct PinnedEventsTimelineScreen: View {
 // MARK: - Previews
 
 struct PinnedEventsTimelineScreen_Previews: PreviewProvider, TestablePreview {
-    static let viewModel = PinnedEventsTimelineScreenViewModel(analyticsService: ServiceLocator.shared.analytics)
-    static let emptyTimelineViewModel: TimelineViewModel = {
-        let timelineController = MockTimelineController(timelineKind: .pinned)
-        timelineController.timelineItems = []
-        return TimelineViewModel(roomProxy: JoinedRoomProxyMock(.init(name: "Preview room")),
-                                 timelineController: timelineController,
-                                 userSession: UserSessionMock(.init()),
-                                 mediaPlayerProvider: MediaPlayerProviderMock(),
-                                 userIndicatorController: UserIndicatorControllerMock(),
-                                 appMediator: AppMediatorMock.default,
-                                 appSettings: ServiceLocator.shared.settings,
-                                 analyticsService: ServiceLocator.shared.analytics,
-                                 emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
-                                 linkMetadataProvider: LinkMetadataProvider(),
-                                 timelineControllerFactory: TimelineControllerFactoryMock(.init()))
-    }()
-        
+    static let viewModel = PinnedEventsTimelineScreenViewModel(roomProxy: JoinedRoomProxyMock(.init()),
+                                                               userIndicatorController: UserIndicatorControllerMock(),
+                                                               userSettings: .mock(),
+                                                               analyticsService: AnalyticsServiceMock(.init()))
+    
+    static let emptyTimelineViewModel = makeTimelineViewModel(timelineItems: [])
+    static let selectingTimelineViewModel = makeTimelineViewModel(timelineItems: TimelineFixtures.default, isSelecting: true)
+    
     static var previews: some View {
-        NavigationStack {
+        ElementNavigationStack {
             PinnedEventsTimelineScreen(context: viewModel.context, timelineContext: emptyTimelineViewModel.context)
         }
         .previewDisplayName("Empty")
+        
+        ElementNavigationStack {
+            PinnedEventsTimelineScreen(context: viewModel.context, timelineContext: selectingTimelineViewModel.context)
+        }
+        .previewDisplayName("Selecting")
+        .snapshotPreferences(expect: selectingTimelineViewModel.context.$viewState.map(\.messageSelection.isActive))
+    }
+    
+    static func makeTimelineViewModel(timelineItems: [RoomTimelineItemProtocol], isSelecting: Bool = false) -> TimelineViewModel {
+        let eventIDs = timelineItems.compactMap { ($0 as? EventBasedTimelineItemProtocol)?.id.eventID }
+        let timelineController = TimelineControllerMock(.init(timelineKind: .pinned, timelineItems: timelineItems))
+        
+        let timelineViewModel = TimelineViewModel(roomProxy: JoinedRoomProxyMock(.init(name: "Preview room", pinnedEventIDs: Set(eventIDs))),
+                                                  timelineController: timelineController,
+                                                  userSession: UserSessionMock(.init()),
+                                                  mediaPlayerProvider: MediaPlayerProviderMock(),
+                                                  userIndicatorController: UserIndicatorControllerMock(),
+                                                  appMediator: AppMediatorMock(.init()),
+                                                  analyticsService: AnalyticsServiceMock(.init()),
+                                                  emojiProvider: EmojiProvider(userSettings: .mock()),
+                                                  linkMetadataProvider: LinkMetadataProvider(),
+                                                  timelineControllerFactory: TimelineControllerFactoryMock(.init()))
+        
+        if isSelecting {
+            timelineViewModel.state.messageSelection.isActive = true
+            timelineViewModel.state.messageSelection.selectedEventIDs = Set(eventIDs.prefix(2))
+        }
+        
+        return timelineViewModel
     }
 }

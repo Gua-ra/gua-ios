@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -21,7 +22,7 @@ struct PollFormScreen: View {
         Form {
             questionSection
             optionsSection
-            showResultsSection
+            settingsSection
             deletePollSection
         }
         .trackAnalyticsIfNeeded(context: context)
@@ -47,6 +48,7 @@ struct PollFormScreen: View {
         } header: {
             Text(L10n.screenCreatePollQuestionDesc)
                 .compoundListSectionHeader()
+                .accessibilityRemoveTraits(.isHeader)
         }
     }
     
@@ -104,8 +106,16 @@ struct PollFormScreen: View {
         focus = nextOptionIndex.map { .option(index: $0) }
     }
     
-    private var showResultsSection: some View {
+    private var settingsSection: some View {
         Section {
+            PollFormMaxSelectionsRow(maxSelections: context.maxSelections,
+                                     maxNumberOfSelections: context.options.count) {
+                context.send(viewAction: .decrementMaxSelections)
+            } incrementAction: {
+                context.send(viewAction: .incrementMaxSelections)
+            }
+            .accessibilityIdentifier(A11yIdentifiers.pollFormScreen.maxSelections)
+            
             ListRow(label: .plain(title: L10n.screenCreatePollAnonymousDesc),
                     kind: .toggle($context.isUndisclosed))
                 .accessibilityIdentifier(A11yIdentifiers.pollFormScreen.pollKind)
@@ -147,7 +157,7 @@ struct PollFormScreen: View {
 }
 
 private extension View {
-    @MainActor @ViewBuilder
+    @ViewBuilder
     func trackAnalyticsIfNeeded(context: PollFormScreenViewModel.Context) -> some View {
         switch context.viewState.mode {
         case .edit:
@@ -155,6 +165,55 @@ private extension View {
         case .new:
             track(screen: .CreatePollView)
         }
+    }
+}
+
+private struct PollFormMaxSelectionsRow: View {
+    let maxSelections: Int
+    let maxNumberOfSelections: Int
+    let decrementAction: () -> Void
+    let incrementAction: () -> Void
+    
+    var body: some View {
+        ListRow(kind: .custom {
+            HStack(spacing: 16) {
+                Text(L10n.screenCreatePollVotesAllowedPerPerson)
+                    .font(.compound.bodyLG)
+                    .foregroundStyle(.compound.textPrimary)
+                    .lineLimit(2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                HStack(spacing: 8) {
+                    Button(action: decrementAction) {
+                        Image(systemSymbol: .minus)
+                            .frame(width: 20, height: 20)
+                    }
+                    .disabled(maxSelections <= 1)
+                    .buttonStyle(.compound(.tertiary, size: .toolbarIcon))
+                    .accessibilityLabel(L10n.a11yCreatePollVotesAllowedDecrease)
+                    .accessibilityIdentifier(A11yIdentifiers.pollFormScreen.maxSelectionsDecrement)
+                    
+                    Text("\(maxSelections)")
+                        .font(.compound.bodyLGSemibold)
+                        .foregroundStyle(.compound.textPrimary)
+                        .monospacedDigit()
+                        .frame(minWidth: 28)
+                        .accessibilityLabel(Text(maxSelections.formatted()))
+                    
+                    Button(action: incrementAction) {
+                        Image(systemSymbol: .plus)
+                            .frame(width: 20, height: 20)
+                    }
+                    .disabled(maxSelections >= maxNumberOfSelections)
+                    .buttonStyle(.compound(.tertiary, size: .toolbarIcon))
+                    .accessibilityLabel(L10n.a11yCreatePollVotesAllowedIncrease)
+                    .accessibilityIdentifier(A11yIdentifiers.pollFormScreen.maxSelectionsIncrement)
+                }
+                .layoutPriority(1)
+            }
+            .padding(.horizontal, ListRowPadding.horizontal)
+            .padding(.vertical, ListRowPadding.vertical)
+        })
     }
 }
 
@@ -197,7 +256,7 @@ private struct PollFormOptionRow: View {
 // MARK: - Previews
 
 struct PollFormScreen_Previews: PreviewProvider, TestablePreview {
-    static let viewModel = makeViewModel(mode: .new)
+    static let viewModel = makeViewModel(mode: .new(topic: nil))
     static let editViewModel = makeViewModel(mode: .edit(eventID: "1234", poll: poll))
     static let poll = Poll(question: "Cats or Dogs?",
                            kind: .disclosed,
@@ -212,12 +271,12 @@ struct PollFormScreen_Previews: PreviewProvider, TestablePreview {
                            createdByAccountOwner: true)
     
     static var previews: some View {
-        NavigationStack {
+        ElementNavigationStack {
             PollFormScreen(context: viewModel.context)
         }
         .previewDisplayName("New")
         
-        NavigationStack {
+        ElementNavigationStack {
             PollFormScreen(context: editViewModel.context)
         }
         .previewDisplayName("Edit")
@@ -225,8 +284,8 @@ struct PollFormScreen_Previews: PreviewProvider, TestablePreview {
     
     static func makeViewModel(mode: PollFormMode) -> PollFormScreenViewModel {
         PollFormScreenViewModel(mode: mode,
-                                timelineController: MockTimelineController(),
-                                analytics: ServiceLocator.shared.analytics,
+                                timelineController: TimelineControllerMock(.init()),
+                                analytics: AnalyticsServiceMock(.init()),
                                 userIndicatorController: UserIndicatorControllerMock())
     }
 }

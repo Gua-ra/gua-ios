@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -18,7 +19,7 @@ class RoomDirectorySearchScreenViewModel: RoomDirectorySearchScreenViewModelType
     var actionsPublisher: AnyPublisher<RoomDirectorySearchScreenViewModelAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
-        
+    
     init(userSession: UserSessionProtocol,
          userIndicatorController: UserIndicatorControllerProtocol) {
         roomDirectorySearchProxy = userSession.clientProxy.roomDirectorySearchProxy()
@@ -83,7 +84,7 @@ class RoomDirectorySearchScreenViewModel: RoomDirectorySearchScreenViewModelType
                 userIndicatorController.submitIndicator(UserIndicator(id: Self.errorID,
                                                                       type: .toast,
                                                                       title: L10n.screenRoomDirectorySearchLoadingError,
-                                                                      iconName: "xmark"))
+                                                                      icon: \.close))
             }
             
             // Add a small delay to allow the rooms to be published,

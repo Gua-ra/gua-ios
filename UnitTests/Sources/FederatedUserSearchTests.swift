@@ -6,232 +6,255 @@
 //
 
 @testable import ElementX
-import XCTest
+import Foundation
+import Synchronization
+import Testing
 
-final class FederatedUserSearchTests: XCTestCase {
+final class FederatedUserSearchTests {
     // MARK: - Bare handle detection
-
-    func testBareHandleAcceptsPlainUsername() {
-        XCTAssertEqual(FederatedUserSearch.bareHandle(from: "ana-souza"), "ana-souza")
+    
+    @Test
+    func bareHandleAcceptsPlainUsername() {
+        #expect(FederatedUserSearch.bareHandle(from: "ana-souza") == "ana-souza")
     }
-
-    func testBareHandleStripsSigilAndLowercases() {
-        XCTAssertEqual(FederatedUserSearch.bareHandle(from: "@Ana-Souza"), "ana-souza")
+    
+    @Test
+    func bareHandleStripsSigilAndLowercases() {
+        #expect(FederatedUserSearch.bareHandle(from: "@Ana-Souza") == "ana-souza")
     }
-
-    func testBareHandleTrimsWhitespace() {
-        XCTAssertEqual(FederatedUserSearch.bareHandle(from: "  ana.souza_2\n"), "ana.souza_2")
+    
+    @Test
+    func bareHandleTrimsWhitespace() {
+        #expect(FederatedUserSearch.bareHandle(from: "  ana.souza_2\n") == "ana.souza_2")
     }
-
-    func testBareHandleAcceptsFullLocalpartCharset() {
-        XCTAssertEqual(FederatedUserSearch.bareHandle(from: "a-b.c_d=e/f0"), "a-b.c_d=e/f0")
+    
+    @Test
+    func bareHandleAcceptsFullLocalpartCharset() {
+        #expect(FederatedUserSearch.bareHandle(from: "a-b.c_d=e/f0") == "a-b.c_d=e/f0")
     }
-
-    func testBareHandleRejectsShortQueries() {
-        XCTAssertNil(FederatedUserSearch.bareHandle(from: "ab"))
-        XCTAssertNil(FederatedUserSearch.bareHandle(from: "@ab"))
-        XCTAssertNil(FederatedUserSearch.bareHandle(from: ""))
+    
+    @Test
+    func bareHandleRejectsShortQueries() {
+        #expect(FederatedUserSearch.bareHandle(from: "ab") == nil)
+        #expect(FederatedUserSearch.bareHandle(from: "@ab") == nil)
+        #expect(FederatedUserSearch.bareHandle(from: "") == nil)
     }
-
-    func testBareHandleRejectsFullAddresses() {
-        XCTAssertNil(FederatedUserSearch.bareHandle(from: "@ana-souza:gua.example"))
-        XCTAssertNil(FederatedUserSearch.bareHandle(from: "ana-souza:gua.example"))
-        XCTAssertNil(FederatedUserSearch.bareHandle(from: "@ana-souza:"))
+    
+    @Test
+    func bareHandleRejectsFullAddresses() {
+        #expect(FederatedUserSearch.bareHandle(from: "@ana-souza:gua.example") == nil)
+        #expect(FederatedUserSearch.bareHandle(from: "ana-souza:gua.example") == nil)
+        #expect(FederatedUserSearch.bareHandle(from: "@ana-souza:") == nil)
     }
-
-    func testBareHandleRejectsInvalidCharacters() {
-        XCTAssertNil(FederatedUserSearch.bareHandle(from: "ana souza"))
-        XCTAssertNil(FederatedUserSearch.bareHandle(from: "ana!"))
-        XCTAssertNil(FederatedUserSearch.bareHandle(from: "an@a"))
-        XCTAssertNil(FederatedUserSearch.bareHandle(from: "año-souza"))
+    
+    @Test
+    func bareHandleRejectsInvalidCharacters() {
+        #expect(FederatedUserSearch.bareHandle(from: "ana souza") == nil)
+        #expect(FederatedUserSearch.bareHandle(from: "ana!") == nil)
+        #expect(FederatedUserSearch.bareHandle(from: "an@a") == nil)
+        #expect(FederatedUserSearch.bareHandle(from: "año-souza") == nil)
     }
-
+    
     // MARK: - Roster parsing
-
-    func testRosterDecodingIgnoresUnknownFieldsAndKeepsPolicy() throws {
+    
+    @Test
+    func rosterDecodingIgnoresUnknownFieldsAndKeepsPolicy() throws {
         let roster = try JSONDecoder().decode(FederationRoster.self, from: Data(rosterJSON.utf8))
-
-        XCTAssertEqual(roster.entries.count, 3)
-
+        
+        #expect(roster.entries.count == 3)
+        
         let first = roster.entries[0].homeserver
-        XCTAssertEqual(first.serverName, "br.gua.example")
-        XCTAssertNil(first.searchVisibility)
-        XCTAssertNil(first.searchGroups)
-        XCTAssertTrue(roster.entries[0].isActive)
-
+        #expect(first.serverName == "br.gua.example")
+        #expect(first.searchVisibility == nil)
+        #expect(first.searchGroups == nil)
+        #expect(roster.entries[0].isActive)
+        
         let second = roster.entries[1].homeserver
-        XCTAssertEqual(second.serverName, "edu.gua.example")
-        XCTAssertEqual(second.searchVisibility, "GROUP")
-        XCTAssertEqual(second.searchGroups, ["edu"])
-
-        XCTAssertFalse(roster.entries[2].isActive)
+        #expect(second.serverName == "edu.gua.example")
+        #expect(second.searchVisibility == "GROUP")
+        #expect(second.searchGroups == ["edu"])
+        
+        #expect(!roster.entries[2].isActive)
     }
-
+    
     // MARK: - Search visibility
-
-    func testAbsentVisibilityIsGlobal() {
-        XCTAssertEqual(RosterSearchVisibility(rawValue: nil), .global)
+    
+    @Test
+    func absentVisibilityIsGlobal() {
+        #expect(RosterSearchVisibility(rawValue: nil) == .global)
     }
-
-    func testKnownVisibilityValues() {
-        XCTAssertEqual(RosterSearchVisibility(rawValue: "global"), .global)
-        XCTAssertEqual(RosterSearchVisibility(rawValue: "group"), .group)
-        XCTAssertEqual(RosterSearchVisibility(rawValue: "server"), .server)
+    
+    @Test
+    func knownVisibilityValues() {
+        #expect(RosterSearchVisibility(rawValue: "global") == .global)
+        #expect(RosterSearchVisibility(rawValue: "group") == .group)
+        #expect(RosterSearchVisibility(rawValue: "server") == .server)
     }
-
-    func testVisibilityMatchingIsCaseInsensitive() {
+    
+    @Test
+    func visibilityMatchingIsCaseInsensitive() {
         // The resolver serializes the policy uppercase, like the entry status.
-        XCTAssertEqual(RosterSearchVisibility(rawValue: "GLOBAL"), .global)
-        XCTAssertEqual(RosterSearchVisibility(rawValue: "GROUP"), .group)
-        XCTAssertEqual(RosterSearchVisibility(rawValue: "SERVER"), .server)
+        #expect(RosterSearchVisibility(rawValue: "GLOBAL") == .global)
+        #expect(RosterSearchVisibility(rawValue: "GROUP") == .group)
+        #expect(RosterSearchVisibility(rawValue: "SERVER") == .server)
     }
-
-    func testUnrecognizedVisibilityIsPreserved() {
-        XCTAssertEqual(RosterSearchVisibility(rawValue: "invite"), .unrecognized("invite"))
+    
+    @Test
+    func unrecognizedVisibilityIsPreserved() {
+        #expect(RosterSearchVisibility(rawValue: "invite") == .unrecognized("invite"))
     }
-
+    
     // MARK: - Candidate construction
-
-    func testCandidatesLeadWithOwnServerThenFollowRosterOrder() {
+    
+    @Test
+    func candidatesLeadWithOwnServerThenFollowRosterOrder() {
         let roster = makeRoster([
             .init(serverName: "br.gua.example", searchVisibility: nil, searchGroups: nil),
             .init(serverName: "ca.gua.example", searchVisibility: "global", searchGroups: nil)
         ])
-
+        
         let candidates = FederatedUserSearch.candidates(forHandle: "ana-souza", roster: roster, ownServerName: "br.gua.example")
-
-        XCTAssertEqual(candidates, ["@ana-souza:br.gua.example", "@ana-souza:ca.gua.example"])
+        
+        #expect(candidates == ["@ana-souza:br.gua.example", "@ana-souza:ca.gua.example"])
     }
-
-    func testCandidatesSkipInactiveEntries() {
+    
+    @Test
+    func candidatesSkipInactiveEntries() {
         let roster = FederationRoster(entries: [
             .init(homeserver: .init(serverName: "ca.gua.example", searchVisibility: nil, searchGroups: nil), status: "ACTIVE"),
             .init(homeserver: .init(serverName: "old.gua.example", searchVisibility: nil, searchGroups: nil), status: "RETIRED"),
             .init(homeserver: .init(serverName: "new.gua.example", searchVisibility: nil, searchGroups: nil), status: "PENDING")
         ])
-
+        
         let candidates = FederatedUserSearch.candidates(forHandle: "ana-souza", roster: roster, ownServerName: "br.gua.example")
-
-        XCTAssertEqual(candidates, ["@ana-souza:br.gua.example", "@ana-souza:ca.gua.example"])
+        
+        #expect(candidates == ["@ana-souza:br.gua.example", "@ana-souza:ca.gua.example"])
     }
-
-    func testCandidatesSkipServerVisibility() {
+    
+    @Test
+    func candidatesSkipServerVisibility() {
         let roster = makeRoster([
             .init(serverName: "ca.gua.example", searchVisibility: "GLOBAL", searchGroups: []),
             .init(serverName: "private.gua.example", searchVisibility: "SERVER", searchGroups: nil)
         ])
-
+        
         let candidates = FederatedUserSearch.candidates(forHandle: "ana-souza", roster: roster, ownServerName: "br.gua.example")
-
-        XCTAssertEqual(candidates, ["@ana-souza:br.gua.example", "@ana-souza:ca.gua.example"])
+        
+        #expect(candidates == ["@ana-souza:br.gua.example", "@ana-souza:ca.gua.example"])
     }
-
-    func testCandidatesSkipUnrecognizedVisibility() {
+    
+    @Test
+    func candidatesSkipUnrecognizedVisibility() {
         let roster = makeRoster([
             .init(serverName: "beta.gua.example", searchVisibility: "invite", searchGroups: nil)
         ])
-
+        
         let candidates = FederatedUserSearch.candidates(forHandle: "ana-souza", roster: roster, ownServerName: "br.gua.example")
-
-        XCTAssertEqual(candidates, ["@ana-souza:br.gua.example"])
+        
+        #expect(candidates == ["@ana-souza:br.gua.example"])
     }
-
-    func testGroupVisibilityRequiresASharedGroup() {
+    
+    @Test
+    func groupVisibilityRequiresASharedGroup() {
         let roster = makeRoster([
             .init(serverName: "br.gua.example", searchVisibility: nil, searchGroups: ["edu", "partners"]),
             .init(serverName: "edu.gua.example", searchVisibility: "group", searchGroups: ["edu"]),
             .init(serverName: "gov.gua.example", searchVisibility: "group", searchGroups: ["gov"]),
             .init(serverName: "closed.gua.example", searchVisibility: "group", searchGroups: nil)
         ])
-
+        
         let candidates = FederatedUserSearch.candidates(forHandle: "ana-souza", roster: roster, ownServerName: "br.gua.example")
-
-        XCTAssertEqual(candidates, ["@ana-souza:br.gua.example", "@ana-souza:edu.gua.example"])
+        
+        #expect(candidates == ["@ana-souza:br.gua.example", "@ana-souza:edu.gua.example"])
     }
-
-    func testGroupVisibilityExcludesSearcherWithoutGroups() {
+    
+    @Test
+    func groupVisibilityExcludesSearcherWithoutGroups() {
         let roster = makeRoster([
             .init(serverName: "br.gua.example", searchVisibility: nil, searchGroups: nil),
             .init(serverName: "edu.gua.example", searchVisibility: "group", searchGroups: ["edu"])
         ])
-
+        
         let candidates = FederatedUserSearch.candidates(forHandle: "ana-souza", roster: roster, ownServerName: "br.gua.example")
-
-        XCTAssertEqual(candidates, ["@ana-souza:br.gua.example"])
+        
+        #expect(candidates == ["@ana-souza:br.gua.example"])
     }
-
-    func testGroupVisibilityExcludesSearcherAbsentFromRoster() {
+    
+    @Test
+    func groupVisibilityExcludesSearcherAbsentFromRoster() {
         let roster = makeRoster([
             .init(serverName: "ca.gua.example", searchVisibility: nil, searchGroups: nil),
             .init(serverName: "edu.gua.example", searchVisibility: "group", searchGroups: ["edu"])
         ])
-
+        
         let candidates = FederatedUserSearch.candidates(forHandle: "ana-souza", roster: roster, ownServerName: "nowhere.example")
-
-        XCTAssertEqual(candidates, ["@ana-souza:nowhere.example", "@ana-souza:ca.gua.example"])
+        
+        #expect(candidates == ["@ana-souza:nowhere.example", "@ana-souza:ca.gua.example"])
     }
-
+    
     // MARK: - Roster cache
-
-    func testRosterIsCachedWithinTimeToLive() async {
+    
+    @Test
+    func rosterIsCachedWithinTimeToLive() async {
         let fetcher = RosterFetcherStub(results: [.success(rosterA), .success(rosterB)])
         let cache = FederationRosterCache(fetcher: fetcher, timeToLive: 300)
-
+        
         let first = await cache.currentRoster()
         let second = await cache.currentRoster()
-
-        XCTAssertEqual(first, rosterA)
-        XCTAssertEqual(second, rosterA)
-        let fetchCount = await fetcher.fetchCount
-        XCTAssertEqual(fetchCount, 1)
+        
+        #expect(first == rosterA)
+        #expect(second == rosterA)
+        #expect(fetcher.fetchCount == 1)
     }
-
-    func testRosterRefreshesAfterExpiry() async {
+    
+    @Test
+    func rosterRefreshesAfterExpiry() async {
         let fetcher = RosterFetcherStub(results: [.success(rosterA), .success(rosterB)])
         let cache = FederationRosterCache(fetcher: fetcher, timeToLive: 0)
-
+        
         let first = await cache.currentRoster()
         let second = await cache.currentRoster()
-
-        XCTAssertEqual(first, rosterA)
-        XCTAssertEqual(second, rosterB)
-        let fetchCount = await fetcher.fetchCount
-        XCTAssertEqual(fetchCount, 2)
+        
+        #expect(first == rosterA)
+        #expect(second == rosterB)
+        #expect(fetcher.fetchCount == 2)
     }
-
-    func testStaleRosterIsServedWhenRefreshFails() async {
+    
+    @Test
+    func staleRosterIsServedWhenRefreshFails() async {
         let fetcher = RosterFetcherStub(results: [.success(rosterA), .failure(.malformedResponse)])
         let cache = FederationRosterCache(fetcher: fetcher, timeToLive: 0)
-
+        
         let first = await cache.currentRoster()
         let second = await cache.currentRoster()
-
-        XCTAssertEqual(first, rosterA)
-        XCTAssertEqual(second, rosterA)
+        
+        #expect(first == rosterA)
+        #expect(second == rosterA)
     }
-
-    func testMissingFetcherReturnsNoRoster() async {
+    
+    @Test
+    func missingFetcherReturnsNoRoster() async {
         let cache = FederationRosterCache(fetcher: nil, timeToLive: 300)
-
+        
         let roster = await cache.currentRoster()
-
-        XCTAssertNil(roster)
+        
+        #expect(roster == nil)
     }
-
+    
     // MARK: - Private
-
+    
     private func makeRoster(_ servers: [FederationRosterServer]) -> FederationRoster {
         FederationRoster(entries: servers.map { FederationRosterEntry(homeserver: $0, status: "ACTIVE") })
     }
-
+    
     private var rosterA: FederationRoster {
         makeRoster([.init(serverName: "a.gua.example", searchVisibility: nil, searchGroups: nil)])
     }
-
+    
     private var rosterB: FederationRoster {
         makeRoster([.init(serverName: "b.gua.example", searchVisibility: nil, searchGroups: nil)])
     }
-
+    
     /// A realistic resolver payload: the client only decodes what it needs and ignores the rest.
     private let rosterJSON = """
     {
@@ -281,17 +304,22 @@ final class FederatedUserSearchTests: XCTestCase {
     """
 }
 
-private actor RosterFetcherStub: FederationRosterFetching {
-    private var results: [Result<FederationRoster, ResolverError>]
-    private(set) var fetchCount = 0
-
-    init(results: [Result<FederationRoster, ResolverError>]) {
-        self.results = results
+private final nonisolated class RosterFetcherStub: FederationRosterFetching {
+    private let state: Mutex<(results: [Result<FederationRoster, ResolverError>], fetchCount: Int)>
+    
+    var fetchCount: Int {
+        state.withLock { $0.fetchCount }
     }
-
+    
+    init(results: [Result<FederationRoster, ResolverError>]) {
+        state = Mutex((results, 0))
+    }
+    
     func fetchRoster() async throws -> FederationRoster {
-        fetchCount += 1
-        guard !results.isEmpty else { throw ResolverError.malformedResponse }
-        return try results.removeFirst().get()
+        try state.withLock { state in
+            state.fetchCount += 1
+            guard !state.results.isEmpty else { throw ResolverError.malformedResponse }
+            return try state.results.removeFirst().get()
+        }
     }
 }

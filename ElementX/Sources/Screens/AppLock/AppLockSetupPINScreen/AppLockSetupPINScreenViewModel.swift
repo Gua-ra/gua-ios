@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -20,7 +21,7 @@ class AppLockSetupPINScreenViewModel: AppLockSetupPINScreenViewModelType, AppLoc
     var actions: AnyPublisher<AppLockSetupPINScreenViewModelAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
-
+    
     init(initialMode: AppLockSetupPINScreenMode, isMandatory: Bool, appLockService: AppLockServiceProtocol) {
         self.appLockService = appLockService
         
@@ -102,7 +103,7 @@ class AppLockSetupPINScreenViewModel: AppLockSetupPINScreenViewModelType, AppLoc
                 return
             }
         }
-         
+        
         actionsSubject.send(.complete)
     }
     
@@ -136,14 +137,14 @@ class AppLockSetupPINScreenViewModel: AppLockSetupPINScreenViewModelType, AppLoc
             state.bindings.alertInfo = .init(id: alertType)
         case .confirmResetPIN:
             state.bindings.alertInfo = .init(id: alertType,
-                                             title: L10n.screenAppLockSignoutAlertTitle,
+                                             title: UntranslatedL10n.guaAppLockSignoutAlertTitle,
                                              message: L10n.screenAppLockSignoutAlertMessage,
                                              primaryButton: .init(title: L10n.actionOk) { self.forceLogout() },
                                              secondaryButton: .init(title: L10n.actionCancel, role: .cancel, action: nil))
         case .forceLogout:
             state.isLoggingOut = true // Disable the screen before showing the alert.
             state.bindings.alertInfo = .init(id: alertType,
-                                             title: L10n.screenAppLockSignoutAlertTitle,
+                                             title: UntranslatedL10n.guaAppLockSignoutAlertTitle,
                                              message: L10n.screenAppLockSignoutAlertMessage,
                                              primaryButton: .init(title: L10n.actionOk) { self.forceLogout() })
         }

@@ -28,7 +28,7 @@ enum AccountGenesisError: String, Error, Equatable {
     case nonCanonicalAccountID = "non_canonical_account_id"
     case unknownRootClass = "unknown_root_class"
     case unknownAccountIDVersion = "unknown_account_id_version"
-
+    
     /// The reason string, matching identity-service's `InvalidGenesisException.reason()`.
     var reason: String {
         rawValue
@@ -45,7 +45,7 @@ enum AccountGenesisError: String, Error, Equatable {
 /// forbids for anything a permanent identifier covers.
 enum GuaBase32 {
     private static let alphabet = Array("abcdefghijklmnopqrstuvwxyz234567")
-
+    
     private static let values: [Int8] = {
         var table = [Int8](repeating: -1, count: 128)
         for (index, character) in alphabet.enumerated() {
@@ -55,7 +55,7 @@ enum GuaBase32 {
         }
         return table
     }()
-
+    
     static func encode(_ data: [UInt8]) -> String {
         var out = ""
         out.reserveCapacity((data.count * 8 + 4) / 5)
@@ -75,14 +75,14 @@ enum GuaBase32 {
         }
         return out
     }
-
+    
     static func decode(_ encoded: String) throws -> [UInt8] {
         let remainder = encoded.count % 8
         // 1, 3 and 6 left-over characters cannot come out of any byte string.
         if remainder == 1 || remainder == 3 || remainder == 6 {
             throw AccountGenesisError.badBase32
         }
-
+        
         var out = [UInt8]()
         out.reserveCapacity(encoded.count * 5 / 8)
         var buffer = 0
@@ -120,31 +120,31 @@ enum GuaBase32 {
 /// compares.
 struct AccountID: Equatable {
     static let prefix = "ga1"
-
+    
     /// accountId format version, the first byte under the base32.
     static let formatVersion: UInt8 = 0x01
-
+    
     /// Root class byte: the account is rooted in an `AccountGenesis`.
     static let classGenesis: UInt8 = 0x01
-
+    
     /// Root class byte: the account is a bootstrap account (ADM-001 L5 path B1).
     static let classBootstrap: UInt8 = 0x00
-
+    
     /// Bytes under the base32: format version, root class, then the 32-byte digest.
     static let rawLength = 34
-
+    
     /// Characters of base32 that ``rawLength`` bytes produce.
     static let encodedLength = 55
-
+    
     /// Total characters, the `ga1` prefix included.
     static let length = prefix.count + encodedLength
-
+    
     /// The canonical spelling, tightened at the last character.
     static let canonicalPattern = "^ga1[a-z2-7]{54}[aiqy]$"
-
+    
     let value: String
     let rawBytes: [UInt8]
-
+    
     /// Derives the accountId of an object from the exact bytes received for it.
     ///
     /// - Parameters:
@@ -159,7 +159,7 @@ struct AccountID: Equatable {
         raw.append(contentsOf: SHA256.hash(data: Data(canonicalBytes)))
         return AccountID(value: prefix + GuaBase32.encode(raw), rawBytes: raw)
     }
-
+    
     /// Parses an accountId, enforcing the canonical form.
     static func parse(_ value: String) throws -> AccountID {
         guard value.range(of: canonicalPattern, options: .regularExpression) != nil else {
@@ -181,17 +181,17 @@ struct AccountID: Equatable {
         try requireKnownClass(raw[1])
         return AccountID(value: value, rawBytes: raw)
     }
-
+    
     /// ``classGenesis`` or ``classBootstrap``.
     var rootClass: UInt8 {
         rawBytes[1]
     }
-
+    
     /// True for a genesis-rooted account, false for a bootstrap one (ADM-001 L5's audit marker).
     var isGenesisRooted: Bool {
         rootClass == Self.classGenesis
     }
-
+    
     private static func requireKnownClass(_ rootClass: UInt8) throws {
         guard rootClass == classGenesis || rootClass == classBootstrap else {
             throw AccountGenesisError.unknownRootClass
@@ -225,29 +225,29 @@ struct AccountID: Equatable {
 struct AccountGenesis: Equatable {
     /// Total canonical length. Any other length is rejected.
     static let length = 87
-
+    
     /// ASCII `GUAG`, the domain separator.
     static let magic: [UInt8] = Array("GUAG".utf8)
-
+    
     static let version: UInt8 = 0x01
-
+    
     /// Ed25519 authority, Ed25519 recovery, SHA-256.
     static let suiteEd25519SHA256: UInt8 = 0x01
-
+    
     /// One committed recovery authority key (ADM-008 decision 4).
     static let recoveryFrameworkCommittedKey: UInt8 = 0x01
-
+    
     static let entropyLength = 16
-
+    
     static let publicKeyLength = 32
-
+    
     private static let offsetVersion = 4
     private static let offsetSuite = 5
     private static let offsetAuthorityKey = 6
     private static let offsetFramework = 38
     private static let offsetRecoveryKey = 39
     private static let offsetEntropy = 71
-
+    
     let genesisVersion: UInt8
     let suite: UInt8
     let authorityPublicKey: [UInt8]
@@ -256,12 +256,12 @@ struct AccountGenesis: Equatable {
     let entropy: [UInt8]
     /// The bytes as received. The accountId is the hash of these, never of a re-encoding.
     let canonicalBytes: [UInt8]
-
+    
     /// Genesis-rooted accountId over the received bytes.
     func accountID() throws -> AccountID {
         try AccountID.derive(rootClass: AccountID.classGenesis, canonicalBytes: canonicalBytes)
     }
-
+    
     /// Builds canonical bytes.
     static func encode(authorityPublicKey: [UInt8],
                        recoveryFrameworkID: UInt8 = recoveryFrameworkCommittedKey,
@@ -283,7 +283,7 @@ struct AccountGenesis: Equatable {
         out.append(contentsOf: entropy)
         return out
     }
-
+    
     /// Strictly decodes canonical bytes, keeping them exactly as passed in so the accountId is derived
     /// from what was received.
     ///
@@ -298,11 +298,11 @@ struct AccountGenesis: Equatable {
         guard bytes[offsetFramework] == recoveryFrameworkCommittedKey else {
             throw AccountGenesisError.unknownRecoveryFramework
         }
-
+        
         let authorityKey = Array(bytes[offsetAuthorityKey..<offsetFramework])
         let recoveryKey = Array(bytes[offsetRecoveryKey..<offsetEntropy])
         let entropy = Array(bytes[offsetEntropy..<length])
-
+        
         guard authorityKey.contains(where: { $0 != 0 }) else { throw AccountGenesisError.zeroAuthorityKey }
         guard recoveryKey.contains(where: { $0 != 0 }) else { throw AccountGenesisError.zeroRecoveryKey }
         guard authorityKey != recoveryKey else { throw AccountGenesisError.duplicateKeys }
@@ -312,7 +312,7 @@ struct AccountGenesis: Equatable {
         guard Ed25519PublicKeyValidator.isValid(recoveryKey) else {
             throw AccountGenesisError.invalidRecoveryKey
         }
-
+        
         return AccountGenesis(genesisVersion: bytes[offsetVersion],
                               suite: bytes[offsetSuite],
                               authorityPublicKey: authorityKey,
@@ -344,16 +344,16 @@ struct BootstrapGenesis: Equatable {
     /// No authority key.
     static let suiteNone: UInt8 = 0x00
     static let entropyLength = 16
-
+    
     let version: UInt8
     let suite: UInt8
     let entropy: [UInt8]
     let canonicalBytes: [UInt8]
-
+    
     func accountID() throws -> AccountID {
         try AccountID.derive(rootClass: AccountID.classBootstrap, canonicalBytes: canonicalBytes)
     }
-
+    
     static func decode(_ bytes: [UInt8]) throws -> BootstrapGenesis {
         guard bytes.count == length else { throw AccountGenesisError.wrongLength }
         guard Array(bytes[0..<magic.count]) == magic else { throw AccountGenesisError.badMagic }
@@ -384,21 +384,21 @@ struct BootstrapGenesis: Equatable {
 enum GenesisProofs {
     /// 28 ASCII bytes.
     static let genesisProofDomain = "gua-account-genesis-proof.v1"
-
+    
     /// 27 ASCII bytes, as ADM-008 decision 6 states.
     static let attachProofDomain = "gua-account-attach-proof.v1"
-
+    
     /// Server-chosen challenge length, in bytes.
     static let attachChallengeLength = 32
-
+    
     /// 27 + 32 + 34.
     static let attachPreimageLength = attachProofDomain.utf8.count + attachChallengeLength + AccountID.rawLength
-
+    
     /// Domain bytes then the canonical bytes.
     static func genesisProofPreimage(canonicalBytes: [UInt8]) -> [UInt8] {
         Array(genesisProofDomain.utf8) + canonicalBytes
     }
-
+    
     /// Domain bytes, then the challenge, then the raw accountId bytes. Fixed length throughout.
     ///
     /// - Parameters:
@@ -432,18 +432,18 @@ enum Ed25519PublicKeyValidator {
         let y = Field(yBytes)
         // A y at or above the field prime is a second spelling of a smaller y.
         guard Field.compare(y, Field.prime) < 0 else { return false }
-
+        
         let yy = Field.multiply(y, y)
         let u = Field.subtract(yy, Field.one)
         let v = Field.add(Field.multiply(Field.d, yy), Field.one)
-
+        
         // x = u * v^3 * (u * v^7)^((p-5)/8)
         let v2 = Field.multiply(v, v)
         let v3 = Field.multiply(v2, v)
         let v4 = Field.multiply(v2, v2)
         let v7 = Field.multiply(v3, v4)
         var x = Field.multiply(Field.multiply(u, v3), Field.power(Field.multiply(u, v7), Field.pMinus5Over8))
-
+        
         var check = Field.multiply(v, Field.multiply(x, x))
         if Field.compare(check, u) != 0 {
             // The other root: x * sqrt(-1) when v * x^2 == -u, and no square root at all otherwise.
@@ -452,20 +452,22 @@ enum Ed25519PublicKeyValidator {
             check = Field.multiply(v, Field.multiply(x, x))
             guard Field.compare(check, u) == 0 else { return false }
         }
-
+        
         // x == 0 with the sign bit set is the one encoding with no point behind it.
-        if x.isZero, sign == 1 { return false }
+        if x.isZero, sign == 1 {
+            return false
+        }
         return true
     }
-
+    
     /// A field element mod `p = 2^255 - 19`, four 64-bit limbs, least significant first.
     private struct Field {
         var limbs: [UInt64]
-
+        
         init(limbs: [UInt64]) {
             self.limbs = limbs
         }
-
+        
         init(_ bytes: [UInt8]) {
             var out = [UInt64](repeating: 0, count: 4)
             for index in 0..<4 {
@@ -477,35 +479,35 @@ enum Ed25519PublicKeyValidator {
             }
             limbs = out
         }
-
+        
         var isZero: Bool {
             limbs.allSatisfy { $0 == 0 }
         }
-
+        
         static let zero = Field(limbs: [0, 0, 0, 0])
         static let one = Field(limbs: [1, 0, 0, 0])
-
+        
         static let prime = Field(limbs: [0xFFFF_FFFF_FFFF_FFED, 0xFFFF_FFFF_FFFF_FFFF,
                                          0xFFFF_FFFF_FFFF_FFFF, 0x7FFF_FFFF_FFFF_FFFF])
-
+        
         /// `d = -121665/121666 mod p`, the Edwards curve constant.
         static let d = Field(limbs: [0x75EB_4DCA_1359_78A3, 0x0070_0A4D_4141_D8AB,
                                      0x8CC7_4079_7779_E898, 0x5203_6CEE_2B6F_FE73])
-
+        
         /// `sqrt(-1) mod p`.
         static let sqrtMinus1 = Field(limbs: [0xC4EE_1B27_4A0E_A0B0, 0x2F43_1806_AD2F_E478,
                                               0x2B4D_0099_3DFB_D7A7, 0x2B83_2480_4FC1_DF0B])
-
+        
         /// `(p - 5) / 8`, little-endian bytes, the exponent of the candidate square root.
         static let pMinus5Over8: [UInt8] = [0xFD] + [UInt8](repeating: 0xFF, count: 30) + [0x0F]
-
+        
         static func compare(_ lhs: Field, _ rhs: Field) -> Int {
             for index in stride(from: 3, through: 0, by: -1) where lhs.limbs[index] != rhs.limbs[index] {
                 return lhs.limbs[index] < rhs.limbs[index] ? -1 : 1
             }
             return 0
         }
-
+        
         static func add(_ lhs: Field, _ rhs: Field) -> Field {
             var out = [UInt64](repeating: 0, count: 4)
             var carry: UInt64 = 0
@@ -521,7 +523,7 @@ enum Ed25519PublicKeyValidator {
             }
             return result
         }
-
+        
         static func subtract(_ lhs: Field, _ rhs: Field) -> Field {
             var out = [UInt64](repeating: 0, count: 4)
             var borrow: UInt64 = 0
@@ -537,7 +539,7 @@ enum Ed25519PublicKeyValidator {
             }
             return result
         }
-
+        
         static func multiply(_ lhs: Field, _ rhs: Field) -> Field {
             var product = [UInt64](repeating: 0, count: 8)
             for i in 0..<4 {
@@ -562,7 +564,9 @@ enum Ed25519PublicKeyValidator {
             var accumulator = Field(limbs: Array(product[0..<4]))
             var overflowWords = Array(product[4..<8])
             for _ in 0..<4 {
-                if overflowWords.allSatisfy({ $0 == 0 }) { break }
+                if overflowWords.allSatisfy({ $0 == 0 }) {
+                    break
+                }
                 var scaled = [UInt64](repeating: 0, count: 5)
                 var carry: UInt64 = 0
                 for index in 0..<4 {
@@ -588,7 +592,7 @@ enum Ed25519PublicKeyValidator {
             }
             return accumulator
         }
-
+        
         static func power(_ base: Field, _ exponent: [UInt8]) -> Field {
             var result = one
             var running = base
@@ -602,7 +606,7 @@ enum Ed25519PublicKeyValidator {
             }
             return result
         }
-
+        
         /// Wrapping subtract, no modular correction. Only called when the result is known non-negative.
         private static func subtractRaw(_ lhs: Field, _ rhs: Field) -> Field {
             var out = [UInt64](repeating: 0, count: 4)
@@ -615,7 +619,7 @@ enum Ed25519PublicKeyValidator {
             }
             return Field(limbs: out)
         }
-
+        
         /// Wrapping add, no modular correction.
         private static func addRaw(_ lhs: Field, _ rhs: Field) -> Field {
             var out = [UInt64](repeating: 0, count: 4)

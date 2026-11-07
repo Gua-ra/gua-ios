@@ -1,13 +1,14 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import SwiftUI
 
-// TODO: Check if the primitive style is actually needed now the insets are part of ListRow.
+// TODO: @pixlwave Check if the primitive style is actually needed now the insets are part of ListRow.
 // It might still be useful for ListRow(kind: .custom) usage?
 
 /// Default button styling for list rows.
@@ -34,7 +35,7 @@ public struct ListRowButtonStyle: PrimitiveButtonStyle {
 
 // MARK: - Previews
 
-// TODO: Fix the previews, either the style should expand the label to fill or
+// TODO: @pixlwave Fix the previews, either the style should expand the label to fill or
 // the previews need to do this manually for demonstration purposes.
 
 public struct ListRowButtonStyle_Previews: PreviewProvider, TestablePreview {

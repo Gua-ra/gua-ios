@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -13,8 +14,8 @@ typealias RoomMemberDetailsScreenViewModelType = StateStoreViewModel<RoomMemberD
 class RoomMemberDetailsScreenViewModel: RoomMemberDetailsScreenViewModelType, RoomMemberDetailsScreenViewModelProtocol {
     private let roomProxy: JoinedRoomProxyProtocol
     private let userSession: UserSessionProtocol
+    private let analytics: AnalyticsServiceProtocol
     private let userIndicatorController: UserIndicatorControllerProtocol
-    private let analytics: AnalyticsService
     
     private var actionsSubject: PassthroughSubject<RoomMemberDetailsScreenViewModelAction, Never> = .init()
     
@@ -27,8 +28,8 @@ class RoomMemberDetailsScreenViewModel: RoomMemberDetailsScreenViewModelType, Ro
     init(userID: String,
          roomProxy: JoinedRoomProxyProtocol,
          userSession: UserSessionProtocol,
-         userIndicatorController: UserIndicatorControllerProtocol,
-         analytics: AnalyticsService) {
+         analytics: AnalyticsServiceProtocol,
+         userIndicatorController: UserIndicatorControllerProtocol) {
         self.roomProxy = roomProxy
         self.userSession = userSession
         self.userIndicatorController = userIndicatorController
@@ -36,7 +37,8 @@ class RoomMemberDetailsScreenViewModel: RoomMemberDetailsScreenViewModelType, Ro
         
         let initialViewState = RoomMemberDetailsScreenViewState(userID: userID, bindings: .init())
         
-        super.init(initialViewState: initialViewState, mediaProvider: userSession.mediaProvider)
+        super.init(initialViewState: userSession.userHooks.roomMemberDetailsScreenHook.update(initialViewState),
+                   mediaProvider: userSession.mediaProvider)
         
         showMemberLoadingIndicator()
         
@@ -80,15 +82,15 @@ class RoomMemberDetailsScreenViewModel: RoomMemberDetailsScreenViewModelType, Ro
             openDirectChat()
         case .createDirectChat:
             Task { await createDirectChat() }
-        case .startCall(let roomID):
-            Task { await startCall(roomID: roomID) }
+        case .startCall(let roomID, let isVoiceCall):
+            Task { await startCall(roomID: roomID, isVoiceCall: isVoiceCall) }
         case .verifyUser:
             actionsSubject.send(.verifyUser(userID: state.userID))
         case .withdrawVerification:
             Task { await userSession.clientProxy.withdrawUserIdentityVerification(state.userID) }
         }
     }
-
+    
     // MARK: - Private
     
     private func loadMember() async {
@@ -111,7 +113,7 @@ class RoomMemberDetailsScreenViewModel: RoomMemberDetailsScreenViewModelType, Ro
             actionsSubject.send(.openUserProfile)
         }
         
-        if case let .success(.some(identity)) = await userSession.clientProxy.userIdentity(for: state.userID) {
+        if case let .success(.some(identity)) = await userSession.clientProxy.userIdentity(for: state.userID, fallBackToServer: true) {
             state.verificationState = identity.verificationState
         } else {
             MXLog.error("Failed to find the member's identity.")
@@ -137,8 +139,7 @@ class RoomMemberDetailsScreenViewModel: RoomMemberDetailsScreenViewModelType, Ro
             state.bindings.alertInfo = .init(id: .unknown)
         }
     }
-
-    @MainActor
+    
     private func unignoreUser() async {
         guard let roomMemberProxy else {
             fatalError()
@@ -158,9 +159,9 @@ class RoomMemberDetailsScreenViewModel: RoomMemberDetailsScreenViewModelType, Ro
             state.bindings.alertInfo = .init(id: .unknown)
         }
     }
-
+    
     private func updateMembers() {
-        Task.detached {
+        Task {
             await self.roomProxy.updateMembers()
         }
     }
@@ -173,12 +174,8 @@ class RoomMemberDetailsScreenViewModel: RoomMemberDetailsScreenViewModelType, Ro
         let loadingIndicatorIdentifier = "roomMemberAvatarLoadingIndicator"
         userIndicatorController.submitIndicator(UserIndicator(id: loadingIndicatorIdentifier, type: .modal, title: L10n.commonLoading, persistent: true))
         defer { userIndicatorController.retractIndicatorWithId(loadingIndicatorIdentifier) }
-            
-        // We don't actually know the mime type here, assume it's an image.
-        if let mediaSource = try? MediaSourceProxy(url: url, mimeType: "image/jpeg"),
-           case let .success(file) = await userSession.mediaProvider.loadFileFromSource(mediaSource) {
-            state.bindings.mediaPreviewItem = MediaPreviewItem(file: file, title: roomMemberProxy.displayName)
-        }
+        
+        state.bindings.mediaPreviewItem = await MediaPreviewItem.load(from: url, title: roomMemberProxy.displayName, using: userSession.mediaProvider)
     }
     
     private func openDirectChat() {
@@ -196,8 +193,19 @@ class RoomMemberDetailsScreenViewModel: RoomMemberDetailsScreenViewModelType, Ro
         case .success(let roomID):
             if let roomID {
                 actionsSubject.send(.openDirectChat(roomID: roomID))
+            } else if roomProxy.details.historySharingState != RoomHistorySharingState.hidden {
+                Task {
+                    let identity = await self.userSession.clientProxy.userIdentity(for: roomMemberProxy.userID, fallBackToServer: false)
+                    let user: UserProfile = .init(userID: roomMemberProxy.userID, displayName: roomMemberProxy.displayName, avatarURL: roomMemberProxy.avatarURL)
+                    let isUnknown = if case .success(let identity) = identity {
+                        identity == nil
+                    } else {
+                        true
+                    }
+                    self.state.bindings.inviteConfirmationUser = .init(user: user, isUnknown: isUnknown)
+                }
             } else {
-                state.bindings.inviteConfirmationUser = .init(userID: roomMemberProxy.userID, displayName: roomMemberProxy.displayName, avatarURL: roomMemberProxy.avatarURL)
+                state.bindings.inviteConfirmationUser = .init(user: .init(userID: roomMemberProxy.userID, displayName: roomMemberProxy.displayName, avatarURL: roomMemberProxy.avatarURL), isUnknown: false)
             }
         case .failure:
             state.bindings.alertInfo = .init(id: .failedOpeningDirectChat)
@@ -206,7 +214,7 @@ class RoomMemberDetailsScreenViewModel: RoomMemberDetailsScreenViewModelType, Ro
     
     private func createDirectChat() async {
         guard let roomMemberProxy else { fatalError() }
-
+        
         let loadingIndicatorIdentifier = "createDirectChatLoadingIndicator"
         userIndicatorController.submitIndicator(UserIndicator(id: loadingIndicatorIdentifier,
                                                               type: .modal(progress: .indeterminate, interactiveDismissDisabled: true, allowsInteraction: false),
@@ -224,12 +232,12 @@ class RoomMemberDetailsScreenViewModel: RoomMemberDetailsScreenViewModelType, Ro
         }
     }
     
-    private func startCall(roomID: String) async {
+    private func startCall(roomID: String, isVoiceCall: Bool) async {
         guard case let .joined(roomProxy) = await userSession.clientProxy.roomForIdentifier(roomID) else {
             showErrorIndicator()
             return
         }
-        actionsSubject.send(.startCall(roomProxy: roomProxy))
+        actionsSubject.send(.startCall(roomProxy: roomProxy, isVoiceCall: isVoiceCall))
     }
     
     // MARK: User Indicators
@@ -237,7 +245,7 @@ class RoomMemberDetailsScreenViewModel: RoomMemberDetailsScreenViewModelType, Ro
     private var loadingIndicatorIdentifier: String {
         "\(Self.self)-Loading"
     }
-
+    
     private var statusIndicatorIdentifier: String {
         "\(Self.self)-Status"
     }
@@ -258,6 +266,6 @@ class RoomMemberDetailsScreenViewModel: RoomMemberDetailsScreenViewModelType, Ro
         userIndicatorController.submitIndicator(UserIndicator(id: statusIndicatorIdentifier,
                                                               type: .toast,
                                                               title: L10n.errorUnknown,
-                                                              iconName: "xmark"))
+                                                              icon: \.close))
     }
 }

@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -10,7 +11,7 @@ import Foundation
 import SwiftUI
 
 /// A mock of the SwiftUI `LayoutSubviews` struct
-struct LayoutSubviewsMock: Equatable, RandomAccessCollection {
+nonisolated struct LayoutSubviewsMock: Equatable, RandomAccessCollection {
     var subviews: [LayoutSubviewMock]
     
     /// A type that contains a subsequence of proxy values.
@@ -44,7 +45,7 @@ struct LayoutSubviewsMock: Equatable, RandomAccessCollection {
 }
 
 /// A mock of the SwiftUI `LayoutSubview` struct
-struct LayoutSubviewMock: FlowLayoutSubview, Equatable {
+nonisolated struct LayoutSubviewMock: FlowLayoutSubview, Equatable {
     var size: CGSize
     var layoutValues = [String: Any]()
     var placedPositionCallback: (CGRect) -> Void

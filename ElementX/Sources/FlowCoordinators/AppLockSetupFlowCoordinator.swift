@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -48,7 +49,7 @@ class AppLockSetupFlowCoordinator: FlowCoordinatorProtocol {
         /// The user is being signed out. This is a final state.
         case loggingOut
     }
-
+    
     /// Events that can be triggered on the flow state machine
     enum Event: EventType {
         /// Start the flow.
@@ -84,7 +85,7 @@ class AppLockSetupFlowCoordinator: FlowCoordinatorProtocol {
         configureStateMachine()
     }
     
-    func start() {
+    func start(animated: Bool) {
         stateMachine.tryEvent(.start)
     }
     
@@ -104,7 +105,9 @@ class AppLockSetupFlowCoordinator: FlowCoordinatorProtocol {
             
             switch (fromState, event) {
             case (.initial, .start):
-                if presentingFlow == .onboarding { return .createPIN(replacingExitingPIN: false) }
+                if presentingFlow == .onboarding {
+                    return .createPIN(replacingExitingPIN: false)
+                }
                 return appLockService.isEnabled ? .unlock : .createPIN(replacingExitingPIN: false)
             case (.unlock, .pinEntered):
                 return .settings
@@ -171,7 +174,7 @@ class AppLockSetupFlowCoordinator: FlowCoordinatorProtocol {
             fatalError("Unexpected transition from `\(context.fromState)` to `\(context.toState)` with event `\(String(describing: context.event))`.")
         }
     }
-
+    
     private func showCreatePIN() {
         // Despite appLockService.isMandatory existing, we don't use that here,
         // to allow for cancellation when changing the PIN code within settings.
