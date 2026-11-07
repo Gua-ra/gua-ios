@@ -135,7 +135,7 @@ Key build facts the workflow relies on:
 
 ## Caveats
 
-- **macOS minutes:** iOS archiving requires a macOS runner (`macos-26`). GitHub
+- **macOS minutes:** iOS archiving requires a macOS runner (`xcode-27`). GitHub
   bills macOS minutes at 10x the Linux rate, and private repos have a monthly free
   allowance: a full archive run can use a meaningful chunk of it. Budget
   accordingly or use a self-hosted Mac runner. **If you use a self-hosted runner,**
