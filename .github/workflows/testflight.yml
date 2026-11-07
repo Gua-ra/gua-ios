@@ -181,10 +181,8 @@ jobs:
     name: Archive & upload (${{ needs.gate.outputs.target }})
     needs: gate
     if: needs.gate.outputs.build == 'true'
-    # macos-26, not macos-15: the app calls APIs that only exist in the iOS 26 SDK
-    # (ProcessInfo.isiOSAppOnVision, guarded by #available at runtime but still
-    # required to exist at compile time), and macos-15 tops out at Xcode 16.4.
-    runs-on: macos-26
+    # Xcode 27, like the test workflows: Xcode 26's Swift 6.3 crashes optimising this code for Release.
+    runs-on: xcode-27
     # Archive and upload take about 30 minutes; processing before external distribution
     # can take another 40.
     timeout-minutes: 120
@@ -224,21 +222,16 @@ jobs:
           persist-credentials: false
 
       - name: Select Xcode
-        # The project needs the iOS 26 SDK, not merely "Xcode 16+". It calls
-        # ProcessInfo.isiOSAppOnVision, which is guarded by #available at runtime
-        # but must still exist in the SDK at compile time, so an older toolchain
-        # fails deep in the archive with "has no member 'isiOSAppOnVision'".
-        #
-        # There is deliberately NO "newest Xcode" fallback: if the image drops 26.x
+        # There is deliberately NO fallback to another major version: if the image drops 27.x
         # we want a clear failure here rather than a confusing one 20 minutes later.
         run: |
           set -euo pipefail
-          XCODE_APP="$(ls -d /Applications/Xcode_26.5.0.app 2>/dev/null || true)"
+          XCODE_APP="$(ls -d /Applications/Xcode_27.app 2>/dev/null || true)"
           if [ -z "$XCODE_APP" ]; then
-            XCODE_APP="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -n1 || true)"
+            XCODE_APP="$(ls -d /Applications/Xcode_27*.app 2>/dev/null | sort -V | tail -n1 || true)"
           fi
           if [ -z "$XCODE_APP" ]; then
-            echo "::error::No Xcode 26.x on this runner; the project needs the iOS 26 SDK. Available: $(ls -d /Applications/Xcode_*.app 2>/dev/null | tr '\n' ' ')"
+            echo "::error::No Xcode 27.x on this runner; the project needs the iOS 27 SDK. Available: $(ls -d /Applications/Xcode_*.app 2>/dev/null | tr '\n' ' ')"
             exit 1
           fi
           echo "Selecting $XCODE_APP"
@@ -246,8 +239,8 @@ jobs:
           xcodebuild -version
           # Assert the real version, in case the app bundle name and its contents disagree.
           XCODE_MAJOR="$(xcodebuild -version | sed -n 's/^Xcode \([0-9]*\).*/\1/p')"
-          if [ -z "$XCODE_MAJOR" ] || [ "$XCODE_MAJOR" -lt 26 ]; then
-            echo "::error::Xcode 26+ required for the iOS 26 SDK, found '$(xcodebuild -version | head -n1)'"
+          if [ -z "$XCODE_MAJOR" ] || [ "$XCODE_MAJOR" -lt 27 ]; then
+            echo "::error::Xcode 27+ required for the iOS 27 SDK, found '$(xcodebuild -version | head -n1)'"
             exit 1
           fi
 
