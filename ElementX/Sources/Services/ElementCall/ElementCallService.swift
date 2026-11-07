@@ -48,25 +48,36 @@ class ElementCallService: NSObject, ElementCallServiceProtocol, PKPushRegistryDe
     private var incomingCallRoomInfoCancellable: AnyCancellable?
     private var incomingCallID: CallID? {
         didSet {
+            updateHasCall()
             Task { await observeIncomingCall() }
         }
     }
     
     private var endUnansweredCallTask: Task<Void, Never>?
     /// The ringing call was answered for the web view, which has yet to set its call session up.
-    private var isIncomingCallAnswered = false
+    private var isIncomingCallAnswered = false {
+        didSet { updateHasCall() }
+    }
     
     /// A call answered for the native stack, until the stack takes it over.
     private var answeredNativeCallID: CallID?
     private var endPendingCallTask: Task<Void, Never>?
     
     private var ongoingCallID: CallID? {
-        didSet { ongoingCallRoomIDSubject.send(ongoingCallID?.roomID) }
+        didSet {
+            ongoingCallRoomIDSubject.send(ongoingCallID?.roomID)
+            updateHasCall()
+        }
     }
     
     let ongoingCallRoomIDSubject = CurrentValueSubject<String?, Never>(nil)
     var ongoingCallRoomIDPublisher: CurrentValuePublisher<String?, Never> {
         ongoingCallRoomIDSubject.asCurrentValuePublisher()
+    }
+    
+    private let hasCallSubject = CurrentValueSubject<Bool, Never>(false)
+    var hasCallPublisher: CurrentValuePublisher<Bool, Never> {
+        hasCallSubject.asCurrentValuePublisher()
     }
     
     private let actionsSubject: PassthroughSubject<ElementCallServiceAction, Never> = .init()
@@ -268,6 +279,11 @@ class ElementCallService: NSObject, ElementCallServiceProtocol, PKPushRegistryDe
         self.ongoingCallID = nil
     }
     
+    func observeIncomingCallIfNeeded() async {
+        guard incomingCallRoomInfoCancellable == nil else { return }
+        await observeIncomingCall()
+    }
+    
     func setAudioEnabled(_ enabled: Bool, roomID: String) {
         guard let ongoingCallID else {
             MXLog.error("Failed toggling call microphone, no calls running")
@@ -425,11 +441,13 @@ class ElementCallService: NSObject, ElementCallServiceProtocol, PKPushRegistryDe
         // whereas CallKit invokes its completion on a background queue.
         let mainActorCompletion = { @MainActor @Sendable in completion() }
         callProvider.reportNewIncomingCall(with: callID.callKitID, update: update) { [weak self] error in
+            let isRefused = error != nil
             if let error {
                 MXLog.error("Failed reporting new incoming call with error: \(error)")
             }
             
             Task { @MainActor in
+                self?.clearIncomingCallStateIfRefused(callID, isRefused: isRefused)
                 self?.actionsSubject.send(.receivedIncomingCallRequest)
                 
                 mainActorCompletion()
@@ -558,8 +576,8 @@ class ElementCallService: NSObject, ElementCallServiceProtocol, PKPushRegistryDe
         }
         
         if let incomingCallID, incomingCallID.callKitID == callKitID {
-            Task {
-                await sendDeclineCallEvent(incomingCallID)
+            if let rtcNotificationID = incomingCallID.rtcNotificationID {
+                actionsSubject.send(.declineCall(roomID: incomingCallID.roomID, rtcNotificationID: rtcNotificationID))
             }
             
             clearIncomingCallState()
@@ -655,25 +673,6 @@ class ElementCallService: NSObject, ElementCallServiceProtocol, PKPushRegistryDe
         clearIncomingCallState()
     }
     
-    private func sendDeclineCallEvent(_ incomingCallID: CallID) async {
-        guard let rtcNotificationID = incomingCallID.rtcNotificationID else {
-            MXLog.info("No rtc notification event to decline.")
-            return
-        }
-        
-        guard let clientProxy else {
-            MXLog.warning("A ClientProxy is needed to fetch the room.")
-            return
-        }
-        
-        guard case let .joined(roomProxy) = await clientProxy.roomForIdentifier(incomingCallID.roomID) else {
-            MXLog.warning("Failed to fetch a joined room for the incoming call.")
-            return
-        }
-        
-        _ = await roomProxy.declineCall(notificationID: rtcNotificationID)
-    }
-    
     private func observeIncomingCall() async {
         incomingCallRoomInfoCancellable = nil
         
@@ -742,6 +741,17 @@ class ElementCallService: NSObject, ElementCallServiceProtocol, PKPushRegistryDe
         }
         
         declineListenerHandle = handle
+    }
+    
+    /// GUA FORK: an answer for the web view ends the CallKit call, so the app is no longer kept running for it.
+    private func updateHasCall() {
+        hasCallSubject.send((incomingCallID != nil && !isIncomingCallAnswered) || ongoingCallID != nil)
+    }
+    
+    /// GUA FORK: a call CallKit refused never rings, so it mustn't keep the client running.
+    private func clearIncomingCallStateIfRefused(_ callID: CallID, isRefused: Bool) {
+        guard isRefused, incomingCallID?.callKitID == callID.callKitID else { return }
+        clearIncomingCallState()
     }
     
     private func reportEndedCall(incomingCallID: CallID, reason: CXCallEndedReason) {

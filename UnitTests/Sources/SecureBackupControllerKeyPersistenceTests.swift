@@ -116,7 +116,7 @@ final class SecureBackupControllerKeyPersistenceTests {
         
         #expect(persisted == ["key-1"], "exactly one store is minted")
         #expect(outcome == .identityIncompleteAfterReset)
-        #expect(encryption.enableRecoveryWaitForBackupsToUploadPassphraseProgressListenerCallsCount == 1)
+        #expect(encryption.enableRecoveryWaitForBackupsToUploadKeyProgressListenerCallsCount == 1)
     }
     
     @Test
@@ -153,7 +153,7 @@ final class SecureBackupControllerKeyPersistenceTests {
                                      andBeforeReturningTheSDKReports stateBeforeReturn: RecoveryState? = nil,
                                      thenAfterADelayTheSDKReports delayedState: RecoveryState? = nil) {
         var remaining = attempts
-        encryption.enableRecoveryWaitForBackupsToUploadPassphraseProgressListenerClosure = { [weak self] _, _, _ in
+        encryption.enableRecoveryWaitForBackupsToUploadKeyProgressListenerClosure = { [weak self] _, _, _ in
             guard let self else { throw TransientError() }
             guard !remaining.isEmpty else {
                 Issue.record("enableRecovery called more often than scripted")
