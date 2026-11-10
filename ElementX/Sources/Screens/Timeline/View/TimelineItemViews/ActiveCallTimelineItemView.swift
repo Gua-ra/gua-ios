@@ -88,7 +88,7 @@ struct ActiveCallTimelineItemView: View {
                         
                         Text(extraGroupLabel)
                             .font(.compound.bodySM)
-                            .foregroundColor(.compound.textSecondary)
+                            .legibleSecondaryForeground()
                             .labelStyle(.custom(spacing: 4))
                     }
                 }
@@ -109,11 +109,13 @@ struct ActiveCallTimelineItemView: View {
                 
                 callTimer
                     .font(.compound.bodyXS)
-                    .foregroundColor(.compound.textSecondary)
+                    .legibleSecondaryForeground()
                     .monospacedDigit()
             }
         }
         .padding(12)
+        // GUA FORK: backs the active call tile over a chat background, like the tombstoned tile.
+        .legibilityCapsule(.roundedRectangle(cornerRadius: 8), hasPadding: false)
         .overlay(RoundedRectangle(cornerRadius: 8)
             .stroke(.compound.borderInteractivePrimary, lineWidth: 1))
         .padding(16)
