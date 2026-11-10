@@ -24,11 +24,16 @@ final class ChatThemeCodecTests: XCTestCase {
         for (fixture, content) in zip(cases, contents) {
             let name = try XCTUnwrap(fixture["name"] as? String)
             let expected = try Self.theme(fromExpected: XCTUnwrap(fixture["expected"] as? [String: Any]))
-            let theme = ChatTheme(contentJSON: content)
-            XCTAssertEqual(theme, expected, name)
-            if let encoded = fixture["encoded"] as? String {
-                XCTAssertEqual(theme.contentJSON, encoded, name)
-            }
+            XCTAssertEqual(ChatTheme(contentJSON: content), expected, name)
+        }
+
+        let encodeCases = try XCTUnwrap(root["encode_cases"] as? [[String: Any]])
+        XCTAssertFalse(encodeCases.isEmpty)
+
+        for fixture in encodeCases {
+            let name = try XCTUnwrap(fixture["name"] as? String)
+            let theme = try Self.theme(fromExpected: XCTUnwrap(fixture["theme"] as? [String: Any]))
+            XCTAssertEqual(theme.contentJSON, fixture["expected"] as? String, name)
         }
     }
 
