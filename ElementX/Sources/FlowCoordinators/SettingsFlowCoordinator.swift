@@ -103,6 +103,8 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                     presentModerationAndSafetyScreen()
                 case .notifications:
                     presentNotificationSettings()
+                case .chatTheme:
+                    presentChatThemeScreen()
                 case .mediaUploadQuality:
                     presentMediaUploadQualitySettings()
                 case .developerOptions:
@@ -211,6 +213,13 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                                                                                      isModallyPresented: false,
                                                                                      appSettings: flowParameters.appSettings)
         let coordinator = NotificationSettingsScreenCoordinator(parameters: notificationParameters)
+        navigationStackCoordinator.push(coordinator)
+    }
+    
+    private func presentChatThemeScreen() {
+        let coordinator = ChatThemeScreenCoordinator(parameters: .init(mode: .defaultTheme,
+                                                                       userSession: flowParameters.userSession,
+                                                                       userIndicatorController: flowParameters.userIndicatorController))
         navigationStackCoordinator.push(coordinator)
     }
     
