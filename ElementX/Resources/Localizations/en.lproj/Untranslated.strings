@@ -174,7 +174,7 @@
 "gua_chat_theme_section_gradients" = "Gradients";
 "gua_chat_theme_classic" = "Classic";
 "gua_chat_theme_default_note" = "Applies to every chat that doesn’t have its own theme.";
-"gua_chat_theme_shared_note" = "Everyone in this chat sees its theme.";
+"gua_chat_theme_shared_note" = "Everyone in the chat sees this theme.";
 "gua_chat_theme_action_set_theme" = "Set theme";
 "gua_chat_theme_action_set_default" = "Set default";
 "gua_chat_theme_action_set" = "Set";

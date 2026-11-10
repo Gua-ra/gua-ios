@@ -146,7 +146,7 @@ internal enum UntranslatedL10n {
   internal static var guaChatThemeSectionFeatured: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_section_featured") }
   /// Gradients
   internal static var guaChatThemeSectionGradients: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_section_gradients") }
-  /// Everyone in this chat sees its theme.
+  /// Everyone in the chat sees this theme.
   internal static var guaChatThemeSharedNote: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_shared_note") }
   /// Chat theme
   internal static var guaChatThemeTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_title") }

@@ -126,7 +126,7 @@
 "gua_chat_theme_section_gradients" = "Degradês";
 "gua_chat_theme_classic" = "Clássico";
 "gua_chat_theme_default_note" = "Vale para todas as conversas que não têm um tema próprio.";
-"gua_chat_theme_shared_note" = "Todos nesta conversa veem o tema dela.";
+"gua_chat_theme_shared_note" = "Todos na conversa veem este tema.";
 "gua_chat_theme_action_set_theme" = "Definir tema";
 "gua_chat_theme_action_set_default" = "Definir como padrão";
 "gua_chat_theme_action_set" = "Definir";
