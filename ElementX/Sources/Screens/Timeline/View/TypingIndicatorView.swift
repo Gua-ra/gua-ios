@@ -15,9 +15,10 @@ struct TypingIndicatorView: View {
     var body: some View {
         content
             .font(.compound.bodySM)
-            .foregroundColor(.compound.textSecondary)
+            .legibleSecondaryForeground()
             .lineLimit(1)
             .truncationMode(.middle)
+            .legibilityCapsule(isEnabled: !typingMembers.members.isEmpty)
             .padding(.horizontal, 4)
             .animation(.elementDefault, value: typingMembers.members)
             .onChange(of: typingMembers.members) { _, newValue in

@@ -211,6 +211,22 @@ struct SettingsScreenViewModelTests {
     }
     
     @Test
+    mutating func chatThemeFollowsTheChatBackgroundsFlag() async throws {
+        let userSettings = UserSettings.mock()
+        userSettings.app.guaChatBackgroundsEnabled = false
+        setupViewModel(userSettings: userSettings)
+        #expect(!context.viewState.showChatTheme)
+        
+        let shown = deferFulfillment(context.observe(\.viewState.showChatTheme)) { $0 }
+        userSettings.app.guaChatBackgroundsEnabled = true
+        try await shown.fulfill()
+        
+        let deferred = deferFulfillment(viewModel.actions) { $0.isChatTheme }
+        context.send(viewAction: .chatTheme)
+        try await deferred.fulfill()
+    }
+    
+    @Test
     mutating func manageAccountAndDevicesOpensTheAccountProfile() async throws {
         setupViewModel()
         let profileURL = try #require(URL(string: "https://account.example.com/profile"))
@@ -369,6 +385,13 @@ private extension SettingsScreenViewModelAction {
     var isMediaUploadQuality: Bool {
         switch self {
         case .mediaUploadQuality: true
+        default: false
+        }
+    }
+    
+    var isChatTheme: Bool {
+        switch self {
+        case .chatTheme: true
         default: false
         }
     }

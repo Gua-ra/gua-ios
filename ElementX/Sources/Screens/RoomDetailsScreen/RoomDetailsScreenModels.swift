@@ -30,6 +30,7 @@ enum RoomDetailsScreenViewModelAction: Equatable {
     case displaySecurityAndPrivacy
     case displayReportRoom
     case transferOwnership
+    case displayChatTheme
 }
 
 // MARK: View
@@ -59,6 +60,9 @@ struct RoomDetailsScreenViewState: BindableState {
     var canEditRoomAvatar = false
     var canEditRolesOrPermissions = false
     var canEditSecurityAndPrivacy = false
+    /// GUA FORK: nil hides the Chat theme row.
+    var chatTheme: ChatTheme?
+    var canChangeChatTheme = false
     var canKickUsers = false
     var canBanUsers = false
     var notificationSettingsState: RoomDetailsNotificationSettingsState = .loading
@@ -234,6 +238,7 @@ enum RoomDetailsScreenViewAction {
     case processTapMediaEvents
     case processTapRequestsToJoin
     case processTapReport
+    case processTapChatTheme
 }
 
 enum RoomDetailsScreenViewShortcut {

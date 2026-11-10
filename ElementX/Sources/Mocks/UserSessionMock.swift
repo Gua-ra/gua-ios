@@ -16,6 +16,7 @@ struct UserSessionMockConfiguration {
     var contentScannerService: ContentScannerServiceProtocol?
     var liveLocationService: LiveLocationServiceProtocol = LiveLocationServiceMock(.init())
     var notificationService: NotificationServiceProtocol = NotificationServiceMock(.init())
+    var chatBackgroundService: ChatBackgroundServiceProtocol = ChatBackgroundServiceMock(.init())
 }
 
 @MainActor extension UserSessionMock {
@@ -30,6 +31,7 @@ struct UserSessionMockConfiguration {
         mediaProvider = MediaProviderMock(.init())
         voiceMessageMediaManager = VoiceMessageMediaManagerMock()
         contentScannerService = configuration.contentScannerService
+        chatBackgroundService = configuration.chatBackgroundService
         
         sessionSecurityStatePublisher = CurrentValueSubject<SessionSecurityState, Never>(.init(verificationState: .verified, recoveryState: .enabled)).asCurrentValuePublisher()
         

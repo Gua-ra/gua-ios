@@ -107,6 +107,8 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                     startLinkNewDeviceFlow()
                 case .notifications:
                     presentNotificationSettings()
+                case .chatTheme:
+                    presentChatThemeScreen()
                 case .secureBackup:
                     startEncryptionSettingsFlow()
                 case .moderationAndSafety:
@@ -307,6 +309,13 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
             }
             .store(in: &cancellables)
         
+        navigationStackCoordinator.push(coordinator)
+    }
+    
+    private func presentChatThemeScreen() {
+        let coordinator = ChatThemeScreenCoordinator(parameters: .init(mode: .defaultTheme,
+                                                                       userSession: flowParameters.userSession,
+                                                                       userIndicatorController: flowParameters.userIndicatorController))
         navigationStackCoordinator.push(coordinator)
     }
     

@@ -19,4 +19,6 @@ nonisolated struct StateRoomTimelineItem: EventBasedTimelineItemProtocol, Equata
     let sender: TimelineItemSender
     
     var properties = RoomTimelineItemProperties()
+    
+    var chatBackgroundEvent: ChatBackgroundTimelineEvent?
 }

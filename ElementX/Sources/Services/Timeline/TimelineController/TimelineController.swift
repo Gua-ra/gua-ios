@@ -756,6 +756,8 @@ private nonisolated extension TimelineItemProxy {
     var isItemCollapsible: Bool {
         if case let .event(eventItem) = self {
             switch eventItem.content {
+            case .state(_, .custom(let eventType)) where eventType == ChatBackground.eventType:
+                return false
             case .profileChange, .roomMembership, .state:
                 return true
             default:

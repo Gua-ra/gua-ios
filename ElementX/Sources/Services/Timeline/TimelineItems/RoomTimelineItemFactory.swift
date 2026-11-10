@@ -52,7 +52,11 @@ nonisolated struct RoomTimelineItemFactory: RoomTimelineItemFactoryProtocol {
             return buildUnsupportedTimelineItem(eventItemProxy, eventType, error, isOutgoing)
         case .failedToParseState(let eventType, _, let error):
             return buildUnsupportedTimelineItem(eventItemProxy, eventType, error, isOutgoing)
-        case .state(_, let content):
+        case .state(let stateKey, let content):
+            // GUA FORK: a chat theme change is visible chat content, so 1:1 chats show it too.
+            if case .custom(let eventType) = content, eventType == ChatBackground.eventType {
+                return stateKey.isEmpty ? buildChatBackgroundTimelineItem(for: eventItemProxy, isOutgoing: isOutgoing) : nil
+            }
             // GUA FORK: 1:1 conversations are chats, not "rooms". Suppress all state
             // events (encryption-enabled, name/avatar/topic, room create, etc.) so DMs
             // never show "N room changes" plumbing.
@@ -961,6 +965,23 @@ nonisolated struct RoomTimelineItemFactory: RoomTimelineItemFactoryProtocol {
                                                                           memberDisplayName: eventItemProxy.sender.disambiguatedDisplayName ?? eventItemProxy.sender.id.guaDisplayHandle,
                                                                           memberIsYou: isOutgoing) else { return nil }
         return buildStateTimelineItem(for: eventItemProxy, text: text, isOutgoing: isOutgoing)
+    }
+    
+    private func buildChatBackgroundTimelineItem(for eventItemProxy: EventTimelineItemProxy, isOutgoing: Bool) -> RoomTimelineItemProtocol {
+        let event = eventItemProxy.id.eventID.map { eventID in
+            ChatBackgroundTimelineEvent(eventID: eventID, timestamp: eventItemProxy.item.timestamp, eventJSON: eventItemProxy.debugInfo.originalJSON)
+        }
+        let text = stateEventStringBuilder.buildChatThemeString(isRemoval: event?.isRemoval ?? false,
+                                                                sender: eventItemProxy.sender,
+                                                                isOutgoing: isOutgoing)
+        return StateRoomTimelineItem(id: eventItemProxy.id,
+                                     body: text,
+                                     timestamp: eventItemProxy.timestamp,
+                                     isOutgoing: isOutgoing,
+                                     isEditable: false,
+                                     canBeRepliedTo: false,
+                                     sender: eventItemProxy.sender,
+                                     chatBackgroundEvent: event)
     }
     
     private func buildStateTimelineItem(for eventItemProxy: EventTimelineItemProxy, text: String, isOutgoing: Bool) -> RoomTimelineItemProtocol {

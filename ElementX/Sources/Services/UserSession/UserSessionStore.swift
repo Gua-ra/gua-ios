@@ -63,7 +63,9 @@ class UserSessionStore: UserSessionStoreProtocol {
         switch await restorePreviousLogin(credentials, userSettings: userSettings) {
         case .success(let clientProxy):
             restoreKeyStorageIfNeeded(clientProxy)
-            return await .success(buildUserSessionWithClient(clientProxy, userSettings: userSettings))
+            return await .success(buildUserSessionWithClient(clientProxy,
+                                                             userSettings: userSettings,
+                                                             sessionDirectories: credentials.restorationToken.sessionDirectories))
         case .failure(let error):
             MXLog.error("Failed restoring login with error: \(error)")
             
@@ -96,7 +98,7 @@ class UserSessionStore: UserSessionStoreProtocol {
             
             bootstrapKeyStorageIfNeeded(clientProxy)
             
-            return await .success(buildUserSessionWithClient(clientProxy, userSettings: userSettings))
+            return await .success(buildUserSessionWithClient(clientProxy, userSettings: userSettings, sessionDirectories: sessionDirectories))
         } catch {
             MXLog.error("Failed creating user session with error: \(error)")
             return .failure(.failedSettingUpSession)
@@ -344,7 +346,7 @@ class UserSessionStore: UserSessionStoreProtocol {
         }
     }
     
-    private func buildUserSessionWithClient(_ clientProxy: ClientProxyProtocol, userSettings: UserSettings) async -> UserSessionProtocol {
+    private func buildUserSessionWithClient(_ clientProxy: ClientProxyProtocol, userSettings: UserSettings, sessionDirectories: SessionDirectories) async -> UserSessionProtocol {
         let mediaProvider = MediaProvider(mediaLoader: clientProxy.mediaLoader,
                                           imageCache: .onlyInMemory,
                                           homeserverReachabilityPublisher: clientProxy.homeserverReachabilityPublisher)
@@ -355,13 +357,22 @@ class UserSessionStore: UserSessionStoreProtocol {
         
         let notificationService = NotificationService(clientProxy: clientProxy, userSettings: userSettings)
         
+        let roomStateClient = RoomStateClient(homeserver: { clientProxy.homeserver }, accessToken: { clientProxy.accessToken })
+        let chatBackgroundCache = ChatBackgroundCache(directory: sessionDirectories.cacheDirectory)
+        let defaultChatThemeSetting = DefaultChatThemeSetting(clientProxy: clientProxy, cache: chatBackgroundCache)
+        defaultChatThemeSetting.start()
+        let chatBackgroundService = ChatBackgroundService(roomStateClient: roomStateClient,
+                                                          cache: chatBackgroundCache,
+                                                          defaultThemeSetting: defaultChatThemeSetting)
+        
         return UserSession(clientProxy: clientProxy,
                            userSettings: userSettings,
                            userHooks: appHooks.userSessionHook.makeUserHooks(for: clientProxy),
                            mediaProvider: mediaProvider,
                            voiceMessageMediaManager: voiceMessageMediaManager,
                            liveLocationService: liveLocationService,
-                           notificationService: notificationService)
+                           notificationService: notificationService,
+                           chatBackgroundService: chatBackgroundService)
     }
     
     private func restorePreviousLogin(_ credentials: KeychainCredentials, userSettings: UserSettings) async -> Result<ClientProxyProtocol, UserSessionStoreError> {

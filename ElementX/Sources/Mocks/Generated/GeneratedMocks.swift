@@ -2082,6 +2082,207 @@ nonisolated class CXProviderMock: CXProviderProtocol, @unchecked Sendable {
         reportCallWithEndedAtReasonClosure?(uuid, endedAt, reason)
     }
 }
+nonisolated class ChatBackgroundServiceMock: ChatBackgroundServiceProtocol, @unchecked Sendable {
+    var defaultThemePublisher: CurrentValuePublisher<ChatTheme, Never> {
+        get { return underlyingDefaultThemePublisher }
+        set(value) { underlyingDefaultThemePublisher = value }
+    }
+    nonisolated(unsafe) var underlyingDefaultThemePublisher: CurrentValuePublisher<ChatTheme, Never>!
+
+    //MARK: - themePublisher
+
+    private let themePublisherRoomIDCallsCountLock = NSLock()
+    private nonisolated(unsafe) var themePublisherRoomIDUnderlyingCallsCount = 0
+    var themePublisherRoomIDCallsCount: Int {
+        get { themePublisherRoomIDCallsCountLock.withLock { themePublisherRoomIDUnderlyingCallsCount } }
+        set { themePublisherRoomIDCallsCountLock.withLock { themePublisherRoomIDUnderlyingCallsCount = newValue } }
+    }
+    var themePublisherRoomIDCalled: Bool {
+        return themePublisherRoomIDCallsCount > 0
+    }
+    private let themePublisherRoomIDReceivedRoomIDLock = NSLock()
+    private nonisolated(unsafe) var themePublisherRoomIDUnderlyingReceivedRoomID: String?
+    var themePublisherRoomIDReceivedRoomID: String? {
+        get { themePublisherRoomIDReceivedRoomIDLock.withLock { themePublisherRoomIDUnderlyingReceivedRoomID } }
+        set { themePublisherRoomIDReceivedRoomIDLock.withLock { themePublisherRoomIDUnderlyingReceivedRoomID = newValue } }
+    }
+    private let themePublisherRoomIDReceivedInvocationsLock = NSLock()
+    private nonisolated(unsafe) var themePublisherRoomIDUnderlyingReceivedInvocations: [String] = []
+    var themePublisherRoomIDReceivedInvocations: [String] {
+        get { themePublisherRoomIDReceivedInvocationsLock.withLock { themePublisherRoomIDUnderlyingReceivedInvocations } }
+        set { themePublisherRoomIDReceivedInvocationsLock.withLock { themePublisherRoomIDUnderlyingReceivedInvocations = newValue } }
+    }
+
+    private let themePublisherRoomIDReturnValueLock = NSLock()
+    private nonisolated(unsafe) var themePublisherRoomIDUnderlyingReturnValue: CurrentValuePublisher<ChatTheme, Never>!
+    var themePublisherRoomIDReturnValue: CurrentValuePublisher<ChatTheme, Never>! {
+        get { themePublisherRoomIDReturnValueLock.withLock { themePublisherRoomIDUnderlyingReturnValue } }
+        set { themePublisherRoomIDReturnValueLock.withLock { themePublisherRoomIDUnderlyingReturnValue = newValue } }
+    }
+    nonisolated(unsafe) var themePublisherRoomIDClosure: ((String) -> CurrentValuePublisher<ChatTheme, Never>)?
+
+    @MainActor
+    func themePublisher(roomID: String) -> CurrentValuePublisher<ChatTheme, Never> {
+        themePublisherRoomIDCallsCountLock.withLock { themePublisherRoomIDUnderlyingCallsCount += 1 }
+        themePublisherRoomIDReceivedRoomID = roomID
+        themePublisherRoomIDReceivedInvocationsLock.withLock { themePublisherRoomIDUnderlyingReceivedInvocations.append(roomID) }
+        if let themePublisherRoomIDClosure = themePublisherRoomIDClosure {
+            return themePublisherRoomIDClosure(roomID)
+        } else {
+            return themePublisherRoomIDReturnValue
+        }
+    }
+    //MARK: - refresh
+
+    private let refreshRoomIDCallsCountLock = NSLock()
+    private nonisolated(unsafe) var refreshRoomIDUnderlyingCallsCount = 0
+    var refreshRoomIDCallsCount: Int {
+        get { refreshRoomIDCallsCountLock.withLock { refreshRoomIDUnderlyingCallsCount } }
+        set { refreshRoomIDCallsCountLock.withLock { refreshRoomIDUnderlyingCallsCount = newValue } }
+    }
+    var refreshRoomIDCalled: Bool {
+        return refreshRoomIDCallsCount > 0
+    }
+    private let refreshRoomIDReceivedRoomIDLock = NSLock()
+    private nonisolated(unsafe) var refreshRoomIDUnderlyingReceivedRoomID: String?
+    var refreshRoomIDReceivedRoomID: String? {
+        get { refreshRoomIDReceivedRoomIDLock.withLock { refreshRoomIDUnderlyingReceivedRoomID } }
+        set { refreshRoomIDReceivedRoomIDLock.withLock { refreshRoomIDUnderlyingReceivedRoomID = newValue } }
+    }
+    private let refreshRoomIDReceivedInvocationsLock = NSLock()
+    private nonisolated(unsafe) var refreshRoomIDUnderlyingReceivedInvocations: [String] = []
+    var refreshRoomIDReceivedInvocations: [String] {
+        get { refreshRoomIDReceivedInvocationsLock.withLock { refreshRoomIDUnderlyingReceivedInvocations } }
+        set { refreshRoomIDReceivedInvocationsLock.withLock { refreshRoomIDUnderlyingReceivedInvocations = newValue } }
+    }
+    nonisolated(unsafe) var refreshRoomIDClosure: ((String) async -> Void)?
+
+    @MainActor
+    @concurrent func refresh(roomID: String) async {
+        refreshRoomIDCallsCountLock.withLock { refreshRoomIDUnderlyingCallsCount += 1 }
+        refreshRoomIDReceivedRoomID = roomID
+        refreshRoomIDReceivedInvocationsLock.withLock { refreshRoomIDUnderlyingReceivedInvocations.append(roomID) }
+        await refreshRoomIDClosure?(roomID)
+    }
+    //MARK: - handleTimelineEvent
+
+    private let handleTimelineEventRoomIDEventIDTimestampContentJSONCallsCountLock = NSLock()
+    private nonisolated(unsafe) var handleTimelineEventRoomIDEventIDTimestampContentJSONUnderlyingCallsCount = 0
+    var handleTimelineEventRoomIDEventIDTimestampContentJSONCallsCount: Int {
+        get { handleTimelineEventRoomIDEventIDTimestampContentJSONCallsCountLock.withLock { handleTimelineEventRoomIDEventIDTimestampContentJSONUnderlyingCallsCount } }
+        set { handleTimelineEventRoomIDEventIDTimestampContentJSONCallsCountLock.withLock { handleTimelineEventRoomIDEventIDTimestampContentJSONUnderlyingCallsCount = newValue } }
+    }
+    var handleTimelineEventRoomIDEventIDTimestampContentJSONCalled: Bool {
+        return handleTimelineEventRoomIDEventIDTimestampContentJSONCallsCount > 0
+    }
+    private let handleTimelineEventRoomIDEventIDTimestampContentJSONReceivedArgumentsLock = NSLock()
+    private nonisolated(unsafe) var handleTimelineEventRoomIDEventIDTimestampContentJSONUnderlyingReceivedArguments: (roomID: String, eventID: String, timestamp: UInt64, contentJSON: String)?
+    var handleTimelineEventRoomIDEventIDTimestampContentJSONReceivedArguments: (roomID: String, eventID: String, timestamp: UInt64, contentJSON: String)? {
+        get { handleTimelineEventRoomIDEventIDTimestampContentJSONReceivedArgumentsLock.withLock { handleTimelineEventRoomIDEventIDTimestampContentJSONUnderlyingReceivedArguments } }
+        set { handleTimelineEventRoomIDEventIDTimestampContentJSONReceivedArgumentsLock.withLock { handleTimelineEventRoomIDEventIDTimestampContentJSONUnderlyingReceivedArguments = newValue } }
+    }
+    private let handleTimelineEventRoomIDEventIDTimestampContentJSONReceivedInvocationsLock = NSLock()
+    private nonisolated(unsafe) var handleTimelineEventRoomIDEventIDTimestampContentJSONUnderlyingReceivedInvocations: [(roomID: String, eventID: String, timestamp: UInt64, contentJSON: String)] = []
+    var handleTimelineEventRoomIDEventIDTimestampContentJSONReceivedInvocations: [(roomID: String, eventID: String, timestamp: UInt64, contentJSON: String)] {
+        get { handleTimelineEventRoomIDEventIDTimestampContentJSONReceivedInvocationsLock.withLock { handleTimelineEventRoomIDEventIDTimestampContentJSONUnderlyingReceivedInvocations } }
+        set { handleTimelineEventRoomIDEventIDTimestampContentJSONReceivedInvocationsLock.withLock { handleTimelineEventRoomIDEventIDTimestampContentJSONUnderlyingReceivedInvocations = newValue } }
+    }
+    nonisolated(unsafe) var handleTimelineEventRoomIDEventIDTimestampContentJSONClosure: ((String, String, UInt64, String) -> Void)?
+
+    @MainActor
+    func handleTimelineEvent(roomID: String, eventID: String, timestamp: UInt64, contentJSON: String) {
+        handleTimelineEventRoomIDEventIDTimestampContentJSONCallsCountLock.withLock { handleTimelineEventRoomIDEventIDTimestampContentJSONUnderlyingCallsCount += 1 }
+        handleTimelineEventRoomIDEventIDTimestampContentJSONReceivedArguments = (roomID: roomID, eventID: eventID, timestamp: timestamp, contentJSON: contentJSON)
+        handleTimelineEventRoomIDEventIDTimestampContentJSONReceivedInvocationsLock.withLock { handleTimelineEventRoomIDEventIDTimestampContentJSONUnderlyingReceivedInvocations.append((roomID: roomID, eventID: eventID, timestamp: timestamp, contentJSON: contentJSON)) }
+        handleTimelineEventRoomIDEventIDTimestampContentJSONClosure?(roomID, eventID, timestamp, contentJSON)
+    }
+    //MARK: - set
+
+    private let setRoomProxyCallsCountLock = NSLock()
+    private nonisolated(unsafe) var setRoomProxyUnderlyingCallsCount = 0
+    var setRoomProxyCallsCount: Int {
+        get { setRoomProxyCallsCountLock.withLock { setRoomProxyUnderlyingCallsCount } }
+        set { setRoomProxyCallsCountLock.withLock { setRoomProxyUnderlyingCallsCount = newValue } }
+    }
+    var setRoomProxyCalled: Bool {
+        return setRoomProxyCallsCount > 0
+    }
+    private let setRoomProxyReceivedArgumentsLock = NSLock()
+    private nonisolated(unsafe) var setRoomProxyUnderlyingReceivedArguments: (theme: ChatTheme, roomProxy: JoinedRoomProxyProtocol)?
+    var setRoomProxyReceivedArguments: (theme: ChatTheme, roomProxy: JoinedRoomProxyProtocol)? {
+        get { setRoomProxyReceivedArgumentsLock.withLock { setRoomProxyUnderlyingReceivedArguments } }
+        set { setRoomProxyReceivedArgumentsLock.withLock { setRoomProxyUnderlyingReceivedArguments = newValue } }
+    }
+    private let setRoomProxyReceivedInvocationsLock = NSLock()
+    private nonisolated(unsafe) var setRoomProxyUnderlyingReceivedInvocations: [(theme: ChatTheme, roomProxy: JoinedRoomProxyProtocol)] = []
+    var setRoomProxyReceivedInvocations: [(theme: ChatTheme, roomProxy: JoinedRoomProxyProtocol)] {
+        get { setRoomProxyReceivedInvocationsLock.withLock { setRoomProxyUnderlyingReceivedInvocations } }
+        set { setRoomProxyReceivedInvocationsLock.withLock { setRoomProxyUnderlyingReceivedInvocations = newValue } }
+    }
+
+    private let setRoomProxyReturnValueLock = NSLock()
+    private nonisolated(unsafe) var setRoomProxyUnderlyingReturnValue: Result<Void, RoomProxyError>!
+    var setRoomProxyReturnValue: Result<Void, RoomProxyError>! {
+        get { setRoomProxyReturnValueLock.withLock { setRoomProxyUnderlyingReturnValue } }
+        set { setRoomProxyReturnValueLock.withLock { setRoomProxyUnderlyingReturnValue = newValue } }
+    }
+    nonisolated(unsafe) var setRoomProxyClosure: ((ChatTheme, JoinedRoomProxyProtocol) async -> Result<Void, RoomProxyError>)?
+
+    @MainActor
+    @concurrent func set(_ theme: ChatTheme, roomProxy: JoinedRoomProxyProtocol) async -> Result<Void, RoomProxyError> {
+        setRoomProxyCallsCountLock.withLock { setRoomProxyUnderlyingCallsCount += 1 }
+        setRoomProxyReceivedArguments = (theme: theme, roomProxy: roomProxy)
+        setRoomProxyReceivedInvocationsLock.withLock { setRoomProxyUnderlyingReceivedInvocations.append((theme: theme, roomProxy: roomProxy)) }
+        if let setRoomProxyClosure = setRoomProxyClosure {
+            return await setRoomProxyClosure(theme, roomProxy)
+        } else {
+            return setRoomProxyReturnValue
+        }
+    }
+    //MARK: - setDefaultTheme
+
+    private let setDefaultThemeCallsCountLock = NSLock()
+    private nonisolated(unsafe) var setDefaultThemeUnderlyingCallsCount = 0
+    var setDefaultThemeCallsCount: Int {
+        get { setDefaultThemeCallsCountLock.withLock { setDefaultThemeUnderlyingCallsCount } }
+        set { setDefaultThemeCallsCountLock.withLock { setDefaultThemeUnderlyingCallsCount = newValue } }
+    }
+    var setDefaultThemeCalled: Bool {
+        return setDefaultThemeCallsCount > 0
+    }
+    private let setDefaultThemeReceivedThemeLock = NSLock()
+    private nonisolated(unsafe) var setDefaultThemeUnderlyingReceivedTheme: ChatTheme?
+    var setDefaultThemeReceivedTheme: ChatTheme? {
+        get { setDefaultThemeReceivedThemeLock.withLock { setDefaultThemeUnderlyingReceivedTheme } }
+        set { setDefaultThemeReceivedThemeLock.withLock { setDefaultThemeUnderlyingReceivedTheme = newValue } }
+    }
+    private let setDefaultThemeReceivedInvocationsLock = NSLock()
+    private nonisolated(unsafe) var setDefaultThemeUnderlyingReceivedInvocations: [ChatTheme] = []
+    var setDefaultThemeReceivedInvocations: [ChatTheme] {
+        get { setDefaultThemeReceivedInvocationsLock.withLock { setDefaultThemeUnderlyingReceivedInvocations } }
+        set { setDefaultThemeReceivedInvocationsLock.withLock { setDefaultThemeUnderlyingReceivedInvocations = newValue } }
+    }
+
+    private let setDefaultThemeReturnValueLock = NSLock()
+    private nonisolated(unsafe) var setDefaultThemeUnderlyingReturnValue: Result<Void, ClientProxyError>!
+    var setDefaultThemeReturnValue: Result<Void, ClientProxyError>! {
+        get { setDefaultThemeReturnValueLock.withLock { setDefaultThemeUnderlyingReturnValue } }
+        set { setDefaultThemeReturnValueLock.withLock { setDefaultThemeUnderlyingReturnValue = newValue } }
+    }
+    nonisolated(unsafe) var setDefaultThemeClosure: ((ChatTheme) async -> Result<Void, ClientProxyError>)?
+
+    @MainActor
+    @concurrent func setDefaultTheme(_ theme: ChatTheme) async -> Result<Void, ClientProxyError> {
+        setDefaultThemeCallsCountLock.withLock { setDefaultThemeUnderlyingCallsCount += 1 }
+        setDefaultThemeReceivedTheme = theme
+        setDefaultThemeReceivedInvocationsLock.withLock { setDefaultThemeUnderlyingReceivedInvocations.append(theme) }
+        if let setDefaultThemeClosure = setDefaultThemeClosure {
+            return await setDefaultThemeClosure(theme)
+        } else {
+            return setDefaultThemeReturnValue
+        }
+    }
+}
 nonisolated class ClassicAppManagerMock: ClassicAppManagerProtocol, @unchecked Sendable {
 
     //MARK: - loadAccounts
@@ -3238,6 +3439,48 @@ nonisolated class ClientProxyMock: ClientProxyProtocol, @unchecked Sendable {
             return await uploadMediaClosure(media)
         } else {
             return uploadMediaReturnValue
+        }
+    }
+    //MARK: - uploadMedia
+
+    private let uploadMediaDataMimeTypeCallsCountLock = NSLock()
+    private nonisolated(unsafe) var uploadMediaDataMimeTypeUnderlyingCallsCount = 0
+    var uploadMediaDataMimeTypeCallsCount: Int {
+        get { uploadMediaDataMimeTypeCallsCountLock.withLock { uploadMediaDataMimeTypeUnderlyingCallsCount } }
+        set { uploadMediaDataMimeTypeCallsCountLock.withLock { uploadMediaDataMimeTypeUnderlyingCallsCount = newValue } }
+    }
+    var uploadMediaDataMimeTypeCalled: Bool {
+        return uploadMediaDataMimeTypeCallsCount > 0
+    }
+    private let uploadMediaDataMimeTypeReceivedArgumentsLock = NSLock()
+    private nonisolated(unsafe) var uploadMediaDataMimeTypeUnderlyingReceivedArguments: (data: Data, mimeType: String)?
+    var uploadMediaDataMimeTypeReceivedArguments: (data: Data, mimeType: String)? {
+        get { uploadMediaDataMimeTypeReceivedArgumentsLock.withLock { uploadMediaDataMimeTypeUnderlyingReceivedArguments } }
+        set { uploadMediaDataMimeTypeReceivedArgumentsLock.withLock { uploadMediaDataMimeTypeUnderlyingReceivedArguments = newValue } }
+    }
+    private let uploadMediaDataMimeTypeReceivedInvocationsLock = NSLock()
+    private nonisolated(unsafe) var uploadMediaDataMimeTypeUnderlyingReceivedInvocations: [(data: Data, mimeType: String)] = []
+    var uploadMediaDataMimeTypeReceivedInvocations: [(data: Data, mimeType: String)] {
+        get { uploadMediaDataMimeTypeReceivedInvocationsLock.withLock { uploadMediaDataMimeTypeUnderlyingReceivedInvocations } }
+        set { uploadMediaDataMimeTypeReceivedInvocationsLock.withLock { uploadMediaDataMimeTypeUnderlyingReceivedInvocations = newValue } }
+    }
+
+    private let uploadMediaDataMimeTypeReturnValueLock = NSLock()
+    private nonisolated(unsafe) var uploadMediaDataMimeTypeUnderlyingReturnValue: Result<String, ClientProxyError>!
+    var uploadMediaDataMimeTypeReturnValue: Result<String, ClientProxyError>! {
+        get { uploadMediaDataMimeTypeReturnValueLock.withLock { uploadMediaDataMimeTypeUnderlyingReturnValue } }
+        set { uploadMediaDataMimeTypeReturnValueLock.withLock { uploadMediaDataMimeTypeUnderlyingReturnValue = newValue } }
+    }
+    nonisolated(unsafe) var uploadMediaDataMimeTypeClosure: ((Data, String) async -> Result<String, ClientProxyError>)?
+
+    @concurrent func uploadMedia(data: Data, mimeType: String) async -> Result<String, ClientProxyError> {
+        uploadMediaDataMimeTypeCallsCountLock.withLock { uploadMediaDataMimeTypeUnderlyingCallsCount += 1 }
+        uploadMediaDataMimeTypeReceivedArguments = (data: data, mimeType: mimeType)
+        uploadMediaDataMimeTypeReceivedInvocationsLock.withLock { uploadMediaDataMimeTypeUnderlyingReceivedInvocations.append((data: data, mimeType: mimeType)) }
+        if let uploadMediaDataMimeTypeClosure = uploadMediaDataMimeTypeClosure {
+            return await uploadMediaDataMimeTypeClosure(data, mimeType)
+        } else {
+            return uploadMediaDataMimeTypeReturnValue
         }
     }
     //MARK: - roomForIdentifier
@@ -6450,6 +6693,48 @@ nonisolated class JoinedRoomProxyMock: JoinedRoomProxyProtocol, @unchecked Senda
             return await setTopicClosure(topic)
         } else {
             return setTopicReturnValue
+        }
+    }
+    //MARK: - sendStateEvent
+
+    private let sendStateEventTypeStateKeyContentCallsCountLock = NSLock()
+    private nonisolated(unsafe) var sendStateEventTypeStateKeyContentUnderlyingCallsCount = 0
+    var sendStateEventTypeStateKeyContentCallsCount: Int {
+        get { sendStateEventTypeStateKeyContentCallsCountLock.withLock { sendStateEventTypeStateKeyContentUnderlyingCallsCount } }
+        set { sendStateEventTypeStateKeyContentCallsCountLock.withLock { sendStateEventTypeStateKeyContentUnderlyingCallsCount = newValue } }
+    }
+    var sendStateEventTypeStateKeyContentCalled: Bool {
+        return sendStateEventTypeStateKeyContentCallsCount > 0
+    }
+    private let sendStateEventTypeStateKeyContentReceivedArgumentsLock = NSLock()
+    private nonisolated(unsafe) var sendStateEventTypeStateKeyContentUnderlyingReceivedArguments: (type: String, stateKey: String, content: String)?
+    var sendStateEventTypeStateKeyContentReceivedArguments: (type: String, stateKey: String, content: String)? {
+        get { sendStateEventTypeStateKeyContentReceivedArgumentsLock.withLock { sendStateEventTypeStateKeyContentUnderlyingReceivedArguments } }
+        set { sendStateEventTypeStateKeyContentReceivedArgumentsLock.withLock { sendStateEventTypeStateKeyContentUnderlyingReceivedArguments = newValue } }
+    }
+    private let sendStateEventTypeStateKeyContentReceivedInvocationsLock = NSLock()
+    private nonisolated(unsafe) var sendStateEventTypeStateKeyContentUnderlyingReceivedInvocations: [(type: String, stateKey: String, content: String)] = []
+    var sendStateEventTypeStateKeyContentReceivedInvocations: [(type: String, stateKey: String, content: String)] {
+        get { sendStateEventTypeStateKeyContentReceivedInvocationsLock.withLock { sendStateEventTypeStateKeyContentUnderlyingReceivedInvocations } }
+        set { sendStateEventTypeStateKeyContentReceivedInvocationsLock.withLock { sendStateEventTypeStateKeyContentUnderlyingReceivedInvocations = newValue } }
+    }
+
+    private let sendStateEventTypeStateKeyContentReturnValueLock = NSLock()
+    private nonisolated(unsafe) var sendStateEventTypeStateKeyContentUnderlyingReturnValue: Result<String, RoomProxyError>!
+    var sendStateEventTypeStateKeyContentReturnValue: Result<String, RoomProxyError>! {
+        get { sendStateEventTypeStateKeyContentReturnValueLock.withLock { sendStateEventTypeStateKeyContentUnderlyingReturnValue } }
+        set { sendStateEventTypeStateKeyContentReturnValueLock.withLock { sendStateEventTypeStateKeyContentUnderlyingReturnValue = newValue } }
+    }
+    nonisolated(unsafe) var sendStateEventTypeStateKeyContentClosure: ((String, String, String) async -> Result<String, RoomProxyError>)?
+
+    @concurrent func sendStateEvent(type: String, stateKey: String, content: String) async -> Result<String, RoomProxyError> {
+        sendStateEventTypeStateKeyContentCallsCountLock.withLock { sendStateEventTypeStateKeyContentUnderlyingCallsCount += 1 }
+        sendStateEventTypeStateKeyContentReceivedArguments = (type: type, stateKey: stateKey, content: content)
+        sendStateEventTypeStateKeyContentReceivedInvocationsLock.withLock { sendStateEventTypeStateKeyContentUnderlyingReceivedInvocations.append((type: type, stateKey: stateKey, content: content)) }
+        if let sendStateEventTypeStateKeyContentClosure = sendStateEventTypeStateKeyContentClosure {
+            return await sendStateEventTypeStateKeyContentClosure(type, stateKey, content)
+        } else {
+            return sendStateEventTypeStateKeyContentReturnValue
         }
     }
     //MARK: - removeAvatar
@@ -11369,6 +11654,51 @@ nonisolated class RoomProxyMock: RoomProxyProtocol, @unchecked Sendable {
     nonisolated(unsafe) var underlyingOwnUserID: String!
 
 }
+nonisolated class RoomStateClientMock: RoomStateClientProtocol, @unchecked Sendable {
+
+    //MARK: - chatBackground
+
+    private let chatBackgroundRoomIDCallsCountLock = NSLock()
+    private nonisolated(unsafe) var chatBackgroundRoomIDUnderlyingCallsCount = 0
+    var chatBackgroundRoomIDCallsCount: Int {
+        get { chatBackgroundRoomIDCallsCountLock.withLock { chatBackgroundRoomIDUnderlyingCallsCount } }
+        set { chatBackgroundRoomIDCallsCountLock.withLock { chatBackgroundRoomIDUnderlyingCallsCount = newValue } }
+    }
+    var chatBackgroundRoomIDCalled: Bool {
+        return chatBackgroundRoomIDCallsCount > 0
+    }
+    private let chatBackgroundRoomIDReceivedRoomIDLock = NSLock()
+    private nonisolated(unsafe) var chatBackgroundRoomIDUnderlyingReceivedRoomID: String?
+    var chatBackgroundRoomIDReceivedRoomID: String? {
+        get { chatBackgroundRoomIDReceivedRoomIDLock.withLock { chatBackgroundRoomIDUnderlyingReceivedRoomID } }
+        set { chatBackgroundRoomIDReceivedRoomIDLock.withLock { chatBackgroundRoomIDUnderlyingReceivedRoomID = newValue } }
+    }
+    private let chatBackgroundRoomIDReceivedInvocationsLock = NSLock()
+    private nonisolated(unsafe) var chatBackgroundRoomIDUnderlyingReceivedInvocations: [String] = []
+    var chatBackgroundRoomIDReceivedInvocations: [String] {
+        get { chatBackgroundRoomIDReceivedInvocationsLock.withLock { chatBackgroundRoomIDUnderlyingReceivedInvocations } }
+        set { chatBackgroundRoomIDReceivedInvocationsLock.withLock { chatBackgroundRoomIDUnderlyingReceivedInvocations = newValue } }
+    }
+
+    private let chatBackgroundRoomIDReturnValueLock = NSLock()
+    private nonisolated(unsafe) var chatBackgroundRoomIDUnderlyingReturnValue: RoomStateReadResult!
+    var chatBackgroundRoomIDReturnValue: RoomStateReadResult! {
+        get { chatBackgroundRoomIDReturnValueLock.withLock { chatBackgroundRoomIDUnderlyingReturnValue } }
+        set { chatBackgroundRoomIDReturnValueLock.withLock { chatBackgroundRoomIDUnderlyingReturnValue = newValue } }
+    }
+    nonisolated(unsafe) var chatBackgroundRoomIDClosure: ((String) async -> RoomStateReadResult)?
+
+    @concurrent func chatBackground(roomID: String) async -> RoomStateReadResult {
+        chatBackgroundRoomIDCallsCountLock.withLock { chatBackgroundRoomIDUnderlyingCallsCount += 1 }
+        chatBackgroundRoomIDReceivedRoomID = roomID
+        chatBackgroundRoomIDReceivedInvocationsLock.withLock { chatBackgroundRoomIDUnderlyingReceivedInvocations.append(roomID) }
+        if let chatBackgroundRoomIDClosure = chatBackgroundRoomIDClosure {
+            return await chatBackgroundRoomIDClosure(roomID)
+        } else {
+            return chatBackgroundRoomIDReturnValue
+        }
+    }
+}
 nonisolated class RoomSummaryProviderMock: RoomSummaryProviderProtocol, @unchecked Sendable {
     var statePublisher: CurrentValuePublisher<RoomSummaryProviderState, Never> {
         get { return underlyingStatePublisher }
@@ -16030,6 +16360,11 @@ nonisolated class UserSessionMock: UserSessionProtocol, @unchecked Sendable {
         set(value) { underlyingNotificationService = value }
     }
     nonisolated(unsafe) var underlyingNotificationService: NotificationServiceProtocol!
+    var chatBackgroundService: ChatBackgroundServiceProtocol {
+        get { return underlyingChatBackgroundService }
+        set(value) { underlyingChatBackgroundService = value }
+    }
+    nonisolated(unsafe) var underlyingChatBackgroundService: ChatBackgroundServiceProtocol!
     var sessionSecurityStatePublisher: CurrentValuePublisher<SessionSecurityState, Never> {
         get { return underlyingSessionSecurityStatePublisher }
         set(value) { underlyingSessionSecurityStatePublisher = value }

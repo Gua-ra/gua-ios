@@ -70,6 +70,7 @@ extension RoomFlowCoordinator {
         case mediaEventsTimeline(previousState: State)
         case securityAndPrivacy(previousState: State)
         case manageAuthorizedSpacesScreen(previousState: State)
+        case chatTheme(previousState: State)
         case reportRoom(previousState: State)
         case declineAndBlockScreen
         case transferOwnershipScreen(previousState: State)
@@ -172,6 +173,9 @@ extension RoomFlowCoordinator {
         
         case presentManageAuthorizedSpacesScreen
         case dismissedManageAuthorizedSpacesScreen
+        
+        case presentChatThemeScreen
+        case dismissChatThemeScreen
         
         case presentReportRoomScreen
         case dismissReportRoomScreen
@@ -334,6 +338,11 @@ extension RoomFlowCoordinator {
             case (.securityAndPrivacy, .presentManageAuthorizedSpacesScreen):
                 return .manageAuthorizedSpacesScreen(previousState: fromState)
             case (.manageAuthorizedSpacesScreen(let previousState), .dismissedManageAuthorizedSpacesScreen):
+                return previousState
+                
+            case (.roomDetails, .presentChatThemeScreen):
+                return .chatTheme(previousState: fromState)
+            case (.chatTheme(let previousState), .dismissChatThemeScreen):
                 return previousState
                 
             case (.roomDetails, .presentReportRoomScreen):

@@ -46,6 +46,15 @@ final nonisolated class AppSettings: @unchecked Sendable {
         AppBuildType.current
     }
     
+    /// GUA FORK: the same builds as `GuaDeployment.development`, which the extensions don't compile.
+    private static var isGuaDevelopmentBuild: Bool {
+        #if GUA_DEVELOPMENT || DEBUG
+        true
+        #else
+        false
+        #endif
+    }
+    
     func resetAllSettings() {
         MXLog.warning("Resetting the AppSettings.")
         store.reset()
@@ -488,6 +497,10 @@ final nonisolated class AppSettings: @unchecked Sendable {
     /// fails to attach fails the signup.
     @UserPreference(defaultValue: false)
     var guaAccountGenesisEnabled: Bool
+    
+    /// GUA FORK: off in production until released Android builds stop showing the raw event in group timelines.
+    @UserPreference(defaultValue: AppSettings.isGuaDevelopmentBuild)
+    var guaChatBackgroundsEnabled: Bool
     
     @UserPreference(defaultValue: AppBuildType.current != .release)
     var developerOptionsEnabled: Bool

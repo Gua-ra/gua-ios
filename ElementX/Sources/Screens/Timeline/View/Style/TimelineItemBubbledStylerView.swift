@@ -14,6 +14,8 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
     @Environment(\.timelineGroupStyle) private var timelineGroupStyle
     @Environment(\.focussedEventID) private var focussedEventID
     @Environment(\.isMessageMenuPreview) private var isMessageMenuPreview
+    @Environment(\.chatBackgroundActive) private var isChatBackgroundActive
+    @Environment(\.chatBubbleColor) private var chatBubbleColor
     
     @State private var bubbleFrameReader = WindowFrameReader()
     
@@ -169,11 +171,14 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
                     if timelineItem.sender.displayName != nil, timelineItem.sender.isDisplayNameAmbiguous {
                         Text(timelineItem.sender.id.guaDisplayHandle)
                             .font(.compound.bodyXS)
-                            .foregroundStyle(.compound.textSecondary)
+                            .legibleSecondaryForeground()
                     }
                 }
                 .lineLimit(1)
-                .scaledPadding(.top, 3)
+                // GUA FORK: the capsule brings the vertical padding, and stays clear of the 12 pt the bubble tucks under the header.
+                .scaledPadding(.top, isChatBackgroundActive ? 0 : 3)
+                .legibilityCapsule()
+                .padding(.bottom, isChatBackgroundActive ? 12 : 0)
             }
             // sender info are read inside the `TimelineAccessibilityModifier`
             .accessibilityHidden(true)
@@ -239,6 +244,7 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
             .swipeRightAction {
                 CompoundIcon(\.reply)
                     .foregroundColor(.compound.iconPrimary)
+                    .legibilityCapsule(.circle)
                     .accessibilityHidden(true)
             } shouldStartAction: {
                 !isMessageSelectionActive && timelineItem.canBeRepliedTo
@@ -297,7 +303,7 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
                                   context: context)
             .bubbleBackground(isOutgoing: timelineItem.isOutgoing,
                               insets: timelineItem.bubbleInsets(hasContentScanningFailure: hasContentScanningFailure),
-                              color: hasContentScanningFailure ? .compound.bgCriticalSubtle : timelineItem.bubbleBackgroundColor,
+                              color: hasContentScanningFailure ? .compound.bgCriticalSubtle : timelineItem.bubbleBackgroundColor(outgoing: chatBubbleColor.outgoingColor),
                               borderColor: hasContentScanningFailure ? .compound.borderCriticalSubtle : nil)
     }
     
@@ -353,8 +359,9 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
 }
 
 private extension EventBasedTimelineItemProtocol {
-    var bubbleBackgroundColor: Color? {
-        let defaultColor: Color = isOutgoing ? .compound._bgBubbleOutgoing : .compound._bgBubbleIncoming
+    /// GUA FORK: the chat theme colours the outgoing bubble.
+    func bubbleBackgroundColor(outgoing outgoingColor: Color) -> Color? {
+        let defaultColor: Color = isOutgoing ? outgoingColor : .compound._bgBubbleIncoming
         
         switch self {
         case is ImageRoomTimelineItem, is VideoRoomTimelineItem:
@@ -419,6 +426,8 @@ private struct PinnedIndicatorViewModifier: ViewModifier {
     let isPinned: Bool
     let isOutgoing: Bool
     
+    @Environment(\.chatBackgroundActive) private var isChatBackgroundActive
+    
     func body(content: Content) -> some View {
         if isPinned {
             HStack(alignment: .top, spacing: 8) {
@@ -439,6 +448,8 @@ private struct PinnedIndicatorViewModifier: ViewModifier {
     private var pinnedIndicator: some View {
         CompoundIcon(\.pinSolid, size: .xSmall, relativeTo: .compound.bodyMD)
             .foregroundStyle(Color.compound.iconTertiary)
+            .padding(isChatBackgroundActive ? 1 : 0)
+            .legibilityCapsule(.circle, hasPadding: false)
             .accessibilityLabel(L10n.commonPinned)
     }
 }
@@ -542,6 +553,12 @@ struct TimelineItemBubbledStylerView_Previews: PreviewProvider, TestablePreview 
             .previewDisplayName("Encryption Forwarder Info")
         pinned
             .previewDisplayName("Pinned messages")
+            .previewLayout(.fixed(width: 390, height: 1150))
+            .padding(.bottom, 20)
+        pinned
+            .environment(\.chatBackgroundActive, true)
+            .background { ChatBackgroundView(background: .preset(.night), mediaProvider: nil) }
+            .previewDisplayName("Pinned messages over a background")
             .previewLayout(.fixed(width: 390, height: 1150))
             .padding(.bottom, 20)
         selection

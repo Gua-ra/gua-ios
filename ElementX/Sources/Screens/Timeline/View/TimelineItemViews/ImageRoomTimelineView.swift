@@ -11,6 +11,8 @@ import SwiftUI
 
 struct ImageRoomTimelineView: View {
     @Environment(\.timelineContext) private var context
+    // GUA FORK: the placeholder matches the chat theme's outgoing bubble.
+    @Environment(\.chatBubbleColor) private var chatBubbleColor
     let timelineItem: ImageRoomTimelineItem
     
     @State private var contentScanningFailure: ContentScanningFailure?
@@ -87,7 +89,7 @@ struct ImageRoomTimelineView: View {
     
     private var placeholder: some View {
         Rectangle()
-            .foregroundColor(timelineItem.isOutgoing ? .compound._bgBubbleOutgoing : .compound._bgBubbleIncoming)
+            .foregroundColor(timelineItem.isOutgoing ? chatBubbleColor.outgoingColor : .compound._bgBubbleIncoming)
             .opacity(0.3)
     }
 }

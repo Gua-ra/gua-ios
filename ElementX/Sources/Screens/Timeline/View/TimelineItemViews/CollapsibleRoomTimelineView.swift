@@ -45,7 +45,8 @@ struct CollapsibleRoomTimelineView: View {
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
                         .animation(.elementDefault, value: isExpanded)
                 }
-                .foregroundColor(.compound.textSecondary)
+                .legibleSecondaryForeground()
+                .legibilityCapsule()
                 .padding(.horizontal, 36.0)
                 .padding(.vertical, 12.0)
                 .contentShape(Rectangle())

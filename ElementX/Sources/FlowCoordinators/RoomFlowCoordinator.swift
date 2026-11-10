@@ -492,6 +492,9 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
                 }
                 presentManageAuthorizedSpacesScreen(selection: selection)
                 
+            case (.roomDetails, .presentChatThemeScreen, .chatTheme):
+                presentChatThemeScreen()
+                
             case (.roomDetails, .presentReportRoomScreen, .reportRoom):
                 presentReportRoom()
                 
@@ -983,6 +986,8 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
                 stateMachine.tryEvent(.presentMediaEventsTimeline)
             case .presentSecurityAndPrivacyScreen:
                 stateMachine.tryEvent(.presentSecurityAndPrivacyScreen)
+            case .presentChatThemeScreen:
+                stateMachine.tryEvent(.presentChatThemeScreen)
             case .presentRecipientDetails(let userID):
                 stateMachine.tryEvent(.startMembersFlow(entryPoint: .roomMember(userID: userID)))
             case .presentReportRoomScreen:
@@ -1460,6 +1465,16 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
         navigationStack.setRootCoordinator(coordinator)
         navigationStackCoordinator.setSheetCoordinator(navigationStack) { [weak self] in
             self?.stateMachine.tryEvent(.dismissedManageAuthorizedSpacesScreen)
+        }
+    }
+    
+    private func presentChatThemeScreen() {
+        let coordinator = ChatThemeScreenCoordinator(parameters: .init(mode: .chat(roomProxy),
+                                                                       userSession: userSession,
+                                                                       userIndicatorController: flowParameters.userIndicatorController))
+        
+        navigationStackCoordinator.push(coordinator) { [weak self] in
+            self?.stateMachine.tryEvent(.dismissChatThemeScreen)
         }
     }
     

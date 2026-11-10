@@ -22,7 +22,8 @@ struct TimelineStartRoomTimelineView: View {
             if context?.viewState.isDM != true {
                 Text(title)
                     .font(.compound.bodySM)
-                    .foregroundColor(.compound.textSecondary)
+                    .legibleSecondaryForeground()
+                    .legibilityCapsule()
                     .padding(.bottom, 24)
                     .padding(.top, context?.viewState.hasPredecessor == true ? 0 : 24)
                     .frame(maxWidth: .infinity)

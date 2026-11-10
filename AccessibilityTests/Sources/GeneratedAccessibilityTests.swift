@@ -83,6 +83,30 @@ extension AccessibilityTests {
         try await performAccessibilityAudit(named: "CallNotificationRoomTimelineView_Previews")
     }
 
+    func testChatBackgroundPhotoPreview() async throws {
+        try await performAccessibilityAudit(named: "ChatBackgroundPhotoPreview_Previews")
+    }
+
+    func testChatBackgroundView() async throws {
+        try await performAccessibilityAudit(named: "ChatBackgroundView_Previews")
+    }
+
+    func testChatBubblePicker() async throws {
+        try await performAccessibilityAudit(named: "ChatBubblePicker_Previews")
+    }
+
+    func testChatThemePreview() async throws {
+        try await performAccessibilityAudit(named: "ChatThemePreview_Previews")
+    }
+
+    func testChatThemeScreen() async throws {
+        try await performAccessibilityAudit(named: "ChatThemeScreen_Previews")
+    }
+
+    func testChatWallpaperPicker() async throws {
+        try await performAccessibilityAudit(named: "ChatWallpaperPicker_Previews")
+    }
+
     func testChatsSpaceFilterCell() async throws {
         try await performAccessibilityAudit(named: "ChatsSpaceFilterCell_Previews")
     }
@@ -301,6 +325,10 @@ extension AccessibilityTests {
 
     func testLegalInformationScreen() async throws {
         try await performAccessibilityAudit(named: "LegalInformationScreen_Previews")
+    }
+
+    func testLegibilityCapsule() async throws {
+        try await performAccessibilityAudit(named: "LegibilityCapsule_Previews")
     }
 
     func testLinkNewDeviceScreen() async throws {

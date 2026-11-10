@@ -89,6 +89,7 @@ class RoomDetailsScreenViewModel: RoomDetailsScreenViewModelType, RoomDetailsScr
         }
         
         updateRoomInfo(roomProxy.infoPublisher.value)
+        setupChatThemeSubscriptionIfNeeded()
         
         setupRoomSubscription()
         Task { await fetchMembersIfNeeded() }
@@ -162,6 +163,8 @@ class RoomDetailsScreenViewModel: RoomDetailsScreenViewModelType, RoomDetailsScr
             actionsSubject.send(.requestRecipientDetailsPresentation(userID: userID))
         case .processTapReport:
             actionsSubject.send(.displayReportRoom)
+        case .processTapChatTheme:
+            actionsSubject.send(.displayChatTheme)
         }
     }
     
@@ -298,7 +301,20 @@ class RoomDetailsScreenViewModel: RoomDetailsScreenViewModelType, RoomDetailsScr
             state.canEditRolesOrPermissions = powerLevels.canOwnUserEditRolesAndPermissions()
             state.canEditSecurityAndPrivacy = powerLevels.canOwnUserEditSecurityAndPrivacy(isSpace: roomInfo.isSpace,
                                                                                            joinRule: roomInfo.joinRule)
+            state.canChangeChatTheme = powerLevels.canOwnUser(sendStateEvent: .guaChatBackground)
         }
+    }
+    
+    private func setupChatThemeSubscriptionIfNeeded() {
+        guard userSession.userSettings.app.guaChatBackgroundsEnabled, !roomProxy.infoPublisher.value.isSpace else { return }
+        
+        let chatBackgroundService = userSession.chatBackgroundService
+        chatBackgroundService.themePublisher(roomID: roomProxy.id)
+            .map { Optional($0) }
+            .weakAssign(to: \.state.chatTheme, on: self)
+            .store(in: &cancellables)
+        
+        Task { [roomID = roomProxy.id] in await chatBackgroundService.refresh(roomID: roomID) }
     }
     
     private func fetchMembersIfNeeded() async {

@@ -145,6 +145,48 @@ extension PreviewTests {
     }
 
     @Test
+    func chatBackgroundPhotoPreview() async throws {
+        for (index, preview) in ChatBackgroundPhotoPreview_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    @Test
+    func chatBackgroundView() async throws {
+        for (index, preview) in ChatBackgroundView_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    @Test
+    func chatBubblePicker() async throws {
+        for (index, preview) in ChatBubblePicker_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    @Test
+    func chatThemePreview() async throws {
+        for (index, preview) in ChatThemePreview_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    @Test
+    func chatThemeScreen() async throws {
+        for (index, preview) in ChatThemeScreen_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    @Test
+    func chatWallpaperPicker() async throws {
+        for (index, preview) in ChatWallpaperPicker_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    @Test
     func chatsSpaceFilterCell() async throws {
         for (index, preview) in ChatsSpaceFilterCell_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)
@@ -525,6 +567,13 @@ extension PreviewTests {
     @Test
     func legalInformationScreen() async throws {
         for (index, preview) in LegalInformationScreen_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    @Test
+    func legibilityCapsule() async throws {
+        for (index, preview) in LegibilityCapsule_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)
         }
     }

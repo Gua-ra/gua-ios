@@ -16,6 +16,7 @@ struct ReadMarkerRoomTimelineView: View {
                 .textCase(.uppercase)
                 .font(.compound.bodyXSSemibold)
                 .foregroundColor(.compound.textActionAccent)
+                .legibilityCapsule()
             
             Rectangle()
                 .frame(height: 0.5)

@@ -34,6 +34,7 @@ struct TimelineReadReceiptsView: View {
                     .foregroundColor(.compound.textPrimary)
             }
         }
+        .legibilityCapsule()
         .onTapGesture {
             context.send(viewAction: .displayReadReceipts(itemID: timelineItem.id))
         }

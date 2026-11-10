@@ -50,6 +50,8 @@ struct TimelineView: View {
                         }
                         .environmentObject(timelineContext)
                         .environment(\.timelineContext, timelineContext)
+                        // GUA FORK: the lifted copy of the bubble keeps the chat's bubble colour.
+                        .environment(\.chatBubbleColor, timelineContext.viewState.effectiveChatTheme.bubble)
                     } else {
                         Color.clear
                             .contentShape(.rect)
@@ -170,6 +172,9 @@ struct TimelineViewRepresentable: UIViewControllerRepresentable {
             }
             if tableViewController.readMarkerUniqueID != context.viewState.timelineState.readMarkerUniqueID {
                 tableViewController.readMarkerUniqueID = context.viewState.timelineState.readMarkerUniqueID
+            }
+            if tableViewController.chatTheme != context.viewState.effectiveChatTheme {
+                tableViewController.chatTheme = context.viewState.effectiveChatTheme
             }
             
             if tableViewController.typingMembers.members != context.viewState.typingMembers {

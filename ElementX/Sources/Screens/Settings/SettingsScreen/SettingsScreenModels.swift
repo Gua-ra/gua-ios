@@ -29,6 +29,7 @@ enum SettingsScreenViewModelAction {
     case logout
     case deactivateAccount
     
+    case chatTheme
     case mediaUploadQuality
     case appLock
     case locationSharing
@@ -53,6 +54,8 @@ struct SettingsScreenViewState: BindableState {
     var accountProfileURL: URL?
     var showAccountDeactivation: Bool
     var showDeveloperOptions: Bool
+    /// GUA FORK: the Chat theme row, behind the chat backgrounds flag.
+    var showChatTheme: Bool
     
     var securitySectionMode = SettingsScreenSecuritySectionMode.none
     var showSecuritySectionBadge = false
@@ -133,6 +136,7 @@ enum SettingsScreenViewAction {
     case deactivateAccount
     
     case toggleSpaces
+    case chatTheme
     case mediaUploadQuality
     case appLock
     case locationSharing

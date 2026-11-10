@@ -165,7 +165,15 @@ struct TimelineViewState: BindableState {
     
     var stoppedLiveLocationIDs: Set<TimelineItemIdentifier> = []
     
+    var chatTheme = ChatTheme.stock
+    var defaultChatTheme = ChatTheme.stock
+    var isPrivateRoom = false
+    
     var bindings: TimelineViewStateBindings
+    
+    var effectiveChatTheme: ChatTheme {
+        ChatTheme.effective(chatTheme: chatTheme, defaultTheme: defaultChatTheme, roomIsPrivate: isPrivateRoom, mediaShown: !hideTimelineMedia)
+    }
 }
 
 struct TimelineViewStateBindings {
