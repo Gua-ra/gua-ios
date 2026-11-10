@@ -35,7 +35,7 @@ struct ChatThemePreview: View {
 
                 ChatThemePreviewControls(previewColorScheme: previewColorScheme,
                                          saveTitle: saveTitle,
-                                         canSave: context.viewState.canSave(draft.theme),
+                                         canSave: context.viewState.canSave(draft),
                                          onPreviewColorScheme: { context.send(viewAction: .setPreviewColorScheme($0)) },
                                          onSave: { context.send(viewAction: .savePreview) })
             }

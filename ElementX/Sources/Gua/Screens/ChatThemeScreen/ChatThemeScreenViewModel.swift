@@ -87,12 +87,14 @@ class ChatThemeScreenViewModel: ChatThemeScreenViewModelType, ChatThemeScreenVie
             state.bindings.bubbleChoice = bubble
         case .setBubble:
             guard let bubble = state.bindings.bubbleChoice else { return }
-            Task { await save(ChatTheme(wallpaper: state.baseTheme.wallpaper, bubble: bubble)) }
+            let theme = ChatTheme(wallpaper: state.baseTheme.wallpaper, bubble: bubble)
+            guard state.canSavePickerChoice(theme) else { return }
+            Task { await save(theme) }
         case .presentWallpaperPicker:
             state.bindings.isWallpaperPickerPresented = true
         case .selectWallpaper(let wallpaper):
             let theme = ChatTheme(wallpaper: wallpaper, bubble: state.baseTheme.bubble)
-            state.bindings.wallpaperPreview = ChatThemePreviewDraft(theme: theme, shownTheme: state.shownTheme(saving: theme))
+            state.bindings.wallpaperPreview = ChatThemePreviewDraft(theme: theme, shownTheme: state.shownTheme(saving: theme), isPickerChoice: true)
         case .photoPicked(let load):
             Task { await preparePhoto(load: load) }
         case .setPhotoDim(let dim):
@@ -122,7 +124,7 @@ class ChatThemeScreenViewModel: ChatThemeScreenViewModelType, ChatThemeScreenVie
                 state.bindings.themePreview = nil
             }
         case .savePreview:
-            guard let draft = state.bindings.wallpaperPreview ?? state.bindings.themePreview else { return }
+            guard let draft = state.bindings.wallpaperPreview ?? state.bindings.themePreview, state.canSave(draft) else { return }
             Task { await save(draft.theme) }
         }
     }

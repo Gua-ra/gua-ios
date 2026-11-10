@@ -201,6 +201,9 @@ final class ChatThemeScreenViewModelTests: XCTestCase {
         context.send(viewAction: .cancelPreview)
         context.send(viewAction: .presentBubblePicker)
         XCTAssertEqual(context.viewState.bindings.bubbleChoice, .green)
+        XCTAssertFalse(context.viewState.canSavePickerChoice(aurora))
+        context.send(viewAction: .setBubble)
+        XCTAssertFalse(service.setRoomProxyCalled)
 
         context.send(viewAction: .chooseBubble(.blue))
         let closed = deferFulfillment(context.observe(\.viewState.bindings.bubbleChoice)) { $0 == nil }
@@ -208,6 +211,34 @@ final class ChatThemeScreenViewModelTests: XCTestCase {
         try await closed.fulfill()
 
         XCTAssertEqual(service.setRoomProxyReceivedArguments?.theme, ChatTheme(wallpaper: .preset(.aurora), bubble: .blue))
+    }
+
+    func testKeepingWhatAPickerStartsFromSendsNothing() throws {
+        setUpViewModel(theme: .stock, defaultTheme: aurora)
+
+        context.send(viewAction: .presentWallpaperPicker)
+        context.send(viewAction: .selectWallpaper(.preset(.aurora)))
+        let draft = try XCTUnwrap(context.viewState.bindings.wallpaperPreview)
+        XCTAssertEqual(draft.theme, aurora)
+        XCTAssertFalse(context.viewState.canSave(draft))
+        context.send(viewAction: .savePreview)
+
+        context.send(viewAction: .selectTheme(aurora))
+        XCTAssertTrue(try context.viewState.canSave(XCTUnwrap(context.viewState.bindings.themePreview)))
+
+        XCTAssertFalse(service.setRoomProxyCalled)
+    }
+
+    func testStandardBubbleOnAChatWithoutAThemeSendsNothing() {
+        setUpViewModel(theme: .stock, defaultTheme: ChatTheme(wallpaper: .photo(.mock), bubble: .blue))
+
+        context.send(viewAction: .presentBubblePicker)
+        context.send(viewAction: .chooseBubble(.standard))
+        XCTAssertFalse(context.viewState.canSavePickerChoice(.stock))
+        context.send(viewAction: .setBubble)
+
+        XCTAssertFalse(service.setRoomProxyCalled)
+        XCTAssertEqual(context.viewState.bindings.bubbleChoice, .standard)
     }
 
     func testTheDefaultPhotoNeverGoesIntoAChat() async throws {

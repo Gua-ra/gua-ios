@@ -45,7 +45,7 @@ struct ChatBubblePicker: View {
                     context.send(viewAction: .setBubble)
                 }
                 .buttonStyle(.compound(.primary))
-                .disabled(!viewState.canSave(savedTheme))
+                .disabled(!viewState.canSavePickerChoice(savedTheme))
                 .padding(16)
                 .background(Color.compound.bgCanvasDefault.ignoresSafeArea())
             }

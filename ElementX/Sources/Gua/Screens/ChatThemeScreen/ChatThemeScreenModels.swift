@@ -28,6 +28,7 @@ struct ChatThemePreviewDraft: Equatable, Identifiable {
     let theme: ChatTheme
     /// What the preview draws, which for the Default tile is the user's default.
     let shownTheme: ChatTheme
+    var isPickerChoice = false
     /// Nil follows the app's appearance.
     var previewColorScheme: ColorScheme?
 }
@@ -85,6 +86,15 @@ struct ChatThemeScreenViewState: BindableState {
 
     func canSave(_ theme: ChatTheme) -> Bool {
         canChange && theme != current
+    }
+
+    /// A picker starts from `baseTheme`, so keeping it is no change either.
+    func canSavePickerChoice(_ theme: ChatTheme) -> Bool {
+        canSave(theme) && theme != baseTheme
+    }
+
+    func canSave(_ draft: ChatThemePreviewDraft) -> Bool {
+        draft.isPickerChoice ? canSavePickerChoice(draft.theme) : canSave(draft.theme)
     }
 }
 
