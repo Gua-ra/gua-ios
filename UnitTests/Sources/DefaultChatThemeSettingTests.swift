@@ -143,6 +143,23 @@ final class DefaultChatThemeSettingTests: XCTestCase {
         XCTAssertEqual(setting.themePublisher.value, dusk)
     }
 
+    func testEchoOfARoundedPhotoIsRecognised() async {
+        var photo = ChatBackground.Photo.mock
+        photo.alignX = 0.123456
+        photo.dim = 0.15000000000000002
+        let theme = ChatTheme(wallpaper: .photo(photo), bubble: .blue)
+
+        _ = await setting.set(theme)
+        XCTAssertEqual(setting.themePublisher.value, ChatTheme(contentJSON: theme.contentJSON))
+
+        clientProxy.accountDataTypeReturnValue = .success(theme.contentJSON)
+        await setting.refresh(afterSync: true)
+        clientProxy.accountDataTypeReturnValue = .success(dusk.contentJSON)
+        await setting.refresh(afterSync: true)
+
+        XCTAssertEqual(setting.themePublisher.value, dusk)
+    }
+
     func testNewerThemeFromAnotherDeviceWinsOnceTheEchoTimesOut() async {
         setting = DefaultChatThemeSetting(clientProxy: clientProxy, cache: cache, echoTimeout: 0)
 

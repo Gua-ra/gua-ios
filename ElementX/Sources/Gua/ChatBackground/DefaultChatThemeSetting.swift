@@ -64,6 +64,8 @@ final class DefaultChatThemeSetting {
     }
 
     func set(_ theme: ChatTheme) async -> Result<Void, ClientProxyError> {
+        // The stored form rounds a photo's dim and position, and the echo must match it.
+        let theme = ChatTheme(contentJSON: theme.contentJSON)
         if pendingTheme == nil {
             fallbackTheme = subject.value
         }
