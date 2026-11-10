@@ -13,11 +13,11 @@ extension TimelineFixtures {
         let helena = TimelineItemSender(id: "@helena:gua.global", displayName: "Helena")
         let jacob = TimelineItemSender(id: "@jacob:gua.global", displayName: "Jacob", isDisplayNameAmbiguous: true)
         let me = TimelineItemSender(id: "@me:gua.global", displayName: "Me")
-
+        
         func eventID(_ index: Int) -> TimelineItemIdentifier {
             .event(uniqueID: .init("ChatBackgroundShowcase.\(index)"), eventOrTransactionID: .eventID("ChatBackgroundShowcase.\(index)"))
         }
-
+        
         return [
             TimelineStartRoomTimelineItem(name: "Weekend plans"),
             SeparatorRoomTimelineItem(id: .virtual(uniqueID: .init("ChatBackgroundShowcase.today")), timestamp: .mock),

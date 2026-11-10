@@ -2121,7 +2121,6 @@ nonisolated class ChatBackgroundServiceMock: ChatBackgroundServiceProtocol, @unc
     }
     nonisolated(unsafe) var themePublisherRoomIDClosure: ((String) -> CurrentValuePublisher<ChatTheme, Never>)?
 
-    @MainActor
     func themePublisher(roomID: String) -> CurrentValuePublisher<ChatTheme, Never> {
         themePublisherRoomIDCallsCountLock.withLock { themePublisherRoomIDUnderlyingCallsCount += 1 }
         themePublisherRoomIDReceivedRoomID = roomID
@@ -2157,7 +2156,6 @@ nonisolated class ChatBackgroundServiceMock: ChatBackgroundServiceProtocol, @unc
     }
     nonisolated(unsafe) var refreshRoomIDClosure: ((String) async -> Void)?
 
-    @MainActor
     @concurrent func refresh(roomID: String) async {
         refreshRoomIDCallsCountLock.withLock { refreshRoomIDUnderlyingCallsCount += 1 }
         refreshRoomIDReceivedRoomID = roomID
@@ -2189,7 +2187,6 @@ nonisolated class ChatBackgroundServiceMock: ChatBackgroundServiceProtocol, @unc
     }
     nonisolated(unsafe) var handleTimelineEventRoomIDEventIDTimestampContentJSONClosure: ((String, String, UInt64, String) -> Void)?
 
-    @MainActor
     func handleTimelineEvent(roomID: String, eventID: String, timestamp: UInt64, contentJSON: String) {
         handleTimelineEventRoomIDEventIDTimestampContentJSONCallsCountLock.withLock { handleTimelineEventRoomIDEventIDTimestampContentJSONUnderlyingCallsCount += 1 }
         handleTimelineEventRoomIDEventIDTimestampContentJSONReceivedArguments = (roomID: roomID, eventID: eventID, timestamp: timestamp, contentJSON: contentJSON)
@@ -2228,7 +2225,6 @@ nonisolated class ChatBackgroundServiceMock: ChatBackgroundServiceProtocol, @unc
     }
     nonisolated(unsafe) var setRoomProxyClosure: ((ChatTheme, JoinedRoomProxyProtocol) async -> Result<Void, RoomProxyError>)?
 
-    @MainActor
     @concurrent func set(_ theme: ChatTheme, roomProxy: JoinedRoomProxyProtocol) async -> Result<Void, RoomProxyError> {
         setRoomProxyCallsCountLock.withLock { setRoomProxyUnderlyingCallsCount += 1 }
         setRoomProxyReceivedArguments = (theme: theme, roomProxy: roomProxy)
@@ -2271,7 +2267,6 @@ nonisolated class ChatBackgroundServiceMock: ChatBackgroundServiceProtocol, @unc
     }
     nonisolated(unsafe) var setDefaultThemeClosure: ((ChatTheme) async -> Result<Void, ClientProxyError>)?
 
-    @MainActor
     @concurrent func setDefaultTheme(_ theme: ChatTheme) async -> Result<Void, ClientProxyError> {
         setDefaultThemeCallsCountLock.withLock { setDefaultThemeUnderlyingCallsCount += 1 }
         setDefaultThemeReceivedTheme = theme

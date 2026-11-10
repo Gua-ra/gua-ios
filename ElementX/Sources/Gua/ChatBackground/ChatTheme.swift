@@ -7,16 +7,16 @@
 
 import Foundation
 
-struct ChatTheme: Hashable {
+nonisolated struct ChatTheme: Hashable {
     static let stock = ChatTheme(wallpaper: .none)
-
+    
     var wallpaper: ChatBackground
     var bubble = ChatBubbleColor.standard
-
+    
     var isStock: Bool {
         self == .stock
     }
-
+    
     /// What a chat shows. A photo the chat may not show hands over to the default as a whole, whose own photo always shows.
     static func effective(chatTheme: ChatTheme, defaultTheme: ChatTheme, roomIsPrivate: Bool, mediaShown: Bool) -> ChatTheme {
         guard !chatTheme.isStock else { return defaultTheme }
@@ -28,11 +28,11 @@ struct ChatTheme: Hashable {
 }
 
 /// The wallpaper of a chat theme.
-enum ChatBackground: Hashable {
+nonisolated enum ChatBackground: Hashable {
     case none
     case preset(ChatBackgroundPreset)
     case photo(Photo)
-
+    
     struct Photo: Hashable {
         static let defaultDim = 0.35
         static let maxDim = 0.8
@@ -42,7 +42,7 @@ enum ChatBackground: Hashable {
         static let alignScale = 1000.0
         /// The largest file a photo background may declare, and the most that is downloaded to show one.
         static let maxSize = 20_000_000
-
+        
         var url: String
         var mimetype: String
         var width: Int
@@ -54,26 +54,26 @@ enum ChatBackground: Hashable {
         var alignX = defaultAlign
         var alignY = defaultAlign
     }
-
+    
     static let eventType = "global.gua.room.background"
     static let removedContent = "{}"
-
+    
     var isNone: Bool {
         self == .none
     }
-
+    
     var photo: Photo? {
         guard case .photo(let photo) = self else { return nil }
         return photo
     }
-
+    
     static func sortedJSON(_ object: [String: Any]) -> String? {
         guard let data = try? JSONSerialization.data(withJSONObject: object, options: .sortedKeys) else { return nil }
         return String(data: data, encoding: .utf8)
     }
 }
 
-extension ChatTheme {
+nonisolated extension ChatTheme {
     init(contentJSON: String?) {
         guard let data = contentJSON?.data(using: .utf8),
               let content = try? JSONDecoder().decode(Content.self, from: data) else {
@@ -82,10 +82,10 @@ extension ChatTheme {
         }
         self = content.theme
     }
-
+    
     var contentJSON: String {
         guard !isStock else { return ChatBackground.removedContent }
-
+        
         let bubbleID = bubble == .standard ? nil : bubble.rawValue
         let content = switch wallpaper {
         case .none:
@@ -106,7 +106,7 @@ extension ChatTheme {
                                         align: .init(x: photo.alignX.storedUnits(per: ChatBackground.Photo.alignScale),
                                                      y: photo.alignY.storedUnits(per: ChatBackground.Photo.alignScale))))
         }
-
+        
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         guard let data = try? encoder.encode(content), let json = String(data: data, encoding: .utf8) else {
@@ -116,9 +116,9 @@ extension ChatTheme {
     }
 }
 
-private struct Content: Decodable {
+private nonisolated struct Content: Decodable {
     let theme: ChatTheme
-
+    
     private enum CodingKeys: String, CodingKey {
         case version = "v"
         case kind
@@ -127,12 +127,12 @@ private struct Content: Decodable {
         case bubble
         case fallbackPreset = "fallback_preset"
     }
-
+    
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let version = try? container.decodeInteger(forKey: .version)
         let kind = try? container.decode(String.self, forKey: .kind)
-
+        
         let wallpaper: ChatBackground = switch (version, kind) {
         case (1, "preset"):
             Self.preset(from: container, key: .preset)
@@ -143,12 +143,12 @@ private struct Content: Decodable {
         default:
             Self.preset(from: container, key: .fallbackPreset)
         }
-
+        
         // Only version 1 has bubbles. One it doesn't know reads as the stock bubble and keeps the wallpaper.
         let bubble = version == 1 ? (try? container.decode(String.self, forKey: .bubble)).flatMap(ChatBubbleColor.init(rawValue:)) : nil
         theme = ChatTheme(wallpaper: wallpaper, bubble: bubble ?? .standard)
     }
-
+    
     private static func preset(from container: KeyedDecodingContainer<CodingKeys>, key: CodingKeys) -> ChatBackground {
         guard let id = try? container.decode(String.self, forKey: key),
               let preset = ChatBackgroundPreset(rawValue: id) else {
@@ -158,29 +158,29 @@ private struct Content: Decodable {
     }
 }
 
-extension ChatBackground.Photo: Decodable {
+nonisolated extension ChatBackground.Photo: Decodable {
     private enum CodingKeys: String, CodingKey {
         case url, mimetype, w, h, size, blurhash, dim, align
     }
-
+    
     private enum AlignCodingKeys: String, CodingKey {
         case x, y
     }
-
+    
     private struct InvalidContent: Error { }
-
+    
     private static let maxDimension = 8192
     private static let maxBlurhashLength = 100
-
+    
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-
+        
         let url = try container.decode(String.self, forKey: .url)
         let mimetype = try container.decode(String.self, forKey: .mimetype)
         let width = try container.decodeInteger(forKey: .w)
         let height = try container.decodeInteger(forKey: .h)
         let size = try container.decodeInteger(forKey: .size)
-
+        
         guard url.hasPrefix("mxc://"),
               mimetype.hasPrefix("image/"),
               (1...Self.maxDimension).contains(width),
@@ -188,14 +188,14 @@ extension ChatBackground.Photo: Decodable {
               (1...Self.maxSize).contains(size) else {
             throw InvalidContent()
         }
-
+        
         let blurhash = try container.decodeIfPresentAndNotNull(String.self, forKey: .blurhash)
         if let blurhash, blurhash.utf16.count > Self.maxBlurhashLength {
             throw InvalidContent()
         }
-
+        
         let dim = try container.decodeIntegerIfPresentAndNotNull(forKey: .dim)
-
+        
         var alignX: Int?
         var alignY: Int?
         if try container.containsValue(forKey: .align) {
@@ -203,7 +203,7 @@ extension ChatBackground.Photo: Decodable {
             alignX = try align.decodeIntegerIfPresentAndNotNull(forKey: .x)
             alignY = try align.decodeIntegerIfPresentAndNotNull(forKey: .y)
         }
-
+        
         self.init(url: url,
                   mimetype: mimetype,
                   width: width,
@@ -214,23 +214,23 @@ extension ChatBackground.Photo: Decodable {
                   alignX: alignX.map(Self.align) ?? Self.defaultAlign,
                   alignY: alignY.map(Self.align) ?? Self.defaultAlign)
     }
-
+    
     private static func dim(_ storedValue: Int) -> Double {
-        (Double(storedValue) / dimScale).clamped(to: 0...maxDim)
+        min(max(Double(storedValue) / dimScale, 0), maxDim)
     }
-
+    
     private static func align(_ storedValue: Int) -> Double {
-        (Double(storedValue) / alignScale).clamped(to: 0...1)
+        min(max(Double(storedValue) / alignScale, 0), 1)
     }
 }
 
-private struct EncodedContent: Encodable {
+private nonisolated struct EncodedContent: Encodable {
     struct Photo: Encodable {
         struct Align: Encodable {
             let x: Int
             let y: Int
         }
-
+        
         let url: String
         let mimetype: String
         let w: Int
@@ -240,7 +240,7 @@ private struct EncodedContent: Encodable {
         let dim: Int
         let align: Align
     }
-
+    
     let v = 1
     let bubble: String?
     let kind: String
@@ -248,18 +248,18 @@ private struct EncodedContent: Encodable {
     let photo: Photo?
 }
 
-private extension KeyedDecodingContainer {
+private nonisolated extension KeyedDecodingContainer {
     func containsValue(forKey key: Key) throws -> Bool {
         guard contains(key) else { return false }
         return try !decodeNil(forKey: key)
     }
-
+    
     /// Absent and null are both no value, but a value of the wrong type is an error.
     func decodeIfPresentAndNotNull<T: Decodable>(_ type: T.Type, forKey key: Key) throws -> T? {
         guard try containsValue(forKey: key) else { return nil }
         return try decode(type, forKey: key)
     }
-
+    
     /// 800.0 is the same JSON number as 800, and Android reads it as an integer too.
     func decodeInteger(forKey key: Key) throws -> Int {
         if let integer = try? decode(Int.self, forKey: key) {
@@ -271,31 +271,31 @@ private extension KeyedDecodingContainer {
         }
         return integer
     }
-
+    
     func decodeIntegerIfPresentAndNotNull(forKey key: Key) throws -> Int? {
         guard try containsValue(forKey: key) else { return nil }
         return try decodeInteger(forKey: key)
     }
 }
 
-private extension Double {
+private nonisolated extension Double {
     func storedUnits(per scale: Double) -> Int {
         Int((self * scale).rounded())
     }
 }
 
-struct ChatBackgroundTimelineEvent: Equatable {
+nonisolated struct ChatBackgroundTimelineEvent: Equatable {
     let eventID: String
     let timestamp: UInt64
     /// Nil when the event's JSON cannot be read, which still reads as a change.
     let contentJSON: String?
-
+    
     var isRemoval: Bool {
         contentJSON == ChatBackground.removedContent
     }
 }
 
-extension ChatBackgroundTimelineEvent {
+nonisolated extension ChatBackgroundTimelineEvent {
     init(eventID: String, timestamp: UInt64, eventJSON: String?) {
         let content = eventJSON
             .flatMap { $0.data(using: .utf8) }

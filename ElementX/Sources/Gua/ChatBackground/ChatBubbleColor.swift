@@ -9,7 +9,7 @@ import Compound
 import SwiftUI
 
 /// Colours only the outgoing bubble, in picker order.
-enum ChatBubbleColor: String, CaseIterable, Identifiable {
+nonisolated enum ChatBubbleColor: String, CaseIterable, Identifiable {
     /// The stock bubble, which is never written.
     case standard
     case green
@@ -20,11 +20,11 @@ enum ChatBubbleColor: String, CaseIterable, Identifiable {
     case orange
     case yellow
     case graphite
-
+    
     var id: String {
         rawValue
     }
-
+    
     var name: String {
         switch self {
         case .standard: UntranslatedL10n.guaChatThemeBubbleStandard
@@ -38,7 +38,7 @@ enum ChatBubbleColor: String, CaseIterable, Identifiable {
         case .graphite: UntranslatedL10n.guaChatThemeBubbleGraphite
         }
     }
-
+    
     /// Increase Contrast keeps these: they already give the stock text colours the stock bubble's contrast.
     var hex: (light: UInt32, dark: UInt32)? {
         switch self {
@@ -53,8 +53,8 @@ enum ChatBubbleColor: String, CaseIterable, Identifiable {
         case .graphite: (0xE1E4E9, 0x2F333A)
         }
     }
-
-    var outgoingColor: Color {
+    
+    @MainActor var outgoingColor: Color {
         guard let hex else { return .compound._bgBubbleOutgoing }
         return Color(UIColor { traits in
             UIColor(chatBackgroundHex: traits.userInterfaceStyle == .dark ? hex.dark : hex.light)

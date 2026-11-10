@@ -20,7 +20,7 @@ struct ChatThemeScreenCoordinatorParameters {
 
 final class ChatThemeScreenCoordinator: CoordinatorProtocol {
     private let viewModel: ChatThemeScreenViewModelProtocol
-
+    
     init(parameters: ChatThemeScreenCoordinatorParameters) {
         viewModel = ChatThemeScreenViewModel(mode: parameters.mode,
                                              clientProxy: parameters.userSession.clientProxy,
@@ -28,7 +28,7 @@ final class ChatThemeScreenCoordinator: CoordinatorProtocol {
                                              userIndicatorController: parameters.userIndicatorController,
                                              mediaProvider: parameters.userSession.mediaProvider)
     }
-
+    
     func toPresentable() -> AnyView {
         AnyView(ChatThemeScreen(context: viewModel.context))
     }

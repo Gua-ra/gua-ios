@@ -10,11 +10,11 @@ import SwiftUI
 
 struct ChatThemeScreen: View {
     @Bindable var context: ChatThemeScreenViewModel.Context
-
+    
     private var viewState: ChatThemeScreenViewState {
         context.viewState
     }
-
+    
     var body: some View {
         Form {
             Section {
@@ -29,7 +29,7 @@ struct ChatThemeScreen: View {
                         } action: {
                             context.send(viewAction: .presentBubblePicker)
                         }
-
+                        
                         ChatThemeRoundButton(title: UntranslatedL10n.guaChatThemeWallpaper, value: viewState.baseTheme.wallpaper.displayName) {
                             ChatBackgroundView(background: viewState.shownWallpaper, mediaProvider: context.mediaProvider)
                         } action: {
@@ -49,7 +49,7 @@ struct ChatThemeScreen: View {
                 }
                 .compoundListSectionFooter()
             }
-
+            
             ForEach(viewState.sections) { section in
                 Section {
                     ListRow(kind: .custom {
@@ -64,7 +64,7 @@ struct ChatThemeScreen: View {
                                             context.send(viewAction: .selectFirstTile)
                                         }
                                     }
-
+                                    
                                     ForEach(section.themes, id: \.self) { theme in
                                         ChatThemeTile(theme: theme, name: nil, isSelected: theme == viewState.current, mediaProvider: context.mediaProvider) {
                                             context.send(viewAction: .selectTheme(theme))
@@ -100,7 +100,7 @@ struct ChatThemeScreen: View {
             ChatWallpaperPicker(context: context)
         }
     }
-
+    
     private var isBubblePickerPresented: Binding<Bool> {
         Binding {
             context.bubbleChoice != nil
@@ -128,15 +128,15 @@ private struct ChatThemeRoundButton<Content: View>: View {
     let value: String
     @ViewBuilder let content: Content
     let action: () -> Void
-
+    
     @Environment(\.isEnabled) private var isEnabled
     @ScaledMetric private var size = 64.0
-
+    
     /// Capped so both circles fit one row on the narrowest phone at accessibility text sizes.
     private var diameter: CGFloat {
         min(size, 96)
     }
-
+    
     var body: some View {
         Button(action: action) {
             VStack(spacing: 8) {
@@ -147,7 +147,7 @@ private struct ChatThemeRoundButton<Content: View>: View {
                         Circle()
                             .strokeBorder(Color.compound.borderInteractiveSecondary, lineWidth: 1)
                     }
-
+                
                 Text(title)
                     .font(.compound.bodySMSemibold)
                     .foregroundStyle(isEnabled ? .compound.textPrimary : .compound.textDisabled)
@@ -170,9 +170,9 @@ struct ChatThemeTile: View {
     let isSelected: Bool
     let mediaProvider: MediaProviderProtocol?
     let action: () -> Void
-
+    
     @ScaledMetric private var width = 84.0
-
+    
     var body: some View {
         Button(action: action) {
             VStack(spacing: 6) {
@@ -180,7 +180,7 @@ struct ChatThemeTile: View {
                 sampleBubble(color: .compound._bgBubbleIncoming, width: 0.55, alignment: .leading)
                 sampleBubble(color: theme.bubble.outgoingColor, width: 0.65, alignment: .trailing)
                 Spacer(minLength: 0)
-
+                
                 if let name {
                     Text(name)
                         .font(.compound.bodyXSSemibold)
@@ -219,7 +219,7 @@ struct ChatThemeTile: View {
         .accessibilityValue(name == nil ? theme.bubble.name : "")
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
-
+    
     private func sampleBubble(color: Color, width fraction: CGFloat, alignment: Alignment) -> some View {
         RoundedRectangle(cornerRadius: 6)
             .fill(color)
@@ -231,7 +231,7 @@ struct ChatThemeTile: View {
 struct ChatThemePreviewCard: View {
     let theme: ChatTheme
     let mediaProvider: MediaProviderProtocol?
-
+    
     var body: some View {
         ChatThemeSampleMessages(theme: theme)
             .frame(maxWidth: .infinity, minHeight: 220, alignment: .top)
@@ -252,28 +252,28 @@ struct ChatThemePreviewCard: View {
 struct ChatThemeSampleMessages: View {
     let isOnBackground: Bool
     let bubble: ChatBubbleColor
-
+    
     init(theme: ChatTheme) {
         self.init(isOnBackground: !theme.wallpaper.isNone, bubble: theme.bubble)
     }
-
+    
     init(isOnBackground: Bool, bubble: ChatBubbleColor) {
         self.isOnBackground = isOnBackground
         self.bubble = bubble
     }
-
+    
     var body: some View {
         VStack(spacing: 12) {
             Text(UntranslatedL10n.guaChatBackgroundSampleToday)
                 .font(.compound.bodySMSemibold)
                 .foregroundColor(.compound.textPrimary)
                 .legibilityCapsule()
-
+            
             HStack(spacing: 0) {
                 bubble(UntranslatedL10n.guaChatBackgroundSampleIncoming, isOutgoing: false)
                 Spacer(minLength: 48)
             }
-
+            
             HStack(spacing: 0) {
                 Spacer(minLength: 48)
                 bubble(UntranslatedL10n.guaChatBackgroundSampleOutgoing, isOutgoing: true)
@@ -283,7 +283,7 @@ struct ChatThemeSampleMessages: View {
         .padding(.vertical, 16)
         .environment(\.chatBackgroundActive, isOnBackground)
     }
-
+    
     private func bubble(_ text: String, isOutgoing: Bool) -> some View {
         Text(text)
             .font(.compound.bodyLG)
@@ -298,41 +298,41 @@ struct ChatThemeScreen_Previews: PreviewProvider, TestablePreview {
     static let followingDefaultViewModel = makeViewModel(theme: .stock, defaultTheme: .init(wallpaper: .preset(.dusk), bubble: .orange))
     static let defaultViewModel = makeViewModel(mode: .defaultTheme, theme: .init(wallpaper: .preset(.night), bubble: .purple))
     static let noPermissionViewModel = makeViewModel(theme: .init(wallpaper: .preset(.sunset), bubble: .pink), canChange: false)
-
+    
     static var previews: some View {
-        NavigationStack {
+        ElementNavigationStack {
             ChatThemeScreen(context: chatViewModel.context)
         }
         .previewDisplayName("Chat")
-
-        NavigationStack {
+        
+        ElementNavigationStack {
             ChatThemeScreen(context: followingDefaultViewModel.context)
         }
         .previewDisplayName("Chat following the default")
-
-        NavigationStack {
+        
+        ElementNavigationStack {
             ChatThemeScreen(context: defaultViewModel.context)
         }
         .previewDisplayName("Default")
-
-        NavigationStack {
+        
+        ElementNavigationStack {
             ChatThemeScreen(context: noPermissionViewModel.context)
         }
         .previewDisplayName("No permission")
-
-        NavigationStack {
+        
+        ElementNavigationStack {
             ChatThemeScreen(context: chatViewModel.context)
         }
         .environment(\.colorScheme, .dark)
         .preferredColorScheme(.dark)
         .previewDisplayName("Dark")
     }
-
+    
     enum Mode {
         case chat
         case defaultTheme
     }
-
+    
     static func makeViewModel(mode: Mode = .chat,
                               theme: ChatTheme,
                               defaultTheme: ChatTheme = .stock,
@@ -348,6 +348,6 @@ struct ChatThemeScreen_Previews: PreviewProvider, TestablePreview {
                                         clientProxy: ClientProxyMock(.init()),
                                         chatBackgroundService: service,
                                         userIndicatorController: UserIndicatorControllerMock(),
-                                        mediaProvider: MediaProviderMock(configuration: .init()))
+                                        mediaProvider: MediaProviderMock(.init()))
     }
 }

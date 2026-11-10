@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-enum ChatBackgroundPreset: String, CaseIterable, Identifiable {
+nonisolated enum ChatBackgroundPreset: String, CaseIterable, Identifiable {
     case aurora
     case mint
     case sky
@@ -22,14 +22,14 @@ enum ChatBackgroundPreset: String, CaseIterable, Identifiable {
     case forest
     case dusk
     case citrus
-
+    
     static let colours: [ChatBackgroundPreset] = [.mint, .sky, .sand, .blush, .lavender, .graphite]
     static let gradients: [ChatBackgroundPreset] = [.aurora, .sunset, .ocean, .night, .dawn, .forest, .dusk, .citrus]
-
+    
     var id: String {
         rawValue
     }
-
+    
     var name: String {
         switch self {
         case .aurora: UntranslatedL10n.guaChatThemePresetAurora
@@ -48,11 +48,11 @@ enum ChatBackgroundPreset: String, CaseIterable, Identifiable {
         case .citrus: UntranslatedL10n.guaChatThemePresetCitrus
         }
     }
-
+    
     func fill(for colorScheme: ColorScheme) -> ChatBackgroundFill {
         colorScheme == .dark ? dark : light
     }
-
+    
     private var light: ChatBackgroundFill {
         switch self {
         case .aurora: .aurora(base: 0xB2D8C2, glowA: 0x8FCDAB, glowB: 0x93CBCF)
@@ -71,7 +71,7 @@ enum ChatBackgroundPreset: String, CaseIterable, Identifiable {
         case .citrus: .diagonal([.init(0xF2E6A8, 0), .init(0xBFE3B4, 1)])
         }
     }
-
+    
     private var dark: ChatBackgroundFill {
         switch self {
         case .aurora: .aurora(base: 0x030D08, glowA: 0x061B11, glowB: 0x05181A)
@@ -93,36 +93,36 @@ enum ChatBackgroundPreset: String, CaseIterable, Identifiable {
 }
 
 /// Points are in unit coordinates of the frame, never mirrored for right-to-left layouts.
-enum ChatBackgroundFill {
+nonisolated enum ChatBackgroundFill {
     struct Stop {
         let color: UInt32
         let location: CGFloat
-
+        
         init(_ color: UInt32, _ location: CGFloat) {
             self.color = color
             self.location = location
         }
     }
-
+    
     struct Glow {
         let color: UInt32
         let center: UnitPoint
         /// A fraction of the frame's longest side.
         let radius: CGFloat
     }
-
+    
     case solid(UInt32)
     case linear(start: UnitPoint, end: UnitPoint, stops: [Stop])
     case radialGlows(base: UInt32, glows: [Glow])
-
+    
     static func vertical(_ stops: [Stop]) -> Self {
         .linear(start: UnitPoint(x: 0.5, y: 0), end: UnitPoint(x: 0.5, y: 1), stops: stops)
     }
-
+    
     static func diagonal(_ stops: [Stop]) -> Self {
         .linear(start: UnitPoint(x: 0, y: 0), end: UnitPoint(x: 1, y: 1), stops: stops)
     }
-
+    
     static func aurora(base: UInt32, glowA: UInt32, glowB: UInt32) -> Self {
         .radialGlows(base: base, glows: [Glow(color: glowA, center: UnitPoint(x: 0.30, y: 0.25), radius: 0.75),
                                          Glow(color: glowB, center: UnitPoint(x: 0.75, y: 0.80), radius: 0.65)])

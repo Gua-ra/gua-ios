@@ -16,14 +16,14 @@ struct ChatBackgroundServiceMockConfiguration {
 extension ChatBackgroundServiceMock {
     convenience init(_ configuration: ChatBackgroundServiceMockConfiguration) {
         self.init()
-
+        
         let subject = CurrentValueSubject<ChatTheme, Never>(configuration.theme)
         themePublisherRoomIDReturnValue = subject.asCurrentValuePublisher()
         setRoomProxyClosure = { theme, _ in
             subject.send(theme)
             return .success(())
         }
-
+        
         let defaultSubject = CurrentValueSubject<ChatTheme, Never>(configuration.defaultTheme)
         underlyingDefaultThemePublisher = defaultSubject.asCurrentValuePublisher()
         setDefaultThemeClosure = { theme in

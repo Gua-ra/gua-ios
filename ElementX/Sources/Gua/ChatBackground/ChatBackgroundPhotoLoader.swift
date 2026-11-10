@@ -13,14 +13,14 @@ enum ChatBackgroundPhotoLoader {
     private static let decodedImages = NSCache<NSString, UIImage>()
     private static let placeholders = NSCache<NSString, UIImage>()
     private static let placeholderSize = 32
-
+    
     static func cachedImage(for photo: ChatBackground.Photo, maxPixelSize: Int, mediaProvider: MediaProviderProtocol?) -> UIImage? {
         if let image = decodedImages.object(forKey: cacheKey(photo, maxPixelSize)) {
             return image
         }
         return mediaSource(for: photo).flatMap { mediaProvider?.imageFromSource($0, size: nil) }
     }
-
+    
     static func loadImage(for photo: ChatBackground.Photo, maxPixelSize: Int, mediaProvider: MediaProviderProtocol?) async -> UIImage? {
         if let image = cachedImage(for: photo, maxPixelSize: maxPixelSize, mediaProvider: mediaProvider) {
             return image
@@ -29,17 +29,17 @@ enum ChatBackgroundPhotoLoader {
               case .success(let file) = await mediaProvider.loadFileFromSource(source, filename: nil) else {
             return nil
         }
-
+        
         let image = await Task.detached(priority: .userInitiated) {
             decodeImage(at: file.url, maxPixelSize: maxPixelSize)
         }.value
-
+        
         if let image {
             decodedImages.setObject(image, forKey: cacheKey(photo, maxPixelSize))
         }
         return image
     }
-
+    
     /// Decoded at a fixed size whatever shape the photo declares, so a crafted width and height cannot make it expensive.
     static func placeholder(blurhash: String) -> UIImage? {
         if let image = placeholders.object(forKey: blurhash as NSString) {
@@ -51,7 +51,7 @@ enum ChatBackgroundPhotoLoader {
         placeholders.setObject(image, forKey: blurhash as NSString)
         return image
     }
-
+    
     /// The declared size is not trusted: the file on disk is checked before anything is decoded.
     private nonisolated static func decodeImage(at url: URL?, maxPixelSize: Int) -> UIImage? {
         guard let url,
@@ -63,11 +63,11 @@ enum ChatBackgroundPhotoLoader {
         }
         return UIImage(cgImage: image)
     }
-
+    
     private static func mediaSource(for photo: ChatBackground.Photo) -> MediaSourceProxy? {
         URL(string: photo.url).flatMap { try? MediaSourceProxy(url: $0, mimeType: photo.mimetype) }
     }
-
+    
     private static func cacheKey(_ photo: ChatBackground.Photo, _ maxPixelSize: Int) -> NSString {
         "\(photo.url){\(maxPixelSize)}" as NSString
     }

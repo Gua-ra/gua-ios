@@ -16,7 +16,7 @@ struct ChatBackgroundPhotoDraft: Equatable, Identifiable {
     var alignY = ChatBackground.Photo.defaultAlign
     /// Nil follows the app's appearance.
     var previewColorScheme: ColorScheme?
-
+    
     static func == (lhs: ChatBackgroundPhotoDraft, rhs: ChatBackgroundPhotoDraft) -> Bool {
         lhs.id == rhs.id && lhs.dim == rhs.dim && lhs.alignX == rhs.alignX && lhs.alignY == rhs.alignY && lhs.previewColorScheme == rhs.previewColorScheme
     }
@@ -38,7 +38,7 @@ struct ChatThemeScreenViewState: BindableState {
         case chat
         case defaultTheme
     }
-
+    
     let mode: Mode
     /// The chat's own theme in a chat, else the user's default.
     var current: ChatTheme
@@ -47,27 +47,27 @@ struct ChatThemeScreenViewState: BindableState {
     /// A public chat that hides media doesn't show its photo, here either.
     var isPhotoHidden: Bool
     var bindings = ChatThemeScreenViewStateBindings()
-
+    
     let sections = ChatThemeGallerySection.all
-
+    
     var firstTileTheme: ChatTheme {
         mode == .chat ? defaultTheme : .stock
     }
-
+    
     var firstTileName: String {
         mode == .chat ? UntranslatedL10n.guaChatBackgroundValueDefault : UntranslatedL10n.guaChatThemeClassic
     }
-
+    
     /// What the pickers start from: in a chat that follows the default, the default without its photo, which stays private.
     var baseTheme: ChatTheme {
         guard mode == .chat, current.isStock else { return current }
         return ChatTheme(wallpaper: defaultTheme.wallpaper.photo == nil ? defaultTheme.wallpaper : .none, bubble: defaultTheme.bubble)
     }
-
+    
     var shownWallpaper: ChatBackground {
         isPhotoHidden && baseTheme.wallpaper.photo != nil ? .none : baseTheme.wallpaper
     }
-
+    
     /// Saving no theme makes a chat follow the default, so its preview shows that, and a photo this chat hides stays hidden.
     func shownTheme(saving theme: ChatTheme) -> ChatTheme {
         if theme.isStock {
@@ -75,24 +75,24 @@ struct ChatThemeScreenViewState: BindableState {
         }
         return isPhotoHidden && theme.wallpaper.photo != nil ? ChatTheme(wallpaper: .none, bubble: theme.bubble) : theme
     }
-
+    
     var setThemeTitle: String {
         mode == .chat ? UntranslatedL10n.guaChatThemeActionSetTheme : UntranslatedL10n.guaChatThemeActionSetDefault
     }
-
+    
     var note: String {
         mode == .chat ? UntranslatedL10n.guaChatThemeSharedNote : UntranslatedL10n.guaChatThemeDefaultNote
     }
-
+    
     func canSave(_ theme: ChatTheme) -> Bool {
         canChange && theme != current
     }
-
+    
     /// A picker starts from `baseTheme`, so keeping it is no change either.
     func canSavePickerChoice(_ theme: ChatTheme) -> Bool {
         canSave(theme) && theme != baseTheme
     }
-
+    
     func canSave(_ draft: ChatThemePreviewDraft) -> Bool {
         draft.isPickerChoice ? canSavePickerChoice(draft.theme) : canSave(draft.theme)
     }
@@ -112,7 +112,7 @@ extension ChatThemeScreenViewStateBindings {
     var isScreenTopmost: Bool {
         themePreview == nil && bubbleChoice == nil && !isWallpaperPickerPresented
     }
-
+    
     var isWallpaperPickerTopmost: Bool {
         wallpaperPreview == nil && photoDraft == nil
     }

@@ -765,7 +765,7 @@ class ClientProxy: ClientProxyProtocol {
             return .failure(ClientProxyError.sdkError(error))
         }
     }
-        
+    
     func roomForIdentifier(_ identifier: String) async -> RoomProxyType? {
         let shouldAwait = roomsToAwait.remove(identifier) != nil
         

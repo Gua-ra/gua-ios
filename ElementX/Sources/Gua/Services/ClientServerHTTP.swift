@@ -26,7 +26,7 @@ enum ClientServerHTTP {
         guard let url = URL(string: base + path), url.scheme == "https" || url.scheme == "http", url.host() != nil else {
             throw .invalidURL
         }
-
+        
         var request = URLRequest(url: url, timeoutInterval: 15)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Accept")
@@ -37,7 +37,7 @@ enum ClientServerHTTP {
         }
         return request
     }
-
+    
     static func send(_ request: URLRequest, session: URLSession) async throws(ClientServerError) -> Data {
         let data: Data
         let response: URLResponse
@@ -58,7 +58,7 @@ enum ClientServerHTTP {
             throw .server(status: httpResponse.statusCode)
         }
     }
-
+    
     static func pathComponent(_ value: String) throws(ClientServerError) -> String {
         var allowed = CharacterSet.urlPathAllowed
         allowed.remove("/")

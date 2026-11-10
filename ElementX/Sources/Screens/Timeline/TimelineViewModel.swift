@@ -585,56 +585,6 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
         }
     }
     
-    private func setupChatBackgroundSubscriptionsIfNeeded() {
-        switch timelineController.timelineKind {
-        case .live, .detached:
-            break
-        case .pinned, .thread, .media:
-            return
-        }
-        
-        let chatBackgroundService = userSession.chatBackgroundService
-        let roomID = roomProxy.id
-        chatBackgroundService.themePublisher(roomID: roomID)
-            .weakAssign(to: \.state.chatTheme, on: self)
-            .store(in: &cancellables)
-        
-        chatBackgroundService.defaultThemePublisher
-            .weakAssign(to: \.state.defaultChatTheme, on: self)
-            .store(in: &cancellables)
-        
-        // GUA FORK: an unknown join rule counts as public, as for the live media setting.
-        state.isPrivateRoom = roomProxy.infoPublisher.value.isPrivate ?? false
-        roomProxy.infoPublisher
-            .map { $0.isPrivate ?? false }
-            .removeDuplicates()
-            .receive(on: DispatchQueue.main)
-            .weakAssign(to: \.state.isPrivateRoom, on: self)
-            .store(in: &cancellables)
-        
-        Task { await chatBackgroundService.refresh(roomID: roomID) }
-        
-        NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)
-            .sink { _ in
-                Task { await chatBackgroundService.refresh(roomID: roomID) }
-            }
-            .store(in: &cancellables)
-    }
-    
-    private func reportChatBackgroundChange(in items: [RoomTimelineItemProtocol]) {
-        let latest = items
-            .compactMap { ($0 as? StateRoomTimelineItem)?.chatBackgroundEvent }
-            .max { $0.timestamp < $1.timestamp }
-        guard let latest, let contentJSON = latest.contentJSON, latest.eventID != lastReportedChatBackgroundEventID else {
-            return
-        }
-        lastReportedChatBackgroundEventID = latest.eventID
-        userSession.chatBackgroundService.handleTimelineEvent(roomID: roomProxy.id,
-                                                              eventID: latest.eventID,
-                                                              timestamp: latest.timestamp,
-                                                              contentJSON: contentJSON)
-    }
-    
     private func setupUserSettingsSubscriptions() {
         userSettings.account.sharePresencePublisher
             .weakAssign(to: \.state.showReadReceipts, on: self)
@@ -1350,6 +1300,58 @@ extension TimelineViewModel {
             }
             return PillContext(timelineContext: context, data: PillTextAttachmentData(type: pillType, font: .preferredFont(forTextStyle: .body))).viewState.displayText
         }
+    }
+}
+
+extension TimelineViewModel {
+    private func setupChatBackgroundSubscriptionsIfNeeded() {
+        switch timelineController.timelineKind {
+        case .live, .detached:
+            break
+        case .pinned, .thread, .media:
+            return
+        }
+        
+        let chatBackgroundService = userSession.chatBackgroundService
+        let roomID = roomProxy.id
+        chatBackgroundService.themePublisher(roomID: roomID)
+            .weakAssign(to: \.state.chatTheme, on: self)
+            .store(in: &cancellables)
+        
+        chatBackgroundService.defaultThemePublisher
+            .weakAssign(to: \.state.defaultChatTheme, on: self)
+            .store(in: &cancellables)
+        
+        // GUA FORK: an unknown join rule counts as public, as for the live media setting.
+        state.isPrivateRoom = roomProxy.infoPublisher.value.isPrivate ?? false
+        roomProxy.infoPublisher
+            .map { $0.isPrivate ?? false }
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .weakAssign(to: \.state.isPrivateRoom, on: self)
+            .store(in: &cancellables)
+        
+        Task { await chatBackgroundService.refresh(roomID: roomID) }
+        
+        NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)
+            .sink { _ in
+                Task { await chatBackgroundService.refresh(roomID: roomID) }
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func reportChatBackgroundChange(in items: [RoomTimelineItemProtocol]) {
+        let latest = items
+            .compactMap { ($0 as? StateRoomTimelineItem)?.chatBackgroundEvent }
+            .max { $0.timestamp < $1.timestamp }
+        guard let latest, let contentJSON = latest.contentJSON, latest.eventID != lastReportedChatBackgroundEventID else {
+            return
+        }
+        lastReportedChatBackgroundEventID = latest.eventID
+        userSession.chatBackgroundService.handleTimelineEvent(roomID: roomProxy.id,
+                                                              eventID: latest.eventID,
+                                                              timestamp: latest.timestamp,
+                                                              contentJSON: contentJSON)
     }
 }
 

@@ -11,27 +11,26 @@ import MatrixRustSDK
 
 // sourcery: AutoMockable
 protocol ChatBackgroundServiceProtocol: AnyObject {
-    @MainActor func themePublisher(roomID: String) -> CurrentValuePublisher<ChatTheme, Never>
-
+    func themePublisher(roomID: String) -> CurrentValuePublisher<ChatTheme, Never>
+    
     /// Reads the server's state, which replaces the current value unless something newer arrived meanwhile.
-    @MainActor func refresh(roomID: String) async
-
+    func refresh(roomID: String) async
+    
     /// Applies only if newer than the current theme, so old events reached by scrolling back are ignored.
-    @MainActor func handleTimelineEvent(roomID: String, eventID: String, timestamp: UInt64, contentJSON: String)
-
+    func handleTimelineEvent(roomID: String, eventID: String, timestamp: UInt64, contentJSON: String)
+    
     /// A photo must be uploaded first.
-    @MainActor func set(_ theme: ChatTheme, roomProxy: JoinedRoomProxyProtocol) async -> Result<Void, RoomProxyError>
-
-    @MainActor var defaultThemePublisher: CurrentValuePublisher<ChatTheme, Never> { get }
-
+    func set(_ theme: ChatTheme, roomProxy: JoinedRoomProxyProtocol) async -> Result<Void, RoomProxyError>
+    
+    var defaultThemePublisher: CurrentValuePublisher<ChatTheme, Never> { get }
+    
     /// Shows the new theme straight away, and puts the previous one back if the write fails. A photo must be uploaded first.
-    @MainActor func setDefaultTheme(_ theme: ChatTheme) async -> Result<Void, ClientProxyError>
+    func setDefaultTheme(_ theme: ChatTheme) async -> Result<Void, ClientProxyError>
 }
 
 extension StateEventType {
-    static var guaChatBackground: StateEventType {
-        .custom(value: ChatBackground.eventType)
-    }
+    /// SDK 26.11 hides the custom case's payload, so the type is built from its string.
+    static let guaChatBackground = stateEventTypeFromString(s: ChatBackground.eventType)
 }
 
 @MainActor
@@ -41,42 +40,42 @@ final class ChatBackgroundService: ChatBackgroundServiceProtocol {
         /// Counts changes from this device and the timeline, so a server reply in flight meanwhile can tell it is stale.
         var localRevision = 0
         var pendingEventID: String?
-
+        
         func outlives(_ reply: ChatBackgroundStoredValue) -> Bool {
             guard let stored, stored.eventID != reply.eventID else { return false }
             return (pendingEventID != nil && stored.eventID == pendingEventID) || stored.timestamp > reply.timestamp
         }
     }
-
+    
     private let roomStateClient: RoomStateClientProtocol
     private let cache: ChatBackgroundCacheProtocol
     private let defaultThemeSetting: DefaultChatThemeSetting
-
+    
     private lazy var cachedValues = cache.load()
     private var slots: [String: Slot] = [:]
     private var subjects: [String: CurrentValueSubject<ChatTheme, Never>] = [:]
-
+    
     init(roomStateClient: RoomStateClientProtocol, cache: ChatBackgroundCacheProtocol, defaultThemeSetting: DefaultChatThemeSetting) {
         self.roomStateClient = roomStateClient
         self.cache = cache
         self.defaultThemeSetting = defaultThemeSetting
     }
-
+    
     func themePublisher(roomID: String) -> CurrentValuePublisher<ChatTheme, Never> {
         subject(roomID: roomID).asCurrentValuePublisher()
     }
-
+    
     var defaultThemePublisher: CurrentValuePublisher<ChatTheme, Never> {
         defaultThemeSetting.themePublisher
     }
-
+    
     func setDefaultTheme(_ theme: ChatTheme) async -> Result<Void, ClientProxyError> {
         await defaultThemeSetting.set(theme)
     }
-
+    
     func refresh(roomID: String) async {
         let revisionAtStart = slot(roomID: roomID).localRevision
-
+        
         let reply: ChatBackgroundStoredValue
         switch await roomStateClient.chatBackground(roomID: roomID) {
         case .found(let value):
@@ -86,7 +85,7 @@ final class ChatBackgroundService: ChatBackgroundServiceProtocol {
         case .failed:
             return
         }
-
+        
         // The server's state wins whatever its timestamp, and reading it keeps the chat in the cache.
         update(roomID: roomID, savingUnchanged: true) { current in
             if current.localRevision != revisionAtStart, current.outlives(reply) {
@@ -98,10 +97,10 @@ final class ChatBackgroundService: ChatBackgroundServiceProtocol {
             return updated
         }
     }
-
+    
     func handleTimelineEvent(roomID: String, eventID: String, timestamp: UInt64, contentJSON: String) {
         let candidate = ChatBackgroundStoredValue(contentJSON: contentJSON, eventID: eventID, timestamp: timestamp)
-
+        
         update(roomID: roomID) { current in
             guard let stored = current.stored else {
                 return Slot(stored: candidate, localRevision: current.localRevision + 1)
@@ -118,10 +117,10 @@ final class ChatBackgroundService: ChatBackgroundServiceProtocol {
             return Slot(stored: accepted, localRevision: current.localRevision + 1)
         }
     }
-
+    
     func set(_ theme: ChatTheme, roomProxy: JoinedRoomProxyProtocol) async -> Result<Void, RoomProxyError> {
         let content = theme.contentJSON
-
+        
         switch await roomProxy.sendStateEvent(type: ChatBackground.eventType, stateKey: "", content: content) {
         case .success(let eventID):
             update(roomID: roomProxy.id) { current in
@@ -137,11 +136,11 @@ final class ChatBackgroundService: ChatBackgroundServiceProtocol {
             return .failure(error)
         }
     }
-
+    
     private func slot(roomID: String) -> Slot {
         slots[roomID] ?? Slot(stored: cachedValues[roomID])
     }
-
+    
     private func subject(roomID: String) -> CurrentValueSubject<ChatTheme, Never> {
         if let subject = subjects[roomID] {
             return subject
@@ -150,16 +149,16 @@ final class ChatBackgroundService: ChatBackgroundServiceProtocol {
         subjects[roomID] = subject
         return subject
     }
-
+    
     private func update(roomID: String, savingUnchanged: Bool = false, transform: (Slot) -> Slot) {
         let current = slot(roomID: roomID)
         let updated = transform(current)
         slots[roomID] = updated
-
+        
         if let stored = updated.stored, savingUnchanged || stored != current.stored {
             cache.save(stored, roomID: roomID)
         }
-
+        
         let theme = ChatTheme(contentJSON: updated.stored?.contentJSON)
         let subject = subject(roomID: roomID)
         if subject.value != theme {

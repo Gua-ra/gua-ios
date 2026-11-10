@@ -11,20 +11,20 @@ import SwiftUI
 
 struct ChatWallpaperPicker: View {
     @Bindable var context: ChatThemeScreenViewModel.Context
-
+    
     @State private var pickerItem: PhotosPickerItem?
-
+    
     private var viewState: ChatThemeScreenViewState {
         context.viewState
     }
-
+    
     private var selectedPreset: ChatBackgroundPreset? {
         guard case .preset(let preset) = viewState.baseTheme.wallpaper else { return nil }
         return preset
     }
-
+    
     var body: some View {
-        NavigationStack {
+        ElementNavigationStack {
             Form {
                 Section {
                     ListRow(kind: .custom {
@@ -32,13 +32,13 @@ struct ChatWallpaperPicker: View {
                             ListRowLabel.default(title: UntranslatedL10n.guaChatThemeChoosePhoto, icon: \.image)
                         }
                     })
-
+                    
                     ListRow(label: .default(title: UntranslatedL10n.guaChatThemeNoWallpaper, icon: \.block),
                             kind: .selection(isSelected: viewState.baseTheme.wallpaper.isNone) {
                                 context.send(viewAction: .selectWallpaper(.none))
                             })
                 }
-
+                
                 section(UntranslatedL10n.guaChatThemeSectionColours, presets: ChatBackgroundPreset.colours)
                 section(UntranslatedL10n.guaChatThemeSectionGradients, presets: ChatBackgroundPreset.gradients)
             }
@@ -66,7 +66,7 @@ struct ChatWallpaperPicker: View {
             context.send(viewAction: .photoPicked { try? await item.loadTransferable(type: Data.self) })
         }
     }
-
+    
     private func section(_ title: String, presets: [ChatBackgroundPreset]) -> some View {
         Section {
             ListRow(kind: .custom {
@@ -87,9 +87,9 @@ struct ChatBackgroundPresetGrid: View {
     let presets: [ChatBackgroundPreset]
     let selected: ChatBackgroundPreset?
     let onSelect: (ChatBackgroundPreset) -> Void
-
+    
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-
+    
     var body: some View {
         ChatBackgroundPresetGridLayout(minimumCellWidth: minimumCellWidth, maximumCellWidth: max(minimumCellWidth, 88), spacing: 12) {
             ForEach(presets) { preset in
@@ -99,7 +99,7 @@ struct ChatBackgroundPresetGrid: View {
             }
         }
     }
-
+    
     private var minimumCellWidth: CGFloat {
         let traits = UITraitCollection(preferredContentSizeCategory: UIContentSizeCategory(dynamicTypeSize))
         let font = UIFont.preferredFont(forTextStyle: .footnote, compatibleWith: traits)
@@ -117,17 +117,17 @@ private struct ChatBackgroundPresetGridLayout: Layout {
         let cellWidth: CGFloat
         let height: CGFloat
     }
-
+    
     let minimumCellWidth: CGFloat
     let maximumCellWidth: CGFloat
     let spacing: CGFloat
-
+    
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let width = proposal.width ?? minimumCellWidth * 5 + spacing * 4
         let heights = rows(width: width, subviews: subviews).map(\.height)
         return CGSize(width: width, height: heights.reduce(0, +) + spacing * CGFloat(max(heights.count - 1, 0)))
     }
-
+    
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         var y = bounds.minY
         for row in rows(width: bounds.width, subviews: subviews) {
@@ -141,7 +141,7 @@ private struct ChatBackgroundPresetGridLayout: Layout {
             y += row.height + spacing
         }
     }
-
+    
     private func rows(width: CGFloat, subviews: Subviews) -> [Row] {
         let columns = min(max(Int((width + spacing) / (minimumCellWidth + spacing)), 3), max(subviews.count, 3))
         let cellWidth = min(max(0, (width - spacing * CGFloat(columns - 1)) / CGFloat(columns)), maximumCellWidth)
@@ -157,10 +157,10 @@ private struct ChatBackgroundPresetSwatch: View {
     let preset: ChatBackgroundPreset
     let isSelected: Bool
     let action: () -> Void
-
+    
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.isEnabled) private var isEnabled
-
+    
     var body: some View {
         Button(action: action) {
             VStack(spacing: 4) {
@@ -179,7 +179,7 @@ private struct ChatBackgroundPresetSwatch: View {
                                 .background(Circle().fill(Color.compound.bgCanvasDefault))
                         }
                     }
-
+                
                 Text(preset.name)
                     .font(.compound.bodySM)
                     .foregroundColor(isEnabled ? .compound.textPrimary : .compound.textDisabled)
@@ -196,11 +196,11 @@ private struct ChatBackgroundPresetSwatch: View {
 
 struct ChatWallpaperPicker_Previews: PreviewProvider, TestablePreview {
     static let viewModel = makeViewModel()
-
+    
     static var previews: some View {
         ChatWallpaperPicker(context: viewModel.context)
     }
-
+    
     static func makeViewModel() -> ChatThemeScreenViewModel {
         let viewModel = ChatThemeScreen_Previews.makeViewModel(theme: .init(wallpaper: .preset(.dusk), bubble: .orange))
         viewModel.context.send(viewAction: .presentWallpaperPicker)

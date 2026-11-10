@@ -431,49 +431,49 @@ struct RoomScreen_Previews: PreviewProvider, TestablePreview {
         .preferredColorScheme(.dark)
         .previewDisplayName("GuaMarketingCanadaFR")
         
-        NavigationStack {
+        ElementNavigationStack {
             RoomScreen(context: auroraViewModels.room.context,
                        timelineContext: auroraViewModels.timeline.context,
-                       composerToolbar: ComposerToolbar.mock())
+                       composerToolbar: ComposerToolbar(context: composerViewModel.context))
         }
         .previewDisplayName("Background aurora")
         
-        NavigationStack {
+        ElementNavigationStack {
             RoomScreen(context: auroraViewModels.room.context,
                        timelineContext: auroraViewModels.timeline.context,
-                       composerToolbar: ComposerToolbar.mock())
+                       composerToolbar: ComposerToolbar(context: composerViewModel.context))
         }
         .environment(\.colorScheme, .dark)
         .preferredColorScheme(.dark)
         .previewDisplayName("Background aurora dark")
         
-        NavigationStack {
+        ElementNavigationStack {
             RoomScreen(context: photoViewModels.room.context,
                        timelineContext: photoViewModels.timeline.context,
-                       composerToolbar: ComposerToolbar.mock())
+                       composerToolbar: ComposerToolbar(context: composerViewModel.context))
         }
         .previewDisplayName("Background photo")
         
-        NavigationStack {
+        ElementNavigationStack {
             RoomScreen(context: photoViewModels.room.context,
                        timelineContext: photoViewModels.timeline.context,
-                       composerToolbar: ComposerToolbar.mock())
+                       composerToolbar: ComposerToolbar(context: composerViewModel.context))
         }
         .environment(\.colorScheme, .dark)
         .preferredColorScheme(.dark)
         .previewDisplayName("Background photo dark")
         
-        NavigationStack {
+        ElementNavigationStack {
             RoomScreen(context: colouredBubbleViewModels.room.context,
                        timelineContext: colouredBubbleViewModels.timeline.context,
-                       composerToolbar: ComposerToolbar.mock())
+                       composerToolbar: ComposerToolbar(context: composerViewModel.context))
         }
         .previewDisplayName("Coloured bubble")
         
-        NavigationStack {
+        ElementNavigationStack {
             RoomScreen(context: colouredBubbleViewModels.room.context,
                        timelineContext: colouredBubbleViewModels.timeline.context,
-                       composerToolbar: ComposerToolbar.mock())
+                       composerToolbar: ComposerToolbar(context: composerViewModel.context))
         }
         .environment(\.colorScheme, .dark)
         .preferredColorScheme(.dark)

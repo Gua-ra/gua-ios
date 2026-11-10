@@ -31,6 +31,15 @@ nonisolated enum AppBuildType {
         }
         #endif
     }
+    
+    /// GUA FORK: the same builds as `GuaDeployment.development`, which the extensions don't compile.
+    static var isGuaDevelopment: Bool {
+        #if GUA_DEVELOPMENT || DEBUG
+        true
+        #else
+        false
+        #endif
+    }
 }
 
 /// Store Element specific app settings.
@@ -44,15 +53,6 @@ final nonisolated class AppSettings: @unchecked Sendable {
     
     static var appBuildType: AppBuildType {
         AppBuildType.current
-    }
-    
-    /// GUA FORK: the same builds as `GuaDeployment.development`, which the extensions don't compile.
-    private static var isGuaDevelopmentBuild: Bool {
-        #if GUA_DEVELOPMENT || DEBUG
-        true
-        #else
-        false
-        #endif
     }
     
     func resetAllSettings() {
@@ -499,7 +499,7 @@ final nonisolated class AppSettings: @unchecked Sendable {
     var guaAccountGenesisEnabled: Bool
     
     /// GUA FORK: off in production until released Android builds stop showing the raw event in group timelines.
-    @UserPreference(defaultValue: AppSettings.isGuaDevelopmentBuild)
+    @UserPreference(defaultValue: AppBuildType.isGuaDevelopment)
     var guaChatBackgroundsEnabled: Bool
     
     @UserPreference(defaultValue: AppBuildType.current != .release)

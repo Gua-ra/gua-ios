@@ -23,14 +23,14 @@ private struct LegibilityCapsuleModifier: ViewModifier {
     let shape: LegibilityCapsuleShape
     let hasPadding: Bool
     let isEnabled: Bool
-
+    
     @Environment(\.chatBackgroundActive) private var isActive
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
-
+    
     @ScaledMetric private var horizontalPadding = 8.0
     @ScaledMetric private var verticalPadding = 3.0
-
+    
     func body(content: Content) -> some View {
         if isActive, isEnabled {
             content
@@ -41,7 +41,7 @@ private struct LegibilityCapsuleModifier: ViewModifier {
             content
         }
     }
-
+    
     private var padding: (horizontal: CGFloat, vertical: CGFloat) {
         switch (hasPadding, shape) {
         case (false, _):
@@ -52,7 +52,7 @@ private struct LegibilityCapsuleModifier: ViewModifier {
             (horizontalPadding, verticalPadding)
         }
     }
-
+    
     private var fill: some View {
         let color = Color.compound.bgCanvasDefault.opacity(isOpaque ? 1 : 0.88)
         return GeometryReader { geometry in
@@ -66,7 +66,7 @@ private struct LegibilityCapsuleModifier: ViewModifier {
             }
         }
     }
-
+    
     private var isOpaque: Bool {
         reduceTransparency || colorSchemeContrast == .increased
     }
@@ -74,7 +74,7 @@ private struct LegibilityCapsuleModifier: ViewModifier {
 
 private struct LegibleSecondaryForegroundModifier: ViewModifier {
     @Environment(\.chatBackgroundActive) private var isActive
-
+    
     func body(content: Content) -> some View {
         content.foregroundColor(isActive ? .compound.textPrimary : .compound.textSecondary)
     }
@@ -84,7 +84,7 @@ extension View {
     func legibilityCapsule(_ shape: LegibilityCapsuleShape = .capsule, hasPadding: Bool = true, isEnabled: Bool = true) -> some View {
         modifier(LegibilityCapsuleModifier(shape: shape, hasPadding: hasPadding, isEnabled: isEnabled))
     }
-
+    
     func legibleSecondaryForeground() -> some View {
         modifier(LegibleSecondaryForegroundModifier())
     }
@@ -102,12 +102,12 @@ struct LegibilityCapsule_Previews: PreviewProvider, TestablePreview {
         capsules
             .previewLayout(.sizeThatFits)
             .previewDisplayName("Translucent")
-
+        
         capsules
             .environment(\._accessibilityReduceTransparency, true)
             .previewLayout(.sizeThatFits)
             .previewDisplayName("Reduce Transparency")
-
+        
         capsules
             .environment(\.colorScheme, .dark)
             .preferredColorScheme(.dark)
@@ -115,25 +115,25 @@ struct LegibilityCapsule_Previews: PreviewProvider, TestablePreview {
             .previewLayout(.sizeThatFits)
             .previewDisplayName("Increase Contrast dark")
     }
-
+    
     static var capsules: some View {
         VStack(spacing: 12) {
             Text("Tuesday 3 November 2026")
                 .font(.compound.bodySMSemibold)
                 .foregroundColor(.compound.textPrimary)
                 .legibilityCapsule()
-
+            
             Text(UntranslatedL10n.guaChatThemeNoticeChanged("Helena Martins, who has a long name that wraps"))
                 .font(.compound.bodySM)
                 .multilineTextAlignment(.center)
                 .legibleSecondaryForeground()
                 .legibilityCapsule()
                 .frame(width: 240)
-
+            
             CompoundIcon(\.reply)
                 .foregroundColor(.compound.iconPrimary)
                 .legibilityCapsule(.circle)
-
+            
             ProgressView()
                 .legibilityCapsule()
         }

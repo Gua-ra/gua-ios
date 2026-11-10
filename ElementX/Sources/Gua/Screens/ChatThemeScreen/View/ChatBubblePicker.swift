@@ -10,28 +10,28 @@ import SwiftUI
 
 struct ChatBubblePicker: View {
     @Bindable var context: ChatThemeScreenViewModel.Context
-
+    
     @ScaledMetric private var swatchSize = 44.0
-
+    
     private var viewState: ChatThemeScreenViewState {
         context.viewState
     }
-
+    
     /// Falls back to the saved colour while the sheet slides away.
     private var choice: ChatBubbleColor {
         viewState.bindings.bubbleChoice ?? viewState.baseTheme.bubble
     }
-
+    
     private var savedTheme: ChatTheme {
         ChatTheme(wallpaper: viewState.baseTheme.wallpaper, bubble: choice)
     }
-
+    
     var body: some View {
-        NavigationStack {
+        ElementNavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
                     ChatThemePreviewCard(theme: viewState.shownTheme(saving: savedTheme), mediaProvider: context.mediaProvider)
-
+                    
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: swatchSize + 16), spacing: 8)], spacing: 16) {
                         ForEach(ChatBubbleColor.allCases) { bubble in
                             swatch(bubble)
@@ -62,10 +62,10 @@ struct ChatBubblePicker: View {
         }
         .alert(item: $context.alertInfo)
     }
-
+    
     private func swatch(_ bubble: ChatBubbleColor) -> some View {
         let isSelected = bubble == choice
-
+        
         return Button {
             context.send(viewAction: .chooseBubble(bubble))
         } label: {
@@ -91,7 +91,7 @@ struct ChatBubblePicker: View {
                                 .background(Circle().fill(Color.compound.bgCanvasDefault))
                         }
                     }
-
+                
                 Text(bubble.name)
                     .font(.compound.bodySM)
                     .foregroundStyle(.compound.textPrimary)
@@ -110,17 +110,17 @@ struct ChatBubblePicker: View {
 
 struct ChatBubblePicker_Previews: PreviewProvider, TestablePreview {
     static let viewModel = makeViewModel()
-
+    
     static var previews: some View {
         ChatBubblePicker(context: viewModel.context)
             .previewDisplayName("Light")
-
+        
         ChatBubblePicker(context: viewModel.context)
             .environment(\.colorScheme, .dark)
             .preferredColorScheme(.dark)
             .previewDisplayName("Dark")
     }
-
+    
     static func makeViewModel() -> ChatThemeScreenViewModel {
         let viewModel = ChatThemeScreen_Previews.makeViewModel(theme: .init(wallpaper: .preset(.ocean), bubble: .teal))
         viewModel.context.send(viewAction: .presentBubblePicker)

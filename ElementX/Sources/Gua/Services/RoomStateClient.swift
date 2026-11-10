@@ -24,13 +24,13 @@ final class RoomStateClient: RoomStateClientProtocol {
     private let session: URLSession
     private let homeserver: () -> String
     private let accessToken: () -> String?
-
+    
     init(session: URLSession = .shared, homeserver: @escaping () -> String, accessToken: @escaping () -> String?) {
         self.session = session
         self.homeserver = homeserver
         self.accessToken = accessToken
     }
-
+    
     func chatBackground(roomID: String) async -> RoomStateReadResult {
         do throws(ClientServerError) {
             let data = try await read(roomID: roomID)
@@ -42,11 +42,11 @@ final class RoomStateClient: RoomStateClientProtocol {
             return .failed(error)
         }
     }
-
+    
     static func path(roomID: String) throws(ClientServerError) -> String {
         try "/_matrix/client/v3/rooms/\(ClientServerHTTP.pathComponent(roomID))/state/\(ChatBackground.eventType)/"
     }
-
+    
     private func read(roomID: String) async throws(ClientServerError) -> Data {
         guard let accessToken = accessToken() else {
             throw .missingAccessToken
@@ -57,7 +57,7 @@ final class RoomStateClient: RoomStateClientProtocol {
                                                        accessToken: accessToken)
         return try await ClientServerHTTP.send(request, session: session)
     }
-
+    
     private static func storedValue(from data: Data) throws(ClientServerError) -> ChatBackgroundStoredValue {
         let object: Any
         do {
@@ -70,7 +70,7 @@ final class RoomStateClient: RoomStateClientProtocol {
         }
         return value
     }
-
+    
     private static func storedValue(from json: [String: Any]) -> ChatBackgroundStoredValue? {
         guard let content = json["content"] as? [String: Any], json["type"] is String else {
             return ChatBackground.sortedJSON(json).map { ChatBackgroundStoredValue(contentJSON: $0, eventID: nil, timestamp: 0) }

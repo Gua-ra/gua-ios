@@ -12,15 +12,15 @@ struct ChatThemePreview: View {
     @Bindable var context: ChatThemeScreenViewModel.Context
     let draft: ChatThemePreviewDraft
     let saveTitle: String
-
+    
     @Environment(\.colorScheme) private var colorScheme
-
+    
     private var previewColorScheme: ColorScheme {
         draft.previewColorScheme ?? colorScheme
     }
-
+    
     var body: some View {
-        NavigationStack {
+        ElementNavigationStack {
             ZStack(alignment: .bottom) {
                 ChatThemeSampleMessages(theme: draft.shownTheme)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -32,7 +32,7 @@ struct ChatThemePreview: View {
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(UntranslatedL10n.guaChatBackgroundPreviewA11y)
                     .accessibilityValue(draft.shownTheme.displayName)
-
+                
                 ChatThemePreviewControls(previewColorScheme: previewColorScheme,
                                          saveTitle: saveTitle,
                                          canSave: context.viewState.canSave(draft),
@@ -61,7 +61,7 @@ struct ChatThemePreviewControls<Extra: View>: View {
     let onPreviewColorScheme: (ColorScheme) -> Void
     let onSave: () -> Void
     @ViewBuilder var extra: Extra
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Picker(UntranslatedL10n.guaChatBackgroundPreviewA11y, selection: Binding { previewColorScheme } set: { onPreviewColorScheme($0) }) {
@@ -69,9 +69,9 @@ struct ChatThemePreviewControls<Extra: View>: View {
                 Text(UntranslatedL10n.guaChatBackgroundPreviewDark).tag(ColorScheme.dark)
             }
             .pickerStyle(.segmented)
-
+            
             extra
-
+            
             Button(saveTitle, action: onSave)
                 .buttonStyle(.compound(.primary))
                 .disabled(!canSave)
@@ -99,7 +99,7 @@ extension ChatThemePreviewControls where Extra == EmptyView {
 
 struct ChatThemePreview_Previews: PreviewProvider, TestablePreview {
     static let viewModel = ChatThemeScreen_Previews.makeViewModel(theme: .stock)
-
+    
     static var previews: some View {
         ChatThemePreview(context: viewModel.context,
                          draft: .init(theme: .init(wallpaper: .preset(.dawn), bubble: .blue),
@@ -107,7 +107,7 @@ struct ChatThemePreview_Previews: PreviewProvider, TestablePreview {
                                       previewColorScheme: .light),
                          saveTitle: UntranslatedL10n.guaChatThemeActionSetTheme)
             .previewDisplayName("Light")
-
+        
         ChatThemePreview(context: viewModel.context,
                          draft: .init(theme: .init(wallpaper: .preset(.forest), bubble: .green),
                                       shownTheme: .init(wallpaper: .preset(.forest), bubble: .green),

@@ -13,10 +13,10 @@ struct ChatThemeGallerySection: Identifiable {
         case colours
         case gradients
     }
-
+    
     let id: Kind
     let themes: [ChatTheme]
-
+    
     var title: String {
         switch id {
         case .featured: UntranslatedL10n.guaChatThemeSectionFeatured
@@ -24,7 +24,7 @@ struct ChatThemeGallerySection: Identifiable {
         case .gradients: UntranslatedL10n.guaChatThemeSectionGradients
         }
     }
-
+    
     static let all: [ChatThemeGallerySection] = [
         .init(id: .featured, themes: [theme(.aurora, .green),
                                       theme(.ocean, .teal),
@@ -49,7 +49,7 @@ struct ChatThemeGallerySection: Identifiable {
                                        theme(.dusk, .purple),
                                        theme(.citrus, .green)])
     ]
-
+    
     private static func theme(_ preset: ChatBackgroundPreset, _ bubble: ChatBubbleColor) -> ChatTheme {
         ChatTheme(wallpaper: .preset(preset), bubble: bubble)
     }

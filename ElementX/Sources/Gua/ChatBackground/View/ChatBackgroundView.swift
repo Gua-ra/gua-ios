@@ -11,10 +11,10 @@ import SwiftUI
 struct ChatBackgroundView: View {
     let background: ChatBackground
     let mediaProvider: MediaProviderProtocol?
-
+    
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
+    
     var body: some View {
         ZStack {
             layer
@@ -25,7 +25,7 @@ struct ChatBackgroundView: View {
         .environment(\.layoutDirection, .leftToRight)
         .accessibilityHidden(true)
     }
-
+    
     private var layer: some View {
         ZStack {
             switch background {
@@ -43,10 +43,10 @@ struct ChatBackgroundView: View {
 
 struct ChatBackgroundScrim: View {
     let photoDim: Double?
-
+    
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
-
+    
     var body: some View {
         if colorScheme == .dark {
             if let photoDim {
@@ -61,11 +61,11 @@ struct ChatBackgroundScrim: View {
 
 struct ChatBackgroundFillView: View {
     let fill: ChatBackgroundFill
-
+    
     var body: some View {
         Canvas { context, size in
             let rect = Path(CGRect(origin: .zero, size: size))
-
+            
             switch fill {
             case .solid(let hex):
                 context.fill(rect, with: .color(Color(chatBackgroundHex: hex)))
@@ -96,17 +96,17 @@ struct ChatBackgroundPhotoLayout: View {
     var contentSize: CGSize?
     let alignX: Double
     let alignY: Double
-
+    
     static func scaledSize(of content: CGSize, filling frame: CGSize) -> CGSize {
         let scale = max(frame.width / max(content.width, 1), frame.height / max(content.height, 1))
         return CGSize(width: content.width * scale, height: content.height * scale)
     }
-
+    
     var body: some View {
         GeometryReader { geometry in
             let frame = geometry.size
             let scaled = Self.scaledSize(of: contentSize ?? image.size, filling: frame)
-
+            
             Image(uiImage: image)
                 .resizable()
                 .frame(width: scaled.width, height: scaled.height)
@@ -119,20 +119,20 @@ struct ChatBackgroundPhotoLayout: View {
 private struct ChatBackgroundPhotoView: View {
     let photo: ChatBackground.Photo
     let mediaProvider: MediaProviderProtocol?
-
+    
     @Environment(\.displayScale) private var displayScale
-
+    
     @State private var loadedImage: UIImage?
     @State private var hasFailed = false
-
+    
     var body: some View {
         GeometryReader { geometry in
             let maxPixelSize = Int((max(geometry.size.width, geometry.size.height) * displayScale).rounded(.up))
             let image = loadedImage ?? ChatBackgroundPhotoLoader.cachedImage(for: photo, maxPixelSize: maxPixelSize, mediaProvider: mediaProvider)
-
+            
             ZStack {
                 Color.compound.bgCanvasDefault
-
+                
                 if let image {
                     ChatBackgroundPhotoLayout(image: image, alignX: photo.alignX, alignY: photo.alignY)
                 } else if !hasFailed, let placeholder = photo.blurhash.flatMap(ChatBackgroundPhotoLoader.placeholder) {
@@ -141,7 +141,7 @@ private struct ChatBackgroundPhotoView: View {
                                               alignX: photo.alignX,
                                               alignY: photo.alignY)
                 }
-
+                
                 if image != nil || !hasFailed {
                     ChatBackgroundScrim(photoDim: photo.dim)
                 }
@@ -153,7 +153,7 @@ private struct ChatBackgroundPhotoView: View {
             }
         }
     }
-
+    
     private struct LoadRequest: Equatable {
         let url: String
         let maxPixelSize: Int
@@ -161,20 +161,20 @@ private struct ChatBackgroundPhotoView: View {
 }
 
 struct ChatBackgroundView_Previews: PreviewProvider, TestablePreview {
-    static let mediaProvider = MediaProviderMock(configuration: .init())
-
+    static let mediaProvider = MediaProviderMock(.init())
+    
     static var previews: some View {
         grid
             .previewLayout(.sizeThatFits)
             .previewDisplayName("Light")
-
+        
         grid
             .environment(\.colorScheme, .dark)
             .preferredColorScheme(.dark)
             .previewLayout(.sizeThatFits)
             .previewDisplayName("Dark")
     }
-
+    
     static var grid: some View {
         let backgrounds: [ChatBackground] = [.none] + ChatBackgroundPreset.allCases.map(ChatBackground.preset) + [photo(dim: 0), photo(dim: ChatBackground.Photo.maxDim)]
         return LazyVGrid(columns: Array(repeating: GridItem(.fixed(64), spacing: 4), count: 5), spacing: 4) {
@@ -186,7 +186,7 @@ struct ChatBackgroundView_Previews: PreviewProvider, TestablePreview {
         .padding(4)
         .background(Color.compound.bgCanvasDefault)
     }
-
+    
     static func photo(dim: Double) -> ChatBackground {
         var photo = ChatBackground.Photo.mock
         photo.dim = dim

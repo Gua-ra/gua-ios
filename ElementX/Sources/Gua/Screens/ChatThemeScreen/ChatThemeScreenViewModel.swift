@@ -15,9 +15,9 @@ class ChatThemeScreenViewModel: ChatThemeScreenViewModelType, ChatThemeScreenVie
     private let clientProxy: ClientProxyProtocol
     private let chatBackgroundService: ChatBackgroundServiceProtocol
     private let userIndicatorController: UserIndicatorControllerProtocol
-
+    
     private let indicatorID = "ChatThemeScreen-Progress"
-
+    
     init(mode: ChatThemeScreenMode,
          clientProxy: ClientProxyProtocol,
          chatBackgroundService: ChatBackgroundServiceProtocol,
@@ -27,7 +27,7 @@ class ChatThemeScreenViewModel: ChatThemeScreenViewModelType, ChatThemeScreenVie
         self.clientProxy = clientProxy
         self.chatBackgroundService = chatBackgroundService
         self.userIndicatorController = userIndicatorController
-
+        
         let currentPublisher: CurrentValuePublisher<ChatTheme, Never>
         let initialState: ChatThemeScreenViewState
         switch mode {
@@ -48,15 +48,15 @@ class ChatThemeScreenViewModel: ChatThemeScreenViewModelType, ChatThemeScreenVie
                                  isPhotoHidden: false)
         }
         super.init(initialViewState: initialState, mediaProvider: mediaProvider)
-
+        
         currentPublisher
             .weakAssign(to: \.state.current, on: self)
             .store(in: &cancellables)
-
+        
         chatBackgroundService.defaultThemePublisher
             .weakAssign(to: \.state.defaultTheme, on: self)
             .store(in: &cancellables)
-
+        
         if case .chat(let roomProxy) = mode {
             roomProxy.infoPublisher
                 .map { Self.canChange($0.powerLevels) }
@@ -64,7 +64,7 @@ class ChatThemeScreenViewModel: ChatThemeScreenViewModelType, ChatThemeScreenVie
                 .receive(on: DispatchQueue.main)
                 .weakAssign(to: \.state.canChange, on: self)
                 .store(in: &cancellables)
-
+            
             clientProxy.timelineMediaVisibilityPublisher
                 .combineLatest(roomProxy.infoPublisher)
                 .map { Self.isPhotoHidden($0, roomInfo: $1) }
@@ -74,7 +74,7 @@ class ChatThemeScreenViewModel: ChatThemeScreenViewModelType, ChatThemeScreenVie
                 .store(in: &cancellables)
         }
     }
-
+    
     override func process(viewAction: ChatThemeScreenViewAction) {
         switch viewAction {
         case .selectTheme(let theme):
@@ -128,52 +128,52 @@ class ChatThemeScreenViewModel: ChatThemeScreenViewModelType, ChatThemeScreenVie
             Task { await save(draft.theme) }
         }
     }
-
+    
     private static func canChange(_ powerLevels: RoomPowerLevelsProxyProtocol?) -> Bool {
         powerLevels?.canOwnUser(sendStateEvent: .guaChatBackground) ?? false
     }
-
+    
     /// The chat-side half of `ChatTheme.effective`, with an unknown join rule counted as public.
     private static func isPhotoHidden(_ visibility: TimelineMediaVisibility, roomInfo: RoomInfoProxyProtocol) -> Bool {
         visibility != .always && !(roomInfo.isPrivate ?? false)
     }
-
+    
     private func preparePhoto(load: () async -> Data?) async {
         showProgress(title: L10n.commonLoading)
         defer { hideProgress() }
-
+        
         guard let data = await load() else {
             state.bindings.alertInfo = .init(id: .failed, title: UntranslatedL10n.guaChatBackgroundErrorGeneric)
             return
         }
-
+        
         let processed = await Task.detached(priority: .userInitiated) {
             Result { try ChatBackgroundImageProcessor.process(data) }
         }.value
-
+        
         guard case .success(let upload) = processed, let image = UIImage(data: upload.data) else {
             state.bindings.alertInfo = .init(id: .failed, title: UntranslatedL10n.guaChatBackgroundErrorGeneric)
             return
         }
-
+        
         if case .success(let maxUploadSize) = await clientProxy.maxMediaUploadSize, upload.data.count > maxUploadSize {
             state.bindings.alertInfo = .init(id: .photoTooLarge, title: UntranslatedL10n.guaChatBackgroundErrorTooLarge)
             return
         }
-
+        
         state.bindings.photoDraft = ChatBackgroundPhotoDraft(upload: upload, image: image)
     }
-
+    
     private func setPhoto(_ draft: ChatBackgroundPhotoDraft) async {
         showProgress(title: UntranslatedL10n.guaChatThemeProgress)
         defer { hideProgress() }
-
+        
         let upload = draft.upload
         guard case .success(let url) = await clientProxy.uploadMedia(data: upload.data, mimeType: ChatBackgroundPhotoUpload.mimetype) else {
             await handleFailure()
             return
         }
-
+        
         let photo = ChatBackground.Photo(url: url,
                                          mimetype: ChatBackgroundPhotoUpload.mimetype,
                                          width: upload.width,
@@ -185,13 +185,13 @@ class ChatThemeScreenViewModel: ChatThemeScreenViewModelType, ChatThemeScreenVie
                                          alignY: draft.alignY)
         await send(ChatTheme(wallpaper: .photo(photo), bubble: state.baseTheme.bubble))
     }
-
+    
     private func save(_ theme: ChatTheme) async {
         showProgress(title: UntranslatedL10n.guaChatThemeProgress)
         defer { hideProgress() }
         await send(theme)
     }
-
+    
     private func send(_ theme: ChatTheme) async {
         let hasFailed = switch mode {
         case .chat(let roomProxy):
@@ -199,7 +199,7 @@ class ChatThemeScreenViewModel: ChatThemeScreenViewModelType, ChatThemeScreenVie
         case .defaultTheme:
             await chatBackgroundService.setDefaultTheme(theme).isFailure
         }
-
+        
         guard !hasFailed else {
             await handleFailure()
             return
@@ -210,22 +210,22 @@ class ChatThemeScreenViewModel: ChatThemeScreenViewModelType, ChatThemeScreenVie
         state.bindings.bubbleChoice = nil
         state.bindings.isWallpaperPickerPresented = false
     }
-
+    
     /// A refusal in a chat can mean the permissions changed, so they are read again.
     private func handleFailure() async {
         state.bindings.alertInfo = .init(id: .failed, title: UntranslatedL10n.guaChatBackgroundErrorGeneric)
-        if case .chat(let roomProxy) = mode, case .success(let powerLevels) = await roomProxy.powerLevels() {
-            state.canChange = Self.canChange(powerLevels)
+        if case .chat(let roomProxy) = mode {
+            state.canChange = Self.canChange(roomProxy.infoPublisher.value.powerLevels)
         }
     }
-
+    
     private func showProgress(title: String) {
         userIndicatorController.submitIndicator(UserIndicator(id: indicatorID,
                                                               type: .modal(progress: .indeterminate, interactiveDismissDisabled: true, allowsInteraction: false),
                                                               title: title,
                                                               persistent: true))
     }
-
+    
     private func hideProgress() {
         userIndicatorController.retractIndicatorWithId(indicatorID)
     }
