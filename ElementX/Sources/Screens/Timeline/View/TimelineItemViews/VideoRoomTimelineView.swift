@@ -10,6 +10,8 @@ import SwiftUI
 
 struct VideoRoomTimelineView: View {
     @Environment(\.timelineContext) private var context
+    // GUA FORK: the placeholder matches the chat theme's outgoing bubble.
+    @Environment(\.chatBubbleColor) private var chatBubbleColor
     let timelineItem: VideoRoomTimelineItem
     
     private var hasMediaCaption: Bool {
@@ -71,7 +73,7 @@ struct VideoRoomTimelineView: View {
     
     var placeholder: some View {
         Rectangle()
-            .foregroundColor(timelineItem.isOutgoing ? .compound._bgBubbleOutgoing : .compound._bgBubbleIncoming)
+            .foregroundColor(timelineItem.isOutgoing ? chatBubbleColor.outgoingColor : .compound._bgBubbleIncoming)
             .opacity(0.3)
     }
 }

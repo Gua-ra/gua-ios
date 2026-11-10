@@ -138,18 +138,18 @@ struct RoomStateEventStringBuilder {
         }
     }
     
-    func buildChatBackgroundString(isRemoval: Bool, sender: TimelineItemSender, isOutgoing: Bool) -> String {
+    func buildChatThemeString(isRemoval: Bool, sender: TimelineItemSender, isOutgoing: Bool) -> String {
         let displayName = name(of: sender)
         
         switch (isRemoval, isOutgoing) {
         case (true, true):
-            return UntranslatedL10n.guaChatBackgroundNoticeRemovedByYou
+            return UntranslatedL10n.guaChatThemeNoticeRemovedByYou
         case (true, false):
-            return UntranslatedL10n.guaChatBackgroundNoticeRemoved(displayName)
+            return UntranslatedL10n.guaChatThemeNoticeRemoved(displayName)
         case (false, true):
-            return UntranslatedL10n.guaChatBackgroundNoticeChangedByYou
+            return UntranslatedL10n.guaChatThemeNoticeChangedByYou
         case (false, false):
-            return UntranslatedL10n.guaChatBackgroundNoticeChanged(displayName)
+            return UntranslatedL10n.guaChatThemeNoticeChanged(displayName)
         }
     }
     

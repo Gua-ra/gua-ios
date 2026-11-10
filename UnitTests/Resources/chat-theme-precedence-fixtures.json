@@ -1,0 +1,225 @@
+{
+  "cases": [
+    {
+      "name": "a chat theme wins over the default",
+      "chatTheme": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "ocean",
+        "bubble": "teal"
+      },
+      "defaultTheme": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "aurora",
+        "bubble": "green"
+      },
+      "roomIsPrivate": false,
+      "mediaShown": true,
+      "expected": {
+        "kind": "preset",
+        "preset": "ocean",
+        "bubble": "teal"
+      }
+    },
+    {
+      "name": "no chat theme shows the default",
+      "chatTheme": {},
+      "defaultTheme": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "dusk",
+        "bubble": "orange"
+      },
+      "roomIsPrivate": false,
+      "mediaShown": true,
+      "expected": {
+        "kind": "preset",
+        "preset": "dusk",
+        "bubble": "orange"
+      }
+    },
+    {
+      "name": "neither theme shows the stock look",
+      "chatTheme": {},
+      "defaultTheme": {},
+      "roomIsPrivate": false,
+      "mediaShown": true,
+      "expected": {
+        "kind": "none",
+        "bubble": "standard"
+      }
+    },
+    {
+      "name": "a chat photo in a private room shows with media off",
+      "chatTheme": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/jpeg",
+          "w": 1536,
+          "h": 2048,
+          "size": 412337,
+          "blurhash": "LKO2?U%2Tw=w]~RBVZRi};RPxuwH",
+          "dim": 35,
+          "align": {
+            "x": 500,
+            "y": 500
+          }
+        },
+        "bubble": "pink"
+      },
+      "defaultTheme": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "aurora",
+        "bubble": "green"
+      },
+      "roomIsPrivate": true,
+      "mediaShown": false,
+      "expected": {
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/jpeg",
+          "w": 1536,
+          "h": 2048,
+          "size": 412337,
+          "blurhash": "LKO2?U%2Tw=w]~RBVZRi};RPxuwH",
+          "dim": 35,
+          "align": {
+            "x": 500,
+            "y": 500
+          }
+        },
+        "bubble": "pink"
+      }
+    },
+    {
+      "name": "a chat photo in a public room with media off falls back to the default",
+      "chatTheme": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/jpeg",
+          "w": 1536,
+          "h": 2048,
+          "size": 412337,
+          "blurhash": "LKO2?U%2Tw=w]~RBVZRi};RPxuwH",
+          "dim": 35,
+          "align": {
+            "x": 500,
+            "y": 500
+          }
+        },
+        "bubble": "pink"
+      },
+      "defaultTheme": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "night",
+        "bubble": "purple"
+      },
+      "roomIsPrivate": false,
+      "mediaShown": false,
+      "expected": {
+        "kind": "preset",
+        "preset": "night",
+        "bubble": "purple"
+      }
+    },
+    {
+      "name": "a chat photo in a public room with media off and no default falls back to stock",
+      "chatTheme": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/jpeg",
+          "w": 1536,
+          "h": 2048,
+          "size": 412337,
+          "blurhash": "LKO2?U%2Tw=w]~RBVZRi};RPxuwH",
+          "dim": 35,
+          "align": {
+            "x": 500,
+            "y": 500
+          }
+        },
+        "bubble": "pink"
+      },
+      "defaultTheme": {},
+      "roomIsPrivate": false,
+      "mediaShown": false,
+      "expected": {
+        "kind": "none",
+        "bubble": "standard"
+      }
+    },
+    {
+      "name": "a default photo shows with media off",
+      "chatTheme": {},
+      "defaultTheme": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/jpeg",
+          "w": 1536,
+          "h": 2048,
+          "size": 412337,
+          "blurhash": "LKO2?U%2Tw=w]~RBVZRi};RPxuwH",
+          "dim": 35,
+          "align": {
+            "x": 500,
+            "y": 500
+          }
+        },
+        "bubble": "blue"
+      },
+      "roomIsPrivate": false,
+      "mediaShown": false,
+      "expected": {
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/jpeg",
+          "w": 1536,
+          "h": 2048,
+          "size": 412337,
+          "blurhash": "LKO2?U%2Tw=w]~RBVZRi};RPxuwH",
+          "dim": 35,
+          "align": {
+            "x": 500,
+            "y": 500
+          }
+        },
+        "bubble": "blue"
+      }
+    },
+    {
+      "name": "a chat preset in a public room with media off still shows",
+      "chatTheme": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "sunset",
+        "bubble": "pink"
+      },
+      "defaultTheme": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "aurora",
+        "bubble": "green"
+      },
+      "roomIsPrivate": false,
+      "mediaShown": false,
+      "expected": {
+        "kind": "preset",
+        "preset": "sunset",
+        "bubble": "pink"
+      }
+    }
+  ]
+}

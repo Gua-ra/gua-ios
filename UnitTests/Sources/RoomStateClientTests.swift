@@ -31,7 +31,7 @@ final class RoomStateClientTests: XCTestCase {
         }
         XCTAssertEqual(value.eventID, "$abc")
         XCTAssertEqual(value.timestamp, 1_730_000_000_123)
-        XCTAssertEqual(ChatBackground(contentJSON: value.contentJSON), .preset(.sky))
+        XCTAssertEqual(ChatTheme(contentJSON: value.contentJSON), ChatTheme(wallpaper: .preset(.sky)))
     }
 
     func testPathEscapesTheRoomIDAndEndsWithTheEmptyStateKey() throws {
@@ -63,7 +63,7 @@ final class RoomStateClientTests: XCTestCase {
         }
         XCTAssertNil(value.eventID)
         XCTAssertEqual(value.timestamp, 0)
-        XCTAssertEqual(ChatBackground(contentJSON: value.contentJSON), .preset(.night))
+        XCTAssertEqual(ChatTheme(contentJSON: value.contentJSON), ChatTheme(wallpaper: .preset(.night)))
     }
 
     func testNotFoundMeansNoBackground() async {

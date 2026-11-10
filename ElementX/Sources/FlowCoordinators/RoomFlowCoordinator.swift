@@ -385,8 +385,8 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
             case (.roomDetails, .presentSecurityAndPrivacyScreen, .securityAndPrivacy):
                 presentSecurityAndPrivacyScreen()
                 
-            case (.roomDetails, .presentChatBackgroundScreen, .chatBackground):
-                presentChatBackgroundScreen()
+            case (.roomDetails, .presentChatThemeScreen, .chatTheme):
+                presentChatThemeScreen()
                 
             case (.roomDetails, .presentReportRoomScreen, .reportRoom):
                 presentReportRoom()
@@ -886,8 +886,8 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
                 stateMachine.tryEvent(.presentMediaEventsTimeline)
             case .presentSecurityAndPrivacyScreen:
                 stateMachine.tryEvent(.presentSecurityAndPrivacyScreen)
-            case .presentChatBackgroundScreen:
-                stateMachine.tryEvent(.presentChatBackgroundScreen)
+            case .presentChatThemeScreen:
+                stateMachine.tryEvent(.presentChatThemeScreen)
             case .presentRecipientDetails(let userID):
                 stateMachine.tryEvent(.presentRoomMemberDetails(userID: userID))
             case .presentReportRoomScreen:
@@ -1462,21 +1462,13 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
         }
     }
     
-    private func presentChatBackgroundScreen() {
-        let coordinator = ChatBackgroundScreenCoordinator(parameters: .init(roomProxy: roomProxy,
-                                                                            userSession: userSession,
-                                                                            userIndicatorController: flowParameters.userIndicatorController))
-        
-        coordinator.actionsPublisher.sink { [weak self] action in
-            switch action {
-            case .dismiss:
-                self?.navigationStackCoordinator.pop()
-            }
-        }
-        .store(in: &cancellables)
+    private func presentChatThemeScreen() {
+        let coordinator = ChatThemeScreenCoordinator(parameters: .init(mode: .chat(roomProxy),
+                                                                       userSession: userSession,
+                                                                       userIndicatorController: flowParameters.userIndicatorController))
         
         navigationStackCoordinator.push(coordinator) { [weak self] in
-            self?.stateMachine.tryEvent(.dismissChatBackgroundScreen)
+            self?.stateMachine.tryEvent(.dismissChatThemeScreen)
         }
     }
     

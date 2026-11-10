@@ -6,14 +6,16 @@
 //
 
 @testable import ElementX
+import MatrixRustSDK
 import XCTest
 
 @MainActor
 final class ChatBackgroundTimelineTests: XCTestCase {
     private let otherUserID = "@bob:gua.global"
 
-    func testMainTimelineReportsTheNewestChangeAndShowsTheBackground() async throws {
-        let service = ChatBackgroundServiceMock(.init(background: .preset(.night)))
+    func testMainTimelineReportsTheNewestChangeAndShowsTheTheme() async throws {
+        let theme = ChatTheme(wallpaper: .preset(.night), bubble: .purple)
+        let service = ChatBackgroundServiceMock(.init(theme: theme, defaultTheme: ChatTheme(wallpaper: .preset(.aurora))))
         let refreshed = expectation(description: "The server's state is read when the chat opens")
         service.refreshRoomIDClosure = { _ in refreshed.fulfill() }
         let older = noticeItem(eventID: "$older", timestamp: 100, background: .preset(.sky))
@@ -23,7 +25,8 @@ final class ChatBackgroundTimelineTests: XCTestCase {
         let viewModel = makeTimelineViewModel(timelineController: timelineController, service: service)
         await fulfillment(of: [refreshed], timeout: 1)
 
-        XCTAssertEqual(viewModel.context.viewState.chatBackground, .preset(.night))
+        XCTAssertEqual(viewModel.context.viewState.chatTheme, theme)
+        XCTAssertEqual(viewModel.context.viewState.effectiveChatTheme, theme)
         XCTAssertEqual(service.handleTimelineEventRoomIDEventIDTimestampContentJSONCallsCount, 1)
         XCTAssertEqual(service.handleTimelineEventRoomIDEventIDTimestampContentJSONReceivedArguments?.eventID, "$newer")
         XCTAssertEqual(service.handleTimelineEventRoomIDEventIDTimestampContentJSONReceivedArguments?.timestamp, 200)
@@ -33,40 +36,57 @@ final class ChatBackgroundTimelineTests: XCTestCase {
         XCTAssertEqual(service.handleTimelineEventRoomIDEventIDTimestampContentJSONCallsCount, 1)
     }
 
-    func testPhotoIsHiddenWhenTheChatHidesMedia() {
-        let service = ChatBackgroundServiceMock(.init(background: .photo(.mock)))
+    func testDefaultThemeShowsInAChatWithoutATheme() {
+        let defaultTheme = ChatTheme(wallpaper: .preset(.dusk), bubble: .orange)
+        let service = ChatBackgroundServiceMock(.init(defaultTheme: defaultTheme))
+
         let viewModel = makeTimelineViewModel(timelineController: MockTimelineController(timelineItems: []), service: service)
-        var state = viewModel.context.viewState
-        XCTAssertEqual(state.visibleChatBackground, .photo(.mock))
 
+        XCTAssertEqual(viewModel.context.viewState.effectiveChatTheme, defaultTheme)
+    }
+
+    func testAChatPhotoFollowsTheMediaSettingOnlyInPublicChats() {
+        let photo = ChatTheme(wallpaper: .photo(.mock), bubble: .pink)
+        let defaultTheme = ChatTheme(wallpaper: .preset(.aurora), bubble: .green)
+        let service = ChatBackgroundServiceMock(.init(theme: photo, defaultTheme: defaultTheme))
+
+        let privateChat = makeTimelineViewModel(timelineController: MockTimelineController(timelineItems: []), service: service, joinRule: .invite)
+        var state = privateChat.context.viewState
+        XCTAssertTrue(state.isPrivateRoom)
         state.hideTimelineMedia = true
-        XCTAssertEqual(state.visibleChatBackground, .none)
+        XCTAssertEqual(state.effectiveChatTheme, photo)
 
-        state.chatBackground = .preset(.sand)
-        XCTAssertEqual(state.visibleChatBackground, .preset(.sand))
+        let publicChat = makeTimelineViewModel(timelineController: MockTimelineController(timelineItems: []), service: service, joinRule: .public)
+        state = publicChat.context.viewState
+        XCTAssertFalse(state.isPrivateRoom)
+        XCTAssertEqual(state.effectiveChatTheme, photo)
+        state.hideTimelineMedia = true
+        XCTAssertEqual(state.effectiveChatTheme, defaultTheme)
     }
 
     func testThreadsKeepTheDefaultCanvas() {
-        let service = ChatBackgroundServiceMock(.init(background: .preset(.night)))
+        let service = ChatBackgroundServiceMock(.init(theme: ChatTheme(wallpaper: .preset(.night)), defaultTheme: ChatTheme(wallpaper: .preset(.aurora))))
         let viewModel = makeTimelineViewModel(timelineController: MockTimelineController(timelineKind: .thread(rootEventID: "$root"), timelineItems: []),
                                               service: service)
-        XCTAssertEqual(viewModel.context.viewState.chatBackground, .none)
-        XCTAssertFalse(service.backgroundPublisherRoomIDCalled)
+        XCTAssertEqual(viewModel.context.viewState.effectiveChatTheme, .stock)
+        XCTAssertFalse(service.themePublisherRoomIDCalled)
     }
 
     private func noticeItem(eventID: String, timestamp: UInt64, background: ChatBackground) -> StateRoomTimelineItem {
         StateRoomTimelineItem(id: .event(uniqueID: .init(eventID), eventOrTransactionID: .eventID(eventID)),
-                              body: "Bob changed the chat background",
+                              body: "Bob changed the chat theme",
                               timestamp: .mock,
                               isOutgoing: false,
                               isEditable: false,
                               canBeRepliedTo: false,
                               sender: .init(id: otherUserID),
-                              chatBackgroundEvent: .init(eventID: eventID, timestamp: timestamp, contentJSON: background.contentJSON))
+                              chatBackgroundEvent: .init(eventID: eventID, timestamp: timestamp, contentJSON: ChatTheme(wallpaper: background).contentJSON))
     }
 
-    private func makeTimelineViewModel(timelineController: MockTimelineController, service: ChatBackgroundServiceMock) -> TimelineViewModel {
-        TimelineViewModel(roomProxy: JoinedRoomProxyMock(.init(id: "!room:gua.global", name: "Room")),
+    private func makeTimelineViewModel(timelineController: MockTimelineController,
+                                       service: ChatBackgroundServiceMock,
+                                       joinRule: JoinRule = .invite) -> TimelineViewModel {
+        TimelineViewModel(roomProxy: JoinedRoomProxyMock(.init(id: "!room:gua.global", name: "Room", joinRule: joinRule)),
                           timelineController: timelineController,
                           userSession: UserSessionMock(.init(chatBackgroundService: service)),
                           mediaPlayerProvider: MediaPlayerProviderMock(),

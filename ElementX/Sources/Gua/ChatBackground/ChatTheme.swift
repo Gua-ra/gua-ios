@@ -7,6 +7,27 @@
 
 import Foundation
 
+struct ChatTheme: Hashable {
+    static let stock = ChatTheme(wallpaper: .none)
+
+    var wallpaper: ChatBackground
+    var bubble = ChatBubbleColor.standard
+
+    var isStock: Bool {
+        self == .stock
+    }
+
+    /// What a chat shows. A photo the chat may not show hands over to the default as a whole, whose own photo always shows.
+    static func effective(chatTheme: ChatTheme, defaultTheme: ChatTheme, roomIsPrivate: Bool, mediaShown: Bool) -> ChatTheme {
+        guard !chatTheme.isStock else { return defaultTheme }
+        if chatTheme.wallpaper.photo != nil, !roomIsPrivate, !mediaShown {
+            return defaultTheme
+        }
+        return chatTheme
+    }
+}
+
+/// The wallpaper of a chat theme.
 enum ChatBackground: Hashable {
     case none
     case preset(ChatBackgroundPreset)
@@ -52,54 +73,58 @@ enum ChatBackground: Hashable {
     }
 }
 
-extension ChatBackground {
+extension ChatTheme {
     init(contentJSON: String?) {
         guard let data = contentJSON?.data(using: .utf8),
               let content = try? JSONDecoder().decode(Content.self, from: data) else {
-            self = .none
+            self = .stock
             return
         }
-        self = content.background
+        self = content.theme
     }
 
     var contentJSON: String {
-        let content: EncodedContent
-        switch self {
+        guard !isStock else { return ChatBackground.removedContent }
+
+        let bubbleID = bubble == .standard ? nil : bubble.rawValue
+        let content = switch wallpaper {
         case .none:
-            return Self.removedContent
+            EncodedContent(bubble: bubbleID, kind: "none", preset: nil, photo: nil)
         case .preset(let preset):
-            content = EncodedContent(kind: "preset", preset: preset.rawValue, photo: nil)
+            EncodedContent(bubble: bubbleID, kind: "preset", preset: preset.rawValue, photo: nil)
         case .photo(let photo):
-            content = EncodedContent(kind: "photo",
-                                     preset: nil,
-                                     photo: .init(url: photo.url,
-                                                  mimetype: photo.mimetype,
-                                                  w: photo.width,
-                                                  h: photo.height,
-                                                  size: photo.size,
-                                                  blurhash: photo.blurhash,
-                                                  dim: photo.dim.storedUnits(per: Photo.dimScale),
-                                                  align: .init(x: photo.alignX.storedUnits(per: Photo.alignScale),
-                                                               y: photo.alignY.storedUnits(per: Photo.alignScale))))
+            EncodedContent(bubble: bubbleID,
+                           kind: "photo",
+                           preset: nil,
+                           photo: .init(url: photo.url,
+                                        mimetype: photo.mimetype,
+                                        w: photo.width,
+                                        h: photo.height,
+                                        size: photo.size,
+                                        blurhash: photo.blurhash,
+                                        dim: photo.dim.storedUnits(per: ChatBackground.Photo.dimScale),
+                                        align: .init(x: photo.alignX.storedUnits(per: ChatBackground.Photo.alignScale),
+                                                     y: photo.alignY.storedUnits(per: ChatBackground.Photo.alignScale))))
         }
 
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         guard let data = try? encoder.encode(content), let json = String(data: data, encoding: .utf8) else {
-            return Self.removedContent
+            return ChatBackground.removedContent
         }
         return json
     }
 }
 
 private struct Content: Decodable {
-    let background: ChatBackground
+    let theme: ChatTheme
 
     private enum CodingKeys: String, CodingKey {
         case version = "v"
         case kind
         case preset
         case photo
+        case bubble
         case fallbackPreset = "fallback_preset"
     }
 
@@ -108,14 +133,20 @@ private struct Content: Decodable {
         let version = try? container.decodeInteger(forKey: .version)
         let kind = try? container.decode(String.self, forKey: .kind)
 
-        switch (version, kind) {
+        let wallpaper: ChatBackground = switch (version, kind) {
         case (1, "preset"):
-            background = Self.preset(from: container, key: .preset)
+            Self.preset(from: container, key: .preset)
         case (1, "photo"):
-            background = (try? container.decode(ChatBackground.Photo.self, forKey: .photo)).map(ChatBackground.photo) ?? .none
+            (try? container.decode(ChatBackground.Photo.self, forKey: .photo)).map(ChatBackground.photo) ?? .none
+        case (1, "none"):
+            .none
         default:
-            background = Self.preset(from: container, key: .fallbackPreset)
+            Self.preset(from: container, key: .fallbackPreset)
         }
+
+        // Only version 1 has bubbles. One it doesn't know reads as the stock bubble and keeps the wallpaper.
+        let bubble = version == 1 ? (try? container.decode(String.self, forKey: .bubble)).flatMap(ChatBubbleColor.init(rawValue:)) : nil
+        theme = ChatTheme(wallpaper: wallpaper, bubble: bubble ?? .standard)
     }
 
     private static func preset(from container: KeyedDecodingContainer<CodingKeys>, key: CodingKeys) -> ChatBackground {
@@ -211,6 +242,7 @@ private struct EncodedContent: Encodable {
     }
 
     let v = 1
+    let bubble: String?
     let kind: String
     let preset: String?
     let photo: Photo?

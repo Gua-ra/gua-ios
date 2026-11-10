@@ -341,8 +341,12 @@ class UserSessionStore: UserSessionStoreProtocol {
         let voiceMessageMediaManager = VoiceMessageMediaManager(mediaProvider: mediaProvider)
         
         let roomStateClient = RoomStateClient(homeserver: { clientProxy.homeserver }, accessToken: { clientProxy.accessToken })
+        let chatBackgroundCache = ChatBackgroundCache(directory: sessionDirectories.cacheDirectory)
+        let defaultChatThemeSetting = DefaultChatThemeSetting(clientProxy: clientProxy, cache: chatBackgroundCache)
+        defaultChatThemeSetting.start()
         let chatBackgroundService = ChatBackgroundService(roomStateClient: roomStateClient,
-                                                          cache: ChatBackgroundCache(directory: sessionDirectories.cacheDirectory))
+                                                          cache: chatBackgroundCache,
+                                                          defaultThemeSetting: defaultChatThemeSetting)
         
         return UserSession(clientProxy: clientProxy,
                            mediaProvider: mediaProvider,

@@ -824,6 +824,414 @@
       "expected": {
         "kind": "none"
       }
+    },
+    {
+      "name": "bubble green without a wallpaper",
+      "content": {
+        "v": 1,
+        "kind": "none",
+        "bubble": "green"
+      },
+      "expected": {
+        "kind": "none",
+        "bubble": "green"
+      },
+      "encoded": "{\"bubble\":\"green\",\"kind\":\"none\",\"v\":1}"
+    },
+    {
+      "name": "bubble teal without a wallpaper",
+      "content": {
+        "v": 1,
+        "kind": "none",
+        "bubble": "teal"
+      },
+      "expected": {
+        "kind": "none",
+        "bubble": "teal"
+      },
+      "encoded": "{\"bubble\":\"teal\",\"kind\":\"none\",\"v\":1}"
+    },
+    {
+      "name": "bubble blue without a wallpaper",
+      "content": {
+        "v": 1,
+        "kind": "none",
+        "bubble": "blue"
+      },
+      "expected": {
+        "kind": "none",
+        "bubble": "blue"
+      },
+      "encoded": "{\"bubble\":\"blue\",\"kind\":\"none\",\"v\":1}"
+    },
+    {
+      "name": "bubble purple without a wallpaper",
+      "content": {
+        "v": 1,
+        "kind": "none",
+        "bubble": "purple"
+      },
+      "expected": {
+        "kind": "none",
+        "bubble": "purple"
+      },
+      "encoded": "{\"bubble\":\"purple\",\"kind\":\"none\",\"v\":1}"
+    },
+    {
+      "name": "bubble pink without a wallpaper",
+      "content": {
+        "v": 1,
+        "kind": "none",
+        "bubble": "pink"
+      },
+      "expected": {
+        "kind": "none",
+        "bubble": "pink"
+      },
+      "encoded": "{\"bubble\":\"pink\",\"kind\":\"none\",\"v\":1}"
+    },
+    {
+      "name": "bubble orange without a wallpaper",
+      "content": {
+        "v": 1,
+        "kind": "none",
+        "bubble": "orange"
+      },
+      "expected": {
+        "kind": "none",
+        "bubble": "orange"
+      },
+      "encoded": "{\"bubble\":\"orange\",\"kind\":\"none\",\"v\":1}"
+    },
+    {
+      "name": "bubble yellow without a wallpaper",
+      "content": {
+        "v": 1,
+        "kind": "none",
+        "bubble": "yellow"
+      },
+      "expected": {
+        "kind": "none",
+        "bubble": "yellow"
+      },
+      "encoded": "{\"bubble\":\"yellow\",\"kind\":\"none\",\"v\":1}"
+    },
+    {
+      "name": "bubble graphite without a wallpaper",
+      "content": {
+        "v": 1,
+        "kind": "none",
+        "bubble": "graphite"
+      },
+      "expected": {
+        "kind": "none",
+        "bubble": "graphite"
+      },
+      "encoded": "{\"bubble\":\"graphite\",\"kind\":\"none\",\"v\":1}"
+    },
+    {
+      "name": "bubble with a preset",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "forest",
+        "bubble": "teal"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "forest",
+        "bubble": "teal"
+      },
+      "encoded": "{\"bubble\":\"teal\",\"kind\":\"preset\",\"preset\":\"forest\",\"v\":1}"
+    },
+    {
+      "name": "bubble with a photo",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/jpeg",
+          "w": 1536,
+          "h": 2048,
+          "size": 412337,
+          "blurhash": "LKO2?U%2Tw=w]~RBVZRi};RPxuwH",
+          "dim": 60,
+          "align": {
+            "x": 250,
+            "y": 1000
+          }
+        },
+        "bubble": "pink"
+      },
+      "expected": {
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/jpeg",
+          "w": 1536,
+          "h": 2048,
+          "size": 412337,
+          "blurhash": "LKO2?U%2Tw=w]~RBVZRi};RPxuwH",
+          "dim": 60,
+          "align": {
+            "x": 250,
+            "y": 1000
+          }
+        },
+        "bubble": "pink"
+      },
+      "encoded": "{\"bubble\":\"pink\",\"kind\":\"photo\",\"photo\":{\"align\":{\"x\":250,\"y\":1000},\"blurhash\":\"LKO2?U%2Tw=w]~RBVZRi};RPxuwH\",\"dim\":60,\"h\":2048,\"mimetype\":\"image/jpeg\",\"size\":412337,\"url\":\"mxc://gua.global/AbCdEf\",\"w\":1536},\"v\":1}"
+    },
+    {
+      "name": "standard bubble is never written",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "mint",
+        "bubble": "standard"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "mint",
+        "bubble": "standard"
+      },
+      "encoded": "{\"kind\":\"preset\",\"preset\":\"mint\",\"v\":1}"
+    },
+    {
+      "name": "unknown bubble reads as standard and keeps the wallpaper",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "sky",
+        "bubble": "rainbow"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "sky",
+        "bubble": "standard"
+      },
+      "encoded": "{\"kind\":\"preset\",\"preset\":\"sky\",\"v\":1}"
+    },
+    {
+      "name": "wrong-case bubble reads as standard",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "sky",
+        "bubble": "Blue"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "sky",
+        "bubble": "standard"
+      },
+      "encoded": "{\"kind\":\"preset\",\"preset\":\"sky\",\"v\":1}"
+    },
+    {
+      "name": "bubble as a number reads as standard",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "sand",
+        "bubble": 3
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "sand",
+        "bubble": "standard"
+      },
+      "encoded": "{\"kind\":\"preset\",\"preset\":\"sand\",\"v\":1}"
+    },
+    {
+      "name": "bubble as an object reads as standard",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "sand",
+        "bubble": {
+          "id": "blue"
+        }
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "sand",
+        "bubble": "standard"
+      },
+      "encoded": "{\"kind\":\"preset\",\"preset\":\"sand\",\"v\":1}"
+    },
+    {
+      "name": "null bubble reads as standard",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "night",
+        "bubble": null
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "night",
+        "bubble": "standard"
+      },
+      "encoded": "{\"kind\":\"preset\",\"preset\":\"night\",\"v\":1}"
+    },
+    {
+      "name": "kind none without a bubble is no theme",
+      "content": {
+        "v": 1,
+        "kind": "none"
+      },
+      "expected": {
+        "kind": "none",
+        "bubble": "standard"
+      },
+      "encoded": "{}"
+    },
+    {
+      "name": "kind none with a standard bubble is no theme",
+      "content": {
+        "v": 1,
+        "kind": "none",
+        "bubble": "standard"
+      },
+      "expected": {
+        "kind": "none",
+        "bubble": "standard"
+      },
+      "encoded": "{}"
+    },
+    {
+      "name": "kind none with an unknown bubble is no theme",
+      "content": {
+        "v": 1,
+        "kind": "none",
+        "bubble": "rainbow"
+      },
+      "expected": {
+        "kind": "none",
+        "bubble": "standard"
+      },
+      "encoded": "{}"
+    },
+    {
+      "name": "kind none ignores a preset",
+      "content": {
+        "v": 1,
+        "kind": "none",
+        "preset": "aurora",
+        "bubble": "blue"
+      },
+      "expected": {
+        "kind": "none",
+        "bubble": "blue"
+      },
+      "encoded": "{\"bubble\":\"blue\",\"kind\":\"none\",\"v\":1}"
+    },
+    {
+      "name": "preset dawn",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "dawn"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "dawn",
+        "bubble": "standard"
+      },
+      "encoded": "{\"kind\":\"preset\",\"preset\":\"dawn\",\"v\":1}"
+    },
+    {
+      "name": "preset forest",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "forest"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "forest",
+        "bubble": "standard"
+      },
+      "encoded": "{\"kind\":\"preset\",\"preset\":\"forest\",\"v\":1}"
+    },
+    {
+      "name": "preset dusk",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "dusk"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "dusk",
+        "bubble": "standard"
+      },
+      "encoded": "{\"kind\":\"preset\",\"preset\":\"dusk\",\"v\":1}"
+    },
+    {
+      "name": "preset citrus",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "citrus"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "citrus",
+        "bubble": "standard"
+      },
+      "encoded": "{\"kind\":\"preset\",\"preset\":\"citrus\",\"v\":1}"
+    },
+    {
+      "name": "unreadable photo keeps the bubble",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "https://gua.global/photo.jpg",
+          "mimetype": "image/jpeg",
+          "w": 800,
+          "h": 600,
+          "size": 1000
+        },
+        "bubble": "green"
+      },
+      "expected": {
+        "kind": "none",
+        "bubble": "green"
+      },
+      "encoded": "{\"bubble\":\"green\",\"kind\":\"none\",\"v\":1}"
+    },
+    {
+      "name": "unknown kind on version 1 keeps the bubble",
+      "content": {
+        "v": 1,
+        "kind": "pattern",
+        "fallback_preset": "night",
+        "bubble": "purple"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "night",
+        "bubble": "purple"
+      },
+      "encoded": "{\"bubble\":\"purple\",\"kind\":\"preset\",\"preset\":\"night\",\"v\":1}"
+    },
+    {
+      "name": "unknown version ignores the bubble",
+      "content": {
+        "v": 2,
+        "kind": "pattern",
+        "fallback_preset": "ocean",
+        "bubble": "blue"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "ocean",
+        "bubble": "standard"
+      },
+      "encoded": "{\"kind\":\"preset\",\"preset\":\"ocean\",\"v\":1}"
     }
   ]
 }
