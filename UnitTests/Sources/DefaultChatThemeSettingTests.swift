@@ -215,10 +215,10 @@ final class DefaultChatThemeSettingTests: XCTestCase {
             syncUpdates.send(.receivedSyncUpdate)
             syncUpdates.send(.receivedAuthError(isSoftLogout: true))
         }
-        try await Task.sleep(for: .milliseconds(1500))
+        try await waitUntil { self.clientProxy.accountDataTypeCallsCount >= 2 && self.setting.themePublisher.value == .stock }
 
-        XCTAssertTrue((2...3).contains(clientProxy.accountDataTypeCallsCount), "\(clientProxy.accountDataTypeCallsCount) reads")
-        XCTAssertEqual(setting.themePublisher.value, .stock)
+        try await Task.sleep(for: .milliseconds(600))
+        XCTAssertEqual(clientProxy.accountDataTypeCallsCount, 2)
     }
 
     private func waitUntil(_ condition: () -> Bool) async throws {
