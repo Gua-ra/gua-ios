@@ -19,7 +19,7 @@ struct ChatWallpaperPicker: View {
     }
 
     private var selectedPreset: ChatBackgroundPreset? {
-        guard case .preset(let preset) = viewState.current.wallpaper else { return nil }
+        guard case .preset(let preset) = viewState.baseTheme.wallpaper else { return nil }
         return preset
     }
 
@@ -34,7 +34,7 @@ struct ChatWallpaperPicker: View {
                     })
 
                     ListRow(label: .default(title: UntranslatedL10n.guaChatThemeNoWallpaper, icon: \.block),
-                            kind: .selection(isSelected: viewState.current.wallpaper.isNone) {
+                            kind: .selection(isSelected: viewState.baseTheme.wallpaper.isNone) {
                                 context.send(viewAction: .selectWallpaper(.none))
                             })
                 }

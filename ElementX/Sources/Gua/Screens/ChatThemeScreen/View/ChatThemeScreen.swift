@@ -20,9 +20,9 @@ struct ChatThemeScreen: View {
             Section {
                 ListRow(kind: .custom {
                     HStack(alignment: .top, spacing: 40) {
-                        ChatThemeRoundButton(title: UntranslatedL10n.guaChatThemeChatBubble, value: viewState.current.bubble.name) {
+                        ChatThemeRoundButton(title: UntranslatedL10n.guaChatThemeChatBubble, value: viewState.baseTheme.bubble.name) {
                             ZStack {
-                                viewState.current.bubble.outgoingColor
+                                viewState.baseTheme.bubble.outgoingColor
                                 CompoundIcon(\.chatSolid)
                                     .foregroundStyle(.compound.iconSecondary)
                             }
@@ -30,7 +30,7 @@ struct ChatThemeScreen: View {
                             context.send(viewAction: .presentBubblePicker)
                         }
 
-                        ChatThemeRoundButton(title: UntranslatedL10n.guaChatThemeWallpaper, value: viewState.current.wallpaper.displayName) {
+                        ChatThemeRoundButton(title: UntranslatedL10n.guaChatThemeWallpaper, value: viewState.baseTheme.wallpaper.displayName) {
                             ChatBackgroundView(background: viewState.shownWallpaper, mediaProvider: context.mediaProvider)
                         } action: {
                             context.send(viewAction: .presentWallpaperPicker)

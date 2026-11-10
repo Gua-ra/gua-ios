@@ -58,8 +58,22 @@ struct ChatThemeScreenViewState: BindableState {
         mode == .chat ? UntranslatedL10n.guaChatBackgroundValueDefault : UntranslatedL10n.guaChatThemeClassic
     }
 
+    /// What the pickers start from: in a chat that follows the default, the default without its photo, which stays private.
+    var baseTheme: ChatTheme {
+        guard mode == .chat, current.isStock else { return current }
+        return ChatTheme(wallpaper: defaultTheme.wallpaper.photo == nil ? defaultTheme.wallpaper : .none, bubble: defaultTheme.bubble)
+    }
+
     var shownWallpaper: ChatBackground {
-        isPhotoHidden && current.wallpaper.photo != nil ? .none : current.wallpaper
+        isPhotoHidden && baseTheme.wallpaper.photo != nil ? .none : baseTheme.wallpaper
+    }
+
+    /// Saving no theme makes a chat follow the default, so its preview shows that, and a photo this chat hides stays hidden.
+    func shownTheme(saving theme: ChatTheme) -> ChatTheme {
+        if theme.isStock {
+            return firstTileTheme
+        }
+        return isPhotoHidden && theme.wallpaper.photo != nil ? ChatTheme(wallpaper: .none, bubble: theme.bubble) : theme
     }
 
     var setThemeTitle: String {

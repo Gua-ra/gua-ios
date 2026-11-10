@@ -189,6 +189,63 @@ final class ChatThemeScreenViewModelTests: XCTestCase {
         XCTAssertEqual(service.setRoomProxyReceivedArguments?.theme.contentJSON, #"{"bubble":"teal","kind":"none","v":1}"#)
     }
 
+    func testAChatFollowingTheDefaultStartsThePickersFromIt() async throws {
+        setUpViewModel(theme: .stock, defaultTheme: aurora)
+
+        XCTAssertEqual(context.viewState.baseTheme, aurora)
+        XCTAssertEqual(context.viewState.shownWallpaper, aurora.wallpaper)
+
+        context.send(viewAction: .presentWallpaperPicker)
+        context.send(viewAction: .selectWallpaper(.preset(.dawn)))
+        XCTAssertEqual(context.viewState.bindings.wallpaperPreview?.theme, ChatTheme(wallpaper: .preset(.dawn), bubble: .green))
+        context.send(viewAction: .cancelPreview)
+        context.send(viewAction: .presentBubblePicker)
+        XCTAssertEqual(context.viewState.bindings.bubbleChoice, .green)
+
+        context.send(viewAction: .chooseBubble(.blue))
+        let closed = deferFulfillment(context.observe(\.viewState.bindings.bubbleChoice)) { $0 == nil }
+        context.send(viewAction: .setBubble)
+        try await closed.fulfill()
+
+        XCTAssertEqual(service.setRoomProxyReceivedArguments?.theme, ChatTheme(wallpaper: .preset(.aurora), bubble: .blue))
+    }
+
+    func testTheDefaultPhotoNeverGoesIntoAChat() async throws {
+        setUpViewModel(theme: .stock, defaultTheme: ChatTheme(wallpaper: .photo(.mock), bubble: .pink))
+
+        XCTAssertEqual(context.viewState.baseTheme, ChatTheme(wallpaper: .none, bubble: .pink))
+
+        context.send(viewAction: .presentBubblePicker)
+        context.send(viewAction: .chooseBubble(.blue))
+        let closed = deferFulfillment(context.observe(\.viewState.bindings.bubbleChoice)) { $0 == nil }
+        context.send(viewAction: .setBubble)
+        try await closed.fulfill()
+
+        XCTAssertEqual(service.setRoomProxyReceivedArguments?.theme.contentJSON, #"{"bubble":"blue","kind":"none","v":1}"#)
+    }
+
+    func testNoWallpaperThatRemovesTheThemePreviewsTheDefault() {
+        let dusk = ChatTheme(wallpaper: .preset(.dusk), bubble: .orange)
+        setUpViewModel(theme: ChatTheme(wallpaper: .preset(.aurora)), defaultTheme: dusk)
+
+        context.send(viewAction: .presentWallpaperPicker)
+        context.send(viewAction: .selectWallpaper(.none))
+
+        XCTAssertEqual(context.viewState.bindings.wallpaperPreview?.theme, .stock)
+        XCTAssertEqual(context.viewState.bindings.wallpaperPreview?.shownTheme, dusk)
+    }
+
+    func testStandardBubbleThatRemovesTheThemePreviewsTheDefault() {
+        let dusk = ChatTheme(wallpaper: .preset(.dusk), bubble: .orange)
+        setUpViewModel(theme: ChatTheme(wallpaper: .none, bubble: .yellow), defaultTheme: dusk)
+
+        XCTAssertEqual(context.viewState.shownTheme(saving: ChatTheme(wallpaper: .none, bubble: .standard)), dusk)
+        XCTAssertEqual(context.viewState.shownTheme(saving: ChatTheme(wallpaper: .none, bubble: .blue)), ChatTheme(wallpaper: .none, bubble: .blue))
+
+        setUpViewModel(mode: .defaultTheme, defaultTheme: ChatTheme(wallpaper: .none, bubble: .yellow))
+        XCTAssertEqual(context.viewState.shownTheme(saving: .stock), .stock)
+    }
+
     func testCancellingTheWallpaperPreviewReturnsToThePicker() {
         setUpViewModel(theme: ocean)
 

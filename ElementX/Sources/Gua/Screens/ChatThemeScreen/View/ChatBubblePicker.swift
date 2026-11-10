@@ -19,14 +19,18 @@ struct ChatBubblePicker: View {
 
     /// Falls back to the saved colour while the sheet slides away.
     private var choice: ChatBubbleColor {
-        viewState.bindings.bubbleChoice ?? viewState.current.bubble
+        viewState.bindings.bubbleChoice ?? viewState.baseTheme.bubble
+    }
+
+    private var savedTheme: ChatTheme {
+        ChatTheme(wallpaper: viewState.baseTheme.wallpaper, bubble: choice)
     }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    ChatThemePreviewCard(theme: ChatTheme(wallpaper: viewState.shownWallpaper, bubble: choice), mediaProvider: context.mediaProvider)
+                    ChatThemePreviewCard(theme: viewState.shownTheme(saving: savedTheme), mediaProvider: context.mediaProvider)
 
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: swatchSize + 16), spacing: 8)], spacing: 16) {
                         ForEach(ChatBubbleColor.allCases) { bubble in
@@ -41,7 +45,7 @@ struct ChatBubblePicker: View {
                     context.send(viewAction: .setBubble)
                 }
                 .buttonStyle(.compound(.primary))
-                .disabled(!viewState.canSave(ChatTheme(wallpaper: viewState.current.wallpaper, bubble: choice)))
+                .disabled(!viewState.canSave(savedTheme))
                 .padding(16)
                 .background(Color.compound.bgCanvasDefault.ignoresSafeArea())
             }

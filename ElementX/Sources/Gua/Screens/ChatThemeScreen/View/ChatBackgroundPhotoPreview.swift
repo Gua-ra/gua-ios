@@ -20,7 +20,7 @@ struct ChatBackgroundPhotoPreview: View {
         NavigationStack {
             if let draft = context.viewState.bindings.photoDraft ?? lastDraft {
                 ZStack(alignment: .bottom) {
-                    ChatBackgroundPhotoFrame(draft: draft, bubble: context.viewState.current.bubble, onMove: move)
+                    ChatBackgroundPhotoFrame(draft: draft, bubble: context.viewState.baseTheme.bubble, onMove: move)
                         .environment(\.colorScheme, previewColorScheme(for: draft))
                         .ignoresSafeArea(edges: [.horizontal, .bottom])
 
