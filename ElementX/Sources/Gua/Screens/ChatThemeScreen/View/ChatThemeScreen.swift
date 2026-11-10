@@ -132,11 +132,16 @@ private struct ChatThemeRoundButton<Content: View>: View {
     @Environment(\.isEnabled) private var isEnabled
     @ScaledMetric private var size = 64.0
 
+    /// Capped so both circles fit one row on the narrowest phone at accessibility text sizes.
+    private var diameter: CGFloat {
+        min(size, 96)
+    }
+
     var body: some View {
         Button(action: action) {
             VStack(spacing: 8) {
                 content
-                    .frame(width: size, height: size)
+                    .frame(width: diameter, height: diameter)
                     .clipShape(Circle())
                     .overlay {
                         Circle()
@@ -180,7 +185,9 @@ struct ChatThemeTile: View {
                     Text(name)
                         .font(.compound.bodyXSSemibold)
                         .foregroundStyle(.compound.textPrimary)
-                        .lineLimit(1)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.7)
                         .legibilityCapsule()
                 }
             }
