@@ -6,27 +6,30 @@
 //
 
 @testable import ElementX
-import XCTest
+import Foundation
+import Testing
 
 @MainActor
 final class AccountDataWriteGate {
     private var waiting: [CheckedContinuation<Result<Void, ClientProxyError>, Never>] = []
-
+    
     func write() async -> Result<Void, ClientProxyError> {
         await withCheckedContinuation { waiting.append($0) }
     }
-
-    func waitForWriters(_ count: Int, file: StaticString = #filePath, line: UInt = #line) async {
+    
+    func waitForWriters(_ count: Int, sourceLocation: SourceLocation = #_sourceLocation) async {
         for _ in 0..<1000 {
-            if waiting.count >= count { return }
+            if waiting.count >= count {
+                return
+            }
             await Task.yield()
         }
-        XCTFail("Expected \(count) pending writes, found \(waiting.count)", file: file, line: line)
+        Issue.record("Expected \(count) pending writes, found \(waiting.count)", sourceLocation: sourceLocation)
     }
-
-    func release(_ result: Result<Void, ClientProxyError> = .success(()), file: StaticString = #filePath, line: UInt = #line) {
+    
+    func release(_ result: Result<Void, ClientProxyError> = .success(()), sourceLocation: SourceLocation = #_sourceLocation) {
         guard !waiting.isEmpty else {
-            XCTFail("No write is waiting to be released.", file: file, line: line)
+            Issue.record("No write is waiting to be released.", sourceLocation: sourceLocation)
             return
         }
         waiting.removeFirst().resume(returning: result)

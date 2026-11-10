@@ -6,67 +6,70 @@
 //
 
 @testable import ElementX
+import Foundation
 import MatrixRustSDK
-import XCTest
+import MatrixRustSDKMocks
+import Testing
 
 @MainActor
-final class ChatBackgroundNoticeTests: XCTestCase {
+final class ChatBackgroundNoticeTests {
     private let ownUserID = "@alice:gua.global"
     private let otherUserID = "@bob:gua.global"
-
-    func testNoticeStrings() {
+    
+    @Test
+    func noticeStrings() {
         let builder = RoomStateEventStringBuilder(userID: ownUserID)
         let you = TimelineItemSender(id: ownUserID, displayName: "Alice")
         let bob = TimelineItemSender(id: otherUserID, displayName: "Bob")
         let handleOnly = TimelineItemSender(id: otherUserID)
-
-        XCTAssertEqual(builder.buildChatThemeString(isRemoval: false, sender: you, isOutgoing: true),
-                       UntranslatedL10n.guaChatThemeNoticeChangedByYou)
-        XCTAssertEqual(builder.buildChatThemeString(isRemoval: true, sender: you, isOutgoing: true),
-                       UntranslatedL10n.guaChatThemeNoticeRemovedByYou)
-        XCTAssertEqual(builder.buildChatThemeString(isRemoval: false, sender: bob, isOutgoing: false),
-                       UntranslatedL10n.guaChatThemeNoticeChanged("Bob"))
-        XCTAssertEqual(builder.buildChatThemeString(isRemoval: true, sender: bob, isOutgoing: false),
-                       UntranslatedL10n.guaChatThemeNoticeRemoved("Bob"))
-        XCTAssertEqual(builder.buildChatThemeString(isRemoval: false, sender: handleOnly, isOutgoing: false),
-                       UntranslatedL10n.guaChatThemeNoticeChanged(otherUserID.guaDisplayHandle))
+        
+        #expect(builder.buildChatThemeString(isRemoval: false, sender: you, isOutgoing: true) == UntranslatedL10n.guaChatThemeNoticeChangedByYou)
+        #expect(builder.buildChatThemeString(isRemoval: true, sender: you, isOutgoing: true) == UntranslatedL10n.guaChatThemeNoticeRemovedByYou)
+        #expect(builder.buildChatThemeString(isRemoval: false, sender: bob, isOutgoing: false) == UntranslatedL10n.guaChatThemeNoticeChanged("Bob"))
+        #expect(builder.buildChatThemeString(isRemoval: true, sender: bob, isOutgoing: false) == UntranslatedL10n.guaChatThemeNoticeRemoved("Bob"))
+        #expect(builder.buildChatThemeString(isRemoval: false, sender: handleOnly, isOutgoing: false) == UntranslatedL10n.guaChatThemeNoticeChanged(otherUserID.guaDisplayHandle))
     }
-
-    func testTheChatListNeverShowsTheNotice() {
-        let builder = RoomStateEventStringBuilder(userID: ownUserID, shouldDisambiguateDisplayNames: false)
-        XCTAssertNil(builder.buildString(for: .custom(eventType: ChatBackground.eventType),
-                                         sender: TimelineItemSender(id: otherUserID, displayName: "Bob"),
-                                         isOutgoing: false))
+    
+    @Test
+    func theChatListNeverShowsTheNotice() {
+        let builder = RoomStateEventStringBuilder(userID: ownUserID)
+        #expect(builder.buildString(for: .custom(eventType: ChatBackground.eventType),
+                                    sender: TimelineItemSender(id: otherUserID, displayName: "Bob"),
+                                    isOutgoing: false) == nil)
     }
-
-    func testNoticeIsShownInGroupsAndInOneToOneChats() throws {
+    
+    @Test
+    func noticeIsShownInGroupsAndInOneToOneChats() throws {
         for isDM in [false, true] {
-            let item = try XCTUnwrap(buildItem(content: #"{"v":1,"kind":"preset","preset":"mint"}"#, isDM: isDM) as? StateRoomTimelineItem, "isDM: \(isDM)")
-            XCTAssertEqual(item.body, UntranslatedL10n.guaChatThemeNoticeChanged("Bob"))
-            XCTAssertEqual(item.chatBackgroundEvent?.eventID, "$background")
-            XCTAssertEqual(item.chatBackgroundEvent?.timestamp, 1_730_000_000_123)
-            XCTAssertEqual(ChatTheme(contentJSON: item.chatBackgroundEvent?.contentJSON), ChatTheme(wallpaper: .preset(.mint)))
-            XCTAssertFalse(item.canBeRepliedTo)
+            let item = try #require(buildItem(content: #"{"v":1,"kind":"preset","preset":"mint"}"#, isDM: isDM) as? StateRoomTimelineItem, "isDM: \(isDM)")
+            #expect(item.body == UntranslatedL10n.guaChatThemeNoticeChanged("Bob"))
+            #expect(item.chatBackgroundEvent?.eventID == "$background")
+            #expect(item.chatBackgroundEvent?.timestamp == 1_730_000_000_123)
+            #expect(ChatTheme(contentJSON: item.chatBackgroundEvent?.contentJSON) == ChatTheme(wallpaper: .preset(.mint)))
+            #expect(!item.canBeRepliedTo)
         }
     }
-
-    func testEmptyContentReadsAsRemoved() throws {
-        let item = try XCTUnwrap(buildItem(content: "{}", isDM: false) as? StateRoomTimelineItem)
-        XCTAssertEqual(item.body, UntranslatedL10n.guaChatThemeNoticeRemoved("Bob"))
-        XCTAssertEqual(item.chatBackgroundEvent?.isRemoval, true)
+    
+    @Test
+    func emptyContentReadsAsRemoved() throws {
+        let item = try #require(buildItem(content: "{}", isDM: false) as? StateRoomTimelineItem)
+        #expect(item.body == UntranslatedL10n.guaChatThemeNoticeRemoved("Bob"))
+        #expect(item.chatBackgroundEvent?.isRemoval == true)
     }
-
-    func testUnreadableContentReadsAsChanged() throws {
-        let item = try XCTUnwrap(buildItem(eventJSON: nil, isDM: false) as? StateRoomTimelineItem)
-        XCTAssertEqual(item.body, UntranslatedL10n.guaChatThemeNoticeChanged("Bob"))
-        XCTAssertNil(item.chatBackgroundEvent?.contentJSON)
+    
+    @Test
+    func unreadableContentReadsAsChanged() throws {
+        let item = try #require(buildItem(eventJSON: nil, isDM: false) as? StateRoomTimelineItem)
+        #expect(item.body == UntranslatedL10n.guaChatThemeNoticeChanged("Bob"))
+        #expect(item.chatBackgroundEvent?.contentJSON == nil)
     }
-
-    func testOtherCustomStateIsStillHidden() {
-        XCTAssertNil(buildItem(eventType: "global.gua.something.else", content: "{}", isDM: false))
-        XCTAssertNil(buildItem(stateKey: "@bob:gua.global", content: #"{"v":1,"kind":"preset","preset":"mint"}"#, isDM: false))
+    
+    @Test
+    func otherCustomStateIsStillHidden() {
+        #expect(buildItem(eventType: "global.gua.something.else", content: "{}", isDM: false) == nil)
+        #expect(buildItem(stateKey: "@bob:gua.global", content: #"{"v":1,"kind":"preset","preset":"mint"}"#, isDM: false) == nil)
     }
-
+    
     private func buildItem(eventType: String = ChatBackground.eventType,
                            stateKey: String = "",
                            content: String,
@@ -76,7 +79,7 @@ final class ChatBackgroundNoticeTests: XCTestCase {
                   eventJSON: #"{"type":"\#(eventType)","state_key":"\#(stateKey)","sender":"\#(otherUserID)","content":\#(content)}"#,
                   isDM: isDM)
     }
-
+    
     private func buildItem(eventType: String = ChatBackground.eventType,
                            stateKey: String = "",
                            eventJSON: String?,
@@ -89,15 +92,19 @@ final class ChatBackgroundNoticeTests: XCTestCase {
         let item = EventTimelineItem(isRemote: true,
                                      eventOrTransactionId: .eventId(eventId: "$background"),
                                      sender: otherUserID,
-                                     senderProfile: .ready(displayName: "Bob", displayNameAmbiguous: false, avatarUrl: nil),
+                                     senderProfile: .ready(displayName: "Bob", displayNameAmbiguous: false, avatarUrl: nil, status: nil, call: nil),
                                      forwarder: nil,
                                      forwarderProfile: nil,
                                      isOwn: false,
                                      isEditable: false,
                                      content: .state(stateKey: stateKey, content: .custom(eventType: eventType)),
+                                     reactions: [],
                                      eventTypeRaw: nil,
                                      timestamp: 1_730_000_000_123,
                                      localSendState: nil,
+                                     editSendState: nil,
+                                     redactionSendState: nil,
+                                     redactionReason: nil,
                                      localCreatedAt: nil,
                                      readReceipts: [:],
                                      origin: nil,

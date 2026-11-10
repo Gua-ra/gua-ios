@@ -6,91 +6,98 @@
 //
 
 @testable import ElementX
+import Foundation
 import ImageIO
+import Testing
 import UniformTypeIdentifiers
-import XCTest
 
-final class ChatBackgroundImageProcessorTests: XCTestCase {
+final class ChatBackgroundImageProcessorTests {
     /// ImageIO always writes these from the pixels themselves, and nothing else may survive from the original.
     private let allowedExifKeys: Set<String> = [kCGImagePropertyExifColorSpace as String,
                                                 kCGImagePropertyExifPixelXDimension as String,
                                                 kCGImagePropertyExifPixelYDimension as String]
-
-    func testLargePhotoIsUprightDownscaledSRGBAndStripped() throws {
+    
+    @Test
+    func largePhotoIsUprightDownscaledSRGBAndStripped() throws {
         let original = try makeJPEG(width: 4000, height: 3000, colorSpace: CGColorSpace(name: CGColorSpace.displayP3), orientation: .right)
-        XCTAssertNotNil(properties(of: original)[kCGImagePropertyGPSDictionary as String])
-
+        #expect(properties(of: original)[kCGImagePropertyGPSDictionary as String] != nil)
+        
         let upload = try ChatBackgroundImageProcessor.process(original)
-
-        XCTAssertEqual(upload.width, 1536)
-        XCTAssertEqual(upload.height, 2048)
-        XCTAssertNotNil(upload.blurhash)
-
-        let source = try XCTUnwrap(CGImageSourceCreateWithData(upload.data as CFData, nil))
-        XCTAssertEqual(CGImageSourceGetType(source) as String?, UTType.jpeg.identifier)
-        let image = try XCTUnwrap(CGImageSourceCreateImageAtIndex(source, 0, nil))
-        XCTAssertEqual(image.width, 1536)
-        XCTAssertEqual(image.height, 2048)
-        XCTAssertEqual(image.colorSpace?.name, CGColorSpace.sRGB)
-
+        
+        #expect(upload.width == 1536)
+        #expect(upload.height == 2048)
+        #expect(upload.blurhash != nil)
+        
+        let source = try #require(CGImageSourceCreateWithData(upload.data as CFData, nil))
+        #expect(CGImageSourceGetType(source) as String? == UTType.jpeg.identifier)
+        let image = try #require(CGImageSourceCreateImageAtIndex(source, 0, nil))
+        #expect(image.width == 1536)
+        #expect(image.height == 2048)
+        #expect(image.colorSpace?.name == CGColorSpace.sRGB)
+        
         let written = properties(of: upload.data)
-        XCTAssertNil(written[kCGImagePropertyGPSDictionary as String])
-        XCTAssertNil(written[kCGImagePropertyTIFFDictionary as String])
-        XCTAssertNil(written[kCGImagePropertyIPTCDictionary as String])
-        XCTAssertNil(written[kCGImagePropertyMakerAppleDictionary as String])
-        XCTAssertNil(written[kCGImagePropertyOrientation as String])
+        #expect(written[kCGImagePropertyGPSDictionary as String] == nil)
+        #expect(written[kCGImagePropertyTIFFDictionary as String] == nil)
+        #expect(written[kCGImagePropertyIPTCDictionary as String] == nil)
+        #expect(written[kCGImagePropertyMakerAppleDictionary as String] == nil)
+        #expect(written[kCGImagePropertyOrientation as String] == nil)
         let exif = written[kCGImagePropertyExifDictionary as String] as? [String: Any] ?? [:]
-        XCTAssertTrue(Set(exif.keys).isSubset(of: allowedExifKeys), "Unexpected Exif keys: \(exif.keys.sorted())")
+        #expect(Set(exif.keys).isSubset(of: allowedExifKeys), "Unexpected Exif keys: \(exif.keys.sorted())")
         if let profileName = written[kCGImagePropertyProfileName as String] as? String {
-            XCTAssertTrue(profileName.contains("sRGB"), profileName)
+            #expect(profileName.contains("sRGB"), "\(profileName)")
         }
     }
-
-    func testSmallPhotoIsNeverUpscaled() throws {
+    
+    @Test
+    func smallPhotoIsNeverUpscaled() throws {
         let original = try makeJPEG(width: 800, height: 600)
-
+        
         let upload = try ChatBackgroundImageProcessor.process(original)
-
-        XCTAssertEqual(upload.width, 800)
-        XCTAssertEqual(upload.height, 600)
+        
+        #expect(upload.width == 800)
+        #expect(upload.height == 600)
     }
-
-    func testHeavyPhotoIsReencodedSmaller() throws {
+    
+    @Test
+    func heavyPhotoIsReencodedSmaller() throws {
         let original = try makeJPEG(width: 3000, height: 3000, isNoise: true)
-
+        
         let upload = try ChatBackgroundImageProcessor.process(original)
-
-        XCTAssertEqual(max(upload.width, upload.height), ChatBackgroundImageProcessor.reducedMaxEdge)
+        
+        #expect(max(upload.width, upload.height) == ChatBackgroundImageProcessor.reducedMaxEdge)
     }
-
-    func testTransparencyIsFlattenedOntoBlack() throws {
+    
+    @Test
+    func transparencyIsFlattenedOntoBlack() throws {
         let original = try makeImage(width: 64, height: 64, type: .png, alpha: 0)
-
+        
         let upload = try ChatBackgroundImageProcessor.process(original)
-
-        let source = try XCTUnwrap(CGImageSourceCreateWithData(upload.data as CFData, nil))
-        let image = try XCTUnwrap(CGImageSourceCreateImageAtIndex(source, 0, nil))
-        let pixel = try XCTUnwrap(centrePixel(of: image))
-        XCTAssertTrue(pixel.allSatisfy { $0 < 8 }, "\(pixel)")
+        
+        let source = try #require(CGImageSourceCreateWithData(upload.data as CFData, nil))
+        let image = try #require(CGImageSourceCreateImageAtIndex(source, 0, nil))
+        let pixel = try #require(centrePixel(of: image))
+        #expect(pixel.allSatisfy { $0 < 8 }, "\(pixel)")
     }
-
-    func testUnreadableDataFails() {
-        XCTAssertThrowsError(try ChatBackgroundImageProcessor.process(Data("not an image".utf8)))
+    
+    @Test
+    func unreadableDataFails() {
+        #expect(throws: (any Error).self) { try ChatBackgroundImageProcessor.process(Data("not an image".utf8)) }
     }
-
+    
     @MainActor
-    func testPlaceholderIsDecodedAtAFixedSize() throws {
-        let placeholder = try XCTUnwrap(ChatBackgroundPhotoLoader.placeholder(blurhash: "LKO2?U%2Tw=w]~RBVZRi};RPxuwH"))
-        XCTAssertEqual(placeholder.size.width * placeholder.scale, 32)
-        XCTAssertEqual(placeholder.size.height * placeholder.scale, 32)
-        XCTAssertNil(ChatBackgroundPhotoLoader.placeholder(blurhash: "not a hash"))
+    @Test
+    func placeholderIsDecodedAtAFixedSize() throws {
+        let placeholder = try #require(ChatBackgroundPhotoLoader.placeholder(blurhash: "LKO2?U%2Tw=w]~RBVZRi};RPxuwH"))
+        #expect(placeholder.size.width * placeholder.scale == 32)
+        #expect(placeholder.size.height * placeholder.scale == 32)
+        #expect(ChatBackgroundPhotoLoader.placeholder(blurhash: "not a hash") == nil)
     }
-
+    
     private func properties(of data: Data) -> [String: Any] {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return [:] }
         return CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any] ?? [:]
     }
-
+    
     private func makeJPEG(width: Int,
                           height: Int,
                           colorSpace: CGColorSpace? = CGColorSpace(name: CGColorSpace.sRGB),
@@ -98,7 +105,7 @@ final class ChatBackgroundImageProcessorTests: XCTestCase {
                           isNoise: Bool = false) throws -> Data {
         try makeImage(width: width, height: height, type: .jpeg, colorSpace: colorSpace, orientation: orientation, isNoise: isNoise)
     }
-
+    
     private func makeImage(width: Int,
                            height: Int,
                            type: UTType,
@@ -106,14 +113,14 @@ final class ChatBackgroundImageProcessorTests: XCTestCase {
                            orientation: CGImagePropertyOrientation = .up,
                            alpha: CGFloat = 1,
                            isNoise: Bool = false) throws -> Data {
-        let colorSpace = try XCTUnwrap(colorSpace)
-        let context = try XCTUnwrap(CGContext(data: nil,
-                                              width: width,
-                                              height: height,
-                                              bitsPerComponent: 8,
-                                              bytesPerRow: 0,
-                                              space: colorSpace,
-                                              bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+        let colorSpace = try #require(colorSpace)
+        let context = try #require(CGContext(data: nil,
+                                             width: width,
+                                             height: height,
+                                             bitsPerComponent: 8,
+                                             bytesPerRow: 0,
+                                             space: colorSpace,
+                                             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
         if isNoise, let pixels = context.data?.assumingMemoryBound(to: UInt8.self) {
             var generator = SystemRandomNumberGenerator()
             for index in 0..<(context.bytesPerRow * height) {
@@ -123,10 +130,10 @@ final class ChatBackgroundImageProcessorTests: XCTestCase {
             context.setFillColor(CGColor(red: 0.2, green: 0.8, blue: 0.4, alpha: alpha))
             context.fill(CGRect(x: 0, y: 0, width: width, height: height))
         }
-        let image = try XCTUnwrap(context.makeImage())
-
+        let image = try #require(context.makeImage())
+        
         let data = NSMutableData()
-        let destination = try XCTUnwrap(CGImageDestinationCreateWithData(data, type.identifier as CFString, 1, nil))
+        let destination = try #require(CGImageDestinationCreateWithData(data, type.identifier as CFString, 1, nil))
         let metadata: [CFString: Any] = [kCGImagePropertyOrientation: orientation.rawValue,
                                          kCGImagePropertyGPSDictionary: [kCGImagePropertyGPSLatitude: 45.5017,
                                                                          kCGImagePropertyGPSLatitudeRef: "N",
@@ -139,10 +146,10 @@ final class ChatBackgroundImageProcessorTests: XCTestCase {
                                          kCGImagePropertyIPTCDictionary: [kCGImagePropertyIPTCCaptionAbstract: "Private caption"],
                                          kCGImagePropertyMakerAppleDictionary: ["1": 1]]
         CGImageDestinationAddImage(destination, image, metadata as CFDictionary)
-        XCTAssertTrue(CGImageDestinationFinalize(destination))
+        #expect(CGImageDestinationFinalize(destination))
         return data as Data
     }
-
+    
     private func centrePixel(of image: CGImage) -> [UInt8]? {
         guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
               let context = CGContext(data: nil,

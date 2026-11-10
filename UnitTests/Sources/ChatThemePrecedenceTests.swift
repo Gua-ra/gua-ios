@@ -6,42 +6,45 @@
 //
 
 @testable import ElementX
-import XCTest
+import Foundation
+import Testing
 
-final class ChatThemePrecedenceTests: XCTestCase {
-    func testSharedFixtures() throws {
-        let url = try XCTUnwrap(Bundle(for: Self.self).url(forResource: "chat-theme-precedence-fixtures.json", withExtension: nil))
-        let root = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
-        let cases = try XCTUnwrap(root["cases"] as? [[String: Any]])
-        XCTAssertFalse(cases.isEmpty)
-
+final class ChatThemePrecedenceTests {
+    @Test
+    func sharedFixtures() throws {
+        let url = try #require(Bundle(for: Self.self).url(forResource: "chat-theme-precedence-fixtures.json", withExtension: nil))
+        let root = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+        let cases = try #require(root["cases"] as? [[String: Any]])
+        #expect(!cases.isEmpty)
+        
         for fixture in cases {
-            let name = try XCTUnwrap(fixture["name"] as? String)
+            let name = try #require(fixture["name"] as? String)
             let effective = try ChatTheme.effective(chatTheme: theme(fixture["chatTheme"]),
                                                     defaultTheme: theme(fixture["defaultTheme"]),
-                                                    roomIsPrivate: XCTUnwrap(fixture["roomIsPrivate"] as? Bool),
-                                                    mediaShown: XCTUnwrap(fixture["mediaShown"] as? Bool))
-            let expected = try ChatThemeCodecTests.theme(fromExpected: XCTUnwrap(fixture["expected"] as? [String: Any]))
-            XCTAssertEqual(effective, expected, name)
+                                                    roomIsPrivate: #require(fixture["roomIsPrivate"] as? Bool),
+                                                    mediaShown: #require(fixture["mediaShown"] as? Bool))
+            let expected = try ChatThemeCodecTests.theme(fromExpected: #require(fixture["expected"] as? [String: Any]))
+            #expect(effective == expected, "\(name)")
         }
     }
-
-    func testOnlyAChatPhotoIsHidden() {
+    
+    @Test
+    func onlyAChatPhotoIsHidden() {
         let photo = ChatTheme(wallpaper: .photo(.mock), bubble: .pink)
         let preset = ChatTheme(wallpaper: .preset(.night), bubble: .purple)
         let bubbleOnly = ChatTheme(wallpaper: .none, bubble: .yellow)
         let defaultTheme = ChatTheme(wallpaper: .preset(.aurora), bubble: .green)
-
+        
         for (roomIsPrivate, mediaShown) in [(false, true), (true, false), (true, true)] {
-            XCTAssertEqual(ChatTheme.effective(chatTheme: photo, defaultTheme: defaultTheme, roomIsPrivate: roomIsPrivate, mediaShown: mediaShown), photo)
+            #expect(ChatTheme.effective(chatTheme: photo, defaultTheme: defaultTheme, roomIsPrivate: roomIsPrivate, mediaShown: mediaShown) == photo)
         }
-        XCTAssertEqual(ChatTheme.effective(chatTheme: photo, defaultTheme: defaultTheme, roomIsPrivate: false, mediaShown: false), defaultTheme)
-        XCTAssertEqual(ChatTheme.effective(chatTheme: preset, defaultTheme: defaultTheme, roomIsPrivate: false, mediaShown: false), preset)
-        XCTAssertEqual(ChatTheme.effective(chatTheme: bubbleOnly, defaultTheme: defaultTheme, roomIsPrivate: false, mediaShown: false), bubbleOnly)
+        #expect(ChatTheme.effective(chatTheme: photo, defaultTheme: defaultTheme, roomIsPrivate: false, mediaShown: false) == defaultTheme)
+        #expect(ChatTheme.effective(chatTheme: preset, defaultTheme: defaultTheme, roomIsPrivate: false, mediaShown: false) == preset)
+        #expect(ChatTheme.effective(chatTheme: bubbleOnly, defaultTheme: defaultTheme, roomIsPrivate: false, mediaShown: false) == bubbleOnly)
     }
-
+    
     private func theme(_ object: Any?) throws -> ChatTheme {
-        let content = try XCTUnwrap(object as? [String: Any])
+        let content = try #require(object as? [String: Any])
         return ChatTheme(contentJSON: ChatBackground.sortedJSON(content))
     }
 }

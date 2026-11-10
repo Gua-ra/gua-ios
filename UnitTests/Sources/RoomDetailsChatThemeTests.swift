@@ -6,61 +6,58 @@
 //
 
 @testable import ElementX
-import XCTest
+import Foundation
+import Testing
 
 @MainActor
-final class RoomDetailsChatThemeTests: XCTestCase {
-    override func setUp() {
-        AppSettings.resetAllSettings()
-    }
-
-    override func tearDown() {
-        AppSettings.resetAllSettings()
-    }
-
-    func testDetailsRowShowsTheThemeAndPermission() async throws {
-        ServiceLocator.shared.settings.guaChatBackgroundsEnabled = true
+struct RoomDetailsChatThemeTests {
+    private let userSettings = UserSettings.mock()
+    
+    @Test
+    func detailsRowShowsTheThemeAndPermission() async throws {
+        userSettings.app.guaChatBackgroundsEnabled = true
         let theme = ChatTheme(wallpaper: .preset(.lavender), bubble: .purple)
         let service = ChatBackgroundServiceMock(.init(theme: theme))
-
+        
         let admin = makeDetailsViewModel(members: [.mockMeAdmin, .mockAlice], service: service)
-        XCTAssertEqual(admin.context.viewState.chatTheme, theme)
-        XCTAssertTrue(admin.context.viewState.canChangeChatTheme)
-
+        #expect(admin.context.viewState.chatTheme == theme)
+        #expect(admin.context.viewState.canChangeChatTheme)
+        
         let presented = deferFulfillment(admin.actions) { $0 == .displayChatTheme }
         admin.context.send(viewAction: .processTapChatTheme)
         try await presented.fulfill()
-
+        
         let member = makeDetailsViewModel(members: [.mockMe, .mockAlice], service: service)
-        XCTAssertFalse(member.context.viewState.canChangeChatTheme)
+        #expect(!member.context.viewState.canChangeChatTheme)
     }
-
-    func testDetailsRowIsHiddenBehindTheFlagAndInSpaces() {
+    
+    @Test
+    func detailsRowIsHiddenBehindTheFlagAndInSpaces() {
         let theme = ChatTheme(wallpaper: .preset(.lavender))
         let service = ChatBackgroundServiceMock(.init(theme: theme))
-
-        ServiceLocator.shared.settings.guaChatBackgroundsEnabled = false
-        XCTAssertNil(makeDetailsViewModel(members: [.mockMeAdmin], service: service).context.viewState.chatTheme)
-
-        ServiceLocator.shared.settings.guaChatBackgroundsEnabled = true
-        XCTAssertNil(makeDetailsViewModel(members: [.mockMeAdmin], isSpace: true, service: service).context.viewState.chatTheme)
-        XCTAssertEqual(makeDetailsViewModel(members: [.mockMeAdmin], service: service).context.viewState.chatTheme, theme)
+        
+        userSettings.app.guaChatBackgroundsEnabled = false
+        #expect(makeDetailsViewModel(members: [.mockMeAdmin], service: service).context.viewState.chatTheme == nil)
+        
+        userSettings.app.guaChatBackgroundsEnabled = true
+        #expect(makeDetailsViewModel(members: [.mockMeAdmin], isSpace: true, service: service).context.viewState.chatTheme == nil)
+        #expect(makeDetailsViewModel(members: [.mockMeAdmin], service: service).context.viewState.chatTheme == theme)
     }
-
-    func testRowValueNamesTheTheme() {
-        XCTAssertEqual(ChatTheme.stock.displayName, UntranslatedL10n.guaChatBackgroundValueDefault)
-        XCTAssertEqual(ChatTheme(wallpaper: .preset(.dawn), bubble: .blue).displayName, UntranslatedL10n.guaChatThemePresetDawn)
-        XCTAssertEqual(ChatTheme(wallpaper: .photo(.mock), bubble: .pink).displayName, UntranslatedL10n.guaChatBackgroundValuePhoto)
-        XCTAssertEqual(ChatTheme(wallpaper: .none, bubble: .yellow).displayName, UntranslatedL10n.guaChatThemeBubbleYellow)
+    
+    @Test
+    func rowValueNamesTheTheme() {
+        #expect(ChatTheme.stock.displayName == UntranslatedL10n.guaChatBackgroundValueDefault)
+        #expect(ChatTheme(wallpaper: .preset(.dawn), bubble: .blue).displayName == UntranslatedL10n.guaChatThemePresetDawn)
+        #expect(ChatTheme(wallpaper: .photo(.mock), bubble: .pink).displayName == UntranslatedL10n.guaChatBackgroundValuePhoto)
+        #expect(ChatTheme(wallpaper: .none, bubble: .yellow).displayName == UntranslatedL10n.guaChatThemeBubbleYellow)
     }
-
+    
     private func makeDetailsViewModel(members: [RoomMemberProxyMock], isSpace: Bool = false, service: ChatBackgroundServiceMock) -> RoomDetailsScreenViewModel {
         RoomDetailsScreenViewModel(roomProxy: JoinedRoomProxyMock(.init(id: "!room:gua.global", name: "Room", isSpace: isSpace, members: members)),
-                                   userSession: UserSessionMock(.init(chatBackgroundService: service)),
-                                   analyticsService: ServiceLocator.shared.analytics,
+                                   userSession: UserSessionMock(.init(userSettings: userSettings, chatBackgroundService: service)),
+                                   analyticsService: AnalyticsServiceMock(.init()),
                                    userIndicatorController: UserIndicatorControllerMock(),
                                    notificationSettingsProxy: NotificationSettingsProxyMock(with: .init()),
-                                   attributedStringBuilder: AttributedStringBuilder(mentionBuilder: MentionBuilder()),
-                                   appSettings: ServiceLocator.shared.settings)
+                                   attributedStringBuilder: AttributedStringBuilder(mentionBuilder: MentionBuilder()))
     }
 }
