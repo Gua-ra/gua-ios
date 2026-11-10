@@ -144,7 +144,6 @@ struct TimelineViewState: BindableState {
     
     var bindings: TimelineViewStateBindings
     
-    /// GUA FORK: the chat's own theme, unless it is a photo this chat may not show, else the user's default.
     var effectiveChatTheme: ChatTheme {
         ChatTheme.effective(chatTheme: chatTheme, defaultTheme: defaultChatTheme, roomIsPrivate: isPrivateRoom, mediaShown: !hideTimelineMedia)
     }

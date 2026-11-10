@@ -49,7 +49,6 @@ struct ChatThemeScreenViewState: BindableState {
 
     let sections = ChatThemeGallerySection.all
 
-    /// The first Featured tile follows the user's default in a chat, and is the stock look for the default itself.
     var firstTileTheme: ChatTheme {
         mode == .chat ? defaultTheme : .stock
     }

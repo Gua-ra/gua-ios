@@ -66,7 +66,6 @@ private struct NoPermissionRowContent: View {
 }
 
 extension ChatTheme {
-    /// Names the wallpaper, or the bubble colour of a theme without one.
     var displayName: String {
         switch wallpaper {
         case .none:
