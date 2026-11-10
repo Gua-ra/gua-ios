@@ -525,7 +525,7 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
             .weakAssign(to: \.state.defaultChatTheme, on: self)
             .store(in: &cancellables)
         
-        // An unknown join rule counts as public, as for the live media setting.
+        // GUA FORK: an unknown join rule counts as public, as for the live media setting.
         state.isPrivateRoom = roomProxy.infoPublisher.value.isPrivate ?? false
         roomProxy.infoPublisher
             .map { $0.isPrivate ?? false }
