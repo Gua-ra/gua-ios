@@ -329,6 +329,7 @@ nonisolated struct ImageInfoProxy: Hashable {
     // periphery:ignore - used via the synthesized Hashable conformance
     private(set) var mimeType: String?
     private(set) var fileSize: UInt?
+    private(set) var isAnimated = false
     
     init?(source: MediaSource?, width: UInt64?, height: UInt64?, mimeType: String?, fileSize: UInt?) {
         guard let source else {
@@ -338,11 +339,11 @@ nonisolated struct ImageInfoProxy: Hashable {
         self.init(source: .init(source: source, mimeType: mimeType), width: width, height: height, mimeType: mimeType, fileSize: fileSize)
     }
     
-    init(source: MediaSource, width: UInt64?, height: UInt64?, mimeType: String?, fileSize: UInt?) {
-        self.init(source: .init(source: source, mimeType: mimeType), width: width, height: height, mimeType: mimeType, fileSize: fileSize)
+    init(source: MediaSource, width: UInt64?, height: UInt64?, mimeType: String?, fileSize: UInt?, isAnimated: Bool = false) {
+        self.init(source: .init(source: source, mimeType: mimeType), width: width, height: height, mimeType: mimeType, fileSize: fileSize, isAnimated: isAnimated)
     }
     
-    init(source: MediaSourceProxy, width: UInt64?, height: UInt64?, mimeType: String?, fileSize: UInt?) {
+    init(source: MediaSourceProxy, width: UInt64?, height: UInt64?, mimeType: String?, fileSize: UInt?, isAnimated: Bool = false) {
         self.source = source
         
         let mediaInfo = MediaInfoProxy(width: width, height: height, mimeType: mimeType)
@@ -350,6 +351,7 @@ nonisolated struct ImageInfoProxy: Hashable {
         aspectRatio = mediaInfo.aspectRatio
         self.mimeType = mediaInfo.mimeType
         self.fileSize = fileSize
+        self.isAnimated = isAnimated
     }
     
     // MARK: - Mocks

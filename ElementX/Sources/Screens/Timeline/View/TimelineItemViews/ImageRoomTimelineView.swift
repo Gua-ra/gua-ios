@@ -19,6 +19,10 @@ struct ImageRoomTimelineView: View {
         timelineItem.content.caption != nil
     }
     
+    private var isAnimated: Bool {
+        timelineItem.content.contentType == .gif || timelineItem.content.imageInfo.isAnimated
+    }
+    
     var body: some View {
         TimelineStyler(timelineItem: timelineItem) {
             // The caption sits 8pts below the content scanner failure placeholder, 4pts below the media.
@@ -28,7 +32,7 @@ struct ImageRoomTimelineView: View {
                                     thumbnailSource: timelineItem.content.thumbnailInfo?.source) {
                     loadableImage
                         .accessibilityElement(children: .ignore)
-                        .accessibilityLabel(L10n.commonImage)
+                        .accessibilityLabel(isAnimated ? "\(L10n.commonGif), \(timelineItem.content.caption ?? timelineItem.body)" : L10n.commonImage)
                         // This clip shape is distinct from the one in the styler as that one
                         // operates on the entire message so wouldn't round the bottom corners.
                         .clipShape(RoundedRectangle(cornerRadius: hasMediaCaption ? 6 : 0))
@@ -64,8 +68,9 @@ struct ImageRoomTimelineView: View {
     
     @ViewBuilder
     private var loadableImage: some View {
-        if timelineItem.content.contentType == .gif {
+        if isAnimated {
             LoadableImage(mediaSource: timelineItem.content.imageInfo.source,
+                          isAnimated: timelineItem.content.imageInfo.isAnimated,
                           mediaType: .timelineItem(uniqueID: timelineItem.id.uniqueID),
                           blurhash: timelineItem.content.blurhash,
                           size: timelineItem.content.imageInfo.size,
@@ -73,6 +78,7 @@ struct ImageRoomTimelineView: View {
                 placeholder
             }
             .timelineMediaFrame(imageInfo: timelineItem.content.imageInfo)
+            .overlay(alignment: .topLeading) { AnimatedImageBadge() }
         } else {
             LoadableImage(mediaSource: timelineItem.content.thumbnailInfo?.source ?? timelineItem.content.imageInfo.source,
                           mediaType: .timelineItem(uniqueID: timelineItem.id.uniqueID),

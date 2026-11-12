@@ -23,6 +23,7 @@ enum LoadableImageMediaType: Equatable {
 
 struct LoadableImage<TransformerView: View, PlaceholderView: View>: View {
     private let mediaSource: MediaSourceProxy?
+    private let isAnimated: Bool
     private let mediaType: LoadableImageMediaType
     private let blurhash: String?
     private let size: CGSize?
@@ -39,6 +40,7 @@ struct LoadableImage<TransformerView: View, PlaceholderView: View>: View {
     ///   - transformer: entry point for configuring the resulting image view
     ///   - placeholder: a view to show while the image or blurhash are not available
     init(mediaSource: MediaSourceProxy,
+         isAnimated: Bool = false,
          mediaType: LoadableImageMediaType = .generic,
          blurhash: String? = nil,
          size: CGSize? = nil,
@@ -46,6 +48,7 @@ struct LoadableImage<TransformerView: View, PlaceholderView: View>: View {
          transformer: @escaping (AnyView) -> TransformerView = { $0 },
          placeholder: @escaping () -> PlaceholderView) {
         self.mediaSource = mediaSource
+        self.isAnimated = isAnimated
         self.mediaType = mediaType
         self.blurhash = blurhash
         self.size = size
@@ -62,6 +65,7 @@ struct LoadableImage<TransformerView: View, PlaceholderView: View>: View {
          transformer: @escaping (AnyView) -> TransformerView = { $0 },
          placeholder: @escaping () -> PlaceholderView) {
         mediaSource = try? MediaSourceProxy(url: url, mimeType: nil)
+        isAnimated = false
         self.mediaType = mediaType
         self.blurhash = blurhash
         self.size = size
@@ -73,6 +77,7 @@ struct LoadableImage<TransformerView: View, PlaceholderView: View>: View {
     var body: some View {
         if let mediaSource {
             LoadableImageContent(mediaSource: mediaSource,
+                                 isAnimated: isAnimated,
                                  mediaType: mediaType,
                                  blurhash: blurhash,
                                  size: size,
@@ -100,6 +105,7 @@ struct LoadableImage<TransformerView: View, PlaceholderView: View>: View {
 
 private struct LoadableImageContent<TransformerView: View, PlaceholderView: View>: View, ImageDataProvider {
     @Environment(\.shouldAutomaticallyLoadImages) private var loadAutomatically
+    @Environment(\.accessibilityPlayAnimatedImages) private var playAnimatedImages
     
     private let mediaSource: MediaSourceProxy
     private let mediaType: LoadableImageMediaType
@@ -111,6 +117,7 @@ private struct LoadableImageContent<TransformerView: View, PlaceholderView: View
     @State private var loadManually = false
     
     init(mediaSource: MediaSourceProxy,
+         isAnimated: Bool,
          mediaType: LoadableImageMediaType,
          blurhash: String? = nil,
          size: CGSize? = nil,
@@ -124,7 +131,7 @@ private struct LoadableImageContent<TransformerView: View, PlaceholderView: View
         self.blurhash = blurhash
         self.transformer = transformer
         self.placeholder = placeholder
-        _contentLoader = StateObject(wrappedValue: ContentLoader(mediaSource: mediaSource, size: size, mediaProvider: mediaProvider))
+        _contentLoader = StateObject(wrappedValue: ContentLoader(mediaSource: mediaSource, isAnimated: isAnimated, size: size, mediaProvider: mediaProvider))
     }
     
     var shouldRender: Bool {
@@ -136,8 +143,14 @@ private struct LoadableImageContent<TransformerView: View, PlaceholderView: View
             switch (contentLoader.content, shouldRender) {
             case (.image(let image), true):
                 transformer(AnyView(Image(uiImage: image).resizable()))
-            case (.gifData, true):
-                transformer(AnyView(KFAnimatedImage(source: .provider(self))))
+            case (.gifData(let data), true):
+                if playAnimatedImages {
+                    transformer(AnyView(KFAnimatedImage(source: .provider(self)).setProcessor(AnimatedImageProcessor())))
+                } else if let firstFrame = UIImage(data: data) {
+                    transformer(AnyView(Image(uiImage: firstFrame).resizable()))
+                } else {
+                    placeholder()
+                }
             case (.none, _), (_, false):
                 if let blurHashView {
                     if shouldRender {
@@ -260,6 +273,7 @@ private class ContentLoader: ObservableObject {
     
     private let mediaProvider: MediaProviderProtocol?
     private let mediaSource: MediaSourceProxy
+    private let isAnimated: Bool
     private let size: CGSize?
     private var imageLoadingCancellable: AnyCancellable?
     
@@ -282,8 +296,9 @@ private class ContentLoader: ObservableObject {
         return cachedContent
     }
     
-    init(mediaSource: MediaSourceProxy, size: CGSize?, mediaProvider: MediaProviderProtocol?) {
+    init(mediaSource: MediaSourceProxy, isAnimated: Bool, size: CGSize?, mediaProvider: MediaProviderProtocol?) {
         self.mediaSource = mediaSource
+        self.isAnimated = isAnimated
         self.size = size
         self.mediaProvider = mediaProvider
     }
@@ -312,7 +327,7 @@ private class ContentLoader: ObservableObject {
     }
     
     private var isGIF: Bool {
-        mediaSource.mimeType == "image/gif"
+        isAnimated || mediaSource.mimeType == "image/gif"
     }
 }
 
