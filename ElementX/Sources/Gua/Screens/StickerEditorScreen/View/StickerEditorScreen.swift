@@ -29,6 +29,7 @@ struct StickerEditorScreen: View {
                 }
                 .padding(16)
             }
+            .scrollDismissesKeyboard(.interactively)
             .background(Color.compound.bgCanvasDefault.ignoresSafeArea())
             .navigationTitle(UntranslatedL10n.guaStickerCreate)
             .navigationBarTitleDisplayMode(.inline)

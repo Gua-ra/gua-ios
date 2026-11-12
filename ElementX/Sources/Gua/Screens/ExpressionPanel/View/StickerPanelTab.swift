@@ -67,11 +67,20 @@ struct StickerPanelTab: View {
         Button {
             context.send(viewAction: .createSticker)
         } label: {
-            CompoundIcon(\.plus, size: .medium, relativeTo: .compound.headingLG)
-                .foregroundStyle(.compound.iconPrimary)
-                .frame(maxWidth: .infinity)
-                .frame(height: Self.tileSize)
-                .background(Color.compound.bgCanvasDefault, in: RoundedRectangle(cornerRadius: 12))
+            VStack(spacing: 2) {
+                CompoundIcon(\.plus, size: .xSmall, relativeTo: .compound.bodyXS)
+                    .foregroundStyle(.compound.iconPrimary)
+                Text(UntranslatedL10n.guaStickerCreate)
+                    .font(.compound.bodyXSSemibold)
+                    .foregroundStyle(.compound.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.5)
+            }
+            .padding(4)
+            .frame(maxWidth: .infinity)
+            .frame(height: Self.tileSize)
+            .background(Color.compound.bgCanvasDefault, in: RoundedRectangle(cornerRadius: 12))
         }
         .accessibilityLabel(UntranslatedL10n.guaStickerCreate)
     }

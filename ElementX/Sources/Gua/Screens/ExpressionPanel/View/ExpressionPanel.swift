@@ -9,10 +9,9 @@ import PhotosUI
 import SwiftUI
 
 struct ExpressionPanel: View {
-    static let defaultHeight: CGFloat = 300
-    static let expandedFraction: CGFloat = 0.85
-    
     @Bindable var context: ExpressionPanelViewModelType.Context
+    /// Previews have no window to measure.
+    var screenHeight: CGFloat?
     
     @State private var dragTranslation: CGFloat = 0
     @State private var pickedPhoto: PhotosPickerItem?
@@ -23,7 +22,7 @@ struct ExpressionPanel: View {
             header
             content
         }
-        .frame(height: max(160, height - dragTranslation))
+        .frame(height: max(160, height(for: context.viewState.presentation) - dragTranslation))
         .frame(maxWidth: .infinity)
         .background(Color.compound.bgSubtleSecondary.ignoresSafeArea(edges: .bottom))
         .alert(item: $context.alertInfo)
@@ -45,15 +44,15 @@ struct ExpressionPanel: View {
         }
     }
     
-    private var height: CGFloat {
-        let window = Self.window
-        let bottomInset = window?.safeAreaInsets.bottom ?? 0
-        switch context.viewState.presentation {
-        case .expanded:
-            return (window?.bounds.height ?? 800) * Self.expandedFraction - bottomInset
-        case .compact, .hidden:
-            return (context.viewState.keyboardHeight ?? Self.defaultHeight) - bottomInset
-        }
+    private var heights: ExpressionPanelHeights {
+        let window = screenHeight == nil ? Self.window : nil
+        return ExpressionPanelHeights(screenHeight: screenHeight ?? window?.bounds.height ?? 800,
+                                      keyboardHeight: context.viewState.keyboardHeight,
+                                      bottomInset: window?.safeAreaInsets.bottom ?? 0)
+    }
+    
+    private func height(for presentation: ExpressionPanelPresentation) -> CGFloat {
+        presentation == .expanded ? heights.expanded : heights.opening
     }
     
     private static var window: UIWindow? {
@@ -137,17 +136,8 @@ struct ExpressionPanel: View {
     }
     
     private func settle(afterDragging translation: CGFloat) {
-        let threshold: CGFloat = 60
-        switch context.viewState.presentation {
-        case .compact where translation < -threshold:
-            context.send(viewAction: .setPresentation(.expanded))
-        case .compact where translation > threshold:
-            context.send(viewAction: .setPresentation(.hidden))
-        case .expanded where translation > threshold:
-            context.send(viewAction: .setPresentation(.compact))
-        default:
-            break
-        }
+        let height = height(for: context.viewState.presentation) - translation
+        context.send(viewAction: .setPresentation(heights.presentation(afterDraggingTo: height)))
     }
 }
 
@@ -177,15 +167,21 @@ struct ExpressionPanel_Previews: PreviewProvider, TestablePreview {
     static let gifUnavailableViewModel = ExpressionPanelPreviewFixtures.viewModel(tab: .gifs, gifContent: .unavailable)
     
     static var previews: some View {
-        ExpressionPanel(context: stickersViewModel.context)
+        ExpressionPanel(context: stickersViewModel.context, screenHeight: screenHeight)
             .previewDisplayName("Stickers")
-        ExpressionPanel(context: emptyStickersViewModel.context)
+        ExpressionPanel(context: stickersViewModel.context, screenHeight: screenHeight)
+            .dynamicTypeSize(.xxxLarge)
+            .previewDisplayName("Stickers large text")
+        ExpressionPanel(context: emptyStickersViewModel.context, screenHeight: screenHeight)
             .previewDisplayName("Stickers empty")
-        ExpressionPanel(context: gifsViewModel.context)
+        ExpressionPanel(context: gifsViewModel.context, screenHeight: screenHeight)
             .previewDisplayName("GIF results")
-        ExpressionPanel(context: gifErrorViewModel.context)
+        ExpressionPanel(context: gifErrorViewModel.context, screenHeight: screenHeight)
             .previewDisplayName("GIF error")
-        ExpressionPanel(context: gifUnavailableViewModel.context)
+        ExpressionPanel(context: gifUnavailableViewModel.context, screenHeight: screenHeight)
             .previewDisplayName("GIF unavailable")
     }
+    
+    /// The preview device's height, so the panel renders at its opening height.
+    private static let screenHeight: CGFloat = 667
 }
