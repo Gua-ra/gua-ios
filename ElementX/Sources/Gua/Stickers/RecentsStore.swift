@@ -7,7 +7,7 @@
 import Combine
 import Foundation
 
-/// Recently sent items on this device, newest first and never synced.
+/// This device's recently sent items, never synced.
 final class RecentsStore<Item: Codable & Equatable & Sendable> {
     static var defaultLimit: Int {
         30
@@ -30,7 +30,6 @@ final class RecentsStore<Item: Codable & Equatable & Sendable> {
         subject = CurrentValueSubject(Array(items.prefix(limit)))
     }
     
-    /// Moves the item to the front.
     func add(_ item: Item) {
         let id = identity(item)
         save(Array(([item] + subject.value.filter { identity($0) != id }).prefix(limit)))

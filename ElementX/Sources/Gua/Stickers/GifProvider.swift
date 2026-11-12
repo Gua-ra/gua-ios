@@ -19,9 +19,7 @@ nonisolated struct GifRendition: Hashable, Sendable {
     }
     
     let name: Name
-    /// Animated WebP.
     let animated: GifFile
-    /// A JPEG of the first frame, at the same size.
     let still: GifFile?
 }
 
@@ -42,7 +40,6 @@ nonisolated struct GifItem: Hashable, Sendable, Identifiable {
     let title: String
     let renditions: [GifRendition.Name: GifRendition]
     
-    /// The smallest rendition, for a grid.
     var preview: GifRendition? {
         [.sm, .xs, .md, .hd].lazy.compactMap { renditions[$0] }.first
     }

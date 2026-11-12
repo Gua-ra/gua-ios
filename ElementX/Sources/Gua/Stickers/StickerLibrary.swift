@@ -10,13 +10,11 @@ nonisolated enum StickerLibraryError: Error, Equatable {
     case limitReached
 }
 
-/// The `global.gua.stickers` account data: the user's favourites and My stickers.
 nonisolated struct StickerLibrary: Hashable, Sendable {
     static let accountDataType = "global.gua.stickers"
     static let maxFavourites = 50
     static let maxImages = 120
     
-    /// Newest first.
     private(set) var favourites: [StickerImage]
     /// My stickers, newest first by `global.gua.added`, then by shortcode.
     private(set) var images: [StickerPackItem]

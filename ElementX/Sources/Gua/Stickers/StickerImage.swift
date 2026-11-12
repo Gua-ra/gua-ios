@@ -145,7 +145,6 @@ nonisolated struct StickerImageInfo: Hashable, Sendable {
     }
 }
 
-/// An image of a pack's `images` map, under its shortcode.
 nonisolated struct StickerPackItem: Hashable, Sendable, Identifiable {
     let shortcode: String
     let image: StickerImage

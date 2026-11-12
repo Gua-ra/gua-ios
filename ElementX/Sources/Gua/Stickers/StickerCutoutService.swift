@@ -15,7 +15,6 @@ nonisolated struct StickerCutout: Sendable {
     /// Greyscale, white where the subject is.
     let subjectMasks: [CGImage]
     
-    /// The photo with everything but the chosen subjects transparent.
     func maskedImage(subjects: IndexSet) -> CGImage? {
         let rect = CGRect(x: 0, y: 0, width: image.width, height: image.height)
         guard let maskContext = CGContext(data: nil,

@@ -16,7 +16,6 @@ nonisolated struct StickerPack: Hashable, Sendable, Identifiable {
     let stateKey: String
     let displayName: String
     let avatarURL: String?
-    /// By shortcode.
     let stickers: [StickerPackItem]
     
     var id: String {

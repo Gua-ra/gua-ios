@@ -6,7 +6,6 @@
 
 import Foundation
 
-/// A small file in a session directory, written off the main thread.
 final nonisolated class SessionFile: Sendable {
     private static let writeQueue = DispatchQueue(label: "global.gua.session-files", qos: .utility)
     

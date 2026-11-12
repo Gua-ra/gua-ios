@@ -7,7 +7,6 @@
 import ImageIO
 import SwiftUI
 
-/// An Apple sticker or Genmoji picked on the keyboard, turned into a sticker file.
 nonisolated struct StickerGlyph: Sendable {
     let imageContent: Data
     /// The same glyph always has the same identifier, which keys the upload cache.

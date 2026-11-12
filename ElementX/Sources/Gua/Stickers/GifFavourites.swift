@@ -32,7 +32,6 @@ nonisolated struct GifFavourites: Hashable, Sendable {
         }
     }
     
-    /// Newest first.
     private(set) var favourites: [Favourite]
     private var version: Int64
     private var otherFields: [String: JSONValue]
