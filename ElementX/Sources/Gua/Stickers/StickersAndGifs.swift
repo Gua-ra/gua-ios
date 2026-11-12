@@ -21,14 +21,15 @@ final class StickersAndGifs {
     init(clientProxy: ClientProxyProtocol,
          appSettings: AppSettings,
          sessionDirectories: SessionDirectories,
-         gifProvider: GifProvider = KlipyGifProvider(configuration: .bundled)) {
+         gifProvider: GifProvider = KlipyGifProvider(configuration: .bundled),
+         packClient: StickerPackClientProtocol? = nil) {
         let cache = AccountDataCache(directory: sessionDirectories.cacheDirectory)
         library = StickerLibrarySetting(clientProxy: clientProxy, cache: cache)
         gifFavourites = GifFavouritesSetting(clientProxy: clientProxy, cache: cache)
         recentStickers = .stickers(directory: sessionDirectories.dataDirectory)
         recentGifs = .gifs(directory: sessionDirectories.dataDirectory)
         glyphCache = StickerGlyphCache(directory: sessionDirectories.dataDirectory)
-        packClient = StickerPackClient(homeserver: { clientProxy.homeserver }, accessToken: { clientProxy.accessToken })
+        self.packClient = packClient ?? StickerPackClient(homeserver: { clientProxy.homeserver }, accessToken: { clientProxy.accessToken })
         self.gifProvider = gifProvider
         
         // Production builds never read the account data until the feature is turned on.
