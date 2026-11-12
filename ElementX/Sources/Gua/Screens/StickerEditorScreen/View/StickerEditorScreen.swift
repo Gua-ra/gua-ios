@@ -27,6 +27,7 @@ struct StickerEditorScreen: View {
                             .multilineTextAlignment(.center)
                     }
                 }
+                .readableFrame(maxWidth: 480)
                 .padding(16)
             }
             .scrollDismissesKeyboard(.interactively)

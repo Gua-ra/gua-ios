@@ -85,7 +85,7 @@ nonisolated enum StickerCanvas {
         format.opaque = false
         let lettering = UIGraphicsImageRenderer(size: area.size, format: format).image { _ in
             (text as NSString).draw(with: frame.offsetBy(dx: -area.minX, dy: -area.minY),
-                                    options: .truncatesLastVisibleLine,
+                                    options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine],
                                     attributes: attributes,
                                     context: nil)
         }

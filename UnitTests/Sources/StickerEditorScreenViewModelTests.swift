@@ -30,6 +30,15 @@ final class StickerEditorScreenViewModelTests {
     }
     
     @Test
+    func captionsAreDrawnWhole() throws {
+        let blank = try Self.image(width: 8, height: 8, gray: false) { $0.clear(CGRect(x: 0, y: 0, width: 8, height: 8)) }
+        let sticker = try #require(StickerCanvas.render(blank, outlined: false, scale: 1, offset: .zero, text: "HH"))
+        
+        // Heavy 64 pt capitals stand about 45 px tall, all of it above the baseline.
+        #expect(try Self.opaqueRows(of: sticker).count > 40)
+    }
+    
+    @Test
     func outputIsTheFramedPhotoTrimmedAndPadded() throws {
         let viewModel = makeViewModel()
         
@@ -147,6 +156,21 @@ final class StickerEditorScreenViewModelTests {
                                              bitmapInfo: gray ? CGImageAlphaInfo.none.rawValue : CGImageAlphaInfo.premultipliedLast.rawValue))
         draw(context)
         return try #require(context.makeImage())
+    }
+    
+    private static func opaqueRows(of image: CGImage) throws -> [Int] {
+        let context = try #require(CGContext(data: nil,
+                                             width: image.width,
+                                             height: image.height,
+                                             bitsPerComponent: 8,
+                                             bytesPerRow: image.width * 4,
+                                             space: CGColorSpaceCreateDeviceRGB(),
+                                             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+        context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        let pixels = try #require(context.data).assumingMemoryBound(to: UInt8.self)
+        return (0..<image.height).filter { row in
+            (0..<image.width).contains { column in pixels[(row * image.width + column) * 4 + 3] > 127 }
+        }
     }
     
     private func waitUntil(_ condition: () -> Bool) async throws {
