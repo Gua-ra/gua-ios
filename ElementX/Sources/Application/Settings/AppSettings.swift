@@ -31,6 +31,15 @@ nonisolated enum AppBuildType {
         }
         #endif
     }
+    
+    /// GUA FORK: the same builds as `GuaDeployment.development`, which the extensions don't compile.
+    static var isGuaDevelopment: Bool {
+        #if GUA_DEVELOPMENT || DEBUG
+        true
+        #else
+        false
+        #endif
+    }
 }
 
 /// Store Element specific app settings.
@@ -498,6 +507,15 @@ final nonisolated class AppSettings: @unchecked Sendable {
     
     @UserPreference(defaultValue: false)
     var multiAccountEnabled: Bool
+    
+    @UserPreference(defaultValue: AppBuildType.isGuaDevelopment)
+    var guaStickersAndGifsEnabled: Bool
+    
+    @UserPreference(defaultValue: false)
+    var guaExpressionPanelShowsGifs: Bool
+    
+    @UserPreference(defaultValue: false)
+    var guaStickerCreatorNoteShown: Bool
     
     /// Lets the add account flow start once `multiAccountEnabled` shows its entry points. Not a user preference, so testers
     /// can't add a second account while signing out of one isn't safe yet. Only set it to `true` locally, for development.

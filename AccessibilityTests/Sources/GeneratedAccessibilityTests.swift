@@ -163,6 +163,10 @@ extension AccessibilityTests {
         try await performAccessibilityAudit(named: "EstimatedWaveformView_Previews")
     }
 
+    func testExpressionPanel() async throws {
+        try await performAccessibilityAudit(named: "ExpressionPanel_Previews")
+    }
+
     func testFileMediaEventsTimelineView() async throws {
         try await performAccessibilityAudit(named: "FileMediaEventsTimelineView_Previews")
     }
@@ -193,6 +197,10 @@ extension AccessibilityTests {
 
     func testGalleryRoomTimelineView() async throws {
         try await performAccessibilityAudit(named: "GalleryRoomTimelineView_Previews")
+    }
+
+    func testGifPreviewSheet() async throws {
+        try await performAccessibilityAudit(named: "GifPreviewSheet_Previews")
     }
 
     func testHighlightedTimelineItemModifier() async throws {
@@ -783,6 +791,10 @@ extension AccessibilityTests {
         try await performAccessibilityAudit(named: "StaticLocationSheet_Previews")
     }
 
+    func testStickerEditorScreen() async throws {
+        try await performAccessibilityAudit(named: "StickerEditorScreen_Previews")
+    }
+
     func testStickerRoomTimelineView() async throws {
         try await performAccessibilityAudit(named: "StickerRoomTimelineView_Previews")
     }
@@ -857,6 +869,10 @@ extension AccessibilityTests {
 
     func testTimelineStartRoomTimelineView() async throws {
         try await performAccessibilityAudit(named: "TimelineStartRoomTimelineView_Previews")
+    }
+
+    func testTimelineStickerSheet() async throws {
+        try await performAccessibilityAudit(named: "TimelineStickerSheet_Previews")
     }
 
     func testTimelineThreadSummaryView() async throws {

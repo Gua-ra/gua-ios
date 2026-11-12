@@ -53,6 +53,8 @@ name: TestFlight
 #   GUA_DEV_ACCOUNT_PROVIDER
 #                   The dev backend endpoints baked into a QA build. Required for
 #                   every `release-qa` run; the build fails loudly without them.
+#   KLIPY_API_KEY   Optional. The GIF provider key, for both apps. A repo variable
+#                   GIF_PROXY_HOST (host[:port]) routes GIF requests through the proxy.
 # See docs/TESTFLIGHT.md for setup details.
 
 on:
@@ -327,6 +329,8 @@ jobs:
               static let postHogAPIKey: String? = nil
               static let rageshakeURL: String? = nil
               static let mapLibreAPIKey: String? = nil
+              static let klipyAPIKey: String? = nil
+              static let gifProxyHost: String? = nil
 
               // Injected by the TestFlight workflow from repo secrets (dev backend).
               static let identityServiceBaseURL: String? = "${GUA_DEV_IDENTITY_SERVICE_BASE_URL}"
@@ -344,6 +348,29 @@ jobs:
           perl -pi -e 's/^(\s*static let (?:sentryDSN|sentryRustDSN|postHogHost|postHogAPIKey|mapLibreAPIKey|rageshakeURL): String\?) = .*$/$1 = nil/' Components/Secrets/Secrets.swift
           if [ "$(grep -cE 'static let (sentryDSN|sentryRustDSN|postHogHost|postHogAPIKey|mapLibreAPIKey|rageshakeURL): String\? = nil$' Components/Secrets/Secrets.swift)" != 6 ]; then
             echo "::error::Could not clear the analytics, map and bug report placeholders in Components/Secrets/Secrets.swift."
+            exit 1
+          fi
+
+      - name: Inject the GIF provider config
+        # Both apps. Without KLIPY_API_KEY the build still succeeds and the GIF tab reports that GIFs are unavailable.
+        env:
+          KLIPY_API_KEY: ${{ secrets.KLIPY_API_KEY }}
+          GIF_PROXY_HOST: ${{ vars.GIF_PROXY_HOST }}
+        run: |
+          set -euo pipefail
+          for name in KLIPY_API_KEY GIF_PROXY_HOST; do
+            case "${!name}" in
+              *[\"\\]*|*$'\n'*) echo "::error::$name must not contain quotes, backslashes or newlines."; exit 1 ;;
+            esac
+          done
+          if [ -n "$KLIPY_API_KEY" ]; then
+            perl -pi -e 's/^(\s*static let klipyAPIKey: String\?) = .*$/$1 = "$ENV{KLIPY_API_KEY}"/' Components/Secrets/Secrets.swift
+          fi
+          if [ -n "$GIF_PROXY_HOST" ]; then
+            perl -pi -e 's/^(\s*static let gifProxyHost: String\?) = .*$/$1 = "$ENV{GIF_PROXY_HOST}"/' Components/Secrets/Secrets.swift
+          fi
+          if [ "$(grep -cE 'static let (klipyAPIKey|gifProxyHost): String\? = ' Components/Secrets/Secrets.swift)" != 2 ]; then
+            echo "::error::Could not find the GIF provider placeholders in Components/Secrets/Secrets.swift."
             exit 1
           fi
 

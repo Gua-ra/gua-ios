@@ -30,6 +30,7 @@ protocol UserSessionProtocol: Sendable {
     /// Scans media content, `nil` when no content scanner is configured for the server.
     var contentScannerService: ContentScannerServiceProtocol? { get }
     var notificationService: NotificationServiceProtocol { get }
+    var stickersAndGifs: StickersAndGifs { get }
     
     var sessionSecurityStatePublisher: CurrentValuePublisher<SessionSecurityState, Never> { get }
     

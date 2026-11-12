@@ -101,3 +101,35 @@
 
 "gua_notification_sound_default" = "Padrão do Gua";
 "gua_notification_sound_fade" = "Gua suave";
+
+"gua_sticker_send_error" = "Não foi possível enviar a figurinha";
+"gua_sticker_limit_error" = "Você pode ter até %1$d figurinhas";
+"gua_gifs_unavailable" = "Os GIFs não estão disponíveis nesta versão";
+"gua_gifs_load_error" = "Não foi possível carregar os GIFs";
+"gua_expression_open_a11y" = "Figurinhas e GIFs";
+"gua_expression_keyboard_a11y" = "Teclado";
+"gua_expression_stickers_tab" = "Figurinhas";
+"gua_expression_recent" = "Recentes";
+"gua_expression_favourites" = "Favoritos";
+"gua_stickers_mine" = "Minhas figurinhas";
+"gua_gifs_trending" = "Em alta";
+"gua_sticker_create" = "Criar figurinha";
+"gua_stickers_search_placeholder" = "Buscar figurinhas";
+"gua_expression_word_hi" = "Oi";
+"gua_expression_word_haha" = "Kkkk";
+"gua_expression_word_love" = "Amor";
+"gua_expression_word_sad" = "Triste";
+"gua_expression_word_wow" = "Uau";
+"gua_expression_word_thumbs_up" = "Joinha";
+"gua_expression_word_celebrate" = "Comemorar";
+"gua_expression_word_angry" = "Bravo";
+"gua_expression_word_dance" = "Dança";
+"gua_sticker_add_favourite" = "Adicionar aos favoritos";
+"gua_sticker_remove_favourite" = "Remover dos favoritos";
+"gua_sticker_remove_recent" = "Remover dos recentes";
+"gua_sticker_save" = "Salvar nas minhas figurinhas";
+"gua_sticker_delete_title" = "Excluir esta figurinha?";
+"gua_sticker_from_pack" = "De %1$@";
+"gua_sticker_editor_cut_out" = "Recortar";
+"gua_sticker_editor_text_placeholder" = "Adicionar texto";
+"gua_sticker_editor_note" = "As figurinhas ficam guardadas nos servidores do Gua sem criptografia de ponta a ponta, para que você possa usá-las em qualquer conversa.";

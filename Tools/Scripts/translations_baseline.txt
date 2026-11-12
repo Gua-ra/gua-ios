@@ -64,6 +64,7 @@ es:action_no
 es:action_ok
 es:common_error
 es:common_sticker
+es:gua_expression_stickers_tab
 es:dialog_title_error
 es:screen_deactivate_account_description_bold_part
 es:screen_home_tab_chats
