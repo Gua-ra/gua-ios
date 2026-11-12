@@ -14183,6 +14183,48 @@ nonisolated class TimelineControllerMock: TimelineControllerProtocol, @unchecked
             return sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleReturnValue
         }
     }
+    //MARK: - sendAnimatedImage
+
+    private let sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDCallsCountLock = NSLock()
+    private nonisolated(unsafe) var sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDUnderlyingCallsCount = 0
+    var sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDCallsCount: Int {
+        get { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDCallsCountLock.withLock { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDUnderlyingCallsCount } }
+        set { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDCallsCountLock.withLock { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDUnderlyingCallsCount = newValue } }
+    }
+    var sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDCalled: Bool {
+        return sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDCallsCount > 0
+    }
+    private let sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReceivedArgumentsLock = NSLock()
+    private nonisolated(unsafe) var sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDUnderlyingReceivedArguments: (url: URL, thumbnailURL: URL, imageInfo: ImageInfo, caption: String?, inReplyToEventID: String?)?
+    var sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReceivedArguments: (url: URL, thumbnailURL: URL, imageInfo: ImageInfo, caption: String?, inReplyToEventID: String?)? {
+        get { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReceivedArgumentsLock.withLock { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDUnderlyingReceivedArguments } }
+        set { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReceivedArgumentsLock.withLock { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDUnderlyingReceivedArguments = newValue } }
+    }
+    private let sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReceivedInvocationsLock = NSLock()
+    private nonisolated(unsafe) var sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDUnderlyingReceivedInvocations: [(url: URL, thumbnailURL: URL, imageInfo: ImageInfo, caption: String?, inReplyToEventID: String?)] = []
+    var sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReceivedInvocations: [(url: URL, thumbnailURL: URL, imageInfo: ImageInfo, caption: String?, inReplyToEventID: String?)] {
+        get { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReceivedInvocationsLock.withLock { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDUnderlyingReceivedInvocations } }
+        set { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReceivedInvocationsLock.withLock { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDUnderlyingReceivedInvocations = newValue } }
+    }
+
+    private let sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReturnValueLock = NSLock()
+    private nonisolated(unsafe) var sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDUnderlyingReturnValue: Result<Void, TimelineControllerError>!
+    var sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReturnValue: Result<Void, TimelineControllerError>! {
+        get { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReturnValueLock.withLock { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDUnderlyingReturnValue } }
+        set { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReturnValueLock.withLock { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDUnderlyingReturnValue = newValue } }
+    }
+    nonisolated(unsafe) var sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDClosure: ((URL, URL, ImageInfo, String?, String?) async -> Result<Void, TimelineControllerError>)?
+
+    @concurrent func sendAnimatedImage(url: URL, thumbnailURL: URL, imageInfo: ImageInfo, caption: String?, inReplyToEventID: String?) async -> Result<Void, TimelineControllerError> {
+        sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDCallsCountLock.withLock { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDUnderlyingCallsCount += 1 }
+        sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReceivedArguments = (url: url, thumbnailURL: thumbnailURL, imageInfo: imageInfo, caption: caption, inReplyToEventID: inReplyToEventID)
+        sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReceivedInvocationsLock.withLock { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDUnderlyingReceivedInvocations.append((url: url, thumbnailURL: thumbnailURL, imageInfo: imageInfo, caption: caption, inReplyToEventID: inReplyToEventID)) }
+        if let sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDClosure = sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDClosure {
+            return await sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDClosure(url, thumbnailURL, imageInfo, caption, inReplyToEventID)
+        } else {
+            return sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReturnValue
+        }
+    }
     //MARK: - sendLocation
 
     private let sendLocationBodyGeoURIDescriptionZoomLevelAssetTypeCallsCountLock = NSLock()

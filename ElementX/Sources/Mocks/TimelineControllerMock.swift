@@ -141,6 +141,18 @@ struct TimelineControllerMockConfiguration {
             return .success(())
         }
         
+        sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDClosure = { [timelineProxy] url, thumbnailURL, imageInfo, caption, inReplyToEventID in
+            if let timelineProxy {
+                return await timelineProxy.sendImage(url: url,
+                                                     thumbnailURL: thumbnailURL,
+                                                     imageInfo: imageInfo,
+                                                     caption: caption,
+                                                     inReplyToEventID: inReplyToEventID) { _ in }
+                    .mapError(TimelineControllerError.timelineProxyError)
+            }
+            return .success(())
+        }
+        
         sendLocationBodyGeoURIDescriptionZoomLevelAssetTypeClosure = { [weak self, timelineProxy] body, geoURI, description, zoomLevel, assetType in
             self?.callbacks.send(.messageSentOrEdited)
             if let timelineProxy {

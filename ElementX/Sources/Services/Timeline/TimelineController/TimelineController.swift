@@ -409,6 +409,19 @@ class TimelineController: TimelineControllerProtocol {
         }
     }
     
+    func sendAnimatedImage(url: URL,
+                           thumbnailURL: URL,
+                           imageInfo: MatrixRustSDK.ImageInfo,
+                           caption: String?,
+                           inReplyToEventID: String?) async -> Result<Void, TimelineControllerError> {
+        await activeTimeline.sendImage(url: url,
+                                       thumbnailURL: thumbnailURL,
+                                       imageInfo: imageInfo,
+                                       caption: caption,
+                                       inReplyToEventID: inReplyToEventID) { _ in }
+            .mapError(TimelineControllerError.timelineProxyError)
+    }
+    
     func sendVideo(url: URL,
                    thumbnailURL: URL,
                    videoInfo: MatrixRustSDK.VideoInfo,

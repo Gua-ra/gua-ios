@@ -19,7 +19,7 @@ enum ExpressionPanelPresentation: Equatable {
 }
 
 enum ExpressionPanelViewModelAction {
-    /// The composer's reply has been answered by a sticker, which has no send queue to clear it.
+    /// A send from the panel used the composer's reply. The composer's text stays as typed.
     case didSendReply
 }
 

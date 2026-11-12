@@ -128,6 +128,13 @@ protocol TimelineControllerProtocol: Sendable {
                    inReplyToEventID: String?,
                    requestHandle: @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineControllerError>
     
+    /// GUA FORK: for the expression panel, which must leave the composer's text alone, so it skips the sent callback.
+    func sendAnimatedImage(url: URL,
+                           thumbnailURL: URL,
+                           imageInfo: ImageInfo,
+                           caption: String?,
+                           inReplyToEventID: String?) async -> Result<Void, TimelineControllerError>
+    
     func sendLocation(body: String,
                       geoURI: GeoURI,
                       description: String?,

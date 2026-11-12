@@ -41,7 +41,7 @@ final class GifSenderTests {
             }
         }
         timelineController = TimelineControllerMock()
-        timelineController.sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleClosure = { [weak self] url, _, imageInfo, caption, inReplyToEventID, _ in
+        timelineController.sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDClosure = { [weak self] url, _, imageInfo, caption, inReplyToEventID in
             if let image = try? Data(contentsOf: url) {
                 self?.sent = SentImage(url: url, image: image, imageInfo: imageInfo, caption: caption, inReplyToEventID: inReplyToEventID)
             }
@@ -80,7 +80,7 @@ final class GifSenderTests {
             Issue.record("Expected the download to fail")
             return
         }
-        #expect(!timelineController.sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleCalled)
+        #expect(!timelineController.sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDCalled)
     }
     
     @Test

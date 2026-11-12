@@ -282,6 +282,7 @@ final class ExpressionPanelViewModel: ExpressionPanelViewModelType, ExpressionPa
     
     private func sendNow(_ image: StickerImage, tileID: String?) async {
         let relation = stickerRelation
+        let answersReply = composerMode.replyEventID != nil
         let result = await stickerSender.send(image.essentials, relation: relation)
         if let tileID {
             state.sendingStickerIDs.remove(tileID)
@@ -290,7 +291,7 @@ final class ExpressionPanelViewModel: ExpressionPanelViewModelType, ExpressionPa
         switch result {
         case .success:
             stickersAndGifs.recentStickers.add(image.essentials)
-            if case .reply = relation {
+            if answersReply {
                 actionsSubject.send(.didSendReply)
             }
         case .failure:
@@ -477,11 +478,15 @@ final class ExpressionPanelViewModel: ExpressionPanelViewModelType, ExpressionPa
         state.bindings.gifPreview = preview
         
         let caption = preview.caption.trimmingCharacters(in: .whitespacesAndNewlines)
-        let result = await gifSender.send(preview.item, caption: caption.isEmpty ? nil : caption, inReplyToEventID: composerMode.replyEventID)
+        let replyEventID = composerMode.replyEventID
+        let result = await gifSender.send(preview.item, caption: caption.isEmpty ? nil : caption, inReplyToEventID: replyEventID)
         
         switch result {
         case .success:
             stickersAndGifs.recentGifs.add(preview.item.id)
+            if replyEventID != nil {
+                actionsSubject.send(.didSendReply)
+            }
             state.bindings.gifPreview = nil
         case .failure:
             state.bindings.gifPreview?.isSending = false

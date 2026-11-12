@@ -75,11 +75,11 @@ final class GifSender: GifSenderProtocol {
                                   blurhash: UIImage(data: stillData)?.blurHash(numberOfComponents: (3, 3)),
                                   isAnimated: true)
         
-        return await timelineController.sendImage(url: imageURL,
-                                                  thumbnailURL: thumbnailURL,
-                                                  imageInfo: imageInfo,
-                                                  caption: caption,
-                                                  inReplyToEventID: inReplyToEventID) { _ in }
+        return await timelineController.sendAnimatedImage(url: imageURL,
+                                                          thumbnailURL: thumbnailURL,
+                                                          imageInfo: imageInfo,
+                                                          caption: caption,
+                                                          inReplyToEventID: inReplyToEventID)
             .mapError(GifSenderError.sendFailed)
     }
     

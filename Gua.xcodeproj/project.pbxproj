@@ -1493,6 +1493,7 @@
 		D2D4CD9B71671D1789A8DADC /* JSONValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20C697299708BAB6680A0074 /* JSONValue.swift */; };
 		D2E92B142CBB59E2B2567E89 /* StaticLocationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B92ABC68D211C0C34748E647 /* StaticLocationSheet.swift */; };
 		D2F210BD3DCD56410EDE085E /* ManualClockTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 710E08827735B4F3D47740E3 /* ManualClockTests.swift */; };
+		D2FFB09DD6C83DC212CAD7E8 /* ExpressionPanelComposerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DA43B43B31EBA89F803C8FC /* ExpressionPanelComposerTests.swift */; };
 		D302D2B9952EB3F4A9BD140B /* PaginationIndicatorRoomTimelineItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 594DF934AAB33F6E02ADC698 /* PaginationIndicatorRoomTimelineItem.swift */; };
 		D30FAD08678E4CD4352BC20E /* target.yml in Resources */ = {isa = PBXBuildFile; fileRef = 3B2500C5C6BEFFBBAFE5294C /* target.yml */; };
 		D337F31DFD0345A59A9F2FC3 /* portrait_test_image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 425125A04802CEF55E0D854D /* portrait_test_image.jpg */; };
@@ -2506,6 +2507,7 @@
 		5D65DE2E02E2D6124AA8D12D /* MessageForwardingScreenViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageForwardingScreenViewModelTests.swift; sourceTree = "<group>"; };
 		5D69D42FC8F27EA3AD78DB3D /* PhoneEntryScreenViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneEntryScreenViewModelTests.swift; sourceTree = "<group>"; };
 		5D769F5CD98DB939148F158E /* TimelineController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineController.swift; sourceTree = "<group>"; };
+		5DA43B43B31EBA89F803C8FC /* ExpressionPanelComposerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpressionPanelComposerTests.swift; sourceTree = "<group>"; };
 		5DB3D1041B6DF657CA57FCD4 /* AnalyticsConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsConfiguration.swift; sourceTree = "<group>"; };
 		5DBC51A8CE131548A93585F4 /* BugReportScreenViewModelProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BugReportScreenViewModelProtocol.swift; sourceTree = "<group>"; };
 		5E3C0EEB8A0D64666DCE21EC /* RoomDetailsScreenViewModelProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomDetailsScreenViewModelProtocol.swift; sourceTree = "<group>"; };
@@ -6187,6 +6189,7 @@
 				9806AF7D631795D3B181F7B2 /* EncryptionResetPasswordScreenViewModelTests.swift */,
 				45E3B374DBD635987ACCBD23 /* EncryptionResetScreenViewModelTests.swift */,
 				F6BB482626D8F630FA178C7E /* ExpiringTaskRunnerTests.swift */,
+				5DA43B43B31EBA89F803C8FC /* ExpressionPanelComposerTests.swift */,
 				0ADC8103B9C800E37C43C166 /* ExpressionPanelViewModelTests.swift */,
 				032763A4B37AB6F58569E216 /* FederatedUserSearchTests.swift */,
 				23A79D5AE6CC355829801341 /* GeoURITests.swift */,
@@ -10308,6 +10311,7 @@
 				1126A87F77115E44F844DE9E /* EncryptionResetPasswordScreenViewModelTests.swift in Sources */,
 				8C3EC2D3F75EDFD12B939852 /* EncryptionResetScreenViewModelTests.swift in Sources */,
 				EAA17FCBC74A86DD64380699 /* ExpiringTaskRunnerTests.swift in Sources */,
+				D2FFB09DD6C83DC212CAD7E8 /* ExpressionPanelComposerTests.swift in Sources */,
 				16A41FD7604688C2C84B4845 /* ExpressionPanelViewModelTests.swift in Sources */,
 				3B4B913B0B423B7C12E52119 /* FederatedUserSearchTests.swift in Sources */,
 				3BEA37683C818EFB408170FE /* GeoURITests.swift in Sources */,
