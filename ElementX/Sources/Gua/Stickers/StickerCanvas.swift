@@ -11,6 +11,7 @@ nonisolated enum StickerCanvas {
     static let outlineWidth: CGFloat = 6
     static let textMargin: CGFloat = 24
     static let maxFontSize: CGFloat = 64
+    static let textOutlineRatio: CGFloat = 0.12
     
     /// The image aspect-fits the canvas at scale 1, then is scaled about the centre and moved, in canvas units.
     static func imageRect(imageSize: CGSize, scale: CGFloat, offset: CGSize) -> CGRect {
@@ -38,7 +39,7 @@ nonisolated enum StickerCanvas {
         let source = UIImage(cgImage: image)
         
         let rendered = UIGraphicsImageRenderer(size: CGSize(width: side, height: side), format: format).image { context in
-            if outlined, let silhouette = silhouette(of: source) {
+            if outlined, let silhouette = silhouette(of: source, color: .white) {
                 for step in 0..<16 {
                     let angle = Double(step) / 16 * 2 * .pi
                     silhouette.draw(in: rect.offsetBy(dx: cos(angle) * outlineWidth, dy: sin(angle) * outlineWidth))
@@ -50,14 +51,14 @@ nonisolated enum StickerCanvas {
         return rendered.cgImage
     }
     
-    private static func silhouette(of image: UIImage) -> UIImage? {
+    private static func silhouette(of image: UIImage, color: UIColor) -> UIImage? {
         let format = UIGraphicsImageRendererFormat()
         format.scale = image.scale
         format.opaque = false
         return UIGraphicsImageRenderer(size: image.size, format: format).image { context in
             image.draw(at: .zero)
             context.cgContext.setBlendMode(.sourceIn)
-            context.cgContext.setFillColor(UIColor.white.cgColor)
+            context.cgContext.setFillColor(color.cgColor)
             context.cgContext.fill(CGRect(origin: .zero, size: image.size))
         }
     }
@@ -77,11 +78,31 @@ nonisolated enum StickerCanvas {
         let origin = CGPoint(x: (side - min(size.width, maxWidth)) / 2, y: side - textMargin - size.height)
         let frame = CGRect(origin: origin, size: CGSize(width: min(size.width, maxWidth), height: size.height))
         
-        var outline = attributes
-        outline[.strokeColor] = UIColor.black.withAlphaComponent(0.85)
-        outline[.strokeWidth] = 24
-        (text as NSString).draw(with: frame, options: .truncatesLastVisibleLine, attributes: outline, context: nil)
-        (text as NSString).draw(with: frame, options: .truncatesLastVisibleLine, attributes: attributes, context: nil)
+        let radius = max(2, (fontSize * textOutlineRatio).rounded())
+        let area = frame.insetBy(dx: -radius, dy: -radius).integral
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = false
+        let lettering = UIGraphicsImageRenderer(size: area.size, format: format).image { _ in
+            (text as NSString).draw(with: frame.offsetBy(dx: -area.minX, dy: -area.minY),
+                                    options: .truncatesLastVisibleLine,
+                                    attributes: attributes,
+                                    context: nil)
+        }
+        
+        if let outline = silhouette(of: lettering, color: .black) {
+            // Composited once, so where neighbouring letters' outlines overlap they can't darken into seams.
+            context.saveGState()
+            context.setAlpha(0.85)
+            context.beginTransparencyLayer(auxiliaryInfo: nil)
+            for step in 0..<24 {
+                let angle = Double(step) / 24 * 2 * .pi
+                outline.draw(at: CGPoint(x: area.minX + cos(angle) * radius, y: area.minY + sin(angle) * radius))
+            }
+            context.endTransparencyLayer()
+            context.restoreGState()
+        }
+        lettering.draw(at: area.origin)
     }
     
     private static func textAttributes(fontSize: CGFloat) -> [NSAttributedString.Key: Any] {

@@ -74,5 +74,6 @@ struct GifPreviewSheet_Previews: PreviewProvider, TestablePreview {
     
     static var previews: some View {
         GifPreviewSheet(context: viewModel.context)
+            .environment(\.gifPreviewImages, ExpressionPanelPreviewFixtures.gifImages)
     }
 }
