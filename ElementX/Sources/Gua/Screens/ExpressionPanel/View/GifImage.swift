@@ -11,20 +11,33 @@ import SwiftUI
 /// A provider's animated image, fetched through the provider so it takes the proxy and never the app's media pipeline.
 struct GifImage: View {
     @Environment(\.accessibilityPlayAnimatedImages) private var playAnimatedImages
+    @Environment(\.gifPreviewImages) private var previewImages
     
     let file: GifFile
     let provider: GifProvider
     
     var body: some View {
-        KFAnimatedImage(source: .provider(GifDataProvider(url: file.url, provider: provider)))
-            .setProcessor(AnimatedImageProcessor())
-            .cacheMemoryOnly()
-            .configure { view in
-                view.autoPlayAnimatedImage = playAnimatedImages
+        Group {
+            if let previewImage = previewImages[file.url] {
+                Image(uiImage: previewImage)
+                    .resizable()
+            } else {
+                KFAnimatedImage(source: .provider(GifDataProvider(url: file.url, provider: provider)))
+                    .setProcessor(AnimatedImageProcessor())
+                    .cacheMemoryOnly()
+                    .configure { view in
+                        view.autoPlayAnimatedImage = playAnimatedImages
+                    }
+                    .placeholder { Color.compound.bgSubtleSecondary }
             }
-            .placeholder { Color.compound.bgSubtleSecondary }
-            .aspectRatio(CGFloat(max(file.width, 1)) / CGFloat(max(file.height, 1)), contentMode: .fit)
+        }
+        .aspectRatio(CGFloat(max(file.width, 1)) / CGFloat(max(file.height, 1)), contentMode: .fit)
     }
+}
+
+extension EnvironmentValues {
+    /// Previews draw these at once, since Kingfisher only starts loading after a view appears and snapshots don't wait.
+    @Entry var gifPreviewImages: [URL: UIImage] = [:]
 }
 
 private nonisolated struct GifDataProvider: ImageDataProvider {

@@ -135,11 +135,18 @@ struct StickerEditorScreen: View {
 }
 
 struct StickerEditorScreen_Previews: PreviewProvider, TestablePreview {
-    static let viewModel = StickerEditorScreenViewModel(photo: StickerPreviewImages.photo,
-                                                        cutoutService: StickerCutoutServiceMock(),
-                                                        appSettings: AppSettings.volatile()) { _, _, _ in .success(()) }
+    static let viewModel: StickerEditorScreenViewModel = {
+        let cutoutService = StickerCutoutServiceMock()
+        cutoutService.cutoutOfReturnValue = StickerPreviewImages.cutout
+        let viewModel = StickerEditorScreenViewModel(photo: StickerPreviewImages.photo,
+                                                     cutoutService: cutoutService,
+                                                     appSettings: AppSettings.volatile()) { _, _, _ in .success(()) }
+        viewModel.context.send(viewAction: .setText("Good morning"))
+        return viewModel
+    }()
     
     static var previews: some View {
         StickerEditorScreen(context: viewModel.context)
+            .snapshotPreferences(expect: viewModel.context.observe(\.viewState.isCutOutEnabled))
     }
 }

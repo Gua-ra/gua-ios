@@ -175,6 +175,7 @@ struct ExpressionPanel_Previews: PreviewProvider, TestablePreview {
         ExpressionPanel(context: emptyStickersViewModel.context, screenHeight: screenHeight)
             .previewDisplayName("Stickers empty")
         ExpressionPanel(context: gifsViewModel.context, screenHeight: screenHeight)
+            .environment(\.gifPreviewImages, ExpressionPanelPreviewFixtures.gifImages)
             .previewDisplayName("GIF results")
         ExpressionPanel(context: gifErrorViewModel.context, screenHeight: screenHeight)
             .previewDisplayName("GIF error")

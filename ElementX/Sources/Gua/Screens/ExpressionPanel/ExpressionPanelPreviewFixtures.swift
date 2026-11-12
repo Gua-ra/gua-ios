@@ -18,6 +18,14 @@ enum StickerPreviewImages {
         context.cgContext.fillEllipse(in: CGRect(x: 220, y: 110, width: 160, height: 160))
     }
     
+    /// The sun in `photo` as its only subject.
+    static let cutout = StickerCutout(image: photo, subjectMasks: [draw(size: CGSize(width: 600, height: 400)) { context in
+        UIColor.black.setFill()
+        context.fill(CGRect(x: 0, y: 0, width: 600, height: 400))
+        UIColor.white.setFill()
+        context.cgContext.fillEllipse(in: CGRect(x: 220, y: 110, width: 160, height: 160))
+    }])
+    
     static func sticker(_ index: Int) -> CGImage {
         draw(size: CGSize(width: 256, height: 256)) { _ in
             colors[index % colors.count].setFill()
@@ -82,6 +90,10 @@ enum ExpressionPanelPreviewFixtures {
         let still = GifFile(url: URL(string: "https://static.klipy.com/preview/\(index).jpg") ?? .homeDirectory, width: 220, height: height, size: 100)
         return GifItem(id: "preview-\(index)", title: "Preview \(index)", renditions: [.sm: GifRendition(name: .sm, animated: file, still: still)]) // l10n-ignore
     }
+    
+    static let gifImages: [URL: UIImage] = Dictionary(uniqueKeysWithValues: gifItems.enumerated().compactMap { index, item in
+        item.preview.map { ($0.animated.url, UIImage(cgImage: StickerPreviewImages.sticker(index))) }
+    })
     
     static let mediaProvider: MediaProviderProtocol = {
         let mediaProvider = MediaProviderMock(.init())
