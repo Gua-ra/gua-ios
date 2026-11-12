@@ -393,11 +393,13 @@ class TimelineController: TimelineControllerProtocol {
                    thumbnailURL: URL,
                    imageInfo: MatrixRustSDK.ImageInfo,
                    caption: String?,
+                   inReplyToEventID: String?,
                    requestHandle: @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineControllerError> {
         switch await activeTimeline.sendImage(url: url,
                                               thumbnailURL: thumbnailURL,
                                               imageInfo: imageInfo,
                                               caption: caption,
+                                              inReplyToEventID: inReplyToEventID,
                                               requestHandle: requestHandle).mapError(TimelineControllerError.timelineProxyError) {
         case .success:
             callbacks.send(.messageSentOrEdited)

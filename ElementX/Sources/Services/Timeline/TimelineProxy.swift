@@ -328,6 +328,7 @@ final class TimelineProxy: TimelineProxyProtocol {
                    thumbnailURL: URL,
                    imageInfo: ImageInfo,
                    caption: String?,
+                   inReplyToEventID: String?,
                    requestHandle: @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineProxyError> {
         MXLog.info("Sending image")
         
@@ -336,7 +337,7 @@ final class TimelineProxy: TimelineProxyProtocol {
                                                               caption: caption,
                                                               formattedCaption: nil, // Rust will build this from the caption's markdown.
                                                               mentions: nil,
-                                                              inReplyTo: nil),
+                                                              inReplyTo: inReplyToEventID),
                                                 thumbnailSource: .file(filename: thumbnailURL.path(percentEncoded: false)),
                                                 imageInfo: imageInfo)
             
