@@ -212,8 +212,16 @@ private protocol ElementTextViewDelegate: AnyObject {
 private class ElementTextView: UITextView, PillAttachmentViewProviderDelegate {
     private(set) var timelineContext: TimelineViewModel.Context?
     private var pillViews = NSHashTable<UIView>.weakObjects()
+    private var isAnsweringPaste = false
     
     weak var elementDelegate: ElementTextViewDelegate?
+    
+    private var canPasteFromPasteboard: Bool {
+        if supportsAdaptiveImageGlyph, UIPasteboard.general.contains(pasteboardTypes: StickerGlyphText.pasteboardTypes) {
+            return true
+        }
+        return !UIPasteboard.general.itemProviders.contains { !$0.isSupportedForPasteOrDrop }
+    }
     
     init(timelineContext: TimelineViewModel.Context?,
          presendCallback: Binding<(() -> Void)?>) {
@@ -271,19 +279,18 @@ private class ElementTextView: UITextView, PillAttachmentViewProviderDelegate {
     // Pasting support
     
     override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
-        if super.canPerformAction(action, withSender: sender) {
-            return true
-        }
-        
-        if action == #selector(paste(_:)), supportsAdaptiveImageGlyph, UIPasteboard.general.contains(pasteboardTypes: StickerGlyphText.pasteboardTypes) {
-            return true
-        }
-        
         guard action == #selector(paste(_:)) else {
-            return false
+            return super.canPerformAction(action, withSender: sender)
         }
         
-        return !UIPasteboard.general.itemProviders.contains { !$0.isSupportedForPasteOrDrop }
+        // With adaptive image glyphs on, UIKit's image paste check asks this again from inside super.
+        guard !isAnsweringPaste else {
+            return canPasteFromPasteboard
+        }
+        isAnsweringPaste = true
+        defer { isAnsweringPaste = false }
+        
+        return super.canPerformAction(action, withSender: sender) || canPasteFromPasteboard
     }
     
     override func paste(_ sender: Any?) {
