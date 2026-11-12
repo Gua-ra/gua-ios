@@ -101,3 +101,8 @@
 
 "gua_notification_sound_default" = "Gua - défaut";
 "gua_notification_sound_fade" = "Gua - doux";
+
+"gua_sticker_send_error" = "Impossible d’envoyer l’autocollant";
+"gua_sticker_limit_error" = "Vous pouvez avoir jusqu’à %1$d autocollants";
+"gua_gifs_unavailable" = "Les GIF ne sont pas disponibles dans cette version";
+"gua_gifs_load_error" = "Impossible de charger les GIF";

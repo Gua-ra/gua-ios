@@ -101,3 +101,8 @@
 
 "gua_notification_sound_default" = "Padrão do Gua";
 "gua_notification_sound_fade" = "Gua suave";
+
+"gua_sticker_send_error" = "Não foi possível enviar a figurinha";
+"gua_sticker_limit_error" = "Você pode ter até %1$d figurinhas";
+"gua_gifs_unavailable" = "Os GIFs não estão disponíveis nesta versão";
+"gua_gifs_load_error" = "Não foi possível carregar os GIFs";

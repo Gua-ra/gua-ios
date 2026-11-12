@@ -120,6 +120,10 @@ internal nonisolated enum UntranslatedL10n {
   }
   /// This took too long. Please start again.
   internal static var guaFlowExpired: String { return UntranslatedL10n.tr("Untranslated", "gua_flow_expired") }
+  /// Couldn’t load GIFs
+  internal static var guaGifsLoadError: String { return UntranslatedL10n.tr("Untranslated", "gua_gifs_load_error") }
+  /// GIFs aren’t available in this version
+  internal static var guaGifsUnavailable: String { return UntranslatedL10n.tr("Untranslated", "gua_gifs_unavailable") }
   /// %1$@’s security details changed. This can happen when they reinstall Gua or get a new phone. %2$@
   internal static func guaIdentityChangeBannerDescription(_ p1: Any, _ p2: Any) -> String {
     return UntranslatedL10n.tr("Untranslated", "gua_identity_change_banner_description", String(describing: p1), String(describing: p2))
@@ -198,6 +202,12 @@ internal nonisolated enum UntranslatedL10n {
   internal static var guaSoftLogoutSigninNotice: String { return UntranslatedL10n.tr("Untranslated", "gua_soft_logout_signin_notice") }
   /// You’ll need two-step verification before you can change your number.
   internal static var guaStepUpRequired: String { return UntranslatedL10n.tr("Untranslated", "gua_step_up_required") }
+  /// You can have up to %1$d stickers
+  internal static func guaStickerLimitError(_ p1: Int) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_sticker_limit_error", p1)
+  }
+  /// Couldn’t send the sticker
+  internal static var guaStickerSendError: String { return UntranslatedL10n.tr("Untranslated", "gua_sticker_send_error") }
   /// Make sure the emojis below match the ones on your other device.
   internal static var guaVerificationCompareEmojisSubtitle: String { return UntranslatedL10n.tr("Untranslated", "gua_verification_compare_emojis_subtitle") }
   /// Your messages will now show up on your other device.

@@ -150,3 +150,8 @@
 
 "gua_notification_sound_default" = "Gua Default";
 "gua_notification_sound_fade" = "Gua Fade";
+
+"gua_sticker_send_error" = "Couldn’t send the sticker";
+"gua_sticker_limit_error" = "You can have up to %1$d stickers";
+"gua_gifs_unavailable" = "GIFs aren’t available in this version";
+"gua_gifs_load_error" = "Couldn’t load GIFs";

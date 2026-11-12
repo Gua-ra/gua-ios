@@ -101,3 +101,8 @@
 
 "gua_notification_sound_default" = "Predeterminado de Gua";
 "gua_notification_sound_fade" = "Desvanecimiento de Gua";
+
+"gua_sticker_send_error" = "No se pudo enviar el sticker";
+"gua_sticker_limit_error" = "Puedes tener hasta %1$d stickers";
+"gua_gifs_unavailable" = "Los GIF no están disponibles en esta versión";
+"gua_gifs_load_error" = "No se pudieron cargar los GIF";
