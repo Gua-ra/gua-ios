@@ -5,6 +5,8 @@ nonisolated enum Secrets {
     static let postHogAPIKey: String? = "your_key"
     static let rageshakeURL: String? = "https://rageshake.localhost/submit"
     static let mapLibreAPIKey: String? = "your_key"
+    static let klipyAPIKey: String? = nil
+    static let gifProxyHost: String? = nil
 
     // DEVELOPMENT-only Gua backend endpoints (used when GuaDeployment.current == .development, i.e. Debug
     // or a GUA_DEVELOPMENT build). Release builds ignore these and use the production gua.global hosts in
