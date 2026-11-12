@@ -36,6 +36,9 @@ enum ComposerToolbarViewModelAction {
     case voiceMessage(ComposerToolbarVoiceMessageAction)
     
     case contentChanged(isEmpty: Bool)
+    
+    case sendStickerGlyphs([StickerGlyph])
+    case sendPastedSticker(Data)
 }
 
 enum ComposerToolbarViewAction {

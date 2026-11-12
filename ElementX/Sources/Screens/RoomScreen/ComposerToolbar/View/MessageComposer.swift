@@ -33,6 +33,7 @@ struct MessageComposer: View {
     let onAppearAction: () -> Void
     
     @State private var composerTranslation: CGFloat = 0
+    @Environment(\.composerTrailingInset) private var composerTrailingInset
     
     var body: some View {
         VStack(spacing: 0) {
@@ -75,6 +76,7 @@ struct MessageComposer: View {
                                      maxHeight: ComposerConstant.maxHeight,
                                      keyHandler: { handleKeyPress($0) },
                                      pasteHandler: pasteAction)
+                .padding(.trailing, composerTrailingInset)
         }
     }
     

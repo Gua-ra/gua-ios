@@ -278,6 +278,8 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
             Task {
                 await roomProxy.sendTypingNotification(isTyping: !isEmpty)
             }
+        case .sendStickerGlyphs, .sendPastedSticker:
+            break
         }
     }
     

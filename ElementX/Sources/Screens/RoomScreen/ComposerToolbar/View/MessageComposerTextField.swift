@@ -52,6 +52,7 @@ struct MessageComposerTextField: View {
 
 private struct UITextViewWrapper: UIViewRepresentable {
     @Environment(\.timelineContext) private var timelineContext
+    @Environment(\.supportsStickerGlyphs) private var supportsStickerGlyphs
     
     @Binding var text: NSAttributedString
     @Binding var presendCallback: (() -> Void)?
@@ -106,6 +107,10 @@ private struct UITextViewWrapper: UIViewRepresentable {
         // Prevent the textView from inheriting attributes from mention pills
         textView.typingAttributes = [.font: font,
                                      .foregroundColor: UIColor.compound.textPrimary]
+        
+        if textView.supportsAdaptiveImageGlyph != supportsStickerGlyphs {
+            textView.supportsAdaptiveImageGlyph = supportsStickerGlyphs
+        }
         
         if textView.attributedText != text {
             // Remember the selection if only the attributes have changed.
@@ -270,6 +275,10 @@ private class ElementTextView: UITextView, PillAttachmentViewProviderDelegate {
             return true
         }
         
+        if action == #selector(paste(_:)), supportsAdaptiveImageGlyph, UIPasteboard.general.contains(pasteboardTypes: StickerGlyphText.pasteboardTypes) {
+            return true
+        }
+        
         guard action == #selector(paste(_:)) else {
             return false
         }
@@ -278,6 +287,11 @@ private class ElementTextView: UITextView, PillAttachmentViewProviderDelegate {
     }
     
     override func paste(_ sender: Any?) {
+        if supportsAdaptiveImageGlyph, let stickerProvider = UIPasteboard.general.stickerItemProvider {
+            elementDelegate?.textView(self, didReceivePasteWith: [stickerProvider])
+            return
+        }
+        
         // When pasting a link over a selection, wrap the selection in a markdown link.
         if selectedRange.length > 0, let link = UIPasteboard.general.pastedLink {
             let selectedText = (attributedText.string as NSString).substring(with: selectedRange)
