@@ -1398,6 +1398,7 @@
 		C4AEA550869C808952FFA279 /* BootDetectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D1496933CC01EE16A2110A8 /* BootDetectionManager.swift */; };
 		C4AF50DBA2A68FA1DA8B2235 /* ReadMarkerRoomTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE9B29B37AA9A119AD7E982E /* ReadMarkerRoomTimelineView.swift */; };
 		C4BE7C4AF49AE91513C7EDD5 /* sound_01.caf in Resources */ = {isa = PBXBuildFile; fileRef = ECFCB0A49925603D8EF701C8 /* sound_01.caf */; };
+		C51B54F93CEBDC9A90A9F463 /* StickersAndGifs+Mock.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA2614330456598E02AC8820 /* StickersAndGifs+Mock.swift */; };
 		C52BEDE8795E559260576B7C /* AnalyticsSettingsScreenViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55C455836A644C2FD0AFA8E3 /* AnalyticsSettingsScreenViewModel.swift */; };
 		C546B48988003EEFFCCAF3B7 /* RoomScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7373E4D9AF4D59F2170C9A44 /* RoomScreen.swift */; };
 		C57F81202CCD86DB605D01B4 /* GZIP in Frameworks */ = {isa = PBXBuildFile; productRef = B4FF9AE42AE8F3548D2BC825 /* GZIP */; };
@@ -3201,6 +3202,7 @@
 		CA185578D5DFA3AB63709BAA /* RoomMemberProxyMock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomMemberProxyMock.swift; sourceTree = "<group>"; };
 		CA1CEF0B9D02BD5BC2C2CA19 /* MapLibreAnnotation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapLibreAnnotation.swift; sourceTree = "<group>"; };
 		CA1F2CE7AABD621B1F8ADAEE /* PinBubbleField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinBubbleField.swift; sourceTree = "<group>"; };
+		CA2614330456598E02AC8820 /* StickersAndGifs+Mock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StickersAndGifs+Mock.swift"; sourceTree = "<group>"; };
 		CAA1C1A52067660255D34261 /* MapLibreMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapLibreMapView.swift; sourceTree = "<group>"; };
 		CAD228DC78FC9A960BBAE443 /* ReactionsSummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReactionsSummaryView.swift; sourceTree = "<group>"; };
 		CB0A8DD0086B2A7A186A5952 /* RoomListFiltersStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomListFiltersStateTests.swift; sourceTree = "<group>"; };
@@ -7286,6 +7288,7 @@
 				690A27CC9F6CE4EBD800B7CF /* SignallingTimelineItemProviderMock.swift */,
 				536213D9492B8118CBC3C91A /* SpaceRoomListProxyMock.swift */,
 				720E3277BC04C38F1C9759B7 /* SpaceServiceProxyMock.swift */,
+				CA2614330456598E02AC8820 /* StickersAndGifs+Mock.swift */,
 				24E2D2024D4A9B89539AD22B /* TimelineControllerFactoryMock.swift */,
 				A04E8E81453298EC518A7DD4 /* TimelineControllerMock.swift */,
 				FFB34E95D70955A3EF922D6D /* TimelineProviderMock.swift */,
@@ -10027,6 +10030,7 @@
 				72CF7FF9D94A40F0A5A51111 /* StickerRoomTimelineItem.swift in Sources */,
 				8E35EF1A3D4993C1802D2E30 /* StickerRoomTimelineView.swift in Sources */,
 				2901EBECBFC373C015384646 /* StickerSender.swift in Sources */,
+				C51B54F93CEBDC9A90A9F463 /* StickersAndGifs+Mock.swift in Sources */,
 				84D2EC24C03E4922E63F10B1 /* StickersAndGifs.swift in Sources */,
 				9B149404B067E715C494A6B9 /* StopButton.swift in Sources */,
 				7412ED4A1D0E33024074D1F9 /* String.swift in Sources */,

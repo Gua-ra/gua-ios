@@ -325,8 +325,7 @@ final class ExpressionPanelViewModelTests {
     
     @Test
     func theFlagDecidesWhetherThereIsAPanel() {
-        let userSession = UserSessionMock(.init(userSettings: appSettings.userSettings(for: "@me:matrix.org")))
-        userSession.underlyingStickersAndGifs = makeStickersAndGifs()
+        let userSession = UserSessionMock(.init(userSettings: appSettings.userSettings(for: "@me:matrix.org"), stickersAndGifs: makeStickersAndGifs()))
         let timelineController = TimelineControllerMock(.init())
         
         appSettings.guaStickersAndGifsEnabled = false
