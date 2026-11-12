@@ -108,8 +108,8 @@ private struct UITextViewWrapper: UIViewRepresentable {
         textView.typingAttributes = [.font: font,
                                      .foregroundColor: UIColor.compound.textPrimary]
         
-        if textView.acceptsStickerGlyphs != supportsStickerGlyphs {
-            textView.acceptsStickerGlyphs = supportsStickerGlyphs
+        if let elementTextView = textView as? ElementTextView, elementTextView.acceptsStickerGlyphs != supportsStickerGlyphs {
+            elementTextView.acceptsStickerGlyphs = supportsStickerGlyphs
         }
         
         if textView.attributedText != text {
