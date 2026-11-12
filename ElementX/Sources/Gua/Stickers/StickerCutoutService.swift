@@ -8,7 +8,6 @@ import CoreImage
 import Synchronization
 import Vision
 
-/// The subjects found in a photo, each as a mask aligned with `image`.
 nonisolated struct StickerCutout: Sendable {
     /// The photo scaled down to the size the masks were made at.
     let image: CGImage
@@ -53,7 +52,6 @@ nonisolated protocol StickerCutoutServiceProtocol: Sendable {
     func cutout(of image: CGImage) async -> StickerCutout?
 }
 
-/// Vision's foreground instance masks, with every instance kept apart so each subject can be toggled.
 final nonisolated class StickerCutoutService: StickerCutoutServiceProtocol {
     private let timeout: Duration
     private let maxPixelSide: Int
@@ -128,7 +126,6 @@ final nonisolated class StickerCutoutService: StickerCutoutServiceProtocol {
     }
 }
 
-/// Resumes its continuation with whichever result arrives first.
 private final nonisolated class FirstResult: Sendable {
     private let continuation: Mutex<CheckedContinuation<StickerCutout?, Never>?>
     

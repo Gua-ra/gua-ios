@@ -6,7 +6,6 @@
 
 import SwiftUI
 
-/// Images drawn on the device, so previews never touch the network or bundled media.
 enum StickerPreviewImages {
     static let colors: [UIColor] = [.systemOrange, .systemTeal, .systemPink, .systemGreen, .systemPurple, .systemYellow]
     

@@ -84,7 +84,6 @@ struct GifPanelTab: View {
     }
 }
 
-/// Two columns of GIFs at their own aspect ratio, each placed in the shorter column in the provider's order.
 private struct GifMasonry: View {
     let items: [GifItem]
     let provider: GifProvider

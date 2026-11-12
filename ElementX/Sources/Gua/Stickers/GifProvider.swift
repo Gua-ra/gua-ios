@@ -35,7 +35,6 @@ nonisolated struct GifSendChoice: Hashable, Sendable {
 }
 
 nonisolated struct GifItem: Hashable, Sendable, Identifiable {
-    /// The id the provider looks the item up by again.
     let id: String
     let title: String
     let renditions: [GifRendition.Name: GifRendition]
@@ -75,15 +74,12 @@ nonisolated enum GifProviderError: Error {
 
 // sourcery: AutoMockable
 nonisolated protocol GifProvider: Sendable {
-    /// The `p` written next to each favourite's id.
     var id: String { get }
-    /// False without an API key, in which case every request fails.
     var isAvailable: Bool { get }
     
     /// Pages start at 1. Cancelling the calling task cancels the request.
     func search(_ query: String, page: Int) async -> Result<GifPage, GifProviderError>
     func trending(page: Int) async -> Result<GifPage, GifProviderError>
     func items(ids: [String]) async -> Result<[GifItem], GifProviderError>
-    /// Media from the provider's hosts, through the same session and proxy.
     func data(from url: URL) async -> Result<Data, GifProviderError>
 }

@@ -17,7 +17,6 @@ enum TimelineMediaFrame {
     static let defaultMediaSize = 100.0
     /// The maximum width of a timeline link preview
     static let maxLinkPreviewWidth = 300.0
-    /// The largest side of a sticker in the timeline, and its size when it has none.
     static let stickerSize = 160.0
 }
 

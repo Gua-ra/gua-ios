@@ -7,7 +7,6 @@
 import Compound
 import SwiftUI
 
-/// Marks a still first frame as a GIF when Auto-Play Animated Images is off.
 struct AnimatedImageBadge: View {
     @Environment(\.accessibilityPlayAnimatedImages) private var playAnimatedImages
     

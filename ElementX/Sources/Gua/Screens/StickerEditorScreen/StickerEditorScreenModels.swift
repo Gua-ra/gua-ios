@@ -51,7 +51,6 @@ struct StickerEditorScreenViewState: BindableState {
         cutout != nil
     }
     
-    /// The photo the canvas shows, which is the one the cut-out's masks were made from.
     var canvasImage: CGImage {
         cutout?.image ?? photo
     }

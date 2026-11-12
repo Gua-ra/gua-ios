@@ -35,7 +35,6 @@ final class StickerEditorScreenViewModel: StickerEditorScreenViewModelType {
         }
     }
     
-    /// An upright copy of the photo, no larger than the cut-out works at.
     static func photo(from data: Data) -> CGImage? {
         guard let image = UIImage(data: data) else { return nil }
         let scale = min(1, CGFloat(maxPhotoSide) / max(image.size.width * image.scale, image.size.height * image.scale, 1))

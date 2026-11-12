@@ -35,7 +35,6 @@ nonisolated struct StickerImage: Hashable, Sendable {
         .object(fields)
     }
     
-    /// Only the fields a favourite or a message carries.
     var essentials: StickerImage {
         var image = self
         image.fields = fields.filter { ["body", "info", "url"].contains($0.key) }
@@ -102,7 +101,6 @@ nonisolated extension StickerImage: Codable {
     }
 }
 
-/// The `info` of an image, keeping every field it was read with.
 nonisolated struct StickerImageInfo: Hashable, Sendable {
     private(set) var fields: [String: JSONValue]
     

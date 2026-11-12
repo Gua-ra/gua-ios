@@ -99,7 +99,6 @@ final nonisolated class KlipyGifProvider: GifProvider {
         url(apiKey: apiKey, endpoint: "items", queryItems: [URLQueryItem(name: "slugs", value: ids.joined(separator: ","))])
     }
     
-    /// The device region as a lowercase ISO 3166 code, else the app language.
     static func locale(region: String?, language: String?) -> String? {
         if let region, region.count == 2, region.allSatisfy(\.isLetter) {
             return region.lowercased()
@@ -107,7 +106,6 @@ final nonisolated class KlipyGifProvider: GifProvider {
         return language.flatMap { Locale(identifier: $0).language.languageCode?.identifier.lowercased() }
     }
     
-    /// Only KLIPY's API and media hosts, over HTTPS on 443.
     static func isAllowed(_ url: URL) -> Bool {
         guard url.scheme == "https", url.port == nil || url.port == 443, let host = url.host()?.lowercased() else { return false }
         if host == apiHost {
@@ -204,7 +202,6 @@ final nonisolated class KlipyGifProvider: GifProvider {
     }
 }
 
-/// Refuses any redirect that leaves KLIPY's hosts.
 final nonisolated class KlipySessionDelegate: NSObject, URLSessionTaskDelegate {
     // The async variant of this method crashes the Swift 6.3 compiler.
     func urlSession(_ session: URLSession,

@@ -8,7 +8,6 @@ import Compound
 import SwiftUI
 
 extension EnvironmentValues {
-    /// Room kept clear at the trailing edge of the composer's text for the expression button.
     @Entry var composerTrailingInset: CGFloat = 0
     @Entry var supportsStickerGlyphs = false
 }

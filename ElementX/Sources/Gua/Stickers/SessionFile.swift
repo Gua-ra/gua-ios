@@ -30,7 +30,6 @@ final nonisolated class SessionFile: Sendable {
         }
     }
     
-    /// Waits for every session file's pending writes.
     func waitForWrites() {
         Self.writeQueue.sync { }
     }

@@ -11,7 +11,6 @@ protocol AccountDataCacheProtocol {
     func save(_ contentJSON: String, type: String)
 }
 
-/// The last known content of each account data type, so the first frame needs no store read.
 final class AccountDataCache: AccountDataCacheProtocol {
     private let directory: URL
     private var files: [String: SessionFile] = [:]

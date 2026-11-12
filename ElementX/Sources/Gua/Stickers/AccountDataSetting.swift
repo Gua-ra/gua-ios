@@ -38,7 +38,6 @@ final class AccountDataSetting<Value: Equatable & Sendable> {
         subject.asCurrentValuePublisher()
     }
     
-    /// `decode` reads nil as nothing stored.
     init(accountDataType: String,
          clientProxy: ClientProxyProtocol,
          cache: AccountDataCacheProtocol,
@@ -75,7 +74,6 @@ final class AccountDataSetting<Value: Equatable & Sendable> {
     }
     
     func set(_ value: Value) async -> Result<Void, ClientProxyError> {
-        // The echo is compared with the stored form.
         let value = decode(encode(value))
         if pendingValue == nil {
             fallbackValue = subject.value

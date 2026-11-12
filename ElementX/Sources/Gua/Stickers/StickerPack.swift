@@ -6,7 +6,6 @@
 
 import Foundation
 
-/// A chat's read-only `m.room.image_pack` or `im.ponies.room_emotes` state event, reduced to its stickers.
 nonisolated struct StickerPack: Hashable, Sendable, Identifiable {
     static let stableEventType = "m.room.image_pack"
     static let unstableEventType = "im.ponies.room_emotes"
@@ -47,7 +46,6 @@ nonisolated struct StickerPack: Hashable, Sendable, Identifiable {
         usage?.arrayValue?.isEmpty == false
     }
     
-    /// A missing or empty usage means every usage.
     private static func includesStickers(_ usage: JSONValue?) -> Bool {
         guard hasUsage(usage), let usage = usage?.arrayValue else { return true }
         return usage.contains(.string("sticker"))

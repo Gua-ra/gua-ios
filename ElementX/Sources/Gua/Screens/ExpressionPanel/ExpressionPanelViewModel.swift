@@ -452,7 +452,6 @@ final class ExpressionPanelViewModel: ExpressionPanelViewModelType, ExpressionPa
         }
     }
     
-    /// Recents and favourites keep this device's order.
     private func items(ids: [String]) async -> Result<GifPage, GifProviderError> {
         await gifProvider.items(ids: ids).map { items in
             let byID = Dictionary(items.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })

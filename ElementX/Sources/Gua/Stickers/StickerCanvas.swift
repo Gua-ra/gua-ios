@@ -6,7 +6,6 @@
 
 import SwiftUI
 
-/// The sticker editor's 512 × 512 canvas: the photo or its cut-out, framed by the user, outlined in white and captioned.
 nonisolated enum StickerCanvas {
     static let side: CGFloat = 512
     static let outlineWidth: CGFloat = 6
@@ -91,7 +90,6 @@ nonisolated enum StickerCanvas {
 }
 
 nonisolated extension StickerCutout {
-    /// The subject under an image point, measured from the top left.
     func subject(at point: CGPoint) -> Int? {
         let x = Int(point.x), y = Int(point.y)
         guard x >= 0, y >= 0, x < image.width, y < image.height else { return nil }

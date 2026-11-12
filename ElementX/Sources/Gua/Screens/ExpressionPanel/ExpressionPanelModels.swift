@@ -13,7 +13,6 @@ enum ExpressionPanelTab: Hashable {
 
 enum ExpressionPanelPresentation: Equatable {
     case hidden
-    /// The keyboard's last height.
     case compact
     case expanded
 }
@@ -78,7 +77,6 @@ struct StickerPanelSection: Identifiable, Equatable {
     
     let id: ID
     let title: String
-    /// The bottom bar's picture for My stickers and chat packs.
     let iconURL: String?
     let items: [StickerPanelItem]
 }

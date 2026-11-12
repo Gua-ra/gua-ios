@@ -6,7 +6,6 @@
 
 import Foundation
 
-/// The uploaded sticker of each keyboard glyph, so the same glyph uploads once per device.
 final class StickerGlyphCache {
     private let file: SessionFile
     private var images: [String: StickerImage]

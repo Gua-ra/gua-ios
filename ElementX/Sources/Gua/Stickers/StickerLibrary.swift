@@ -78,7 +78,6 @@ nonisolated struct StickerLibrary: Hashable, Sendable {
         unfavourite(url: images.remove(at: index).image.url)
     }
     
-    /// `s` and the time in base 36, then `-2`, `-3` on collision.
     static func shortcode(now: Int64, existing: Set<String>) -> String {
         let base = "s" + String(max(now, 0), radix: 36)
         guard existing.contains(base) else { return base }

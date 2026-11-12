@@ -6,7 +6,6 @@
 
 import Foundation
 
-/// The build-time GIF settings, where an empty value means none.
 nonisolated struct GifProviderConfiguration: Hashable, Sendable {
     let apiKey: String?
     let proxy: GifProxyEndpoint?
@@ -22,7 +21,6 @@ nonisolated struct GifProviderConfiguration: Hashable, Sendable {
     }
 }
 
-/// A plain HTTP CONNECT proxy, written `host[:port]`.
 nonisolated struct GifProxyEndpoint: Hashable, Sendable {
     static let defaultPort = 443
     

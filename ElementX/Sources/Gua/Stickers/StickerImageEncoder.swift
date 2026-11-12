@@ -30,7 +30,6 @@ nonisolated enum StickerImageEncoder {
         return file
     }
     
-    /// The bounds of the pixels that aren't fully transparent, nil when there are none.
     static func trimmedRect(of image: CGImage) -> CGRect? {
         let width = image.width
         let height = image.height
@@ -61,7 +60,6 @@ nonisolated enum StickerImageEncoder {
         return CGRect(x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1)
     }
     
-    /// The canvas, whose longest side is `side`, and where the content sits inside it.
     static func layout(contentWidth: Int, contentHeight: Int, side: Int) -> (canvas: CGSize, content: CGRect) {
         let padding = Double(padding * side) / Double(maxSide)
         let scale = (Double(side) - 2 * padding) / Double(max(contentWidth, contentHeight, 1))

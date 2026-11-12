@@ -6,9 +6,7 @@
 
 import SwiftUI
 
-/// Finds the Apple stickers and Genmoji the keyboard put into the composer's text.
 nonisolated enum StickerGlyphText {
-    /// What a pasted Apple sticker is put on the pasteboard as.
     static let pasteboardTypes = ["com.apple.png-sticker", "com.apple.sticker"]
     
     enum Segment: Equatable {
@@ -18,9 +16,7 @@ nonisolated enum StickerGlyphText {
     
     enum Classification: Equatable {
         case none
-        /// One glyph and nothing else but whitespace, sent at once.
         case single(StickerGlyph)
-        /// Glyphs among text, sent as stickers after the text.
         case mixed(text: String, glyphs: [StickerGlyph])
     }
     

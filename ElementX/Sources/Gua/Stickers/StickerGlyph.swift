@@ -32,7 +32,6 @@ nonisolated struct StickerGlyph: Sendable {
         Self.largestImage(in: imageContent).flatMap(StickerImageEncoder.stickerFile(from:))
     }
     
-    /// The glyph's image content holds the same picture at several sizes.
     static func largestImage(in data: Data) -> CGImage? {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
         let index = (0..<CGImageSourceGetCount(source)).max { pixelCount(source, $0) < pixelCount(source, $1) }

@@ -7,7 +7,6 @@
 import Combine
 import Foundation
 
-/// This device's recently sent items, never synced.
 final class RecentsStore<Item: Codable & Equatable & Sendable> {
     static var defaultLimit: Int {
         30
