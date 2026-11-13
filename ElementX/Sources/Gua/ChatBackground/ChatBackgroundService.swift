@@ -11,16 +11,21 @@ import MatrixRustSDK
 
 // sourcery: AutoMockable
 protocol ChatBackgroundServiceProtocol: AnyObject {
-    @MainActor func backgroundPublisher(roomID: String) -> CurrentValuePublisher<ChatBackground, Never>
+    @MainActor func themePublisher(roomID: String) -> CurrentValuePublisher<ChatTheme, Never>
 
     /// Reads the server's state, which replaces the current value unless something newer arrived meanwhile.
     @MainActor func refresh(roomID: String) async
 
-    /// Applies only if newer than the current background, so old events reached by scrolling back are ignored.
+    /// Applies only if newer than the current theme, so old events reached by scrolling back are ignored.
     @MainActor func handleTimelineEvent(roomID: String, eventID: String, timestamp: UInt64, contentJSON: String)
 
     /// A photo must be uploaded first.
-    @MainActor func set(_ background: ChatBackground, roomProxy: JoinedRoomProxyProtocol) async -> Result<Void, RoomProxyError>
+    @MainActor func set(_ theme: ChatTheme, roomProxy: JoinedRoomProxyProtocol) async -> Result<Void, RoomProxyError>
+
+    @MainActor var defaultThemePublisher: CurrentValuePublisher<ChatTheme, Never> { get }
+
+    /// Shows the new theme straight away, and puts the previous one back if the write fails. A photo must be uploaded first.
+    @MainActor func setDefaultTheme(_ theme: ChatTheme) async -> Result<Void, ClientProxyError>
 }
 
 extension StateEventType {
@@ -45,18 +50,28 @@ final class ChatBackgroundService: ChatBackgroundServiceProtocol {
 
     private let roomStateClient: RoomStateClientProtocol
     private let cache: ChatBackgroundCacheProtocol
+    private let defaultThemeSetting: DefaultChatThemeSetting
 
     private lazy var cachedValues = cache.load()
     private var slots: [String: Slot] = [:]
-    private var subjects: [String: CurrentValueSubject<ChatBackground, Never>] = [:]
+    private var subjects: [String: CurrentValueSubject<ChatTheme, Never>] = [:]
 
-    init(roomStateClient: RoomStateClientProtocol, cache: ChatBackgroundCacheProtocol) {
+    init(roomStateClient: RoomStateClientProtocol, cache: ChatBackgroundCacheProtocol, defaultThemeSetting: DefaultChatThemeSetting) {
         self.roomStateClient = roomStateClient
         self.cache = cache
+        self.defaultThemeSetting = defaultThemeSetting
     }
 
-    func backgroundPublisher(roomID: String) -> CurrentValuePublisher<ChatBackground, Never> {
+    func themePublisher(roomID: String) -> CurrentValuePublisher<ChatTheme, Never> {
         subject(roomID: roomID).asCurrentValuePublisher()
+    }
+
+    var defaultThemePublisher: CurrentValuePublisher<ChatTheme, Never> {
+        defaultThemeSetting.themePublisher
+    }
+
+    func setDefaultTheme(_ theme: ChatTheme) async -> Result<Void, ClientProxyError> {
+        await defaultThemeSetting.set(theme)
     }
 
     func refresh(roomID: String) async {
@@ -104,8 +119,8 @@ final class ChatBackgroundService: ChatBackgroundServiceProtocol {
         }
     }
 
-    func set(_ background: ChatBackground, roomProxy: JoinedRoomProxyProtocol) async -> Result<Void, RoomProxyError> {
-        let content = background.contentJSON
+    func set(_ theme: ChatTheme, roomProxy: JoinedRoomProxyProtocol) async -> Result<Void, RoomProxyError> {
+        let content = theme.contentJSON
 
         switch await roomProxy.sendStateEvent(type: ChatBackground.eventType, stateKey: "", content: content) {
         case .success(let eventID):
@@ -118,7 +133,7 @@ final class ChatBackgroundService: ChatBackgroundServiceProtocol {
             }
             return .success(())
         case .failure(let error):
-            MXLog.error("Failed sending the chat background of \(roomProxy.id): \(error)")
+            MXLog.error("Failed sending the chat theme of \(roomProxy.id): \(error)")
             return .failure(error)
         }
     }
@@ -127,11 +142,11 @@ final class ChatBackgroundService: ChatBackgroundServiceProtocol {
         slots[roomID] ?? Slot(stored: cachedValues[roomID])
     }
 
-    private func subject(roomID: String) -> CurrentValueSubject<ChatBackground, Never> {
+    private func subject(roomID: String) -> CurrentValueSubject<ChatTheme, Never> {
         if let subject = subjects[roomID] {
             return subject
         }
-        let subject = CurrentValueSubject<ChatBackground, Never>(ChatBackground(contentJSON: slot(roomID: roomID).stored?.contentJSON))
+        let subject = CurrentValueSubject<ChatTheme, Never>(ChatTheme(contentJSON: slot(roomID: roomID).stored?.contentJSON))
         subjects[roomID] = subject
         return subject
     }
@@ -145,10 +160,10 @@ final class ChatBackgroundService: ChatBackgroundServiceProtocol {
             cache.save(stored, roomID: roomID)
         }
 
-        let background = ChatBackground(contentJSON: updated.stored?.contentJSON)
+        let theme = ChatTheme(contentJSON: updated.stored?.contentJSON)
         let subject = subject(roomID: roomID)
-        if subject.value != background {
-            subject.send(background)
+        if subject.value != theme {
+            subject.send(theme)
         }
     }
 }

@@ -33,6 +33,7 @@ enum SettingsScreenCoordinatorAction {
     case logout
     case deactivateAccount
     
+    case chatTheme
     case mediaUploadQuality
     case appLock
     case analytics
@@ -92,6 +93,8 @@ final class SettingsScreenCoordinator: CoordinatorProtocol {
                 case .deactivateAccount:
                     actionsSubject.send(.deactivateAccount)
                     
+                case .chatTheme:
+                    actionsSubject.send(.chatTheme)
                 case .mediaUploadQuality:
                     actionsSubject.send(.mediaUploadQuality)
                 case .appLock:

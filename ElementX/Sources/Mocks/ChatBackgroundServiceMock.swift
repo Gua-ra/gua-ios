@@ -9,17 +9,25 @@ import Combine
 import Foundation
 
 struct ChatBackgroundServiceMockConfiguration {
-    var background: ChatBackground = .none
+    var theme = ChatTheme.stock
+    var defaultTheme = ChatTheme.stock
 }
 
 extension ChatBackgroundServiceMock {
     convenience init(_ configuration: ChatBackgroundServiceMockConfiguration) {
         self.init()
 
-        let subject = CurrentValueSubject<ChatBackground, Never>(configuration.background)
-        backgroundPublisherRoomIDReturnValue = subject.asCurrentValuePublisher()
-        setRoomProxyClosure = { background, _ in
-            subject.send(background)
+        let subject = CurrentValueSubject<ChatTheme, Never>(configuration.theme)
+        themePublisherRoomIDReturnValue = subject.asCurrentValuePublisher()
+        setRoomProxyClosure = { theme, _ in
+            subject.send(theme)
+            return .success(())
+        }
+
+        let defaultSubject = CurrentValueSubject<ChatTheme, Never>(configuration.defaultTheme)
+        underlyingDefaultThemePublisher = defaultSubject.asCurrentValuePublisher()
+        setDefaultThemeClosure = { theme in
+            defaultSubject.send(theme)
             return .success(())
         }
     }

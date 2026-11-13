@@ -10,7 +10,7 @@ import SwiftUI
 
 /// Cropped as in a chat that fills the screen.
 struct ChatBackgroundPhotoPreview: View {
-    @Bindable var context: ChatBackgroundScreenViewModel.Context
+    @Bindable var context: ChatThemeScreenViewModel.Context
 
     @Environment(\.colorScheme) private var colorScheme
     /// Still drawn while the cover slides away, after the draft is cleared.
@@ -20,7 +20,7 @@ struct ChatBackgroundPhotoPreview: View {
         NavigationStack {
             if let draft = context.viewState.bindings.photoDraft ?? lastDraft {
                 ZStack(alignment: .bottom) {
-                    ChatBackgroundPhotoFrame(draft: draft, onMove: move)
+                    ChatBackgroundPhotoFrame(draft: draft, bubble: context.viewState.baseTheme.bubble, onMove: move)
                         .environment(\.colorScheme, previewColorScheme(for: draft))
                         .ignoresSafeArea(edges: [.horizontal, .bottom])
 
@@ -38,7 +38,7 @@ struct ChatBackgroundPhotoPreview: View {
                         controls(for: draft)
                     }
                 }
-                .navigationTitle(UntranslatedL10n.guaChatBackgroundScreenTitle)
+                .navigationTitle(UntranslatedL10n.guaChatThemeWallpaper)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
@@ -67,43 +67,37 @@ struct ChatBackgroundPhotoPreview: View {
     }
 
     private func controls(for draft: ChatBackgroundPhotoDraft) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Picker(UntranslatedL10n.guaChatBackgroundPreviewA11y,
-                   selection: Binding { previewColorScheme(for: draft) } set: { context.send(viewAction: .setPreviewColorScheme($0)) }) {
-                Text(UntranslatedL10n.guaChatBackgroundPreviewLight).tag(ColorScheme.light)
-                Text(UntranslatedL10n.guaChatBackgroundPreviewDark).tag(ColorScheme.dark)
-            }
-            .pickerStyle(.segmented)
+        ChatThemePreviewControls(previewColorScheme: previewColorScheme(for: draft),
+                                 saveTitle: UntranslatedL10n.guaChatThemeActionSet,
+                                 canSave: context.viewState.canChange,
+                                 onPreviewColorScheme: { context.send(viewAction: .setPreviewColorScheme($0)) },
+                                 onSave: { context.send(viewAction: .setPhoto) },
+                                 extra: { photoControls(for: draft) })
+    }
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(UntranslatedL10n.guaChatBackgroundDim)
-                    .font(.compound.bodyMDSemibold)
-                    .foregroundColor(.compound.textPrimary)
+    @ViewBuilder
+    private func photoControls(for draft: ChatBackgroundPhotoDraft) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(UntranslatedL10n.guaChatBackgroundDim)
+                .font(.compound.bodyMDSemibold)
+                .foregroundColor(.compound.textPrimary)
 
-                Slider(value: Binding { draft.dim } set: { context.send(viewAction: .setPhotoDim($0)) },
-                       in: 0...ChatBackground.Photo.maxDim,
-                       step: 0.05)
-                    .accessibilityLabel(UntranslatedL10n.guaChatBackgroundDim)
-                    .accessibilityValue(draft.dim.formatted(.percent.precision(.fractionLength(0))))
-            }
-
-            Text(UntranslatedL10n.guaChatBackgroundPhotoNote)
-                .font(.compound.bodySM)
-                .foregroundColor(.compound.textSecondary)
-
-            Button(UntranslatedL10n.guaChatBackgroundActionSet) {
-                context.send(viewAction: .apply)
-            }
-            .buttonStyle(.compound(.primary))
-            .disabled(!context.viewState.canChange)
+            Slider(value: Binding { draft.dim } set: { context.send(viewAction: .setPhotoDim($0)) },
+                   in: 0...ChatBackground.Photo.maxDim,
+                   step: 0.05)
+                .accessibilityLabel(UntranslatedL10n.guaChatBackgroundDim)
+                .accessibilityValue(draft.dim.formatted(.percent.precision(.fractionLength(0))))
         }
-        .padding(16)
-        .background(Color.compound.bgCanvasDefault.ignoresSafeArea())
+
+        Text(UntranslatedL10n.guaChatBackgroundPhotoNote)
+            .font(.compound.bodySM)
+            .foregroundColor(.compound.textSecondary)
     }
 }
 
 struct ChatBackgroundPhotoFrame: View {
     let draft: ChatBackgroundPhotoDraft
+    let bubble: ChatBubbleColor
     let onMove: (_ alignX: Double, _ alignY: Double) -> Void
 
     @State private var dragStart: (alignX: Double, alignY: Double)?
@@ -119,7 +113,7 @@ struct ChatBackgroundPhotoFrame: View {
                 ChatBackgroundPhotoLayout(image: draft.image, alignX: draft.alignX, alignY: draft.alignY)
                 ChatBackgroundScrim(photoDim: draft.dim)
 
-                ChatBackgroundSampleMessages(isOnBackground: true)
+                ChatThemeSampleMessages(isOnBackground: true, bubble: bubble)
                     .allowsHitTesting(false)
             }
             .environment(\.layoutDirection, .leftToRight)
@@ -163,8 +157,8 @@ struct ChatBackgroundPhotoPreview_Previews: PreviewProvider, TestablePreview {
             .previewDisplayName("Dark")
     }
 
-    static func makeViewModel(previewColorScheme: ColorScheme) -> ChatBackgroundScreenViewModel {
-        let viewModel = ChatBackgroundScreen_Previews.makeViewModel(current: .none)
+    static func makeViewModel(previewColorScheme: ColorScheme) -> ChatThemeScreenViewModel {
+        let viewModel = ChatThemeScreen_Previews.makeViewModel(theme: .init(wallpaper: .none, bubble: .purple))
         if let url = Bundle.main.url(forResource: "preview_image", withExtension: "jpg"),
            let data = try? Data(contentsOf: url),
            let image = UIImage(data: data) {

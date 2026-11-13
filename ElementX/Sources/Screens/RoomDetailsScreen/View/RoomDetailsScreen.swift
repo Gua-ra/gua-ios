@@ -175,9 +175,9 @@ struct RoomDetailsScreen: View {
                     context.send(viewAction: .toggleFavourite(isFavourite: newValue))
                 }
             
-            if let chatBackground = context.viewState.chatBackground {
-                ChatBackgroundRow(background: chatBackground, canChange: context.viewState.canChangeChatBackground) {
-                    context.send(viewAction: .processTapChatBackground)
+            if let chatTheme = context.viewState.chatTheme {
+                ChatThemeRow(theme: chatTheme, canChange: context.viewState.canChangeChatTheme) {
+                    context.send(viewAction: .processTapChatTheme)
                 }
             }
             
@@ -341,8 +341,8 @@ struct RoomDetailsScreen_Previews: PreviewProvider, TestablePreview {
     static let dmRoomViewModel = makeDMViewModel(verificationState: .notVerified)
     static let dmRoomVerifiedViewModel = makeDMViewModel(verificationState: .verified)
     static let dmRoomVerificationViolationViewModel = makeDMViewModel(verificationState: .verificationViolation)
-    static let photoBackgroundViewModel = makeSimpleRoomViewModel(chatBackground: .photo(.mock))
-    static let noBackgroundPermissionViewModel = makeSimpleRoomViewModel(chatBackground: .preset(.sunset), canChangeBackground: false)
+    static let photoBackgroundViewModel = makeSimpleRoomViewModel(chatTheme: .init(wallpaper: .photo(.mock)))
+    static let noBackgroundPermissionViewModel = makeSimpleRoomViewModel(chatTheme: .init(wallpaper: .preset(.sunset), bubble: .pink), canChangeTheme: false)
     
     static var previews: some View {
         RoomDetailsScreen(context: genericRoomViewModel.context)
@@ -416,12 +416,12 @@ struct RoomDetailsScreen_Previews: PreviewProvider, TestablePreview {
                      appSettings: ServiceLocator.shared.settings)
     }
     
-    private static func makeSimpleRoomViewModel(chatBackground: ChatBackground = .none, canChangeBackground: Bool = true) -> RoomDetailsScreenViewModel {
+    private static func makeSimpleRoomViewModel(chatTheme: ChatTheme = .stock, canChangeTheme: Bool = true) -> RoomDetailsScreenViewModel {
         ServiceLocator.shared.settings.knockingEnabled = true
         let knockRequests: [KnockRequestProxyMock] = [.init()]
         
         let members: [RoomMemberProxyMock] = [
-            canChangeBackground ? .mockMeAdmin : .mockMe,
+            canChangeTheme ? .mockMeAdmin : .mockMe,
             .mockAlice,
             .mockBob,
             .mockCharlie
@@ -437,7 +437,7 @@ struct RoomDetailsScreen_Previews: PreviewProvider, TestablePreview {
         let notificationSettingsProxy = NotificationSettingsProxyMock(with: .init())
         
         return .init(roomProxy: roomProxy,
-                     userSession: UserSessionMock(.init(chatBackgroundService: ChatBackgroundServiceMock(.init(background: chatBackground)))),
+                     userSession: UserSessionMock(.init(chatBackgroundService: ChatBackgroundServiceMock(.init(theme: chatTheme)))),
                      analyticsService: ServiceLocator.shared.analytics,
                      userIndicatorController: ServiceLocator.shared.userIndicatorController,
                      notificationSettingsProxy: notificationSettingsProxy,

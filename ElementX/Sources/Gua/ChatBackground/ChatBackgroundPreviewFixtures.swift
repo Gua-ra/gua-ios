@@ -22,7 +22,7 @@ extension RoomTimelineItemFixtures {
             TimelineStartRoomTimelineItem(name: "Weekend plans"),
             SeparatorRoomTimelineItem(id: .virtual(uniqueID: .init("ChatBackgroundShowcase.today")), timestamp: .mock),
             StateRoomTimelineItem(id: eventID(0),
-                                  body: UntranslatedL10n.guaChatBackgroundNoticeChanged("Helena"),
+                                  body: UntranslatedL10n.guaChatThemeNoticeChanged("Helena"),
                                   timestamp: .mock,
                                   isOutgoing: false,
                                   isEditable: false,

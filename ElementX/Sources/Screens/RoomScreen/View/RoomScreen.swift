@@ -25,7 +25,7 @@ struct RoomScreen: View {
 
     var body: some View {
         TimelineView(timelineContext: timelineContext)
-            .environment(\.chatBackgroundActive, !timelineContext.viewState.visibleChatBackground.isNone)
+            .chatTheme(timelineContext.viewState.effectiveChatTheme)
             .overlay(alignment: .bottomTrailing) {
                 TimelineScrollToBottomButton(isVisible: isAtBottomAndLive) {
                     timelineContext.send(viewAction: .scrollToBottom)
@@ -36,7 +36,7 @@ struct RoomScreen: View {
                 // GUA FORK: below the top bar to the edges of the screen, whatever the keyboard does.
                 ZStack {
                     Color.compound.bgCanvasDefault.ignoresSafeArea()
-                    ChatBackgroundView(background: timelineContext.viewState.visibleChatBackground,
+                    ChatBackgroundView(background: timelineContext.viewState.effectiveChatTheme.wallpaper,
                                        mediaProvider: timelineContext.mediaProvider)
                         .ignoresSafeArea(edges: [.horizontal, .bottom])
                 }
@@ -239,11 +239,15 @@ struct RoomScreen_Previews: PreviewProvider, TestablePreview {
     static let auroraViewModels = makeViewModels(roomName: "Weekend plans",
                                                  hasOngoingCall: false,
                                                  timelineItems: RoomTimelineItemFixtures.chatBackgroundShowcase,
-                                                 chatBackground: .preset(.aurora))
+                                                 chatTheme: .init(wallpaper: .preset(.aurora)))
     static let photoViewModels = makeViewModels(roomName: "Weekend plans",
                                                 hasOngoingCall: false,
                                                 timelineItems: RoomTimelineItemFixtures.chatBackgroundShowcase,
-                                                chatBackground: .photo(.mock))
+                                                chatTheme: .init(wallpaper: .photo(.mock)))
+    static let colouredBubbleViewModels = makeViewModels(roomName: "Weekend plans",
+                                                         hasOngoingCall: false,
+                                                         timelineItems: RoomTimelineItemFixtures.chatBackgroundShowcase,
+                                                         chatTheme: .init(wallpaper: .preset(.sunset), bubble: .pink))
 
     static var previews: some View {
         NavigationStack {
@@ -318,6 +322,22 @@ struct RoomScreen_Previews: PreviewProvider, TestablePreview {
         .environment(\.colorScheme, .dark)
         .preferredColorScheme(.dark)
         .previewDisplayName("Background photo dark")
+        
+        NavigationStack {
+            RoomScreen(context: colouredBubbleViewModels.room.context,
+                       timelineContext: colouredBubbleViewModels.timeline.context,
+                       composerToolbar: ComposerToolbar.mock())
+        }
+        .previewDisplayName("Coloured bubble")
+        
+        NavigationStack {
+            RoomScreen(context: colouredBubbleViewModels.room.context,
+                       timelineContext: colouredBubbleViewModels.timeline.context,
+                       composerToolbar: ComposerToolbar.mock())
+        }
+        .environment(\.colorScheme, .dark)
+        .preferredColorScheme(.dark)
+        .previewDisplayName("Coloured bubble dark")
     }
 
     static func makeViewModels(canSendMessage: Bool = true,
@@ -325,7 +345,7 @@ struct RoomScreen_Previews: PreviewProvider, TestablePreview {
                                roomName: String = "Preview room",
                                hasOngoingCall: Bool = true,
                                timelineItems: [RoomTimelineItemProtocol] = RoomTimelineItemFixtures.default,
-                               chatBackground: ChatBackground = .none) -> ViewModels {
+                               chatTheme: ChatTheme = .stock) -> ViewModels {
         let roomProxyMock = JoinedRoomProxyMock(.init(id: "stable_id",
                                                       name: roomName,
                                                       hasOngoingCall: hasOngoingCall,
@@ -334,7 +354,7 @@ struct RoomScreen_Previews: PreviewProvider, TestablePreview {
         let roomViewModel = RoomScreenViewModel.mock(roomProxyMock: roomProxyMock)
         let timelineViewModel = TimelineViewModel(roomProxy: roomProxyMock,
                                                   timelineController: MockTimelineController(timelineItems: timelineItems),
-                                                  userSession: UserSessionMock(.init(chatBackgroundService: ChatBackgroundServiceMock(.init(background: chatBackground)))),
+                                                  userSession: UserSessionMock(.init(chatBackgroundService: ChatBackgroundServiceMock(.init(theme: chatTheme)))),
                                                   mediaPlayerProvider: MediaPlayerProviderMock(),
                                                   userIndicatorController: ServiceLocator.shared.userIndicatorController,
                                                   appMediator: AppMediatorMock.default,

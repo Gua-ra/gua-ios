@@ -123,7 +123,7 @@ struct LegibilityCapsule_Previews: PreviewProvider, TestablePreview {
                 .foregroundColor(.compound.textPrimary)
                 .legibilityCapsule()
 
-            Text(UntranslatedL10n.guaChatBackgroundNoticeChanged("Helena Martins, who has a long name that wraps"))
+            Text(UntranslatedL10n.guaChatThemeNoticeChanged("Helena Martins, who has a long name that wraps"))
                 .font(.compound.bodySM)
                 .multilineTextAlignment(.center)
                 .legibleSecondaryForeground()

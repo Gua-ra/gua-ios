@@ -161,6 +161,14 @@ struct SettingsScreen: View {
                     kind: .picker(selection: $context.appAppearance,
                                   items: AppAppearance.allCases.map { (title: $0.name, tag: $0) }))
             
+            if context.viewState.showChatTheme {
+                ListRow(label: .default(title: UntranslatedL10n.guaChatThemeTitle,
+                                        icon: CompoundIcon(customImage: Asset.Images.theme.swiftUIImage)),
+                        kind: .navigationLink {
+                            context.send(viewAction: .chatTheme)
+                        })
+            }
+            
             ListRow(label: .default(title: UntranslatedL10n.commonMediaUploadQuality,
                                     icon: \.image),
                     kind: .navigationLink {

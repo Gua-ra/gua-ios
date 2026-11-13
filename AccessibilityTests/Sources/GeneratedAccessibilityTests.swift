@@ -75,12 +75,24 @@ extension AccessibilityTests {
         try await performAccessibilityAudit(named: "ChatBackgroundPhotoPreview_Previews")
     }
 
-    func testChatBackgroundScreen() async throws {
-        try await performAccessibilityAudit(named: "ChatBackgroundScreen_Previews")
-    }
-
     func testChatBackgroundView() async throws {
         try await performAccessibilityAudit(named: "ChatBackgroundView_Previews")
+    }
+
+    func testChatBubblePicker() async throws {
+        try await performAccessibilityAudit(named: "ChatBubblePicker_Previews")
+    }
+
+    func testChatThemePreview() async throws {
+        try await performAccessibilityAudit(named: "ChatThemePreview_Previews")
+    }
+
+    func testChatThemeScreen() async throws {
+        try await performAccessibilityAudit(named: "ChatThemeScreen_Previews")
+    }
+
+    func testChatWallpaperPicker() async throws {
+        try await performAccessibilityAudit(named: "ChatWallpaperPicker_Previews")
     }
 
     func testCollapsibleRoomTimelineView() async throws {

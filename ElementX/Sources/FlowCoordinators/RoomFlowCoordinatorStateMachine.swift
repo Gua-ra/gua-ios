@@ -72,7 +72,7 @@ extension RoomFlowCoordinator {
         case knockRequestsList(previousState: State)
         case mediaEventsTimeline(previousState: State)
         case securityAndPrivacy(previousState: State)
-        case chatBackground(previousState: State)
+        case chatTheme(previousState: State)
         case reportRoom(previousState: State)
         case declineAndBlockScreen
 
@@ -168,8 +168,8 @@ extension RoomFlowCoordinator {
         case presentSecurityAndPrivacyScreen
         case dismissSecurityAndPrivacyScreen
         
-        case presentChatBackgroundScreen
-        case dismissChatBackgroundScreen
+        case presentChatThemeScreen
+        case dismissChatThemeScreen
         
         case presentReportRoomScreen
         case dismissReportRoomScreen
@@ -316,9 +316,9 @@ extension RoomFlowCoordinator {
             case (.securityAndPrivacy(let previousState), .dismissSecurityAndPrivacyScreen):
                 return previousState
                 
-            case (.roomDetails, .presentChatBackgroundScreen):
-                return .chatBackground(previousState: fromState)
-            case (.chatBackground(let previousState), .dismissChatBackgroundScreen):
+            case (.roomDetails, .presentChatThemeScreen):
+                return .chatTheme(previousState: fromState)
+            case (.chatTheme(let previousState), .dismissChatThemeScreen):
                 return previousState
                 
             case (.roomDetails, .presentReportRoomScreen):

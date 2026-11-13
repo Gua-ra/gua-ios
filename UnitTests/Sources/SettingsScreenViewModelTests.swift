@@ -64,6 +64,17 @@ class SettingsScreenViewModelTests: XCTestCase {
         try await deferred.fulfill()
     }
     
+    func testChatThemeFollowsTheChatBackgroundsFlag() async throws {
+        appSettings.guaChatBackgroundsEnabled = false
+        XCTAssertFalse(context.viewState.showChatTheme)
+        appSettings.guaChatBackgroundsEnabled = true
+        XCTAssertTrue(context.viewState.showChatTheme)
+        
+        let deferred = deferFulfillment(viewModel.actions) { $0 == .chatTheme }
+        context.send(viewAction: .chatTheme)
+        try await deferred.fulfill()
+    }
+    
     func testManageAccountAndDevicesOpensTheAccountProfile() async throws {
         let profileURL = try XCTUnwrap(URL(string: "https://account.example.com/profile"))
         clientProxy.accountURLActionClosure = { action in

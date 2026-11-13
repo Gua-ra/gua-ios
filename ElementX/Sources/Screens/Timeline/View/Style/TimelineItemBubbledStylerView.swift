@@ -14,6 +14,7 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
     @Environment(\.focussedEventID) private var focussedEventID
     @Environment(\.isMessageMenuPreview) private var isMessageMenuPreview
     @Environment(\.chatBackgroundActive) private var isChatBackgroundActive
+    @Environment(\.chatBubbleColor) private var chatBubbleColor
     
     @State private var bubbleFrameReader = WindowFrameReader()
     
@@ -217,13 +218,15 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
             .timelineItemSendInfo(timelineItem: timelineItem, adjustedDeliveryStatus: adjustedDeliveryStatus, context: context)
             .bubbleBackground(isOutgoing: timelineItem.isOutgoing,
                               insets: timelineItem.bubbleInsets,
-                              color: timelineItem.bubbleBackgroundColor)
+                              color: timelineItem.bubbleBackgroundColor(outgoing: chatBubbleColor.outgoingColor))
     }
     
     var contentWithReply: some View {
         TimelineBubbleLayout(spacing: 8) {
             if !context.viewState.timelineKind.isThread, timelineItem.properties.isThreaded {
                 ThreadDecorator()
+                    // A sticker has no bubble, so over a chat background the label needs its own.
+                    .legibilityCapsule(isEnabled: timelineItem is StickerRoomTimelineItem)
                     .padding(.leading, 4)
                     .layoutPriority(TimelineBubbleLayout.Priority.regularText)
             }
@@ -272,8 +275,9 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
 }
 
 private extension EventBasedTimelineItemProtocol {
-    var bubbleBackgroundColor: Color? {
-        let defaultColor: Color = isOutgoing ? .compound._bgBubbleOutgoing : .compound._bgBubbleIncoming
+    /// GUA FORK: the chat theme colours the outgoing bubble.
+    func bubbleBackgroundColor(outgoing outgoingColor: Color) -> Color? {
+        let defaultColor: Color = isOutgoing ? outgoingColor : .compound._bgBubbleIncoming
         
         switch self {
         case is ImageRoomTimelineItem, is VideoRoomTimelineItem:

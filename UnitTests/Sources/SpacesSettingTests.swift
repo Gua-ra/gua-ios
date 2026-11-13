@@ -93,7 +93,7 @@ class SpacesSettingTests: XCTestCase {
     }
     
     func testOneTimeWriteTurnsSpacesOnOnlyOnceStored() async {
-        let gate = WriteGate()
+        let gate = AccountDataWriteGate()
         clientProxy.setAccountDataTypeContentClosure = { _, _ in await gate.write() }
         clientProxy.accountDataTypeReturnValue = .success(nil)
         joinASpace()
@@ -108,7 +108,7 @@ class SpacesSettingTests: XCTestCase {
     }
     
     func testAccountWithoutSpacesStoresOffAsItsDefault() async {
-        let gate = WriteGate()
+        let gate = AccountDataWriteGate()
         clientProxy.setAccountDataTypeContentClosure = { _, _ in await gate.write() }
         clientProxy.accountDataTypeReturnValue = .success(nil)
         appSettings.spacesEnabled = true
@@ -224,7 +224,7 @@ class SpacesSettingTests: XCTestCase {
     }
 
     func testPendingWriteIsNotUndoneByAStaleRead() async {
-        let gate = WriteGate()
+        let gate = AccountDataWriteGate()
         clientProxy.setAccountDataTypeContentClosure = { _, _ in await gate.write() }
         clientProxy.accountDataTypeReturnValue = .success(#"{"enabled":false}"#)
 
@@ -250,7 +250,7 @@ class SpacesSettingTests: XCTestCase {
     }
 
     func testFailedWriteDoesNotUndoANewerRequest() async {
-        let gate = WriteGate()
+        let gate = AccountDataWriteGate()
         clientProxy.setAccountDataTypeContentClosure = { _, _ in await gate.write() }
 
         let firstWrite = Task { await spacesSetting.setEnabled(true) }
@@ -271,7 +271,7 @@ class SpacesSettingTests: XCTestCase {
     }
 
     func testOverlappingFailedWritesEndOnTheLastChoice() async {
-        let gate = WriteGate()
+        let gate = AccountDataWriteGate()
         clientProxy.setAccountDataTypeContentClosure = { _, _ in await gate.write() }
 
         let turnOn = Task { await spacesSetting.setEnabled(true) }
@@ -304,7 +304,7 @@ class SpacesSettingTests: XCTestCase {
     }
     
     func testInvalidatedSettingIgnoresLateResults() async {
-        let gate = WriteGate()
+        let gate = AccountDataWriteGate()
         clientProxy.setAccountDataTypeContentClosure = { _, _ in await gate.write() }
         
         appSettings.spacesEnabled = true
@@ -375,30 +375,5 @@ private final class SpacesReadGate {
             return
         }
         waiting.removeFirst().resume(returning: spaces)
-    }
-}
-
-@MainActor
-private final class WriteGate {
-    private var waiting: [CheckedContinuation<Result<Void, ClientProxyError>, Never>] = []
-
-    func write() async -> Result<Void, ClientProxyError> {
-        await withCheckedContinuation { waiting.append($0) }
-    }
-
-    func waitForWriters(_ count: Int, file: StaticString = #filePath, line: UInt = #line) async {
-        for _ in 0..<1000 {
-            if waiting.count >= count { return }
-            await Task.yield()
-        }
-        XCTFail("Expected \(count) pending writes, found \(waiting.count)", file: file, line: line)
-    }
-
-    func release(_ result: Result<Void, ClientProxyError> = .success(()), file: StaticString = #filePath, line: UInt = #line) {
-        guard !waiting.isEmpty else {
-            XCTFail("No write is waiting to be released.", file: file, line: line)
-            return
-        }
-        waiting.removeFirst().resume(returning: result)
     }
 }
