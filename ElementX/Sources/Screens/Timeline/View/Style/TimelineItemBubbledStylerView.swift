@@ -311,6 +311,8 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
         TimelineBubbleLayout(spacing: 8) {
             if !context.viewState.timelineKind.isThread, timelineItem.properties.isThreaded {
                 ThreadDecorator()
+                    // A sticker has no bubble, so over a chat background the label needs its own.
+                    .legibilityCapsule(isEnabled: timelineItem is StickerRoomTimelineItem)
                     .padding(.leading, 4)
                     .timelineBubbleLayoutSize(.natural)
             }
