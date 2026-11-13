@@ -25,6 +25,7 @@ class UserSession: UserSessionProtocol {
     let contentScannerService: ContentScannerServiceProtocol?
     let notificationService: NotificationServiceProtocol
     let chatBackgroundService: ChatBackgroundServiceProtocol
+    let stickersAndGifs: StickersAndGifs
     
     let callbacks = PassthroughSubject<UserSessionCallback, Never>()
     
@@ -40,7 +41,8 @@ class UserSession: UserSessionProtocol {
          voiceMessageMediaManager: VoiceMessageMediaManagerProtocol,
          liveLocationService: LiveLocationServiceProtocol,
          notificationService: NotificationServiceProtocol,
-         chatBackgroundService: ChatBackgroundServiceProtocol) {
+         chatBackgroundService: ChatBackgroundServiceProtocol,
+         stickersAndGifs: StickersAndGifs) {
         self.clientProxy = clientProxy
         self.userSettings = userSettings
         self.userHooks = userHooks
@@ -51,6 +53,7 @@ class UserSession: UserSessionProtocol {
         self.notificationService = notificationService
         contentScannerService = clientProxy.contentScanner.map(ContentScannerService.init)
         self.chatBackgroundService = chatBackgroundService
+        self.stickersAndGifs = stickersAndGifs
         
         authErrorCancellable = clientProxy.actionsPublisher
             .receive(on: DispatchQueue.main)

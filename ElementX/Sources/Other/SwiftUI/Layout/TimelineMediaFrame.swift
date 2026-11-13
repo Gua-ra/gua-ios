@@ -17,6 +17,7 @@ enum TimelineMediaFrame {
     static let defaultMediaSize = 100.0
     /// The maximum width of a timeline link preview
     static let maxLinkPreviewWidth = 300.0
+    static let stickerSize = 160.0
 }
 
 extension View {
@@ -36,6 +37,12 @@ extension View {
                 frame(width: TimelineMediaFrame.defaultMediaSize, height: TimelineMediaFrame.defaultMediaSize)
             }
         }
+    }
+    
+    func timelineStickerFrame(imageInfo: ImageInfoProxy) -> some View {
+        let size = imageInfo.size ?? CGSize(width: TimelineMediaFrame.stickerSize, height: TimelineMediaFrame.stickerSize)
+        let scale = min(1, TimelineMediaFrame.stickerSize / max(size.width, size.height, 1))
+        return frame(width: max(1, size.width * scale), height: max(1, size.height * scale))
     }
     
     func mediaGalleryTimelineAspectRatio(imageInfo: ImageInfoProxy?) -> some View {

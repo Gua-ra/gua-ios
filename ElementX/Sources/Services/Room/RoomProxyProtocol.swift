@@ -128,6 +128,9 @@ protocol JoinedRoomProxyProtocol: RoomProxyProtocol {
     
     func withdrawVerificationAndResend(userIDs: [String], sendHandle: SendHandleProxy) async -> Result<Void, RoomProxyError>
     
+    /// Sent at once, without a local echo, and encrypted in an encrypted room. Returns the event ID.
+    func sendRaw(eventType: String, content: String) async -> Result<String, RoomProxyError>
+    
     // MARK: - Privacy settings
     
     func updateJoinRule(_ rule: JoinRule) async -> Result<Void, RoomProxyError>

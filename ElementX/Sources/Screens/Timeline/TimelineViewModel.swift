@@ -162,6 +162,7 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
         case .itemDisappeared(let id):
             Task { await timelineController.processItemDisappearance(id) }
         case .mediaTapped(let id):
+            guard !presentStickerSheet(for: id) else { return }
             Task { await handleMediaTapped(with: id) }
         case .galleryItemTapped(let galleryItemID):
             Task { await handleMediaTapped(with: galleryItemID.timelineItemID, galleryIndex: galleryItemID.mediaIndex) }
@@ -282,6 +283,8 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
             Task {
                 await roomProxy.sendTypingNotification(isTyping: !isEmpty)
             }
+        case .sendStickerGlyphs, .sendPastedSticker:
+            break
         }
     }
     
@@ -1392,4 +1395,22 @@ extension EnvironmentValues {
 
 private enum SlashCommand: String, CaseIterable {
     case join = "/join "
+}
+
+extension TimelineViewModel {
+    /// GUA FORK: stickers open their own sheet instead of the media viewer.
+    private func presentStickerSheet(for itemID: TimelineItemIdentifier) -> Bool {
+        guard userSettings.app.guaStickersAndGifsEnabled,
+              let item = timelineController.timelineItems.firstUsingStableID(itemID) as? StickerRoomTimelineItem else {
+            return false
+        }
+        
+        let stickersAndGifs = userSession.stickersAndGifs
+        state.bindings.stickerSheetViewModel = TimelineStickerSheetViewModel(image: TimelineStickerSheetViewModel.image(for: item),
+                                                                             library: stickersAndGifs.library,
+                                                                             packClient: stickersAndGifs.packClient,
+                                                                             roomProxy: roomProxy,
+                                                                             mediaProvider: userSession.mediaProvider)
+        return true
+    }
 }

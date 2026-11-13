@@ -393,11 +393,13 @@ class TimelineController: TimelineControllerProtocol {
                    thumbnailURL: URL,
                    imageInfo: MatrixRustSDK.ImageInfo,
                    caption: String?,
+                   inReplyToEventID: String?,
                    requestHandle: @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineControllerError> {
         switch await activeTimeline.sendImage(url: url,
                                               thumbnailURL: thumbnailURL,
                                               imageInfo: imageInfo,
                                               caption: caption,
+                                              inReplyToEventID: inReplyToEventID,
                                               requestHandle: requestHandle).mapError(TimelineControllerError.timelineProxyError) {
         case .success:
             callbacks.send(.messageSentOrEdited)
@@ -405,6 +407,19 @@ class TimelineController: TimelineControllerProtocol {
         case .failure(let error):
             return .failure(error)
         }
+    }
+    
+    func sendAnimatedImage(url: URL,
+                           thumbnailURL: URL,
+                           imageInfo: MatrixRustSDK.ImageInfo,
+                           caption: String?,
+                           inReplyToEventID: String?) async -> Result<Void, TimelineControllerError> {
+        await activeTimeline.sendImage(url: url,
+                                       thumbnailURL: thumbnailURL,
+                                       imageInfo: imageInfo,
+                                       caption: caption,
+                                       inReplyToEventID: inReplyToEventID) { _ in }
+            .mapError(TimelineControllerError.timelineProxyError)
     }
     
     func sendVideo(url: URL,

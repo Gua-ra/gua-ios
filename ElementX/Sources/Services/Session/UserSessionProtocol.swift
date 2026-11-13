@@ -31,6 +31,7 @@ protocol UserSessionProtocol: Sendable {
     var contentScannerService: ContentScannerServiceProtocol? { get }
     var notificationService: NotificationServiceProtocol { get }
     var chatBackgroundService: ChatBackgroundServiceProtocol { get }
+    var stickersAndGifs: StickersAndGifs { get }
     
     var sessionSecurityStatePublisher: CurrentValuePublisher<SessionSecurityState, Never> { get }
     

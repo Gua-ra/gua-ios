@@ -209,6 +209,8 @@ struct TimelineViewStateBindings {
     
     var manageMemberViewModel: ManageRoomMemberSheetViewModel?
     
+    var stickerSheetViewModel: TimelineStickerSheetViewModel?
+    
     var redactConfirmationInfo: TimelineRedactConfirmationInfo?
     
     var showTranslation = false

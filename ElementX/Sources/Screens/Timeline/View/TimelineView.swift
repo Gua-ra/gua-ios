@@ -28,6 +28,7 @@ struct TimelineView: View {
                 ManageRoomMemberSheetView(context: $0.context)
             }
             .sheet(item: $timelineContext.debugInfo) { TimelineItemDebugView(info: $0) }
+            .sheet(item: $timelineContext.stickerSheetViewModel) { TimelineStickerSheet(context: $0.context) }
             .sheet(item: $timelineContext.redactConfirmationInfo) { info in
                 RedactConfirmationView { reason in
                     timelineContext.send(viewAction: .redactConfirmed(itemID: info.id, reason: reason))
