@@ -44,8 +44,9 @@ struct TimelineStickerSheet: View {
         .presentationDetents([.medium])
         .presentationDragIndicator(.visible)
         .alert(item: $context.alertInfo)
-        // You opened this sticker deliberately, so the media previews setting does not apply.
+        // You opened this sticker deliberately, so neither the media previews nor the autoplay setting applies.
         .environment(\.shouldAutomaticallyLoadImages, true)
+        .environment(\.playsAnimatedImages, true)
     }
     
     @ViewBuilder

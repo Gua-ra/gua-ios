@@ -18,6 +18,8 @@ struct GifPreviewSheet: View {
                         GifImage(file: file, provider: context.viewState.gifProvider)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                             .accessibilityLabel(preview.item.accessibilityLabel)
+                            // Opening a GIF asks for it to play, so the autoplay setting does not apply.
+                            .environment(\.playsAnimatedImages, true)
                     }
                     favouriteButton(preview.item)
                 }

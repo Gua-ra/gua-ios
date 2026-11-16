@@ -10,6 +10,7 @@ import Foundation
 
 protocol AppCoordinatorProtocol: CoordinatorProtocol {
     var windowManager: SecureWindowManagerProtocol { get }
+    var guaAppSettings: AppSettings? { get } // GUA FORK
     
     @discardableResult func handleDeepLink(_ url: URL, isExternalURL: Bool, windowType: SecondaryWindowType?) -> Bool
     

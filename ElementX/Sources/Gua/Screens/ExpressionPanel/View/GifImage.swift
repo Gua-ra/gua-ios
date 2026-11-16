@@ -10,7 +10,7 @@ import SwiftUI
 
 /// A provider's animated image, fetched through the provider so it takes the proxy and never the app's media pipeline.
 struct GifImage: View {
-    @Environment(\.accessibilityPlayAnimatedImages) private var playAnimatedImages
+    @Environment(\.playsAnimatedImages) private var playAnimatedImages
     @Environment(\.gifPreviewImages) private var previewImages
     
     let file: GifFile

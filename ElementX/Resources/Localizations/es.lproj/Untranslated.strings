@@ -88,7 +88,9 @@
 "action_manage_account_and_devices" = "Gestionar cuenta y dispositivos";
 "action_delete_account" = "Eliminar cuenta";
 "gua_action_delete" = "Eliminar";
-"common_media_upload_quality" = "Calidad de subida de multimedia";
+"gua_common_media_settings" = "Ajustes de multimedia";
+"gua_settings_play_gifs_automatically" = "Reproducir GIF automáticamente";
+"gua_settings_play_gifs_automatically_description" = "También los stickers animados. Los GIF que abras siempre se reproducen.";
 
 "common_moderation_and_safety" = "Moderación y seguridad";
 "screen_moderation_and_safety_invites_heading" = "Invitaciones";

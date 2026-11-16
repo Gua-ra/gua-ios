@@ -402,6 +402,10 @@ final nonisolated class AppSettings: @unchecked Sendable {
     @UserPreference(defaultValue: true)
     var optimizeMediaUploads: Bool
     
+    /// GUA FORK: overrides the system's Auto-Play Animated Images.
+    @UserPreference(defaultValue: true)
+    var guaPlayGifsAutomatically: Bool
+    
     @UserPreference(defaultValue: AudioPlaybackSpeed.default)
     var voiceMessagePlaybackSpeed: AudioPlaybackSpeed
     

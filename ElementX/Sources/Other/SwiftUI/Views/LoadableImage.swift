@@ -105,7 +105,7 @@ struct LoadableImage<TransformerView: View, PlaceholderView: View>: View {
 
 private struct LoadableImageContent<TransformerView: View, PlaceholderView: View>: View, ImageDataProvider {
     @Environment(\.shouldAutomaticallyLoadImages) private var loadAutomatically
-    @Environment(\.accessibilityPlayAnimatedImages) private var playAnimatedImages
+    @Environment(\.playsAnimatedImages) private var playAnimatedImages
     
     private let mediaSource: MediaSourceProxy
     private let mediaType: LoadableImageMediaType

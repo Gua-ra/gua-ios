@@ -12,6 +12,7 @@ import Testing
 
 @MainActor
 final class MediaUploadQualitySettingsScreenViewModelTests {
+    private var store: VolatileUserDefaults!
     private var userSettings: UserSettings!
     private var analyticsClient: AnalyticsClientMock!
     private var viewModel: MediaUploadQualitySettingsScreenViewModelProtocol!
@@ -20,7 +21,8 @@ final class MediaUploadQualitySettingsScreenViewModelTests {
     }
     
     init() {
-        userSettings = .mock()
+        store = VolatileUserDefaults()
+        userSettings = AppSettings(store: store).userSettings(for: "@me:matrix.org")
         analyticsClient = AnalyticsClientMock()
         analyticsClient.isRunning = true
         viewModel = MediaUploadQualitySettingsScreenViewModel(userSettings: userSettings,
@@ -37,5 +39,24 @@ final class MediaUploadQualitySettingsScreenViewModelTests {
         #expect(!userSettings.app.optimizeMediaUploads)
         let event = try #require(analyticsClient.captureReceivedEvent as? AnalyticsEvent.Interaction)
         #expect(event.name == .MobileSettingsOptimizeMediaUploadsDisabled)
+    }
+    
+    @Test
+    func playGifsAutomaticallyIsOnByDefault() {
+        #expect(context.playGifsAutomatically)
+        #expect(userSettings.app.guaPlayGifsAutomatically)
+    }
+    
+    @Test
+    func togglingPlayGifsAutomaticallyPersists() {
+        context.playGifsAutomatically = false
+        
+        #expect(!AppSettings(store: store).guaPlayGifsAutomatically)
+        #expect(!context.playGifsAutomatically)
+        #expect(userSettings.app.optimizeMediaUploads)
+        
+        context.playGifsAutomatically = true
+        
+        #expect(AppSettings(store: store).guaPlayGifsAutomatically)
     }
 }

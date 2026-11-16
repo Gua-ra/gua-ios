@@ -8,7 +8,7 @@ import Compound
 import SwiftUI
 
 struct AnimatedImageBadge: View {
-    @Environment(\.accessibilityPlayAnimatedImages) private var playAnimatedImages
+    @Environment(\.playsAnimatedImages) private var playAnimatedImages
     
     var body: some View {
         if !playAnimatedImages {

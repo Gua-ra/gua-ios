@@ -132,7 +132,9 @@
 "action_manage_account_and_devices" = "Manage account & devices";
 "action_delete_account" = "Delete account";
 "gua_action_delete" = "Delete";
-"common_media_upload_quality" = "Media upload quality";
+"gua_common_media_settings" = "Media settings";
+"gua_settings_play_gifs_automatically" = "Play GIFs automatically";
+"gua_settings_play_gifs_automatically_description" = "Also animated stickers. GIFs you open always play.";
 
 "common_moderation_and_safety" = "Moderation & safety";
 "screen_moderation_and_safety_invites_heading" = "Invites";
