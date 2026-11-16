@@ -171,6 +171,7 @@
 "gua_chat_background_error_generic" = "Couldn’t change the background. Try again.";
 "gua_chat_background_error_too_large" = "This photo is too large. Choose another one.";
 "gua_chat_background_preview_a11y" = "Background preview";
+"gua_chat_background_preview_send_a11y" = "Preview sending";
 "gua_chat_background_sample_incoming" = "How does it look?";
 "gua_chat_background_sample_outgoing" = "Looks great!";
 "gua_chat_background_sample_today" = "Today";

@@ -429,6 +429,8 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
         case .deleteRecording:
             Task { await timelineInteractionHandler.deleteCurrentVoiceMessage() }
         case .send:
+            // GUA FORK: the user's own sends pulse the live wallpaper.
+            ChatWallpaperSendPulse.recordOwnSend(inRoom: roomProxy.id, timelineKind: timelineController.timelineKind)
             Task { await timelineInteractionHandler.sendCurrentVoiceMessage() }
         case .startPlayback:
             Task { await timelineInteractionHandler.startPlayingRecordedVoiceMessage() }
@@ -821,6 +823,8 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
         
         switch mode {
         case .reply(let eventID, _, _):
+            // GUA FORK: the user's own sends pulse the live wallpaper.
+            ChatWallpaperSendPulse.recordOwnSend(inRoom: roomProxy.id, timelineKind: timelineController.timelineKind)
             await timelineController.sendMessage(message,
                                                  html: html,
                                                  inReplyToEventID: eventID,
@@ -841,6 +845,8 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
             case .join:
                 await handleJoinCommand(message: message)
             case .none:
+                // GUA FORK: the user's own sends pulse the live wallpaper.
+                ChatWallpaperSendPulse.recordOwnSend(inRoom: roomProxy.id, timelineKind: timelineController.timelineKind)
                 await timelineController.sendMessage(message,
                                                      html: html,
                                                      inReplyToEventID: nil,

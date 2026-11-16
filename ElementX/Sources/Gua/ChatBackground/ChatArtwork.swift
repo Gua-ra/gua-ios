@@ -163,8 +163,25 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         }
     }
     
+    /// The shader time the still image was rendered at, where a live artwork starts so its first frame is the still.
+    var stillTime: Double? {
+        switch self {
+        case .glassDrops, .silk: 0
+        case .glassDropsBlue: 14
+        case .moltenPearl, .ipe, .pantanal, .currentsLive: 24
+        case .rainOnGlass: 48
+        case .palmCoast, .riverBends, .highlandMist, .glacierLake, .canolaSky, .harbourFog, .canyonGlow, .polarIce, .moonTide,
+             .currents, .azulejo, .calcadao, .knit, .doodlesBrasil, .doodlesCanada, .paper, .paperCut: nil
+        }
+    }
+    
     var fileNames: (light: String, dark: String) {
         ("\(rawValue)-light.webp", "\(rawValue)-dark.webp")
+    }
+    
+    /// The live artwork's Metal shader source, compiled at runtime.
+    var shaderFileName: String? {
+        isLive ? "\(rawValue).msl" : nil
     }
     
     func fileName(for colorScheme: ColorScheme) -> String {

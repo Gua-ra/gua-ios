@@ -79,6 +79,7 @@ struct RoomScreen: View {
                     ChatBackgroundView(background: timelineContext.viewState.effectiveChatTheme.wallpaper,
                                        mediaProvider: timelineContext.mediaProvider)
                         .ignoresSafeArea(edges: [.horizontal, .bottom])
+                        .environment(\.chatWallpaperSendPulse, .forRoom(timelineContext.viewState.roomID))
                 }
             }
             .topBanners([

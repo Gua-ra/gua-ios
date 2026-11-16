@@ -14,6 +14,7 @@ struct ChatBackgroundView: View {
     
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.chatWallpaperSendPulse) private var liveWallpaperSendPulse
     
     var body: some View {
         ZStack {
@@ -37,6 +38,9 @@ struct ChatBackgroundView: View {
                 ChatBackgroundScrim(photoDim: nil)
             case .art(let artwork):
                 ChatArtworkView(artwork: artwork)
+                if ChatLiveWallpaperView.isShown(for: artwork, sendPulse: liveWallpaperSendPulse), let liveWallpaperSendPulse {
+                    ChatLiveWallpaperView(artwork: artwork, sendPulse: liveWallpaperSendPulse)
+                }
                 ChatBackgroundScrim(photoDim: nil)
             case .photo(let photo):
                 ChatBackgroundPhotoView(photo: photo, mediaProvider: mediaProvider)
