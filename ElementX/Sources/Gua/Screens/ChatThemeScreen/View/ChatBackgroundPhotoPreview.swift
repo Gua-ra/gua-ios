@@ -20,7 +20,7 @@ struct ChatBackgroundPhotoPreview: View {
         ElementNavigationStack {
             if let draft = context.viewState.bindings.photoDraft ?? lastDraft {
                 ZStack(alignment: .bottom) {
-                    ChatBackgroundPhotoFrame(draft: draft, bubble: context.viewState.baseTheme.bubble, onMove: move)
+                    ChatBackgroundPhotoFrame(draft: draft, bubbles: context.viewState.baseTheme.bubbles, onMove: move)
                         .environment(\.colorScheme, previewColorScheme(for: draft))
                         .ignoresSafeArea(edges: [.horizontal, .bottom])
                     
@@ -97,7 +97,7 @@ struct ChatBackgroundPhotoPreview: View {
 
 struct ChatBackgroundPhotoFrame: View {
     let draft: ChatBackgroundPhotoDraft
-    let bubble: ChatBubbleColor
+    let bubbles: ChatBubblePair
     let onMove: (_ alignX: Double, _ alignY: Double) -> Void
     
     @State private var dragStart: (alignX: Double, alignY: Double)?
@@ -113,7 +113,7 @@ struct ChatBackgroundPhotoFrame: View {
                 ChatBackgroundPhotoLayout(image: draft.image, alignX: draft.alignX, alignY: draft.alignY)
                 ChatBackgroundScrim(photoDim: draft.dim)
                 
-                ChatThemeSampleMessages(isOnBackground: true, bubble: bubble)
+                ChatThemeSampleMessages(isOnBackground: true, bubbles: bubbles)
                     .allowsHitTesting(false)
             }
             .environment(\.layoutDirection, .leftToRight)

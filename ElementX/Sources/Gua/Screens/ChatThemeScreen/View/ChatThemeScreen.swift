@@ -20,9 +20,9 @@ struct ChatThemeScreen: View {
             Section {
                 ListRow(kind: .custom {
                     HStack(alignment: .top, spacing: 40) {
-                        ChatThemeRoundButton(title: UntranslatedL10n.guaChatThemeChatBubble, value: viewState.baseTheme.bubble.name) {
+                        ChatThemeRoundButton(title: UntranslatedL10n.guaChatThemeChatBubble, value: viewState.baseTheme.bubbles.name) {
                             ZStack {
-                                viewState.baseTheme.bubble.outgoingColor
+                                viewState.baseTheme.bubbles.outgoingColor
                                 CompoundIcon(\.chatSolid)
                                     .foregroundStyle(.compound.iconSecondary)
                             }
@@ -55,7 +55,7 @@ struct ChatThemeScreen: View {
                     ListRow(kind: .custom {
                         ScrollViewReader { proxy in
                             ScrollView(.horizontal) {
-                                HStack(spacing: 12) {
+                                LazyHStack(spacing: 12) {
                                     if section.id == .featured {
                                         ChatThemeTile(theme: viewState.firstTileTheme,
                                                       name: viewState.firstTileName,
@@ -66,7 +66,7 @@ struct ChatThemeScreen: View {
                                     }
                                     
                                     ForEach(section.themes, id: \.self) { theme in
-                                        ChatThemeTile(theme: theme, name: nil, isSelected: theme == viewState.current, mediaProvider: context.mediaProvider) {
+                                        ChatThemeTile(theme: theme, name: nil, isSelected: viewState.isSelected(theme), mediaProvider: context.mediaProvider) {
                                             context.send(viewAction: .selectTheme(theme))
                                         }
                                     }
@@ -178,8 +178,13 @@ struct ChatThemeTile: View {
             VStack(spacing: 6) {
                 Spacer(minLength: 0)
                 sampleBubble(color: .compound._bgBubbleIncoming, width: 0.55, alignment: .leading)
-                sampleBubble(color: theme.bubble.outgoingColor, width: 0.65, alignment: .trailing)
+                sampleBubble(color: theme.bubbles.outgoingColor, width: 0.65, alignment: .trailing)
                 Spacer(minLength: 0)
+                
+                // Not in a top corner: beside the selection checkmark there is no room for a translated badge.
+                if isLive {
+                    ChatArtworkLiveBadge()
+                }
                 
                 if let name {
                     Text(name)
@@ -215,9 +220,18 @@ struct ChatThemeTile: View {
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(name ?? theme.wallpaper.displayName)
-        .accessibilityValue(name == nil ? theme.bubble.name : "")
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityValue(name == nil ? theme.bubbles.name : "")
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+    }
+    
+    private var isLive: Bool {
+        theme.wallpaper.artwork?.isLive == true
+    }
+    
+    private var accessibilityLabel: String {
+        let label = name ?? theme.wallpaper.displayName
+        return isLive ? "\(label), \(UntranslatedL10n.guaChatThemeLiveBadge)" : label
     }
     
     private func sampleBubble(color: Color, width fraction: CGFloat, alignment: Alignment) -> some View {
@@ -251,15 +265,15 @@ struct ChatThemePreviewCard: View {
 
 struct ChatThemeSampleMessages: View {
     let isOnBackground: Bool
-    let bubble: ChatBubbleColor
+    let bubbles: ChatBubblePair
     
     init(theme: ChatTheme) {
-        self.init(isOnBackground: !theme.wallpaper.isNone, bubble: theme.bubble)
+        self.init(isOnBackground: !theme.wallpaper.isNone, bubbles: theme.bubbles)
     }
     
-    init(isOnBackground: Bool, bubble: ChatBubbleColor) {
+    init(isOnBackground: Bool, bubbles: ChatBubblePair) {
         self.isOnBackground = isOnBackground
-        self.bubble = bubble
+        self.bubbles = bubbles
     }
     
     var body: some View {
@@ -288,7 +302,7 @@ struct ChatThemeSampleMessages: View {
         Text(text)
             .font(.compound.bodyLG)
             .foregroundColor(.compound.textPrimary)
-            .bubbleBackground(isOutgoing: isOutgoing, color: isOutgoing ? bubble.outgoingColor : .compound._bgBubbleIncoming)
+            .bubbleBackground(isOutgoing: isOutgoing, color: isOutgoing ? bubbles.outgoingColor : .compound._bgBubbleIncoming)
     }
 }
 
@@ -298,6 +312,7 @@ struct ChatThemeScreen_Previews: PreviewProvider, TestablePreview {
     static let followingDefaultViewModel = makeViewModel(theme: .stock, defaultTheme: .init(wallpaper: .preset(.dusk), bubble: .orange))
     static let defaultViewModel = makeViewModel(mode: .defaultTheme, theme: .init(wallpaper: .preset(.night), bubble: .purple))
     static let noPermissionViewModel = makeViewModel(theme: .init(wallpaper: .preset(.sunset), bubble: .pink), canChange: false)
+    static let artworkViewModel = makeViewModel(theme: .init(wallpaper: .art(.glassDrops), bubbles: ChatArtwork.glassDrops.bubbles))
     
     static var previews: some View {
         ElementNavigationStack {
@@ -326,6 +341,18 @@ struct ChatThemeScreen_Previews: PreviewProvider, TestablePreview {
         .environment(\.colorScheme, .dark)
         .preferredColorScheme(.dark)
         .previewDisplayName("Dark")
+        
+        ElementNavigationStack {
+            ChatThemeScreen(context: artworkViewModel.context)
+        }
+        .previewDisplayName("Artwork")
+        
+        ElementNavigationStack {
+            ChatThemeScreen(context: artworkViewModel.context)
+        }
+        .environment(\.colorScheme, .dark)
+        .preferredColorScheme(.dark)
+        .previewDisplayName("Artwork dark")
     }
     
     enum Mode {

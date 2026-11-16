@@ -17,13 +17,13 @@ struct ChatBubblePicker: View {
         context.viewState
     }
     
-    /// Falls back to the saved colour while the sheet slides away.
-    private var choice: ChatBubbleColor {
-        viewState.bindings.bubbleChoice ?? viewState.baseTheme.bubble
+    /// Falls back to the saved bubbles while the sheet slides away.
+    private var choice: ChatBubblePair {
+        viewState.bindings.bubbleChoice ?? viewState.baseTheme.bubbles
     }
     
     private var savedTheme: ChatTheme {
-        ChatTheme(wallpaper: viewState.baseTheme.wallpaper, bubble: choice)
+        ChatTheme(wallpaper: viewState.baseTheme.wallpaper, bubbles: choice)
     }
     
     var body: some View {
@@ -64,14 +64,16 @@ struct ChatBubblePicker: View {
     }
     
     private func swatch(_ bubble: ChatBubbleColor) -> some View {
-        let isSelected = bubble == choice
+        let isSelected = bubble == choice.bubble
+        // The selected swatch shows the theme's pair until a colour is chosen, which drops the dark one.
+        let shown = isSelected ? choice : ChatBubblePair(bubble)
         
         return Button {
             context.send(viewAction: .chooseBubble(bubble))
         } label: {
             VStack(spacing: 6) {
                 Circle()
-                    .fill(bubble.outgoingColor)
+                    .fill(shown.outgoingColor)
                     .overlay {
                         Circle()
                             .strokeBorder(Color.compound.borderInteractiveSecondary, lineWidth: 1)
@@ -103,13 +105,14 @@ struct ChatBubblePicker: View {
         .buttonStyle(.plain)
         .disabled(!viewState.canChange)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(bubble.name)
+        .accessibilityLabel(shown.name)
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 }
 
 struct ChatBubblePicker_Previews: PreviewProvider, TestablePreview {
     static let viewModel = makeViewModel()
+    static let pairViewModel = makeViewModel(theme: .init(wallpaper: .art(.glassDrops), bubbles: ChatArtwork.glassDrops.bubbles), choice: nil)
     
     static var previews: some View {
         ChatBubblePicker(context: viewModel.context)
@@ -119,12 +122,19 @@ struct ChatBubblePicker_Previews: PreviewProvider, TestablePreview {
             .environment(\.colorScheme, .dark)
             .preferredColorScheme(.dark)
             .previewDisplayName("Dark")
+        
+        ChatBubblePicker(context: pairViewModel.context)
+            .environment(\.colorScheme, .dark)
+            .preferredColorScheme(.dark)
+            .previewDisplayName("Artwork pair dark")
     }
     
-    static func makeViewModel() -> ChatThemeScreenViewModel {
-        let viewModel = ChatThemeScreen_Previews.makeViewModel(theme: .init(wallpaper: .preset(.ocean), bubble: .teal))
+    static func makeViewModel(theme: ChatTheme = .init(wallpaper: .preset(.ocean), bubble: .teal), choice: ChatBubbleColor? = .blue) -> ChatThemeScreenViewModel {
+        let viewModel = ChatThemeScreen_Previews.makeViewModel(theme: theme)
         viewModel.context.send(viewAction: .presentBubblePicker)
-        viewModel.context.send(viewAction: .chooseBubble(.blue))
+        if let choice {
+            viewModel.context.send(viewAction: .chooseBubble(choice))
+        }
         return viewModel
     }
 }

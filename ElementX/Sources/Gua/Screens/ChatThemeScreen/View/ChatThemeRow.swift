@@ -69,8 +69,8 @@ extension ChatTheme {
     var displayName: String {
         switch wallpaper {
         case .none:
-            isStock ? UntranslatedL10n.guaChatBackgroundValueDefault : bubble.name
-        case .preset, .photo:
+            isStock ? UntranslatedL10n.guaChatBackgroundValueDefault : bubbles.name
+        case .preset, .art, .photo:
             wallpaper.displayName
         }
     }
@@ -83,6 +83,8 @@ extension ChatBackground {
             UntranslatedL10n.guaChatThemeNoWallpaper
         case .preset(let preset):
             preset.name
+        case .art(let artwork):
+            artwork.name
         case .photo:
             UntranslatedL10n.guaChatBackgroundValuePhoto
         }
