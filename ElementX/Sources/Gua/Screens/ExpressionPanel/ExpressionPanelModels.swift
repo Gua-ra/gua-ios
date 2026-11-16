@@ -27,7 +27,6 @@ enum ExpressionPanelViewAction {
     case keyboardHeightChanged(CGFloat)
     case selectTab(ExpressionPanelTab)
     case updateSearch(String)
-    case selectWord(ExpressionWord)
     
     case sendSticker(StickerPanelItem)
     case favouriteSticker(StickerImage)
@@ -44,27 +43,6 @@ enum ExpressionPanelViewAction {
     case openGif(GifItem)
     case toggleGifFavourite(GifItem)
     case sendGif
-}
-
-enum ExpressionWord: CaseIterable, Hashable {
-    case hi, haha, love, sad, wow, thumbsUp, celebrate, angry, dance
-    
-    static let chips: [ExpressionWord] = [.hi, .haha, .love, .sad, .wow]
-    static let moods: [ExpressionWord] = [.haha, .love, .sad, .thumbsUp, .celebrate, .wow, .angry, .dance]
-    
-    var text: String {
-        switch self {
-        case .hi: UntranslatedL10n.guaExpressionWordHi
-        case .haha: UntranslatedL10n.guaExpressionWordHaha
-        case .love: UntranslatedL10n.guaExpressionWordLove
-        case .sad: UntranslatedL10n.guaExpressionWordSad
-        case .wow: UntranslatedL10n.guaExpressionWordWow
-        case .thumbsUp: UntranslatedL10n.guaExpressionWordThumbsUp
-        case .celebrate: UntranslatedL10n.guaExpressionWordCelebrate
-        case .angry: UntranslatedL10n.guaExpressionWordAngry
-        case .dance: UntranslatedL10n.guaExpressionWordDance
-        }
-    }
 }
 
 struct StickerPanelSection: Identifiable, Equatable {

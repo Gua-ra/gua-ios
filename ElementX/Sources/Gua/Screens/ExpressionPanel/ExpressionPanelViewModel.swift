@@ -105,9 +105,7 @@ final class ExpressionPanelViewModel: ExpressionPanelViewModelType, ExpressionPa
         case .selectTab(let tab):
             selectTab(tab)
         case .updateSearch(let text):
-            updateSearch(text, debounced: true)
-        case .selectWord(let word):
-            updateSearch(word.text, debounced: false)
+            updateSearch(text)
         case .sendSticker(let item):
             send(item.image, tileID: item.id)
         case .favouriteSticker(let image):
@@ -196,16 +194,12 @@ final class ExpressionPanelViewModel: ExpressionPanelViewModelType, ExpressionPa
         }
     }
     
-    private func updateSearch(_ text: String, debounced: Bool) {
+    private func updateSearch(_ text: String) {
         state.searchText = text
         rebuildStickerSections()
         
         guard state.tab == .gifs else { return }
         gifSearchTask?.cancel()
-        guard debounced else {
-            applyGifSearch()
-            return
-        }
         gifSearchTask = Task { [weak self, searchDebounce] in
             try? await Task.sleep(for: searchDebounce)
             guard !Task.isCancelled else { return }
