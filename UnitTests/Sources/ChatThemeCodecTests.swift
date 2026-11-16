@@ -123,9 +123,54 @@ final class ChatThemeCodecTests {
     }
     
     @Test
+    func everyArtworkAndBubblePairRoundTrips() {
+        for artwork in ChatArtwork.allCases {
+            for bubble in ChatBubbleColor.allCases {
+                for bubbleDark in [nil] + ChatBubbleColor.allCases.map(Optional.some) {
+                    let theme = ChatTheme(wallpaper: .art(artwork), bubble: bubble, bubbleDark: bubbleDark)
+                    #expect(ChatTheme(contentJSON: theme.contentJSON) == theme)
+                }
+            }
+        }
+    }
+    
+    @Test
+    func artworkIsWrittenWithItsFallback() throws {
+        for artwork in ChatArtwork.allCases {
+            let written = try jsonObject(ChatTheme(wallpaper: .art(artwork)).contentJSON)
+            #expect(written as NSDictionary == ["art": artwork.id, "fallback_preset": artwork.fallbackPreset.id, "kind": "art", "v": 1] as NSDictionary)
+        }
+    }
+    
+    @Test
+    func bubblePairKeepsADarkBubbleOnlyWhenItDiffers() {
+        #expect(ChatBubblePair(.purple, dark: .pink).bubbleDark == .pink)
+        #expect(ChatBubblePair(.purple, dark: .purple).bubbleDark == nil)
+        #expect(ChatBubblePair(.purple, dark: .standard).bubbleDark == nil)
+        #expect(ChatBubblePair(.standard, dark: .pink).bubbleDark == nil)
+        #expect(ChatBubblePair(.purple, dark: .purple) == ChatBubblePair(.purple))
+        #expect(ChatTheme(wallpaper: .none, bubble: .standard, bubbleDark: .pink).isStock)
+    }
+    
+    @Test
+    func artworkIDsMatchTheSpec() {
+        #expect(ChatArtwork.allCases.map(\.id) == ["glass-drops", "glass-drops-blue", "molten-pearl", "silk", "ipe", "rain-on-glass", "pantanal", "currents-live",
+                                                   "palm-coast", "river-bends", "highland-mist", "glacier-lake", "canola-sky", "harbour-fog", "canyon-glow", "polar-ice", "moon-tide",
+                                                   "currents", "azulejo", "calcadao", "knit", "doodles-brasil", "doodles-canada",
+                                                   "paper", "paper-cut"])
+        #expect(ChatArtwork.allCases.filter(\.isLive) == ChatArtwork.artworks(in: .live))
+        
+        let originalPresets: Set<ChatBackgroundPreset> = [.aurora, .mint, .sky, .sand, .blush, .lavender, .graphite, .sunset, .ocean, .night]
+        #expect(ChatArtwork.allCases.allSatisfy { originalPresets.contains($0.fallbackPreset) })
+        
+        let reserved: Set = ["rainbow", "pattern", "video", "Blue"]
+        #expect(reserved.isDisjoint(with: ChatArtwork.allCases.map(\.id)))
+    }
+    
+    @Test
     func presetIDsMatchTheSpec() {
         #expect(ChatBackgroundPreset.allCases.map(\.id) == ["aurora", "mint", "sky", "sand", "blush", "lavender", "graphite", "sunset", "ocean", "night", "dawn", "forest", "dusk", "citrus"])
-        #expect(ChatBackgroundPreset.colours == [.mint, .sky, .sand, .blush, .lavender, .graphite])
+        #expect(ChatBackgroundPreset.solids == [.mint, .sky, .sand, .blush, .lavender, .graphite])
         #expect(ChatBackgroundPreset.gradients == [.aurora, .sunset, .ocean, .night, .dawn, .forest, .dusk, .citrus])
     }
     
@@ -159,15 +204,30 @@ final class ChatThemeCodecTests {
     @Test
     func galleryMatchesTheSpec() {
         let sections = ChatThemeGallerySection.all.map { section in
-            section.themes.map { theme -> String in
-                guard case .preset(let preset) = theme.wallpaper else { return "?" }
-                return "\(preset.id)+\(theme.bubble.id)"
+            section.themes.map { theme in
+                let bubbles = [theme.bubble.id, theme.bubbleDark?.id].compactMap(\.self).joined(separator: "/")
+                return "\(Self.id(of: theme.wallpaper))+\(bubbles)"
             }
         }
-        #expect(ChatThemeGallerySection.all.map(\.id) == [.featured, .colours, .gradients])
-        #expect(sections == [["aurora+green", "ocean+teal", "sunset+pink", "night+purple", "dawn+blue", "forest+green", "dusk+orange", "citrus+yellow"],
-                             ["mint+green", "sky+blue", "sand+orange", "blush+pink", "lavender+purple", "graphite+graphite"],
+        #expect(ChatThemeGallerySection.all.map(\.id) == [.featured, .live, .nature, .patterns, .minimal, .gradients])
+        #expect(sections == [["silk+teal", "glacier-lake+teal", "glass-drops+purple/pink", "currents+purple", "palm-coast+orange/blue", "ipe+pink/yellow", "azulejo+blue", "paper+green"],
+                             ["glass-drops+purple/pink", "glass-drops-blue+teal", "molten-pearl+purple/blue", "silk+teal",
+                              "ipe+pink/yellow", "rain-on-glass+green/blue", "pantanal+green", "currents-live+purple"],
+                             ["palm-coast+orange/blue", "river-bends+teal", "highland-mist+blue/green", "glacier-lake+teal", "canola-sky+green/orange",
+                              "harbour-fog+blue", "canyon-glow+blue/purple", "polar-ice+blue/purple", "moon-tide+blue"],
+                             ["currents+purple", "azulejo+blue", "calcadao+teal", "knit+blue", "doodles-brasil+green", "doodles-canada+blue"],
+                             ["paper+green", "paper-cut+teal/orange", "mint+green", "sky+blue", "sand+orange", "blush+pink", "lavender+purple", "graphite+graphite"],
                              ["aurora+teal", "sunset+orange", "ocean+blue", "night+purple", "dawn+pink", "forest+teal", "dusk+purple", "citrus+green"]])
+    }
+    
+    @Test
+    func wallpaperPickerMatchesTheSpec() {
+        #expect(ChatWallpaperGallerySection.all.map(\.id) == [.live, .nature, .patterns, .minimal, .gradients])
+        #expect(ChatWallpaperGallerySection.all.map { $0.wallpapers.map(Self.id) } == [ChatArtwork.artworks(in: .live).map(\.id),
+                                                                                       ChatArtwork.artworks(in: .nature).map(\.id),
+                                                                                       ChatArtwork.artworks(in: .patterns).map(\.id),
+                                                                                       ["paper", "paper-cut", "mint", "sky", "sand", "blush", "lavender", "graphite"],
+                                                                                       ["aurora", "sunset", "ocean", "night", "dawn", "forest", "dusk", "citrus"]])
     }
     
     @Test
@@ -186,6 +246,14 @@ final class ChatThemeCodecTests {
         #expect(!unreadable.isRemoval)
     }
     
+    private static func id(of wallpaper: ChatBackground) -> String {
+        switch wallpaper {
+        case .preset(let preset): preset.id
+        case .art(let artwork): artwork.id
+        case .none, .photo: "?"
+        }
+    }
+    
     private func jsonObject(_ json: String) throws -> [String: Any] {
         try #require(JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any])
     }
@@ -202,7 +270,8 @@ final class ChatThemeCodecTests {
     
     static func theme(fromExpected expected: [String: Any]) throws -> ChatTheme {
         let bubble = try #require(ChatBubbleColor(rawValue: expected["bubble"] as? String ?? ChatBubbleColor.standard.rawValue))
-        return try ChatTheme(wallpaper: wallpaper(fromExpected: expected), bubble: bubble)
+        let bubbleDark = try (expected["bubble_dark"] as? String).map { try #require(ChatBubbleColor(rawValue: $0)) }
+        return try ChatTheme(wallpaper: wallpaper(fromExpected: expected), bubble: bubble, bubbleDark: bubbleDark)
     }
     
     private static func wallpaper(fromExpected expected: [String: Any]) throws -> ChatBackground {
@@ -212,6 +281,9 @@ final class ChatThemeCodecTests {
         case "preset":
             let preset = try #require(expected["preset"] as? String)
             return try .preset(#require(ChatBackgroundPreset(rawValue: preset)))
+        case "art":
+            let artwork = try #require(expected["art"] as? String)
+            return try .art(#require(ChatArtwork(rawValue: artwork)))
         case "photo":
             let photo = try #require(expected["photo"] as? [String: Any])
             let align = try #require(photo["align"] as? [String: Any])
