@@ -11,6 +11,7 @@ import SwiftUI
 struct ChatBubblePicker: View {
     @Bindable var context: ChatThemeScreenViewModel.Context
     
+    @Environment(\.colorScheme) private var colorScheme
     @ScaledMetric private var swatchSize = 44.0
     
     private var viewState: ChatThemeScreenViewState {
@@ -64,16 +65,16 @@ struct ChatBubblePicker: View {
     }
     
     private func swatch(_ bubble: ChatBubbleColor) -> some View {
-        let isSelected = bubble == choice.bubble
-        // The selected swatch shows the theme's pair until a colour is chosen, which drops the dark one.
-        let shown = isSelected ? choice : ChatBubblePair(bubble)
+        let isSelected = bubble == choice.shown(in: colorScheme)
         
         return Button {
+            // Choosing the checked swatch would drop the other half of a pair the user cannot see.
+            guard !isSelected else { return }
             context.send(viewAction: .chooseBubble(bubble))
         } label: {
             VStack(spacing: 6) {
                 Circle()
-                    .fill(shown.outgoingColor)
+                    .fill(ChatBubblePair(bubble).outgoingColor)
                     .overlay {
                         Circle()
                             .strokeBorder(Color.compound.borderInteractiveSecondary, lineWidth: 1)
@@ -105,7 +106,7 @@ struct ChatBubblePicker: View {
         .buttonStyle(.plain)
         .disabled(!viewState.canChange)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(shown.name)
+        .accessibilityLabel(bubble.name)
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 }

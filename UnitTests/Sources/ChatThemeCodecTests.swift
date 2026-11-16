@@ -153,6 +153,16 @@ final class ChatThemeCodecTests {
     }
     
     @Test
+    func bubblePairShowsAndNamesOneBubblePerAppearance() {
+        let pair = ChatArtwork.glassDrops.bubbles
+        #expect(pair.shown(in: .light) == .purple)
+        #expect(pair.shown(in: .dark) == .pink)
+        #expect(pair.name(in: .light) == UntranslatedL10n.guaChatThemeBubblePurple)
+        #expect(pair.name(in: .dark) == UntranslatedL10n.guaChatThemeBubblePink)
+        #expect(ChatBubblePair(.teal).name(in: .dark) == UntranslatedL10n.guaChatThemeBubbleTeal)
+    }
+    
+    @Test
     func artworkIDsMatchTheSpec() {
         #expect(ChatArtwork.allCases.map(\.id) == ["glass-drops", "glass-drops-blue", "molten-pearl", "silk", "ipe", "rain-on-glass", "pantanal", "currents-live",
                                                    "palm-coast", "river-bends", "highland-mist", "glacier-lake", "canola-sky", "harbour-fog", "canyon-glow", "polar-ice", "moon-tide",

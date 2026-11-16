@@ -13,14 +13,16 @@ struct ChatThemeRow: View {
     let canChange: Bool
     let action: () -> Void
     
+    @Environment(\.colorScheme) private var colorScheme
+    
     var body: some View {
         if canChange {
             ListRow(label: .default(title: UntranslatedL10n.guaChatThemeTitle, icon: icon),
-                    details: .title(theme.displayName),
+                    details: .title(theme.displayName(in: colorScheme)),
                     kind: .navigationLink(action: action))
         } else {
             // Compound's disabled description colour would make the reason the hardest text on the row to read.
-            ListRow(kind: .custom { NoPermissionRowContent(value: theme.displayName, icon: icon) })
+            ListRow(kind: .custom { NoPermissionRowContent(value: theme.displayName(in: colorScheme), icon: icon) })
         }
     }
     
@@ -66,10 +68,10 @@ private struct NoPermissionRowContent: View {
 }
 
 extension ChatTheme {
-    var displayName: String {
+    func displayName(in colorScheme: ColorScheme) -> String {
         switch wallpaper {
         case .none:
-            isStock ? UntranslatedL10n.guaChatBackgroundValueDefault : bubbles.name
+            isStock ? UntranslatedL10n.guaChatBackgroundValueDefault : bubbles.name(in: colorScheme)
         case .preset, .art, .photo:
             wallpaper.displayName
         }

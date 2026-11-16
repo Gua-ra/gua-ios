@@ -68,9 +68,12 @@ nonisolated struct ChatBubblePair: Hashable {
         bubbleDark = bubble == .standard || dark == .standard || dark == bubble ? nil : dark
     }
     
-    var name: String {
-        guard let bubbleDark else { return bubble.name }
-        return [bubble.name, bubbleDark.name].formatted(.list(type: .and))
+    func shown(in colorScheme: ColorScheme) -> ChatBubbleColor {
+        colorScheme == .dark ? bubbleDark ?? bubble : bubble
+    }
+    
+    func name(in colorScheme: ColorScheme) -> String {
+        shown(in: colorScheme).name
     }
     
     @MainActor var outgoingColor: Color {

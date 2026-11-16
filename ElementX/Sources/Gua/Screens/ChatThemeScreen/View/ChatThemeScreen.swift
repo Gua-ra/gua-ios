@@ -11,6 +11,8 @@ import SwiftUI
 struct ChatThemeScreen: View {
     @Bindable var context: ChatThemeScreenViewModel.Context
     
+    @Environment(\.colorScheme) private var colorScheme
+    
     private var viewState: ChatThemeScreenViewState {
         context.viewState
     }
@@ -20,7 +22,7 @@ struct ChatThemeScreen: View {
             Section {
                 ListRow(kind: .custom {
                     HStack(alignment: .top, spacing: 40) {
-                        ChatThemeRoundButton(title: UntranslatedL10n.guaChatThemeChatBubble, value: viewState.baseTheme.bubbles.name) {
+                        ChatThemeRoundButton(title: UntranslatedL10n.guaChatThemeChatBubble, value: viewState.baseTheme.bubbles.name(in: colorScheme)) {
                             ZStack {
                                 viewState.baseTheme.bubbles.outgoingColor
                                 CompoundIcon(\.chatSolid)
@@ -171,6 +173,7 @@ struct ChatThemeTile: View {
     let mediaProvider: MediaProviderProtocol?
     let action: () -> Void
     
+    @Environment(\.colorScheme) private var colorScheme
     @ScaledMetric private var width = 84.0
     
     var body: some View {
@@ -221,7 +224,7 @@ struct ChatThemeTile: View {
         .buttonStyle(.plain)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
-        .accessibilityValue(name == nil ? theme.bubbles.name : "")
+        .accessibilityValue(name == nil ? theme.bubbles.name(in: colorScheme) : "")
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
     
@@ -246,6 +249,8 @@ struct ChatThemePreviewCard: View {
     let theme: ChatTheme
     let mediaProvider: MediaProviderProtocol?
     
+    @Environment(\.colorScheme) private var colorScheme
+    
     var body: some View {
         ChatThemeSampleMessages(theme: theme)
             .frame(maxWidth: .infinity, minHeight: 220, alignment: .top)
@@ -259,7 +264,7 @@ struct ChatThemePreviewCard: View {
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(UntranslatedL10n.guaChatBackgroundPreviewA11y)
-            .accessibilityValue(theme.displayName)
+            .accessibilityValue(theme.displayName(in: colorScheme))
     }
 }
 
@@ -353,6 +358,22 @@ struct ChatThemeScreen_Previews: PreviewProvider, TestablePreview {
         .environment(\.colorScheme, .dark)
         .preferredColorScheme(.dark)
         .previewDisplayName("Artwork dark")
+        
+        ElementNavigationStack {
+            ChatThemeScreen(context: artworkViewModel.context)
+        }
+        .frame(height: 1800)
+        .previewLayout(.sizeThatFits)
+        .previewDisplayName("All sections")
+        
+        ElementNavigationStack {
+            ChatThemeScreen(context: artworkViewModel.context)
+        }
+        .frame(height: 1800)
+        .previewLayout(.sizeThatFits)
+        .environment(\.colorScheme, .dark)
+        .preferredColorScheme(.dark)
+        .previewDisplayName("All sections dark")
     }
     
     enum Mode {

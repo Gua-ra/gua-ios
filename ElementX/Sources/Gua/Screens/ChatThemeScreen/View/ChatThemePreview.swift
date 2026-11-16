@@ -31,7 +31,7 @@ struct ChatThemePreview: View {
                     .ignoresSafeArea(edges: [.horizontal, .bottom])
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(UntranslatedL10n.guaChatBackgroundPreviewA11y)
-                    .accessibilityValue(draft.shownTheme.displayName)
+                    .accessibilityValue(draft.shownTheme.displayName(in: previewColorScheme))
                 
                 ChatThemePreviewControls(previewColorScheme: previewColorScheme,
                                          saveTitle: saveTitle,
