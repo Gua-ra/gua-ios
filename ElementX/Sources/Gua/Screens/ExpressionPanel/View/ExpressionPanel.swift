@@ -42,6 +42,8 @@ struct ExpressionPanel: View {
                 }
             }
         }
+        // The composer inherits the media previews setting, which is for other people's media, not your library or a search you opened.
+        .environment(\.shouldAutomaticallyLoadImages, true)
     }
     
     private var heights: ExpressionPanelHeights {
@@ -86,7 +88,6 @@ struct ExpressionPanel: View {
             
             if !(context.viewState.tab == .gifs && context.viewState.gifContent == .unavailable) {
                 searchField
-                chips
             }
         }
         .padding(.horizontal, 16)
@@ -106,23 +107,6 @@ struct ExpressionPanel: View {
         .padding(.horizontal, 12)
         .frame(minHeight: 44)
         .background(Color.compound.bgCanvasDefault, in: .capsule)
-    }
-    
-    private var chips: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(ExpressionWord.chips, id: \.self) { word in
-                    Button(word.text) {
-                        context.send(viewAction: .selectWord(word))
-                    }
-                    .font(.compound.bodySMSemibold)
-                    .foregroundStyle(.compound.textPrimary)
-                    .padding(.horizontal, 14)
-                    .frame(minHeight: 44)
-                    .background(Color.compound.bgCanvasDefault, in: .capsule)
-                }
-            }
-        }
     }
     
     @ViewBuilder

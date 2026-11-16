@@ -228,24 +228,6 @@ internal nonisolated enum UntranslatedL10n {
   internal static var guaExpressionRecent: String { return UntranslatedL10n.tr("Untranslated", "gua_expression_recent") }
   /// Stickers
   internal static var guaExpressionStickersTab: String { return UntranslatedL10n.tr("Untranslated", "gua_expression_stickers_tab") }
-  /// Angry
-  internal static var guaExpressionWordAngry: String { return UntranslatedL10n.tr("Untranslated", "gua_expression_word_angry") }
-  /// Celebrate
-  internal static var guaExpressionWordCelebrate: String { return UntranslatedL10n.tr("Untranslated", "gua_expression_word_celebrate") }
-  /// Dance
-  internal static var guaExpressionWordDance: String { return UntranslatedL10n.tr("Untranslated", "gua_expression_word_dance") }
-  /// Haha
-  internal static var guaExpressionWordHaha: String { return UntranslatedL10n.tr("Untranslated", "gua_expression_word_haha") }
-  /// Hi
-  internal static var guaExpressionWordHi: String { return UntranslatedL10n.tr("Untranslated", "gua_expression_word_hi") }
-  /// Love
-  internal static var guaExpressionWordLove: String { return UntranslatedL10n.tr("Untranslated", "gua_expression_word_love") }
-  /// Sad
-  internal static var guaExpressionWordSad: String { return UntranslatedL10n.tr("Untranslated", "gua_expression_word_sad") }
-  /// Thumbs up
-  internal static var guaExpressionWordThumbsUp: String { return UntranslatedL10n.tr("Untranslated", "gua_expression_word_thumbs_up") }
-  /// Wow
-  internal static var guaExpressionWordWow: String { return UntranslatedL10n.tr("Untranslated", "gua_expression_word_wow") }
   /// See which of your contacts are on Gua
   internal static var guaFindFriendsActionDescription: String { return UntranslatedL10n.tr("Untranslated", "gua_find_friends_action_description") }
   /// Looking for your contacts on Gua…

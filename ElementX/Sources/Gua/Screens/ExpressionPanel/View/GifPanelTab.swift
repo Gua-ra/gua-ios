@@ -59,15 +59,6 @@ struct GifPanelTab: View {
             sourceButton(.recent, icon: \.history, label: UntranslatedL10n.guaExpressionRecent)
             sourceButton(.favourites, icon: \.favourite, label: UntranslatedL10n.guaExpressionFavourites)
             sourceButton(.trending, icon: \.chart, label: UntranslatedL10n.guaGifsTrending)
-            ForEach(ExpressionWord.moods, id: \.self) { mood in
-                Button(mood.text) {
-                    context.send(viewAction: .selectWord(mood))
-                }
-                .font(.compound.bodySMSemibold)
-                .foregroundStyle(context.viewState.gifSource == .search(mood.text) ? .compound.textActionAccent : .compound.textSecondary)
-                .padding(.horizontal, 8)
-                .frame(minHeight: 44)
-            }
         }
     }
     

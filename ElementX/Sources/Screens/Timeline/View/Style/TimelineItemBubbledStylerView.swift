@@ -16,6 +16,7 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
     @Environment(\.isMessageMenuPreview) private var isMessageMenuPreview
     @Environment(\.chatBackgroundActive) private var isChatBackgroundActive
     @Environment(\.chatBubbleColor) private var chatBubbleColor
+    @Environment(\.shouldAutomaticallyLoadImages) private var loadsMediaAutomatically // GUA FORK
     
     @State private var bubbleFrameReader = WindowFrameReader()
     
@@ -336,6 +337,8 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
             }
             
             content()
+                // GUA FORK: your own media always loads; the reply above still follows the media previews setting.
+                .environment(\.shouldAutomaticallyLoadImages, loadsMediaAutomatically || timelineItem.isOutgoing)
                 .timelineBubbleLayoutSize(.natural)
                 .cornerRadius(timelineItem.contentCornerRadius)
         }
