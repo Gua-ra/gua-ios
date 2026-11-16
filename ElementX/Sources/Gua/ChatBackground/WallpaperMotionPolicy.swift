@@ -53,30 +53,28 @@ nonisolated struct WallpaperMotionPolicy: Equatable {
     }
 }
 
-/// Trips when the 90th percentile of the GPU time per frame stays over 1.5 times the 30 fps budget for 2 s.
+/// Trips when the 90th percentile of the GPU time per frame in the last 2 s is over 1.5 times the 30 fps budget plus 4 ms: 54 ms.
 ///
 /// GPU time is the wallpaper's own cost: a stall elsewhere in the app delays frames without making them slow,
 /// so it never turns the wallpapers off.
 nonisolated struct WallpaperFrameWatchdog {
     static let framesPerSecond = 30
-    static let limit = 1.5 / Double(framesPerSecond)
+    static let tolerance: TimeInterval = 0.004
+    static let limit = 1.5 / Double(framesPerSecond) + tolerance
     static let window: TimeInterval = 2
     /// With fewer frames than this in the window, one stray frame would decide the percentile.
     static let minimumFrames = 10
     
     private var frames: [(end: TimeInterval, duration: TimeInterval)] = []
-    private var measuringSince: TimeInterval?
     private(set) var hasTripped = false
     
     /// Records a frame that took `duration` on the GPU and finished at `end`, and returns whether the watchdog has tripped.
     mutating func recordFrame(duration: TimeInterval, endingAt end: TimeInterval) -> Bool {
         guard !hasTripped else { return true }
         
-        let measuringSince = measuringSince ?? end
-        self.measuringSince = measuringSince
         frames.append((end, duration))
         frames.removeAll { $0.end <= end - Self.window }
-        guard end - measuringSince >= Self.window, frames.count >= Self.minimumFrames else { return false }
+        guard frames.count >= Self.minimumFrames else { return false }
         
         let durations = frames.map(\.duration).sorted()
         let percentile90 = durations[Int((Double(durations.count) * 0.9).rounded(.up)) - 1]
@@ -87,6 +85,5 @@ nonisolated struct WallpaperFrameWatchdog {
     /// Starts measuring again, so frames from before a pause never count with those after it.
     mutating func restart() {
         frames.removeAll()
-        measuringSince = nil
     }
 }

@@ -58,7 +58,7 @@ internal nonisolated enum UntranslatedL10n {
   internal static var guaChatBackgroundPreviewDark: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_preview_dark") }
   /// Light
   internal static var guaChatBackgroundPreviewLight: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_preview_light") }
-  /// Preview sending
+  /// Preview the send effect
   internal static var guaChatBackgroundPreviewSendA11y: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_preview_send_a11y") }
   /// Only admins and moderators can change it
   internal static var guaChatBackgroundRowNoPermission: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_row_no_permission") }

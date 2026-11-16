@@ -72,11 +72,13 @@ struct LiveWallpaperLayout: Equatable {
     let drawableSize: CGSize
     /// The drawable's pixels that can be seen plus one all round, so scaling up never blends in a pixel that was not drawn.
     let scissor: CGRect?
-    /// The default pulse spot of the visible view, in drawable pixels from the bottom left. The shaders' own default
+    /// The default pulse spot of the visible chat, in drawable pixels from the bottom left. The shaders' own default
     /// would be relative to the whole rect, which puts it below the chat when the view is wider than the still.
     let pulseOrigin: SIMD2<Float>
     
-    init(artwork: ChatArtwork, viewSize: CGSize, displayScale: CGFloat) {
+    /// `bottomInset` is the part of the view under the home indicator, which the composer's background covers,
+    /// so the visible chat ends at the composer's bottom edge.
+    init(artwork: ChatArtwork, viewSize: CGSize, bottomInset: CGFloat = 0, displayScale: CGFloat) {
         rect = ChatBackgroundPhotoLayout.rect(of: ChatArtwork.pixelSize, filling: viewSize, alignX: artwork.anchor.x, alignY: artwork.anchor.y)
         
         let visibleArea = viewSize.width * viewSize.height
@@ -105,8 +107,9 @@ struct LiveWallpaperLayout: Equatable {
             scissor = CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
         }
         
+        let visibleHeight = max(viewSize.height - bottomInset, 0)
         let spotX = viewSize.width * Self.pulseSpot.x - rect.minX
-        let spotYFromTop = viewSize.height * (1 - Self.pulseSpot.y) - rect.minY
+        let spotYFromTop = visibleHeight * (1 - Self.pulseSpot.y) - rect.minY
         pulseOrigin = SIMD2(Float(spotX * scaleX), Float(drawableSize.height - spotYFromTop * scaleY))
     }
 }
@@ -266,12 +269,19 @@ private final class ChatLiveWallpaperUIView: UIView, MTKViewDelegate {
     override func layoutSubviews() {
         super.layoutSubviews()
         
-        let layout = LiveWallpaperLayout(artwork: artwork, viewSize: bounds.size, displayScale: traitCollection.displayScale)
+        // The window's inset is the home indicator alone; the view's own can also hold the keyboard.
+        let bottomInset = min(safeAreaInsets.bottom, window?.safeAreaInsets.bottom ?? 0)
+        let layout = LiveWallpaperLayout(artwork: artwork, viewSize: bounds.size, bottomInset: bottomInset, displayScale: traitCollection.displayScale)
         guard layout != self.layout else { return }
         self.layout = layout
         metalView.frame = layout.rect
         metalView.drawableSize = layout.drawableSize
         requestPausedFrame()
+    }
+    
+    override func safeAreaInsetsDidChange() {
+        super.safeAreaInsetsDidChange()
+        setNeedsLayout()
     }
     
     override func didMoveToWindow() {

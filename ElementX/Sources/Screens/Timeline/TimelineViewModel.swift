@@ -429,8 +429,6 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
         case .deleteRecording:
             Task { await timelineInteractionHandler.deleteCurrentVoiceMessage() }
         case .send:
-            // GUA FORK: the user's own sends pulse the live wallpaper.
-            ChatWallpaperSendPulse.recordOwnSend(inRoom: roomProxy.id, timelineKind: timelineController.timelineKind)
             Task { await timelineInteractionHandler.sendCurrentVoiceMessage() }
         case .startPlayback:
             Task { await timelineInteractionHandler.startPlayingRecordedVoiceMessage() }
@@ -480,6 +478,8 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
                     buildTimelineViews(timelineItems: updatedItems, isSwitchingTimelines: isSwitchingTimelines)
                     reconcileSelection(with: updatedItems, isSwitchingTimelines: isSwitchingTimelines)
                     reportChatBackgroundChange(in: updatedItems)
+                    // GUA FORK: new local echoes of the user's own events pulse the live wallpaper.
+                    ChatWallpaperSendPulse.recordLocalEchoes(in: updatedItems, isSwitchingTimelines: isSwitchingTimelines, roomID: roomProxy.id, timelineKind: timelineController.timelineKind)
                     
                     if !updatedItems.isEmpty {
                         analyticsService.signpost.finishTransaction(.openRoom)
@@ -823,8 +823,6 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
         
         switch mode {
         case .reply(let eventID, _, _):
-            // GUA FORK: the user's own sends pulse the live wallpaper.
-            ChatWallpaperSendPulse.recordOwnSend(inRoom: roomProxy.id, timelineKind: timelineController.timelineKind)
             await timelineController.sendMessage(message,
                                                  html: html,
                                                  inReplyToEventID: eventID,
@@ -845,8 +843,6 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
             case .join:
                 await handleJoinCommand(message: message)
             case .none:
-                // GUA FORK: the user's own sends pulse the live wallpaper.
-                ChatWallpaperSendPulse.recordOwnSend(inRoom: roomProxy.id, timelineKind: timelineController.timelineKind)
                 await timelineController.sendMessage(message,
                                                      html: html,
                                                      inReplyToEventID: nil,

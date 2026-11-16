@@ -54,12 +54,16 @@ nonisolated enum LiveWallpaperPulse {
     }
 }
 
-/// When the user last sent a message from this device in one chat, which its live wallpaper turns into the send pulse.
+/// When the user last sent an event from this device in one chat, which its live wallpaper turns into the send pulse.
 final class ChatWallpaperSendPulse {
     private static var rooms: [String: ChatWallpaperSendPulse] = [:]
     
     private let now: () -> TimeInterval
     private(set) var lastSend: TimeInterval?
+    /// The transaction IDs of every local echo the room's timeline has shown.
+    private var seenLocalEchoes: Set<String> = []
+    /// Set while the timeline on screen is opening: its local echoes were sent before it opened.
+    private var isOpeningTimeline = true
     
     /// Times use `CACurrentMediaTime`, the clock the renderer draws with.
     init(now: @escaping () -> TimeInterval = CACurrentMediaTime) {
@@ -75,13 +79,40 @@ final class ChatWallpaperSendPulse {
         return pulse
     }
     
-    /// Records a send from a room's own timeline: a thread or the pinned events don't show the room's wallpaper.
-    static func recordOwnSend(inRoom roomID: String, timelineKind: TimelineKind) {
+    /// Reads an update of a room's own timeline: a thread, the pinned events or the media don't show the room's wallpaper.
+    static func recordLocalEchoes(in items: [RoomTimelineItemProtocol], isSwitchingTimelines: Bool, roomID: String, timelineKind: TimelineKind) {
         switch timelineKind {
         case .live, .detached:
-            forRoom(roomID).recordSend()
+            forRoom(roomID).recordLocalEchoes(in: items, isSwitchingTimelines: isSwitchingTimelines)
         case .pinned, .thread, .media:
             break
+        }
+    }
+    
+    /// Pulses when the update shows a local echo of the user's own event that wasn't in the timeline when it opened.
+    ///
+    /// Only this device's send queue makes local echoes, one per new event: history, edits, reactions and redactions
+    /// add none, and events from the user's other devices arrive with an event ID instead of a transaction ID.
+    /// The echo keeps its transaction ID until its remote echo replaces it, so each send counts once.
+    /// A timeline that opens, or switches between live and an event, starts at its still with no pulse.
+    func recordLocalEchoes(in items: [RoomTimelineItemProtocol], isSwitchingTimelines: Bool) {
+        if isSwitchingTimelines {
+            isOpeningTimeline = true
+            lastSend = nil
+        }
+        
+        var hasNewLocalEcho = false
+        for case let item as EventBasedTimelineItemProtocol in items where item.isOutgoing {
+            if let transactionID = item.id.transactionID, seenLocalEchoes.insert(transactionID).inserted {
+                hasNewLocalEcho = true
+            }
+        }
+        
+        if isOpeningTimeline {
+            // A timeline can open before it has loaded, so the opening lasts until an update holds events.
+            isOpeningTimeline = !items.contains { $0 is EventBasedTimelineItemProtocol || $0 is CollapsibleTimelineItem }
+        } else if hasNewLocalEcho {
+            recordSend()
         }
     }
     
