@@ -1017,8 +1017,11 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
 extension TimelineViewModel {
     static let mock = mock(timelineKind: .live)
     
-    static func mock(timelineKind: TimelineKind = .live, timelineController: MockTimelineController? = nil, hasPredecessor: Bool = false) -> TimelineViewModel {
-        let clientProxyMock = ClientProxyMock(.init())
+    static func mock(timelineKind: TimelineKind = .live,
+                     timelineController: MockTimelineController? = nil,
+                     hasPredecessor: Bool = false,
+                     timelineMediaVisibility: TimelineMediaVisibility = .always) -> TimelineViewModel {
+        let clientProxyMock = ClientProxyMock(.init(timelineMediaVisibility: timelineMediaVisibility))
         clientProxyMock.roomSummaryForAliasReturnValue = .mock(id: "!room:matrix.org", name: "Room")
         clientProxyMock.roomSummaryForIdentifierReturnValue = .mock(id: "!room:matrix.org", name: "Room", canonicalAlias: "#room:matrix.org")
         let roomProxy = JoinedRoomProxyMock(.init(name: "Preview room", predecessor: hasPredecessor ? .init(roomId: UUID().uuidString) : nil))
