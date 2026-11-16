@@ -568,6 +568,36 @@ struct TimelineItemBubbledStylerView_Previews: PreviewProvider, TestablePreview 
             .padding(.bottom, 20)
         selection
             .previewDisplayName("Selection")
+        hiddenMedia
+            .previewDisplayName("Hidden media")
+    }
+    
+    /// With media previews off, only the image you sent loads.
+    static var hiddenMedia: some View {
+        VStack(spacing: 0) {
+            ImageRoomTimelineView(timelineItem: ImageRoomTimelineItem(id: .randomEvent,
+                                                                      timestamp: .mock,
+                                                                      isOutgoing: false,
+                                                                      isEditable: false,
+                                                                      canBeRepliedTo: true,
+                                                                      sender: .init(id: "Bob"),
+                                                                      content: .init(filename: "other.png",
+                                                                                     imageInfo: .mockImage,
+                                                                                     thumbnailInfo: nil)))
+            
+            ImageRoomTimelineView(timelineItem: ImageRoomTimelineItem(id: .randomEvent,
+                                                                      timestamp: .mock,
+                                                                      isOutgoing: true,
+                                                                      isEditable: false,
+                                                                      canBeRepliedTo: true,
+                                                                      sender: .init(id: ""),
+                                                                      content: .init(filename: "mine.png",
+                                                                                     imageInfo: .mockImage,
+                                                                                     thumbnailInfo: nil)))
+        }
+        .environment(\.shouldAutomaticallyLoadImages, false)
+        .environmentObject(viewModel.context)
+        .environment(\.timelineContext, viewModel.context)
     }
     
     static var selection: some View {

@@ -10,7 +10,7 @@ import SwiftUI
 
 /// A provider's animated image, fetched through the provider so it takes the proxy and never the app's media pipeline.
 struct GifImage: View {
-    @Environment(\.accessibilityPlayAnimatedImages) private var playAnimatedImages
+    @Environment(\.playsAnimatedImages) private var playAnimatedImages
     @Environment(\.gifPreviewImages) private var previewImages
     
     let file: GifFile
@@ -29,6 +29,8 @@ struct GifImage: View {
                         view.autoPlayAnimatedImage = playAnimatedImages
                     }
                     .placeholder { Color.compound.bgSubtleSecondary }
+                    // `configure` only runs when the view is made, so a change to the setting needs a new view.
+                    .id(playAnimatedImages)
             }
         }
         .aspectRatio(CGFloat(max(file.width, 1)) / CGFloat(max(file.height, 1)), contentMode: .fit)

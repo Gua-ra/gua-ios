@@ -88,7 +88,9 @@
 "action_manage_account_and_devices" = "Gérer le compte et les appareils";
 "action_delete_account" = "Supprimer le compte";
 "gua_action_delete" = "Supprimer";
-"common_media_upload_quality" = "Qualité d’envoi des médias";
+"gua_common_media_settings" = "Paramètres des médias";
+"gua_settings_play_gifs_automatically" = "Lire les GIF automatiquement";
+"gua_settings_play_gifs_automatically_description" = "Aussi les autocollants animés. Les GIF que vous ouvrez sont toujours lus.";
 
 "common_moderation_and_safety" = "Modération & sécurité";
 "screen_moderation_and_safety_invites_heading" = "Invitations";

@@ -23,6 +23,11 @@ struct MediaUploadQualitySettingsScreenViewStateBindings {
         get { userSettings.app.optimizeMediaUploads }
         set { userSettings.app.optimizeMediaUploads = newValue }
     }
+    
+    var playGifsAutomatically: Bool { // GUA FORK
+        get { userSettings.app.guaPlayGifsAutomatically }
+        set { userSettings.app.guaPlayGifsAutomatically = newValue }
+    }
 }
 
 enum MediaUploadQualitySettingsScreenViewAction {

@@ -18,8 +18,6 @@ internal nonisolated enum UntranslatedL10n {
   internal static var commonAccountSettings: String { return UntranslatedL10n.tr("Untranslated", "common_account_settings") }
   /// App settings
   internal static var commonAppSettings: String { return UntranslatedL10n.tr("Untranslated", "common_app_settings") }
-  /// Media upload quality
-  internal static var commonMediaUploadQuality: String { return UntranslatedL10n.tr("Untranslated", "common_media_upload_quality") }
   /// Moderation & safety
   internal static var commonModerationAndSafety: String { return UntranslatedL10n.tr("Untranslated", "common_moderation_and_safety") }
   /// We couldn’t finish setting up your account on this device. Please try again.
@@ -160,6 +158,8 @@ internal nonisolated enum UntranslatedL10n {
   internal static var guaChatThemeWallpaper: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_wallpaper") }
   /// Global Search
   internal static var guaCommonGlobalSearch: String { return UntranslatedL10n.tr("Untranslated", "gua_common_global_search") }
+  /// Media settings
+  internal static var guaCommonMediaSettings: String { return UntranslatedL10n.tr("Untranslated", "gua_common_media_settings") }
   /// Contact info
   internal static var guaContactInfoTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_contact_info_title") }
   /// Opens country picker
@@ -316,6 +316,10 @@ internal nonisolated enum UntranslatedL10n {
   }
   /// We couldn’t sign you back in. Please sign in again.
   internal static var guaRestoreSigninFailed: String { return UntranslatedL10n.tr("Untranslated", "gua_restore_signin_failed") }
+  /// Play GIFs automatically
+  internal static var guaSettingsPlayGifsAutomatically: String { return UntranslatedL10n.tr("Untranslated", "gua_settings_play_gifs_automatically") }
+  /// Also animated stickers. GIFs you open always play.
+  internal static var guaSettingsPlayGifsAutomaticallyDescription: String { return UntranslatedL10n.tr("Untranslated", "gua_settings_play_gifs_automatically_description") }
   /// Sign out
   internal static var guaSettingsSignOut: String { return UntranslatedL10n.tr("Untranslated", "gua_settings_sign_out") }
   /// Organize related chats and communities in one place

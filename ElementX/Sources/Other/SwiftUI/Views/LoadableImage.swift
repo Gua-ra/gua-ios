@@ -105,7 +105,7 @@ struct LoadableImage<TransformerView: View, PlaceholderView: View>: View {
 
 private struct LoadableImageContent<TransformerView: View, PlaceholderView: View>: View, ImageDataProvider {
     @Environment(\.shouldAutomaticallyLoadImages) private var loadAutomatically
-    @Environment(\.accessibilityPlayAnimatedImages) private var playAnimatedImages
+    @Environment(\.playsAnimatedImages) private var playAnimatedImages
     
     private let mediaSource: MediaSourceProxy
     private let mediaType: LoadableImageMediaType
@@ -145,7 +145,11 @@ private struct LoadableImageContent<TransformerView: View, PlaceholderView: View
                 transformer(AnyView(Image(uiImage: image).resizable()))
             case (.gifData(let data), true):
                 if playAnimatedImages {
-                    transformer(AnyView(KFAnimatedImage(source: .provider(self)).setProcessor(AnimatedImageProcessor())))
+                    // Kingfisher's disk cache saves a WebP as a one-frame PNG, so a bubble redrawn from it would stop moving.
+                    transformer(AnyView(KFAnimatedImage(source: .provider(self))
+                            .setProcessor(AnimatedImageProcessor())
+                            .cacheMemoryOnly()
+                            .fromMemoryCacheOrRefresh()))
                 } else if let firstFrame = UIImage(data: data) {
                     transformer(AnyView(Image(uiImage: firstFrame).resizable()))
                 } else {
