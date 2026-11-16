@@ -145,7 +145,11 @@ private struct LoadableImageContent<TransformerView: View, PlaceholderView: View
                 transformer(AnyView(Image(uiImage: image).resizable()))
             case (.gifData(let data), true):
                 if playAnimatedImages {
-                    transformer(AnyView(KFAnimatedImage(source: .provider(self)).setProcessor(AnimatedImageProcessor())))
+                    // Kingfisher's disk cache saves a WebP as a one-frame PNG, so a bubble redrawn from it would stop moving.
+                    transformer(AnyView(KFAnimatedImage(source: .provider(self))
+                            .setProcessor(AnimatedImageProcessor())
+                            .cacheMemoryOnly()
+                            .fromMemoryCacheOrRefresh()))
                 } else if let firstFrame = UIImage(data: data) {
                     transformer(AnyView(Image(uiImage: firstFrame).resizable()))
                 } else {
