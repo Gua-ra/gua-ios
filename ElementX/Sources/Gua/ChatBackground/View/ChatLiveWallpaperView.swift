@@ -16,6 +16,13 @@ extension EnvironmentValues {
     @Entry var isChatHiddenByOverlay = false
 }
 
+extension View {
+    /// Reports this view's top edge as the bottom of the chat that a live wallpaper's send pulse shows in.
+    func reportsChatWallpaperComposerTop(to sendPulse: ChatWallpaperSendPulse) -> some View {
+        onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: { sendPulse.composerTop = $0 }
+    }
+}
+
 /// A live artwork's shader, drawn over its still once the first frame is ready.
 struct ChatLiveWallpaperView: View {
     let artwork: ChatArtwork
@@ -26,6 +33,8 @@ struct ChatLiveWallpaperView: View {
     @Environment(\.isChatHiddenByOverlay) private var isHiddenByOverlay
     
     @State private var isOnScreen = false
+    /// The top edge in the space `ChatWallpaperSendPulse.composerTop` is reported in.
+    @State private var globalTop: CGFloat?
     
     /// Previews and tests always show the still, so snapshots never depend on a running clock.
     static var isEnabled: Bool {
@@ -41,10 +50,12 @@ struct ChatLiveWallpaperView: View {
                     ChatLiveWallpaperRepresentable(artwork: artwork,
                                                    policy: policy,
                                                    isDark: colorScheme == .dark,
-                                                   sendPulse: sendPulse)
+                                                   sendPulse: sendPulse,
+                                                   globalTop: globalTop)
                         .id(artwork)
                 }
             }
+            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: { globalTop = $0 }
             .onAppear { isOnScreen = true }
             .onDisappear { isOnScreen = false }
     }
@@ -61,24 +72,22 @@ struct ChatLiveWallpaperView: View {
 }
 
 /// Where the live renderer draws in a view: the still's whole aspect-fill rect, so its first frame is the still the view showed.
+/// It depends on the view's size alone, so the composer and the keyboard never move the picture.
 struct LiveWallpaperLayout: Equatable {
     /// A drawable larger than this many times the visible area gets fewer pixels, so a wide view never holds a huge, mostly hidden one.
     static let maximumAreaRatio: CGFloat = 2
     /// The shaders' default send-pulse spot, as a share of the render target from its bottom-left corner.
     static let pulseSpot = CGPoint(x: 0.83, y: 0.113)
     
+    let viewSize: CGSize
     /// The still's aspect-fill rect in the view's coordinates; it reaches past the view on one axis.
     let rect: CGRect
     let drawableSize: CGSize
     /// The drawable's pixels that can be seen plus one all round, so scaling up never blends in a pixel that was not drawn.
     let scissor: CGRect?
-    /// The default pulse spot of the visible chat, in drawable pixels from the bottom left. The shaders' own default
-    /// would be relative to the whole rect, which puts it below the chat when the view is wider than the still.
-    let pulseOrigin: SIMD2<Float>
     
-    /// `bottomInset` is the part of the view under the home indicator, which the composer's background covers,
-    /// so the visible chat ends at the composer's bottom edge.
-    init(artwork: ChatArtwork, viewSize: CGSize, bottomInset: CGFloat = 0, displayScale: CGFloat) {
+    init(artwork: ChatArtwork, viewSize: CGSize, displayScale: CGFloat) {
+        self.viewSize = viewSize
         rect = ChatBackgroundPhotoLayout.rect(of: ChatArtwork.pixelSize, filling: viewSize, alignX: artwork.anchor.x, alignY: artwork.anchor.y)
         
         let visibleArea = viewSize.width * viewSize.height
@@ -89,7 +98,6 @@ struct LiveWallpaperLayout: Equatable {
         
         guard rect.width > 0, rect.height > 0, drawableSize.width >= 1, drawableSize.height >= 1 else {
             scissor = nil
-            pulseOrigin = .zero
             return
         }
         
@@ -106,19 +114,52 @@ struct LiveWallpaperLayout: Equatable {
             let maxY = min(((shown.maxY - rect.minY) * scaleY).rounded(.up) + 1, drawableSize.height)
             scissor = CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
         }
+    }
+    
+    /// The pulse origin for the chat seen between `visibleTop` and `visibleBottom` of this view.
+    func pulseOrigin(visibleTop: CGFloat, visibleBottom: CGFloat) -> SIMD2<Float> {
+        Self.pulseOrigin(canvasSize: viewSize, frame: rect, renderSize: drawableSize, visibleTop: visibleTop, visibleBottom: visibleBottom)
+    }
+    
+    /// `u_origin`: the shaders' default spot taken on the visible chat, the canvas's width from `visibleTop` down to
+    /// `visibleBottom`, instead of on the frame, which reaches under the composer and the keyboard. `frame` is the still's
+    /// rect in the canvas and `renderSize` is `u_res`; the result is in its pixels from the bottom left.
+    static func pulseOrigin(canvasSize: CGSize, frame: CGRect, renderSize: CGSize, visibleTop: CGFloat, visibleBottom: CGFloat) -> SIMD2<Float> {
+        guard frame.width > 0, frame.height > 0, renderSize.width >= 1, renderSize.height >= 1 else { return .zero }
         
-        let visibleHeight = max(viewSize.height - bottomInset, 0)
-        let spotX = viewSize.width * Self.pulseSpot.x - rect.minX
-        let spotYFromTop = visibleHeight * (1 - Self.pulseSpot.y) - rect.minY
-        pulseOrigin = SIMD2(Float(spotX * scaleX), Float(drawableSize.height - spotYFromTop * scaleY))
+        // A composer pushed up to the top bar (landscape with the keyboard open) leaves no chat, so the spot sits on the bar's edge.
+        let top = min(max(visibleTop, 0), canvasSize.height)
+        let bottom = min(max(visibleBottom, top), canvasSize.height)
+        let spotX = canvasSize.width * pulseSpot.x
+        let spotY = bottom - (bottom - top) * pulseSpot.y
+        
+        let scaleX = renderSize.width / frame.width
+        let scaleY = renderSize.height / frame.height
+        return SIMD2(Float((spotX - frame.minX) * scaleX), Float(renderSize.height - (spotY - frame.minY) * scaleY))
+    }
+    
+    /// The visible chat's edges in the canvas, unclamped: below the top bar the canvas's top inset holds, down to the composer's
+    /// top edge. Both global tops are in `ChatWallpaperSendPulse.composerTop`'s space; until both are known, the chat ends
+    /// above the home indicator.
+    static func visibleChat(canvasHeight: CGFloat,
+                            canvasGlobalTop: CGFloat?,
+                            composerGlobalTop: CGFloat?,
+                            topInset: CGFloat,
+                            bottomInset: CGFloat,
+                            windowBottomInset: CGFloat?) -> (top: CGFloat, bottom: CGFloat) {
+        if let canvasGlobalTop, let composerGlobalTop {
+            return (topInset, composerGlobalTop - canvasGlobalTop)
+        }
+        // The window's inset is the home indicator alone; the canvas's own can also hold the keyboard.
+        return (topInset, canvasHeight - min(bottomInset, windowBottomInset ?? 0))
     }
 }
 
 extension LiveWallpaperUniforms {
     /// One frame's uniforms in the renderer's layout; a frame that doesn't animate never shows the pulse.
-    static func frame(in layout: LiveWallpaperLayout, isDark: Bool, time: Float, pulse: Float, animates: Bool) -> LiveWallpaperUniforms {
+    static func frame(in layout: LiveWallpaperLayout, origin: SIMD2<Float>, isDark: Bool, time: Float, pulse: Float, animates: Bool) -> LiveWallpaperUniforms {
         LiveWallpaperUniforms(res: SIMD2(Float(layout.drawableSize.width), Float(layout.drawableSize.height)),
-                              origin: layout.pulseOrigin,
+                              origin: origin,
                               time: time,
                               dark: isDark ? 1 : 0,
                               pulse: animates ? pulse : 0)
@@ -130,6 +171,7 @@ private struct ChatLiveWallpaperRepresentable: UIViewRepresentable {
     let policy: WallpaperMotionPolicy
     let isDark: Bool
     let sendPulse: ChatWallpaperSendPulse
+    let globalTop: CGFloat?
     
     func makeUIView(context: Context) -> ChatLiveWallpaperUIView {
         ChatLiveWallpaperUIView(artwork: artwork)
@@ -137,6 +179,7 @@ private struct ChatLiveWallpaperRepresentable: UIViewRepresentable {
     
     func updateUIView(_ view: ChatLiveWallpaperUIView, context: Context) {
         view.sendPulse = sendPulse
+        view.globalTop = globalTop
         view.isDark = isDark
         view.policy = policy
     }
@@ -148,6 +191,8 @@ private final class ChatLiveWallpaperUIView: UIView, MTKViewDelegate {
     private static let coverCheckInterval: TimeInterval = 0.25
     
     var sendPulse: ChatWallpaperSendPulse?
+    /// This view's top edge in the space `sendPulse.composerTop` is reported in.
+    var globalTop: CGFloat?
     
     var isDark = false {
         didSet {
@@ -189,6 +234,18 @@ private final class ChatLiveWallpaperUIView: UIView, MTKViewDelegate {
     private var motion: WallpaperMotionPolicy.Motion {
         guard pipeline != nil, !watchdog.hasTripped else { return .still }
         return policy.including(isInWindow: window != nil, isSceneActive: isSceneActive, isCovered: isCovered).motion
+    }
+    
+    /// Where the send pulse starts: on the chat between the top bar and the composer, wherever the keyboard has moved it.
+    private var pulseOrigin: SIMD2<Float> {
+        guard let layout else { return .zero }
+        let chat = LiveWallpaperLayout.visibleChat(canvasHeight: bounds.height,
+                                                   canvasGlobalTop: globalTop,
+                                                   composerGlobalTop: sendPulse?.composerTop,
+                                                   topInset: safeAreaInsets.top,
+                                                   bottomInset: safeAreaInsets.bottom,
+                                                   windowBottomInset: window?.safeAreaInsets.bottom)
+        return layout.pulseOrigin(visibleTop: chat.top, visibleBottom: chat.bottom)
     }
     
     /// Apps must not use the GPU in the background, but an inactive scene (Control Center, the app switcher) still may.
@@ -269,19 +326,12 @@ private final class ChatLiveWallpaperUIView: UIView, MTKViewDelegate {
     override func layoutSubviews() {
         super.layoutSubviews()
         
-        // The window's inset is the home indicator alone; the view's own can also hold the keyboard.
-        let bottomInset = min(safeAreaInsets.bottom, window?.safeAreaInsets.bottom ?? 0)
-        let layout = LiveWallpaperLayout(artwork: artwork, viewSize: bounds.size, bottomInset: bottomInset, displayScale: traitCollection.displayScale)
+        let layout = LiveWallpaperLayout(artwork: artwork, viewSize: bounds.size, displayScale: traitCollection.displayScale)
         guard layout != self.layout else { return }
         self.layout = layout
         metalView.frame = layout.rect
         metalView.drawableSize = layout.drawableSize
         requestPausedFrame()
-    }
-    
-    override func safeAreaInsetsDidChange() {
-        super.safeAreaInsetsDidChange()
-        setNeedsLayout()
     }
     
     override func didMoveToWindow() {
@@ -319,7 +369,12 @@ private final class ChatLiveWallpaperUIView: UIView, MTKViewDelegate {
         
         // Every pixel that can be seen is drawn, so there is nothing to load or clear.
         pass.colorAttachments[0].loadAction = .dontCare
-        let uniforms = LiveWallpaperUniforms.frame(in: layout, isDark: isDark, time: clock.time(at: now), pulse: sendPulse?.value(at: now) ?? 0, animates: animates)
+        let uniforms = LiveWallpaperUniforms.frame(in: layout,
+                                                   origin: pulseOrigin,
+                                                   isDark: isDark,
+                                                   time: clock.time(at: now),
+                                                   pulse: sendPulse?.value(at: now) ?? 0,
+                                                   animates: animates)
         LiveWallpaperShader.encode(pipeline, uniforms: uniforms, pass: pass, scissor: layout.scissor.map { MTLScissorRect($0) }, into: commandBuffer)
         
         let generation = frameGeneration

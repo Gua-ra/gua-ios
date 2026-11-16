@@ -54,12 +54,15 @@ nonisolated enum LiveWallpaperPulse {
     }
 }
 
-/// When the user last sent an event from this device in one chat, which its live wallpaper turns into the send pulse.
+/// When the user last sent an event from this device in one chat, which its live wallpaper turns into the send pulse,
+/// and where the chat ends above the composer, which places it.
 final class ChatWallpaperSendPulse {
     private static var rooms: [String: ChatWallpaperSendPulse] = [:]
     
     private let now: () -> TimeInterval
     private(set) var lastSend: TimeInterval?
+    /// The top edge of the composer, or of the theme preview's controls, in SwiftUI's global space.
+    var composerTop: CGFloat?
     /// The transaction IDs of every local echo the room's timeline has shown.
     private var seenLocalEchoes: Set<String> = []
     /// Set while the timeline on screen is opening: its local echoes were sent before it opened.

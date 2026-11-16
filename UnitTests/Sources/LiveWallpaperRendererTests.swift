@@ -57,12 +57,13 @@ final class LiveWallpaperRendererTests {
         let pipeline = try #require(await LiveWallpaperPipelines.shared.pipeline(for: artwork))
         let layout = LiveWallpaperLayout(artwork: artwork, viewSize: CGSize(width: Self.width, height: Self.height), displayScale: 2)
         try #require(layout.drawableSize == CGSize(width: Self.width, height: Self.height))
+        let origin = layout.pulseOrigin(visibleTop: 0, visibleBottom: CGFloat(Self.height))
         
         let shadersOwnSpot = try render(pipeline, time: stillTime, dark: false, pulse: 0.6)
-        let layoutSpot = try render(pipeline, time: stillTime, dark: false, pulse: 0.6, origin: layout.pulseOrigin)
-        let upsideDown = try render(pipeline, time: stillTime, dark: false, pulse: 0.6, origin: SIMD2(layout.pulseOrigin.x, Float(Self.height) - layout.pulseOrigin.y))
+        let layoutSpot = try render(pipeline, time: stillTime, dark: false, pulse: 0.6, origin: origin)
+        let upsideDown = try render(pipeline, time: stillTime, dark: false, pulse: 0.6, origin: SIMD2(origin.x, Float(Self.height) - origin.y))
         
-        // In a view shaped like the still, the layout's spot is the shaders' own default.
+        // With the whole of a view shaped like the still visible, the layout's spot is the shaders' own default.
         #expect(meanDifference(shadersOwnSpot, layoutSpot) < 0.1, "\(artwork.id) moves the pulse")
         #expect(changedShare(shadersOwnSpot, layoutSpot) < 0.01, "\(artwork.id) moves the pulse")
         #expect(changedShare(shadersOwnSpot, upsideDown) > 0.02, "\(artwork.id) ignores the pulse origin")

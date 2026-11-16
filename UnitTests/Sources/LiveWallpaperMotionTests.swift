@@ -6,7 +6,7 @@
 //
 
 @testable import ElementX
-import Foundation
+import SwiftUI
 import Testing
 
 final class LiveWallpaperMotionTests {
@@ -288,57 +288,170 @@ final class LiveWallpaperMotionTests {
         #expect(abs(layout.drawableSize.width / layout.drawableSize.height - layout.rect.width / layout.rect.height) < 0.01)
     }
     
-    @Test(arguments: [(CGSize(width: 402, height: 758), 34), (CGSize(width: 874, height: 340), 21), (CGSize(width: 820, height: 1106), 20), (CGSize(width: 1376, height: 950), 0)] as [(CGSize, CGFloat)])
-    func thePulseSpotIsInTheVisibleChat(viewSize: CGSize, bottomInset: CGFloat) {
-        let visibleHeight = viewSize.height - bottomInset
+    // An iPhone 17 Pro chat is 402 by 758 points from the navigation bar down to the bottom of the screen, behind a
+    // 34-point home indicator, a 64-point composer and a 336-point keyboard; composer tops below are what those leave.
+    
+    @Test(arguments: [(CGSize(width: 402, height: 758), 0...660),
+                      (CGSize(width: 402, height: 758), 0...358),
+                      (CGSize(width: 874, height: 340), 0...255),
+                      (CGSize(width: 820, height: 1106), 0...1022),
+                      (CGSize(width: 1376, height: 950), 0...886),
+                      // A canvas reaching up under a 116-point top bar.
+                      (CGSize(width: 402, height: 874), 116...776)] as [(CGSize, ClosedRange<CGFloat>)])
+    func thePulseSpotIsTheShadersSpotOnTheVisibleChat(canvasSize: CGSize, visibleChat: ClosedRange<CGFloat>) {
         for artwork in ChatArtwork.allCases where artwork.isLive {
-            let layout = LiveWallpaperLayout(artwork: artwork, viewSize: viewSize, bottomInset: bottomInset, displayScale: 3)
-            let spot = spotInView(layout)
+            let layout = LiveWallpaperLayout(artwork: artwork, viewSize: canvasSize, displayScale: 3)
+            let spot = spotInCanvas(layout.pulseOrigin(visibleTop: visibleChat.lowerBound, visibleBottom: visibleChat.upperBound), of: layout)
             
-            // The same share of the visible chat as the shaders' default spot is of their render target.
-            #expect(abs(spot.x - viewSize.width * 0.83) < 0.5, "\(artwork.id) \(viewSize)")
-            #expect(abs(spot.y - visibleHeight * (1 - 0.113)) < 0.5, "\(artwork.id) \(viewSize)")
+            #expect(abs(spot.x - canvasSize.width * 0.83) < 0.5, "\(artwork.id) \(canvasSize)")
+            #expect(abs(visibleChat.upperBound - spot.y - (visibleChat.upperBound - visibleChat.lowerBound) * 0.113) < 0.5, "\(artwork.id) \(canvasSize)")
         }
     }
     
     @Test
-    func thePulseSpotIsAboveTheHomeIndicator() {
-        // An iPhone 17 Pro chat below the navigation bar, reaching down behind the composer and the home indicator.
-        let viewSize = CGSize(width: 402, height: 758)
-        let bottomInset: CGFloat = 34
-        let layout = LiveWallpaperLayout(artwork: .glassDrops, viewSize: viewSize, bottomInset: bottomInset, displayScale: 3)
-        let withoutInset = LiveWallpaperLayout(artwork: .glassDrops, viewSize: viewSize, displayScale: 3)
+    func thePulseSpotFollowsTheKeyboardWithoutMovingTheFrame() {
+        let layout = LiveWallpaperLayout(artwork: .glassDrops, viewSize: CGSize(width: 402, height: 758), displayScale: 3)
+        let keyboardClosed = frame(in: layout, visibleBottom: 660)
+        let keyboardOpen = frame(in: layout, visibleBottom: 358)
         
-        let heightAboveBottom = viewSize.height - spotInView(layout).y
-        #expect(abs(heightAboveBottom - (bottomInset + (viewSize.height - bottomInset) * 0.113)) < 0.5)
-        #expect(heightAboveBottom > bottomInset)
-        #expect(layout.pulseOrigin.y > withoutInset.pulseOrigin.y)
-        #expect(layout.pulseOrigin.x == withoutInset.pulseOrigin.x)
-        #expect(layout.rect == withoutInset.rect)
-        #expect(layout.drawableSize == withoutInset.drawableSize)
-        #expect(layout.scissor == withoutInset.scissor)
+        #expect(keyboardOpen.res == keyboardClosed.res)
+        #expect(keyboardOpen.origin.x == keyboardClosed.origin.x)
+        #expect(keyboardOpen.origin.y > keyboardClosed.origin.y)
+        #expect(spotInCanvas(keyboardClosed.origin, of: layout).y < 660)
+        #expect(spotInCanvas(keyboardOpen.origin, of: layout).y < 358)
     }
     
     @Test
-    func aChatShapedLikeTheStillKeepsTheShadersOwnSpot() {
-        let layout = LiveWallpaperLayout(artwork: .glassDrops, viewSize: CGSize(width: 430, height: 932), displayScale: 3)
-        #expect(abs(layout.pulseOrigin.x - Float(layout.drawableSize.width) * 0.83) < 0.5)
-        #expect(abs(layout.pulseOrigin.y - Float(layout.drawableSize.height) * 0.113) < 0.5)
+    func aTallerComposerRaisesTheSpot() {
+        let layout = LiveWallpaperLayout(artwork: .silk, viewSize: CGSize(width: 402, height: 758), displayScale: 3)
+        let oneLine = layout.pulseOrigin(visibleTop: 0, visibleBottom: 660)
+        let fourLines = layout.pulseOrigin(visibleTop: 0, visibleBottom: 584)
+        
+        #expect(fourLines.y > oneLine.y)
+        #expect(fourLines.x == oneLine.x)
+        #expect(abs(584 - spotInCanvas(fourLines, of: layout).y - 584 * 0.113) < 0.5)
+    }
+    
+    // The same chat in SwiftUI's global space: its canvas starts 116 points down, below the top bar, and the composer
+    // and the keyboard are measured there too.
+    
+    @Test(arguments: [(776, 660), (474, 358), (60, -56), (930, 814)] as [(CGFloat, CGFloat)])
+    func theComposerIsMeasuredFromTheCanvasTop(composerGlobalTop: CGFloat, visibleBottom: CGFloat) {
+        let chat = visibleChat(composerGlobalTop: composerGlobalTop)
+        #expect(chat.top == 0)
+        #expect(chat.bottom == visibleBottom)
+    }
+    
+    @Test
+    func aComposerOutsideTheCanvasPutsTheSpotOnItsEdge() {
+        let layout = LiveWallpaperLayout(artwork: .glassDrops, viewSize: CGSize(width: 402, height: 758), displayScale: 3)
+        
+        let above = visibleChat(composerGlobalTop: 60)
+        let spotAbove = spotInCanvas(layout.pulseOrigin(visibleTop: above.top, visibleBottom: above.bottom), of: layout)
+        #expect(abs(spotAbove.y) < 0.5)
+        
+        let below = visibleChat(composerGlobalTop: 930)
+        let spotBelow = spotInCanvas(layout.pulseOrigin(visibleTop: below.top, visibleBottom: below.bottom), of: layout)
+        #expect(abs(758 - spotBelow.y - 758 * 0.113) < 0.5)
+    }
+    
+    @Test
+    func aCanvasUnderTheTopBarStartsTheChatBelowIt() {
+        let chat = LiveWallpaperLayout.visibleChat(canvasHeight: 874,
+                                                   canvasGlobalTop: 0,
+                                                   composerGlobalTop: 776,
+                                                   topInset: 116,
+                                                   bottomInset: 34,
+                                                   windowBottomInset: 34)
+        #expect(chat.top == 116)
+        #expect(chat.bottom == 776)
+    }
+    
+    @Test
+    func withoutAComposerTheChatEndsAboveTheHomeIndicator() {
+        #expect(visibleChat(canvasGlobalTop: nil, composerGlobalTop: nil).bottom == 724)
+        #expect(visibleChat(canvasGlobalTop: nil, composerGlobalTop: 776).bottom == 724)
+        #expect(visibleChat(composerGlobalTop: nil).bottom == 724)
+        // The canvas's own inset also holds the keyboard, which the window's never does.
+        #expect(visibleChat(composerGlobalTop: nil, bottomInset: 370).bottom == 724)
+        #expect(visibleChat(composerGlobalTop: nil, bottomInset: 0).bottom == 758)
+        #expect(visibleChat(composerGlobalTop: nil, windowBottomInset: nil).bottom == 758)
+        #expect(visibleChat(composerGlobalTop: nil).top == 0)
+        
+        let layout = LiveWallpaperLayout(artwork: .ipe, viewSize: CGSize(width: 402, height: 758), displayScale: 3)
+        let spot = spotInCanvas(layout.pulseOrigin(visibleTop: 0, visibleBottom: 724), of: layout)
+        #expect(abs(724 - spot.y - 724 * 0.113) < 0.5)
+    }
+    
+    @Test
+    func theRoomScreenReportsItsComposerTop() async throws {
+        let room = makeRoom()
+        let roomScreen = RoomScreenViewModel.mock(roomProxyMock: JoinedRoomProxyMock(.init(id: room.viewModel.context.viewState.roomID, name: "Live wallpaper")))
+        let composer = ComposerToolbarViewModel.mock()
+        let scene = try #require(UIApplication.shared.connectedScenes.first as? UIWindowScene)
+        let window = UIWindow(windowScene: scene)
+        window.rootViewController = UIHostingController(rootView: ElementNavigationStack {
+            RoomScreen(context: roomScreen.context, timelineContext: room.viewModel.context, composerToolbar: ComposerToolbar(context: composer.context))
+        })
+        window.isHidden = false
+        defer { window.isHidden = true }
+        
+        var waits = 0
+        while room.pulse.composerTop == nil, waits < 100 {
+            try await Task.sleep(for: .milliseconds(20))
+            waits += 1
+        }
+        
+        let composerTop = try #require(room.pulse.composerTop)
+        #expect(composerTop > window.bounds.height / 2)
+        #expect(composerTop < window.bounds.height - window.safeAreaInsets.bottom)
+    }
+    
+    @Test
+    func thePreviewSpotIsAboveItsControls() {
+        // The full-screen theme preview below its Cancel bar, with Light/Dark and Set theme above the home indicator.
+        let canvasSize = CGSize(width: 402, height: 758)
+        let controlsTop: CGFloat = 598
+        for artwork in ChatArtwork.allCases where artwork.isLive {
+            let layout = LiveWallpaperLayout(artwork: artwork, viewSize: canvasSize, displayScale: 3)
+            let spot = spotInCanvas(layout.pulseOrigin(visibleTop: 0, visibleBottom: controlsTop), of: layout)
+            
+            #expect(spot.y > 0 && spot.y < controlsTop, "\(artwork.id)")
+            #expect(abs(controlsTop - spot.y - controlsTop * 0.113) < 0.5, "\(artwork.id)")
+        }
+    }
+    
+    @Test
+    func aCanvasShapedLikeTheStillKeepsTheSpotInTheVisibleChat() {
+        // An iPhone 17 Pro Max chat whose canvas is the still's own shape, so the frame is the canvas.
+        let canvasSize = CGSize(width: 430, height: 932)
+        let layout = LiveWallpaperLayout(artwork: .glassDrops, viewSize: canvasSize, displayScale: 3)
+        let shadersOwnOrigin = SIMD2(Float(layout.drawableSize.width) * 0.83, Float(layout.drawableSize.height) * 0.113)
+        #expect(abs(layout.rect.minX) < 0.01 && abs(layout.rect.minY) < 0.01 && abs(layout.rect.height - canvasSize.height) < 0.01)
+        
+        for composerTop: CGFloat in [834, 532] {
+            let spot = spotInCanvas(layout.pulseOrigin(visibleTop: 0, visibleBottom: composerTop), of: layout)
+            #expect(spot.x > 0 && spot.x < canvasSize.width, "\(composerTop)")
+            #expect(spot.y > 0 && spot.y < composerTop, "\(composerTop)")
+        }
+        // With the keyboard open, the shaders' own spot would be behind it.
+        #expect(spotInCanvas(shadersOwnOrigin, of: layout).y > 532)
     }
     
     @Test
     func uniformsComeFromTheLayoutAndTheMotion() {
         let layout = LiveWallpaperLayout(artwork: .ipe, viewSize: CGSize(width: 402, height: 758), displayScale: 3)
+        let origin = layout.pulseOrigin(visibleTop: 0, visibleBottom: 660)
         
-        let animating = LiveWallpaperUniforms.frame(in: layout, isDark: true, time: 25.5, pulse: 0.6, animates: true)
+        let animating = LiveWallpaperUniforms.frame(in: layout, origin: origin, isDark: true, time: 25.5, pulse: 0.6, animates: true)
         #expect(animating.res == SIMD2(Float(layout.drawableSize.width), Float(layout.drawableSize.height)))
-        #expect(animating.origin == layout.pulseOrigin)
+        #expect(animating.origin == origin)
         #expect(animating.tilt == .zero)
         #expect(animating.time == 25.5)
         #expect(animating.dark == 1)
         #expect(animating.pulse == 0.6)
         
-        let held = LiveWallpaperUniforms.frame(in: layout, isDark: false, time: 25.5, pulse: 0.6, animates: false)
+        let held = LiveWallpaperUniforms.frame(in: layout, origin: origin, isDark: false, time: 25.5, pulse: 0.6, animates: false)
         #expect(held.dark == 0)
         #expect(held.pulse == 0)
         #expect(held.time == 25.5)
@@ -596,12 +709,35 @@ final class LiveWallpaperMotionTests {
     
     // MARK: - Helpers
     
-    /// The layout's pulse origin in the view's coordinates, from the top left.
-    private func spotInView(_ layout: LiveWallpaperLayout) -> CGPoint {
+    /// A pulse origin in the canvas's coordinates, from the top left.
+    private func spotInCanvas(_ origin: SIMD2<Float>, of layout: LiveWallpaperLayout) -> CGPoint {
         let scaleX = layout.drawableSize.width / layout.rect.width
         let scaleY = layout.drawableSize.height / layout.rect.height
-        return CGPoint(x: CGFloat(layout.pulseOrigin.x) / scaleX + layout.rect.minX,
-                       y: (layout.drawableSize.height - CGFloat(layout.pulseOrigin.y)) / scaleY + layout.rect.minY)
+        return CGPoint(x: CGFloat(origin.x) / scaleX + layout.rect.minX,
+                       y: (layout.drawableSize.height - CGFloat(origin.y)) / scaleY + layout.rect.minY)
+    }
+    
+    /// The visible chat of a 758-point canvas 116 points down SwiftUI's global space, over a 34-point home indicator.
+    private func visibleChat(canvasGlobalTop: CGFloat? = 116,
+                             composerGlobalTop: CGFloat?,
+                             bottomInset: CGFloat = 34,
+                             windowBottomInset: CGFloat? = 34) -> (top: CGFloat, bottom: CGFloat) {
+        LiveWallpaperLayout.visibleChat(canvasHeight: 758,
+                                        canvasGlobalTop: canvasGlobalTop,
+                                        composerGlobalTop: composerGlobalTop,
+                                        topInset: 0,
+                                        bottomInset: bottomInset,
+                                        windowBottomInset: windowBottomInset)
+    }
+    
+    /// An animating frame's uniforms with the chat seen from the canvas's top down to `visibleBottom`.
+    private func frame(in layout: LiveWallpaperLayout, visibleBottom: CGFloat) -> LiveWallpaperUniforms {
+        LiveWallpaperUniforms.frame(in: layout,
+                                    origin: layout.pulseOrigin(visibleTop: 0, visibleBottom: visibleBottom),
+                                    isDark: false,
+                                    time: 0,
+                                    pulse: 0.6,
+                                    animates: true)
     }
     
     /// Draws `count` frames ending `interval` apart from `start`, each taking `gpuTime`, and returns whether the watchdog tripped.
