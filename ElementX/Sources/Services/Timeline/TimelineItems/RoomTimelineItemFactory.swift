@@ -213,7 +213,8 @@ nonisolated struct RoomTimelineItemFactory: RoomTimelineItemFactoryProtocol {
                              canBeRepliedTo: eventItemProxy.canBeRepliedTo,
                              shouldBoost: eventItemProxy.shouldBoost,
                              sender: eventItemProxy.sender,
-                             content: buildTextTimelineItemContent(textMessageContent),
+                             // GUA FORK: only timeline items get buttons, reply and thread previews keep the plain link.
+                             content: buildTextTimelineItemContent(textMessageContent).addingGuaMessageActions(latestJSON: eventItemProxy.latestJSON),
                              properties: .init(replyDetails: buildTimelineItemReplyDetails(messageLikeContent.inReplyTo),
                                                isThreaded: messageLikeContent.threadRoot != nil,
                                                threadSummary: buildTimelineItemThreadSummary(messageLikeContent.threadSummary),
@@ -355,7 +356,8 @@ nonisolated struct RoomTimelineItemFactory: RoomTimelineItemFactoryProtocol {
                                isEditable: eventItemProxy.isEditable,
                                canBeRepliedTo: eventItemProxy.canBeRepliedTo,
                                sender: eventItemProxy.sender,
-                               content: buildNoticeTimelineItemContent(noticeMessageContent),
+                               // GUA FORK: only timeline items get buttons, reply and thread previews keep the plain link.
+                               content: buildNoticeTimelineItemContent(noticeMessageContent).addingGuaMessageActions(latestJSON: eventItemProxy.latestJSON),
                                properties: .init(replyDetails: buildTimelineItemReplyDetails(messageLikeContent.inReplyTo),
                                                  isThreaded: messageLikeContent.threadRoot != nil,
                                                  threadSummary: buildTimelineItemThreadSummary(messageLikeContent.threadSummary),
@@ -754,7 +756,8 @@ nonisolated struct RoomTimelineItemFactory: RoomTimelineItemFactoryProtocol {
         let htmlBody = messageContent.formatted?.format == .html ? messageContent.formatted?.body : nil
         let formattedBody = (htmlBody != nil ? attributedStringBuilder.fromHTML(htmlBody) : attributedStringBuilder.fromPlain(messageContent.body))
         
-        return .init(body: messageContent.body, formattedBody: formattedBody)
+        // GUA FORK: upstream drops the HTML string here, which notices need for URL buttons as text messages do.
+        return .init(body: messageContent.body, formattedBody: formattedBody, formattedBodyHTMLString: htmlBody)
     }
     
     private func buildEmoteTimelineItemContent(senderDisplayName: String?, senderID: String, messageContent: EmoteMessageContent) -> EmoteRoomTimelineItemContent {

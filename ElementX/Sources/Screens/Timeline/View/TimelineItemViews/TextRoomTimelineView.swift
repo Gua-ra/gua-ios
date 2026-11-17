@@ -26,14 +26,15 @@ struct TextRoomTimelineView: View, TextBasedRoomTimelineViewProtocol {
     var body: some View {
         TimelineStyler(timelineItem: timelineItem) {
             VStack(alignment: .leading, spacing: 8) {
-                if let attributedString = timelineItem.content.formattedBody {
-                    FormattedBodyText(attributedString: attributedString,
-                                      trailingReservedSize: timelineItem.trailingReservedSize,
-                                      boostFontSize: timelineItem.shouldBoost)
+                if timelineItem.content.actions.isEmpty {
+                    formattedBody(trailingReservedSize: timelineItem.trailingReservedSize)
                 } else {
-                    FormattedBodyText(text: timelineItem.body,
-                                      trailingReservedSize: timelineItem.trailingReservedSize,
-                                      boostFontSize: timelineItem.shouldBoost)
+                    // GUA FORK: the send info sits under the buttons, so nothing is reserved for it in the text.
+                    GuaMessageActionsStack(actions: timelineItem.content.actions) {
+                        if timelineItem.content.hasBubbleBody {
+                            formattedBody(trailingReservedSize: .zero)
+                        }
+                    }
                 }
                 
                 if context?.viewState.linkPreviewsEnabled ?? false, !linkMetadata.keys.isEmpty {
@@ -50,6 +51,19 @@ struct TextRoomTimelineView: View, TextBasedRoomTimelineViewProtocol {
             }
         }
         .task { await fetchLinkPreviews() }
+    }
+    
+    @ViewBuilder
+    private func formattedBody(trailingReservedSize: CGSize) -> some View {
+        if let attributedString = timelineItem.content.bubbleFormattedBody {
+            FormattedBodyText(attributedString: attributedString,
+                              trailingReservedSize: trailingReservedSize,
+                              boostFontSize: timelineItem.shouldBoost)
+        } else {
+            FormattedBodyText(text: timelineItem.body,
+                              trailingReservedSize: trailingReservedSize,
+                              boostFontSize: timelineItem.shouldBoost)
+        }
     }
     
     private func fetchLinkPreviews() async {

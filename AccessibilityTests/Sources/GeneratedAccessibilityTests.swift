@@ -195,6 +195,10 @@ extension AccessibilityTests {
         try await performAccessibilityAudit(named: "GalleryRoomTimelineView_Previews")
     }
 
+    func testGuaMessageActionsView() async throws {
+        try await performAccessibilityAudit(named: "GuaMessageActionsView_Previews")
+    }
+
     func testHighlightedTimelineItemModifier() async throws {
         try await performAccessibilityAudit(named: "HighlightedTimelineItemModifier_Previews")
     }

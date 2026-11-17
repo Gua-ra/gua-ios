@@ -13,4 +13,7 @@ nonisolated struct TextRoomTimelineItemContent: Hashable {
     var formattedBody: AttributedString?
     /// The original textual representation of the formatted body directly from the event (usually HTML code)
     var formattedBodyHTMLString: String?
+    // GUA FORK: URL buttons, and the body without the link they replace, which only the bubble shows.
+    var actions: [GuaMessageAction] = []
+    var formattedBodyWithoutFallback: AttributedString?
 }

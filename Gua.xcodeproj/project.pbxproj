@@ -406,6 +406,7 @@
 		39E5316057CC8C49F86B860E /* PollFormScreenViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9E421CA39B354FB3B84FF43 /* PollFormScreenViewModelTests.swift */; };
 		39F56040B6F5897B29E44261 /* KnockRequestsListScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E87AB857DA46D5F43C2509C /* KnockRequestsListScreen.swift */; };
 		3A0F52B6FB91FC8206AE509B /* NotificationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEF509FF51D6A82E45BA7A6 /* NotificationServiceTests.swift */; };
+		3A494AE0E823BC6897442EF1 /* GuaMessageAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 424378D345BD3DF8E4DC44D9 /* GuaMessageAction.swift */; };
 		3A5D570C7920242506524681 /* LocationRoomTimelineItemContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = C374B542152AE8A38D5C2DA9 /* LocationRoomTimelineItemContent.swift */; };
 		3A6A49CEED9F36BA88C3AFB5 /* UserIdentityProxyMock.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0E8B8C0B029E702CDB0A9D3 /* UserIdentityProxyMock.swift */; };
 		3ACCD9E7ECE38495667A1294 /* Bundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 691233DBD71AE9754A6F6BA4 /* Bundle.swift */; };
@@ -1120,6 +1121,7 @@
 		A3B20B623962E65304060A16 /* CallInviteRoomTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F7F49BD71B612F2389DEC50 /* CallInviteRoomTimelineView.swift */; };
 		A3B284D87743B858C969C9BF /* NSRegularExpresion.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC1C895F92E85FED8E1F0C16 /* NSRegularExpresion.swift */; };
 		A3F7FCD6F5520C39F46BEF83 /* landscape_test_image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 02CCBC9A28452CAE63F69F96 /* landscape_test_image.jpg */; };
+		A41D63215A8FBA45C273D98E /* GuaMessageActionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7906826E9F1AC7B45EFBD36 /* GuaMessageActionsView.swift */; };
 		A453C9F417C848F990608358 /* ManageRoomMemberSheetViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E988D6B4098BB90EC9DEDD62 /* ManageRoomMemberSheetViewModelTests.swift */; };
 		A46F24FA28398E0572BC4D6D /* LegalInformationScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 530DCB91BF811422CC0F717E /* LegalInformationScreen.swift */; };
 		A4C43990CAF2071ACBFED48B /* DeclineAndBlockScreenCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E19FAB58994B58EBAF11EA6 /* DeclineAndBlockScreenCoordinator.swift */; };
@@ -2250,6 +2252,7 @@
 		41096FCB800AB6ADF1FFA031 /* AccessibilityIdentifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityIdentifiers.swift; sourceTree = "<group>"; };
 		4135D1B871F7B6AC9F2F40CE /* VoiceMessageRoomPlaybackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceMessageRoomPlaybackView.swift; sourceTree = "<group>"; };
 		4145099EC212DAB87A6FF16D /* LiveLocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveLocationManager.swift; sourceTree = "<group>"; };
+		424378D345BD3DF8E4DC44D9 /* GuaMessageAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuaMessageAction.swift; sourceTree = "<group>"; };
 		425125A04802CEF55E0D854D /* portrait_test_image.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = portrait_test_image.jpg; sourceTree = "<group>"; };
 		4287415E44EB67AEA02C70CC /* JoinCallButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoinCallButton.swift; sourceTree = "<group>"; };
 		42FD15D5072F02AF302281DC /* AccessibilityTestsAppCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityTestsAppCoordinator.swift; sourceTree = "<group>"; };
@@ -2968,6 +2971,7 @@
 		B6FADBC5E3EE78C3BDF67287 /* UserPreferenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserPreferenceTests.swift; sourceTree = "<group>"; };
 		B72A88EAC2D8CE542429B345 /* AppGroupMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppGroupMigration.swift; sourceTree = "<group>"; };
 		B78D8ECD9F279C675FCD0513 /* TimelineItemAccessibilityModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineItemAccessibilityModifier.swift; sourceTree = "<group>"; };
+		B7906826E9F1AC7B45EFBD36 /* GuaMessageActionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuaMessageActionsView.swift; sourceTree = "<group>"; };
 		B7ACA0191CABA687934D0D7D /* ImageMediaEventsTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageMediaEventsTimelineView.swift; sourceTree = "<group>"; };
 		B87FC725EBDA6F27CA8AC591 /* StartChatViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartChatViewModelTests.swift; sourceTree = "<group>"; };
 		B883F83064F2A09BF47772CC /* TimelineMediaFrame.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineMediaFrame.swift; sourceTree = "<group>"; };
@@ -5248,6 +5252,15 @@
 			path = InviteUsersScreen;
 			sourceTree = "<group>";
 		};
+		67C9798B7DD471A87E8E402E /* Timeline */ = {
+			isa = PBXGroup;
+			children = (
+				424378D345BD3DF8E4DC44D9 /* GuaMessageAction.swift */,
+				B7906826E9F1AC7B45EFBD36 /* GuaMessageActionsView.swift */,
+			);
+			path = Timeline;
+			sourceTree = "<group>";
+		};
 		6835354C104FC859E9F9BB02 /* Keychain */ = {
 			isa = PBXGroup;
 			children = (
@@ -7319,6 +7332,7 @@
 				DB9EF6C79C3057FE0A640216 /* Encryption */,
 				54622373182C566E6B30EB5A /* Screens */,
 				2E0247EFE2BF01A64641C12F /* Services */,
+				67C9798B7DD471A87E8E402E /* Timeline */,
 			);
 			path = Gua;
 			sourceTree = "<group>";
@@ -9068,6 +9082,8 @@
 				EBC86B3460CBE83FFD9C2A01 /* GuaDeployment.swift in Sources */,
 				04E411EE378A4F5B909D28A6 /* GuaIDPLocaleURL.swift in Sources */,
 				371BCAE82B469B27E4BE7526 /* GuaLanguageTag.swift in Sources */,
+				3A494AE0E823BC6897442EF1 /* GuaMessageAction.swift in Sources */,
+				A41D63215A8FBA45C273D98E /* GuaMessageActionsView.swift in Sources */,
 				0365897A0A5AF6A6FF41CF03 /* GuaPhoneNumber.swift in Sources */,
 				061DE6519952CA0E992189BD /* GuaUserLink.swift in Sources */,
 				4C7BB1DB40B3F332435E1C4D /* GuaWelcomeLogo.swift in Sources */,

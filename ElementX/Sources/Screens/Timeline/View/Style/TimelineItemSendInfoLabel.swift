@@ -181,6 +181,9 @@ private extension TimelineItemSendInfo {
             timelineItem.hasMediaCaption ? .overlay(capsuleStyle: false) : .horizontal()
         } else {
             switch timelineItem {
+            case _ where !timelineItem.guaMessageActions.isEmpty:
+                // GUA FORK: below URL buttons, as on polls, so it never covers the last one.
+                .vertical(spacing: 8)
             case is TextBasedRoomTimelineItem:
                 .overlay(capsuleStyle: false)
             case let liveLocationTimelineItem as LiveLocationRoomTimelineItem:
