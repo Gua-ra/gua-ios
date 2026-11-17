@@ -10,7 +10,10 @@ import Foundation
 struct ChatThemeGallerySection: Identifiable {
     enum Kind {
         case featured
-        case colours
+        case live
+        case nature
+        case patterns
+        case minimal
         case gradients
     }
     
@@ -18,28 +21,20 @@ struct ChatThemeGallerySection: Identifiable {
     let themes: [ChatTheme]
     
     var title: String {
-        switch id {
-        case .featured: UntranslatedL10n.guaChatThemeSectionFeatured
-        case .colours: UntranslatedL10n.guaChatThemeSectionColours
-        case .gradients: UntranslatedL10n.guaChatThemeSectionGradients
-        }
+        id.title
     }
     
     static let all: [ChatThemeGallerySection] = [
-        .init(id: .featured, themes: [theme(.aurora, .green),
-                                      theme(.ocean, .teal),
-                                      theme(.sunset, .pink),
-                                      theme(.night, .purple),
-                                      theme(.dawn, .blue),
-                                      theme(.forest, .green),
-                                      theme(.dusk, .orange),
-                                      theme(.citrus, .yellow)]),
-        .init(id: .colours, themes: [theme(.mint, .green),
-                                     theme(.sky, .blue),
-                                     theme(.sand, .orange),
-                                     theme(.blush, .pink),
-                                     theme(.lavender, .purple),
-                                     theme(.graphite, .graphite)]),
+        .init(id: .featured, themes: [ChatArtwork.silk, .glacierLake, .glassDrops, .currents, .palmCoast, .ipe, .azulejo, .paper].map(theme)),
+        .init(id: .live, themes: ChatArtwork.artworks(in: .live).map(theme)),
+        .init(id: .nature, themes: ChatArtwork.artworks(in: .nature).map(theme)),
+        .init(id: .patterns, themes: ChatArtwork.artworks(in: .patterns).map(theme)),
+        .init(id: .minimal, themes: ChatArtwork.artworks(in: .minimal).map(theme) + [theme(.mint, .green),
+                                                                                     theme(.sky, .blue),
+                                                                                     theme(.sand, .orange),
+                                                                                     theme(.blush, .pink),
+                                                                                     theme(.lavender, .purple),
+                                                                                     theme(.graphite, .graphite)]),
         .init(id: .gradients, themes: [theme(.aurora, .teal),
                                        theme(.sunset, .orange),
                                        theme(.ocean, .blue),
@@ -50,7 +45,42 @@ struct ChatThemeGallerySection: Identifiable {
                                        theme(.citrus, .green)])
     ]
     
-    private static func theme(_ preset: ChatBackgroundPreset, _ bubble: ChatBubbleColor) -> ChatTheme {
+    private nonisolated static func theme(_ artwork: ChatArtwork) -> ChatTheme {
+        ChatTheme(wallpaper: .art(artwork), bubbles: artwork.bubbles)
+    }
+    
+    private nonisolated static func theme(_ preset: ChatBackgroundPreset, _ bubble: ChatBubbleColor) -> ChatTheme {
         ChatTheme(wallpaper: .preset(preset), bubble: bubble)
+    }
+}
+
+/// The wallpaper picker's sections, which hold wallpapers without bubbles.
+struct ChatWallpaperGallerySection: Identifiable {
+    let id: ChatThemeGallerySection.Kind
+    let wallpapers: [ChatBackground]
+    
+    var title: String {
+        id.title
+    }
+    
+    static let all: [ChatWallpaperGallerySection] = [
+        .init(id: .live, wallpapers: ChatArtwork.artworks(in: .live).map(ChatBackground.art)),
+        .init(id: .nature, wallpapers: ChatArtwork.artworks(in: .nature).map(ChatBackground.art)),
+        .init(id: .patterns, wallpapers: ChatArtwork.artworks(in: .patterns).map(ChatBackground.art)),
+        .init(id: .minimal, wallpapers: ChatArtwork.artworks(in: .minimal).map(ChatBackground.art) + ChatBackgroundPreset.solids.map(ChatBackground.preset)),
+        .init(id: .gradients, wallpapers: ChatBackgroundPreset.gradients.map(ChatBackground.preset))
+    ]
+}
+
+extension ChatThemeGallerySection.Kind {
+    var title: String {
+        switch self {
+        case .featured: UntranslatedL10n.guaChatThemeSectionFeatured
+        case .live: UntranslatedL10n.guaChatThemeSectionLive
+        case .nature: UntranslatedL10n.guaChatThemeSectionNature
+        case .patterns: UntranslatedL10n.guaChatThemeSectionPatterns
+        case .minimal: UntranslatedL10n.guaChatThemeSectionMinimal
+        case .gradients: UntranslatedL10n.guaChatThemeSectionGradients
+        }
     }
 }

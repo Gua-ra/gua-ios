@@ -14,9 +14,19 @@ struct ChatThemePreview: View {
     let saveTitle: String
     
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reducesMotion
+    
+    /// Tapping a live artwork previews the send pulse, which only this preview reads.
+    @State private var sendPulse = ChatWallpaperSendPulse()
     
     private var previewColorScheme: ColorScheme {
         draft.previewColorScheme ?? colorScheme
+    }
+    
+    /// Only a wallpaper that can move offers to preview a send.
+    private var canPreviewSending: Bool {
+        guard case .art(let artwork) = draft.shownTheme.wallpaper else { return false }
+        return ChatLiveWallpaperView.canAnimate(artwork, reducesMotion: reducesMotion)
     }
     
     var body: some View {
@@ -26,18 +36,31 @@ struct ChatThemePreview: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .background {
                         ChatBackgroundView(background: draft.shownTheme.wallpaper, mediaProvider: context.mediaProvider)
+                            .environment(\.chatWallpaperSendPulse, sendPulse)
+                            // Presented above any call overlay, so the overlay never hides this preview.
+                            .environment(\.isChatHiddenByOverlay, false)
                     }
                     .environment(\.colorScheme, previewColorScheme)
                     .ignoresSafeArea(edges: [.horizontal, .bottom])
+                    .contentShape(.rect)
+                    .gesture(TapGesture().onEnded { sendPulse.recordSend() }, including: canPreviewSending ? .all : .subviews)
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(UntranslatedL10n.guaChatBackgroundPreviewA11y)
-                    .accessibilityValue(draft.shownTheme.displayName)
+                    .accessibilityValue(draft.shownTheme.displayName(in: previewColorScheme))
+                    .accessibilityActions {
+                        if canPreviewSending {
+                            Button(UntranslatedL10n.guaChatBackgroundPreviewSendA11y) {
+                                sendPulse.recordSend()
+                            }
+                        }
+                    }
                 
                 ChatThemePreviewControls(previewColorScheme: previewColorScheme,
                                          saveTitle: saveTitle,
                                          canSave: context.viewState.canSave(draft),
                                          onPreviewColorScheme: { context.send(viewAction: .setPreviewColorScheme($0)) },
                                          onSave: { context.send(viewAction: .savePreview) })
+                    .reportsChatWallpaperComposerTop(to: sendPulse)
             }
             .navigationTitle(UntranslatedL10n.guaChatThemeTitle)
             .navigationBarTitleDisplayMode(.inline)
@@ -114,5 +137,25 @@ struct ChatThemePreview_Previews: PreviewProvider, TestablePreview {
                                       previewColorScheme: .dark),
                          saveTitle: UntranslatedL10n.guaChatThemeActionSetDefault)
             .previewDisplayName("Dark")
+        
+        ChatThemePreview(context: viewModel.context,
+                         draft: artworkDraft(.palmCoast, previewColorScheme: .light),
+                         saveTitle: UntranslatedL10n.guaChatThemeActionSetTheme)
+            .previewDisplayName("Static artwork")
+        
+        ChatThemePreview(context: viewModel.context,
+                         draft: artworkDraft(.palmCoast, previewColorScheme: .dark),
+                         saveTitle: UntranslatedL10n.guaChatThemeActionSetTheme)
+            .previewDisplayName("Static artwork dark")
+        
+        ChatThemePreview(context: viewModel.context,
+                         draft: artworkDraft(.glassDrops, previewColorScheme: .dark),
+                         saveTitle: UntranslatedL10n.guaChatThemeActionSetTheme)
+            .previewDisplayName("Live artwork dark")
+    }
+    
+    static func artworkDraft(_ artwork: ChatArtwork, previewColorScheme: ColorScheme) -> ChatThemePreviewDraft {
+        let theme = ChatTheme(wallpaper: .art(artwork), bubbles: artwork.bubbles)
+        return ChatThemePreviewDraft(theme: theme, shownTheme: theme, previewColorScheme: previewColorScheme)
     }
 }

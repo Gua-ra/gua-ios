@@ -145,6 +145,13 @@ extension PreviewTests {
     }
 
     @Test
+    func chatArtworkRoomScreen() async throws {
+        for (index, preview) in ChatArtworkRoomScreen_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    @Test
     func chatBackgroundPhotoPreview() async throws {
         for (index, preview) in ChatBackgroundPhotoPreview_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)

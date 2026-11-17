@@ -328,6 +328,8 @@ private struct NavigationTabCoordinatorView<Tag: Hashable>: View {
     var body: some View {
         tabView
             .environment(\.tabViewHorizontalSizeClass, horizontalSizeClass)
+            // GUA FORK: a full-screen call hides the chat, so its live wallpaper pauses.
+            .environment(\.isChatHiddenByOverlay, navigationTabCoordinator.overlayModule?.coordinator != nil && navigationTabCoordinator.overlayPresentationMode == .fullScreen)
             .sheet(item: $navigationTabCoordinator.sheetModule) { module in
                 module.coordinator?.toPresentable()
                     .id(module.id)

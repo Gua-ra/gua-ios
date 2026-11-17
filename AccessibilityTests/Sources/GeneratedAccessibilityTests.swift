@@ -83,6 +83,10 @@ extension AccessibilityTests {
         try await performAccessibilityAudit(named: "CallNotificationRoomTimelineView_Previews")
     }
 
+    func testChatArtworkRoomScreen() async throws {
+        try await performAccessibilityAudit(named: "ChatArtworkRoomScreen_Previews")
+    }
+
     func testChatBackgroundPhotoPreview() async throws {
         try await performAccessibilityAudit(named: "ChatBackgroundPhotoPreview_Previews")
     }

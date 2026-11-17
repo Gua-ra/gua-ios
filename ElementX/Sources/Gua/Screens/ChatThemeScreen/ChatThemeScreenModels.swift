@@ -61,7 +61,7 @@ struct ChatThemeScreenViewState: BindableState {
     /// What the pickers start from: in a chat that follows the default, the default without its photo, which stays private.
     var baseTheme: ChatTheme {
         guard mode == .chat, current.isStock else { return current }
-        return ChatTheme(wallpaper: defaultTheme.wallpaper.photo == nil ? defaultTheme.wallpaper : .none, bubble: defaultTheme.bubble)
+        return ChatTheme(wallpaper: defaultTheme.wallpaper.photo == nil ? defaultTheme.wallpaper : .none, bubbles: defaultTheme.bubbles)
     }
     
     var shownWallpaper: ChatBackground {
@@ -73,7 +73,7 @@ struct ChatThemeScreenViewState: BindableState {
         if theme.isStock {
             return firstTileTheme
         }
-        return isPhotoHidden && theme.wallpaper.photo != nil ? ChatTheme(wallpaper: .none, bubble: theme.bubble) : theme
+        return isPhotoHidden && theme.wallpaper.photo != nil ? ChatTheme(wallpaper: .none, bubbles: theme.bubbles) : theme
     }
     
     var setThemeTitle: String {
@@ -82,6 +82,11 @@ struct ChatThemeScreenViewState: BindableState {
     
     var note: String {
         mode == .chat ? UntranslatedL10n.guaChatThemeSharedNote : UntranslatedL10n.guaChatThemeDefaultNote
+    }
+    
+    /// A tile is selected only when the theme has exactly its wallpaper and bubble pair.
+    func isSelected(_ tile: ChatTheme) -> Bool {
+        tile == current
     }
     
     func canSave(_ theme: ChatTheme) -> Bool {
@@ -100,8 +105,8 @@ struct ChatThemeScreenViewState: BindableState {
 
 struct ChatThemeScreenViewStateBindings {
     var themePreview: ChatThemePreviewDraft?
-    /// The bubble picker shows while this holds its choice.
-    var bubbleChoice: ChatBubbleColor?
+    /// The bubble picker shows while this holds its choice, which starts as the theme's pair.
+    var bubbleChoice: ChatBubblePair?
     var isWallpaperPickerPresented = false
     var wallpaperPreview: ChatThemePreviewDraft?
     var photoDraft: ChatBackgroundPhotoDraft?

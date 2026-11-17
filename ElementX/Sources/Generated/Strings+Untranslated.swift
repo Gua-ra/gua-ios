@@ -56,6 +56,8 @@ internal nonisolated enum UntranslatedL10n {
   internal static var guaChatBackgroundPreviewDark: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_preview_dark") }
   /// Light
   internal static var guaChatBackgroundPreviewLight: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_preview_light") }
+  /// Preview the send effect
+  internal static var guaChatBackgroundPreviewSendA11y: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_preview_send_a11y") }
   /// Only admins and moderators can change it
   internal static var guaChatBackgroundRowNoPermission: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_row_no_permission") }
   /// How does it look?
@@ -74,6 +76,56 @@ internal nonisolated enum UntranslatedL10n {
   internal static var guaChatThemeActionSetDefault: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_action_set_default") }
   /// Set theme
   internal static var guaChatThemeActionSetTheme: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_action_set_theme") }
+  /// Azulejo
+  internal static var guaChatThemeArtAzulejo: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_azulejo") }
+  /// Calçadão
+  internal static var guaChatThemeArtCalcadao: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_calcadao") }
+  /// Canola Sky
+  internal static var guaChatThemeArtCanolaSky: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_canola_sky") }
+  /// Canyon Glow
+  internal static var guaChatThemeArtCanyonGlow: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_canyon_glow") }
+  /// Currents
+  internal static var guaChatThemeArtCurrents: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_currents") }
+  /// Currents Live
+  internal static var guaChatThemeArtCurrentsLive: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_currents_live") }
+  /// Brasil
+  internal static var guaChatThemeArtDoodlesBrasil: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_doodles_brasil") }
+  /// Canada
+  internal static var guaChatThemeArtDoodlesCanada: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_doodles_canada") }
+  /// Glacier Lake
+  internal static var guaChatThemeArtGlacierLake: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_glacier_lake") }
+  /// Glass Drops
+  internal static var guaChatThemeArtGlassDrops: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_glass_drops") }
+  /// Glass Drops Blue
+  internal static var guaChatThemeArtGlassDropsBlue: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_glass_drops_blue") }
+  /// Harbour Fog
+  internal static var guaChatThemeArtHarbourFog: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_harbour_fog") }
+  /// Highland Mist
+  internal static var guaChatThemeArtHighlandMist: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_highland_mist") }
+  /// Ipê
+  internal static var guaChatThemeArtIpe: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_ipe") }
+  /// Knit
+  internal static var guaChatThemeArtKnit: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_knit") }
+  /// Molten Pearl
+  internal static var guaChatThemeArtMoltenPearl: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_molten_pearl") }
+  /// Moon Tide
+  internal static var guaChatThemeArtMoonTide: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_moon_tide") }
+  /// Palm Coast
+  internal static var guaChatThemeArtPalmCoast: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_palm_coast") }
+  /// Pantanal
+  internal static var guaChatThemeArtPantanal: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_pantanal") }
+  /// Paper
+  internal static var guaChatThemeArtPaper: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_paper") }
+  /// Paper Cut
+  internal static var guaChatThemeArtPaperCut: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_paper_cut") }
+  /// Polar Ice
+  internal static var guaChatThemeArtPolarIce: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_polar_ice") }
+  /// Rain on Glass
+  internal static var guaChatThemeArtRainOnGlass: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_rain_on_glass") }
+  /// River Bends
+  internal static var guaChatThemeArtRiverBends: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_river_bends") }
+  /// Silk
+  internal static var guaChatThemeArtSilk: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_silk") }
   /// Blue
   internal static var guaChatThemeBubbleBlue: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_bubble_blue") }
   /// Graphite
@@ -100,6 +152,8 @@ internal nonisolated enum UntranslatedL10n {
   internal static var guaChatThemeClassic: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_classic") }
   /// Applies to every chat that doesn’t have its own theme.
   internal static var guaChatThemeDefaultNote: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_default_note") }
+  /// Live
+  internal static var guaChatThemeLiveBadge: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_live_badge") }
   /// No wallpaper
   internal static var guaChatThemeNoWallpaper: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_no_wallpaper") }
   /// %1$@ changed the chat theme
@@ -144,12 +198,18 @@ internal nonisolated enum UntranslatedL10n {
   internal static var guaChatThemePresetSunset: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_preset_sunset") }
   /// Setting theme…
   internal static var guaChatThemeProgress: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_progress") }
-  /// Colours
-  internal static var guaChatThemeSectionColours: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_section_colours") }
   /// Featured
   internal static var guaChatThemeSectionFeatured: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_section_featured") }
   /// Gradients
   internal static var guaChatThemeSectionGradients: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_section_gradients") }
+  /// Live
+  internal static var guaChatThemeSectionLive: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_section_live") }
+  /// Minimal
+  internal static var guaChatThemeSectionMinimal: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_section_minimal") }
+  /// Nature
+  internal static var guaChatThemeSectionNature: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_section_nature") }
+  /// Patterns
+  internal static var guaChatThemeSectionPatterns: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_section_patterns") }
   /// Everyone in the chat sees this theme.
   internal static var guaChatThemeSharedNote: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_shared_note") }
   /// Chat theme

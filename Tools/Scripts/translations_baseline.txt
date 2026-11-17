@@ -57,6 +57,11 @@ fr:screen_change_server_error_element_pro_required_action_ios
 # Cognates: the English word is also the right word in that language.
 pt-BR:a11y_avatar
 pt-BR:action_ok
+pt-BR:gua_chat_theme_art_azulejo
+pt-BR:gua_chat_theme_art_calcadao
+pt-BR:gua_chat_theme_art_doodles_brasil
+pt-BR:gua_chat_theme_art_ipe
+pt-BR:gua_chat_theme_art_pantanal
 pt-BR:gua_chat_theme_preset_aurora
 pt-BR:rich_text_editor_url_placeholder
 pt-BR:screen_two_step_verification_overview_header
@@ -67,6 +72,11 @@ es:common_error
 es:common_sticker
 es:gua_expression_stickers_tab
 es:dialog_title_error
+es:gua_chat_theme_art_azulejo
+es:gua_chat_theme_art_calcadao
+es:gua_chat_theme_art_doodles_brasil
+es:gua_chat_theme_art_ipe
+es:gua_chat_theme_art_pantanal
 es:gua_chat_theme_preset_aurora
 es:screen_deactivate_account_description_bold_part
 es:screen_home_tab_chats
@@ -88,10 +98,16 @@ fr:common_poll_votes_count
 fr:common_suggestions
 fr:dialog_title_confirmation
 fr:gua_chat_background_value_photo
+fr:gua_chat_theme_art_azulejo
+fr:gua_chat_theme_art_calcadao
+fr:gua_chat_theme_art_doodles_canada
+fr:gua_chat_theme_art_ipe
+fr:gua_chat_theme_art_pantanal
 fr:gua_chat_theme_bubble_graphite
 fr:gua_chat_theme_bubble_orange
 fr:gua_chat_theme_bubble_standard
 fr:gua_chat_theme_preset_graphite
+fr:gua_chat_theme_section_nature
 fr:gua_duration_minutes
 fr:notification_compat_summary_title
 fr:notification_invitations

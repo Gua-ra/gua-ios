@@ -14,6 +14,7 @@ struct ChatBackgroundView: View {
     
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.chatWallpaperSendPulse) private var liveWallpaperSendPulse
     
     var body: some View {
         ZStack {
@@ -32,7 +33,14 @@ struct ChatBackgroundView: View {
             case .none:
                 Color.compound.bgCanvasDefault
             case .preset(let preset):
-                ChatBackgroundFillView(fill: preset.fill(for: colorScheme))
+                let fill = preset.fill(for: colorScheme)
+                ChatBackgroundFillView(fill: fill, hasGrain: fill.isGradient)
+                ChatBackgroundScrim(photoDim: nil)
+            case .art(let artwork):
+                ChatArtworkView(artwork: artwork)
+                if ChatLiveWallpaperView.isShown(for: artwork, sendPulse: liveWallpaperSendPulse), let liveWallpaperSendPulse {
+                    ChatLiveWallpaperView(artwork: artwork, sendPulse: liveWallpaperSendPulse)
+                }
                 ChatBackgroundScrim(photoDim: nil)
             case .photo(let photo):
                 ChatBackgroundPhotoView(photo: photo, mediaProvider: mediaProvider)
@@ -61,29 +69,39 @@ struct ChatBackgroundScrim: View {
 
 struct ChatBackgroundFillView: View {
     let fill: ChatBackgroundFill
+    var hasGrain = false
     
     var body: some View {
         Canvas { context, size in
-            let rect = Path(CGRect(origin: .zero, size: size))
-            
-            switch fill {
-            case .solid(let hex):
-                context.fill(rect, with: .color(Color(chatBackgroundHex: hex)))
-            case .linear(let start, let end, let stops):
-                let gradient = Gradient(stops: stops.map { .init(color: Color(chatBackgroundHex: $0.color), location: $0.location) })
-                context.fill(rect, with: .linearGradient(gradient,
-                                                         startPoint: CGPoint(x: start.x * size.width, y: start.y * size.height),
-                                                         endPoint: CGPoint(x: end.x * size.width, y: end.y * size.height)))
-            case .radialGlows(let base, let glows):
-                context.fill(rect, with: .color(Color(chatBackgroundHex: base)))
-                let longestSide = max(size.width, size.height)
-                for glow in glows {
-                    let gradient = Gradient(colors: [Color(chatBackgroundHex: glow.color), Color(chatBackgroundHex: glow.color, opacity: 0)])
-                    context.fill(rect, with: .radialGradient(gradient,
-                                                             center: CGPoint(x: glow.center.x * size.width, y: glow.center.y * size.height),
-                                                             startRadius: 0,
-                                                             endRadius: glow.radius * longestSide))
-                }
+            context.drawChatBackgroundFill(fill, size: size)
+            if hasGrain {
+                context.drawChatBackgroundGrain(size: size)
+            }
+        }
+    }
+}
+
+extension GraphicsContext {
+    func drawChatBackgroundFill(_ fill: ChatBackgroundFill, size: CGSize) {
+        let rect = Path(CGRect(origin: .zero, size: size))
+        
+        switch fill {
+        case .solid(let hex):
+            self.fill(rect, with: .color(Color(chatBackgroundHex: hex)))
+        case .linear(let start, let end, let stops):
+            let gradient = Gradient(stops: stops.map { .init(color: Color(chatBackgroundHex: $0.color), location: $0.location) })
+            self.fill(rect, with: .linearGradient(gradient,
+                                                  startPoint: CGPoint(x: start.x * size.width, y: start.y * size.height),
+                                                  endPoint: CGPoint(x: end.x * size.width, y: end.y * size.height)))
+        case .radialGlows(let base, let glows):
+            self.fill(rect, with: .color(Color(chatBackgroundHex: base)))
+            let longestSide = max(size.width, size.height)
+            for glow in glows {
+                let gradient = Gradient(colors: [Color(chatBackgroundHex: glow.color), Color(chatBackgroundHex: glow.color, opacity: 0)])
+                self.fill(rect, with: .radialGradient(gradient,
+                                                      center: CGPoint(x: glow.center.x * size.width, y: glow.center.y * size.height),
+                                                      startRadius: 0,
+                                                      endRadius: glow.radius * longestSide))
             }
         }
     }
@@ -102,15 +120,19 @@ struct ChatBackgroundPhotoLayout: View {
         return CGSize(width: content.width * scale, height: content.height * scale)
     }
     
+    static func rect(of content: CGSize, filling frame: CGSize, alignX: Double, alignY: Double) -> CGRect {
+        let scaled = scaledSize(of: content, filling: frame)
+        return CGRect(origin: CGPoint(x: -(scaled.width - frame.width) * alignX, y: -(scaled.height - frame.height) * alignY), size: scaled)
+    }
+    
     var body: some View {
         GeometryReader { geometry in
-            let frame = geometry.size
-            let scaled = Self.scaledSize(of: contentSize ?? image.size, filling: frame)
+            let rect = Self.rect(of: contentSize ?? image.size, filling: geometry.size, alignX: alignX, alignY: alignY)
             
             Image(uiImage: image)
                 .resizable()
-                .frame(width: scaled.width, height: scaled.height)
-                .offset(x: -(scaled.width - frame.width) * alignX, y: -(scaled.height - frame.height) * alignY)
+                .frame(width: rect.width, height: rect.height)
+                .offset(x: rect.minX, y: rect.minY)
         }
         .clipped()
     }
@@ -176,7 +198,10 @@ struct ChatBackgroundView_Previews: PreviewProvider, TestablePreview {
     }
     
     static var grid: some View {
-        let backgrounds: [ChatBackground] = [.none] + ChatBackgroundPreset.allCases.map(ChatBackground.preset) + [photo(dim: 0), photo(dim: ChatBackground.Photo.maxDim)]
+        let backgrounds: [ChatBackground] = [.none]
+            + ChatBackgroundPreset.allCases.map(ChatBackground.preset)
+            + [photo(dim: 0), photo(dim: ChatBackground.Photo.maxDim)]
+            + ChatArtwork.allCases.map(ChatBackground.art)
         return LazyVGrid(columns: Array(repeating: GridItem(.fixed(64), spacing: 4), count: 5), spacing: 4) {
             ForEach(backgrounds, id: \.self) { background in
                 ChatBackgroundView(background: background, mediaProvider: mediaProvider)
