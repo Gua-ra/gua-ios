@@ -133,8 +133,8 @@
 "action_delete_account" = "Delete account";
 "gua_action_delete" = "Delete";
 "gua_common_media_settings" = "Media settings";
-"gua_settings_play_gifs_automatically" = "Play GIFs automatically";
-"gua_settings_play_gifs_automatically_description" = "Also animated stickers. GIFs you open always play.";
+"gua_settings_play_gifs_automatically" = "Automatically play GIFs and animated stickers in chat";
+"gua_settings_play_gifs_automatically_description" = "Opened GIFs always play.";
 
 "common_moderation_and_safety" = "Moderation & safety";
 "screen_moderation_and_safety_invites_heading" = "Invites";

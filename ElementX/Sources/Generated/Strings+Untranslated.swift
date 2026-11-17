@@ -316,9 +316,9 @@ internal nonisolated enum UntranslatedL10n {
   }
   /// We couldn’t sign you back in. Please sign in again.
   internal static var guaRestoreSigninFailed: String { return UntranslatedL10n.tr("Untranslated", "gua_restore_signin_failed") }
-  /// Play GIFs automatically
+  /// Automatically play GIFs and animated stickers in chat
   internal static var guaSettingsPlayGifsAutomatically: String { return UntranslatedL10n.tr("Untranslated", "gua_settings_play_gifs_automatically") }
-  /// Also animated stickers. GIFs you open always play.
+  /// Opened GIFs always play.
   internal static var guaSettingsPlayGifsAutomaticallyDescription: String { return UntranslatedL10n.tr("Untranslated", "gua_settings_play_gifs_automatically_description") }
   /// Sign out
   internal static var guaSettingsSignOut: String { return UntranslatedL10n.tr("Untranslated", "gua_settings_sign_out") }
