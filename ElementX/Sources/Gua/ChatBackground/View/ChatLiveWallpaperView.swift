@@ -23,7 +23,8 @@ extension View {
     }
 }
 
-/// A live artwork's shader, drawn over its still once the first frame is ready.
+/// An artwork's still in the chat or the theme preview, moved by the tilt, and a live artwork's shader drawn over it
+/// once the first frame is ready.
 struct ChatLiveWallpaperView: View {
     let artwork: ChatArtwork
     let sendPulse: ChatWallpaperSendPulse
@@ -35,6 +36,7 @@ struct ChatLiveWallpaperView: View {
     @State private var isOnScreen = false
     /// The top edge in the space `ChatWallpaperSendPulse.composerTop` is reported in.
     @State private var globalTop: CGFloat?
+    @State private var parallax = WallpaperParallax()
     
     /// Previews and tests always show the still, so snapshots never depend on a running clock.
     static var isEnabled: Bool {
@@ -43,14 +45,19 @@ struct ChatLiveWallpaperView: View {
     
     var body: some View {
         let policy = LiveWallpaperConditions.shared.policy(for: artwork, isOnScreen: isOnScreen, isCovered: isHiddenByOverlay, reducesMotion: reducesMotion)
+        // The still keeps the tilt's framing even while a still condition stops it, so it never changes in a session.
+        let stillParallax = WallpaperTiltSensor.shared.isSupported ? parallax : nil
+        let rendersLive = artwork.isLive && policy.motion != .still
+        let tilts = stillParallax != nil && policy.tiltMotion != .still
         
-        Color.clear
+        ChatArtworkView(artwork: artwork, parallax: stillParallax)
             .overlay {
-                if policy.motion != .still {
+                if rendersLive || tilts {
                     ChatLiveWallpaperRepresentable(artwork: artwork,
                                                    policy: policy,
                                                    isDark: colorScheme == .dark,
                                                    sendPulse: sendPulse,
+                                                   parallax: stillParallax,
                                                    globalTop: globalTop)
                         .id(artwork)
                 }
@@ -58,16 +65,45 @@ struct ChatLiveWallpaperView: View {
             .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: { globalTop = $0 }
             .onAppear { isOnScreen = true }
             .onDisappear { isOnScreen = false }
+            .onChange(of: policy.tiltMotion == .still) { _, isStill in
+                if isStill {
+                    settleTilt()
+                }
+            }
     }
     
-    /// Whether a chat background with this artwork gets the renderer: only where a send pulse is set, and never in previews or tests.
-    static func isShown(for artwork: ChatArtwork, sendPulse: ChatWallpaperSendPulse?, isEnabled: Bool = isEnabled) -> Bool {
-        isEnabled && artwork.isLive && sendPulse != nil
+    /// Whether a chat background with this artwork gets this view rather than the plain still: only where a send pulse is set,
+    /// for a live artwork or where artworks tilt, and never in previews or tests.
+    static func isShown(for artwork: ChatArtwork,
+                        sendPulse: ChatWallpaperSendPulse?,
+                        isEnabled: Bool = isEnabled,
+                        isTiltSupported: Bool = WallpaperTiltSensor.shared.isSupported) -> Bool {
+        isEnabled && sendPulse != nil && (artwork.isLive || isTiltSupported)
     }
     
     /// Whether the artwork can move at all right now, leaving out what only pauses it.
     static func canAnimate(_ artwork: ChatArtwork, reducesMotion: Bool, isEnabled: Bool = isEnabled) -> Bool {
         isEnabled && artwork.isLive && LiveWallpaperConditions.shared.policy(for: artwork, isOnScreen: true, reducesMotion: reducesMotion).motion != .still
+    }
+    
+    /// A still condition stops the tilt: the still eases back to rest from the tilt last applied, or snaps there under Reduce Motion.
+    private func settleTilt() {
+        let parallax = parallax
+        withAnimation(nil) {
+            if reducesMotion {
+                parallax.tilt = .zero
+            } else {
+                parallax.moveStillToAppliedTilt()
+            }
+        }
+        parallax.forgetAppliedTilt()
+        guard !reducesMotion else { return }
+        // An ease in this update would start where a live frame covered the still, not where the frame was drawn.
+        Task {
+            withAnimation(.easeOut(duration: 0.3)) {
+                parallax.tilt = .zero
+            }
+        }
     }
 }
 
@@ -80,15 +116,20 @@ struct LiveWallpaperLayout: Equatable {
     static let pulseSpot = CGPoint(x: 0.83, y: 0.113)
     
     let viewSize: CGSize
-    /// The still's aspect-fill rect in the view's coordinates; it reaches past the view on one axis.
+    /// The still's aspect-fill rect in the view's coordinates at rest; it reaches past the view on one axis, or on every side
+    /// where the artwork tilts.
     let rect: CGRect
     let drawableSize: CGSize
     /// The drawable's pixels that can be seen plus one all round, so scaling up never blends in a pixel that was not drawn.
     let scissor: CGRect?
     
-    init(artwork: ChatArtwork, viewSize: CGSize, displayScale: CGFloat) {
+    init(artwork: ChatArtwork, viewSize: CGSize, displayScale: CGFloat, tilts: Bool = false) {
         self.viewSize = viewSize
-        rect = ChatBackgroundPhotoLayout.rect(of: ChatArtwork.pixelSize, filling: viewSize, alignX: artwork.anchor.x, alignY: artwork.anchor.y)
+        rect = if tilts {
+            WallpaperStillLayout(viewSize: viewSize).imageRect(anchor: artwork.anchor, at: .zero)
+        } else {
+            ChatBackgroundPhotoLayout.rect(of: ChatArtwork.pixelSize, filling: viewSize, alignX: artwork.anchor.x, alignY: artwork.anchor.y)
+        }
         
         let visibleArea = viewSize.width * viewSize.height
         let rectArea = rect.width * rect.height
@@ -156,9 +197,16 @@ struct LiveWallpaperLayout: Equatable {
 }
 
 extension LiveWallpaperUniforms {
-    /// One frame's uniforms in the renderer's layout; a frame that doesn't animate never shows the pulse.
-    static func frame(in layout: LiveWallpaperLayout, origin: SIMD2<Float>, isDark: Bool, time: Float, pulse: Float, animates: Bool) -> LiveWallpaperUniforms {
+    /// One frame's uniforms in the renderer's layout; a frame that doesn't animate never shows the pulse, but keeps the tilt it holds.
+    static func frame(in layout: LiveWallpaperLayout,
+                      origin: SIMD2<Float>,
+                      tilt: SIMD2<Double> = .zero,
+                      isDark: Bool,
+                      time: Float,
+                      pulse: Float,
+                      animates: Bool) -> LiveWallpaperUniforms {
         LiveWallpaperUniforms(res: SIMD2(Float(layout.drawableSize.width), Float(layout.drawableSize.height)),
+                              tilt: SIMD2(Float(tilt.x), Float(tilt.y)),
                               origin: origin,
                               time: time,
                               dark: isDark ? 1 : 0,
@@ -171,10 +219,11 @@ private struct ChatLiveWallpaperRepresentable: UIViewRepresentable {
     let policy: WallpaperMotionPolicy
     let isDark: Bool
     let sendPulse: ChatWallpaperSendPulse
+    let parallax: WallpaperParallax?
     let globalTop: CGFloat?
     
     func makeUIView(context: Context) -> ChatLiveWallpaperUIView {
-        ChatLiveWallpaperUIView(artwork: artwork)
+        ChatLiveWallpaperUIView(artwork: artwork, parallax: parallax)
     }
     
     func updateUIView(_ view: ChatLiveWallpaperUIView, context: Context) {
@@ -185,7 +234,8 @@ private struct ChatLiveWallpaperRepresentable: UIViewRepresentable {
     }
 }
 
-/// Holds an `MTKView` in exactly the rect the still is drawn in, so the shader composes the same picture.
+/// Holds an `MTKView` in exactly the rect the still is drawn in, so the shader composes the same picture, and runs the
+/// tilt of the still and the shader. A static artwork only tilts.
 private final class ChatLiveWallpaperUIView: UIView, MTKViewDelegate {
     /// How often the view looks for something covering it; presentations and hidden windows have no notification.
     private static let coverCheckInterval: TimeInterval = 0.25
@@ -212,7 +262,9 @@ private final class ChatLiveWallpaperUIView: UIView, MTKViewDelegate {
     }
     
     private let artwork: ChatArtwork
-    private let metalView = MTKView()
+    /// Set where the artwork tilts.
+    private let parallax: WallpaperParallax?
+    private lazy var metalView = MTKView()
     private var pipeline: MTLRenderPipelineState?
     private var layout: LiveWallpaperLayout?
     private var clock: LiveWallpaperClock
@@ -230,10 +282,17 @@ private final class ChatLiveWallpaperUIView: UIView, MTKViewDelegate {
     private var frameGeneration = 0
     /// The frame on screen is out of date, and a paused view must draw a new one once the GPU may be used.
     private var needsPausedFrame = true
+    private var tiltTracker = WallpaperTiltTracker()
+    private var isTilting = false
     
     private var motion: WallpaperMotionPolicy.Motion {
         guard pipeline != nil, !watchdog.hasTripped else { return .still }
         return policy.including(isInWindow: window != nil, isSceneActive: isSceneActive, isCovered: isCovered).motion
+    }
+    
+    private var tiltMotion: WallpaperMotionPolicy.Motion {
+        guard parallax != nil else { return .still }
+        return policy.including(isInWindow: window != nil, isSceneActive: isSceneActive, isCovered: isCovered).tiltMotion
     }
     
     /// Where the send pulse starts: on the chat between the top bar and the composer, wherever the keyboard has moved it.
@@ -271,28 +330,15 @@ private final class ChatLiveWallpaperUIView: UIView, MTKViewDelegate {
         return false
     }
     
-    init(artwork: ChatArtwork) {
+    init(artwork: ChatArtwork, parallax: WallpaperParallax?) {
         self.artwork = artwork
+        self.parallax = parallax
         clock = LiveWallpaperClock(stillTime: artwork.stillTime ?? 0)
         super.init(frame: .zero)
         
         clipsToBounds = true
         isUserInteractionEnabled = false
         accessibilityElementsHidden = true
-        
-        metalView.device = LiveWallpaperShader.device
-        metalView.colorPixelFormat = LiveWallpaperShader.pixelFormat
-        metalView.framebufferOnly = true
-        metalView.autoResizeDrawable = false
-        metalView.preferredFramesPerSecond = WallpaperFrameWatchdog.framesPerSecond
-        metalView.isPaused = true
-        metalView.enableSetNeedsDisplay = true
-        metalView.isUserInteractionEnabled = false
-        // Hidden until a frame is ready, so the still shows until then.
-        metalView.alpha = 0
-        (metalView.layer as? CAMetalLayer)?.colorspace = CGColorSpace(name: CGColorSpace.sRGB)
-        metalView.delegate = self
-        addSubview(metalView)
         
         registerForTraitChanges([UITraitDisplayScale.self]) { (view: Self, _) in
             view.setNeedsLayout()
@@ -310,11 +356,8 @@ private final class ChatLiveWallpaperUIView: UIView, MTKViewDelegate {
             }
             .store(in: &cancellables)
         
-        Task { [weak self] in
-            let pipeline = await LiveWallpaperPipelines.shared.pipeline(for: artwork)
-            guard let self, let pipeline else { return }
-            self.pipeline = pipeline
-            applyMotion()
+        if artwork.isLive {
+            setUpRenderer()
         }
     }
     
@@ -325,8 +368,9 @@ private final class ChatLiveWallpaperUIView: UIView, MTKViewDelegate {
     
     override func layoutSubviews() {
         super.layoutSubviews()
+        guard artwork.isLive else { return }
         
-        let layout = LiveWallpaperLayout(artwork: artwork, viewSize: bounds.size, displayScale: traitCollection.displayScale)
+        let layout = LiveWallpaperLayout(artwork: artwork, viewSize: bounds.size, displayScale: traitCollection.displayScale, tilts: parallax != nil)
         guard layout != self.layout else { return }
         self.layout = layout
         metalView.frame = layout.rect
@@ -371,9 +415,10 @@ private final class ChatLiveWallpaperUIView: UIView, MTKViewDelegate {
         pass.colorAttachments[0].loadAction = .dontCare
         let uniforms = LiveWallpaperUniforms.frame(in: layout,
                                                    origin: pulseOrigin,
+                                                   tilt: parallax?.appliedTilt ?? .zero,
                                                    isDark: isDark,
                                                    time: clock.time(at: now),
-                                                   pulse: sendPulse?.value(at: now) ?? 0,
+                                                   pulse: Float(sendPulse?.value(at: now) ?? 0),
                                                    animates: animates)
         LiveWallpaperShader.encode(pipeline, uniforms: uniforms, pass: pass, scissor: layout.scissor.map { MTLScissorRect($0) }, into: commandBuffer)
         
@@ -395,8 +440,34 @@ private final class ChatLiveWallpaperUIView: UIView, MTKViewDelegate {
     
     // MARK: - Private
     
+    private func setUpRenderer() {
+        metalView.device = LiveWallpaperShader.device
+        metalView.colorPixelFormat = LiveWallpaperShader.pixelFormat
+        metalView.framebufferOnly = true
+        metalView.autoResizeDrawable = false
+        metalView.preferredFramesPerSecond = WallpaperFrameWatchdog.framesPerSecond
+        metalView.isPaused = true
+        metalView.enableSetNeedsDisplay = true
+        metalView.isUserInteractionEnabled = false
+        // Hidden until a frame is ready, so the still shows until then.
+        metalView.alpha = 0
+        (metalView.layer as? CAMetalLayer)?.colorspace = CGColorSpace(name: CGColorSpace.sRGB)
+        metalView.delegate = self
+        addSubview(metalView)
+        
+        Task { [weak self, artwork] in
+            let pipeline = await LiveWallpaperPipelines.shared.pipeline(for: artwork)
+            guard let self, let pipeline else { return }
+            self.pipeline = pipeline
+            applyMotion()
+        }
+    }
+    
     private func applyMotion() {
         updateCoverCheck()
+        updateTilt()
+        // Nothing is drawn before the pipeline is ready, which a static artwork never has.
+        guard pipeline != nil else { return }
         
         switch motion {
         case .animating:
@@ -421,6 +492,29 @@ private final class ChatLiveWallpaperUIView: UIView, MTKViewDelegate {
                 drawPausedFrameIfNeeded()
             }
         }
+    }
+    
+    /// The sensor runs only while the tilt can change; a pause keeps the tilt where it is.
+    private func updateTilt() {
+        let isTilting = tiltMotion == .animating
+        guard isTilting != self.isTilting else { return }
+        self.isTilting = isTilting
+        
+        if isTilting {
+            WallpaperTiltSensor.shared.subscribe(self) { [weak self] rate, time in
+                self?.sampleTilt(rate: rate, at: time)
+            }
+        } else {
+            WallpaperTiltSensor.shared.unsubscribe(self)
+            tiltTracker.stop()
+        }
+    }
+    
+    private func sampleTilt(rate: SIMD3<Double>, at time: TimeInterval) {
+        let deviceTilt = tiltTracker.sample(rate: rate, at: time)
+        let orientation = window?.windowScene?.effectiveGeometry.interfaceOrientation ?? .portrait
+        // A drawn live frame covers the still and holds the parallax itself, so moving the still would only cost redraws.
+        parallax?.apply(WallpaperScreenRotation(orientation).interfaceTilt(deviceTilt), movesStill: !hasDrawnFrame)
     }
     
     private func sceneDidChange(_ scene: Any?, isActive: Bool) {
@@ -449,6 +543,10 @@ private final class ChatLiveWallpaperUIView: UIView, MTKViewDelegate {
         frameGeneration += 1
         hasDrawnFrame = false
         metalView.alpha = 0
+        // A view leaving its window may be removed for a still condition, whose ease to rest this would cut short.
+        if window != nil {
+            parallax?.moveStillToAppliedTilt()
+        }
     }
     
     private func frameDidComplete(isComplete: Bool, generation: Int, watchdogRun run: Int?, gpuTime: TimeInterval, end: TimeInterval) {
@@ -465,7 +563,7 @@ private final class ChatLiveWallpaperUIView: UIView, MTKViewDelegate {
     }
     
     private func updateCoverCheck() {
-        let isNeeded = pipeline != nil && window != nil && policy.isOnScreen && isSceneActive
+        let isNeeded = (pipeline != nil || parallax != nil) && window != nil && policy.isOnScreen && isSceneActive
         
         if !isNeeded {
             coverCheck?.invalidate()

@@ -62,6 +62,18 @@ final class LiveWallpaperMotionTests {
     }
     
     @Test
+    func tiltFollowsThePolicyWithoutNeedingAShader() {
+        #expect(WallpaperMotionPolicy().tiltMotion == .animating)
+        #expect(WallpaperMotionPolicy(isRendererAvailable: false).tiltMotion == .animating)
+        #expect(WallpaperMotionPolicy(isCovered: true).tiltMotion == .paused)
+        #expect(WallpaperMotionPolicy(isAppActive: false).tiltMotion == .paused)
+        #expect(WallpaperMotionPolicy(reducesMotion: true).tiltMotion == .still)
+        #expect(WallpaperMotionPolicy(isLowPowerModeEnabled: true).tiltMotion == .still)
+        #expect(WallpaperMotionPolicy(thermalState: .serious).tiltMotion == .still)
+        #expect(WallpaperMotionPolicy(hasSlowFrames: true).tiltMotion == .still)
+    }
+    
+    @Test
     func stillWinsOverPaused() {
         let policy = WallpaperMotionPolicy(isOnScreen: false, isAppActive: false, isCovered: true, reducesMotion: true)
         #expect(policy.motion == .still)
@@ -126,7 +138,9 @@ final class LiveWallpaperMotionTests {
     @Test
     func snapshotsAndPreviewsShowTheStill() {
         #expect(!ChatLiveWallpaperView.isEnabled)
+        #expect(!WallpaperTiltSensor.shared.isSupported)
         #expect(!ChatLiveWallpaperView.isShown(for: .glassDrops, sendPulse: ChatWallpaperSendPulse()))
+        #expect(!ChatLiveWallpaperView.isShown(for: .palmCoast, sendPulse: ChatWallpaperSendPulse()))
         #expect(!ChatLiveWallpaperView.canAnimate(.glassDrops, reducesMotion: false))
     }
     
@@ -135,7 +149,71 @@ final class LiveWallpaperMotionTests {
         #expect(ChatLiveWallpaperView.isShown(for: .glassDrops, sendPulse: ChatWallpaperSendPulse(), isEnabled: true))
         // Theme tiles, the header and the wallpaper picker set no send pulse.
         #expect(!ChatLiveWallpaperView.isShown(for: .glassDrops, sendPulse: nil, isEnabled: true))
-        #expect(!ChatLiveWallpaperView.isShown(for: .palmCoast, sendPulse: ChatWallpaperSendPulse(), isEnabled: true))
+        #expect(!ChatLiveWallpaperView.isShown(for: .palmCoast, sendPulse: ChatWallpaperSendPulse(), isEnabled: true, isTiltSupported: false))
+    }
+    
+    @Test
+    func staticArtworksGetTheViewWhereTheyTilt() {
+        #expect(ChatLiveWallpaperView.isShown(for: .palmCoast, sendPulse: ChatWallpaperSendPulse(), isEnabled: true, isTiltSupported: true))
+        #expect(!ChatLiveWallpaperView.isShown(for: .palmCoast, sendPulse: nil, isEnabled: true, isTiltSupported: true))
+    }
+    
+    @Test(arguments: [(UIInterfaceOrientation.portrait, WallpaperScreenRotation.upright),
+                      (.landscapeRight, .quarterTurn),
+                      (.portraitUpsideDown, .halfTurn),
+                      (.landscapeLeft, .threeQuarterTurn),
+                      (.unknown, .upright)])
+    func theTiltTurnsWithTheInterface(orientation: UIInterfaceOrientation, rotation: WallpaperScreenRotation) {
+        #expect(WallpaperScreenRotation(orientation) == rotation)
+    }
+    
+    @Test
+    func aTiltChangeBelowTheDeadBandIsSkipped() {
+        let parallax = WallpaperParallax()
+        #expect(!parallax.apply(SIMD2(0.0004, 0.0003)))
+        #expect(parallax.tilt == .zero && parallax.appliedTilt == .zero)
+        
+        #expect(parallax.apply(SIMD2(0.0008, 0.0008)))
+        #expect(parallax.tilt == SIMD2(0.0008, 0.0008))
+    }
+    
+    @Test
+    func gyroscopeNoiseOnAPhoneAtRestRarelyMovesTheStill() {
+        let parallax = WallpaperParallax()
+        var tracker = WallpaperTiltTracker()
+        var previousTilt = tracker.tilt
+        var (changes, applied) = (0, 0)
+        
+        for sample in 0..<600 {
+            let rate = SIMD3(restingNoise(3 * sample), restingNoise(3 * sample + 1), restingNoise(3 * sample + 2)) * 0.003
+            let tilt = tracker.sample(rate: rate, at: Double(sample) / 60)
+            if tilt != previousTilt {
+                changes += 1
+            }
+            previousTilt = tilt
+            if parallax.apply(tilt) {
+                applied += 1
+            }
+        }
+        
+        #expect(changes > 590)
+        #expect(applied < 30)
+    }
+    
+    @Test
+    func aLiveFrameHoldsTheTiltWhileItCoversTheStill() {
+        let parallax = WallpaperParallax()
+        #expect(parallax.apply(SIMD2(0.2, -0.1), movesStill: false))
+        #expect(parallax.tilt == .zero)
+        #expect(parallax.appliedTilt == SIMD2(0.2, -0.1))
+        
+        parallax.moveStillToAppliedTilt()
+        #expect(parallax.tilt == SIMD2(0.2, -0.1))
+        
+        // After a still condition the tilt resumes from rest, so the dead band is measured from there.
+        parallax.forgetAppliedTilt()
+        #expect(parallax.appliedTilt == .zero)
+        #expect(!parallax.apply(SIMD2(0.0005, 0)))
     }
     
     @Test
@@ -286,6 +364,26 @@ final class LiveWallpaperMotionTests {
         #expect(layout.rect.width == viewSize.width)
         #expect(layout.drawableSize.width * layout.drawableSize.height <= LiveWallpaperLayout.maximumAreaRatio * visiblePixels * 1.01)
         #expect(abs(layout.drawableSize.width / layout.drawableSize.height - layout.rect.width / layout.rect.height) < 0.01)
+    }
+    
+    @Test(arguments: [CGSize(width: 402, height: 758), CGSize(width: 874, height: 340), CGSize(width: 1024, height: 1366)])
+    func aTiltingLiveFrameIsTheStillAtRest(viewSize: CGSize) {
+        let still = WallpaperStillLayout(viewSize: viewSize)
+        
+        for artwork in ChatArtwork.allCases where artwork.isLive {
+            let layout = LiveWallpaperLayout(artwork: artwork, viewSize: viewSize, displayScale: 3, tilts: true)
+            #expect(layout.rect == still.imageRect(anchor: artwork.anchor, at: .zero), "\(artwork.id)")
+            #expect(layout.rect.minX <= -still.shift + 1e-9 && layout.rect.maxX >= viewSize.width + still.shift - 1e-9, "\(artwork.id)")
+            #expect(layout.rect.minY <= -still.shift + 1e-9 && layout.rect.maxY >= viewSize.height + still.shift - 1e-9, "\(artwork.id)")
+        }
+    }
+    
+    @Test(arguments: [SIMD2(1.0, 1.0), SIMD2(-1.0, -1.0), SIMD2(1.0, -1.0), SIMD2(-0.5, 0.25)])
+    func aTiltedStillNeverShowsItsEdges(tilt: SIMD2<Double>) {
+        let viewSize = CGSize(width: 402, height: 758)
+        let canvas = WallpaperStillLayout(viewSize: viewSize).canvasRect(at: tilt)
+        #expect(canvas.minX <= 1e-9 && canvas.minY <= 1e-9)
+        #expect(canvas.maxX >= viewSize.width - 1e-9 && canvas.maxY >= viewSize.height - 1e-9)
     }
     
     // An iPhone 17 Pro chat is 402 by 758 points from the navigation bar down to the bottom of the screen, behind a
@@ -443,18 +541,19 @@ final class LiveWallpaperMotionTests {
         let layout = LiveWallpaperLayout(artwork: .ipe, viewSize: CGSize(width: 402, height: 758), displayScale: 3)
         let origin = layout.pulseOrigin(visibleTop: 0, visibleBottom: 660)
         
-        let animating = LiveWallpaperUniforms.frame(in: layout, origin: origin, isDark: true, time: 25.5, pulse: 0.6, animates: true)
+        let animating = LiveWallpaperUniforms.frame(in: layout, origin: origin, tilt: SIMD2(0.5, -0.25), isDark: true, time: 25.5, pulse: 0.6, animates: true)
         #expect(animating.res == SIMD2(Float(layout.drawableSize.width), Float(layout.drawableSize.height)))
         #expect(animating.origin == origin)
-        #expect(animating.tilt == .zero)
+        #expect(animating.tilt == SIMD2(0.5, -0.25))
         #expect(animating.time == 25.5)
         #expect(animating.dark == 1)
         #expect(animating.pulse == 0.6)
         
-        let held = LiveWallpaperUniforms.frame(in: layout, origin: origin, isDark: false, time: 25.5, pulse: 0.6, animates: false)
+        let held = LiveWallpaperUniforms.frame(in: layout, origin: origin, tilt: SIMD2(0.5, -0.25), isDark: false, time: 25.5, pulse: 0.6, animates: false)
         #expect(held.dark == 0)
         #expect(held.pulse == 0)
         #expect(held.time == 25.5)
+        #expect(held.tilt == SIMD2(0.5, -0.25))
     }
     
     // MARK: - Time
@@ -514,8 +613,8 @@ final class LiveWallpaperMotionTests {
         #expect(LiveWallpaperPulse.value(secondsSinceSend: 0) == 0)
         #expect(LiveWallpaperPulse.value(secondsSinceSend: 0.125) == 0.5)
         #expect(LiveWallpaperPulse.value(secondsSinceSend: 0.25) == 1)
-        #expect(abs(LiveWallpaperPulse.value(secondsSinceSend: 1.15) - Float(exp(-1.0))) < 1e-6)
-        #expect(abs(LiveWallpaperPulse.value(secondsSinceSend: 4.2) - Float(exp(-3.95 / 0.9))) < 1e-6)
+        #expect(abs(LiveWallpaperPulse.value(secondsSinceSend: 1.15) - exp(-1.0)) < 1e-6)
+        #expect(abs(LiveWallpaperPulse.value(secondsSinceSend: 4.2) - exp(-3.95 / 0.9)) < 1e-6)
         #expect(LiveWallpaperPulse.value(secondsSinceSend: 4.2001) == 0)
         #expect(LiveWallpaperPulse.value(secondsSinceSend: 60) == 0)
     }
@@ -535,7 +634,7 @@ final class LiveWallpaperMotionTests {
         #expect(pulse.value(at: 10.25) == 0)
         
         pulse.recordSend()
-        #expect(pulse.lastSend == 10)
+        #expect(pulse.pulseStart == 10)
         #expect(pulse.value(at: 10) == 0)
         #expect(pulse.value(at: 10.25) == 1)
         #expect(pulse.value(at: 15) == 0)
@@ -546,6 +645,24 @@ final class LiveWallpaperMotionTests {
     }
     
     @Test
+    func aSendDuringAPulseCarriesOnFromItsValue() {
+        var now = 10.0
+        let pulse = ChatWallpaperSendPulse { now }
+        pulse.recordSend()
+        
+        // A send while the pulse rises changes nothing.
+        now = 10.1
+        pulse.recordSend()
+        #expect(abs(pulse.value(at: 10.2) - LiveWallpaperPulse.value(secondsSinceSend: 0.2)) < 1e-9)
+        
+        now = 11
+        let decaying = pulse.value(at: 11)
+        pulse.recordSend()
+        #expect(abs(pulse.value(at: 11) - decaying) < 1e-9)
+        #expect(pulse.value(at: 11.1) > decaying)
+    }
+    
+    @Test
     func aLocalEchoPulsesOnceWhenItFirstAppears() {
         var now = 10.0
         let pulse = ChatWallpaperSendPulse { now }
@@ -553,13 +670,13 @@ final class LiveWallpaperMotionTests {
         pulse.recordLocalEchoes(in: history, isSwitchingTimelines: true)
         
         pulse.recordLocalEchoes(in: history + [makeEvent(id: localEcho("txn1"), properties: .init(deliveryStatus: .sending))], isSwitchingTimelines: false)
-        #expect(pulse.lastSend == 10)
+        #expect(pulse.pulseStart == 10)
         
         // Sent, then replaced by its remote echo: still the same send.
         now = 11
         pulse.recordLocalEchoes(in: history + [makeEvent(id: localEcho("txn1"), properties: .init(deliveryStatus: .sent))], isSwitchingTimelines: false)
         pulse.recordLocalEchoes(in: history + [makeEvent(id: .event(uniqueID: .init("txn1"), eventOrTransactionID: .eventID("$2")))], isSwitchingTimelines: false)
-        #expect(pulse.lastSend == 10)
+        #expect(pulse.pulseStart == 10)
     }
     
     @Test
@@ -572,11 +689,11 @@ final class LiveWallpaperMotionTests {
         // The timeline opens before it has loaded, then its first items include an echo from an earlier session's send queue.
         pulse.recordLocalEchoes(in: [PaginationIndicatorRoomTimelineItem(position: .start)], isSwitchingTimelines: true)
         pulse.recordLocalEchoes(in: history + [failed], isSwitchingTimelines: false)
-        #expect(pulse.lastSend == nil)
+        #expect(pulse.pulseStart == nil)
         
         now = 20
         pulse.recordLocalEchoes(in: history + [failed, makeEvent(id: localEcho("txn-new"))], isSwitchingTimelines: false)
-        #expect(pulse.lastSend == 20)
+        #expect(pulse.pulseStart == 20)
     }
     
     @Test
@@ -586,7 +703,7 @@ final class LiveWallpaperMotionTests {
         pulse.recordLocalEchoes(in: history, isSwitchingTimelines: true)
         
         pulse.recordLocalEchoes(in: history + [makeEvent(id: localEcho("txn1"))], isSwitchingTimelines: true)
-        #expect(pulse.lastSend == nil)
+        #expect(pulse.pulseStart == nil)
     }
     
     @Test
@@ -598,7 +715,7 @@ final class LiveWallpaperMotionTests {
         #expect(pulse.value(at: 10.25) == 1)
         
         pulse.recordLocalEchoes(in: [PaginationIndicatorRoomTimelineItem(position: .start)], isSwitchingTimelines: true)
-        #expect(pulse.lastSend == nil)
+        #expect(pulse.pulseStart == nil)
         #expect(pulse.value(at: 10.5) == 0)
     }
     
@@ -608,7 +725,7 @@ final class LiveWallpaperMotionTests {
         let history = [makeEvent(id: remoteEvent("$1"), isOutgoing: false)]
         ChatWallpaperSendPulse.recordLocalEchoes(in: history, isSwitchingTimelines: true, roomID: roomID, timelineKind: timelineKind)
         ChatWallpaperSendPulse.recordLocalEchoes(in: history + [makeEvent(id: localEcho("txn1"))], isSwitchingTimelines: false, roomID: roomID, timelineKind: timelineKind)
-        #expect((ChatWallpaperSendPulse.forRoom(roomID).lastSend != nil) == pulses)
+        #expect((ChatWallpaperSendPulse.forRoom(roomID).pulseStart != nil) == pulses)
     }
     
     @Test(arguments: SentEvent.allCases)
@@ -618,11 +735,11 @@ final class LiveWallpaperMotionTests {
         try await show(history, in: room, isSwitchingTimelines: true)
         
         try await show(history + [makeEvent(event, id: localEcho("txn1"), properties: .init(deliveryStatus: .sending))], in: room)
-        let firstPulse = try #require(room.pulse.lastSend)
+        let firstPulse = try #require(room.pulse.pulseStart)
         
         try await show(history + [makeEvent(event, id: localEcho("txn1"), properties: .init(deliveryStatus: .sent))], in: room)
         try await show(history + [makeEvent(event, id: .event(uniqueID: .init("txn1"), eventOrTransactionID: .eventID("$3")))], in: room)
-        #expect(room.pulse.lastSend == firstPulse)
+        #expect(room.pulse.pulseStart == firstPulse)
     }
     
     @Test
@@ -633,7 +750,7 @@ final class LiveWallpaperMotionTests {
         
         let older = [makeEvent(.image, id: remoteEvent("$1")), makeEvent(.sticker, id: remoteEvent("$2"))]
         try await show(older + latest, in: room)
-        #expect(room.pulse.lastSend == nil)
+        #expect(room.pulse.pulseStart == nil)
     }
     
     @Test
@@ -647,7 +764,7 @@ final class LiveWallpaperMotionTests {
         let editedSent = makeEvent(id: sent.id, body: "Edited", properties: .init(isEdited: true, deliveryStatus: .sending))
         let editedSending = makeEvent(id: sending.id, body: "Edited", properties: .init(isEdited: true, deliveryStatus: .sending))
         try await show([editedSent, editedSending], in: room)
-        #expect(room.pulse.lastSend == nil)
+        #expect(room.pulse.pulseStart == nil)
     }
     
     @Test
@@ -658,7 +775,7 @@ final class LiveWallpaperMotionTests {
         
         let reaction = AggregatedReaction(accountOwnerID: TimelineItemSender.test.id, key: "👍", senders: [ReactionSender(id: TimelineItemSender.test.id, timestamp: .mock)])
         try await show([makeEvent(id: message.id, isOutgoing: false, properties: .init(reactions: [reaction]))], in: room)
-        #expect(room.pulse.lastSend == nil)
+        #expect(room.pulse.pulseStart == nil)
     }
     
     @Test
@@ -668,7 +785,7 @@ final class LiveWallpaperMotionTests {
         try await show(history, in: room, isSwitchingTimelines: true)
         
         try await show(history + [makeEvent(id: remoteEvent("$2"))], in: room)
-        #expect(room.pulse.lastSend == nil)
+        #expect(room.pulse.pulseStart == nil)
     }
     
     @Test
@@ -678,7 +795,7 @@ final class LiveWallpaperMotionTests {
         try await show(history, in: room, isSwitchingTimelines: true)
         
         try await show(history + [makeEvent(id: localEcho("txn1"))], in: room)
-        #expect(room.pulse.lastSend == nil)
+        #expect(room.pulse.pulseStart == nil)
     }
     
     @Test
@@ -689,12 +806,12 @@ final class LiveWallpaperMotionTests {
         let room = makeRoom(id: roomID)
         try await show(history, in: room, isSwitchingTimelines: true)
         try await show(history + [sending], in: room)
-        #expect(room.pulse.lastSend != nil)
+        #expect(room.pulse.pulseStart != nil)
         
         // Opened again within the pulse, with the message still on its way.
         let reopened = makeRoom(id: roomID)
         try await show(history + [sending], in: reopened, isSwitchingTimelines: true)
-        #expect(reopened.pulse.lastSend == nil)
+        #expect(reopened.pulse.pulseStart == nil)
     }
     
     @Test
@@ -704,10 +821,19 @@ final class LiveWallpaperMotionTests {
         #expect(ChatWallpaperSendPulse.forRoom("!live-wallpaper-b:example.com") !== room)
         
         room.recordSend()
-        #expect(ChatWallpaperSendPulse.forRoom("!live-wallpaper-b:example.com").lastSend == nil)
+        #expect(ChatWallpaperSendPulse.forRoom("!live-wallpaper-b:example.com").pulseStart == nil)
     }
     
     // MARK: - Helpers
+    
+    /// A fixed pseudo-random value in -1...1 for each index, standing in for a resting gyroscope's noise.
+    private func restingNoise(_ index: Int) -> Double {
+        var bits = UInt64(index) &+ 0x9E37_79B9_7F4A_7C15
+        bits = (bits ^ (bits >> 30)) &* 0xBF58_476D_1CE4_E5B9
+        bits = (bits ^ (bits >> 27)) &* 0x94D0_49BB_1331_11EB
+        bits ^= bits >> 31
+        return Double(bits >> 11) / Double(UInt64(1) << 53) * 2 - 1
+    }
     
     /// A pulse origin in the canvas's coordinates, from the top left.
     private func spotInCanvas(_ origin: SIMD2<Float>, of layout: LiveWallpaperLayout) -> CGPoint {

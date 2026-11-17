@@ -47,20 +47,29 @@ nonisolated enum LiveWallpaperPulse {
     static let decay: TimeInterval = 0.9
     static let duration: TimeInterval = 4.2
     
-    static func value(secondsSinceSend seconds: TimeInterval) -> Float {
+    static func value(secondsSinceSend seconds: TimeInterval) -> Double {
         guard seconds >= 0, seconds <= duration else { return 0 }
         let rising = min(1, seconds / rise)
-        return Float(rising * rising * (3 - 2 * rising) * exp(-max(0, seconds - rise) / decay))
+        return rising * rising * (3 - 2 * rising) * exp(-max(0, seconds - rise) / decay)
+    }
+    
+    /// When the pulse of a send at `time` starts: during a pulse, where its rising edge has the current value, so a send
+    /// never snaps the pulse back to zero.
+    static func start(ofSendAt time: TimeInterval, currentStart: TimeInterval?) -> TimeInterval {
+        let current = currentStart.map { value(secondsSinceSend: time - $0) } ?? 0
+        // The inverse of the rising edge's smoothstep.
+        return time - rise * (0.5 - sin(asin(1 - 2 * current) / 3))
     }
 }
 
-/// When the user last sent an event from this device in one chat, which its live wallpaper turns into the send pulse,
-/// and where the chat ends above the composer, which places it.
+/// The send pulse of one chat's live wallpaper, from the events the user sends from this device, and where the chat ends
+/// above the composer, which places it.
 final class ChatWallpaperSendPulse {
     private static var rooms: [String: ChatWallpaperSendPulse] = [:]
     
     private let now: () -> TimeInterval
-    private(set) var lastSend: TimeInterval?
+    /// When the pulse that plays now started: the last send, or earlier when that send came during a pulse.
+    private(set) var pulseStart: TimeInterval?
     /// The top edge of the composer, or of the theme preview's controls, in SwiftUI's global space.
     var composerTop: CGFloat?
     /// The transaction IDs of every local echo the room's timeline has shown.
@@ -101,7 +110,7 @@ final class ChatWallpaperSendPulse {
     func recordLocalEchoes(in items: [RoomTimelineItemProtocol], isSwitchingTimelines: Bool) {
         if isSwitchingTimelines {
             isOpeningTimeline = true
-            lastSend = nil
+            pulseStart = nil
         }
         
         var hasNewLocalEcho = false
@@ -120,11 +129,11 @@ final class ChatWallpaperSendPulse {
     }
     
     func recordSend() {
-        lastSend = now()
+        pulseStart = LiveWallpaperPulse.start(ofSendAt: now(), currentStart: pulseStart)
     }
     
-    func value(at time: TimeInterval) -> Float {
-        guard let lastSend else { return 0 }
-        return LiveWallpaperPulse.value(secondsSinceSend: time - lastSend)
+    func value(at time: TimeInterval) -> Double {
+        guard let pulseStart else { return 0 }
+        return LiveWallpaperPulse.value(secondsSinceSend: time - pulseStart)
     }
 }

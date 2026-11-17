@@ -677,6 +677,7 @@
 		5E783443E3D789134BD32D3F /* ElementCallServiceConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = E66D3F2B41556E528AC48147 /* ElementCallServiceConstants.swift */; };
 		5E7FB4CC173A0B7A2DD86E8B /* SpaceServiceSDKMock.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4E0D76420C45DDEB81F25A3 /* SpaceServiceSDKMock.swift */; };
 		5EA1FCEC3E391DF20D26457C /* NotificationSettingsScreenViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9C541ED171391BABB5F18FE /* NotificationSettingsScreenViewModel.swift */; };
+		5EA5C7356487245155E2AF8D /* LiveWallpaperMotionFixtureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1B72BFFAA6C9CA94B21635A /* LiveWallpaperMotionFixtureTests.swift */; };
 		5F2AB23346172E9E7ECC7061 /* WaveformCursorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A06E3835DF8E499002F84FA /* WaveformCursorView.swift */; };
 		5F64BB930234080C91F4C9FE /* PollFormScreenCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 927B1D2DD078B92D3C587B26 /* PollFormScreenCoordinator.swift */; };
 		5F8104AA8D69DD42C52EAD57 /* RoomChangeRolesScreenModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B360D969201A101B62BA90F /* RoomChangeRolesScreenModels.swift */; };
@@ -1179,6 +1180,7 @@
 		A8E8046AFC1D24F2123C9E97 /* RoomChangeRolesScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = F907279D23A574392FC208FD /* RoomChangeRolesScreen.swift */; };
 		A8F9B72020DD9D9C3EF9B1FA /* LabsScreenModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA80EFAE61482B5630B9D8DD /* LabsScreenModels.swift */; };
 		A8FD5BF5314D1B103D87EDF4 /* CompoundIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46C7FE81BCD6E424309ADFBA /* CompoundIcon.swift */; };
+		A9076B434F79948783C8303F /* live-wallpaper-motion-fixtures.json in Resources */ = {isa = PBXBuildFile; fileRef = 4A7ACC49A08D2B68AA577D3F /* live-wallpaper-motion-fixtures.json */; };
 		A91FC4E1BAF590976B07EEE5 /* VoiceMessageRecorderProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 742CE59A82A39A7C9888757D /* VoiceMessageRecorderProtocol.swift */; };
 		A928D28966E1924890B3722A /* TimelineMediaPreviewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = B050538A5607BD2CBF397252 /* TimelineMediaPreviewModifier.swift */; };
 		A9338034E2AA22B918E1B030 /* UserDiscoveryServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3AA3D0C8BDF27B1E6DD63A1 /* UserDiscoveryServiceProtocol.swift */; };
@@ -1431,6 +1433,7 @@
 		CA1ED8CA90BA0A74F5790D2E /* PillContextTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBBF4103D76B0029ECE53C04 /* PillContextTests.swift */; };
 		CA61968BE685EAF94284FCE0 /* AnalyticsPromptScreenViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8283C3811F1F2942DB032DCD /* AnalyticsPromptScreenViewModel.swift */; };
 		CA6268817C4E31582A165025 /* ChatArtworkManifestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D112C7E7D96DB392820BECB7 /* ChatArtworkManifestTests.swift */; };
+		CA82091C935037380A8EADBC /* WallpaperTiltSensor.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCE9FECF3A2E377D582A455C /* WallpaperTiltSensor.swift */; };
 		CAC5E076040521D9036AE59F /* DeclineAndBlockScreenViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BBCEDB919E34B3F38FF51E2 /* DeclineAndBlockScreenViewModel.swift */; };
 		CAC6165C439045DBFB121DFD /* AppLockSetupPINScreenViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A642F832C00558F8D731E40 /* AppLockSetupPINScreenViewModelTests.swift */; };
 		CB4ADB9F23CC0C7069CC454E /* SpacesScreenViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 915D557157B8BCF893748D65 /* SpacesScreenViewModel.swift */; };
@@ -1742,6 +1745,7 @@
 		F7706FD8427A4D8F14A0A2D1 /* SearchBreadcrumb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7352ED4C22A2512168D41434 /* SearchBreadcrumb.swift */; };
 		F7761CCBB609B7FBB26FFFFB /* RoomSelectionScreenModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7388B39552C25CCB92CB22 /* RoomSelectionScreenModels.swift */; };
 		F7A25F178660B2C0DB998FAB /* ExtensionLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED38FFA74119F49D18800963 /* ExtensionLogger.swift */; };
+		F7A51F51F827DB949AED72AB /* WallpaperTilt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1933B0365DBB7515F9163E69 /* WallpaperTilt.swift */; };
 		F7EE9245E35F6702EE915647 /* AppMediatorMock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 325A48F8FF30BBC614BA2B44 /* AppMediatorMock.swift */; };
 		F820DA7BC2ECA33B765C0BA4 /* LinkNewDeviceScreenViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FD50A12EE8E24D2A81CDB6B /* LinkNewDeviceScreenViewModel.swift */; };
 		F83346CA5D77361A6D863E07 /* SeparatorRoomTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C975B067422B4ADFFCC056C /* SeparatorRoomTimelineView.swift */; };
@@ -2087,6 +2091,7 @@
 		19001A5E2D7B07D3330978F7 /* RoomMembershipDetailsProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomMembershipDetailsProxy.swift; sourceTree = "<group>"; };
 		1912D67AB9301184A85CF7F1 /* EncryptionSDKMock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncryptionSDKMock.swift; sourceTree = "<group>"; };
 		1923FC74B4B454E874CD7690 /* ChatsTabFlowCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatsTabFlowCoordinatorTests.swift; sourceTree = "<group>"; };
+		1933B0365DBB7515F9163E69 /* WallpaperTilt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperTilt.swift; sourceTree = "<group>"; };
 		1969C53FD67BF2F563F7E89C /* StateRoomTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateRoomTimelineView.swift; sourceTree = "<group>"; };
 		197FE8C4F0090EBBDB8D517C /* LocationSharingSettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationSharingSettingsScreen.swift; sourceTree = "<group>"; };
 		1985D385F97AB921982CA299 /* ElementXAttributeScope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ElementXAttributeScope.swift; sourceTree = "<group>"; };
@@ -2372,6 +2377,7 @@
 		4A467D0F3156F70FB177B612 /* AuthenticationFlowCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationFlowCoordinatorTests.swift; sourceTree = "<group>"; };
 		4A47714219390F950C4573AF /* ComposerDraftServiceMock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComposerDraftServiceMock.swift; sourceTree = "<group>"; };
 		4A642F832C00558F8D731E40 /* AppLockSetupPINScreenViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLockSetupPINScreenViewModelTests.swift; sourceTree = "<group>"; };
+		4A7ACC49A08D2B68AA577D3F /* live-wallpaper-motion-fixtures.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "live-wallpaper-motion-fixtures.json"; sourceTree = "<group>"; };
 		4A90AAE7FFF00CCA5363058B /* SessionVerificationOwnDeviceResponderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionVerificationOwnDeviceResponderTests.swift; sourceTree = "<group>"; };
 		4AA57B9E79F5A825DB4D0AFA /* SpaceScreenModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpaceScreenModels.swift; sourceTree = "<group>"; };
 		4AA89F08E84DB3340364D13D /* RoomPermissions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomPermissions.swift; sourceTree = "<group>"; };
@@ -3227,6 +3233,7 @@
 		D14130352412B50BD51055AB /* CompletionSuggestionServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompletionSuggestionServiceTests.swift; sourceTree = "<group>"; };
 		D15A0C012D3466AC2FC8C4BE /* TimelineMediaPreviewFileExportPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineMediaPreviewFileExportPicker.swift; sourceTree = "<group>"; };
 		D17BD6289BB43A0F452183B1 /* AppMediator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppMediator.swift; sourceTree = "<group>"; };
+		D1B72BFFAA6C9CA94B21635A /* LiveWallpaperMotionFixtureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveWallpaperMotionFixtureTests.swift; sourceTree = "<group>"; };
 		D1CFEE840CBBE430D30BC1C4 /* AnalyticsServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsServiceProtocol.swift; sourceTree = "<group>"; };
 		D1E6714495AE27E63CFCABAE /* TimelineControllerFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineControllerFactory.swift; sourceTree = "<group>"; };
 		D20624A4B6C816E61739746B /* UserSessionProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSessionProtocol.swift; sourceTree = "<group>"; };
@@ -3290,6 +3297,7 @@
 		DCB8C2F259958B5AF82596CC /* LogViewerScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogViewerScreen.swift; sourceTree = "<group>"; };
 		DCC3E21864F4B1DF583756DA /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		DCD0CD0FFC7D86D493E8B39D /* ReportContentScreenViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportContentScreenViewModel.swift; sourceTree = "<group>"; };
+		DCE9FECF3A2E377D582A455C /* WallpaperTiltSensor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperTiltSensor.swift; sourceTree = "<group>"; };
 		DCEEA2A9798617E81AA12806 /* AccountUserDefaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountUserDefaults.swift; sourceTree = "<group>"; };
 		DD825427CEA42FF6162888D0 /* AppRoutes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRoutes.swift; sourceTree = "<group>"; };
 		DDD13BAA78252E9C9FC77012 /* UserProfileScreenViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileScreenViewModel.swift; sourceTree = "<group>"; };
@@ -3699,6 +3707,8 @@
 				07AB2CB01D9C9C1CF5473016 /* LiveWallpaperShader.swift */,
 				ACE86A227FD9A45ECA76956C /* LiveWallpaperTiming.swift */,
 				F4B3772C3793CA7A64D2618E /* WallpaperMotionPolicy.swift */,
+				1933B0365DBB7515F9163E69 /* WallpaperTilt.swift */,
+				DCE9FECF3A2E377D582A455C /* WallpaperTiltSensor.swift */,
 				40089562C6CAFFBBC11B18D8 /* View */,
 			);
 			path = ChatBackground;
@@ -4465,6 +4475,7 @@
 				02F392413CF9487A71D0B377 /* chat-background-fixtures.json */,
 				1C18876210A22EE9968D13AE /* chat-theme-precedence-fixtures.json */,
 				8F14C1DB44D5D0F80F21BDA6 /* genesis-vectors.v1.json */,
+				4A7ACC49A08D2B68AA577D3F /* live-wallpaper-motion-fixtures.json */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -6172,6 +6183,7 @@
 				BA613101470CF27EF09E2F43 /* LinkNewDeviceScreenViewModelTests.swift */,
 				AB59B8A9FF8453CD39E01229 /* LiveLocationManagerTests.swift */,
 				D649A4FFA53D66ADA1F188D5 /* LiveLocationServiceTests.swift */,
+				D1B72BFFAA6C9CA94B21635A /* LiveWallpaperMotionFixtureTests.swift */,
 				471624D5365209B69BDABF80 /* LiveWallpaperMotionTests.swift */,
 				C3EED681F1F76E1E5E6F6D74 /* LiveWallpaperRendererTests.swift */,
 				BA16C54A21CF6A0BD4807F0A /* LocalizationTests.swift */,
@@ -8602,6 +8614,7 @@
 				6AD130B8F74844B3E5C8F132 /* genesis-vectors.v1.json in Resources */,
 				390E3F9324DC7F8E23F9E377 /* landscape_test_image.jpg in Resources */,
 				45BF2F62953AEC4F97C54532 /* landscape_test_video.mov in Resources */,
+				A9076B434F79948783C8303F /* live-wallpaper-motion-fixtures.json in Resources */,
 				D337F31DFD0345A59A9F2FC3 /* portrait_test_image.jpg in Resources */,
 				80E3229733CDB3393D8AB8B4 /* portrait_test_video.mp4 in Resources */,
 				AF429D96E844FB277D3381BF /* preview_avatar_room.jpg in Resources */,
@@ -10151,6 +10164,8 @@
 				F33946D824A3DD6EBEB78AEA /* VoiceMessageTrashButton.swift in Sources */,
 				FD48DD59853105E3609C0875 /* VolatileUserDefaults.swift in Sources */,
 				EEE0577C043D20D9CA20D805 /* WallpaperMotionPolicy.swift in Sources */,
+				F7A51F51F827DB949AED72AB /* WallpaperTilt.swift in Sources */,
+				CA82091C935037380A8EADBC /* WallpaperTiltSensor.swift in Sources */,
 				5F2AB23346172E9E7ECC7061 /* WaveformCursorView.swift in Sources */,
 				30CFA34CAC8D46BC57534A89 /* WaveformInteractionModifier.swift in Sources */,
 				A9CB461B81320024749ACBD7 /* WaveformSource.swift in Sources */,
@@ -10280,6 +10295,7 @@
 				28A410FD5B44E097C56FD48E /* LinkNewDeviceScreenViewModelTests.swift in Sources */,
 				C2D24C4AB737E8CA68E376B7 /* LiveLocationManagerTests.swift in Sources */,
 				CFCD21408DF4CEAEF4B73790 /* LiveLocationServiceTests.swift in Sources */,
+				5EA5C7356487245155E2AF8D /* LiveWallpaperMotionFixtureTests.swift in Sources */,
 				A85AA3E9BD294272CA1E0005 /* LiveWallpaperMotionTests.swift in Sources */,
 				9848FB2B42B0A19DB3D4823F /* LiveWallpaperRendererTests.swift in Sources */,
 				C1D92E31E3715BD98E748A7B /* LocalizationTests.swift in Sources */,

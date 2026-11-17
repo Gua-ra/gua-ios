@@ -16,7 +16,7 @@ struct ChatThemePreview: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reducesMotion
     
-    /// Tapping a live artwork previews the send pulse, which only this preview reads.
+    /// The send button previews the send pulse, which only this preview reads.
     @State private var sendPulse = ChatWallpaperSendPulse()
     
     private var previewColorScheme: ColorScheme {
@@ -42,24 +42,16 @@ struct ChatThemePreview: View {
                     }
                     .environment(\.colorScheme, previewColorScheme)
                     .ignoresSafeArea(edges: [.horizontal, .bottom])
-                    .contentShape(.rect)
-                    .gesture(TapGesture().onEnded { sendPulse.recordSend() }, including: canPreviewSending ? .all : .subviews)
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(UntranslatedL10n.guaChatBackgroundPreviewA11y)
                     .accessibilityValue(draft.shownTheme.displayName(in: previewColorScheme))
-                    .accessibilityActions {
-                        if canPreviewSending {
-                            Button(UntranslatedL10n.guaChatBackgroundPreviewSendA11y) {
-                                sendPulse.recordSend()
-                            }
-                        }
-                    }
                 
                 ChatThemePreviewControls(previewColorScheme: previewColorScheme,
                                          saveTitle: saveTitle,
                                          canSave: context.viewState.canSave(draft),
                                          onPreviewColorScheme: { context.send(viewAction: .setPreviewColorScheme($0)) },
-                                         onSave: { context.send(viewAction: .savePreview) })
+                                         onSave: { context.send(viewAction: .savePreview) },
+                                         onPreviewSend: canPreviewSending ? { sendPulse.recordSend() } : nil)
                     .reportsChatWallpaperComposerTop(to: sendPulse)
             }
             .navigationTitle(UntranslatedL10n.guaChatThemeTitle)
@@ -83,15 +75,24 @@ struct ChatThemePreviewControls<Extra: View>: View {
     let canSave: Bool
     let onPreviewColorScheme: (ColorScheme) -> Void
     let onSave: () -> Void
+    /// Shows a send button that plays the send pulse; set only while the previewed artwork can animate.
+    var onPreviewSend: (() -> Void)?
     @ViewBuilder var extra: Extra
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Picker(UntranslatedL10n.guaChatBackgroundPreviewA11y, selection: Binding { previewColorScheme } set: { onPreviewColorScheme($0) }) {
-                Text(UntranslatedL10n.guaChatBackgroundPreviewLight).tag(ColorScheme.light)
-                Text(UntranslatedL10n.guaChatBackgroundPreviewDark).tag(ColorScheme.dark)
+            HStack(spacing: 12) {
+                Picker(UntranslatedL10n.guaChatBackgroundPreviewA11y, selection: Binding { previewColorScheme } set: { onPreviewColorScheme($0) }) {
+                    Text(UntranslatedL10n.guaChatBackgroundPreviewLight).tag(ColorScheme.light)
+                    Text(UntranslatedL10n.guaChatBackgroundPreviewDark).tag(ColorScheme.dark)
+                }
+                .pickerStyle(.segmented)
+                
+                if let onPreviewSend {
+                    SendButton(action: onPreviewSend)
+                        .accessibilityLabel(UntranslatedL10n.guaChatBackgroundPreviewSendA11y)
+                }
             }
-            .pickerStyle(.segmented)
             
             extra
             
@@ -109,12 +110,14 @@ extension ChatThemePreviewControls where Extra == EmptyView {
          saveTitle: String,
          canSave: Bool,
          onPreviewColorScheme: @escaping (ColorScheme) -> Void,
-         onSave: @escaping () -> Void) {
+         onSave: @escaping () -> Void,
+         onPreviewSend: (() -> Void)? = nil) {
         self.init(previewColorScheme: previewColorScheme,
                   saveTitle: saveTitle,
                   canSave: canSave,
                   onPreviewColorScheme: onPreviewColorScheme,
-                  onSave: onSave) {
+                  onSave: onSave,
+                  onPreviewSend: onPreviewSend) {
             EmptyView()
         }
     }

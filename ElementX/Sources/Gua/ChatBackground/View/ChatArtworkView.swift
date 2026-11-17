@@ -11,6 +11,8 @@ import SwiftUI
 /// An artwork's still for the current appearance, cropped around its anchor, over its fallback preset while it loads.
 struct ChatArtworkView: View {
     let artwork: ChatArtwork
+    /// Set where the artwork tilts: the still is then drawn larger than the view, so moving it never shows its edges.
+    var parallax: WallpaperParallax?
     
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.displayScale) private var displayScale
@@ -19,28 +21,55 @@ struct ChatArtworkView: View {
     @State private var loadedImage: UIImage?
     
     var body: some View {
-        GeometryReader { geometry in
-            let request = ChatArtworkLoader.request(for: artwork, colorScheme: colorScheme, filling: geometry.size, displayScale: displayScale)
-            let image = ChatArtworkLoader.cachedImage(for: request) ?? loadedImage
-            let fallback = artwork.fallbackPreset.fill(for: colorScheme)
-            
-            // One canvas, so the grain is blended once rather than on every frame the chat scrolls.
-            Canvas { context, size in
-                context.drawChatBackgroundFill(fallback, size: size)
-                if let image {
-                    let rect = ChatBackgroundPhotoLayout.rect(of: ChatArtwork.pixelSize,
-                                                              filling: size,
-                                                              alignX: artwork.anchor.x,
-                                                              alignY: artwork.anchor.y)
-                    context.draw(Image(uiImage: image).interpolation(.high), in: rect)
-                }
-                context.drawChatBackgroundGrain(size: size)
+        if let parallax {
+            GeometryReader { geometry in
+                let layout = WallpaperStillLayout(viewSize: geometry.size)
+                let canvas = layout.canvasRect(at: .zero)
+                
+                still(canvasSize: canvas.size)
+                    .frame(width: canvas.width, height: canvas.height)
+                    .modifier(WallpaperParallaxOffset(parallax: parallax, layout: layout))
             }
-            .task(id: request) {
-                guard request.maxPixelSize > 0, let image = await ChatArtworkLoader.loadImage(for: request) else { return }
-                loadedImage = image
+            .clipped()
+        } else {
+            GeometryReader { geometry in
+                still(canvasSize: geometry.size)
             }
         }
+    }
+    
+    private func still(canvasSize: CGSize) -> some View {
+        let request = ChatArtworkLoader.request(for: artwork, colorScheme: colorScheme, filling: canvasSize, displayScale: displayScale)
+        let image = ChatArtworkLoader.cachedImage(for: request) ?? loadedImage
+        let fallback = artwork.fallbackPreset.fill(for: colorScheme)
+        
+        // One canvas, so the grain is blended once rather than on every frame the chat scrolls.
+        return Canvas { context, size in
+            context.drawChatBackgroundFill(fallback, size: size)
+            if let image {
+                let rect = ChatBackgroundPhotoLayout.rect(of: ChatArtwork.pixelSize,
+                                                          filling: size,
+                                                          alignX: artwork.anchor.x,
+                                                          alignY: artwork.anchor.y)
+                context.draw(Image(uiImage: image).interpolation(.high), in: rect)
+            }
+            context.drawChatBackgroundGrain(size: size)
+        }
+        .task(id: request) {
+            guard request.maxPixelSize > 0, let image = await ChatArtworkLoader.loadImage(for: request) else { return }
+            loadedImage = image
+        }
+    }
+}
+
+/// Moves the still's canvas with the tilt. Only this modifier reads the tilt, so the canvas is never redrawn for it.
+private struct WallpaperParallaxOffset: ViewModifier {
+    let parallax: WallpaperParallax
+    let layout: WallpaperStillLayout
+    
+    func body(content: Content) -> some View {
+        let canvas = layout.canvasRect(at: parallax.tilt)
+        content.offset(x: canvas.minX, y: canvas.minY)
     }
 }
 

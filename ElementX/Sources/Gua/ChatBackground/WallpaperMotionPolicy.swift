@@ -43,6 +43,13 @@ nonisolated struct WallpaperMotionPolicy: Equatable {
         motion == .animating
     }
     
+    /// Tilt follows the same rules but needs no shader, so a live artwork shown as its still tilts too.
+    var tiltMotion: Motion {
+        var policy = self
+        policy.isRendererAvailable = true
+        return policy.motion
+    }
+    
     /// Adds what only the wallpaper's own view can see to the inputs SwiftUI gave it; neither side can clear the other's.
     func including(isInWindow: Bool, isSceneActive: Bool, isCovered: Bool) -> WallpaperMotionPolicy {
         var policy = self
