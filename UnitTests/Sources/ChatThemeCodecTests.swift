@@ -165,7 +165,7 @@ final class ChatThemeCodecTests {
     @Test
     func artworkIDsMatchTheSpec() {
         #expect(ChatArtwork.allCases.map(\.id) == ["glass-drops", "glass-drops-blue", "molten-pearl", "silk", "ipe", "rain-on-glass", "pantanal", "currents-live",
-                                                   "palm-coast", "river-bends", "highland-mist", "glacier-lake", "canola-sky", "harbour-fog", "canyon-glow", "polar-ice", "moon-tide",
+                                                   "dune-lagoons", "palm-coast", "river-bends", "highland-mist", "glacier-lake", "canola-sky", "harbour-fog", "canyon-glow", "polar-ice", "moon-tide",
                                                    "currents", "azulejo", "calcadao", "knit", "doodles-brasil", "doodles-canada",
                                                    "paper", "paper-cut"])
         #expect(ChatArtwork.allCases.filter(\.isLive) == ChatArtwork.artworks(in: .live))
@@ -223,7 +223,7 @@ final class ChatThemeCodecTests {
         #expect(sections == [["silk+teal", "glacier-lake+teal", "glass-drops+purple/pink", "currents+purple", "palm-coast+orange/blue", "ipe+pink/yellow", "azulejo+blue", "paper+green"],
                              ["glass-drops+purple/pink", "glass-drops-blue+teal", "molten-pearl+purple/blue", "silk+teal",
                               "ipe+pink/yellow", "rain-on-glass+green/blue", "pantanal+green", "currents-live+purple"],
-                             ["palm-coast+orange/blue", "river-bends+teal", "highland-mist+blue/green", "glacier-lake+teal", "canola-sky+green/orange",
+                             ["dune-lagoons+teal/purple", "palm-coast+orange/blue", "river-bends+teal", "highland-mist+blue/green", "glacier-lake+teal", "canola-sky+green/orange",
                               "harbour-fog+blue", "canyon-glow+blue/purple", "polar-ice+blue/purple", "moon-tide+blue"],
                              ["currents+purple", "azulejo+blue", "calcadao+teal", "knit+blue", "doodles-brasil+green", "doodles-canada+blue"],
                              ["paper+green", "paper-cut+teal/orange", "mint+green", "sky+blue", "sand+orange", "blush+pink", "lavender+purple", "graphite+graphite"],

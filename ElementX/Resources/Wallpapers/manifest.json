@@ -229,6 +229,28 @@
       "still_time": 24
     },
     {
+      "id": "dune-lagoons",
+      "section": "nature",
+      "live": false,
+      "files": {
+        "light": "dune-lagoons-light.webp",
+        "dark": "dune-lagoons-dark.webp"
+      },
+      "sha256": {
+        "dune-lagoons-light.webp": "2d6e7be9c88d66e83100b87805f234ee06c176b615b0e5b03025260a8080c6af",
+        "dune-lagoons-dark.webp": "d89c70e9a7b235298ddc5b430876d396e4e3574c7031773b064b0b62a7e553b8"
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.25
+      },
+      "fallback_preset": "mint",
+      "bubble": {
+        "light": "teal",
+        "dark": "purple"
+      }
+    },
+    {
       "id": "palm-coast",
       "section": "nature",
       "live": false,
