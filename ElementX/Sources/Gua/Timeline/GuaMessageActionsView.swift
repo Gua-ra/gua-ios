@@ -85,7 +85,8 @@ struct GuaMessageActionsView_Previews: PreviewProvider, TestablePreview {
                                                             actions: [("View build", "https://ci.example.org/builds/7")]))
         }
         .padding()
-        .background(.compound.bgCanvasDefault)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.compound.bgCanvasDefault.ignoresSafeArea())
         .environmentObject(viewModel.context)
     }
     
