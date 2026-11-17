@@ -933,6 +933,7 @@
 		86D8CADE53136FC8BCCA48C0 /* VolatileUserDefaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 431ED1FC1E31524EE0E8D26F /* VolatileUserDefaults.swift */; };
 		86EBC1F6A56839C9711FDA6B /* TraceLogPack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 931DABDFEBF38930762C9E41 /* TraceLogPack.swift */; };
 		86EE30E619D32B62F538222C /* MapTilerConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA377847801F83E18835EC96 /* MapTilerConfiguration.swift */; };
+		8758349D899408E0DC031B7A /* GuaMessageActionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 286F5D1C3398201487873C5D /* GuaMessageActionTests.swift */; };
 		87A3C9E3452B3E2F0DA32380 /* RoomChangeRolesScreenViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 310864D73B1CE76E07E76694 /* RoomChangeRolesScreenViewModel.swift */; };
 		87C6FF0A2B5EA07ECD52EC9A /* CXCallControllerMock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 007D606993B147C80C149034 /* CXCallControllerMock.swift */; };
 		88467A34317AB229CAA8BCC4 /* PollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD8FD9543BF5648DC68E4CC3 /* PollView.swift */; };
@@ -1143,6 +1144,7 @@
 		A8114377F54496A428A2A7E4 /* LAContextMock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E72977DB8DB65BC6B5F72D5 /* LAContextMock.swift */; };
 		A819EFB03D06525F3425D1FE /* NotificationSettingsScreenViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC0114908765B155387B442C /* NotificationSettingsScreenViewModelTests.swift */; };
 		A8A15E10A76BCFB3B7640328 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = FA727D708A43B05C71BABA20 /* InfoPlist.strings */; };
+		A8A45DB92A5D5420B7983B67 /* gua-message-actions.json in Resources */ = {isa = PBXBuildFile; fileRef = 8B46C77A0716C9CD0DEF0891 /* gua-message-actions.json */; };
 		A8E8046AFC1D24F2123C9E97 /* RoomChangeRolesScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = F907279D23A574392FC208FD /* RoomChangeRolesScreen.swift */; };
 		A8F9B72020DD9D9C3EF9B1FA /* LabsScreenModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA80EFAE61482B5630B9D8DD /* LabsScreenModels.swift */; };
 		A8FD5BF5314D1B103D87EDF4 /* CompoundIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46C7FE81BCD6E424309ADFBA /* CompoundIcon.swift */; };
@@ -2122,6 +2124,7 @@
 		283932931B1264FCBBA63FB9 /* ModerationAndSafetySettingsScreenModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModerationAndSafetySettingsScreenModels.swift; sourceTree = "<group>"; };
 		28507EBF46DA8583F58A1060 /* ImageRoomTimelineItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageRoomTimelineItem.swift; sourceTree = "<group>"; };
 		286863655754A6A7DA32B0CA /* ScreenTrackerViewModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenTrackerViewModifier.swift; sourceTree = "<group>"; };
+		286F5D1C3398201487873C5D /* GuaMessageActionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuaMessageActionTests.swift; sourceTree = "<group>"; };
 		2898D2BD0197CF9EBFD41593 /* StartChatScreenViewModelProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartChatScreenViewModelProtocol.swift; sourceTree = "<group>"; };
 		289959E1FC4417DAA97A1E3C /* JoinRoomScreenViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoinRoomScreenViewModelTests.swift; sourceTree = "<group>"; };
 		28E40D6822C0F24E16A0FEC7 /* ResolveVerifiedUserSendFailureScreenCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResolveVerifiedUserSendFailureScreenCoordinator.swift; sourceTree = "<group>"; };
@@ -2709,6 +2712,7 @@
 		8A931A7E77762F13FC4335F5 /* EncryptionResetScreenCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncryptionResetScreenCoordinator.swift; sourceTree = "<group>"; };
 		8ABA17AAEE8CC53CB05CE525 /* AnalyticsPromptScreenCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsPromptScreenCoordinator.swift; sourceTree = "<group>"; };
 		8B1D74477405044E8C3485A7 /* BloomModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BloomModifier.swift; sourceTree = "<group>"; };
+		8B46C77A0716C9CD0DEF0891 /* gua-message-actions.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "gua-message-actions.json"; sourceTree = "<group>"; };
 		8B866D01598921E869DC3280 /* OAuthAuthenticationPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OAuthAuthenticationPresenter.swift; sourceTree = "<group>"; };
 		8B8A44A25F6CC3EE44056C96 /* UNNotification+Creator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UNNotification+Creator.swift"; sourceTree = "<group>"; };
 		8BB40E8F8C0FBCBDC3D6FD3A /* PreviewScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewScrollView.swift; sourceTree = "<group>"; };
@@ -4325,6 +4329,7 @@
 			isa = PBXGroup;
 			children = (
 				8F14C1DB44D5D0F80F21BDA6 /* genesis-vectors.v1.json */,
+				8B46C77A0716C9CD0DEF0891 /* gua-message-actions.json */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -6003,6 +6008,7 @@
 				F6BB482626D8F630FA178C7E /* ExpiringTaskRunnerTests.swift */,
 				032763A4B37AB6F58569E216 /* FederatedUserSearchTests.swift */,
 				23A79D5AE6CC355829801341 /* GeoURITests.swift */,
+				286F5D1C3398201487873C5D /* GuaMessageActionTests.swift */,
 				9379997EFD8A33F518809AD8 /* HomeScreenRoomTests.swift */,
 				E57FD82C256FB937A9B81386 /* HomeScreenViewModelTests.swift */,
 				AAE19D4A62A1504059845D9C /* HomeserverHistoryManagerTests.swift */,
@@ -8427,6 +8433,7 @@
 				FB2C4E115C0F1F71CBA731B5 /* 94 in Resources */,
 				518DA426A3EC8B19A00960D6 /* accountsV2 in Resources */,
 				6AD130B8F74844B3E5C8F132 /* genesis-vectors.v1.json in Resources */,
+				A8A45DB92A5D5420B7983B67 /* gua-message-actions.json in Resources */,
 				390E3F9324DC7F8E23F9E377 /* landscape_test_image.jpg in Resources */,
 				45BF2F62953AEC4F97C54532 /* landscape_test_video.mov in Resources */,
 				D337F31DFD0345A59A9F2FC3 /* portrait_test_image.jpg in Resources */,
@@ -10047,6 +10054,7 @@
 				EAA17FCBC74A86DD64380699 /* ExpiringTaskRunnerTests.swift in Sources */,
 				3B4B913B0B423B7C12E52119 /* FederatedUserSearchTests.swift in Sources */,
 				3BEA37683C818EFB408170FE /* GeoURITests.swift in Sources */,
+				8758349D899408E0DC031B7A /* GuaMessageActionTests.swift in Sources */,
 				23A20E1F15AE8E72105D5377 /* HomeScreenRoomTests.swift in Sources */,
 				1B0A0B0FD5B661739C5A63E6 /* HomeScreenViewModelTests.swift in Sources */,
 				186853EDA12B8DD1D249647B /* HomeserverHistoryManagerTests.swift in Sources */,
