@@ -13,6 +13,8 @@ import Testing
 @MainActor
 final class ExpressionPanelViewModelTests {
     private let info = StickerImageInfo(width: 256, height: 256, mimetype: "image/png", size: 1000)
+    /// Each test sends in a room of its own, so no test sees another's wallpaper pulse.
+    private let roomID = "!expression-panel-\(UUID().uuidString):example.com"
     
     private let directory: URL
     private var appSettings: AppSettings!
@@ -230,6 +232,32 @@ final class ExpressionPanelViewModelTests {
     }
     
     @Test
+    func aStickerSentToTheRoomPulsesItsLiveWallpaperAsItGoesOut() async throws {
+        var pulsedBeforeSending = false
+        stickerSender.sendRelationClosure = { [roomID] _, _ in
+            pulsedBeforeSending = ChatWallpaperSendPulse.forRoom(roomID).lastSend != nil
+            return .success("$sticker")
+        }
+        makeViewModel()
+        
+        viewModel.context.send(viewAction: .sendSticker(StickerPanelItem(section: .recent, image: sticker("cat"), shortcode: nil, isFavourite: false)))
+        try await waitUntil { self.stickerSender.sendRelationCalled }
+        
+        #expect(pulsedBeforeSending)
+        #expect(ChatWallpaperSendPulse.forRoom(roomID).lastSend != nil)
+    }
+    
+    @Test
+    func aStickerSentInAThreadLeavesTheRoomWallpaperStill() async throws {
+        makeViewModel(threadRootEventID: "$root")
+        
+        viewModel.context.send(viewAction: .sendSticker(StickerPanelItem(section: .recent, image: sticker("cat"), shortcode: nil, isFavourite: false)))
+        try await waitUntil { self.stickerSender.sendRelationCalled }
+        
+        #expect(ChatWallpaperSendPulse.forRoom(roomID).lastSend == nil)
+    }
+    
+    @Test
     func failedStickerOffersARetry() async throws {
         stickerSender.sendRelationReturnValue = .failure(.sendFailed(.eventNotFound))
         makeViewModel()
@@ -338,7 +366,7 @@ final class ExpressionPanelViewModelTests {
     private func makeViewModel(threadRootEventID: String? = nil, searchDebounce: Duration = .milliseconds(10)) {
         stickersAndGifs = makeStickersAndGifs()
         viewModel = ExpressionPanelViewModel(stickersAndGifs: stickersAndGifs,
-                                             roomProxy: JoinedRoomProxyMock(.init(name: "Family")),
+                                             roomProxy: JoinedRoomProxyMock(.init(id: roomID, name: "Family")),
                                              stickerSender: stickerSender,
                                              gifSender: gifSender,
                                              cutoutService: StickerCutoutServiceMock(),

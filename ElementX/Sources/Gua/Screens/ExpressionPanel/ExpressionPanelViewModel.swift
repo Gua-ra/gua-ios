@@ -277,6 +277,10 @@ final class ExpressionPanelViewModel: ExpressionPanelViewModelType, ExpressionPa
     private func sendNow(_ image: StickerImage, tileID: String?) async {
         let relation = stickerRelation
         let answersReply = composerMode.replyEventID != nil
+        // A sticker has no local echo for the timeline to pulse the wallpaper on, and a thread shows no wallpaper.
+        if threadRootEventID == nil {
+            ChatWallpaperSendPulse.forRoom(roomProxy.id).recordSend()
+        }
         let result = await stickerSender.send(image.essentials, relation: relation)
         if let tileID {
             state.sendingStickerIDs.remove(tileID)
