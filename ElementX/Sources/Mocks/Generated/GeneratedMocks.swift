@@ -3240,6 +3240,48 @@ nonisolated class ClientProxyMock: ClientProxyProtocol, @unchecked Sendable {
             return uploadMediaReturnValue
         }
     }
+    //MARK: - uploadMedia
+
+    private let uploadMediaDataMimeTypeCallsCountLock = NSLock()
+    private nonisolated(unsafe) var uploadMediaDataMimeTypeUnderlyingCallsCount = 0
+    var uploadMediaDataMimeTypeCallsCount: Int {
+        get { uploadMediaDataMimeTypeCallsCountLock.withLock { uploadMediaDataMimeTypeUnderlyingCallsCount } }
+        set { uploadMediaDataMimeTypeCallsCountLock.withLock { uploadMediaDataMimeTypeUnderlyingCallsCount = newValue } }
+    }
+    var uploadMediaDataMimeTypeCalled: Bool {
+        return uploadMediaDataMimeTypeCallsCount > 0
+    }
+    private let uploadMediaDataMimeTypeReceivedArgumentsLock = NSLock()
+    private nonisolated(unsafe) var uploadMediaDataMimeTypeUnderlyingReceivedArguments: (data: Data, mimeType: String)?
+    var uploadMediaDataMimeTypeReceivedArguments: (data: Data, mimeType: String)? {
+        get { uploadMediaDataMimeTypeReceivedArgumentsLock.withLock { uploadMediaDataMimeTypeUnderlyingReceivedArguments } }
+        set { uploadMediaDataMimeTypeReceivedArgumentsLock.withLock { uploadMediaDataMimeTypeUnderlyingReceivedArguments = newValue } }
+    }
+    private let uploadMediaDataMimeTypeReceivedInvocationsLock = NSLock()
+    private nonisolated(unsafe) var uploadMediaDataMimeTypeUnderlyingReceivedInvocations: [(data: Data, mimeType: String)] = []
+    var uploadMediaDataMimeTypeReceivedInvocations: [(data: Data, mimeType: String)] {
+        get { uploadMediaDataMimeTypeReceivedInvocationsLock.withLock { uploadMediaDataMimeTypeUnderlyingReceivedInvocations } }
+        set { uploadMediaDataMimeTypeReceivedInvocationsLock.withLock { uploadMediaDataMimeTypeUnderlyingReceivedInvocations = newValue } }
+    }
+
+    private let uploadMediaDataMimeTypeReturnValueLock = NSLock()
+    private nonisolated(unsafe) var uploadMediaDataMimeTypeUnderlyingReturnValue: Result<String, ClientProxyError>!
+    var uploadMediaDataMimeTypeReturnValue: Result<String, ClientProxyError>! {
+        get { uploadMediaDataMimeTypeReturnValueLock.withLock { uploadMediaDataMimeTypeUnderlyingReturnValue } }
+        set { uploadMediaDataMimeTypeReturnValueLock.withLock { uploadMediaDataMimeTypeUnderlyingReturnValue = newValue } }
+    }
+    nonisolated(unsafe) var uploadMediaDataMimeTypeClosure: ((Data, String) async -> Result<String, ClientProxyError>)?
+
+    @concurrent func uploadMedia(data: Data, mimeType: String) async -> Result<String, ClientProxyError> {
+        uploadMediaDataMimeTypeCallsCountLock.withLock { uploadMediaDataMimeTypeUnderlyingCallsCount += 1 }
+        uploadMediaDataMimeTypeReceivedArguments = (data: data, mimeType: mimeType)
+        uploadMediaDataMimeTypeReceivedInvocationsLock.withLock { uploadMediaDataMimeTypeUnderlyingReceivedInvocations.append((data: data, mimeType: mimeType)) }
+        if let uploadMediaDataMimeTypeClosure = uploadMediaDataMimeTypeClosure {
+            return await uploadMediaDataMimeTypeClosure(data, mimeType)
+        } else {
+            return uploadMediaDataMimeTypeReturnValue
+        }
+    }
     //MARK: - roomForIdentifier
 
     private let roomForIdentifierCallsCountLock = NSLock()
@@ -5640,6 +5682,232 @@ nonisolated class ElementCallWidgetDriverMock: ElementCallWidgetDriverProtocol, 
         }
     }
 }
+nonisolated class GifProviderMock: GifProvider, @unchecked Sendable {
+    var id: String {
+        get { return underlyingId }
+        set(value) { underlyingId = value }
+    }
+    nonisolated(unsafe) var underlyingId: String!
+    var isAvailable: Bool {
+        get { return underlyingIsAvailable }
+        set(value) { underlyingIsAvailable = value }
+    }
+    nonisolated(unsafe) var underlyingIsAvailable: Bool!
+
+    //MARK: - search
+
+    private let searchPageCallsCountLock = NSLock()
+    private nonisolated(unsafe) var searchPageUnderlyingCallsCount = 0
+    var searchPageCallsCount: Int {
+        get { searchPageCallsCountLock.withLock { searchPageUnderlyingCallsCount } }
+        set { searchPageCallsCountLock.withLock { searchPageUnderlyingCallsCount = newValue } }
+    }
+    var searchPageCalled: Bool {
+        return searchPageCallsCount > 0
+    }
+    private let searchPageReceivedArgumentsLock = NSLock()
+    private nonisolated(unsafe) var searchPageUnderlyingReceivedArguments: (query: String, page: Int)?
+    var searchPageReceivedArguments: (query: String, page: Int)? {
+        get { searchPageReceivedArgumentsLock.withLock { searchPageUnderlyingReceivedArguments } }
+        set { searchPageReceivedArgumentsLock.withLock { searchPageUnderlyingReceivedArguments = newValue } }
+    }
+    private let searchPageReceivedInvocationsLock = NSLock()
+    private nonisolated(unsafe) var searchPageUnderlyingReceivedInvocations: [(query: String, page: Int)] = []
+    var searchPageReceivedInvocations: [(query: String, page: Int)] {
+        get { searchPageReceivedInvocationsLock.withLock { searchPageUnderlyingReceivedInvocations } }
+        set { searchPageReceivedInvocationsLock.withLock { searchPageUnderlyingReceivedInvocations = newValue } }
+    }
+
+    private let searchPageReturnValueLock = NSLock()
+    private nonisolated(unsafe) var searchPageUnderlyingReturnValue: Result<GifPage, GifProviderError>!
+    var searchPageReturnValue: Result<GifPage, GifProviderError>! {
+        get { searchPageReturnValueLock.withLock { searchPageUnderlyingReturnValue } }
+        set { searchPageReturnValueLock.withLock { searchPageUnderlyingReturnValue = newValue } }
+    }
+    nonisolated(unsafe) var searchPageClosure: ((String, Int) async -> Result<GifPage, GifProviderError>)?
+
+    @concurrent func search(_ query: String, page: Int) async -> Result<GifPage, GifProviderError> {
+        searchPageCallsCountLock.withLock { searchPageUnderlyingCallsCount += 1 }
+        searchPageReceivedArguments = (query: query, page: page)
+        searchPageReceivedInvocationsLock.withLock { searchPageUnderlyingReceivedInvocations.append((query: query, page: page)) }
+        if let searchPageClosure = searchPageClosure {
+            return await searchPageClosure(query, page)
+        } else {
+            return searchPageReturnValue
+        }
+    }
+    //MARK: - trending
+
+    private let trendingPageCallsCountLock = NSLock()
+    private nonisolated(unsafe) var trendingPageUnderlyingCallsCount = 0
+    var trendingPageCallsCount: Int {
+        get { trendingPageCallsCountLock.withLock { trendingPageUnderlyingCallsCount } }
+        set { trendingPageCallsCountLock.withLock { trendingPageUnderlyingCallsCount = newValue } }
+    }
+    var trendingPageCalled: Bool {
+        return trendingPageCallsCount > 0
+    }
+    private let trendingPageReceivedPageLock = NSLock()
+    private nonisolated(unsafe) var trendingPageUnderlyingReceivedPage: Int?
+    var trendingPageReceivedPage: Int? {
+        get { trendingPageReceivedPageLock.withLock { trendingPageUnderlyingReceivedPage } }
+        set { trendingPageReceivedPageLock.withLock { trendingPageUnderlyingReceivedPage = newValue } }
+    }
+    private let trendingPageReceivedInvocationsLock = NSLock()
+    private nonisolated(unsafe) var trendingPageUnderlyingReceivedInvocations: [Int] = []
+    var trendingPageReceivedInvocations: [Int] {
+        get { trendingPageReceivedInvocationsLock.withLock { trendingPageUnderlyingReceivedInvocations } }
+        set { trendingPageReceivedInvocationsLock.withLock { trendingPageUnderlyingReceivedInvocations = newValue } }
+    }
+
+    private let trendingPageReturnValueLock = NSLock()
+    private nonisolated(unsafe) var trendingPageUnderlyingReturnValue: Result<GifPage, GifProviderError>!
+    var trendingPageReturnValue: Result<GifPage, GifProviderError>! {
+        get { trendingPageReturnValueLock.withLock { trendingPageUnderlyingReturnValue } }
+        set { trendingPageReturnValueLock.withLock { trendingPageUnderlyingReturnValue = newValue } }
+    }
+    nonisolated(unsafe) var trendingPageClosure: ((Int) async -> Result<GifPage, GifProviderError>)?
+
+    @concurrent func trending(page: Int) async -> Result<GifPage, GifProviderError> {
+        trendingPageCallsCountLock.withLock { trendingPageUnderlyingCallsCount += 1 }
+        trendingPageReceivedPage = page
+        trendingPageReceivedInvocationsLock.withLock { trendingPageUnderlyingReceivedInvocations.append(page) }
+        if let trendingPageClosure = trendingPageClosure {
+            return await trendingPageClosure(page)
+        } else {
+            return trendingPageReturnValue
+        }
+    }
+    //MARK: - items
+
+    private let itemsIdsCallsCountLock = NSLock()
+    private nonisolated(unsafe) var itemsIdsUnderlyingCallsCount = 0
+    var itemsIdsCallsCount: Int {
+        get { itemsIdsCallsCountLock.withLock { itemsIdsUnderlyingCallsCount } }
+        set { itemsIdsCallsCountLock.withLock { itemsIdsUnderlyingCallsCount = newValue } }
+    }
+    var itemsIdsCalled: Bool {
+        return itemsIdsCallsCount > 0
+    }
+    private let itemsIdsReceivedIdsLock = NSLock()
+    private nonisolated(unsafe) var itemsIdsUnderlyingReceivedIds: [String]?
+    var itemsIdsReceivedIds: [String]? {
+        get { itemsIdsReceivedIdsLock.withLock { itemsIdsUnderlyingReceivedIds } }
+        set { itemsIdsReceivedIdsLock.withLock { itemsIdsUnderlyingReceivedIds = newValue } }
+    }
+    private let itemsIdsReceivedInvocationsLock = NSLock()
+    private nonisolated(unsafe) var itemsIdsUnderlyingReceivedInvocations: [[String]] = []
+    var itemsIdsReceivedInvocations: [[String]] {
+        get { itemsIdsReceivedInvocationsLock.withLock { itemsIdsUnderlyingReceivedInvocations } }
+        set { itemsIdsReceivedInvocationsLock.withLock { itemsIdsUnderlyingReceivedInvocations = newValue } }
+    }
+
+    private let itemsIdsReturnValueLock = NSLock()
+    private nonisolated(unsafe) var itemsIdsUnderlyingReturnValue: Result<[GifItem], GifProviderError>!
+    var itemsIdsReturnValue: Result<[GifItem], GifProviderError>! {
+        get { itemsIdsReturnValueLock.withLock { itemsIdsUnderlyingReturnValue } }
+        set { itemsIdsReturnValueLock.withLock { itemsIdsUnderlyingReturnValue = newValue } }
+    }
+    nonisolated(unsafe) var itemsIdsClosure: (([String]) async -> Result<[GifItem], GifProviderError>)?
+
+    @concurrent func items(ids: [String]) async -> Result<[GifItem], GifProviderError> {
+        itemsIdsCallsCountLock.withLock { itemsIdsUnderlyingCallsCount += 1 }
+        itemsIdsReceivedIds = ids
+        itemsIdsReceivedInvocationsLock.withLock { itemsIdsUnderlyingReceivedInvocations.append(ids) }
+        if let itemsIdsClosure = itemsIdsClosure {
+            return await itemsIdsClosure(ids)
+        } else {
+            return itemsIdsReturnValue
+        }
+    }
+    //MARK: - data
+
+    private let dataFromCallsCountLock = NSLock()
+    private nonisolated(unsafe) var dataFromUnderlyingCallsCount = 0
+    var dataFromCallsCount: Int {
+        get { dataFromCallsCountLock.withLock { dataFromUnderlyingCallsCount } }
+        set { dataFromCallsCountLock.withLock { dataFromUnderlyingCallsCount = newValue } }
+    }
+    var dataFromCalled: Bool {
+        return dataFromCallsCount > 0
+    }
+    private let dataFromReceivedUrlLock = NSLock()
+    private nonisolated(unsafe) var dataFromUnderlyingReceivedUrl: URL?
+    var dataFromReceivedUrl: URL? {
+        get { dataFromReceivedUrlLock.withLock { dataFromUnderlyingReceivedUrl } }
+        set { dataFromReceivedUrlLock.withLock { dataFromUnderlyingReceivedUrl = newValue } }
+    }
+    private let dataFromReceivedInvocationsLock = NSLock()
+    private nonisolated(unsafe) var dataFromUnderlyingReceivedInvocations: [URL] = []
+    var dataFromReceivedInvocations: [URL] {
+        get { dataFromReceivedInvocationsLock.withLock { dataFromUnderlyingReceivedInvocations } }
+        set { dataFromReceivedInvocationsLock.withLock { dataFromUnderlyingReceivedInvocations = newValue } }
+    }
+
+    private let dataFromReturnValueLock = NSLock()
+    private nonisolated(unsafe) var dataFromUnderlyingReturnValue: Result<Data, GifProviderError>!
+    var dataFromReturnValue: Result<Data, GifProviderError>! {
+        get { dataFromReturnValueLock.withLock { dataFromUnderlyingReturnValue } }
+        set { dataFromReturnValueLock.withLock { dataFromUnderlyingReturnValue = newValue } }
+    }
+    nonisolated(unsafe) var dataFromClosure: ((URL) async -> Result<Data, GifProviderError>)?
+
+    @concurrent func data(from url: URL) async -> Result<Data, GifProviderError> {
+        dataFromCallsCountLock.withLock { dataFromUnderlyingCallsCount += 1 }
+        dataFromReceivedUrl = url
+        dataFromReceivedInvocationsLock.withLock { dataFromUnderlyingReceivedInvocations.append(url) }
+        if let dataFromClosure = dataFromClosure {
+            return await dataFromClosure(url)
+        } else {
+            return dataFromReturnValue
+        }
+    }
+}
+nonisolated class GifSenderMock: GifSenderProtocol, @unchecked Sendable {
+
+    //MARK: - send
+
+    private let sendCaptionInReplyToEventIDCallsCountLock = NSLock()
+    private nonisolated(unsafe) var sendCaptionInReplyToEventIDUnderlyingCallsCount = 0
+    var sendCaptionInReplyToEventIDCallsCount: Int {
+        get { sendCaptionInReplyToEventIDCallsCountLock.withLock { sendCaptionInReplyToEventIDUnderlyingCallsCount } }
+        set { sendCaptionInReplyToEventIDCallsCountLock.withLock { sendCaptionInReplyToEventIDUnderlyingCallsCount = newValue } }
+    }
+    var sendCaptionInReplyToEventIDCalled: Bool {
+        return sendCaptionInReplyToEventIDCallsCount > 0
+    }
+    private let sendCaptionInReplyToEventIDReceivedArgumentsLock = NSLock()
+    private nonisolated(unsafe) var sendCaptionInReplyToEventIDUnderlyingReceivedArguments: (item: GifItem, caption: String?, inReplyToEventID: String?)?
+    var sendCaptionInReplyToEventIDReceivedArguments: (item: GifItem, caption: String?, inReplyToEventID: String?)? {
+        get { sendCaptionInReplyToEventIDReceivedArgumentsLock.withLock { sendCaptionInReplyToEventIDUnderlyingReceivedArguments } }
+        set { sendCaptionInReplyToEventIDReceivedArgumentsLock.withLock { sendCaptionInReplyToEventIDUnderlyingReceivedArguments = newValue } }
+    }
+    private let sendCaptionInReplyToEventIDReceivedInvocationsLock = NSLock()
+    private nonisolated(unsafe) var sendCaptionInReplyToEventIDUnderlyingReceivedInvocations: [(item: GifItem, caption: String?, inReplyToEventID: String?)] = []
+    var sendCaptionInReplyToEventIDReceivedInvocations: [(item: GifItem, caption: String?, inReplyToEventID: String?)] {
+        get { sendCaptionInReplyToEventIDReceivedInvocationsLock.withLock { sendCaptionInReplyToEventIDUnderlyingReceivedInvocations } }
+        set { sendCaptionInReplyToEventIDReceivedInvocationsLock.withLock { sendCaptionInReplyToEventIDUnderlyingReceivedInvocations = newValue } }
+    }
+
+    private let sendCaptionInReplyToEventIDReturnValueLock = NSLock()
+    private nonisolated(unsafe) var sendCaptionInReplyToEventIDUnderlyingReturnValue: Result<Void, GifSenderError>!
+    var sendCaptionInReplyToEventIDReturnValue: Result<Void, GifSenderError>! {
+        get { sendCaptionInReplyToEventIDReturnValueLock.withLock { sendCaptionInReplyToEventIDUnderlyingReturnValue } }
+        set { sendCaptionInReplyToEventIDReturnValueLock.withLock { sendCaptionInReplyToEventIDUnderlyingReturnValue = newValue } }
+    }
+    nonisolated(unsafe) var sendCaptionInReplyToEventIDClosure: ((GifItem, String?, String?) async -> Result<Void, GifSenderError>)?
+
+    @concurrent func send(_ item: GifItem, caption: String?, inReplyToEventID: String?) async -> Result<Void, GifSenderError> {
+        sendCaptionInReplyToEventIDCallsCountLock.withLock { sendCaptionInReplyToEventIDUnderlyingCallsCount += 1 }
+        sendCaptionInReplyToEventIDReceivedArguments = (item: item, caption: caption, inReplyToEventID: inReplyToEventID)
+        sendCaptionInReplyToEventIDReceivedInvocationsLock.withLock { sendCaptionInReplyToEventIDUnderlyingReceivedInvocations.append((item: item, caption: caption, inReplyToEventID: inReplyToEventID)) }
+        if let sendCaptionInReplyToEventIDClosure = sendCaptionInReplyToEventIDClosure {
+            return await sendCaptionInReplyToEventIDClosure(item, caption, inReplyToEventID)
+        } else {
+            return sendCaptionInReplyToEventIDReturnValue
+        }
+    }
+}
 nonisolated class HomeserverCapabilitiesProxyMock: HomeserverCapabilitiesProxyProtocol, @unchecked Sendable {
 
     //MARK: - refresh
@@ -6689,6 +6957,48 @@ nonisolated class JoinedRoomProxyMock: JoinedRoomProxyProtocol, @unchecked Senda
             return await withdrawVerificationAndResendUserIDsSendHandleClosure(userIDs, sendHandle)
         } else {
             return withdrawVerificationAndResendUserIDsSendHandleReturnValue
+        }
+    }
+    //MARK: - sendRaw
+
+    private let sendRawEventTypeContentCallsCountLock = NSLock()
+    private nonisolated(unsafe) var sendRawEventTypeContentUnderlyingCallsCount = 0
+    var sendRawEventTypeContentCallsCount: Int {
+        get { sendRawEventTypeContentCallsCountLock.withLock { sendRawEventTypeContentUnderlyingCallsCount } }
+        set { sendRawEventTypeContentCallsCountLock.withLock { sendRawEventTypeContentUnderlyingCallsCount = newValue } }
+    }
+    var sendRawEventTypeContentCalled: Bool {
+        return sendRawEventTypeContentCallsCount > 0
+    }
+    private let sendRawEventTypeContentReceivedArgumentsLock = NSLock()
+    private nonisolated(unsafe) var sendRawEventTypeContentUnderlyingReceivedArguments: (eventType: String, content: String)?
+    var sendRawEventTypeContentReceivedArguments: (eventType: String, content: String)? {
+        get { sendRawEventTypeContentReceivedArgumentsLock.withLock { sendRawEventTypeContentUnderlyingReceivedArguments } }
+        set { sendRawEventTypeContentReceivedArgumentsLock.withLock { sendRawEventTypeContentUnderlyingReceivedArguments = newValue } }
+    }
+    private let sendRawEventTypeContentReceivedInvocationsLock = NSLock()
+    private nonisolated(unsafe) var sendRawEventTypeContentUnderlyingReceivedInvocations: [(eventType: String, content: String)] = []
+    var sendRawEventTypeContentReceivedInvocations: [(eventType: String, content: String)] {
+        get { sendRawEventTypeContentReceivedInvocationsLock.withLock { sendRawEventTypeContentUnderlyingReceivedInvocations } }
+        set { sendRawEventTypeContentReceivedInvocationsLock.withLock { sendRawEventTypeContentUnderlyingReceivedInvocations = newValue } }
+    }
+
+    private let sendRawEventTypeContentReturnValueLock = NSLock()
+    private nonisolated(unsafe) var sendRawEventTypeContentUnderlyingReturnValue: Result<String, RoomProxyError>!
+    var sendRawEventTypeContentReturnValue: Result<String, RoomProxyError>! {
+        get { sendRawEventTypeContentReturnValueLock.withLock { sendRawEventTypeContentUnderlyingReturnValue } }
+        set { sendRawEventTypeContentReturnValueLock.withLock { sendRawEventTypeContentUnderlyingReturnValue = newValue } }
+    }
+    nonisolated(unsafe) var sendRawEventTypeContentClosure: ((String, String) async -> Result<String, RoomProxyError>)?
+
+    @concurrent func sendRaw(eventType: String, content: String) async -> Result<String, RoomProxyError> {
+        sendRawEventTypeContentCallsCountLock.withLock { sendRawEventTypeContentUnderlyingCallsCount += 1 }
+        sendRawEventTypeContentReceivedArguments = (eventType: eventType, content: content)
+        sendRawEventTypeContentReceivedInvocationsLock.withLock { sendRawEventTypeContentUnderlyingReceivedInvocations.append((eventType: eventType, content: content)) }
+        if let sendRawEventTypeContentClosure = sendRawEventTypeContentClosure {
+            return await sendRawEventTypeContentClosure(eventType, content)
+        } else {
+            return sendRawEventTypeContentReturnValue
         }
     }
     //MARK: - updateJoinRule
@@ -12666,6 +12976,183 @@ nonisolated class StaticRoomSummaryProviderMock: StaticRoomSummaryProviderProtoc
         setRoomListClosure?(roomList)
     }
 }
+nonisolated class StickerCutoutServiceMock: StickerCutoutServiceProtocol, @unchecked Sendable {
+
+    //MARK: - cutout
+
+    private let cutoutOfCallsCountLock = NSLock()
+    private nonisolated(unsafe) var cutoutOfUnderlyingCallsCount = 0
+    var cutoutOfCallsCount: Int {
+        get { cutoutOfCallsCountLock.withLock { cutoutOfUnderlyingCallsCount } }
+        set { cutoutOfCallsCountLock.withLock { cutoutOfUnderlyingCallsCount = newValue } }
+    }
+    var cutoutOfCalled: Bool {
+        return cutoutOfCallsCount > 0
+    }
+    private let cutoutOfReceivedImageLock = NSLock()
+    private nonisolated(unsafe) var cutoutOfUnderlyingReceivedImage: CGImage?
+    var cutoutOfReceivedImage: CGImage? {
+        get { cutoutOfReceivedImageLock.withLock { cutoutOfUnderlyingReceivedImage } }
+        set { cutoutOfReceivedImageLock.withLock { cutoutOfUnderlyingReceivedImage = newValue } }
+    }
+    private let cutoutOfReceivedInvocationsLock = NSLock()
+    private nonisolated(unsafe) var cutoutOfUnderlyingReceivedInvocations: [CGImage] = []
+    var cutoutOfReceivedInvocations: [CGImage] {
+        get { cutoutOfReceivedInvocationsLock.withLock { cutoutOfUnderlyingReceivedInvocations } }
+        set { cutoutOfReceivedInvocationsLock.withLock { cutoutOfUnderlyingReceivedInvocations = newValue } }
+    }
+
+    private let cutoutOfReturnValueLock = NSLock()
+    private nonisolated(unsafe) var cutoutOfUnderlyingReturnValue: StickerCutout?
+    var cutoutOfReturnValue: StickerCutout? {
+        get { cutoutOfReturnValueLock.withLock { cutoutOfUnderlyingReturnValue } }
+        set { cutoutOfReturnValueLock.withLock { cutoutOfUnderlyingReturnValue = newValue } }
+    }
+    nonisolated(unsafe) var cutoutOfClosure: ((CGImage) async -> StickerCutout?)?
+
+    @concurrent func cutout(of image: CGImage) async -> StickerCutout? {
+        cutoutOfCallsCountLock.withLock { cutoutOfUnderlyingCallsCount += 1 }
+        cutoutOfReceivedImage = image
+        cutoutOfReceivedInvocationsLock.withLock { cutoutOfUnderlyingReceivedInvocations.append(image) }
+        if let cutoutOfClosure = cutoutOfClosure {
+            return await cutoutOfClosure(image)
+        } else {
+            return cutoutOfReturnValue
+        }
+    }
+}
+nonisolated class StickerPackClientMock: StickerPackClientProtocol, @unchecked Sendable {
+
+    //MARK: - packEvents
+
+    private let packEventsRoomIDCallsCountLock = NSLock()
+    private nonisolated(unsafe) var packEventsRoomIDUnderlyingCallsCount = 0
+    var packEventsRoomIDCallsCount: Int {
+        get { packEventsRoomIDCallsCountLock.withLock { packEventsRoomIDUnderlyingCallsCount } }
+        set { packEventsRoomIDCallsCountLock.withLock { packEventsRoomIDUnderlyingCallsCount = newValue } }
+    }
+    var packEventsRoomIDCalled: Bool {
+        return packEventsRoomIDCallsCount > 0
+    }
+    private let packEventsRoomIDReceivedRoomIDLock = NSLock()
+    private nonisolated(unsafe) var packEventsRoomIDUnderlyingReceivedRoomID: String?
+    var packEventsRoomIDReceivedRoomID: String? {
+        get { packEventsRoomIDReceivedRoomIDLock.withLock { packEventsRoomIDUnderlyingReceivedRoomID } }
+        set { packEventsRoomIDReceivedRoomIDLock.withLock { packEventsRoomIDUnderlyingReceivedRoomID = newValue } }
+    }
+    private let packEventsRoomIDReceivedInvocationsLock = NSLock()
+    private nonisolated(unsafe) var packEventsRoomIDUnderlyingReceivedInvocations: [String] = []
+    var packEventsRoomIDReceivedInvocations: [String] {
+        get { packEventsRoomIDReceivedInvocationsLock.withLock { packEventsRoomIDUnderlyingReceivedInvocations } }
+        set { packEventsRoomIDReceivedInvocationsLock.withLock { packEventsRoomIDUnderlyingReceivedInvocations = newValue } }
+    }
+
+    private let packEventsRoomIDReturnValueLock = NSLock()
+    private nonisolated(unsafe) var packEventsRoomIDUnderlyingReturnValue: Result<[StickerPackStateEvent], ClientServerError>!
+    var packEventsRoomIDReturnValue: Result<[StickerPackStateEvent], ClientServerError>! {
+        get { packEventsRoomIDReturnValueLock.withLock { packEventsRoomIDUnderlyingReturnValue } }
+        set { packEventsRoomIDReturnValueLock.withLock { packEventsRoomIDUnderlyingReturnValue = newValue } }
+    }
+    nonisolated(unsafe) var packEventsRoomIDClosure: ((String) async -> Result<[StickerPackStateEvent], ClientServerError>)?
+
+    @concurrent func packEvents(roomID: String) async -> Result<[StickerPackStateEvent], ClientServerError> {
+        packEventsRoomIDCallsCountLock.withLock { packEventsRoomIDUnderlyingCallsCount += 1 }
+        packEventsRoomIDReceivedRoomID = roomID
+        packEventsRoomIDReceivedInvocationsLock.withLock { packEventsRoomIDUnderlyingReceivedInvocations.append(roomID) }
+        if let packEventsRoomIDClosure = packEventsRoomIDClosure {
+            return await packEventsRoomIDClosure(roomID)
+        } else {
+            return packEventsRoomIDReturnValue
+        }
+    }
+}
+nonisolated class StickerSenderMock: StickerSenderProtocol, @unchecked Sendable {
+
+    //MARK: - upload
+
+    private let uploadBodyCallsCountLock = NSLock()
+    private nonisolated(unsafe) var uploadBodyUnderlyingCallsCount = 0
+    var uploadBodyCallsCount: Int {
+        get { uploadBodyCallsCountLock.withLock { uploadBodyUnderlyingCallsCount } }
+        set { uploadBodyCallsCountLock.withLock { uploadBodyUnderlyingCallsCount = newValue } }
+    }
+    var uploadBodyCalled: Bool {
+        return uploadBodyCallsCount > 0
+    }
+    private let uploadBodyReceivedArgumentsLock = NSLock()
+    private nonisolated(unsafe) var uploadBodyUnderlyingReceivedArguments: (file: StickerFile, body: String)?
+    var uploadBodyReceivedArguments: (file: StickerFile, body: String)? {
+        get { uploadBodyReceivedArgumentsLock.withLock { uploadBodyUnderlyingReceivedArguments } }
+        set { uploadBodyReceivedArgumentsLock.withLock { uploadBodyUnderlyingReceivedArguments = newValue } }
+    }
+    private let uploadBodyReceivedInvocationsLock = NSLock()
+    private nonisolated(unsafe) var uploadBodyUnderlyingReceivedInvocations: [(file: StickerFile, body: String)] = []
+    var uploadBodyReceivedInvocations: [(file: StickerFile, body: String)] {
+        get { uploadBodyReceivedInvocationsLock.withLock { uploadBodyUnderlyingReceivedInvocations } }
+        set { uploadBodyReceivedInvocationsLock.withLock { uploadBodyUnderlyingReceivedInvocations = newValue } }
+    }
+
+    private let uploadBodyReturnValueLock = NSLock()
+    private nonisolated(unsafe) var uploadBodyUnderlyingReturnValue: Result<StickerImage, StickerSenderError>!
+    var uploadBodyReturnValue: Result<StickerImage, StickerSenderError>! {
+        get { uploadBodyReturnValueLock.withLock { uploadBodyUnderlyingReturnValue } }
+        set { uploadBodyReturnValueLock.withLock { uploadBodyUnderlyingReturnValue = newValue } }
+    }
+    nonisolated(unsafe) var uploadBodyClosure: ((StickerFile, String) async -> Result<StickerImage, StickerSenderError>)?
+
+    @concurrent func upload(_ file: StickerFile, body: String) async -> Result<StickerImage, StickerSenderError> {
+        uploadBodyCallsCountLock.withLock { uploadBodyUnderlyingCallsCount += 1 }
+        uploadBodyReceivedArguments = (file: file, body: body)
+        uploadBodyReceivedInvocationsLock.withLock { uploadBodyUnderlyingReceivedInvocations.append((file: file, body: body)) }
+        if let uploadBodyClosure = uploadBodyClosure {
+            return await uploadBodyClosure(file, body)
+        } else {
+            return uploadBodyReturnValue
+        }
+    }
+    //MARK: - send
+
+    private let sendRelationCallsCountLock = NSLock()
+    private nonisolated(unsafe) var sendRelationUnderlyingCallsCount = 0
+    var sendRelationCallsCount: Int {
+        get { sendRelationCallsCountLock.withLock { sendRelationUnderlyingCallsCount } }
+        set { sendRelationCallsCountLock.withLock { sendRelationUnderlyingCallsCount = newValue } }
+    }
+    var sendRelationCalled: Bool {
+        return sendRelationCallsCount > 0
+    }
+    private let sendRelationReceivedArgumentsLock = NSLock()
+    private nonisolated(unsafe) var sendRelationUnderlyingReceivedArguments: (image: StickerImage, relation: StickerRelation?)?
+    var sendRelationReceivedArguments: (image: StickerImage, relation: StickerRelation?)? {
+        get { sendRelationReceivedArgumentsLock.withLock { sendRelationUnderlyingReceivedArguments } }
+        set { sendRelationReceivedArgumentsLock.withLock { sendRelationUnderlyingReceivedArguments = newValue } }
+    }
+    private let sendRelationReceivedInvocationsLock = NSLock()
+    private nonisolated(unsafe) var sendRelationUnderlyingReceivedInvocations: [(image: StickerImage, relation: StickerRelation?)] = []
+    var sendRelationReceivedInvocations: [(image: StickerImage, relation: StickerRelation?)] {
+        get { sendRelationReceivedInvocationsLock.withLock { sendRelationUnderlyingReceivedInvocations } }
+        set { sendRelationReceivedInvocationsLock.withLock { sendRelationUnderlyingReceivedInvocations = newValue } }
+    }
+
+    private let sendRelationReturnValueLock = NSLock()
+    private nonisolated(unsafe) var sendRelationUnderlyingReturnValue: Result<String, StickerSenderError>!
+    var sendRelationReturnValue: Result<String, StickerSenderError>! {
+        get { sendRelationReturnValueLock.withLock { sendRelationUnderlyingReturnValue } }
+        set { sendRelationReturnValueLock.withLock { sendRelationUnderlyingReturnValue = newValue } }
+    }
+    nonisolated(unsafe) var sendRelationClosure: ((StickerImage, StickerRelation?) async -> Result<String, StickerSenderError>)?
+
+    @concurrent func send(_ image: StickerImage, relation: StickerRelation?) async -> Result<String, StickerSenderError> {
+        sendRelationCallsCountLock.withLock { sendRelationUnderlyingCallsCount += 1 }
+        sendRelationReceivedArguments = (image: image, relation: relation)
+        sendRelationReceivedInvocationsLock.withLock { sendRelationUnderlyingReceivedInvocations.append((image: image, relation: relation)) }
+        if let sendRelationClosure = sendRelationClosure {
+            return await sendRelationClosure(image, relation)
+        } else {
+            return sendRelationReturnValue
+        }
+    }
+}
 nonisolated class TimelineControllerFactoryMock: TimelineControllerFactoryProtocol, @unchecked Sendable {
 
     //MARK: - buildTimelineController
@@ -13670,30 +14157,72 @@ nonisolated class TimelineControllerMock: TimelineControllerProtocol, @unchecked
     }
     //MARK: - sendImage
 
-    private let sendImageUrlThumbnailURLImageInfoCaptionRequestHandleCallsCountLock = NSLock()
-    private nonisolated(unsafe) var sendImageUrlThumbnailURLImageInfoCaptionRequestHandleUnderlyingCallsCount = 0
-    var sendImageUrlThumbnailURLImageInfoCaptionRequestHandleCallsCount: Int {
-        get { sendImageUrlThumbnailURLImageInfoCaptionRequestHandleCallsCountLock.withLock { sendImageUrlThumbnailURLImageInfoCaptionRequestHandleUnderlyingCallsCount } }
-        set { sendImageUrlThumbnailURLImageInfoCaptionRequestHandleCallsCountLock.withLock { sendImageUrlThumbnailURLImageInfoCaptionRequestHandleUnderlyingCallsCount = newValue } }
+    private let sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleCallsCountLock = NSLock()
+    private nonisolated(unsafe) var sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleUnderlyingCallsCount = 0
+    var sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleCallsCount: Int {
+        get { sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleCallsCountLock.withLock { sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleUnderlyingCallsCount } }
+        set { sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleCallsCountLock.withLock { sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleUnderlyingCallsCount = newValue } }
     }
-    var sendImageUrlThumbnailURLImageInfoCaptionRequestHandleCalled: Bool {
-        return sendImageUrlThumbnailURLImageInfoCaptionRequestHandleCallsCount > 0
+    var sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleCalled: Bool {
+        return sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleCallsCount > 0
     }
 
-    private let sendImageUrlThumbnailURLImageInfoCaptionRequestHandleReturnValueLock = NSLock()
-    private nonisolated(unsafe) var sendImageUrlThumbnailURLImageInfoCaptionRequestHandleUnderlyingReturnValue: Result<Void, TimelineControllerError>!
-    var sendImageUrlThumbnailURLImageInfoCaptionRequestHandleReturnValue: Result<Void, TimelineControllerError>! {
-        get { sendImageUrlThumbnailURLImageInfoCaptionRequestHandleReturnValueLock.withLock { sendImageUrlThumbnailURLImageInfoCaptionRequestHandleUnderlyingReturnValue } }
-        set { sendImageUrlThumbnailURLImageInfoCaptionRequestHandleReturnValueLock.withLock { sendImageUrlThumbnailURLImageInfoCaptionRequestHandleUnderlyingReturnValue = newValue } }
+    private let sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleReturnValueLock = NSLock()
+    private nonisolated(unsafe) var sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleUnderlyingReturnValue: Result<Void, TimelineControllerError>!
+    var sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleReturnValue: Result<Void, TimelineControllerError>! {
+        get { sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleReturnValueLock.withLock { sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleUnderlyingReturnValue } }
+        set { sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleReturnValueLock.withLock { sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleUnderlyingReturnValue = newValue } }
     }
-    nonisolated(unsafe) var sendImageUrlThumbnailURLImageInfoCaptionRequestHandleClosure: ((URL, URL, ImageInfo, String?, @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineControllerError>)?
+    nonisolated(unsafe) var sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleClosure: ((URL, URL, ImageInfo, String?, String?, @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineControllerError>)?
 
-    @concurrent func sendImage(url: URL, thumbnailURL: URL, imageInfo: ImageInfo, caption: String?, requestHandle: @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineControllerError> {
-        sendImageUrlThumbnailURLImageInfoCaptionRequestHandleCallsCountLock.withLock { sendImageUrlThumbnailURLImageInfoCaptionRequestHandleUnderlyingCallsCount += 1 }
-        if let sendImageUrlThumbnailURLImageInfoCaptionRequestHandleClosure = sendImageUrlThumbnailURLImageInfoCaptionRequestHandleClosure {
-            return await sendImageUrlThumbnailURLImageInfoCaptionRequestHandleClosure(url, thumbnailURL, imageInfo, caption, requestHandle)
+    @concurrent func sendImage(url: URL, thumbnailURL: URL, imageInfo: ImageInfo, caption: String?, inReplyToEventID: String?, requestHandle: @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineControllerError> {
+        sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleCallsCountLock.withLock { sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleUnderlyingCallsCount += 1 }
+        if let sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleClosure = sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleClosure {
+            return await sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleClosure(url, thumbnailURL, imageInfo, caption, inReplyToEventID, requestHandle)
         } else {
-            return sendImageUrlThumbnailURLImageInfoCaptionRequestHandleReturnValue
+            return sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleReturnValue
+        }
+    }
+    //MARK: - sendAnimatedImage
+
+    private let sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDCallsCountLock = NSLock()
+    private nonisolated(unsafe) var sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDUnderlyingCallsCount = 0
+    var sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDCallsCount: Int {
+        get { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDCallsCountLock.withLock { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDUnderlyingCallsCount } }
+        set { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDCallsCountLock.withLock { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDUnderlyingCallsCount = newValue } }
+    }
+    var sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDCalled: Bool {
+        return sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDCallsCount > 0
+    }
+    private let sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReceivedArgumentsLock = NSLock()
+    private nonisolated(unsafe) var sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDUnderlyingReceivedArguments: (url: URL, thumbnailURL: URL, imageInfo: ImageInfo, caption: String?, inReplyToEventID: String?)?
+    var sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReceivedArguments: (url: URL, thumbnailURL: URL, imageInfo: ImageInfo, caption: String?, inReplyToEventID: String?)? {
+        get { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReceivedArgumentsLock.withLock { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDUnderlyingReceivedArguments } }
+        set { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReceivedArgumentsLock.withLock { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDUnderlyingReceivedArguments = newValue } }
+    }
+    private let sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReceivedInvocationsLock = NSLock()
+    private nonisolated(unsafe) var sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDUnderlyingReceivedInvocations: [(url: URL, thumbnailURL: URL, imageInfo: ImageInfo, caption: String?, inReplyToEventID: String?)] = []
+    var sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReceivedInvocations: [(url: URL, thumbnailURL: URL, imageInfo: ImageInfo, caption: String?, inReplyToEventID: String?)] {
+        get { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReceivedInvocationsLock.withLock { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDUnderlyingReceivedInvocations } }
+        set { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReceivedInvocationsLock.withLock { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDUnderlyingReceivedInvocations = newValue } }
+    }
+
+    private let sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReturnValueLock = NSLock()
+    private nonisolated(unsafe) var sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDUnderlyingReturnValue: Result<Void, TimelineControllerError>!
+    var sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReturnValue: Result<Void, TimelineControllerError>! {
+        get { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReturnValueLock.withLock { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDUnderlyingReturnValue } }
+        set { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReturnValueLock.withLock { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDUnderlyingReturnValue = newValue } }
+    }
+    nonisolated(unsafe) var sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDClosure: ((URL, URL, ImageInfo, String?, String?) async -> Result<Void, TimelineControllerError>)?
+
+    @concurrent func sendAnimatedImage(url: URL, thumbnailURL: URL, imageInfo: ImageInfo, caption: String?, inReplyToEventID: String?) async -> Result<Void, TimelineControllerError> {
+        sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDCallsCountLock.withLock { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDUnderlyingCallsCount += 1 }
+        sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReceivedArguments = (url: url, thumbnailURL: thumbnailURL, imageInfo: imageInfo, caption: caption, inReplyToEventID: inReplyToEventID)
+        sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReceivedInvocationsLock.withLock { sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDUnderlyingReceivedInvocations.append((url: url, thumbnailURL: thumbnailURL, imageInfo: imageInfo, caption: caption, inReplyToEventID: inReplyToEventID)) }
+        if let sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDClosure = sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDClosure {
+            return await sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDClosure(url, thumbnailURL, imageInfo, caption, inReplyToEventID)
+        } else {
+            return sendAnimatedImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDReturnValue
         }
     }
     //MARK: - sendLocation
@@ -14551,30 +15080,30 @@ nonisolated class TimelineProxyMock: TimelineProxyProtocol, @unchecked Sendable 
     }
     //MARK: - sendImage
 
-    private let sendImageUrlThumbnailURLImageInfoCaptionRequestHandleCallsCountLock = NSLock()
-    private nonisolated(unsafe) var sendImageUrlThumbnailURLImageInfoCaptionRequestHandleUnderlyingCallsCount = 0
-    var sendImageUrlThumbnailURLImageInfoCaptionRequestHandleCallsCount: Int {
-        get { sendImageUrlThumbnailURLImageInfoCaptionRequestHandleCallsCountLock.withLock { sendImageUrlThumbnailURLImageInfoCaptionRequestHandleUnderlyingCallsCount } }
-        set { sendImageUrlThumbnailURLImageInfoCaptionRequestHandleCallsCountLock.withLock { sendImageUrlThumbnailURLImageInfoCaptionRequestHandleUnderlyingCallsCount = newValue } }
+    private let sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleCallsCountLock = NSLock()
+    private nonisolated(unsafe) var sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleUnderlyingCallsCount = 0
+    var sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleCallsCount: Int {
+        get { sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleCallsCountLock.withLock { sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleUnderlyingCallsCount } }
+        set { sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleCallsCountLock.withLock { sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleUnderlyingCallsCount = newValue } }
     }
-    var sendImageUrlThumbnailURLImageInfoCaptionRequestHandleCalled: Bool {
-        return sendImageUrlThumbnailURLImageInfoCaptionRequestHandleCallsCount > 0
+    var sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleCalled: Bool {
+        return sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleCallsCount > 0
     }
 
-    private let sendImageUrlThumbnailURLImageInfoCaptionRequestHandleReturnValueLock = NSLock()
-    private nonisolated(unsafe) var sendImageUrlThumbnailURLImageInfoCaptionRequestHandleUnderlyingReturnValue: Result<Void, TimelineProxyError>!
-    var sendImageUrlThumbnailURLImageInfoCaptionRequestHandleReturnValue: Result<Void, TimelineProxyError>! {
-        get { sendImageUrlThumbnailURLImageInfoCaptionRequestHandleReturnValueLock.withLock { sendImageUrlThumbnailURLImageInfoCaptionRequestHandleUnderlyingReturnValue } }
-        set { sendImageUrlThumbnailURLImageInfoCaptionRequestHandleReturnValueLock.withLock { sendImageUrlThumbnailURLImageInfoCaptionRequestHandleUnderlyingReturnValue = newValue } }
+    private let sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleReturnValueLock = NSLock()
+    private nonisolated(unsafe) var sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleUnderlyingReturnValue: Result<Void, TimelineProxyError>!
+    var sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleReturnValue: Result<Void, TimelineProxyError>! {
+        get { sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleReturnValueLock.withLock { sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleUnderlyingReturnValue } }
+        set { sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleReturnValueLock.withLock { sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleUnderlyingReturnValue = newValue } }
     }
-    nonisolated(unsafe) var sendImageUrlThumbnailURLImageInfoCaptionRequestHandleClosure: ((URL, URL, ImageInfo, String?, @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineProxyError>)?
+    nonisolated(unsafe) var sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleClosure: ((URL, URL, ImageInfo, String?, String?, @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineProxyError>)?
 
-    @concurrent func sendImage(url: URL, thumbnailURL: URL, imageInfo: ImageInfo, caption: String?, requestHandle: @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineProxyError> {
-        sendImageUrlThumbnailURLImageInfoCaptionRequestHandleCallsCountLock.withLock { sendImageUrlThumbnailURLImageInfoCaptionRequestHandleUnderlyingCallsCount += 1 }
-        if let sendImageUrlThumbnailURLImageInfoCaptionRequestHandleClosure = sendImageUrlThumbnailURLImageInfoCaptionRequestHandleClosure {
-            return await sendImageUrlThumbnailURLImageInfoCaptionRequestHandleClosure(url, thumbnailURL, imageInfo, caption, requestHandle)
+    @concurrent func sendImage(url: URL, thumbnailURL: URL, imageInfo: ImageInfo, caption: String?, inReplyToEventID: String?, requestHandle: @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineProxyError> {
+        sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleCallsCountLock.withLock { sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleUnderlyingCallsCount += 1 }
+        if let sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleClosure = sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleClosure {
+            return await sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleClosure(url, thumbnailURL, imageInfo, caption, inReplyToEventID, requestHandle)
         } else {
-            return sendImageUrlThumbnailURLImageInfoCaptionRequestHandleReturnValue
+            return sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleReturnValue
         }
     }
     //MARK: - sendLocation
@@ -16030,6 +16559,11 @@ nonisolated class UserSessionMock: UserSessionProtocol, @unchecked Sendable {
         set(value) { underlyingNotificationService = value }
     }
     nonisolated(unsafe) var underlyingNotificationService: NotificationServiceProtocol!
+    var stickersAndGifs: StickersAndGifs {
+        get { return underlyingStickersAndGifs }
+        set(value) { underlyingStickersAndGifs = value }
+    }
+    nonisolated(unsafe) var underlyingStickersAndGifs: StickersAndGifs!
     var sessionSecurityStatePublisher: CurrentValuePublisher<SessionSecurityState, Never> {
         get { return underlyingSessionSecurityStatePublisher }
         set(value) { underlyingSessionSecurityStatePublisher = value }

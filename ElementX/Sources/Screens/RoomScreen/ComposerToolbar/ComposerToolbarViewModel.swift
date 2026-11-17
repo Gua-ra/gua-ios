@@ -26,6 +26,7 @@ final class ComposerToolbarViewModel: ComposerToolbarViewModelType, ComposerTool
     
     private let mentionBuilder: MentionBuilderProtocol
     private let attributedStringBuilder: AttributedStringBuilderProtocol
+    private let sendsStickerGlyphs: Bool
     
     private var hasAppeard = false
     
@@ -74,6 +75,7 @@ final class ComposerToolbarViewModel: ComposerToolbarViewModelType, ComposerTool
         self.analyticsService = analyticsService
         self.roomProxy = roomProxy
         draftService = composerDraftService
+        sendsStickerGlyphs = userSettings.app.guaStickersAndGifsEnabled
         
         mentionBuilder = MentionBuilder()
         attributedStringBuilder = AttributedStringBuilder(cacheKey: "Composer", mentionBuilder: mentionBuilder)
@@ -232,7 +234,11 @@ final class ComposerToolbarViewModel: ComposerToolbarViewModelType, ComposerTool
             state.bindings.composerFocused = false
             actionsSubject.send(.attach(attachment))
         case .handlePasteOrDrop(let providers):
-            actionsSubject.send(.handlePasteOrDrop(providers: providers))
+            if sendsStickerGlyphs, let stickerProvider = providers.first(where: \.isPastedSticker) {
+                Task { await sendPastedSticker(stickerProvider) }
+            } else {
+                actionsSubject.send(.handlePasteOrDrop(providers: providers))
+            }
         case .enableTextFormatting:
             state.bindings.composerFormattingEnabled = true
             state.bindings.composerFocused = true
@@ -249,6 +255,11 @@ final class ComposerToolbarViewModel: ComposerToolbarViewModelType, ComposerTool
         case .voiceMessage(let voiceMessageAction):
             processVoiceMessageAction(voiceMessageAction)
         case .plainComposerTextChanged:
+            if sendsStickerGlyphs, case .single(let glyph) = StickerGlyphText.classify(StickerGlyphText.segments(of: context.plainComposerText)) {
+                actionsSubject.send(.sendStickerGlyphs([glyph]))
+                set(text: "")
+                return
+            }
             completionSuggestionService.processTextMessage(state.bindings.plainComposerText.string, selectedRange: context.viewState.bindings.selectedRange)
         case .selectedTextChanged:
             completionSuggestionService.processTextMessage(state.bindings.plainComposerText.string, selectedRange: context.viewState.bindings.selectedRange)
@@ -466,10 +477,33 @@ final class ComposerToolbarViewModel: ComposerToolbarViewModelType, ComposerTool
     }
     
     private func sendPlainComposerText() {
+        var glyphs: [StickerGlyph] = []
+        if sendsStickerGlyphs, case .mixed(let text, let mixedGlyphs) = StickerGlyphText.classify(StickerGlyphText.segments(of: context.plainComposerText)) {
+            glyphs = mixedGlyphs
+            context.plainComposerText = StickerGlyphText.removingGlyphs(from: context.plainComposerText)
+            if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                set(text: "")
+            }
+        }
+        
         let plainComposerContent = plainComposerContent
-        actionsSubject.send(.sendMessage(plain: plainComposerContent.text, html: nil,
-                                         mode: state.composerMode,
-                                         intentionalMentions: .init(userIDs: plainComposerContent.mentionedUserIDs, atRoom: plainComposerContent.containsAtRoomMention)))
+        if !plainComposerContent.text.isEmpty {
+            actionsSubject.send(.sendMessage(plain: plainComposerContent.text, html: nil,
+                                             mode: state.composerMode,
+                                             intentionalMentions: .init(userIDs: plainComposerContent.mentionedUserIDs, atRoom: plainComposerContent.containsAtRoomMention)))
+        }
+        if !glyphs.isEmpty {
+            actionsSubject.send(.sendStickerGlyphs(glyphs))
+        }
+    }
+    
+    private func sendPastedSticker(_ provider: NSItemProvider) async {
+        guard let type = StickerGlyphText.pasteboardTypes.first(where: provider.hasItemConformingToTypeIdentifier),
+              let data = try? await provider.loadItem(forTypeIdentifier: type) as? Data else {
+            MXLog.error("Failed reading a pasted sticker")
+            return
+        }
+        actionsSubject.send(.sendPastedSticker(data))
     }
     
     private func cancelEdit() {

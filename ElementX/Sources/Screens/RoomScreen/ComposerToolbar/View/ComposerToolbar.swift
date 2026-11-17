@@ -16,6 +16,7 @@ struct ComposerToolbar: View {
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     
     @ObservedObject var context: ComposerToolbarViewModel.Context
+    var expressionPanel: ExpressionPanelViewModelType.Context?
     
     @FocusState private var composerFocused: Bool
     @State private var frame: CGRect = .zero
@@ -83,6 +84,7 @@ struct ComposerToolbar: View {
         }
         .disabled(!context.viewState.canSend)
         .alert(item: $context.alertInfo)
+        .expressionPanelHost(expressionPanel, composerFocused: $composerFocused)
     }
     
     private var suggestionView: some View {
@@ -203,6 +205,7 @@ struct ComposerToolbar: View {
             context.send(viewAction: .composerDisappeared)
         }
         .environmentObject(context)
+        .expressionButton(expressionPanel, composerFocused: $composerFocused, isEnabled: !context.composerFormattingEnabled)
         .focused($composerFocused)
         .accessibilityIdentifier(A11yIdentifiers.roomScreen.messageComposer)
         .onTapGesture {
@@ -232,6 +235,8 @@ struct ComposerToolbar: View {
     }
     
     private func sendMessage() {
+        expressionPanel?.send(viewAction: .setPresentation(.hidden))
+        
         // Allow the inner TextField do apply any final processing before
         // sending e.g. accepting current autocorrection.
         // Fixes https://github.com/element-hq/element-x-ios/issues/3216
@@ -297,6 +302,7 @@ struct ComposerToolbar: View {
     
     private func voiceMessageRecordingButton(mode: VoiceMessageRecordingButtonMode) -> some View {
         VoiceMessageRecordingButton(mode: mode) {
+            expressionPanel?.send(viewAction: .setPresentation(.hidden))
             context.send(viewAction: .voiceMessage(.startRecording))
         } stopRecording: {
             context.send(viewAction: .voiceMessage(.stopRecording))

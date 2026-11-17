@@ -58,7 +58,7 @@ final class MediaUploadPreviewScreenViewModelTests {
         try await loadingFinished.fulfill()
         
         // Then nothing is sent and no error is shown.
-        #expect(timelineProxy.sendImageUrlThumbnailURLImageInfoCaptionRequestHandleCallsCount == 0)
+        #expect(timelineProxy.sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleCallsCount == 0)
         #expect(userIndicatorController.submitIndicatorDelayCallsCount == 1, "Only the loading indicator should be shown")
         #expect(context.viewState.bindings.alertInfo == nil)
     }
@@ -226,7 +226,7 @@ final class MediaUploadPreviewScreenViewModelTests {
         try await deferredDismiss.fulfill()
         #expect(timelineProxy.sendGalleryItemInfosCaptionInReplyToEventIDCallsCount == 1)
         #expect(timelineProxy.sendGalleryItemInfosCaptionInReplyToEventIDReceivedArguments?.itemInfos.count == 3)
-        #expect(timelineProxy.sendImageUrlThumbnailURLImageInfoCaptionRequestHandleCallsCount == 0)
+        #expect(timelineProxy.sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleCallsCount == 0)
         #expect(timelineProxy.sendFileUrlFileInfoCaptionRequestHandleCallsCount == 0)
         #expect(userIndicatorController.submitIndicatorDelayCallsCount == 1, "Only a loading indicator should be shown.")
     }
@@ -287,7 +287,7 @@ final class MediaUploadPreviewScreenViewModelTests {
         try await deferredDismiss.fulfill()
         #expect(timelineProxy.sendGalleryItemInfosCaptionInReplyToEventIDCallsCount == 0)
         #expect(timelineProxy.sendFileUrlFileInfoCaptionRequestHandleCallsCount == 2)
-        #expect(timelineProxy.sendImageUrlThumbnailURLImageInfoCaptionRequestHandleCallsCount == 1)
+        #expect(timelineProxy.sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleCallsCount == 1)
     }
     
     // MARK: - Helpers
@@ -331,7 +331,7 @@ final class MediaUploadPreviewScreenViewModelTests {
         timelineProxy.sendFileUrlFileInfoCaptionRequestHandleClosure = { [weak self] _, _, caption, _ in
             self?.verifyCaption(caption, expectedCaption: expectedCaption) ?? .failure(.sdkError(TestError.unknown))
         }
-        timelineProxy.sendImageUrlThumbnailURLImageInfoCaptionRequestHandleClosure = { [weak self] _, _, _, caption, _ in
+        timelineProxy.sendImageUrlThumbnailURLImageInfoCaptionInReplyToEventIDRequestHandleClosure = { [weak self] _, _, _, caption, _, _ in
             self?.verifyCaption(caption, expectedCaption: expectedCaption) ?? .failure(.sdkError(TestError.unknown))
         }
         timelineProxy.sendVideoUrlThumbnailURLVideoInfoCaptionRequestHandleClosure = { [weak self] _, _, _, caption, _ in

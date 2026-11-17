@@ -88,7 +88,9 @@
 "action_manage_account_and_devices" = "Gérer le compte et les appareils";
 "action_delete_account" = "Supprimer le compte";
 "gua_action_delete" = "Supprimer";
-"common_media_upload_quality" = "Qualité d’envoi des médias";
+"gua_common_media_settings" = "Paramètres des médias";
+"gua_settings_play_gifs_automatically" = "Lire automatiquement les GIF et autocollants animés dans les conversations";
+"gua_settings_play_gifs_automatically_description" = "Les GIF ouverts sont toujours lus.";
 
 "common_moderation_and_safety" = "Modération & sécurité";
 "screen_moderation_and_safety_invites_heading" = "Invitations";
@@ -101,3 +103,26 @@
 
 "gua_notification_sound_default" = "Gua - défaut";
 "gua_notification_sound_fade" = "Gua - doux";
+
+"gua_sticker_send_error" = "Impossible d’envoyer l’autocollant";
+"gua_sticker_limit_error" = "Vous pouvez avoir jusqu’à %1$d autocollants";
+"gua_gifs_unavailable" = "Les GIF ne sont pas disponibles dans cette version";
+"gua_gifs_load_error" = "Impossible de charger les GIF";
+"gua_expression_open_a11y" = "Autocollants et GIF";
+"gua_expression_keyboard_a11y" = "Clavier";
+"gua_expression_stickers_tab" = "Autocollants";
+"gua_expression_recent" = "Récents";
+"gua_expression_favourites" = "Favoris";
+"gua_stickers_mine" = "Mes autocollants";
+"gua_gifs_trending" = "Tendances";
+"gua_sticker_create" = "Créer un autocollant";
+"gua_stickers_search_placeholder" = "Rechercher des autocollants";
+"gua_sticker_add_favourite" = "Ajouter aux favoris";
+"gua_sticker_remove_favourite" = "Retirer des favoris";
+"gua_sticker_remove_recent" = "Retirer des récents";
+"gua_sticker_save" = "Ajouter à mes autocollants";
+"gua_sticker_delete_title" = "Supprimer cet autocollant ?";
+"gua_sticker_from_pack" = "De %1$@";
+"gua_sticker_editor_cut_out" = "Détourer";
+"gua_sticker_editor_text_placeholder" = "Ajouter du texte";
+"gua_sticker_editor_note" = "Les autocollants sont stockés sur les serveurs de Gua sans chiffrement de bout en bout, afin que vous puissiez les utiliser dans toutes vos conversations.";

@@ -18,13 +18,15 @@ struct StickerRoomTimelineView: View {
             ContentScanningView(contentScannerService: context?.contentScannerService,
                                 mediaSource: timelineItem.imageInfo.source) {
                 LoadableImage(mediaSource: timelineItem.imageInfo.source,
+                              isAnimated: timelineItem.imageInfo.isAnimated,
                               mediaType: .timelineItem(uniqueID: timelineItem.id.uniqueID),
                               blurhash: timelineItem.blurhash,
                               size: timelineItem.imageInfo.size,
                               mediaProvider: context?.mediaProvider) {
                     placeholder
                 }
-                .timelineMediaFrame(imageInfo: timelineItem.imageInfo)
+                .scaledToFit()
+                .timelineStickerFrame(imageInfo: timelineItem.imageInfo)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("\(L10n.commonSticker), \(timelineItem.body)")
                 .onTapGesture {
@@ -33,7 +35,7 @@ struct StickerRoomTimelineView: View {
             } scanningContent: {
                 placeholder
                     .overlay { ProgressView() }
-                    .timelineMediaFrame(imageInfo: timelineItem.imageInfo)
+                    .timelineStickerFrame(imageInfo: timelineItem.imageInfo)
             } unsafeContent: { failure in
                 ContentScanningFailureView(failure: failure)
             }

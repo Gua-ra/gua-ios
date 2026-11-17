@@ -200,7 +200,7 @@ struct SettingsScreen: View {
                     kind: .picker(selection: $context.appAppearance,
                                   items: AppAppearance.allCases.map { (title: $0.name, tag: $0) }))
             
-            ListRow(label: .default(title: UntranslatedL10n.commonMediaUploadQuality,
+            ListRow(label: .default(title: UntranslatedL10n.guaCommonMediaSettings,
                                     icon: \.image),
                     kind: .navigationLink {
                         context.send(viewAction: .mediaUploadQuality)

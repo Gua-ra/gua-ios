@@ -474,7 +474,12 @@ nonisolated struct RoomTimelineItemFactory: RoomTimelineItemFactoryProtocol {
                                           _ info: MatrixRustSDK.ImageInfo,
                                           _ mediaSource: MediaSource,
                                           _ isOutgoing: Bool) -> RoomTimelineItemProtocol {
-        let imageInfo = ImageInfoProxy(source: mediaSource, width: info.width, height: info.height, mimeType: info.mimetype, fileSize: info.size.map(UInt.init))
+        let imageInfo = ImageInfoProxy(source: mediaSource,
+                                       width: info.width,
+                                       height: info.height,
+                                       mimeType: info.mimetype,
+                                       fileSize: info.size.map(UInt.init),
+                                       isAnimated: info.isAnimated ?? false)
         
         return StickerRoomTimelineItem(id: eventItemProxy.id,
                                        body: body,
@@ -689,7 +694,8 @@ nonisolated struct RoomTimelineItemFactory: RoomTimelineItemFactoryProtocol {
                                        width: messageContent.info?.width,
                                        height: messageContent.info?.height,
                                        mimeType: messageContent.info?.mimetype,
-                                       fileSize: messageContent.info?.size.map(UInt.init))
+                                       fileSize: messageContent.info?.size.map(UInt.init),
+                                       isAnimated: messageContent.info?.isAnimated ?? false)
         
         return .init(filename: messageContent.filename,
                      caption: messageContent.caption,

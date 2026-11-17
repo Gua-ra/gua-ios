@@ -88,7 +88,9 @@
 "action_manage_account_and_devices" = "Gestionar cuenta y dispositivos";
 "action_delete_account" = "Eliminar cuenta";
 "gua_action_delete" = "Eliminar";
-"common_media_upload_quality" = "Calidad de subida de multimedia";
+"gua_common_media_settings" = "Ajustes de multimedia";
+"gua_settings_play_gifs_automatically" = "Reproducir automáticamente GIF y stickers animados en los chats";
+"gua_settings_play_gifs_automatically_description" = "Los GIF abiertos siempre se reproducen.";
 
 "common_moderation_and_safety" = "Moderación y seguridad";
 "screen_moderation_and_safety_invites_heading" = "Invitaciones";
@@ -101,3 +103,26 @@
 
 "gua_notification_sound_default" = "Predeterminado de Gua";
 "gua_notification_sound_fade" = "Desvanecimiento de Gua";
+
+"gua_sticker_send_error" = "No se pudo enviar el sticker";
+"gua_sticker_limit_error" = "Puedes tener hasta %1$d stickers";
+"gua_gifs_unavailable" = "Los GIF no están disponibles en esta versión";
+"gua_gifs_load_error" = "No se pudieron cargar los GIF";
+"gua_expression_open_a11y" = "Stickers y GIF";
+"gua_expression_keyboard_a11y" = "Teclado";
+"gua_expression_stickers_tab" = "Stickers";
+"gua_expression_recent" = "Recientes";
+"gua_expression_favourites" = "Favoritos";
+"gua_stickers_mine" = "Mis stickers";
+"gua_gifs_trending" = "Tendencias";
+"gua_sticker_create" = "Crear sticker";
+"gua_stickers_search_placeholder" = "Buscar stickers";
+"gua_sticker_add_favourite" = "Añadir a favoritos";
+"gua_sticker_remove_favourite" = "Quitar de favoritos";
+"gua_sticker_remove_recent" = "Quitar de recientes";
+"gua_sticker_save" = "Guardar en mis stickers";
+"gua_sticker_delete_title" = "¿Eliminar este sticker?";
+"gua_sticker_from_pack" = "De %1$@";
+"gua_sticker_editor_cut_out" = "Recortar";
+"gua_sticker_editor_text_placeholder" = "Añadir texto";
+"gua_sticker_editor_note" = "Los stickers se guardan en los servidores de Gua sin cifrado de extremo a extremo, para que puedas usarlos en cualquier chat.";
