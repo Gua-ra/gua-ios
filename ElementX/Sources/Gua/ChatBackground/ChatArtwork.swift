@@ -27,6 +27,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
     case canyonGlow = "canyon-glow"
     case polarIce = "polar-ice"
     case moonTide = "moon-tide"
+    case guara
     case currents
     case azulejo
     case calcadao
@@ -59,7 +60,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
     var section: Section {
         switch self {
         case .glassDrops, .glassDropsBlue, .moltenPearl, .silk, .ipe, .rainOnGlass, .pantanal, .currentsLive: .live
-        case .duneLagoons, .palmCoast, .riverBends, .highlandMist, .glacierLake, .canolaSky, .harbourFog, .canyonGlow, .polarIce, .moonTide: .nature
+        case .duneLagoons, .palmCoast, .riverBends, .highlandMist, .glacierLake, .canolaSky, .harbourFog, .canyonGlow, .polarIce, .moonTide, .guara: .nature
         case .currents, .azulejo, .calcadao, .knit, .doodlesBrasil, .doodlesCanada: .patterns
         case .paper, .paperCut: .minimal
         }
@@ -90,6 +91,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         case .canyonGlow: UntranslatedL10n.guaChatThemeArtCanyonGlow
         case .polarIce: UntranslatedL10n.guaChatThemeArtPolarIce
         case .moonTide: UntranslatedL10n.guaChatThemeArtMoonTide
+        case .guara: UntranslatedL10n.guaChatThemeArtGuara
         case .currents: UntranslatedL10n.guaChatThemeArtCurrents
         case .azulejo: UntranslatedL10n.guaChatThemeArtAzulejo
         case .calcadao: UntranslatedL10n.guaChatThemeArtCalcadao
@@ -122,6 +124,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         case .canyonGlow: ChatBubblePair(.blue, dark: .purple)
         case .polarIce: ChatBubblePair(.blue, dark: .purple)
         case .moonTide: ChatBubblePair(.blue)
+        case .guara: ChatBubblePair(.green)
         case .currents: ChatBubblePair(.purple)
         case .azulejo: ChatBubblePair(.blue)
         case .calcadao: ChatBubblePair(.teal)
@@ -147,6 +150,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         case .canolaSky: UnitPoint(x: 0.4, y: 0.38)
         case .harbourFog: UnitPoint(x: 0.7, y: 0.3)
         case .moonTide: UnitPoint(x: 0.5, y: 0.72)
+        case .guara: UnitPoint(x: 0.78, y: 0.19)
         case .paperCut: UnitPoint(x: 1, y: 0)
         case .moltenPearl, .silk, .currentsLive, .riverBends, .currents, .azulejo, .calcadao, .doodlesBrasil, .doodlesCanada, .paper: .center
         }
@@ -157,7 +161,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         switch self {
         case .glassDrops: .blush
         case .glassDropsBlue, .moltenPearl, .azulejo: .sky
-        case .silk, .pantanal, .duneLagoons, .riverBends, .highlandMist, .doodlesBrasil: .mint
+        case .silk, .pantanal, .duneLagoons, .riverBends, .highlandMist, .guara, .doodlesBrasil: .mint
         case .ipe: .sunset
         case .rainOnGlass: .aurora
         case .currentsLive, .currents: .lavender
