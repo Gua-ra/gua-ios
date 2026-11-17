@@ -11,10 +11,27 @@ nonisolated struct ChatTheme: Hashable {
     static let stock = ChatTheme(wallpaper: .none)
     
     var wallpaper: ChatBackground
-    var bubble = ChatBubbleColor.standard
+    var bubbles: ChatBubblePair
+    
+    var bubble: ChatBubbleColor {
+        bubbles.bubble
+    }
+    
+    var bubbleDark: ChatBubbleColor? {
+        bubbles.bubbleDark
+    }
     
     var isStock: Bool {
         self == .stock
+    }
+    
+    init(wallpaper: ChatBackground, bubbles: ChatBubblePair) {
+        self.wallpaper = wallpaper
+        self.bubbles = bubbles
+    }
+    
+    init(wallpaper: ChatBackground, bubble: ChatBubbleColor = .standard, bubbleDark: ChatBubbleColor? = nil) {
+        self.init(wallpaper: wallpaper, bubbles: ChatBubblePair(bubble, dark: bubbleDark))
     }
     
     /// What a chat shows. A photo the chat may not show hands over to the default as a whole, whose own photo always shows.
@@ -31,6 +48,7 @@ nonisolated struct ChatTheme: Hashable {
 nonisolated enum ChatBackground: Hashable {
     case none
     case preset(ChatBackgroundPreset)
+    case art(ChatArtwork)
     case photo(Photo)
     
     struct Photo: Hashable {
@@ -67,6 +85,11 @@ nonisolated enum ChatBackground: Hashable {
         return photo
     }
     
+    var artwork: ChatArtwork? {
+        guard case .art(let artwork) = self else { return nil }
+        return artwork
+    }
+    
     static func sortedJSON(_ object: [String: Any]) -> String? {
         guard let data = try? JSONSerialization.data(withJSONObject: object, options: .sortedKeys) else { return nil }
         return String(data: data, encoding: .utf8)
@@ -87,15 +110,22 @@ nonisolated extension ChatTheme {
         guard !isStock else { return ChatBackground.removedContent }
         
         let bubbleID = bubble == .standard ? nil : bubble.rawValue
+        let bubbleDarkID = bubbleDark?.rawValue
         let content = switch wallpaper {
         case .none:
-            EncodedContent(bubble: bubbleID, kind: "none", preset: nil, photo: nil)
+            EncodedContent(bubble: bubbleID, bubbleDark: bubbleDarkID, kind: "none")
         case .preset(let preset):
-            EncodedContent(bubble: bubbleID, kind: "preset", preset: preset.rawValue, photo: nil)
+            EncodedContent(bubble: bubbleID, bubbleDark: bubbleDarkID, kind: "preset", preset: preset.rawValue)
+        case .art(let artwork):
+            EncodedContent(art: artwork.rawValue,
+                           bubble: bubbleID,
+                           bubbleDark: bubbleDarkID,
+                           fallbackPreset: artwork.fallbackPreset.rawValue,
+                           kind: "art")
         case .photo(let photo):
             EncodedContent(bubble: bubbleID,
+                           bubbleDark: bubbleDarkID,
                            kind: "photo",
-                           preset: nil,
                            photo: .init(url: photo.url,
                                         mimetype: photo.mimetype,
                                         w: photo.width,
@@ -123,8 +153,10 @@ private nonisolated struct Content: Decodable {
         case version = "v"
         case kind
         case preset
+        case art
         case photo
         case bubble
+        case bubbleDark = "bubble_dark"
         case fallbackPreset = "fallback_preset"
     }
     
@@ -136,6 +168,9 @@ private nonisolated struct Content: Decodable {
         let wallpaper: ChatBackground = switch (version, kind) {
         case (1, "preset"):
             Self.preset(from: container, key: .preset)
+        case (1, "art"):
+            (try? container.decode(String.self, forKey: .art)).flatMap(ChatArtwork.init(rawValue:)).map(ChatBackground.art)
+                ?? Self.preset(from: container, key: .fallbackPreset)
         case (1, "photo"):
             (try? container.decode(ChatBackground.Photo.self, forKey: .photo)).map(ChatBackground.photo) ?? .none
         case (1, "none"):
@@ -145,8 +180,13 @@ private nonisolated struct Content: Decodable {
         }
         
         // Only version 1 has bubbles. One it doesn't know reads as the stock bubble and keeps the wallpaper.
-        let bubble = version == 1 ? (try? container.decode(String.self, forKey: .bubble)).flatMap(ChatBubbleColor.init(rawValue:)) : nil
-        theme = ChatTheme(wallpaper: wallpaper, bubble: bubble ?? .standard)
+        let bubble = version == 1 ? Self.bubble(from: container, key: .bubble) : nil
+        let bubbleDark = version == 1 ? Self.bubble(from: container, key: .bubbleDark) : nil
+        theme = ChatTheme(wallpaper: wallpaper, bubble: bubble ?? .standard, bubbleDark: bubbleDark)
+    }
+    
+    private static func bubble(from container: KeyedDecodingContainer<CodingKeys>, key: CodingKeys) -> ChatBubbleColor? {
+        (try? container.decode(String.self, forKey: key)).flatMap(ChatBubbleColor.init(rawValue:))
     }
     
     private static func preset(from container: KeyedDecodingContainer<CodingKeys>, key: CodingKeys) -> ChatBackground {
@@ -241,11 +281,25 @@ private nonisolated struct EncodedContent: Encodable {
         let align: Align
     }
     
+    private enum CodingKeys: String, CodingKey {
+        case v
+        case art
+        case bubble
+        case bubbleDark = "bubble_dark"
+        case fallbackPreset = "fallback_preset"
+        case kind
+        case preset
+        case photo
+    }
+    
     let v = 1
+    var art: String?
     let bubble: String?
+    let bubbleDark: String?
+    var fallbackPreset: String?
     let kind: String
-    let preset: String?
-    let photo: Photo?
+    var preset: String?
+    var photo: Photo?
 }
 
 private nonisolated extension KeyedDecodingContainer {

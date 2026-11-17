@@ -31,7 +31,7 @@ struct ChatThemePreview: View {
                     .ignoresSafeArea(edges: [.horizontal, .bottom])
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(UntranslatedL10n.guaChatBackgroundPreviewA11y)
-                    .accessibilityValue(draft.shownTheme.displayName)
+                    .accessibilityValue(draft.shownTheme.displayName(in: previewColorScheme))
                 
                 ChatThemePreviewControls(previewColorScheme: previewColorScheme,
                                          saveTitle: saveTitle,
@@ -114,5 +114,25 @@ struct ChatThemePreview_Previews: PreviewProvider, TestablePreview {
                                       previewColorScheme: .dark),
                          saveTitle: UntranslatedL10n.guaChatThemeActionSetDefault)
             .previewDisplayName("Dark")
+        
+        ChatThemePreview(context: viewModel.context,
+                         draft: artworkDraft(.palmCoast, previewColorScheme: .light),
+                         saveTitle: UntranslatedL10n.guaChatThemeActionSetTheme)
+            .previewDisplayName("Static artwork")
+        
+        ChatThemePreview(context: viewModel.context,
+                         draft: artworkDraft(.palmCoast, previewColorScheme: .dark),
+                         saveTitle: UntranslatedL10n.guaChatThemeActionSetTheme)
+            .previewDisplayName("Static artwork dark")
+        
+        ChatThemePreview(context: viewModel.context,
+                         draft: artworkDraft(.glassDrops, previewColorScheme: .dark),
+                         saveTitle: UntranslatedL10n.guaChatThemeActionSetTheme)
+            .previewDisplayName("Live artwork dark")
+    }
+    
+    static func artworkDraft(_ artwork: ChatArtwork, previewColorScheme: ColorScheme) -> ChatThemePreviewDraft {
+        let theme = ChatTheme(wallpaper: .art(artwork), bubbles: artwork.bubbles)
+        return ChatThemePreviewDraft(theme: theme, shownTheme: theme, previewColorScheme: previewColorScheme)
     }
 }

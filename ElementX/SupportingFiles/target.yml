@@ -310,6 +310,7 @@ targets:
       - path: ../Resources
         # Upstream's other languages stay on disk for the Localazy sync but never ship.
         excludes:
+          - Wallpapers # Shipped as a folder below.
           - Localizations/ar.lproj
           - Localizations/be.lproj
           - Localizations/bg.lproj
@@ -347,6 +348,9 @@ targets:
           - Localizations/vi.lproj
           - Localizations/zh-Hans.lproj
           - Localizations/zh-Hant-TW.lproj
+      # A folder reference, so the files ship under Wallpapers/ with their own names.
+      - path: ../Resources/Wallpapers
+        type: folder
       - path: ../SupportingFiles
       - path: ../../Tools/Scripts/Templates/SimpleScreenExample/ElementX
       - path: ../../Components/DevelopmentAssets/Media
