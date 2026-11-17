@@ -266,19 +266,20 @@ final class ExpressionPanelViewModel: ExpressionPanelViewModelType, ExpressionPa
         rebuildStickerSections()
     }
     
-    private func send(_ image: StickerImage, tileID: String?) {
+    private func send(_ image: StickerImage, tileID: String?, isRetry: Bool = false) {
         if let tileID {
             guard !state.sendingStickerIDs.contains(tileID) else { return }
             state.sendingStickerIDs.insert(tileID)
         }
-        Task { await sendNow(image, tileID: tileID) }
+        Task { await sendNow(image, tileID: tileID, isRetry: isRetry) }
     }
     
-    private func sendNow(_ image: StickerImage, tileID: String?) async {
+    private func sendNow(_ image: StickerImage, tileID: String?, isRetry: Bool = false) async {
         let relation = stickerRelation
         let answersReply = composerMode.replyEventID != nil
         // A sticker has no local echo for the timeline to pulse the wallpaper on, and a thread shows no wallpaper.
-        if threadRootEventID == nil {
+        // A retry stays still, like a text retry, which resends its existing local echo.
+        if threadRootEventID == nil, !isRetry {
             ChatWallpaperSendPulse.forRoom(roomProxy.id).recordSend()
         }
         let result = await stickerSender.send(image.essentials, relation: relation)
@@ -297,7 +298,7 @@ final class ExpressionPanelViewModel: ExpressionPanelViewModelType, ExpressionPa
                                                  title: UntranslatedL10n.guaStickerSendError,
                                                  primaryButton: .init(title: L10n.actionCancel, role: .cancel, action: nil),
                                                  secondaryButton: .init(title: L10n.actionTryAgain) { [weak self] in
-                                                     self?.send(image, tileID: tileID)
+                                                     self?.send(image, tileID: tileID, isRetry: true)
                                                  })
         }
     }

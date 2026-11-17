@@ -268,8 +268,7 @@ private final class ChatLiveWallpaperUIView: UIView, MTKViewDelegate {
         }
     }
     
-    /// A hidden window (the app lock screen), anything presented over this view's controller or an ancestor, or a composer
-    /// grown up to the top bar (the expression panel expanded or searching) covers the chat.
+    /// A hidden window, a presentation over this view's controller or an ancestor, or a composer up at the top bar covers the chat.
     private var isCoveredInUIKit: Bool {
         let chat = visibleChat
         if window?.isHidden == true || !LiveWallpaperLayout.showsChat(visibleTop: chat.top, visibleBottom: chat.bottom) {
