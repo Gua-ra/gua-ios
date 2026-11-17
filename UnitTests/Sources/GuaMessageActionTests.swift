@@ -207,39 +207,12 @@ struct GuaMessageActionTests {
         #expect(GuaMessageActionParser.parse(eventJSON: serverEventJSON(elementsBefore: element)).actions.map(\.rawURL) == ["https://bills.example.org/s"])
     }
     
-    @Test(arguments: ["Text<br>" + link,
-                      "Text<br><a href='https://bills.example.org/s'>View statement</a>",
-                      "Text<br><a\thref=\"https://bills.example.org/s\">View statement</a>",
-                      "Text<br><a\nhref=\"https://bills.example.org/s\">View statement</a>",
-                      "Text<br><a\u{0C}href=\"https://bills.example.org/s\">View statement</a>",
-                      "Text<br><a\rhref=\"https://bills.example.org/s\">View statement</a>",
-                      "Text<br><a\r\nhref=\"https://bills.example.org/s\">View statement</a>",
-                      "Text<br><a  href=\"https://bills.example.org/s\">View statement</a>",
-                      "Text<br><a \t\n\u{0C}\r href='https://bills.example.org/s'>View statement</a>",
-                      "Text<br>Total<br/>Due<br />" + link,
-                      "Text\t\n\u{0C}\r\nTotal\r<br>" + link,
-                      "&amp;&lt;&gt;&quot;&apos;&nbsp;&#65;&#0000065;&#x41;&#X000041;&#X1d11e;&#1114109;&#x10FFFD;&#xFFFD;<br>" + link,
-                      "Text<br><a href=\"https:&#47;&#x2F;bills.example.org&#X2f;&#0000115;\">View statement</a>",
-                      "<a href=\"https://bills.example.org/o?a=1&amp;b=2\">Order</a><br>" + link,
-                      "Total > $5, a = \"b\" / 'c'<br>" + link,
-                      "<a href=\"x'y\">Other</a> <a href='x\"y'>Other</a> <a href=\"\">Other</a> <a>Other</a><br>" + link])
+    @Test(arguments: GuaMessageActionTests.strictFormBodies)
     func tagsInTheStrictFormKeepTheActions(html: String) throws {
         #expect(try keptURLs(html: html) == ["https://bills.example.org/s"])
     }
     
-    @Test(arguments: ["<ul><li>August<ol><li>statement</li></ol></li></ul>" + link,
-                      "<b><p>August statement</p></b>" + link,
-                      "Text<br><a href=\"https://bills.example.org/s\"><p>View statement</p></a>",
-                      "<h1>August</h1><h2>statement</h2>" + link,
-                      "<h1><p>August</p></h1>" + link,
-                      "<p>August <b>statement</b> " + link + "</p>",
-                      nested(wrappers(19), around: link),
-                      nested(wrappers(20), around: "Total") + link,
-                      nested(["b", "i", "b", "i", "b"], around: "Total") + link,
-                      "<b><b><b>Total</b></b></b><b>Due</b>" + link,
-                      String(repeating: "<i></i>", count: 99) + String(repeating: "<br>", count: 100) + link,
-                      "<ul><li>Total</li></ul>" + link,
-                      "<ol><li>Total</li></ol>" + link])
+    @Test(arguments: GuaMessageActionTests.nestedAsWrittenBodies)
     func elementsNestedAsWrittenKeepTheActions(html: String) throws {
         #expect(try keptURLs(html: html) == ["https://bills.example.org/s"])
     }
@@ -249,69 +222,12 @@ struct GuaMessageActionTests {
         #expect(try keptURLs(html: "<\(name)>Total</\(name)>" + Self.link) == ["https://bills.example.org/s"])
     }
     
-    @Test(arguments: ["<!-- Total -->" + link,
-                      "<![CDATA[Total]]>" + link,
-                      "<?BR>" + link,
-                      link + "<?",
-                      "<!DOCTYPE html>" + link,
-                      "<B>Total</B>" + link,
-                      "Text<br><A href=\"https://bills.example.org/s\">View statement</A>",
-                      "Text<br><a HREF=\"https://bills.example.org/s\">View statement</a>",
-                      "Text<br><a href=https://bills.example.org/s>View statement</a>",
-                      "Text<br><a href = \"https://bills.example.org/s\">View statement</a>",
-                      "Text<br><a href =\"https://bills.example.org/s\">View statement</a>",
-                      "Text<br><a href= \"https://bills.example.org/s\">View statement</a>",
-                      "Text<br><a href=\"https://bills.example.org/s\" href=\"https://bills.example.org/s\">View statement</a>",
-                      "Text<br><a href=\"https://bills.example.org/s\" title=\"Statement\">View statement</a>",
-                      "Text<br><a title=\"Statement\" href=\"https://bills.example.org/s\">View statement</a>",
-                      "<strong class=\"x\">Total</strong>" + link,
-                      "<span data-msc4286-external-payment-details>" + link + "</span>",
-                      "<a href=\"x>\">Other</a>" + link,
-                      "<a href=\"x<\">Other</a>" + link,
-                      "<a href=\"x&y\">Other</a>" + link,
-                      "<a >Other</a>" + link,
-                      "<a href>Other</a>" + link,
-                      "Text<br><a href=\"https://bills.example.org/s\" >View statement</a>",
-                      "Text<br><a href=\"https://bills.example.org/s\"/>View statement</a>",
-                      "<strong/>Total" + link,
-                      "<span / >Total</span>" + link,
-                      "<strong >Total</strong>" + link,
-                      "<strong>Total</strong >" + link,
-                      "<a href=\"https://bills.example.org/o\">Order</a href=\"x\"><br>" + link,
-                      "Text<br >" + link,
-                      "Text<br/ >" + link,
-                      "Text<br  />" + link,
-                      "Text<BR>" + link,
-                      link + "</br>",
-                      "Total < $20<br>" + link,
-                      link + "<",
-                      link + "</",
-                      link + "<a href=\"x\"",
-                      link + "<a href=\"x",
-                      "<b1>Total</b1>" + link,
-                      "<h7>Total</h7>" + link,
-                      "<textarea>Total</textarea>" + link,
-                      "<bloc\u{212A}quote>Total</bloc\u{212A}quote>" + link,
-                      "Total</table>" + link,
-                      "<b\u{A0}>Total</b>" + link])
+    @Test(arguments: GuaMessageActionTests.outsideTheStrictFormBodies)
     func tagsOutsideTheStrictFormGetNoAction(html: String) throws {
         #expect(try keptURLs(html: html).isEmpty)
     }
     
-    @Test(arguments: ["<b>August <i>statement</b></i>" + link,
-                      "<b>August <i>statement</b><br>" + link,
-                      "<b>Total<br>" + link,
-                      "Total</b><br>" + link,
-                      "<b>Total</i></b>" + link,
-                      "<a href=\"https://bills.example.org/o\">Other <b>" + link + "</b></a>",
-                      "<h1>August <b><h2>statement</h2></b></h1>" + link,
-                      "<li>Total</li>" + link,
-                      "<ul><b><li>Total</li></b></ul>" + link,
-                      "<ul><li>Total<li>Due</li></li></ul>" + link,
-                      nested(wrappers(20), around: link),
-                      nested(wrappers(21), around: "Total") + link,
-                      nested(["b", "i", "b", "i", "b", "i", "b"], around: "Total") + link,
-                      String(repeating: "<i></i>", count: 100) + String(repeating: "<br>", count: 100) + link])
+    @Test(arguments: GuaMessageActionTests.rebuiltNestingBodies)
     func nestingThatParsersRebuildGetsNoAction(html: String) throws {
         #expect(try keptURLs(html: html).isEmpty)
     }
@@ -328,8 +244,7 @@ struct GuaMessageActionTests {
         #expect(try keptURLs(html: html) == ["https://bills.example.org/s"])
     }
     
-    @Test(arguments: ["ul", "ol"], ["Total", "\u{A0}", "\u{3000}", "&#32;", "&nbsp;", "&amp;", "<br>", "<br/>", "<br />", "<a href=\"https://bills.example.org/o\">Order</a>",
-                                    link, "<b>Total</b>", "<p>Total</p>", "<ul><li>Total</li></ul>", "<ol><li>Total</li></ol>"])
+    @Test(arguments: ["ul", "ol"], GuaMessageActionTests.listChildren)
     func anythingElseDirectlyInAListGetsNoAction(list: String, child: String) throws {
         #expect(try keptURLs(html: "<\(list)>" + child + "<li>Total</li></\(list)>" + Self.link).isEmpty)
         #expect(try keptURLs(html: "<\(list)><li>Total</li>" + child + "</\(list)>" + Self.link).isEmpty)
@@ -516,6 +431,117 @@ struct GuaMessageActionTests {
             + #""formatted_body":"Text<br><a href=\"https://bills.example.org/s\">View statement</a>","#
             + #""\#(key)":[\#(elementsBefore){"type":"open_url","label":"\#(label)","url":"\#(url)"}]}}"#
     }
+}
+
+/// Typed apart from `@Test(arguments:)`, where lists this long that join strings take the compiler past its type-checking time limit.
+extension GuaMessageActionTests {
+    nonisolated static let strictFormBodies: [String] = ["Text<br>" + link,
+                                                         "Text<br><a href='https://bills.example.org/s'>View statement</a>",
+                                                         "Text<br><a\thref=\"https://bills.example.org/s\">View statement</a>",
+                                                         "Text<br><a\nhref=\"https://bills.example.org/s\">View statement</a>",
+                                                         "Text<br><a\u{0C}href=\"https://bills.example.org/s\">View statement</a>",
+                                                         "Text<br><a\rhref=\"https://bills.example.org/s\">View statement</a>",
+                                                         "Text<br><a\r\nhref=\"https://bills.example.org/s\">View statement</a>",
+                                                         "Text<br><a  href=\"https://bills.example.org/s\">View statement</a>",
+                                                         "Text<br><a \t\n\u{0C}\r href='https://bills.example.org/s'>View statement</a>",
+                                                         "Text<br>Total<br/>Due<br />" + link,
+                                                         "Text\t\n\u{0C}\r\nTotal\r<br>" + link,
+                                                         "&amp;&lt;&gt;&quot;&apos;&nbsp;&#65;&#0000065;&#x41;&#X000041;&#X1d11e;&#1114109;&#x10FFFD;&#xFFFD;<br>" + link,
+                                                         "Text<br><a href=\"https:&#47;&#x2F;bills.example.org&#X2f;&#0000115;\">View statement</a>",
+                                                         "<a href=\"https://bills.example.org/o?a=1&amp;b=2\">Order</a><br>" + link,
+                                                         "Total > $5, a = \"b\" / 'c'<br>" + link,
+                                                         "<a href=\"x'y\">Other</a> <a href='x\"y'>Other</a> <a href=\"\">Other</a> <a>Other</a><br>" + link]
+    
+    nonisolated static let nestedAsWrittenBodies: [String] = ["<ul><li>August<ol><li>statement</li></ol></li></ul>" + link,
+                                                              "<b><p>August statement</p></b>" + link,
+                                                              "Text<br><a href=\"https://bills.example.org/s\"><p>View statement</p></a>",
+                                                              "<h1>August</h1><h2>statement</h2>" + link,
+                                                              "<h1><p>August</p></h1>" + link,
+                                                              "<p>August <b>statement</b> " + link + "</p>",
+                                                              nested(wrappers(19), around: link),
+                                                              nested(wrappers(20), around: "Total") + link,
+                                                              nested(["b", "i", "b", "i", "b"], around: "Total") + link,
+                                                              "<b><b><b>Total</b></b></b><b>Due</b>" + link,
+                                                              String(repeating: "<i></i>", count: 99) + String(repeating: "<br>", count: 100) + link,
+                                                              "<ul><li>Total</li></ul>" + link,
+                                                              "<ol><li>Total</li></ol>" + link]
+    
+    nonisolated static let outsideTheStrictFormBodies: [String] = ["<!-- Total -->" + link,
+                                                                   "<![CDATA[Total]]>" + link,
+                                                                   "<?BR>" + link,
+                                                                   link + "<?",
+                                                                   "<!DOCTYPE html>" + link,
+                                                                   "<B>Total</B>" + link,
+                                                                   "Text<br><A href=\"https://bills.example.org/s\">View statement</A>",
+                                                                   "Text<br><a HREF=\"https://bills.example.org/s\">View statement</a>",
+                                                                   "Text<br><a href=https://bills.example.org/s>View statement</a>",
+                                                                   "Text<br><a href = \"https://bills.example.org/s\">View statement</a>",
+                                                                   "Text<br><a href =\"https://bills.example.org/s\">View statement</a>",
+                                                                   "Text<br><a href= \"https://bills.example.org/s\">View statement</a>",
+                                                                   "Text<br><a href=\"https://bills.example.org/s\" href=\"https://bills.example.org/s\">View statement</a>",
+                                                                   "Text<br><a href=\"https://bills.example.org/s\" title=\"Statement\">View statement</a>",
+                                                                   "Text<br><a title=\"Statement\" href=\"https://bills.example.org/s\">View statement</a>",
+                                                                   "<strong class=\"x\">Total</strong>" + link,
+                                                                   "<span data-msc4286-external-payment-details>" + link + "</span>",
+                                                                   "<a href=\"x>\">Other</a>" + link,
+                                                                   "<a href=\"x<\">Other</a>" + link,
+                                                                   "<a href=\"x&y\">Other</a>" + link,
+                                                                   "<a >Other</a>" + link,
+                                                                   "<a href>Other</a>" + link,
+                                                                   "Text<br><a href=\"https://bills.example.org/s\" >View statement</a>",
+                                                                   "Text<br><a href=\"https://bills.example.org/s\"/>View statement</a>",
+                                                                   "<strong/>Total" + link,
+                                                                   "<span / >Total</span>" + link,
+                                                                   "<strong >Total</strong>" + link,
+                                                                   "<strong>Total</strong >" + link,
+                                                                   "<a href=\"https://bills.example.org/o\">Order</a href=\"x\"><br>" + link,
+                                                                   "Text<br >" + link,
+                                                                   "Text<br/ >" + link,
+                                                                   "Text<br  />" + link,
+                                                                   "Text<BR>" + link,
+                                                                   link + "</br>",
+                                                                   "Total < $20<br>" + link,
+                                                                   link + "<",
+                                                                   link + "</",
+                                                                   link + "<a href=\"x\"",
+                                                                   link + "<a href=\"x",
+                                                                   "<b1>Total</b1>" + link,
+                                                                   "<h7>Total</h7>" + link,
+                                                                   "<textarea>Total</textarea>" + link,
+                                                                   "<bloc\u{212A}quote>Total</bloc\u{212A}quote>" + link,
+                                                                   "Total</table>" + link,
+                                                                   "<b\u{A0}>Total</b>" + link]
+    
+    nonisolated static let rebuiltNestingBodies: [String] = ["<b>August <i>statement</b></i>" + link,
+                                                             "<b>August <i>statement</b><br>" + link,
+                                                             "<b>Total<br>" + link,
+                                                             "Total</b><br>" + link,
+                                                             "<b>Total</i></b>" + link,
+                                                             "<a href=\"https://bills.example.org/o\">Other <b>" + link + "</b></a>",
+                                                             "<h1>August <b><h2>statement</h2></b></h1>" + link,
+                                                             "<li>Total</li>" + link,
+                                                             "<ul><b><li>Total</li></b></ul>" + link,
+                                                             "<ul><li>Total<li>Due</li></li></ul>" + link,
+                                                             nested(wrappers(20), around: link),
+                                                             nested(wrappers(21), around: "Total") + link,
+                                                             nested(["b", "i", "b", "i", "b", "i", "b"], around: "Total") + link,
+                                                             String(repeating: "<i></i>", count: 100) + String(repeating: "<br>", count: 100) + link]
+    
+    nonisolated static let listChildren: [String] = ["Total",
+                                                     "\u{A0}",
+                                                     "\u{3000}",
+                                                     "&#32;",
+                                                     "&nbsp;",
+                                                     "&amp;",
+                                                     "<br>",
+                                                     "<br/>",
+                                                     "<br />",
+                                                     "<a href=\"https://bills.example.org/o\">Order</a>",
+                                                     link,
+                                                     "<b>Total</b>",
+                                                     "<p>Total</p>",
+                                                     "<ul><li>Total</li></ul>",
+                                                     "<ol><li>Total</li></ol>"]
 }
 
 extension GuaMessageActionTests {
