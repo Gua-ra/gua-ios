@@ -7,7 +7,7 @@
 import SwiftUI
 
 extension EnvironmentValues {
-    /// Whether GIFs and animated stickers play by themselves, which the Play GIFs automatically setting decides
+    /// Whether GIFs and animated stickers play by themselves, which the GIF autoplay switch in Media settings decides
     /// instead of the system's Auto-Play Animated Images. A GIF the user opens sets it to `true`.
     @Entry var playsAnimatedImages = true
 }

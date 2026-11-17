@@ -89,8 +89,8 @@
 "action_delete_account" = "Supprimer le compte";
 "gua_action_delete" = "Supprimer";
 "gua_common_media_settings" = "Paramètres des médias";
-"gua_settings_play_gifs_automatically" = "Lire les GIF automatiquement";
-"gua_settings_play_gifs_automatically_description" = "Aussi les autocollants animés. Les GIF que vous ouvrez sont toujours lus.";
+"gua_settings_play_gifs_automatically" = "Lire automatiquement les GIF et autocollants animés dans les conversations";
+"gua_settings_play_gifs_automatically_description" = "Les GIF ouverts sont toujours lus.";
 
 "common_moderation_and_safety" = "Modération & sécurité";
 "screen_moderation_and_safety_invites_heading" = "Invitations";
