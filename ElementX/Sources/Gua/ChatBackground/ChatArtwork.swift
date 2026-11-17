@@ -17,6 +17,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
     case rainOnGlass = "rain-on-glass"
     case pantanal
     case currentsLive = "currents-live"
+    case duneLagoons = "dune-lagoons"
     case palmCoast = "palm-coast"
     case riverBends = "river-bends"
     case highlandMist = "highland-mist"
@@ -58,7 +59,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
     var section: Section {
         switch self {
         case .glassDrops, .glassDropsBlue, .moltenPearl, .silk, .ipe, .rainOnGlass, .pantanal, .currentsLive: .live
-        case .palmCoast, .riverBends, .highlandMist, .glacierLake, .canolaSky, .harbourFog, .canyonGlow, .polarIce, .moonTide: .nature
+        case .duneLagoons, .palmCoast, .riverBends, .highlandMist, .glacierLake, .canolaSky, .harbourFog, .canyonGlow, .polarIce, .moonTide: .nature
         case .currents, .azulejo, .calcadao, .knit, .doodlesBrasil, .doodlesCanada: .patterns
         case .paper, .paperCut: .minimal
         }
@@ -79,6 +80,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         case .rainOnGlass: UntranslatedL10n.guaChatThemeArtRainOnGlass
         case .pantanal: UntranslatedL10n.guaChatThemeArtPantanal
         case .currentsLive: UntranslatedL10n.guaChatThemeArtCurrentsLive
+        case .duneLagoons: UntranslatedL10n.guaChatThemeArtDuneLagoons
         case .palmCoast: UntranslatedL10n.guaChatThemeArtPalmCoast
         case .riverBends: UntranslatedL10n.guaChatThemeArtRiverBends
         case .highlandMist: UntranslatedL10n.guaChatThemeArtHighlandMist
@@ -110,6 +112,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         case .rainOnGlass: ChatBubblePair(.green, dark: .blue)
         case .pantanal: ChatBubblePair(.green)
         case .currentsLive: ChatBubblePair(.purple)
+        case .duneLagoons: ChatBubblePair(.teal, dark: .purple)
         case .palmCoast: ChatBubblePair(.orange, dark: .blue)
         case .riverBends: ChatBubblePair(.teal)
         case .highlandMist: ChatBubblePair(.blue, dark: .green)
@@ -138,6 +141,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         case .ipe, .knit: UnitPoint(x: 0.5, y: 0)
         case .rainOnGlass, .highlandMist, .canyonGlow, .polarIce: UnitPoint(x: 0.5, y: 0.3)
         case .pantanal: UnitPoint(x: 0.5, y: 0.38)
+        case .duneLagoons: UnitPoint(x: 0.5, y: 0.25)
         case .palmCoast: UnitPoint(x: 0.5, y: 0.2)
         case .glacierLake: UnitPoint(x: 0.5, y: 0.35)
         case .canolaSky: UnitPoint(x: 0.4, y: 0.38)
@@ -153,7 +157,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         switch self {
         case .glassDrops: .blush
         case .glassDropsBlue, .moltenPearl, .azulejo: .sky
-        case .silk, .pantanal, .riverBends, .highlandMist, .doodlesBrasil: .mint
+        case .silk, .pantanal, .duneLagoons, .riverBends, .highlandMist, .doodlesBrasil: .mint
         case .ipe: .sunset
         case .rainOnGlass: .aurora
         case .currentsLive, .currents: .lavender

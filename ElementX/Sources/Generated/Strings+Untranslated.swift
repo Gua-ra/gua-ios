@@ -92,6 +92,8 @@ internal nonisolated enum UntranslatedL10n {
   internal static var guaChatThemeArtDoodlesBrasil: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_doodles_brasil") }
   /// Canada
   internal static var guaChatThemeArtDoodlesCanada: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_doodles_canada") }
+  /// Dune Lagoons
+  internal static var guaChatThemeArtDuneLagoons: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_dune_lagoons") }
   /// Glacier Lake
   internal static var guaChatThemeArtGlacierLake: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_glacier_lake") }
   /// Glass Drops
