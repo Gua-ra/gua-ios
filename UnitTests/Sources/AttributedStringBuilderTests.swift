@@ -1086,6 +1086,84 @@ struct AttributedStringBuilderTests {
         _ = try #require(attributedString2.runs.first { $0.link != nil }?.link, "Couldn't find the link")
     }
     
+    // MARK: - GUA FORK: event links with text of their own
+    
+    @Test(arguments: ["https://matrix.to/#/!room:example.org/$event?via=example.org",
+                      "https://matrix.to/#/%23room:example.org/$event?via=example.org"] as [String])
+    func eventPermalinkWithItsOwnTextStaysALink(permalink: String) throws {
+        let attributedString = try #require(attributedStringBuilder.fromHTML("<a href=\"\(permalink)\">View message</a>"))
+        
+        #expect(String(attributedString.characters) == "View message")
+        #expect(attributedString.runs.count == 1)
+        #expect(attributedString.link?.absoluteString == permalink)
+        #expect(attributedString.suppressedAttachment == nil)
+        #expect(attributedString.eventOnRoomID == nil)
+        #expect(attributedString.eventOnRoomAlias == nil)
+    }
+    
+    @Test(arguments: ["https://matrix.to/#/!room:example.org/$event?via=example.org",
+                      "https://matrix.to/#/%23room:example.org/$event?via=example.org"] as [String])
+    func eventPermalinkWithItsOwnTextGetsNoLinkPreview(permalink: String) {
+        let html = "<a href=\"\(permalink)\">View message</a> and <a href=\"https://example.org/page\">a page</a>"
+        let item = TextRoomTimelineItem(id: .randomEvent,
+                                        timestamp: .mock,
+                                        isOutgoing: false,
+                                        isEditable: false,
+                                        canBeRepliedTo: true,
+                                        sender: .init(id: "@bot:example.org"),
+                                        content: .init(body: "", formattedBody: attributedStringBuilder.fromHTML(html)))
+        
+        #expect(item.links == ["https://example.org/page"])
+    }
+    
+    @Test
+    func eventPermalinkShowingItsOwnURLIsAPill() throws {
+        let roomIDPermalink = "https://matrix.to/#/!room:example.org/$event?via=example.org"
+        let roomIDString = try #require(attributedStringBuilder.fromHTML("<a href=\"\(roomIDPermalink)\">\(roomIDPermalink)</a>"))
+        #expect(roomIDString.suppressedAttachment != nil)
+        #expect(roomIDString.eventOnRoomID == .some(.init(roomID: "!room:example.org", eventID: "$event")))
+        #expect(roomIDString.link?.absoluteString == roomIDPermalink)
+        
+        let aliasPermalink = "https://matrix.to/#/#room:example.org/$event?via=example.org"
+        let aliasString = try #require(attributedStringBuilder.fromHTML("<a href=\"\(aliasPermalink)\">\(aliasPermalink)</a>"))
+        #expect(aliasString.suppressedAttachment != nil)
+        #expect(aliasString.eventOnRoomAlias == .some(.init(alias: "#room:example.org", eventID: "$event")))
+        #expect(aliasString.link?.absoluteString == "https://matrix.to/#/%23room:example.org/$event?via=example.org")
+    }
+    
+    @Test
+    func eventPermalinkFollowedByPunctuationIsAPill() throws {
+        let string = "See https://matrix.to/#/!room:example.org/$event."
+        
+        // The cache is keyed on the input alone, so the plain path needs a builder of its own.
+        let plainBuilder = AttributedStringBuilder(cacheKey: "eventPermalinkFollowedByPunctuation", mentionBuilder: MentionBuilder())
+        for attributedString in [attributedStringBuilder.fromHTML(string), plainBuilder.fromPlain(string)] {
+            let pill = try #require(attributedString?.runs.first { $0.suppressedAttachment != nil })
+            #expect(pill.eventOnRoomID == .some(.init(roomID: "!room:example.org", eventID: "$event")))
+            #expect(pill.link?.absoluteString == "https://matrix.to/#/!room:example.org/$event")
+        }
+    }
+    
+    @Test
+    func eventPermalinkShowingItsURLWithoutTheSchemeIsAPill() throws {
+        let permalink = "https://matrix.to/#/!room:example.org/$event"
+        let attributedString = try #require(attributedStringBuilder.fromHTML("<a href=\"\(permalink)\">matrix.to/#/!room:example.org/$event</a>"))
+        
+        #expect(attributedString.suppressedAttachment != nil)
+        #expect(attributedString.eventOnRoomID == .some(.init(roomID: "!room:example.org", eventID: "$event")))
+        #expect(attributedString.link?.absoluteString == permalink)
+    }
+    
+    @Test
+    func userPermalinkWithItsOwnTextIsStillAPill() throws {
+        let permalink = "https://matrix.to/#/@alice:example.org"
+        let attributedString = try #require(attributedStringBuilder.fromHTML("<a href=\"\(permalink)\">Alice</a>"))
+        
+        #expect(attributedString.suppressedAttachment != nil)
+        #expect(attributedString.userID == "@alice:example.org")
+        #expect(attributedString.link?.absoluteString == permalink)
+    }
+    
     // MARK: - Private
     
     private func checkLinkIn(attributedString: AttributedString?, expectedLink: String, expectedRuns: Int) throws {

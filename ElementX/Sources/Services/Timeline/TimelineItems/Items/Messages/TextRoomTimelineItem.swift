@@ -7,6 +7,7 @@
 //
 
 import Algorithms
+import MatrixRustSDK
 import UIKit
 
 nonisolated struct TextRoomTimelineItem: TextBasedRoomTimelineItem, Equatable {
@@ -50,7 +51,12 @@ nonisolated struct TextRoomTimelineItem: TextBasedRoomTimelineItem, Equatable {
                 return nil
             }
             
-            return run.link
+            // GUA FORK: an event link with text of its own is no pill, so only parsing its URL shows it is a permalink.
+            guard let link = run.link, parseMatrixEntityFrom(uri: link.absoluteString) == nil else {
+                return nil
+            }
+            
+            return link
         }
         
         return Array(links.uniqued())
