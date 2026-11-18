@@ -417,6 +417,538 @@
       }
     },
     {
+      "id": "photo-lencois-lagoon",
+      "section": "photos",
+      "live": false,
+      "files": {
+        "light": "photo-lencois-lagoon.webp",
+        "dark": "photo-lencois-lagoon.webp"
+      },
+      "sha256": {
+        "photo-lencois-lagoon.webp": "462b2c3a11d6cb4ae67ea7eb74036048e5deda42a3453d908f068d9c091f3495"
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.52
+      },
+      "fallback_preset": "sky",
+      "bubble": {
+        "light": "teal",
+        "dark": "purple"
+      },
+      "credit": {
+        "author": "Gerda Arendt",
+        "licence": "CC0 1.0",
+        "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Lagoon_in_curved_sanddunes%2C_Len%C3%A7%C3%B3is_Maranhenses.jpg",
+        "modified": "cropped and resized"
+      }
+    },
+    {
+      "id": "photo-lencois-dunes",
+      "section": "photos",
+      "live": false,
+      "files": {
+        "light": "photo-lencois-dunes.webp",
+        "dark": "photo-lencois-dunes.webp"
+      },
+      "sha256": {
+        "photo-lencois-dunes.webp": "f5a753e6939eb38274df1dd03e798ac7f86d511edd9101fb5a4ed980f5daade0"
+      },
+      "anchor": {
+        "x": 0.35,
+        "y": 0.46
+      },
+      "fallback_preset": "graphite",
+      "bubble": {
+        "light": "blue",
+        "dark": "purple"
+      },
+      "credit": {
+        "author": "Gerda Arendt",
+        "licence": "CC0 1.0",
+        "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Sand_dunes_before_sunset%2C_Len%C3%A7%C3%B3is_Maranhenses.jpg",
+        "modified": "cropped and resized"
+      }
+    },
+    {
+      "id": "photo-gruta-azul",
+      "section": "photos",
+      "live": false,
+      "files": {
+        "light": "photo-gruta-azul.webp",
+        "dark": "photo-gruta-azul.webp"
+      },
+      "sha256": {
+        "photo-gruta-azul.webp": "413a349e3ae47c641b70847685eec34cdd6f025794749fc638c003648fa7c2c3"
+      },
+      "anchor": {
+        "x": 0.65,
+        "y": 0.68
+      },
+      "fallback_preset": "sky",
+      "bubble": {
+        "light": "teal",
+        "dark": "blue"
+      },
+      "credit": {
+        "author": "Wilfredo Rodriguez (Wilfredor)",
+        "licence": "CC0 1.0",
+        "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Rock_walls_and_entrance_of_Gruta_Azul%2C_Arraial_do_Cabo%2C_Brazil.jpg",
+        "modified": "cropped and resized"
+      }
+    },
+    {
+      "id": "photo-ipe",
+      "section": "photos",
+      "live": false,
+      "files": {
+        "light": "photo-ipe.webp",
+        "dark": "photo-ipe.webp"
+      },
+      "sha256": {
+        "photo-ipe.webp": "396c87e19e6c1df15bea9d235e7c598f603244f1693c3434132d9738f9fe5ba8"
+      },
+      "anchor": {
+        "x": 0.47,
+        "y": 0.28
+      },
+      "fallback_preset": "graphite",
+      "bubble": {
+        "light": "blue",
+        "dark": "orange"
+      },
+      "credit": {
+        "author": "Thyrome",
+        "licence": "CC0 1.0",
+        "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Handroanthus_ochraceus.jpg",
+        "modified": "cropped and resized"
+      }
+    },
+    {
+      "id": "photo-araucaria",
+      "section": "photos",
+      "live": false,
+      "files": {
+        "light": "photo-araucaria.webp",
+        "dark": "photo-araucaria.webp"
+      },
+      "sha256": {
+        "photo-araucaria.webp": "12c2fecf8cb16372b55f18dfc33cdc322666160b6c2c709ef7894c2287810199"
+      },
+      "anchor": {
+        "x": 0.45,
+        "y": 0.42
+      },
+      "fallback_preset": "sky",
+      "bubble": {
+        "light": "green",
+        "dark": "teal"
+      },
+      "credit": {
+        "author": "Themium",
+        "licence": "CC0 1.0",
+        "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Arauc%C3%A1ria_jordanense_1.jpg",
+        "modified": "cropped and resized"
+      }
+    },
+    {
+      "id": "photo-maned-wolf",
+      "section": "photos",
+      "live": false,
+      "files": {
+        "light": "photo-maned-wolf.webp",
+        "dark": "photo-maned-wolf.webp"
+      },
+      "sha256": {
+        "photo-maned-wolf.webp": "9845aef1a978322d4e9cae73b5fa29884f7ca1d46d76f7af59d8ff0cc90a2563"
+      },
+      "anchor": {
+        "x": 0.38,
+        "y": 0.55
+      },
+      "fallback_preset": "sand",
+      "bubble": {
+        "light": "blue",
+        "dark": "purple"
+      },
+      "credit": {
+        "author": "Wilfredo Rodriguez (Wilfredor)",
+        "licence": "CC0 1.0",
+        "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Chrysocyon_brachyurus_in_S%C3%A3o_Paulo_Zoo.jpg",
+        "modified": "cropped and resized"
+      }
+    },
+    {
+      "id": "photo-maned-wolf-standing",
+      "section": "photos",
+      "live": false,
+      "files": {
+        "light": "photo-maned-wolf-standing.webp",
+        "dark": "photo-maned-wolf-standing.webp"
+      },
+      "sha256": {
+        "photo-maned-wolf-standing.webp": "9c242549c1af320ccd4bc1261cd099b300976856e6fa5aaef5e889b0941537f6"
+      },
+      "anchor": {
+        "x": 0.72,
+        "y": 0.25
+      },
+      "fallback_preset": "mint",
+      "bubble": {
+        "light": "blue",
+        "dark": "purple"
+      },
+      "credit": {
+        "author": "Gil Myers, Smithsonian's National Zoo",
+        "licence": "CC0 1.0",
+        "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "source_url": "https://nationalzoo.si.edu/object/nzp_NZP-20160729-011GM",
+        "modified": "cropped and resized"
+      }
+    },
+    {
+      "id": "photo-yukon-trail",
+      "section": "photos",
+      "live": false,
+      "files": {
+        "light": "photo-yukon-trail.webp",
+        "dark": "photo-yukon-trail.webp"
+      },
+      "sha256": {
+        "photo-yukon-trail.webp": "01105b2c762e0e1efe15370bceb62cb071483549a2766b5bf30bbeeed203312a"
+      },
+      "anchor": {
+        "x": 0.45,
+        "y": 0.55
+      },
+      "fallback_preset": "sky",
+      "bubble": {
+        "light": "blue",
+        "dark": "teal"
+      },
+      "credit": {
+        "author": "Sarah Lacerda",
+        "licence": "CC BY 4.0",
+        "licence_url": "https://creativecommons.org/licenses/by/4.0/",
+        "source_url": null,
+        "modified": "cropped and resized"
+      }
+    },
+    {
+      "id": "photo-yukon-sun",
+      "section": "photos",
+      "live": false,
+      "files": {
+        "light": "photo-yukon-sun.webp",
+        "dark": "photo-yukon-sun.webp"
+      },
+      "sha256": {
+        "photo-yukon-sun.webp": "eec5cc6f3c561c8cc460ccc1230de9887f5462a23dd7f3c1b633c57f804bb338"
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.72
+      },
+      "fallback_preset": "sky",
+      "bubble": {
+        "light": "orange",
+        "dark": "blue"
+      },
+      "credit": {
+        "author": "Sarah Lacerda",
+        "licence": "CC BY 4.0",
+        "licence_url": "https://creativecommons.org/licenses/by/4.0/",
+        "source_url": null,
+        "modified": "cropped and resized"
+      }
+    },
+    {
+      "id": "photo-yukon-forest",
+      "section": "photos",
+      "live": false,
+      "files": {
+        "light": "photo-yukon-forest.webp",
+        "dark": "photo-yukon-forest.webp"
+      },
+      "sha256": {
+        "photo-yukon-forest.webp": "d2d45eba85cfe314d9a1097f1a67cf8a103a635927e60b5583249258d10536e7"
+      },
+      "anchor": {
+        "x": 0.53,
+        "y": 0.68
+      },
+      "fallback_preset": "sky",
+      "bubble": {
+        "light": "green",
+        "dark": "teal"
+      },
+      "credit": {
+        "author": "Sarah Lacerda",
+        "licence": "CC BY 4.0",
+        "licence_url": "https://creativecommons.org/licenses/by/4.0/",
+        "source_url": null,
+        "modified": "cropped and resized"
+      }
+    },
+    {
+      "id": "photo-yukon-sled",
+      "section": "photos",
+      "live": false,
+      "files": {
+        "light": "photo-yukon-sled.webp",
+        "dark": "photo-yukon-sled.webp"
+      },
+      "sha256": {
+        "photo-yukon-sled.webp": "037a7608235f786ac49164e1e95645b0367193d22e8fed2bd7b7f58012cfc270"
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.62
+      },
+      "fallback_preset": "sky",
+      "bubble": {
+        "light": "purple",
+        "dark": "blue"
+      },
+      "credit": {
+        "author": "Sarah Lacerda",
+        "licence": "CC BY 4.0",
+        "licence_url": "https://creativecommons.org/licenses/by/4.0/",
+        "source_url": null,
+        "modified": "cropped and resized"
+      }
+    },
+    {
+      "id": "photo-yukon-sled-2",
+      "section": "photos",
+      "live": false,
+      "files": {
+        "light": "photo-yukon-sled-2.webp",
+        "dark": "photo-yukon-sled-2.webp"
+      },
+      "sha256": {
+        "photo-yukon-sled-2.webp": "1658a36c142dc6314c21386460e7a4f0f307432be0399bb415ca6e2831a74282"
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.7
+      },
+      "fallback_preset": "sky",
+      "bubble": {
+        "light": "teal",
+        "dark": "purple"
+      },
+      "credit": {
+        "author": "Sarah Lacerda",
+        "licence": "CC BY 4.0",
+        "licence_url": "https://creativecommons.org/licenses/by/4.0/",
+        "source_url": null,
+        "modified": "cropped and resized"
+      }
+    },
+    {
+      "id": "photo-peyto-lake",
+      "section": "photos",
+      "live": false,
+      "files": {
+        "light": "photo-peyto-lake.webp",
+        "dark": "photo-peyto-lake.webp"
+      },
+      "sha256": {
+        "photo-peyto-lake.webp": "9a4cdde2bdeefdac3ea16b93c628961555554cb8c633a635a64729bd2b07c11b"
+      },
+      "anchor": {
+        "x": 0.4,
+        "y": 0.6
+      },
+      "fallback_preset": "ocean",
+      "bubble": {
+        "light": "teal",
+        "dark": "blue"
+      },
+      "credit": {
+        "author": "Ezra Jeffrey-Comeau",
+        "licence": "CC0 1.0",
+        "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "source_url": "https://commons.wikimedia.org/wiki/File:The_Highest_Highs_(Unsplash).jpg",
+        "modified": "cropped and resized"
+      }
+    },
+    {
+      "id": "photo-lone-canoe",
+      "section": "photos",
+      "live": false,
+      "files": {
+        "light": "photo-lone-canoe.webp",
+        "dark": "photo-lone-canoe.webp"
+      },
+      "sha256": {
+        "photo-lone-canoe.webp": "d77059753849db05f381d00c038b3c391bad1b9c3a0fa75f44f3aa212c073c8c"
+      },
+      "anchor": {
+        "x": 0.48,
+        "y": 0.62
+      },
+      "fallback_preset": "ocean",
+      "bubble": {
+        "light": "orange",
+        "dark": "purple"
+      },
+      "credit": {
+        "author": "Braxton Stuntz",
+        "licence": "CC0 1.0",
+        "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "source_url": "https://commons.wikimedia.org/wiki/File:The_Lone_Canoe_(Unsplash).jpg",
+        "modified": "cropped and resized"
+      }
+    },
+    {
+      "id": "photo-jasper-aurora",
+      "section": "photos",
+      "live": false,
+      "files": {
+        "light": "photo-jasper-aurora.webp",
+        "dark": "photo-jasper-aurora.webp"
+      },
+      "sha256": {
+        "photo-jasper-aurora.webp": "3eb82f93f41e4724d8119f31e5938e04e3a82bdfddc68a92a4ce680632f98c7f"
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.55
+      },
+      "fallback_preset": "sky",
+      "bubble": {
+        "light": "green",
+        "dark": "teal"
+      },
+      "credit": {
+        "author": "Priscilla Du Preez",
+        "licence": "CC0 1.0",
+        "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Northern_lights_over_a_lake_(Unsplash).jpg",
+        "modified": "cropped and resized"
+      }
+    },
+    {
+      "id": "photo-nunavik-aurora",
+      "section": "photos",
+      "live": false,
+      "files": {
+        "light": "photo-nunavik-aurora.webp",
+        "dark": "photo-nunavik-aurora.webp"
+      },
+      "sha256": {
+        "photo-nunavik-aurora.webp": "c3244ae1f9f177f647d623194f78f16c17d0efa84823a778e536c6ce567afec0"
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.4
+      },
+      "fallback_preset": "mint",
+      "bubble": {
+        "light": "purple",
+        "dark": "pink"
+      },
+      "credit": {
+        "author": "Nicolas M. Perrault",
+        "licence": "CC0 1.0",
+        "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Aurora_Borealis_in_Kangiqsualujjaq.tif",
+        "modified": "cropped and resized"
+      }
+    },
+    {
+      "id": "photo-lac-delage",
+      "section": "photos",
+      "live": false,
+      "files": {
+        "light": "photo-lac-delage.webp",
+        "dark": "photo-lac-delage.webp"
+      },
+      "sha256": {
+        "photo-lac-delage.webp": "ddf9b74453d0fb492921c077a1e60a373933c4f8c1186d1105bf02ed239be030"
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.35
+      },
+      "fallback_preset": "sand",
+      "bubble": {
+        "light": "blue",
+        "dark": "blue"
+      },
+      "credit": {
+        "author": "Wilfredo Rodriguez (Wilfredor)",
+        "licence": "CC0 1.0",
+        "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Lac_Delage_at_night,_Quebec,_Canada.jpg",
+        "modified": "cropped and resized"
+      }
+    },
+    {
+      "id": "photo-quebec-ice",
+      "section": "photos",
+      "live": false,
+      "files": {
+        "light": "photo-quebec-ice.webp",
+        "dark": "photo-quebec-ice.webp"
+      },
+      "sha256": {
+        "photo-quebec-ice.webp": "2038b519848dd10bcedd2b02b03b4f65236bd0d607e85bdcb86798dbc07ace6b"
+      },
+      "anchor": {
+        "x": 0.47,
+        "y": 0.7
+      },
+      "fallback_preset": "sand",
+      "bubble": {
+        "light": "green",
+        "dark": "teal"
+      },
+      "credit": {
+        "author": "Wilfredo Rodriguez (Wilfredor)",
+        "licence": "CC0 1.0",
+        "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Ice_on_a_branch_in_Quebec_City.jpg",
+        "modified": "cropped and resized"
+      }
+    },
+    {
+      "id": "photo-quebec-leaves",
+      "section": "photos",
+      "live": false,
+      "files": {
+        "light": "photo-quebec-leaves.webp",
+        "dark": "photo-quebec-leaves.webp"
+      },
+      "sha256": {
+        "photo-quebec-leaves.webp": "c3473aeb6a6a7e9a2735ca969ff90e1e727b1518fc8313aebac47191465db52c"
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fallback_preset": "sand",
+      "bubble": {
+        "light": "teal",
+        "dark": "graphite"
+      },
+      "credit": {
+        "author": "Wilfredo Rodriguez (Wilfredor)",
+        "licence": "CC0 1.0",
+        "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Autumn_leaves_on_the_ground_in_Quebec_City.jpg",
+        "modified": "cropped and resized"
+      }
+    },
+    {
       "id": "currents",
       "section": "patterns",
       "live": false,

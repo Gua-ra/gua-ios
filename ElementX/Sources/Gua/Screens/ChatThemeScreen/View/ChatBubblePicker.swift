@@ -13,6 +13,7 @@ struct ChatBubblePicker: View {
     
     @Environment(\.colorScheme) private var colorScheme
     @ScaledMetric private var swatchSize = 44.0
+    @State private var isPhotoCreditsPresented = false
     
     private var viewState: ChatThemeScreenViewState {
         context.viewState
@@ -27,11 +28,23 @@ struct ChatBubblePicker: View {
         ChatTheme(wallpaper: viewState.baseTheme.wallpaper, bubbles: choice)
     }
     
+    private var shownTheme: ChatTheme {
+        viewState.shownTheme(saving: savedTheme)
+    }
+    
     var body: some View {
         ElementNavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    ChatThemePreviewCard(theme: viewState.shownTheme(saving: savedTheme), mediaProvider: context.mediaProvider)
+                    VStack(alignment: .leading, spacing: 8) {
+                        ChatThemePreviewCard(theme: shownTheme, mediaProvider: context.mediaProvider)
+                        
+                        if let credit = shownTheme.wallpaper.artwork?.credit {
+                            ChatPhotoCreditLine(credit: credit) {
+                                isPhotoCreditsPresented = true
+                            }
+                        }
+                    }
                     
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: swatchSize + 16), spacing: 8)], spacing: 16) {
                         ForEach(ChatBubbleColor.allCases) { bubble in
@@ -60,6 +73,7 @@ struct ChatBubblePicker: View {
                     }
                 }
             }
+            .chatPhotoCreditsSheet(isPresented: $isPhotoCreditsPresented)
         }
         .alert(item: $context.alertInfo)
     }

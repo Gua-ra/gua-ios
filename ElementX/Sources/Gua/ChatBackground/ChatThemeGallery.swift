@@ -12,6 +12,7 @@ struct ChatThemeGallerySection: Identifiable {
         case featured
         case live
         case nature
+        case photos
         case patterns
         case minimal
         case gradients
@@ -28,6 +29,7 @@ struct ChatThemeGallerySection: Identifiable {
         .init(id: .featured, themes: [ChatArtwork.silk, .glacierLake, .glassDrops, .currents, .palmCoast, .ipe, .azulejo, .paper].map(theme)),
         .init(id: .live, themes: ChatArtwork.artworks(in: .live).map(theme)),
         .init(id: .nature, themes: ChatArtwork.artworks(in: .nature).map(theme)),
+        .init(id: .photos, themes: ChatArtwork.artworks(in: .photos).map(theme)),
         .init(id: .patterns, themes: ChatArtwork.artworks(in: .patterns).map(theme)),
         .init(id: .minimal, themes: ChatArtwork.artworks(in: .minimal).map(theme) + [theme(.mint, .green),
                                                                                      theme(.sky, .blue),
@@ -66,6 +68,7 @@ struct ChatWallpaperGallerySection: Identifiable {
     static let all: [ChatWallpaperGallerySection] = [
         .init(id: .live, wallpapers: ChatArtwork.artworks(in: .live).map(ChatBackground.art)),
         .init(id: .nature, wallpapers: ChatArtwork.artworks(in: .nature).map(ChatBackground.art)),
+        .init(id: .photos, wallpapers: ChatArtwork.artworks(in: .photos).map(ChatBackground.art)),
         .init(id: .patterns, wallpapers: ChatArtwork.artworks(in: .patterns).map(ChatBackground.art)),
         .init(id: .minimal, wallpapers: ChatArtwork.artworks(in: .minimal).map(ChatBackground.art) + ChatBackgroundPreset.solids.map(ChatBackground.preset)),
         .init(id: .gradients, wallpapers: ChatBackgroundPreset.gradients.map(ChatBackground.preset))
@@ -78,6 +81,7 @@ extension ChatThemeGallerySection.Kind {
         case .featured: UntranslatedL10n.guaChatThemeSectionFeatured
         case .live: UntranslatedL10n.guaChatThemeSectionLive
         case .nature: UntranslatedL10n.guaChatThemeSectionNature
+        case .photos: UntranslatedL10n.guaChatThemeSectionPhotos
         case .patterns: UntranslatedL10n.guaChatThemeSectionPatterns
         case .minimal: UntranslatedL10n.guaChatThemeSectionMinimal
         case .gradients: UntranslatedL10n.guaChatThemeSectionGradients

@@ -120,6 +120,44 @@ internal nonisolated enum UntranslatedL10n {
   internal static var guaChatThemeArtPaper: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_paper") }
   /// Paper Cut
   internal static var guaChatThemeArtPaperCut: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_paper_cut") }
+  /// Araucária Crown
+  internal static var guaChatThemeArtPhotoAraucaria: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_photo_araucaria") }
+  /// Blue Grotto
+  internal static var guaChatThemeArtPhotoGrutaAzul: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_photo_gruta_azul") }
+  /// Ipê at Sunset
+  internal static var guaChatThemeArtPhotoIpe: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_photo_ipe") }
+  /// Jasper Aurora
+  internal static var guaChatThemeArtPhotoJasperAurora: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_photo_jasper_aurora") }
+  /// Moonlit Lake
+  internal static var guaChatThemeArtPhotoLacDelage: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_photo_lac_delage") }
+  /// Lençóis Dusk
+  internal static var guaChatThemeArtPhotoLencoisDunes: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_photo_lencois_dunes") }
+  /// Lençóis Lagoon
+  internal static var guaChatThemeArtPhotoLencoisLagoon: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_photo_lencois_lagoon") }
+  /// Lone Canoe
+  internal static var guaChatThemeArtPhotoLoneCanoe: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_photo_lone_canoe") }
+  /// Sleeping Maned Wolf
+  internal static var guaChatThemeArtPhotoManedWolf: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_photo_maned_wolf") }
+  /// Maned Wolf
+  internal static var guaChatThemeArtPhotoManedWolfStanding: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_photo_maned_wolf_standing") }
+  /// Nunavik Aurora
+  internal static var guaChatThemeArtPhotoNunavikAurora: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_photo_nunavik_aurora") }
+  /// Peyto Lake
+  internal static var guaChatThemeArtPhotoPeytoLake: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_photo_peyto_lake") }
+  /// Cedar Ice
+  internal static var guaChatThemeArtPhotoQuebecIce: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_photo_quebec_ice") }
+  /// Maple Leaves
+  internal static var guaChatThemeArtPhotoQuebecLeaves: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_photo_quebec_leaves") }
+  /// Boreal Trail
+  internal static var guaChatThemeArtPhotoYukonForest: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_photo_yukon_forest") }
+  /// Yukon Sled
+  internal static var guaChatThemeArtPhotoYukonSled: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_photo_yukon_sled") }
+  /// Sled Dogs
+  internal static var guaChatThemeArtPhotoYukonSled2: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_photo_yukon_sled_2") }
+  /// Yukon Sun
+  internal static var guaChatThemeArtPhotoYukonSun: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_photo_yukon_sun") }
+  /// Yukon Trail
+  internal static var guaChatThemeArtPhotoYukonTrail: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_photo_yukon_trail") }
   /// Polar Ice
   internal static var guaChatThemeArtPolarIce: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_polar_ice") }
   /// Rain on Glass
@@ -170,6 +208,20 @@ internal nonisolated enum UntranslatedL10n {
   }
   /// You removed the chat theme
   internal static var guaChatThemeNoticeRemovedByYou: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_notice_removed_by_you") }
+  /// Cropped and resized for phones.
+  internal static var guaChatThemePhotoChanges: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_photo_changes") }
+  /// Photo: %1$@
+  internal static func guaChatThemePhotoCredit(_ p1: Any) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_photo_credit", String(describing: p1))
+  }
+  /// Photo: %1$@ · %2$@
+  internal static func guaChatThemePhotoCreditLicence(_ p1: Any, _ p2: Any) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_photo_credit_licence", String(describing: p1), String(describing: p2))
+  }
+  /// Photo credits
+  internal static var guaChatThemePhotoCredits: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_photo_credits") }
+  /// Source
+  internal static var guaChatThemePhotoSource: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_photo_source") }
   /// Aurora
   internal static var guaChatThemePresetAurora: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_preset_aurora") }
   /// Blush
@@ -212,6 +264,8 @@ internal nonisolated enum UntranslatedL10n {
   internal static var guaChatThemeSectionNature: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_section_nature") }
   /// Patterns
   internal static var guaChatThemeSectionPatterns: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_section_patterns") }
+  /// Photos
+  internal static var guaChatThemeSectionPhotos: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_section_photos") }
   /// Everyone in the chat sees this theme.
   internal static var guaChatThemeSharedNote: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_shared_note") }
   /// Chat theme

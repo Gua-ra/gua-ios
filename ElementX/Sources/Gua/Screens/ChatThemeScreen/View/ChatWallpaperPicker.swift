@@ -13,6 +13,7 @@ struct ChatWallpaperPicker: View {
     @Bindable var context: ChatThemeScreenViewModel.Context
     
     @State private var pickerItem: PhotosPickerItem?
+    @State private var isPhotoCreditsPresented = false
     
     private var viewState: ChatThemeScreenViewState {
         context.viewState
@@ -51,6 +52,7 @@ struct ChatWallpaperPicker: View {
             .fullScreenCover(item: $context.wallpaperPreview) { draft in
                 ChatThemePreview(context: context, draft: draft, saveTitle: UntranslatedL10n.guaChatThemeActionSet)
             }
+            .chatPhotoCreditsSheet(isPresented: $isPhotoCreditsPresented)
         }
         .alert(item: $context.alertInfo.presented(if: viewState.bindings.isWallpaperPickerTopmost))
         .fullScreenCover(item: $context.photoDraft) { _ in
@@ -72,8 +74,9 @@ struct ChatWallpaperPicker: View {
                 .padding(16)
             })
         } header: {
-            Text(section.title)
-                .compoundListSectionHeader()
+            ChatThemeSectionHeader(section: section.id) {
+                isPhotoCreditsPresented = true
+            }
         }
     }
 }
@@ -161,6 +164,10 @@ private struct ChatWallpaperSwatch: View {
         wallpaper.artwork?.isLive == true
     }
     
+    private var credit: ChatArtwork.Credit? {
+        wallpaper.artwork?.credit
+    }
+    
     var body: some View {
         Button(action: action) {
             VStack(spacing: 4) {
@@ -190,13 +197,27 @@ private struct ChatWallpaperSwatch: View {
                     .font(.compound.bodySM)
                     .foregroundColor(isEnabled ? .compound.textPrimary : .compound.textDisabled)
                     .multilineTextAlignment(.center)
+                
+                if let credit {
+                    Text(UntranslatedL10n.guaChatThemePhotoCredit(credit.author))
+                        .font(.compound.bodyXS)
+                        .foregroundColor(.compound.textSecondary)
+                        .multilineTextAlignment(.center)
+                }
             }
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(isLive ? "\(wallpaper.displayName), \(UntranslatedL10n.guaChatThemeLiveBadge)" : wallpaper.displayName)
+        .accessibilityLabel(accessibilityLabel)
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+    }
+    
+    private var accessibilityLabel: String {
+        if let credit {
+            return "\(wallpaper.displayName), \(UntranslatedL10n.guaChatThemePhotoCredit(credit.author))"
+        }
+        return isLive ? "\(wallpaper.displayName), \(UntranslatedL10n.guaChatThemeLiveBadge)" : wallpaper.displayName
     }
 }
 
