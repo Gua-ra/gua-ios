@@ -67,7 +67,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
     struct Credit: Hashable {
         let author: String
         let licence: Licence
-        /// Nil for photos taken for Gua, which have no page of their own.
+        /// Nil for the author's own photos, which have no public page.
         let sourceURL: URL?
     }
     

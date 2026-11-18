@@ -195,12 +195,14 @@ struct ChatThemeTile: View {
                         Text(theme.wallpaper.displayName)
                             .font(.compound.bodyXSSemibold)
                             .foregroundStyle(.compound.textPrimary)
+                            .lineLimit(2)
+                        // Wraps instead of truncating: the author's name must stay legible.
                         Text(UntranslatedL10n.guaChatThemePhotoCredit(credit.author))
                             .font(.compound.bodyXS)
                             .foregroundStyle(.compound.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .multilineTextAlignment(.center)
-                    .lineLimit(2)
                     .frame(width: width)
                 }
             }

@@ -28,4 +28,4 @@ Every photo was cropped to the 1290:2796 phone shape, resized to 1290x2796 where
 | `photo-quebec-ice.webp` | Cedar Ice | Wilfredo Rodriguez (Wilfredor) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Ice_on_a_branch_in_Quebec_City.jpg) | Cropped to 2823x6118 at 542,0 and resized |
 | `photo-quebec-leaves.webp` | Maple Leaves | Wilfredo Rodriguez (Wilfredor) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Autumn_leaves_on_the_ground_in_Quebec_City.jpg) | Cropped to 1845x4000 at 2077,0 and resized |
 
-Peyto Lake, Lone Canoe and Jasper Aurora were published on Unsplash before 5 June 2017, when Unsplash released photos under CC0, and Wikimedia Commons hosts them under that licence.
+Unsplash released photos under CC0 until 4 June 2017 and has used its own licence since 5 June 2017. Peyto Lake, Lone Canoe and Jasper Aurora were published on Unsplash before that change, and Wikimedia Commons hosts them under CC0.
