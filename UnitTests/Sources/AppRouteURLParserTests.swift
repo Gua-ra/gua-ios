@@ -88,4 +88,24 @@ struct AppRouteURLParserTests {
         
         #expect(route == .userProfile(userID: id))
     }
+    
+    // MARK: - GUA FORK: event links open the event
+    
+    @Test
+    func matrixEventURL() throws {
+        let url = try #require(URL(string: "https://matrix.to/#/!room:example.org/$event?via=example.org"))
+        
+        let route = appRouteURLParser.route(from: url)
+        
+        #expect(route == .event(eventID: "$event", roomID: "!room:example.org", via: ["example.org"]))
+    }
+    
+    @Test
+    func matrixEventOnRoomAliasURL() throws {
+        let url = try #require(URL(string: "https://matrix.to/#/%23room:example.org/$event?via=example.org"))
+        
+        let route = appRouteURLParser.route(from: url)
+        
+        #expect(route == .eventOnRoomAlias(eventID: "$event", alias: "#room:example.org"))
+    }
 }

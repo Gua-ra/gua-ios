@@ -439,10 +439,13 @@ nonisolated struct AttributedStringBuilder: AttributedStringBuilderProtocol {
                     mentionBuilder.handleRoomIDMention(for: attributedString, in: range, url: url, roomID: roomID)
                 case .roomAlias(let alias):
                     mentionBuilder.handleRoomAliasMention(for: attributedString, in: range, url: url, roomAlias: alias, roomDisplayName: nil)
-                case .eventOnRoomId(let roomID, let eventID):
+                case .eventOnRoomId(let roomID, let eventID) where isBareLink(url, in: attributedString, range: range):
                     mentionBuilder.handleEventOnRoomIDMention(for: attributedString, in: range, url: url, eventID: eventID, roomID: roomID)
-                case .eventOnRoomAlias(let alias, let eventID):
+                case .eventOnRoomAlias(let alias, let eventID) where isBareLink(url, in: attributedString, range: range):
                     mentionBuilder.handleEventOnRoomAliasMention(for: attributedString, in: range, url: url, eventID: eventID, roomAlias: alias)
+                case .eventOnRoomId, .eventOnRoomAlias:
+                    // GUA FORK: an event link with text of its own, like a bot's "View message", stays a regular link.
+                    break
                 }
             }
         }
@@ -453,6 +456,18 @@ nonisolated struct AttributedStringBuilder: AttributedStringBuilderProtocol {
                 mentionBuilder.handleAllUsersMention(for: attributedString, in: range)
             }
         }
+    }
+    
+    /// GUA FORK: whether the link shows its own URL, as a pasted permalink does, rather than text of its own.
+    private func isBareLink(_ url: URL, in attributedString: NSAttributedString, range: NSRange) -> Bool {
+        // Detected links gain a scheme and lose trailing punctuation, and a room alias's # gets percent encoded.
+        func normalized(_ link: String) -> String {
+            let sanitized = link.asSanitizedLink.lowercased()
+            return sanitized.removingPercentEncoding ?? sanitized
+        }
+        
+        let text = attributedString.attributedSubstring(from: range).string.trimmingCharacters(in: .whitespacesAndNewlines)
+        return normalized(text) == normalized(url.absoluteString)
     }
     
     private func detectPhishingAttempts(_ attributedString: NSMutableAttributedString) {

@@ -142,6 +142,23 @@ struct GuaMessageActionTests {
         #expect(item.links == ["https://bills.example.org/statement/2026-08"])
     }
     
+    @Test
+    func factoryKeepsAnActionThatOpensAnEventLink() throws {
+        let url = "https://matrix.to/#/!room:example.org/$event?via=example.org"
+        let html = "Someone replied to your message<br><a href=\"\(url)\">View message</a>"
+        let builder = AttributedStringBuilder(cacheKey: "GuaMessageActionEventLinkTests", mentionBuilder: MentionBuilder())
+        let (proxy, _) = try makeItem(msgType: .text(content: .init(body: "", formatted: .init(format: .html, body: html))),
+                                      latestJSON: eventJSON(html: html, actions: [("View message", url)]))
+        
+        let item = try #require(makeFactory(builder: builder).buildTimelineItem(for: proxy, isDM: false) as? TextRoomTimelineItem)
+        
+        let action = try #require(item.content.actions.first)
+        #expect(item.content.actions.map(\.rawURL) == [url])
+        #expect(action.urlToOpen.absoluteString == url)
+        #expect(item.content.formattedBodyWithoutFallback.map { String($0.characters) } == "Someone replied to your message",
+                "The link stays a regular link rather than a pill, so the button replaces it.")
+    }
+    
     @Test(arguments: ["<a href=\"https://shop.example.org/orders/42\">View order</a>",
                       "<p><a href=\"https://shop.example.org/orders/42\">View order</a><br></p>"])
     func aBodyThatIsOnlyTheLinkShowsOnlyTheButtons(html: String) throws {
