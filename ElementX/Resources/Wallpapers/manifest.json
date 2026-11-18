@@ -481,7 +481,7 @@
         "dark": "photo-gruta-azul.webp"
       },
       "sha256": {
-        "photo-gruta-azul.webp": "413a349e3ae47c641b70847685eec34cdd6f025794749fc638c003648fa7c2c3"
+        "photo-gruta-azul.webp": "4d70687b20a4d4ea529b32b29ba3e5d8ae72e53bde93a6ba12db2022d2ba2ad3"
       },
       "anchor": {
         "x": 0.65,
@@ -565,7 +565,7 @@
         "dark": "photo-maned-wolf.webp"
       },
       "sha256": {
-        "photo-maned-wolf.webp": "9845aef1a978322d4e9cae73b5fa29884f7ca1d46d76f7af59d8ff0cc90a2563"
+        "photo-maned-wolf.webp": "6ace26caa02758ef1996dfc961ecb37f0d9d2a2d86624fd0e9b9a00dae290bb9"
       },
       "anchor": {
         "x": 0.38,
@@ -593,7 +593,7 @@
         "dark": "photo-maned-wolf-standing.webp"
       },
       "sha256": {
-        "photo-maned-wolf-standing.webp": "9c242549c1af320ccd4bc1261cd099b300976856e6fa5aaef5e889b0941537f6"
+        "photo-maned-wolf-standing.webp": "133eb2a7865d61dd0f17678c945a35087c75c2896c5172d5d31ee4944856cb6a"
       },
       "anchor": {
         "x": 0.72,
@@ -621,7 +621,7 @@
         "dark": "photo-yukon-trail.webp"
       },
       "sha256": {
-        "photo-yukon-trail.webp": "01105b2c762e0e1efe15370bceb62cb071483549a2766b5bf30bbeeed203312a"
+        "photo-yukon-trail.webp": "c9cbe778c138e76e71e92942ca9484012b46278957b24aac4b6a9f3be75e0fe2"
       },
       "anchor": {
         "x": 0.45,
@@ -649,7 +649,7 @@
         "dark": "photo-yukon-sun.webp"
       },
       "sha256": {
-        "photo-yukon-sun.webp": "eec5cc6f3c561c8cc460ccc1230de9887f5462a23dd7f3c1b633c57f804bb338"
+        "photo-yukon-sun.webp": "881ae24eff6aaa206dd661780068d53f0fa54fe7af91abf063465c9ce7f4180e"
       },
       "anchor": {
         "x": 0.5,
@@ -677,7 +677,7 @@
         "dark": "photo-yukon-forest.webp"
       },
       "sha256": {
-        "photo-yukon-forest.webp": "d2d45eba85cfe314d9a1097f1a67cf8a103a635927e60b5583249258d10536e7"
+        "photo-yukon-forest.webp": "ca8afe53717e87a6b037d89807834bb7ad9a39c38333f2af15624f029209bdee"
       },
       "anchor": {
         "x": 0.53,
@@ -705,7 +705,7 @@
         "dark": "photo-yukon-sled.webp"
       },
       "sha256": {
-        "photo-yukon-sled.webp": "037a7608235f786ac49164e1e95645b0367193d22e8fed2bd7b7f58012cfc270"
+        "photo-yukon-sled.webp": "1f4c8f2113b43849f575f7316b9230c00620d1f622bb09231afb24af54f13b7b"
       },
       "anchor": {
         "x": 0.5,
@@ -733,7 +733,7 @@
         "dark": "photo-yukon-sled-2.webp"
       },
       "sha256": {
-        "photo-yukon-sled-2.webp": "1658a36c142dc6314c21386460e7a4f0f307432be0399bb415ca6e2831a74282"
+        "photo-yukon-sled-2.webp": "d869febe3009c661dfc7daca3098cf956ee8b688a0fcc8bc20527cf9bcf77667"
       },
       "anchor": {
         "x": 0.5,
@@ -817,7 +817,7 @@
         "dark": "photo-jasper-aurora.webp"
       },
       "sha256": {
-        "photo-jasper-aurora.webp": "3eb82f93f41e4724d8119f31e5938e04e3a82bdfddc68a92a4ce680632f98c7f"
+        "photo-jasper-aurora.webp": "dda038d5e4a86fdc1fe1bd60a6379e21c741a739b026a2a1a93c9cb3c1703a32"
       },
       "anchor": {
         "x": 0.5,
@@ -845,7 +845,7 @@
         "dark": "photo-nunavik-aurora.webp"
       },
       "sha256": {
-        "photo-nunavik-aurora.webp": "c3244ae1f9f177f647d623194f78f16c17d0efa84823a778e536c6ce567afec0"
+        "photo-nunavik-aurora.webp": "c5fcbe6e3a4b0ca43165a0bed21e47f4d41d8427774c5eb241b7c44428f3d5db"
       },
       "anchor": {
         "x": 0.5,
@@ -873,7 +873,7 @@
         "dark": "photo-lac-delage.webp"
       },
       "sha256": {
-        "photo-lac-delage.webp": "ddf9b74453d0fb492921c077a1e60a373933c4f8c1186d1105bf02ed239be030"
+        "photo-lac-delage.webp": "4354de87e53949cc033158710f34852dfb94cf407c68655a59c3f57a9db3ee2d"
       },
       "anchor": {
         "x": 0.5,
@@ -901,7 +901,7 @@
         "dark": "photo-quebec-ice.webp"
       },
       "sha256": {
-        "photo-quebec-ice.webp": "2038b519848dd10bcedd2b02b03b4f65236bd0d607e85bdcb86798dbc07ace6b"
+        "photo-quebec-ice.webp": "e8ede33ee569094000ab5b6dbd79c5fb9d9c70ecf57d1d3fb15198080a60ca64"
       },
       "anchor": {
         "x": 0.47,
@@ -929,7 +929,7 @@
         "dark": "photo-quebec-leaves.webp"
       },
       "sha256": {
-        "photo-quebec-leaves.webp": "c3473aeb6a6a7e9a2735ca969ff90e1e727b1518fc8313aebac47191465db52c"
+        "photo-quebec-leaves.webp": "e5ee9f4a2f61ffc842d6f7c73b577e8210abe9e3a78c8a05e3e6907785f4d6fb"
       },
       "anchor": {
         "x": 0.5,
