@@ -62,6 +62,14 @@ struct GuaMessageActionTests {
         }
     }
     
+    @Test(arguments: GuaMessageActionTests.fixtures.cases)
+    func everyButtonTargetsItsURLExactlyAsSent(fixture: Fixture) throws {
+        for action in try parse(content: fixture.content).actions {
+            let opened = action.urlToOpen.confirmationParameters?.internalURL ?? action.urlToOpen
+            #expect(opened.absoluteString == action.rawURL)
+        }
+    }
+    
     @Test
     func factoryAddsActionsAndHidesTheTrailingLink() throws {
         let url = "https://bills.example.org/statement/2026-08"
