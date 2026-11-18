@@ -378,6 +378,9 @@ private extension EventBasedTimelineItemProtocol {
         }
         
         switch self {
+        case _ where !guaMessageActions.isEmpty:
+            // GUA FORK: the timestamp row sits below the buttons, so a 4pt bottom inset places it as low as on a text bubble.
+            return .init(top: 8, leading: 8, bottom: 4, trailing: 8)
         case is StickerRoomTimelineItem:
             return .zero
         case is PollRoomTimelineItem:
