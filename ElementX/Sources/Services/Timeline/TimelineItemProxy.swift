@@ -170,6 +170,11 @@ final nonisolated class EventTimelineItemProxy: Sendable {
         return TimelineItemDebugInfo(model: debugInfo.model, originalJSON: debugInfo.originalJson, latestEditJSON: debugInfo.latestEditJson)
     }
     
+    /// GUA FORK: the raw JSON of the latest edit, or of the event itself when unedited. Nil for a local echo.
+    var latestJSON: String? {
+        item.lazyProvider.latestJson()
+    }
+    
     var shieldState: ShieldState? {
         item.lazyProvider.getShields(strict: false)
     }

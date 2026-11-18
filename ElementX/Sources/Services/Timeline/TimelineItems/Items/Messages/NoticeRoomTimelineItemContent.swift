@@ -11,4 +11,8 @@ import UIKit
 nonisolated struct NoticeRoomTimelineItemContent: Hashable {
     let body: String
     var formattedBody: AttributedString?
+    // GUA FORK: URL buttons, and the body without the link they replace, which only the bubble shows.
+    var formattedBodyHTMLString: String?
+    var actions: [GuaMessageAction] = []
+    var formattedBodyWithoutFallback: AttributedString?
 }

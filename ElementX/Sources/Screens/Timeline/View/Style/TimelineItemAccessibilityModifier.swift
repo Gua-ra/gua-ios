@@ -17,6 +17,8 @@ enum TimelineItemAccessibilityMessageSelection {
 }
 
 private struct TimelineItemAccessibilityModifier: ViewModifier {
+    @Environment(\.openURL) private var openURL
+    
     let timelineItem: RoomTimelineItemProtocol
     let selection: TimelineItemAccessibilityMessageSelection
     let action: () -> Void
@@ -74,6 +76,13 @@ private struct TimelineItemAccessibilityModifier: ViewModifier {
                 .accessibilityActions {
                     Button(L10n.commonMessageActions) {
                         action()
+                    }
+                    
+                    // GUA FORK: the bubble is a single element, so its URL buttons are offered as named actions.
+                    ForEach(timelineItem.guaMessageActions, id: \.rawURL) { messageAction in
+                        Button(messageAction.label) {
+                            openURL(messageAction.urlToOpen)
+                        }
                     }
                 }
         case .selecting(let isSelected, let selectedCount):

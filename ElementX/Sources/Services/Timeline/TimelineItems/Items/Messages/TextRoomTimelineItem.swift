@@ -32,7 +32,8 @@ nonisolated struct TextRoomTimelineItem: TextBasedRoomTimelineItem, Equatable {
     }
     
     var links: [URL] {
-        guard let attributedString = content.formattedBody else {
+        // GUA FORK: a link that a button replaces gets no preview either.
+        guard let attributedString = content.bubbleFormattedBody else {
             return []
         }
         

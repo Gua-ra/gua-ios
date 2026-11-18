@@ -14,23 +14,36 @@ struct NoticeRoomTimelineView: View, TextBasedRoomTimelineViewProtocol {
     
     var body: some View {
         TimelineStyler(timelineItem: timelineItem) {
-            // Spacing: 6 = label spacing - formatted text padding
-            
-            Label {
-                if let attributedString = timelineItem.content.formattedBody {
-                    FormattedBodyText(attributedString: attributedString,
-                                      trailingReservedSize: timelineItem.trailingReservedSize)
-                } else {
-                    FormattedBodyText(text: timelineItem.content.body,
-                                      trailingReservedSize: timelineItem.trailingReservedSize)
+            if timelineItem.content.actions.isEmpty {
+                label(trailingReservedSize: timelineItem.trailingReservedSize)
+            } else {
+                // GUA FORK: the send info sits under the buttons, so nothing is reserved for it in the text.
+                GuaMessageActionsStack(actions: timelineItem.content.actions) {
+                    if timelineItem.content.hasBubbleBody {
+                        label(trailingReservedSize: .zero)
+                    }
                 }
-            } icon: {
-                CompoundIcon(\.info, size: .small, relativeTo: .compound.bodyLG)
-                    .foregroundColor(.compound.iconSecondary)
             }
-            .labelStyle(.custom(spacing: 6.0, alignment: .top))
-            .padding(.leading, 4) // Trailing padding is provided by FormattedBodyText
         }
+    }
+    
+    private func label(trailingReservedSize: CGSize) -> some View {
+        // Spacing: 6 = label spacing - formatted text padding
+        
+        Label {
+            if let attributedString = timelineItem.content.bubbleFormattedBody {
+                FormattedBodyText(attributedString: attributedString,
+                                  trailingReservedSize: trailingReservedSize)
+            } else {
+                FormattedBodyText(text: timelineItem.content.body,
+                                  trailingReservedSize: trailingReservedSize)
+            }
+        } icon: {
+            CompoundIcon(\.info, size: .small, relativeTo: .compound.bodyLG)
+                .foregroundColor(.compound.iconSecondary)
+        }
+        .labelStyle(.custom(spacing: 6.0, alignment: .top))
+        .padding(.leading, 4) // Trailing padding is provided by FormattedBodyText
     }
 }
 
