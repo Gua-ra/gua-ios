@@ -54,6 +54,19 @@ struct JoinRoomScreenViewState: BindableState {
     var mode: JoinRoomScreenMode = .loading
     
     var hideInviteAvatars = false
+    
+    var isSpacesEnabled = true
+    var isTurningOnSpaces = false
+    
+    var joiningTurnsOnSpaces: Bool {
+        guard !isSpacesEnabled || isTurningOnSpaces, roomDetails?.isSpace == true else { return false }
+        switch mode {
+        case .joinable, .restricted, .invited:
+            return true
+        case .loading, .unknown, .inviteRequired, .knockable, .knocked, .banned, .forbidden:
+            return false
+        }
+    }
         
     var bindings = JoinRoomScreenViewStateBindings()
     

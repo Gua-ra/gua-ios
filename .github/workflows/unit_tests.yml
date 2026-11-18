@@ -52,6 +52,11 @@ jobs:
       - name: SwiftFormat
         run: swift run --package-path BuildTools -c release swiftformat --lint .
 
+      - name: Check translations
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: python3 Tools/Scripts/check_translations.py ${BASE_SHA:+--base "$BASE_SHA"}
+
       - name: Determine test scope
         id: test-scope
         env:

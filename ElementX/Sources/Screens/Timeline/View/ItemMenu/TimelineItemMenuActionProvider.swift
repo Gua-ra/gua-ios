@@ -90,6 +90,10 @@ struct TimelineItemMenuActionProvider {
 
         if item.isCopyable {
             actions.append(.copy)
+            // The Mac selects message text in place.
+            if !ProcessInfo.processInfo.isiOSAppOnMac {
+                actions.append(.select)
+            }
         } else if item.hasMediaCaption {
             actions.append(.copyCaption)
         }

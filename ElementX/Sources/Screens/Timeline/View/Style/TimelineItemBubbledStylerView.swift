@@ -12,6 +12,9 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
     @EnvironmentObject private var context: TimelineViewModel.Context
     @Environment(\.timelineGroupStyle) private var timelineGroupStyle
     @Environment(\.focussedEventID) private var focussedEventID
+    @Environment(\.isMessageMenuPreview) private var isMessageMenuPreview
+    
+    @State private var bubbleFrameReader = WindowFrameReader()
     
     let timelineItem: EventBasedTimelineItemProtocol
     let adjustedDeliveryStatus: TimelineItemDeliveryStatus?
@@ -44,6 +47,14 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
     }
     
     var body: some View {
+        if isMessageMenuPreview {
+            messageBubble
+        } else {
+            styledItem
+        }
+    }
+    
+    private var styledItem: some View {
         ZStack(alignment: .trailingFirstTextBaseline) {
             VStack(alignment: alignment, spacing: -12) {
                 if !timelineItem.isOutgoing, !isDirectOneToOneRoom {
@@ -139,6 +150,10 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
     
     var messageBubbleWithActions: some View {
         messageBubble
+            .opacity(bubbleFrameReader.isLifted ? 0 : 1)
+            .onDoubleTap(isEnabled: canDoubleTapToReact) {
+                displayMenu(showsActions: false)
+            }
             .onTapGesture {
                 // We need a tap gesture before the long press gesture below, otherwise something
                 // on iOS 17 hijacks the long press and you can't bring up the context menu. This
@@ -146,7 +161,7 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
                 // specific taps within the timeline views themselves.
             }
             .longPressWithFeedback {
-                context.send(viewAction: .displayTimelineItemMenu(itemID: timelineItem.id))
+                displayMenu(showsActions: true)
             }
             .swipeRightAction {
                 SwipeToReplyView(timelineItem: timelineItem)
@@ -172,8 +187,25 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
                     context.send(viewAction: .handleTimelineItemMenuAction(itemID: timelineItem.id, action: action))
                 }
             }
+            .readsWindowFrame(bubbleFrameReader)
             .pinnedIndicator(isPinned: isPinned, isOutgoing: timelineItem.isOutgoing)
             .padding(.top, messageBubbleTopPadding)
+    }
+    
+    /// Only text reacts to a double tap: other content handles single taps itself, and the Mac keeps double-click for selecting words.
+    private var canDoubleTapToReact: Bool {
+        guard !ProcessInfo.processInfo.isiOSAppOnMac,
+              timelineItem.isCopyable, timelineItem.isReactable, !timelineItem.isRedacted else { return false }
+        
+        switch context.viewState.timelineKind {
+        case .live, .detached, .thread: return true
+        case .pinned, .media: return false
+        }
+    }
+    
+    private func displayMenu(showsActions: Bool) {
+        context.send(viewAction: .displayTimelineItemMenu(itemID: timelineItem.id,
+                                                          presentation: .floating(showsActions: showsActions, over: bubbleFrameReader)))
     }
     
     var messageBubble: some View {

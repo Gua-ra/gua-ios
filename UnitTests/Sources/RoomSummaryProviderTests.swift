@@ -32,7 +32,7 @@ final class RoomSummaryProviderTests: XCTestCase {
         // Then it should have the default Rust filters enabled.
         XCTAssertEqual(dynamicEntriesController.setFilterKindCallsCount, 1)
         XCTAssertEqual(dynamicEntriesController.setFilterKindReceivedInvocations.last, .all(filters: [.nonLeft,
-                                                                                                      .nonSpace,
+                                                                                                      .any(filters: [.nonSpace, .invite]),
                                                                                                       .deduplicateVersions]))
         
         // When setting one our user filters.
@@ -43,7 +43,7 @@ final class RoomSummaryProviderTests: XCTestCase {
         XCTAssertEqual(dynamicEntriesController.setFilterKindCallsCount, 2)
         XCTAssertEqual(dynamicEntriesController.setFilterKindReceivedInvocations.last, .all(filters: [.all(filters: [.favourite, .joined]),
                                                                                                       .nonLeft,
-                                                                                                      .nonSpace,
+                                                                                                      .any(filters: [.nonSpace, .invite]),
                                                                                                       .deduplicateVersions]))
     }
     
@@ -56,7 +56,7 @@ final class RoomSummaryProviderTests: XCTestCase {
         // so that low priority rooms are hidden from the top of the room list.
         XCTAssertEqual(dynamicEntriesController.setFilterKindCallsCount, 1)
         XCTAssertEqual(dynamicEntriesController.setFilterKindReceivedInvocations.last, .all(filters: [.nonLeft,
-                                                                                                      .nonSpace,
+                                                                                                      .any(filters: [.nonSpace, .invite]),
                                                                                                       .deduplicateVersions,
                                                                                                       .nonLowPriority]))
         
@@ -68,7 +68,7 @@ final class RoomSummaryProviderTests: XCTestCase {
         XCTAssertEqual(dynamicEntriesController.setFilterKindCallsCount, 2)
         XCTAssertEqual(dynamicEntriesController.setFilterKindReceivedInvocations.last, .all(filters: [.all(filters: [.lowPriority, .joined]),
                                                                                                       .nonLeft,
-                                                                                                      .nonSpace,
+                                                                                                      .any(filters: [.nonSpace, .invite]),
                                                                                                       .deduplicateVersions]))
         
         // When setting another one of our filters.
@@ -79,14 +79,47 @@ final class RoomSummaryProviderTests: XCTestCase {
         XCTAssertEqual(dynamicEntriesController.setFilterKindCallsCount, 3)
         XCTAssertEqual(dynamicEntriesController.setFilterKindReceivedInvocations.last, .all(filters: [.all(filters: [.category(expect: .group), .joined]),
                                                                                                       .nonLeft,
-                                                                                                      .nonSpace,
+                                                                                                      .any(filters: [.nonSpace, .invite]),
                                                                                                       .deduplicateVersions,
                                                                                                       .nonLowPriority]))
     }
     
+    func testSearchKeepsSpaceInvites() {
+        setupProvider()
+        
+        appSettings.fuzzyRoomListSearchEnabled = true
+        roomSummaryProvider.setFilter(.search(query: "Family"))
+        XCTAssertEqual(dynamicEntriesController.setFilterKindReceivedKind, .all(filters: [.fuzzyMatchRoomName(pattern: "Family"),
+                                                                                          .nonLeft,
+                                                                                          .any(filters: [.nonSpace, .invite]),
+                                                                                          .deduplicateVersions]))
+        
+        appSettings.fuzzyRoomListSearchEnabled = false
+        roomSummaryProvider.setFilter(.search(query: "Family"))
+        XCTAssertEqual(dynamicEntriesController.setFilterKindReceivedKind, .all(filters: [.normalizedMatchRoomName(pattern: "Family"),
+                                                                                          .nonLeft,
+                                                                                          .any(filters: [.nonSpace, .invite]),
+                                                                                          .deduplicateVersions]))
+    }
+    
+    func testOtherProvidersHideAllSpaces() {
+        setupProvider(includesSpaceInvites: false)
+        
+        XCTAssertEqual(dynamicEntriesController.setFilterKindReceivedKind, .all(filters: [.nonLeft,
+                                                                                          .nonSpace,
+                                                                                          .deduplicateVersions]))
+        
+        appSettings.fuzzyRoomListSearchEnabled = true
+        roomSummaryProvider.setFilter(.search(query: "Family"))
+        XCTAssertEqual(dynamicEntriesController.setFilterKindReceivedKind, .all(filters: [.fuzzyMatchRoomName(pattern: "Family"),
+                                                                                          .nonLeft,
+                                                                                          .nonSpace,
+                                                                                          .deduplicateVersions]))
+    }
+    
     // MARK: - Helpers
     
-    private func setupProvider(isLowPriorityFilterEnabled: Bool = false) {
+    private func setupProvider(isLowPriorityFilterEnabled: Bool = false, includesSpaceInvites: Bool = true) {
         appSettings.lowPriorityFilterEnabled = isLowPriorityFilterEnabled
         
         let stateEventStringBuilder = RoomStateEventStringBuilder(userID: "@me:matrix.org")
@@ -101,7 +134,8 @@ final class RoomSummaryProviderTests: XCTestCase {
                                                   eventStringBuilder: eventStringBuilder,
                                                   name: "Test",
                                                   notificationSettings: NotificationSettingsProxyMock(with: .init()),
-                                                  appSettings: appSettings)
+                                                  appSettings: appSettings,
+                                                  includesSpaceInvites: includesSpaceInvites)
         
         dynamicEntriesController = RoomListDynamicEntriesControllerSDKMock()
         dynamicEntriesController.setFilterKindReturnValue = true

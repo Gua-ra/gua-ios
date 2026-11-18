@@ -78,7 +78,7 @@ final class NotificationManagerTests: XCTestCase {
         XCTAssertEqual(configuration.appDisplayName, "\(InfoPlistReader.main.bundleDisplayName) (iOS)")
         XCTAssertEqual(configuration.deviceDisplayName, UIDevice.current.name)
         XCTAssertNotNil(configuration.profileTag)
-        XCTAssertEqual(configuration.lang, Bundle.app.preferredLocalizations.first)
+        XCTAssertEqual(configuration.lang, Bundle.guaAppLanguage)
         guard case let .http(data) = configuration.kind else {
             XCTFail("Http kind expected")
             return

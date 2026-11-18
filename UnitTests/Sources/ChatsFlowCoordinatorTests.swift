@@ -49,7 +49,8 @@ class ChatsFlowCoordinatorTests: XCTestCase {
                                                   analytics: ServiceLocator.shared.analytics,
                                                   userIndicatorController: UserIndicatorControllerMock(),
                                                   notificationManager: notificationManager,
-                                                  stateMachineFactory: stateMachineFactory)
+                                                  stateMachineFactory: stateMachineFactory,
+                                                  spacesSetting: SpacesSetting(clientProxy: clientProxy, appSettings: ServiceLocator.shared.settings))
         chatsFlowCoordinator = ChatsFlowCoordinator(isNewLogin: false,
                                                     navigationSplitCoordinator: splitCoordinator,
                                                     flowParameters: flowParameters)

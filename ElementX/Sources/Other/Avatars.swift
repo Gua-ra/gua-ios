@@ -148,10 +148,8 @@ enum RoomAvatarSizeOnScreen {
         switch self {
         case .chats, .spaces:
             return 52
-        case .timeline:
+        case .timeline, .notificationSettings:
             return 32
-        case .notificationSettings:
-            return 30
         case .roomDirectorySearch:
             return 32
         case .completionSuggestions:

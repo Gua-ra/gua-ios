@@ -7,10 +7,6 @@
 
 extension AccessibilityTests {
 
-    func testAdvancedSettingsScreen() async throws {
-        try await performAccessibilityAudit(named: "AdvancedSettingsScreen_Previews")
-    }
-
     func testAnalyticsPromptScreen() async throws {
         try await performAccessibilityAudit(named: "AnalyticsPromptScreen_Previews")
     }
@@ -291,6 +287,10 @@ extension AccessibilityTests {
         try await performAccessibilityAudit(named: "MediaUploadPreviewScreen_Previews")
     }
 
+    func testMediaUploadQualitySettingsScreen() async throws {
+        try await performAccessibilityAudit(named: "MediaUploadQualitySettingsScreen_Previews")
+    }
+
     func testMentionSuggestionItemView() async throws {
         try await performAccessibilityAudit(named: "MentionSuggestionItemView_Previews")
     }
@@ -307,8 +307,20 @@ extension AccessibilityTests {
         try await performAccessibilityAudit(named: "MessageForwardingScreen_Previews")
     }
 
+    func testMessageMenuOverlay() async throws {
+        try await performAccessibilityAudit(named: "MessageMenuOverlay_Previews")
+    }
+
+    func testMessageTextSelectionSheet() async throws {
+        try await performAccessibilityAudit(named: "MessageTextSelectionSheet_Previews")
+    }
+
     func testMessageText() async throws {
         try await performAccessibilityAudit(named: "MessageText_Previews")
+    }
+
+    func testModerationAndSafetySettingsScreen() async throws {
+        try await performAccessibilityAudit(named: "ModerationAndSafetySettingsScreen_Previews")
     }
 
     func testNoticeRoomTimelineView() async throws {
@@ -709,6 +721,10 @@ extension AccessibilityTests {
 
     func testTombstonedAvatarImage() async throws {
         try await performAccessibilityAudit(named: "TombstonedAvatarImage_Previews")
+    }
+
+    func testToolbarButton() async throws {
+        try await performAccessibilityAudit(named: "ToolbarButton_Previews")
     }
 
     func testTwoStepVerificationScreen() async throws {

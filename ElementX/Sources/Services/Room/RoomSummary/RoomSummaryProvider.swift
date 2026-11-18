@@ -16,6 +16,7 @@ class RoomSummaryProvider: RoomSummaryProviderProtocol {
     private let shouldUpdateVisibleRange: Bool
     private let notificationSettings: NotificationSettingsProxyProtocol
     private let appSettings: AppSettings
+    private let spaceFilter: RoomListEntriesDynamicFilterKind
 
     private let roomListPageSize: UInt32
     
@@ -61,7 +62,8 @@ class RoomSummaryProvider: RoomSummaryProviderProtocol {
          shouldUpdateVisibleRange: Bool = false,
          roomListPageSize: UInt32 = 200,
          notificationSettings: NotificationSettingsProxyProtocol,
-         appSettings: AppSettings) {
+         appSettings: AppSettings,
+         includesSpaceInvites: Bool = false) {
         self.roomListService = roomListService
         serialDispatchQueue = DispatchQueue(label: "io.element.elementx.room_summary_provider", qos: .default)
         self.eventStringBuilder = eventStringBuilder
@@ -70,6 +72,7 @@ class RoomSummaryProvider: RoomSummaryProviderProtocol {
         self.notificationSettings = notificationSettings
         self.appSettings = appSettings
         self.roomListPageSize = roomListPageSize
+        spaceFilter = includesSpaceInvites ? .any(filters: [.nonSpace, .invite]) : .nonSpace
         
         diffsPublisher
             .receive(on: serialDispatchQueue)
@@ -122,14 +125,14 @@ class RoomSummaryProvider: RoomSummaryProviderProtocol {
             _ = listUpdatesSubscriptionResult?.controller().setFilter(kind: .none)
         case let .search(query):
             let filters: [RoomListEntriesDynamicFilterKind] = if appSettings.fuzzyRoomListSearchEnabled {
-                [.fuzzyMatchRoomName(pattern: query), .nonLeft, .nonSpace, .deduplicateVersions]
+                [.fuzzyMatchRoomName(pattern: query), .nonLeft, spaceFilter, .deduplicateVersions]
             } else {
-                [.normalizedMatchRoomName(pattern: query), .nonLeft, .nonSpace, .deduplicateVersions]
+                [.normalizedMatchRoomName(pattern: query), .nonLeft, spaceFilter, .deduplicateVersions]
             }
             _ = listUpdatesSubscriptionResult?.controller().setFilter(kind: .all(filters: filters))
         case let .all(filters):
             var rustFilters = filters.map(\.rustFilter)
-            rustFilters.append(contentsOf: [.nonLeft, .nonSpace, .deduplicateVersions])
+            rustFilters.append(contentsOf: [.nonLeft, spaceFilter, .deduplicateVersions])
             
             if !filters.contains(.lowPriority), appSettings.lowPriorityFilterEnabled {
                 rustFilters.append(.nonLowPriority)

@@ -354,6 +354,20 @@ class HomeScreenViewModelTests: XCTestCase {
         XCTAssertFalse(notificationManager.removeDeliveredMessageNotificationsForCalled, "The notification will be dismissed when opening the room.")
     }
     
+    func testAcceptingASpaceInviteOpensItsJoinScreen() async throws {
+        setupViewModel(withInvites: true)
+        clientProxy.roomForIdentifierClosure = { _ in .invited(InvitedRoomProxyMock(.init(isSpace: true))) }
+        let invitedRoomID = try XCTUnwrap(context.viewState.rooms.invites.compactMap(\.roomID).first)
+        
+        let deferred = deferFulfillment(viewModel.actions) { $0 == .presentRoom(roomIdentifier: invitedRoomID) }
+        context.send(viewAction: .acceptInvite(roomIdentifier: invitedRoomID))
+        try await deferred.fulfill()
+        
+        XCTAssertFalse(clientProxy.joinRoomViaCalled, "The join screen offers the choice, so Chats never joins a space directly.")
+        XCTAssertFalse(clientProxy.setAccountDataTypeContentCalled)
+        XCTAssertFalse(appSettings.spacesEnabled)
+    }
+    
     func testDeclineInvite() async throws {
         setupViewModel(withInvites: true)
         let invitedRoomIDs = context.viewState.rooms.invites.compactMap(\.roomID)

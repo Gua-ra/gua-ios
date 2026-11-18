@@ -15,6 +15,7 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
     private let roomID: String
     private let via: [String]
     private let appSettings: AppSettings
+    private let spacesSetting: SpacesSetting
     private let clientProxy: ClientProxyProtocol
     private let userIndicatorController: UserIndicatorControllerProtocol
     
@@ -31,11 +32,13 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
     init(roomID: String,
          via: [String],
          appSettings: AppSettings,
+         spacesSetting: SpacesSetting,
          userSession: UserSessionProtocol,
          userIndicatorController: UserIndicatorControllerProtocol) {
         self.roomID = roomID
         self.via = via
         self.appSettings = appSettings
+        self.spacesSetting = spacesSetting
         clientProxy = userSession.clientProxy
         self.userIndicatorController = userIndicatorController
         
@@ -45,6 +48,10 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
             .removeDuplicates()
             .receive(on: DispatchQueue.main)
             .weakAssign(to: \.state.hideInviteAvatars, on: self)
+            .store(in: &cancellables)
+        
+        appSettings.$spacesEnabled
+            .weakAssign(to: \.state.isSpacesEnabled, on: self)
             .store(in: &cancellables)
         
         context.$viewState.map(\.mode)
@@ -238,6 +245,21 @@ class JoinRoomScreenViewModel: JoinRoomScreenViewModelType, JoinRoomScreenViewMo
         
         defer {
             hideLoadingIndicator()
+        }
+        
+        // GUA FORK: turn Spaces on first so a failed write never leaves a joined space hidden.
+        if state.joiningTurnsOnSpaces {
+            state.isTurningOnSpaces = true
+            if case .failure(let error) = await spacesSetting.setEnabled(true, updatesDeviceCopyFirst: false) {
+                MXLog.error("Failed turning on Spaces before joining a space: \(error)")
+                state.isTurningOnSpaces = false
+                userIndicatorController.submitIndicator(.init(title: L10n.errorUnknown))
+                return
+            }
+        }
+        
+        defer {
+            state.isTurningOnSpaces = false
         }
         
         // Prioritise joining by the alias and letting the homeserver do the right thing

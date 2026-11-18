@@ -37,10 +37,6 @@ struct DeveloperOptionsScreen: View {
                     Text("Threads")
                 }
 
-                Toggle(isOn: $context.spacesEnabled) {
-                    Text("Spaces")
-                }
-                
                 Toggle(isOn: $context.nextGenHTMLParserEnabled) {
                     Text("Next gen HTML parsing")
                 }
@@ -75,6 +71,10 @@ struct DeveloperOptionsScreen: View {
                     Text("Follows the timeline media visibility settings.")
                     Text("Can leak the device IP address when loading link metadata.")
                         .foregroundStyle(.compound.textCriticalPrimary)
+                }
+                
+                Toggle(isOn: $context.viewSourceEnabled) {
+                    Text(L10n.actionViewSource)
                 }
             }
                         

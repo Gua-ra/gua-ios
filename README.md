@@ -119,3 +119,5 @@ Copyright (c) 2025-2026 Gua (Gua modifications)
 Licensed under the GNU Affero General Public License v3.0 (AGPL-3.0), see [LICENSE](LICENSE).
 
 Alternatively available under a paid Element Commercial License for the upstream portions; see [LICENSE-COMMERCIAL](LICENSE-COMMERCIAL) if applicable.
+
+Gua's modifications are available under AGPL-3.0-only. The Element Commercial License applies only to the upstream portions.

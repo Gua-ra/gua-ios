@@ -228,6 +228,10 @@ protocol ClientProxyProtocol: AnyObject {
     
     func fetchMediaPreviewConfiguration() async -> Result<MediaPreviewConfig?, ClientProxyError>
 
+    func accountData(type: String) async -> Result<String?, ClientProxyError>
+    
+    func setAccountData(type: String, content: String) async -> Result<Void, ClientProxyError>
+    
     // MARK: - Ignored users
     
     func ignoreUser(_ userID: String) async -> Result<Void, ClientProxyError>

@@ -269,9 +269,9 @@
 			<key>NSStringFormatValueTypeKey</key>
 			<string>d</string>
 			<key>one</key>
-			<string>Wrong PIN. You have %1$d more chance</string>
+			<string>Wrong passcode. You have %1$d more chance</string>
 			<key>other</key>
-			<string>Wrong PIN. You have %1$d more chances</string>
+			<string>Wrong passcode. You have %1$d more chances</string>
 		</dict>
 	</dict>
 	<key>screen_pinned_timeline_screen_title</key>

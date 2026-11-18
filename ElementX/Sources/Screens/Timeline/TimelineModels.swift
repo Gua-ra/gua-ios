@@ -55,7 +55,7 @@ enum TimelineViewAction {
     case paginateForwards
     case scrollToBottom
     
-    case displayTimelineItemMenu(itemID: TimelineItemIdentifier)
+    case displayTimelineItemMenu(itemID: TimelineItemIdentifier, presentation: TimelineItemMenuPresentation = .sheet)
     case handleTimelineItemMenuAction(itemID: TimelineItemIdentifier, action: TimelineItemMenuAction)
     
     case tappedOnSenderDetails(sender: TimelineItemSender)
@@ -154,6 +154,8 @@ struct TimelineViewStateBindings {
     
     var actionMenuInfo: TimelineItemActionMenuInfo?
     
+    var textSelectionInfo: TimelineItemTextSelectionInfo?
+    
     var reactionSummaryInfo: ReactionSummaryInfo?
     
     var readReceiptsSummaryInfo: ReadReceiptSummaryInfo?
@@ -163,10 +165,11 @@ struct TimelineViewStateBindings {
 
 struct TimelineItemActionMenuInfo: Equatable, Identifiable {
     static func == (lhs: TimelineItemActionMenuInfo, rhs: TimelineItemActionMenuInfo) -> Bool {
-        lhs.id == rhs.id
+        lhs.id == rhs.id && lhs.presentation == rhs.presentation
     }
     
     let item: EventBasedTimelineItemProtocol
+    var presentation: TimelineItemMenuPresentation = .sheet
     
     var id: TimelineItemIdentifier {
         item.id

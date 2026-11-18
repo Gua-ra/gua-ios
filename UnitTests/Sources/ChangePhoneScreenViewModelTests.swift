@@ -1,7 +1,7 @@
 //
 // Copyright 2025 Gua
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only
 //
 
 @testable import ElementX

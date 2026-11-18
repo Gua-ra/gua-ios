@@ -70,6 +70,8 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
     private func presentSettingsScreen(animated: Bool) {
         let settingsScreenCoordinator = SettingsScreenCoordinator(parameters: .init(userSession: flowParameters.userSession,
                                                                                     appSettings: flowParameters.appSettings,
+                                                                                    spacesSetting: flowParameters.spacesSetting,
+                                                                                    userIndicatorController: flowParameters.userIndicatorController,
                                                                                     isBugReportServiceEnabled: flowParameters.bugReportService.isEnabled))
         
         settingsScreenCoordinator.actions
@@ -81,8 +83,6 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                     actionsSubject.send(.dismiss)
                 case .logout:
                     actionsSubject.send(.runLogoutFlow)
-                case .secureBackup:
-                    startEncryptionSettingsFlow(animated: true)
                 case .userDetails:
                     presentUserDetailsEditScreen()
                 case let .manageAccount(url):
@@ -99,12 +99,12 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                     bugReportFlowCoordinator?.start()
                 case .about:
                     presentLegalInformationScreen()
-                case .blockedUsers:
-                    presentBlockedUsersScreen()
+                case .moderationAndSafety:
+                    presentModerationAndSafetyScreen()
                 case .notifications:
                     presentNotificationSettings()
-                case .advancedSettings:
-                    presentAdvancedSettings()
+                case .mediaUploadQuality:
+                    presentMediaUploadQualitySettings()
                 case .developerOptions:
                     presentDeveloperOptions()
                 case .deactivateAccount:
@@ -181,6 +181,22 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
         navigationStackCoordinator.push(LegalInformationScreenCoordinator(appSettings: flowParameters.appSettings))
     }
     
+    private func presentModerationAndSafetyScreen() {
+        let coordinator = ModerationAndSafetySettingsScreenCoordinator(parameters: .init(userSession: flowParameters.userSession,
+                                                                                         appSettings: flowParameters.appSettings,
+                                                                                         userIndicatorController: flowParameters.userIndicatorController))
+        coordinator.actionsPublisher
+            .sink { [weak self] action in
+                switch action {
+                case .blockedUsers:
+                    self?.presentBlockedUsersScreen()
+                }
+            }
+            .store(in: &cancellables)
+        
+        navigationStackCoordinator.push(coordinator)
+    }
+    
     private func presentBlockedUsersScreen() {
         let coordinator = BlockedUsersScreenCoordinator(parameters: .init(hideProfiles: flowParameters.appSettings.hideIgnoredUserProfiles,
                                                                           userSession: flowParameters.userSession,
@@ -198,11 +214,10 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
         navigationStackCoordinator.push(coordinator)
     }
     
-    private func presentAdvancedSettings() {
-        let coordinator = AdvancedSettingsScreenCoordinator(parameters: .init(appSettings: flowParameters.appSettings,
-                                                                              analytics: flowParameters.analytics,
-                                                                              clientProxy: flowParameters.userSession.clientProxy,
-                                                                              userIndicatorController: flowParameters.userIndicatorController))
+    private func presentMediaUploadQualitySettings() {
+        let parameters = MediaUploadQualitySettingsScreenCoordinatorParameters(appSettings: flowParameters.appSettings,
+                                                                               analytics: flowParameters.analytics)
+        let coordinator = MediaUploadQualitySettingsScreenCoordinator(parameters: parameters)
         navigationStackCoordinator.push(coordinator)
     }
     

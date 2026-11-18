@@ -28,7 +28,7 @@ Dependencies come through Swift Package Manager, including a release build of th
 - Unit tests: the **Gua** scheme. Preview snapshots: the **PreviewTests** scheme on the simulator pinned in `PreviewTests/Sources/PreviewTests.swift`. Snapshots are stored under `__Snapshots__` in each test target and tracked with git LFS; `swift run tools setup-project` installs it.
 - A changed screen needs its preview snapshots re-recorded. Delete the stale PNGs for that screen only and run the PreviewTests scheme; the run records them as missing.
 - UI tests run nightly on CI, not on pull requests.
-- License headers: a new Gua file starts with `Copyright <year> Gua` followed by the repository's SPDX line. A file generated from upstream's screen template (`Tools/Scripts/createScreen.sh`) keeps the template's New Vector line above the Gua line. A modified upstream file keeps its New Vector notice.
+- License headers: a new Gua file starts with `Copyright <year> Gua` followed by `SPDX-License-Identifier: AGPL-3.0-only`, which the Xcode file template adds. A file generated from upstream's screen template (`Tools/Scripts/createScreen.sh`) keeps the template's New Vector line above the Gua line and keeps the template's SPDX line. A modified upstream file keeps its New Vector notice and SPDX line.
 
 ## Pull requests
 
