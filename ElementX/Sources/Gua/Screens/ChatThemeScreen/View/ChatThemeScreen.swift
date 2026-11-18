@@ -13,6 +13,8 @@ struct ChatThemeScreen: View {
     
     @Environment(\.colorScheme) private var colorScheme
     
+    @State private var isPhotoCreditsPresented = false
+    
     private var viewState: ChatThemeScreenViewState {
         context.viewState
     }
@@ -48,6 +50,11 @@ struct ChatThemeScreen: View {
                     if !viewState.canChange {
                         Text(UntranslatedL10n.guaChatBackgroundRowNoPermission)
                     }
+                    if let credit = viewState.photoCredit {
+                        ChatPhotoCreditLine(credit: credit) {
+                            isPhotoCreditsPresented = true
+                        }
+                    }
                 }
                 .compoundListSectionFooter()
             }
@@ -57,7 +64,7 @@ struct ChatThemeScreen: View {
                     ListRow(kind: .custom {
                         ScrollViewReader { proxy in
                             ScrollView(.horizontal) {
-                                LazyHStack(spacing: 12) {
+                                LazyHStack(alignment: .top, spacing: 12) {
                                     if section.id == .featured {
                                         ChatThemeTile(theme: viewState.firstTileTheme,
                                                       name: viewState.firstTileName,
@@ -83,8 +90,9 @@ struct ChatThemeScreen: View {
                         }
                     })
                 } header: {
-                    Text(section.title)
-                        .compoundListSectionHeader()
+                    ChatThemeSectionHeader(section: section.id) {
+                        isPhotoCreditsPresented = true
+                    }
                 }
             }
         }
@@ -101,6 +109,7 @@ struct ChatThemeScreen: View {
         .sheet(isPresented: $context.isWallpaperPickerPresented) {
             ChatWallpaperPicker(context: context)
         }
+        .chatPhotoCreditsSheet(isPresented: $isPhotoCreditsPresented)
     }
     
     private var isBubblePickerPresented: Binding<Bool> {
@@ -178,45 +187,23 @@ struct ChatThemeTile: View {
     
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 6) {
-                Spacer(minLength: 0)
-                sampleBubble(color: .compound._bgBubbleIncoming, width: 0.55, alignment: .leading)
-                sampleBubble(color: theme.bubbles.outgoingColor, width: 0.65, alignment: .trailing)
-                Spacer(minLength: 0)
+            VStack(spacing: 4) {
+                tile
                 
-                // Not in a top corner: beside the selection checkmark there is no room for a translated badge.
-                if isLive {
-                    ChatArtworkLiveBadge()
-                }
-                
-                if let name {
-                    Text(name)
-                        .font(.compound.bodyXSSemibold)
-                        .foregroundStyle(.compound.textPrimary)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.7)
-                        .legibilityCapsule()
-                }
-            }
-            .padding(8)
-            .frame(width: width, height: width * 16 / 9)
-            .background {
-                ChatBackgroundView(background: theme.wallpaper, mediaProvider: mediaProvider)
-            }
-            .chatTheme(theme)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .overlay {
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(isSelected ? Color.compound.borderInteractivePrimary : Color.compound.borderInteractiveSecondary,
-                                  lineWidth: isSelected ? 2 : 1)
-            }
-            .overlay(alignment: .topTrailing) {
-                if isSelected {
-                    CompoundIcon(\.checkCircleSolid)
-                        .foregroundStyle(.compound.iconAccentPrimary)
-                        .background(Circle().fill(Color.compound.bgCanvasDefault))
-                        .padding(6)
+                if let credit {
+                    VStack(spacing: 2) {
+                        Text(theme.wallpaper.displayName)
+                            .font(.compound.bodyXSSemibold)
+                            .foregroundStyle(.compound.textPrimary)
+                            .lineLimit(2)
+                        // Wraps instead of truncating: the author's name must stay legible.
+                        Text(UntranslatedL10n.guaChatThemePhotoCredit(credit.author))
+                            .font(.compound.bodyXS)
+                            .foregroundStyle(.compound.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .multilineTextAlignment(.center)
+                    .frame(width: width)
                 }
             }
             .contentShape(.rect)
@@ -228,12 +215,63 @@ struct ChatThemeTile: View {
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
     
+    private var tile: some View {
+        VStack(spacing: 6) {
+            Spacer(minLength: 0)
+            sampleBubble(color: .compound._bgBubbleIncoming, width: 0.55, alignment: .leading)
+            sampleBubble(color: theme.bubbles.outgoingColor, width: 0.65, alignment: .trailing)
+            Spacer(minLength: 0)
+            
+            // Not in a top corner: beside the selection checkmark there is no room for a translated badge.
+            if isLive {
+                ChatArtworkLiveBadge()
+            }
+            
+            if let name {
+                Text(name)
+                    .font(.compound.bodyXSSemibold)
+                    .foregroundStyle(.compound.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.7)
+                    .legibilityCapsule()
+            }
+        }
+        .padding(8)
+        .frame(width: width, height: width * 16 / 9)
+        .background {
+            ChatBackgroundView(background: theme.wallpaper, mediaProvider: mediaProvider)
+        }
+        .chatTheme(theme)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay {
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(isSelected ? Color.compound.borderInteractivePrimary : Color.compound.borderInteractiveSecondary,
+                              lineWidth: isSelected ? 2 : 1)
+        }
+        .overlay(alignment: .topTrailing) {
+            if isSelected {
+                CompoundIcon(\.checkCircleSolid)
+                    .foregroundStyle(.compound.iconAccentPrimary)
+                    .background(Circle().fill(Color.compound.bgCanvasDefault))
+                    .padding(6)
+            }
+        }
+    }
+    
     private var isLive: Bool {
         theme.wallpaper.artwork?.isLive == true
     }
     
+    private var credit: ChatArtwork.Credit? {
+        theme.wallpaper.artwork?.credit
+    }
+    
     private var accessibilityLabel: String {
         let label = name ?? theme.wallpaper.displayName
+        if let credit {
+            return "\(label), \(UntranslatedL10n.guaChatThemePhotoCredit(credit.author))"
+        }
         return isLive ? "\(label), \(UntranslatedL10n.guaChatThemeLiveBadge)" : label
     }
     
@@ -318,6 +356,7 @@ struct ChatThemeScreen_Previews: PreviewProvider, TestablePreview {
     static let defaultViewModel = makeViewModel(mode: .defaultTheme, theme: .init(wallpaper: .preset(.night), bubble: .purple))
     static let noPermissionViewModel = makeViewModel(theme: .init(wallpaper: .preset(.sunset), bubble: .pink), canChange: false)
     static let artworkViewModel = makeViewModel(theme: .init(wallpaper: .art(.glassDrops), bubbles: ChatArtwork.glassDrops.bubbles))
+    static let photoViewModel = makeViewModel(theme: .init(wallpaper: .art(.photoPeytoLake), bubbles: ChatArtwork.photoPeytoLake.bubbles), canChange: false)
     
     static var previews: some View {
         ElementNavigationStack {
@@ -360,16 +399,21 @@ struct ChatThemeScreen_Previews: PreviewProvider, TestablePreview {
         .previewDisplayName("Artwork dark")
         
         ElementNavigationStack {
+            ChatThemeScreen(context: photoViewModel.context)
+        }
+        .previewDisplayName("Photo")
+        
+        ElementNavigationStack {
             ChatThemeScreen(context: artworkViewModel.context)
         }
-        .frame(height: 1800)
+        .frame(height: 2100)
         .previewLayout(.sizeThatFits)
         .previewDisplayName("All sections")
         
         ElementNavigationStack {
             ChatThemeScreen(context: artworkViewModel.context)
         }
-        .frame(height: 1800)
+        .frame(height: 2100)
         .previewLayout(.sizeThatFits)
         .environment(\.colorScheme, .dark)
         .preferredColorScheme(.dark)

@@ -173,6 +173,13 @@ extension PreviewTests {
     }
 
     @Test
+    func chatPhotoCreditsScreen() async throws {
+        for (index, preview) in ChatPhotoCreditsScreen_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    @Test
     func chatThemePreview() async throws {
         for (index, preview) in ChatThemePreview_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)

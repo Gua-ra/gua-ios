@@ -15,55 +15,13 @@ struct ChatThemeRow: View {
     
     @Environment(\.colorScheme) private var colorScheme
     
+    /// Members who cannot change the theme still open it, to see the credit of a photo.
     var body: some View {
-        if canChange {
-            ListRow(label: .default(title: UntranslatedL10n.guaChatThemeTitle, icon: icon),
-                    details: .title(theme.displayName(in: colorScheme)),
-                    kind: .navigationLink(action: action))
-        } else {
-            // Compound's disabled description colour would make the reason the hardest text on the row to read.
-            ListRow(kind: .custom { NoPermissionRowContent(value: theme.displayName(in: colorScheme), icon: icon) })
-        }
-    }
-    
-    private var icon: CompoundIcon {
-        CompoundIcon(customImage: Asset.Images.theme.swiftUIImage)
-    }
-}
-
-private struct NoPermissionRowContent: View {
-    let value: String
-    let icon: CompoundIcon
-    
-    @ScaledMetric private var iconSize = Compound.supportsGlass ? 24.0 : 30
-    
-    var body: some View {
-        HStack(spacing: 8) {
-            HStack(alignment: Compound.supportsGlass ? .top : .center, spacing: ListRowPadding.labelIconSpacing) {
-                icon
-                    .foregroundStyle(.compound.iconTertiaryAlpha)
-                    .frame(width: iconSize, height: iconSize)
-                    .background(Compound.supportsGlass ? .clear : Color.compound._bgSubtleSecondaryAlpha)
-                    .clipShape(RoundedRectangle(cornerRadius: Compound.supportsGlass ? 0 : 8))
-                    .padding(.vertical, Compound.supportsGlass ? -1 : -4)
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(UntranslatedL10n.guaChatThemeTitle)
-                        .font(.compound.bodyLG)
-                        .foregroundStyle(.compound.textDisabled)
-                    Text(UntranslatedL10n.guaChatBackgroundRowNoPermission)
-                        .font(.compound.bodySM)
-                        .foregroundStyle(.compound.textSecondary)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            
-            Text(value)
-                .font(.compound.bodyLG)
-                .foregroundStyle(.compound.textSecondary)
-        }
-        .padding(ListRowPadding.insets)
-        .accessibilityElement(children: .combine)
+        ListRow(label: .default(title: UntranslatedL10n.guaChatThemeTitle,
+                                description: canChange ? nil : UntranslatedL10n.guaChatBackgroundRowNoPermission,
+                                icon: CompoundIcon(customImage: Asset.Images.theme.swiftUIImage)),
+                details: .title(theme.displayName(in: colorScheme)),
+                kind: .navigationLink(action: action))
     }
 }
 

@@ -37,7 +37,7 @@ struct ChatBackgroundView: View {
                 ChatBackgroundScrim(photoDim: nil)
             case .art(let artwork):
                 ChatArtworkView(artwork: artwork)
-                ChatBackgroundScrim(photoDim: nil)
+                ChatBackgroundScrim(photoDim: artwork.photoDim)
             case .photo(let photo):
                 ChatBackgroundPhotoView(photo: photo, mediaProvider: mediaProvider)
             }

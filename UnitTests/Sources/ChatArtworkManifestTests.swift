@@ -29,6 +29,14 @@ final class ChatArtworkManifestTests {
             let bubble = try #require(entry["bubble"] as? [String: String])
             #expect(bubble["light"] == artwork.bubbles.bubble.id, "\(artwork.id)")
             #expect(bubble["dark"] == (artwork.bubbles.bubbleDark ?? artwork.bubbles.bubble).id, "\(artwork.id)")
+            
+            let credit = entry["credit"] as? [String: Any]
+            #expect((credit == nil) == (artwork.credit == nil), "\(artwork.id)")
+            #expect(credit?["author"] as? String == artwork.credit?.author, "\(artwork.id)")
+            #expect(credit?["licence"] as? String == artwork.credit?.licence.name, "\(artwork.id)")
+            #expect(credit?["licence_url"] as? String == artwork.credit?.licence.deedURL.absoluteString, "\(artwork.id)")
+            #expect(credit?["source_url"] as? String == artwork.credit?.sourceURL?.absoluteString, "\(artwork.id)")
+            #expect(credit?["modified"] as? String == (artwork.credit == nil ? nil : "cropped and resized"), "\(artwork.id)")
         }
     }
     
@@ -38,7 +46,7 @@ final class ChatArtworkManifestTests {
         
         for (artwork, entry) in zip(ChatArtwork.allCases, entries) {
             let hashes = try #require(entry["sha256"] as? [String: String])
-            #expect(Set(hashes.keys) == [artwork.fileNames.light, artwork.fileNames.dark], "\(artwork.id)")
+            #expect(Set(hashes.keys) == Set([artwork.fileNames.light, artwork.fileNames.dark]), "\(artwork.id)")
             
             for (file, hash) in hashes {
                 let url = try #require(ChatArtworkLoader.url(for: file), "\(file) is not in the app bundle")
@@ -70,6 +78,16 @@ final class ChatArtworkManifestTests {
         
         let fullScreen = ChatArtworkLoader.request(for: .glacierLake, colorScheme: .light, filling: CGSize(width: 1366, height: 1024), displayScale: 2)
         #expect(fullScreen.maxPixelSize == Int(ChatArtwork.pixelSize.height))
+    }
+    
+    @Test
+    func aPhotoLoadsOneImageForBothAppearances() {
+        let tile = CGSize(width: 84, height: 149)
+        let light = ChatArtworkLoader.request(for: .photoPeytoLake, colorScheme: .light, filling: tile, displayScale: 2)
+        let dark = ChatArtworkLoader.request(for: .photoPeytoLake, colorScheme: .dark, filling: tile, displayScale: 2)
+        
+        #expect(light.file == "photo-peyto-lake.webp")
+        #expect(dark == light)
     }
     
     private static func manifest() throws -> [String: Any] {
