@@ -117,7 +117,7 @@ enum PlacementReproducer {
             .sorted { JavaStringOrder.compare($0.id, $1.id) < 0 }
     }
 
-    /// Summed in Int64, so a total of Int32 weights never wraps.
+    /// Summed in Int64, so a total of Int32 weights never overflows.
     static func totalWeight(of candidates: [RosterHomeserver]) -> Int64 {
         candidates.reduce(0) { $0 + Int64(max(0, $1.weight)) }
     }

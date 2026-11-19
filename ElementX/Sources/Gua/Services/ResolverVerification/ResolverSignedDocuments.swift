@@ -17,19 +17,6 @@ struct SignedRosterDocument: Decodable {
     let logCheckpoint: RosterLogCheckpoint
     let authoritySignatures: [RosterAuthoritySignature]
 
-    private enum CodingKeys: String, CodingKey {
-        case version, issuedAt, entries, logCheckpoint, authoritySignatures
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        version = try container.decode(Int64.self, forKey: .version)
-        issuedAt = try container.decode(String.self, forKey: .issuedAt)
-        entries = try container.decode([SignedRosterEntry].self, forKey: .entries)
-        logCheckpoint = try container.decode(RosterLogCheckpoint.self, forKey: .logCheckpoint)
-        authoritySignatures = try container.decode([RosterAuthoritySignature].self, forKey: .authoritySignatures)
-    }
-
     var activeEntries: [SignedRosterEntry] {
         entries.filter(\.isActive)
     }
@@ -155,7 +142,7 @@ struct RosterClaimPredicate: Decodable {
 
     var isRemote: Bool {
         guard let remoteClaimUrl else { return false }
-        return !remoteClaimUrl.trimmingCharacters(in: .whitespaces).isEmpty
+        return !remoteClaimUrl.isBlank
     }
 }
 

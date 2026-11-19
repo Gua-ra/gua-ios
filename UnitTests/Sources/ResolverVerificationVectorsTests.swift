@@ -372,24 +372,12 @@ private struct JSONObject {
         dictionary[key] as? [String] ?? []
     }
 
-    func stringArrayIfPresent(_ key: String) -> [String]? {
-        dictionary[key] as? [String]
-    }
-
-    func stringDictionaryIfPresent(_ key: String) -> [String: String]? {
-        dictionary[key] as? [String: String]
-    }
-
     func int(_ key: String) -> Int {
         (dictionary[key] as? NSNumber)?.intValue ?? Int(string(key)) ?? 0
     }
 
     func bool(_ key: String) -> Bool {
         dictionary[key] as? Bool ?? false
-    }
-
-    func boolIfPresent(_ key: String) -> Bool? {
-        dictionary[key] as? Bool
     }
 
     /// An empty section fails, so a renamed or dropped key cannot pass silently.
