@@ -135,7 +135,6 @@ private struct AppGroupURLParser: URLParser {
 /// The parser for Element Call links. This always returns a `.genericCallLink`.
 private struct ElementCallURLParser: URLParser {
     private let knownHosts = ["call.element.io"]
-    private let customSchemeURLQueryParameterName = "url"
     
     func route(from url: URL) -> AppRoute? {
         // Element Call not supported, WebRTC not available
@@ -144,25 +143,6 @@ private struct ElementCallURLParser: URLParser {
             return nil
         }
         
-        // First try processing URLs with custom schemes
-        if let scheme = url.scheme,
-           scheme == InfoPlistReader.app.elementCallScheme {
-            guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
-                return nil
-            }
-            
-            guard let encodedURLString = components.queryItems?.first(where: { $0.name == customSchemeURLQueryParameterName })?.value,
-                  let callURL = URL(string: encodedURLString),
-                  callURL.scheme == "https" // Don't allow URLs from potentially unsafe domains
-            else {
-                MXLog.error("Invalid custom scheme call parameters: \(url)")
-                return nil
-            }
-            
-            return .genericCallLink(url: callURL)
-        }
-        
-        // Otherwise try to interpret it as an universal link
         guard let host = url.host, knownHosts.contains(host) else {
             return nil
         }

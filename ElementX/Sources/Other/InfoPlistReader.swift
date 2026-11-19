@@ -93,10 +93,6 @@ struct InfoPlistReader {
         customSchemeForName("Application")
     }
     
-    var elementCallScheme: String {
-        customSchemeForName("Element Call")
-    }
-    
     // MARK: - Mention Pills
 
     /// Mention Pills UTType
