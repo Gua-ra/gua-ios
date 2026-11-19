@@ -229,6 +229,114 @@
       "still_time": 24
     },
     {
+      "id": "boreal",
+      "section": "live",
+      "live": true,
+      "files": {
+        "light": "boreal-light.webp",
+        "dark": "boreal-dark.webp",
+        "msl": "boreal.msl",
+        "agsl": "boreal.agsl"
+      },
+      "sha256": {
+        "boreal-light.webp": "45f99d0304a0016b164e724341decb630d3862e2a052705af75d0a8071b57da6",
+        "boreal-dark.webp": "20f7eddb1cf5a745dfa65feedcaa3bbce32b6a31c96221ddd256dc1d1076ef34",
+        "boreal.msl": "c9aa012965947c0dd6d267f6a7830742d7fa7ce105286c207a096c0a26138c45",
+        "boreal.agsl": "556f8e61fcd837e8860700f172812ada8fe6399a551d4b756a611638d11a8604"
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.3
+      },
+      "fallback_preset": "graphite",
+      "bubble": {
+        "light": "blue",
+        "dark": "green"
+      },
+      "still_time": 151
+    },
+    {
+      "id": "lagoon",
+      "section": "live",
+      "live": true,
+      "files": {
+        "light": "lagoon-light.webp",
+        "dark": "lagoon-dark.webp",
+        "msl": "lagoon.msl",
+        "agsl": "lagoon.agsl"
+      },
+      "sha256": {
+        "lagoon-light.webp": "14ec52e6061ae0ffa7dd55a2fa13e1563bcb19b495ff04abd9f66b1a66c67676",
+        "lagoon-dark.webp": "299f4842a3c7e17fdf81fe04ef59b2a54d96bee3fe8a26b6e8ff225a45739b90",
+        "lagoon.msl": "7a2ddd8755d40e3e5c7876b60625d8da70a0a794b768c938ab0066f308fd9287",
+        "lagoon.agsl": "bdf2a6840f4d46385e10e5ec4d867677194f587ae0857ad1d9b5cad5dad6ed58"
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "fallback_preset": "mint",
+      "bubble": {
+        "light": "blue",
+        "dark": "teal"
+      },
+      "still_time": 36
+    },
+    {
+      "id": "sea-sparks",
+      "section": "live",
+      "live": true,
+      "files": {
+        "light": "sea-sparks-light.webp",
+        "dark": "sea-sparks-dark.webp",
+        "msl": "sea-sparks.msl",
+        "agsl": "sea-sparks.agsl"
+      },
+      "sha256": {
+        "sea-sparks-light.webp": "f582874a307d03a5e986f31481b7d1cfd2d1b10a6d1763f8f8280e87bd5498c9",
+        "sea-sparks-dark.webp": "5d3049cd27de9b1ec713782f4e3e2dc00066a4b2b8130f53612426ba47606915",
+        "sea-sparks.msl": "6e34d8857f513ebbb0362371c0b87783ec28eeac1e57d5620e10a6c1a4960b02",
+        "sea-sparks.agsl": "d146e8f11c3d546b6a74ed10a52052b0415eff7ec25109bc215972b16f775c0b"
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.3
+      },
+      "fallback_preset": "aurora",
+      "bubble": {
+        "light": "blue",
+        "dark": "teal"
+      },
+      "still_time": 0
+    },
+    {
+      "id": "tropic-dusk",
+      "section": "live",
+      "live": true,
+      "files": {
+        "light": "tropic-dusk-light.webp",
+        "dark": "tropic-dusk-dark.webp",
+        "msl": "tropic-dusk.msl",
+        "agsl": "tropic-dusk.agsl"
+      },
+      "sha256": {
+        "tropic-dusk-light.webp": "f97bca32b8bdc02277fb2561dd97e0f8a7272e97c8313cc2936824fd3fdb33d9",
+        "tropic-dusk-dark.webp": "cb4ece53344d74c9d71bca7807cc1878ea8535b2ae50f421392f4789c83ec9a9",
+        "tropic-dusk.msl": "810feb3cf6b36623a81f3702974160cbc2564aab46a93180c9973f316648b59b",
+        "tropic-dusk.agsl": "b54a22d45008028fc5ef8bcc91ab2dd9d44b8754f4996033db8e9c24ab30811d"
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.35
+      },
+      "fallback_preset": "sunset",
+      "bubble": {
+        "light": "pink",
+        "dark": "orange"
+      },
+      "still_time": 24
+    },
+    {
       "id": "dune-lagoons",
       "section": "nature",
       "live": false,

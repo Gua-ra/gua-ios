@@ -17,6 +17,10 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
     case rainOnGlass = "rain-on-glass"
     case pantanal
     case currentsLive = "currents-live"
+    case boreal
+    case lagoon
+    case seaSparks = "sea-sparks"
+    case tropicDusk = "tropic-dusk"
     case duneLagoons = "dune-lagoons"
     case palmCoast = "palm-coast"
     case riverBends = "river-bends"
@@ -58,7 +62,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
     
     var section: Section {
         switch self {
-        case .glassDrops, .glassDropsBlue, .moltenPearl, .silk, .ipe, .rainOnGlass, .pantanal, .currentsLive: .live
+        case .glassDrops, .glassDropsBlue, .moltenPearl, .silk, .ipe, .rainOnGlass, .pantanal, .currentsLive, .boreal, .lagoon, .seaSparks, .tropicDusk: .live
         case .duneLagoons, .palmCoast, .riverBends, .highlandMist, .glacierLake, .canolaSky, .harbourFog, .canyonGlow, .polarIce, .moonTide: .nature
         case .currents, .azulejo, .calcadao, .knit, .doodlesBrasil, .doodlesCanada: .patterns
         case .paper, .paperCut: .minimal
@@ -80,6 +84,10 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         case .rainOnGlass: UntranslatedL10n.guaChatThemeArtRainOnGlass
         case .pantanal: UntranslatedL10n.guaChatThemeArtPantanal
         case .currentsLive: UntranslatedL10n.guaChatThemeArtCurrentsLive
+        case .boreal: UntranslatedL10n.guaChatThemeArtBoreal
+        case .lagoon: UntranslatedL10n.guaChatThemeArtLagoon
+        case .seaSparks: UntranslatedL10n.guaChatThemeArtSeaSparks
+        case .tropicDusk: UntranslatedL10n.guaChatThemeArtTropicDusk
         case .duneLagoons: UntranslatedL10n.guaChatThemeArtDuneLagoons
         case .palmCoast: UntranslatedL10n.guaChatThemeArtPalmCoast
         case .riverBends: UntranslatedL10n.guaChatThemeArtRiverBends
@@ -112,6 +120,9 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         case .rainOnGlass: ChatBubblePair(.green, dark: .blue)
         case .pantanal: ChatBubblePair(.green)
         case .currentsLive: ChatBubblePair(.purple)
+        case .boreal: ChatBubblePair(.blue, dark: .green)
+        case .lagoon, .seaSparks: ChatBubblePair(.blue, dark: .teal)
+        case .tropicDusk: ChatBubblePair(.pink, dark: .orange)
         case .duneLagoons: ChatBubblePair(.teal, dark: .purple)
         case .palmCoast: ChatBubblePair(.orange, dark: .blue)
         case .riverBends: ChatBubblePair(.teal)
@@ -139,8 +150,9 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         case .glassDrops: UnitPoint(x: 0.5, y: 0.08)
         case .glassDropsBlue: UnitPoint(x: 0.5, y: 0.35)
         case .ipe, .knit: UnitPoint(x: 0.5, y: 0)
-        case .rainOnGlass, .highlandMist, .canyonGlow, .polarIce: UnitPoint(x: 0.5, y: 0.3)
+        case .rainOnGlass, .boreal, .seaSparks, .highlandMist, .canyonGlow, .polarIce: UnitPoint(x: 0.5, y: 0.3)
         case .pantanal: UnitPoint(x: 0.5, y: 0.38)
+        case .tropicDusk: UnitPoint(x: 0.5, y: 0.35)
         case .duneLagoons: UnitPoint(x: 0.5, y: 0.25)
         case .palmCoast: UnitPoint(x: 0.5, y: 0.2)
         case .glacierLake: UnitPoint(x: 0.5, y: 0.35)
@@ -148,7 +160,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         case .harbourFog: UnitPoint(x: 0.7, y: 0.3)
         case .moonTide: UnitPoint(x: 0.5, y: 0.72)
         case .paperCut: UnitPoint(x: 1, y: 0)
-        case .moltenPearl, .silk, .currentsLive, .riverBends, .currents, .azulejo, .calcadao, .doodlesBrasil, .doodlesCanada, .paper: .center
+        case .moltenPearl, .silk, .currentsLive, .lagoon, .riverBends, .currents, .azulejo, .calcadao, .doodlesBrasil, .doodlesCanada, .paper: .center
         }
     }
     
@@ -157,23 +169,26 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         switch self {
         case .glassDrops: .blush
         case .glassDropsBlue, .moltenPearl, .azulejo: .sky
-        case .silk, .pantanal, .duneLagoons, .riverBends, .highlandMist, .doodlesBrasil: .mint
-        case .ipe: .sunset
-        case .rainOnGlass: .aurora
+        case .silk, .pantanal, .lagoon, .duneLagoons, .riverBends, .highlandMist, .doodlesBrasil: .mint
+        case .ipe, .tropicDusk: .sunset
+        case .rainOnGlass, .seaSparks: .aurora
         case .currentsLive, .currents: .lavender
         case .palmCoast, .glacierLake, .harbourFog, .moonTide: .ocean
         case .canolaSky, .canyonGlow, .calcadao, .knit, .doodlesCanada, .paper, .paperCut: .sand
         case .polarIce: .night
+        case .boreal: .graphite
         }
     }
     
     /// The shader time the still image was rendered at, where a live artwork starts so its first frame is the still.
     var stillTime: Double? {
         switch self {
-        case .glassDrops, .silk: 0
+        case .glassDrops, .silk, .seaSparks: 0
         case .glassDropsBlue: 14
-        case .moltenPearl, .ipe, .pantanal, .currentsLive: 24
+        case .moltenPearl, .ipe, .pantanal, .currentsLive, .tropicDusk: 24
+        case .lagoon: 36
         case .rainOnGlass: 48
+        case .boreal: 151
         case .duneLagoons, .palmCoast, .riverBends, .highlandMist, .glacierLake, .canolaSky, .harbourFog, .canyonGlow, .polarIce, .moonTide,
              .currents, .azulejo, .calcadao, .knit, .doodlesBrasil, .doodlesCanada, .paper, .paperCut: nil
         }
