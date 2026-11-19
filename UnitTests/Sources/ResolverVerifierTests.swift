@@ -659,6 +659,31 @@ final class ResolverVerifierTests: XCTestCase {
         XCTAssertEqual(report.placement, .indeterminate(.unsignedRule))
     }
 
+    func testNoPlacementPastTheFallbackLimitAtTheSameRosterVersionIsAMismatch() async throws {
+        try serve(roster: "r9", policy: "br-policy v3")
+        // No rule routes this number, and r9's candidates weigh one past 2^24. Without the limit the fallback would pick hs-over.
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: "r9", policy: "br-policy v3")),
+                                        answer(.over, rosterVersion: 7), phone: "+5521990000000")
+
+        XCTAssertEqual(report.placement, .mismatch)
+    }
+
+    func testNoPlacementPastTheFallbackLimitWithoutARosterVersionIsUnattributed() async throws {
+        try serve(roster: "r9", policy: "br-policy v3")
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: "r9", policy: "br-policy v3")),
+                                        answer(.over), phone: "+5521990000000")
+
+        XCTAssertEqual(report.placement, .indeterminate(.unattributed))
+    }
+
+    func testUnsignedRuleAboveNoPlacementPastTheFallbackLimitIsIndeterminate() async throws {
+        let policy = "br-policy v3 without the sp-zone delegate signature"
+        try serve(roster: "r9", policy: policy)
+        let report = try await verified(makeVerifier(trustRoots: trustRoots(ofRoster: "r9", policy: policy)), answer(.over, rosterVersion: 7))
+
+        XCTAssertEqual(report.placement, .indeterminate(.unsignedRule))
+    }
+
     func testReportLineMatchesTheContract() {
         let report = ResolverVerificationReport(environment: "dev", rosterVersion: 4, rosterForm: "v1", rosterSignature: .valid,
                                                 homeserverMatch: .activeMatch, memberEntry: .unattested, logConsistency: .consistent,
@@ -777,12 +802,13 @@ final class ResolverVerifierTests: XCTestCase {
     }
 
     private enum Homeserver {
-        case br, ca
+        case br, ca, over
 
         var answer: ResolvedHomeserver {
             switch self {
             case .br: ResolvedHomeserver(serverName: "br.gua.test", baseURL: "https://matrix.br.gua.test", masIssuer: "https://account.br.gua.test", region: "BR")
             case .ca: ResolvedHomeserver(serverName: "ca.gua.test", baseURL: "https://matrix.ca.gua.test", masIssuer: "https://account.ca.gua.test", region: nil)
+            case .over: ResolvedHomeserver(serverName: "over.gua.test", baseURL: "https://matrix.over.gua.test", masIssuer: "https://account.over.gua.test", region: nil)
             }
         }
     }

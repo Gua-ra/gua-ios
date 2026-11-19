@@ -224,12 +224,12 @@ final class ResolverVerificationVectorsTests: XCTestCase {
                                            carrier: contextJSON.stringIfPresent("carrier"),
                                            regionHint: contextJSON.stringIfPresent("regionHint"))
             let evaluatedAt = try XCTUnwrap(ResolverInstant(iso: vector.string("evaluatedAt")), name).epochMilliseconds
-            let decision = try XCTUnwrap(PlacementReproducer.decide(context: context, roster: roster, policy: policy,
-                                                                    nowEpochMilliseconds: evaluatedAt), name)
-            let reference = Self.reference(of: decision)
-            XCTAssertEqual(decision.homeserver.id, vector.string("expectedHomeserverId"), name)
-            XCTAssertEqual(reference.rule, vector.string("expectedRule"), name)
-            XCTAssertEqual(reference.ruleId, vector.string("expectedRuleId"), name)
+            let decision = PlacementReproducer.decide(context: context, roster: roster, policy: policy, nowEpochMilliseconds: evaluatedAt)
+            let reference = decision.map(Self.reference(of:))
+            XCTAssertEqual(decision == nil, vector.dictionary["expectedHomeserverId"] is NSNull, name)
+            XCTAssertEqual(decision?.homeserver.id, vector.stringIfPresent("expectedHomeserverId"), name)
+            XCTAssertEqual(reference?.rule, vector.stringIfPresent("expectedRule"), name)
+            XCTAssertEqual(reference?.ruleId, vector.stringIfPresent("expectedRuleId"), name)
             let unsignedRuleAbove = policy.map {
                 PlacementReproducer.unsignedRuleRanksAbove(decision, context: context, policy: $0, nowEpochMilliseconds: evaluatedAt)
             } ?? false
@@ -238,7 +238,8 @@ final class ResolverVerificationVectorsTests: XCTestCase {
                 XCTAssertEqual(context.canonicalRoutingKey, fallback.string("routingKeyUtf8"), name)
                 let candidates = PlacementReproducer.fallbackCandidates(in: roster)
                 XCTAssertEqual(candidates.map { $0.id ?? "null" }, fallback.array("candidates").map { JSONObject($0).string("id") }, name)
-                XCTAssertEqual(candidates.map { Int($0.weight) }, fallback.array("candidates").map { JSONObject($0).int("weight") }, name)
+                XCTAssertEqual(candidates.map { Int(max(0, $0.weight)) }, fallback.array("candidates").map { JSONObject($0).int("weight") }, name)
+                XCTAssertEqual(PlacementReproducer.totalWeight(of: candidates), Int64(fallback.int("totalWeight")), name)
                 XCTAssertEqual(PlacementReproducer.stableHash(context: context, rosterVersion: roster.version, candidates: candidates),
                                Int32(fallback.int("stableHash")), name)
                 XCTAssertEqual(roster.version, Int64(fallback.int("rosterVersion")), name)

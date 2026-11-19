@@ -37,6 +37,9 @@ struct VerifiedRoutingPolicy {
 }
 
 enum PlacementReproducer {
+    /// `weighted-fallback.v1` decides nothing above this total, where the signed 32-bit hash would skew the split.
+    private static let maxTotalWeight: Int64 = 1 << 24
+
     static func decide(context: PlacementContext, roster: SignedRosterDocument, policy: VerifiedRoutingPolicy?,
                        nowEpochMilliseconds now: Int64) -> PlacementDecision? {
         if let policy, let decision = policyRule(context: context, roster: roster, policy: policy, now: now) {
@@ -114,21 +117,25 @@ enum PlacementReproducer {
             .sorted { JavaStringOrder.compare($0.id, $1.id) < 0 }
     }
 
-    private static func weightedFallback(context: PlacementContext, roster: SignedRosterDocument) -> PlacementDecision? {
-        let candidates = fallbackCandidates(in: roster)
-        guard !candidates.isEmpty else { return nil }
-        let hash = stableHash(context: context, rosterVersion: roster.version, candidates: candidates)
-        return PlacementDecision(homeserver: pick(from: candidates, hash: hash), rule: .weightedFallback)
+    /// Summed in Int64, so a total of Int32 weights never wraps.
+    static func totalWeight(of candidates: [RosterHomeserver]) -> Int64 {
+        candidates.reduce(0) { $0 + Int64(max(0, $1.weight)) }
     }
 
-    private static func pick(from candidates: [RosterHomeserver], hash: Int32) -> RosterHomeserver {
-        // Summed in 64 bits, so int32 weights whose total passes 2^31 do not wrap.
-        let totalWeight = candidates.reduce(0) { $0 + Int(max(0, $1.weight)) }
-        guard totalWeight > 0 else { return candidates[floorMod(hash, candidates.count)] }
+    private static func weightedFallback(context: PlacementContext, roster: SignedRosterDocument) -> PlacementDecision? {
+        let candidates = fallbackCandidates(in: roster)
+        let total = totalWeight(of: candidates)
+        guard !candidates.isEmpty, total <= maxTotalWeight else { return nil }
+        let hash = stableHash(context: context, rosterVersion: roster.version, candidates: candidates)
+        return PlacementDecision(homeserver: pick(from: candidates, totalWeight: total, hash: hash), rule: .weightedFallback)
+    }
+
+    private static func pick(from candidates: [RosterHomeserver], totalWeight: Int64, hash: Int32) -> RosterHomeserver {
+        guard totalWeight > 0 else { return candidates[Int(floorMod(hash, Int64(candidates.count)))] }
         let target = floorMod(hash, totalWeight)
-        var cumulative = 0
+        var cumulative: Int64 = 0
         for candidate in candidates {
-            cumulative += Int(max(0, candidate.weight))
+            cumulative += Int64(max(0, candidate.weight))
             if target < cumulative { return candidate }
         }
         return candidates[candidates.count - 1]
@@ -145,8 +152,8 @@ enum PlacementReproducer {
         return Int32(bitPattern: value)
     }
 
-    private static func floorMod(_ value: Int32, _ modulus: Int) -> Int {
-        let remainder = Int(value) % modulus
+    private static func floorMod(_ value: Int32, _ modulus: Int64) -> Int64 {
+        let remainder = Int64(value) % modulus
         return remainder < 0 ? remainder + modulus : remainder
     }
 }
