@@ -81,8 +81,7 @@ struct AppRouteURLParser {
             AppGroupURLParser(),
             MatrixPermalinkParser(),
             ElementWebURLParser(domains: appSettings.elementWebHosts),
-            AccountProvisioningURLParser(domain: appSettings.accountProvisioningHost),
-            ElementCallURLParser()
+            AccountProvisioningURLParser(domain: appSettings.accountProvisioningHost)
         ]
     }
     
@@ -129,25 +128,6 @@ private struct AppGroupURLParser: URLParser {
             MXLog.error("Failed decoding share payload with error: \(error)")
             return nil
         }
-    }
-}
-
-/// The parser for Element Call links. This always returns a `.genericCallLink`.
-private struct ElementCallURLParser: URLParser {
-    private let knownHosts = ["call.element.io"]
-    
-    func route(from url: URL) -> AppRoute? {
-        // Element Call not supported, WebRTC not available
-        // https://github.com/element-hq/element-x-ios/issues/1794
-        if ProcessInfo.processInfo.isiOSAppOnMac {
-            return nil
-        }
-        
-        guard let host = url.host, knownHosts.contains(host) else {
-            return nil
-        }
-        
-        return .genericCallLink(url: url)
     }
 }
 

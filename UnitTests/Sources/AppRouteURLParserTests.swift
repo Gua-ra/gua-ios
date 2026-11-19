@@ -18,26 +18,10 @@ class AppRouteURLParserTests: XCTestCase {
         appRouteURLParser = AppRouteURLParser(appSettings: appSettings)
     }
     
-    func testElementCallRoutes() {
-        guard let url = URL(string: "https://call.element.io/test") else {
-            XCTFail("URL invalid")
-            return
-        }
-        
-        XCTAssertEqual(appRouteURLParser.route(from: url), AppRoute.genericCallLink(url: url))
-    }
-    
-    func testCustomDomainUniversalLinkCallRoutes() {
-        guard let url = URL(string: "https://somecustomdomain.element.io/test") else {
-            XCTFail("URL invalid")
-            return
-        }
-        
-        XCTAssertEqual(appRouteURLParser.route(from: url), nil)
-    }
-    
-    func testCallSchemeLinksAreNotRouted() {
-        for link in ["io.element.call:/?url=https%3A%2F%2Fcall.element.io%2Ftest",
+    func testCallLinksAreNotRouted() {
+        for link in ["https://call.element.io/test",
+                     "https://somecustomdomain.element.io/test",
+                     "io.element.call:/?url=https%3A%2F%2Fcall.element.io%2Ftest",
                      "io.element.call:/?url=https%3A%2F%2Fexample.com%2Fcall",
                      "io.element.call:/?url=http%3A%2F%2Fcall.element.io%2Ftest"] {
             guard let url = URL(string: link) else {
