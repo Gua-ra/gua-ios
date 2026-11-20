@@ -53,6 +53,15 @@ class AccessibilityTestsAppCoordinator: AppCoordinatorProtocol {
         previewsWrapper = .init(name: name, previews: previewType._allPreviews)
         
         setupSignalling()
+        
+        // The audit changes the text size, which gives the preview a new id and recreates it. Recreating a navigation stack
+        // whose text field is the first responder crashes UIKit's navigation bar layout, so end editing first.
+        NotificationCenter.default.publisher(for: UIContentSizeCategory.didChangeNotification)
+            .sink { _ in
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            }
+            .store(in: &cancellables)
+        
         // Used to perform the request check before the tests run on CI, so it can be immediately dismissed.
         CLLocationManager().requestWhenInUseAuthorization()
     }

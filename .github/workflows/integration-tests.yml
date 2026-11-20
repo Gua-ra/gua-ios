@@ -27,6 +27,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gems-
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Start the homeserver
+        run: ci_scripts/integration_tests_homeserver.sh start
+
       - name: Setup environment
         run:
           source ci_scripts/ci_common.sh && setup_github_actions_environment
@@ -39,10 +46,6 @@ jobs:
 
       - name: Run tests
         run: bundle exec fastlane integration_tests
-        env:
-          INTEGRATION_TESTS_HOST: ${{ secrets.INTEGRATION_TESTS_HOST }}
-          INTEGRATION_TESTS_USERNAME: ${{ secrets.INTEGRATION_TESTS_USERNAME }}
-          INTEGRATION_TESTS_PASSWORD: ${{ secrets.INTEGRATION_TESTS_PASSWORD }}
 
       - name: Check logs are set to the `trace` level
         run: (grep ' TRACE ' /Users/Shared -qR)
@@ -72,6 +75,19 @@ jobs:
           path: ~/Library/Logs/scan/IntegrationTests-IntegrationTests.log
           retention-days: 2
           if-no-files-found: ignore
+
+      - name: Archive the homeserver log
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: homeserver.log
+          path: ${{ runner.temp }}/integration-tests-homeserver/homeserver.log
+          retention-days: 2
+          if-no-files-found: ignore
+
+      - name: Stop the homeserver
+        if: always()
+        run: ci_scripts/integration_tests_homeserver.sh stop
 
       - name: Collect coverage
         run: xcresultparser -q -o cobertura -t Gua.app -p $(pwd) fastlane/test_output/IntegrationTests.xcresult > fastlane/test_output/integration-cobertura.xml
