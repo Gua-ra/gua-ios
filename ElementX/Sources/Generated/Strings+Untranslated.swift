@@ -58,6 +58,8 @@ internal nonisolated enum UntranslatedL10n {
   internal static var guaChatBackgroundPreviewDark: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_preview_dark") }
   /// Light
   internal static var guaChatBackgroundPreviewLight: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_preview_light") }
+  /// Preview the send effect
+  internal static var guaChatBackgroundPreviewSendA11y: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_preview_send_a11y") }
   /// Only admins and moderators can change it
   internal static var guaChatBackgroundRowNoPermission: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_row_no_permission") }
   /// How does it look?
@@ -78,6 +80,8 @@ internal nonisolated enum UntranslatedL10n {
   internal static var guaChatThemeActionSetTheme: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_action_set_theme") }
   /// Azulejo
   internal static var guaChatThemeArtAzulejo: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_azulejo") }
+  /// Boreal
+  internal static var guaChatThemeArtBoreal: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_boreal") }
   /// Calçadão
   internal static var guaChatThemeArtCalcadao: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_calcadao") }
   /// Canola Sky
@@ -108,6 +112,8 @@ internal nonisolated enum UntranslatedL10n {
   internal static var guaChatThemeArtIpe: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_ipe") }
   /// Knit
   internal static var guaChatThemeArtKnit: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_knit") }
+  /// Lagoon
+  internal static var guaChatThemeArtLagoon: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_lagoon") }
   /// Molten Pearl
   internal static var guaChatThemeArtMoltenPearl: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_molten_pearl") }
   /// Moon Tide
@@ -126,8 +132,12 @@ internal nonisolated enum UntranslatedL10n {
   internal static var guaChatThemeArtRainOnGlass: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_rain_on_glass") }
   /// River Bends
   internal static var guaChatThemeArtRiverBends: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_river_bends") }
+  /// Sea Sparks
+  internal static var guaChatThemeArtSeaSparks: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_sea_sparks") }
   /// Silk
   internal static var guaChatThemeArtSilk: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_silk") }
+  /// Tropic Dusk
+  internal static var guaChatThemeArtTropicDusk: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_tropic_dusk") }
   /// Blue
   internal static var guaChatThemeBubbleBlue: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_bubble_blue") }
   /// Graphite

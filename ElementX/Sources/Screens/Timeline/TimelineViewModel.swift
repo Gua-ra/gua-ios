@@ -478,6 +478,8 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
                     buildTimelineViews(timelineItems: updatedItems, isSwitchingTimelines: isSwitchingTimelines)
                     reconcileSelection(with: updatedItems, isSwitchingTimelines: isSwitchingTimelines)
                     reportChatBackgroundChange(in: updatedItems)
+                    // GUA FORK: new local echoes of the user's own events pulse the live wallpaper.
+                    ChatWallpaperSendPulse.recordLocalEchoes(in: updatedItems, isSwitchingTimelines: isSwitchingTimelines, roomID: roomProxy.id, timelineKind: timelineController.timelineKind)
                     
                     if !updatedItems.isEmpty {
                         analyticsService.signpost.finishTransaction(.openRoom)

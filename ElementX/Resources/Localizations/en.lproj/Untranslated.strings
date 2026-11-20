@@ -171,6 +171,7 @@
 "gua_chat_background_error_generic" = "Couldn’t change the background. Try again.";
 "gua_chat_background_error_too_large" = "This photo is too large. Choose another one.";
 "gua_chat_background_preview_a11y" = "Background preview";
+"gua_chat_background_preview_send_a11y" = "Preview the send effect";
 "gua_chat_background_sample_incoming" = "How does it look?";
 "gua_chat_background_sample_outgoing" = "Looks great!";
 "gua_chat_background_sample_today" = "Today";
@@ -218,6 +219,10 @@
 "gua_chat_theme_art_rain_on_glass" = "Rain on Glass";
 "gua_chat_theme_art_pantanal" = "Pantanal";
 "gua_chat_theme_art_currents_live" = "Currents Live";
+"gua_chat_theme_art_boreal" = "Boreal";
+"gua_chat_theme_art_lagoon" = "Lagoon";
+"gua_chat_theme_art_sea_sparks" = "Sea Sparks";
+"gua_chat_theme_art_tropic_dusk" = "Tropic Dusk";
 "gua_chat_theme_art_dune_lagoons" = "Dune Lagoons";
 "gua_chat_theme_art_palm_coast" = "Palm Coast";
 "gua_chat_theme_art_river_bends" = "River Bends";

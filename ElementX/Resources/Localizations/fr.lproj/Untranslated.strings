@@ -122,6 +122,7 @@
 "gua_chat_background_error_generic" = "Impossible de modifier l’arrière-plan. Veuillez réessayer.";
 "gua_chat_background_error_too_large" = "Cette photo est trop volumineuse. Choisissez-en une autre.";
 "gua_chat_background_preview_a11y" = "Aperçu de l’arrière-plan";
+"gua_chat_background_preview_send_a11y" = "Voir l’effet d’envoi";
 "gua_chat_background_sample_incoming" = "Qu’en pensez-vous ?";
 "gua_chat_background_sample_outgoing" = "C’est très réussi !";
 "gua_chat_background_sample_today" = "Aujourd’hui";
@@ -169,6 +170,10 @@
 "gua_chat_theme_art_rain_on_glass" = "Pluie sur la vitre";
 "gua_chat_theme_art_pantanal" = "Pantanal";
 "gua_chat_theme_art_currents_live" = "Courants animés";
+"gua_chat_theme_art_boreal" = "Boreal";
+"gua_chat_theme_art_lagoon" = "Lagon";
+"gua_chat_theme_art_sea_sparks" = "Étincelles marines";
+"gua_chat_theme_art_tropic_dusk" = "Soir tropical";
 "gua_chat_theme_art_dune_lagoons" = "Lagunes des dunes";
 "gua_chat_theme_art_palm_coast" = "Côte des palmiers";
 "gua_chat_theme_art_river_bends" = "Méandres du fleuve";
