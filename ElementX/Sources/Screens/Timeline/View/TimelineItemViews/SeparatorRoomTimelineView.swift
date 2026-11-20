@@ -14,8 +14,9 @@ struct SeparatorRoomTimelineView: View {
         Text(timelineItem.timestamp.formatted(date: .complete, time: .omitted))
             .font(.compound.bodySMSemibold)
             .foregroundColor(.compound.textPrimary)
-            .frame(maxWidth: .infinity)
             .multilineTextAlignment(.center)
+            .legibilityCapsule()
+            .frame(maxWidth: .infinity)
             .padding(.horizontal, 36.0)
             .padding(.vertical, 8.0)
     }

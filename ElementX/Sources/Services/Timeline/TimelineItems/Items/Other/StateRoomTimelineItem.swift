@@ -18,4 +18,6 @@ struct StateRoomTimelineItem: EventBasedTimelineItemProtocol, Equatable {
     let sender: TimelineItemSender
     
     var properties = RoomTimelineItemProperties()
+    
+    var chatBackgroundEvent: ChatBackgroundTimelineEvent?
 }

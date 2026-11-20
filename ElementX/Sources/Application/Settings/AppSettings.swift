@@ -72,6 +72,7 @@ final class AppSettings {
         case latestEventSorterEnabled
         case legacyAuthEnabled
         case guaAccountGenesisEnabled
+        case guaChatBackgroundsEnabled
         
         // Doug's tweaks 🔧
         case hideUnreadMessagesBadge
@@ -94,6 +95,15 @@ final class AppSettings {
         return apps.contains(InfoPlistReader.main.baseBundleIdentifier)
         #endif
     }()
+        
+    /// GUA FORK: the same builds as `GuaDeployment.development`, which the extensions don't compile.
+    private static var isGuaDevelopmentBuild: Bool {
+        #if GUA_DEVELOPMENT || DEBUG
+        true
+        #else
+        false
+        #endif
+    }
         
     static func resetAllSettings() {
         MXLog.warning("Resetting the AppSettings.")
@@ -486,6 +496,10 @@ final class AppSettings {
     /// fails to attach fails the signup.
     @UserPreference(key: UserDefaultsKeys.guaAccountGenesisEnabled, defaultValue: false, storageType: .userDefaults(store))
     var guaAccountGenesisEnabled
+    
+    /// GUA FORK: off in production until released Android builds stop showing the raw event in group timelines.
+    @UserPreference(key: UserDefaultsKeys.guaChatBackgroundsEnabled, defaultValue: isGuaDevelopmentBuild, storageType: .userDefaults(store))
+    var guaChatBackgroundsEnabled
 
     @UserPreference(key: UserDefaultsKeys.developerOptionsEnabled, defaultValue: isDevelopmentBuild, storageType: .userDefaults(store))
     var developerOptionsEnabled

@@ -381,6 +381,15 @@ class JoinedRoomProxy: JoinedRoomProxyProtocol {
         }
     }
     
+    func sendStateEvent(type: String, stateKey: String, content: String) async -> Result<String, RoomProxyError> {
+        do {
+            return try await .success(room.sendStateEventRaw(eventType: type, stateKey: stateKey, content: content))
+        } catch {
+            MXLog.error("Failed sending \(type) state with error: \(error)")
+            return .failure(.sdkError(error))
+        }
+    }
+    
     func removeAvatar() async -> Result<Void, RoomProxyError> {
         do {
             return try await .success(room.removeAvatar())

@@ -43,7 +43,8 @@ struct CollapsibleRoomTimelineView: View {
                         .animation(.elementDefault, value: isExpanded)
                 }
                 .font(.compound.bodySM)
-                .foregroundColor(.compound.textSecondary)
+                .legibleSecondaryForeground()
+                .legibilityCapsule()
                 .padding(.horizontal, 36.0)
                 .padding(.vertical, 12.0)
                 .contentShape(Rectangle())

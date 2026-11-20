@@ -14,6 +14,7 @@ struct SwipeToReplyView: View {
     var body: some View {
         CompoundIcon(\.reply)
             .foregroundColor(.compound.iconPrimary)
+            .legibilityCapsule(.circle)
             .accessibilityHidden(true)
     }
 }
