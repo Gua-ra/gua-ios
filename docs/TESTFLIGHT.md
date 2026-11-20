@@ -54,6 +54,7 @@ feedback bot.
 | `GUA_DEV_RESOLVER_BASE_URL` | **HTTPS** base URL of the dev **resolver** (resolver routing) | The dev cluster's resolver ingress, e.g. `https://resolver.dev.gua.<dev-zone>` |
 | `GUA_DEV_IDENTITY_SERVICE_BASE_URL` | **HTTPS** base URL of the dev **identity-service** (phone/OTP IdP) | The dev cluster's identity ingress, e.g. `https://identity.dev.gua.<dev-zone>` |
 | `GUA_DEV_ACCOUNT_PROVIDER` | The dev **homeserver server-name** offered at login (host, no scheme) | The `serverName` the resolver returns, e.g. `dev.gua.<dev-zone>` |
+| `GUA_DEV_RESOLVER_TRUST_ROOTS` | The dev resolver's trust roots as space-separated tokens, the same format as Android: `authority:<keyId>:<spkiBase64>`, `policy:<keyId>:<spkiBase64>`, and optionally `authority-threshold:<n>` and `policy-threshold:<n>` (1 by default). No key is copied from one list to the other. Optional; empty or malformed leaves resolver verification without trust roots | The `authority-public-key` of the dev resolver secret, listed as both `authority:gua-authority-dev:<base64>` and `policy:gua-authority-dev:<base64>`, because that key signs the dev policy |
 
 ## Two apps: prod and dev
 
