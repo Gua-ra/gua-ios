@@ -147,6 +147,8 @@ struct MessageMenuOverlay: View {
     private func bubble(width: CGFloat) -> some View {
         RoomTimelineItemView(viewState: RoomTimelineItemViewState(item: item, groupStyle: groupStyle))
             .environment(\.isMessageMenuPreview, true)
+            // The timeline sets this per cell, so the lifted copy needs it too or hidden media loads.
+            .environment(\.shouldAutomaticallyLoadImages, !context.viewState.hideTimelineMedia)
             .environment(\.layoutDirection, layoutDirection)
             .frame(width: width)
             .fixedSize(horizontal: false, vertical: true)
@@ -454,6 +456,26 @@ struct MessageMenuOverlay_Previews: PreviewProvider, TestablePreview {
                                                    sender: .init(id: "@voce:gua", displayName: "Você"),
                                                    content: .init(body: "Que paz nesse lugar 😍"))
 
+    static let hiddenMediaViewModel = TimelineViewModel.mock(timelineMediaVisibility: .never)
+
+    static let incomingPhotoReplyingToPhoto = ImageRoomTimelineItem(id: .randomEvent,
+                                                                    timestamp: .mock,
+                                                                    isOutgoing: false,
+                                                                    isEditable: false,
+                                                                    canBeRepliedTo: true,
+                                                                    sender: .init(id: "@camila:gua", displayName: "Camila Moraes"),
+                                                                    content: .init(filename: "praia.jpg",
+                                                                                   caption: "Olha a vista daqui",
+                                                                                   imageInfo: .mockImage,
+                                                                                   thumbnailInfo: .mockThumbnail,
+                                                                                   blurhash: "L%KUc%kqS$RP?Ks,WEf8OlrqaekW",
+                                                                                   contentType: .jpeg),
+                                                                    properties: .init(replyDetails: .loaded(sender: .init(id: "@rafa:gua", displayName: "Rafa"),
+                                                                                                            eventID: "$photo",
+                                                                                                            eventContent: .message(.image(.init(filename: "image.jpg",
+                                                                                                                                                imageInfo: .mockImage,
+                                                                                                                                                thumbnailInfo: .mockThumbnail))))))
+
     static let reactedItem = {
         let me = RoomMemberProxyMock.mockMe.userID
         func sender(_ id: String, _ minute: Double) -> ReactionSender {
@@ -485,11 +507,17 @@ struct MessageMenuOverlay_Previews: PreviewProvider, TestablePreview {
                 presentation: .reactionsAndActions(MessageMenuAnchor(frame: CGRect(x: 16, y: 240, width: 300, height: 82))),
                 isShowingMore: true)
             .previewDisplayName("More")
+
+        overlay(item: incomingPhotoReplyingToPhoto,
+                presentation: .reactionsAndActions(MessageMenuAnchor(frame: CGRect(x: 16, y: 120, width: 300, height: 340))),
+                viewModel: hiddenMediaViewModel)
+            .previewDisplayName("Long press with media hidden")
     }
 
-    static func overlay(item: TextRoomTimelineItem,
+    static func overlay(item: EventBasedTimelineItemProtocol,
                         presentation: TimelineItemMenuPresentation,
-                        isShowingMore: Bool = false) -> some View {
+                        isShowingMore: Bool = false,
+                        viewModel: TimelineViewModel = Self.viewModel) -> some View {
         let actions = TimelineItemMenuActionProvider(timelineItem: item,
                                                      canCurrentUserSendMessage: true,
                                                      canCurrentUserRedactSelf: true,
