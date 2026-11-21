@@ -642,7 +642,7 @@ jobs:
             --apiKey "$ASC_KEY_ID" \
             --apiIssuer "$ASC_ISSUER_ID" \
             2>&1 | tee altool-validate.log
-          if grep -qi 'No errors validating' altool-validate.log; then
+          if grep -qiE 'No errors(, [0-9]+ warnings?)?,? validating' altool-validate.log; then
             echo "Validation succeeded."
           else
             echo "::error::altool validation failed (see log above)."
