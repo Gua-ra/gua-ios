@@ -18,58 +18,19 @@ class AppRouteURLParserTests: XCTestCase {
         appRouteURLParser = AppRouteURLParser(appSettings: appSettings)
     }
     
-    func testElementCallRoutes() {
-        guard let url = URL(string: "https://call.element.io/test") else {
-            XCTFail("URL invalid")
-            return
+    func testCallLinksAreNotRouted() {
+        for link in ["https://call.element.io/test",
+                     "https://somecustomdomain.element.io/test",
+                     "io.element.call:/?url=https%3A%2F%2Fcall.element.io%2Ftest",
+                     "io.element.call:/?url=https%3A%2F%2Fexample.com%2Fcall",
+                     "io.element.call:/?url=http%3A%2F%2Fcall.element.io%2Ftest"] {
+            guard let url = URL(string: link) else {
+                XCTFail("URL invalid")
+                return
+            }
+            
+            XCTAssertNil(appRouteURLParser.route(from: url))
         }
-        
-        XCTAssertEqual(appRouteURLParser.route(from: url), AppRoute.genericCallLink(url: url))
-        
-        guard let customSchemeURL = URL(string: "io.element.call:/?url=https%3A%2F%2Fcall.element.io%2Ftest") else {
-            XCTFail("URL invalid")
-            return
-        }
-        
-        XCTAssertEqual(appRouteURLParser.route(from: customSchemeURL), AppRoute.genericCallLink(url: url))
-    }
-    
-    func testCustomDomainUniversalLinkCallRoutes() {
-        guard let url = URL(string: "https://somecustomdomain.element.io/test") else {
-            XCTFail("URL invalid")
-            return
-        }
-        
-        XCTAssertEqual(appRouteURLParser.route(from: url), nil)
-    }
-    
-    func testCustomSchemeLinkCallRoutes() {
-        let urlString = "https://somecustomdomain.element.io/test?param=123"
-        guard let url = URL(string: urlString) else {
-            XCTFail("URL invalid")
-            return
-        }
-        
-        guard let encodedURLString = urlString.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) else {
-            XCTFail("Could not encode URL string")
-            return
-        }
-        
-        guard let customSchemeURL = URL(string: "io.element.call:/?url=\(encodedURLString)") else {
-            XCTFail("URL invalid")
-            return
-        }
-        
-        XCTAssertEqual(appRouteURLParser.route(from: customSchemeURL), AppRoute.genericCallLink(url: url))
-    }
-    
-    func testHttpCustomSchemeLinkCallRoutes() {
-        guard let customSchemeURL = URL(string: "io.element.call:/?url=http%3A%2F%2Fcall.element.io%2Ftest") else {
-            XCTFail("URL invalid")
-            return
-        }
-        
-        XCTAssertEqual(appRouteURLParser.route(from: customSchemeURL), nil)
     }
     
     func testMatrixUserURL() {
