@@ -219,12 +219,8 @@ final class ChatBackgroundServiceTests: XCTestCase {
         XCTAssertNil(loaded["!0:gua.global"])
         XCTAssertEqual(loaded["!1:gua.global"]?.eventID, "$again")
 
-        // Writes are asynchronous, so poll until the last one lands.
-        var reloaded: [String: ChatBackgroundStoredValue] = [:]
-        for _ in 0..<250 where reloaded["!1:gua.global"]?.eventID != "$again" {
-            Thread.sleep(forTimeInterval: 0.02)
-            reloaded = ChatBackgroundCache(directory: directory).load()
-        }
+        diskCache.waitForPendingWrites()
+        let reloaded = ChatBackgroundCache(directory: directory).load()
         XCTAssertEqual(reloaded.count, ChatBackgroundCache.maxRooms)
         XCTAssertEqual(reloaded["!1:gua.global"]?.eventID, "$again")
     }

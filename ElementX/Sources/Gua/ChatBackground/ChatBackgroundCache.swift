@@ -66,6 +66,10 @@ final class ChatBackgroundCache: ChatBackgroundCacheProtocol {
         }
     }
 
+    func waitForPendingWrites() {
+        writeQueue.sync { }
+    }
+
     private func loadedEntries() -> [Entry] {
         if let entries {
             return entries
