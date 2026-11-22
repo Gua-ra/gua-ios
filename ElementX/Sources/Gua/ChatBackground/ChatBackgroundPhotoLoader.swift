@@ -40,7 +40,7 @@ enum ChatBackgroundPhotoLoader {
         return image
     }
 
-    /// Decoded at a fixed size whatever shape the photo declares, so a crafted width and height cannot make it expensive.
+    /// Fixed size, so a crafted width and height cannot make decoding expensive.
     static func placeholder(blurhash: String) -> UIImage? {
         if let image = placeholders.object(forKey: blurhash as NSString) {
             return image

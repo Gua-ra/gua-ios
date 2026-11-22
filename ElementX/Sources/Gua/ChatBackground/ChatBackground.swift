@@ -19,7 +19,7 @@ enum ChatBackground: Hashable {
         /// Room versions 6 and later refuse floats in events, so dim is stored in whole percent and align in thousandths.
         static let dimScale = 100.0
         static let alignScale = 1000.0
-        /// The largest file a photo background may declare, and the most that is downloaded to show one.
+        /// The largest photo file accepted, both as declared in the event and as downloaded.
         static let maxSize = 20_000_000
 
         var url: String
