@@ -7,7 +7,6 @@
 
 import Foundation
 
-/// Whether a live wallpaper animates, from everything that can stop it.
 nonisolated struct WallpaperMotionPolicy: Equatable {
     enum Motion {
         case animating
@@ -24,7 +23,6 @@ nonisolated struct WallpaperMotionPolicy: Equatable {
     var reducesMotion = false
     var isLowPowerModeEnabled = false
     var thermalState = ProcessInfo.ThermalState.nominal
-    /// The frame watchdog tripped, which lasts for the rest of the session.
     var hasSlowFrames = false
     /// False without Metal or once the artwork's shader failed to compile.
     var isRendererAvailable = true
@@ -43,14 +41,14 @@ nonisolated struct WallpaperMotionPolicy: Equatable {
         motion == .animating
     }
     
-    /// Tilt follows the same rules but needs no shader, so a live artwork shown as its still tilts too.
+    /// Tilt needs no shader, so an artwork without a renderer still tilts.
     var tiltMotion: Motion {
         var policy = self
         policy.isRendererAvailable = true
         return policy.motion
     }
     
-    /// Adds what only the wallpaper's own view can see to the inputs SwiftUI gave it; neither side can clear the other's.
+    /// Adds what only the UIKit view can see; either side can stop motion, but neither can clear the other's.
     func including(isInWindow: Bool, isSceneActive: Bool, isCovered: Bool) -> WallpaperMotionPolicy {
         var policy = self
         policy.isOnScreen = isOnScreen && isInWindow
@@ -60,10 +58,7 @@ nonisolated struct WallpaperMotionPolicy: Equatable {
     }
 }
 
-/// Trips when the 90th percentile of the GPU time per frame in the last 2 s is over 1.5 times the 30 fps budget plus 4 ms: 54 ms.
-///
-/// GPU time is the wallpaper's own cost: a stall elsewhere in the app delays frames without making them slow,
-/// so it never turns the wallpapers off.
+/// Judges GPU time, the wallpaper's own cost, so a stall elsewhere in the app delays frames without tripping it.
 nonisolated struct WallpaperFrameWatchdog {
     static let framesPerSecond = 30
     static let tolerance: TimeInterval = 0.004
@@ -75,7 +70,6 @@ nonisolated struct WallpaperFrameWatchdog {
     private var frames: [(end: TimeInterval, duration: TimeInterval)] = []
     private(set) var hasTripped = false
     
-    /// Records a frame that took `duration` on the GPU and finished at `end`, and returns whether the watchdog has tripped.
     mutating func recordFrame(duration: TimeInterval, endingAt end: TimeInterval) -> Bool {
         guard !hasTripped else { return true }
         
@@ -89,7 +83,6 @@ nonisolated struct WallpaperFrameWatchdog {
         return hasTripped
     }
     
-    /// Starts measuring again, so frames from before a pause never count with those after it.
     mutating func restart() {
         frames.removeAll()
     }

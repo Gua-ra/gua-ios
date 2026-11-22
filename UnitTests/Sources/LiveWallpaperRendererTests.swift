@@ -38,7 +38,6 @@ final class LiveWallpaperRendererTests {
             let still = try render(pipeline, time: stillTime, dark: dark, pulse: 0)
             #expect(try render(pipeline, time: stillTime, dark: dark, pulse: 0) == still, "\(artwork.id) \(appearance) draws the same frame twice")
             
-            // The live view starts on this frame, so it must be the picture the still image shows.
             let difference = try meanDifference(still, stillImage(of: artwork, dark: dark))
             #expect(difference < 3, "\(artwork.id) \(appearance) differs from its still by \(difference) levels")
             #expect(try difference < meanDifference(still, stillImage(of: artwork, dark: !dark)), "\(artwork.id) \(appearance) draws the other appearance")
@@ -63,7 +62,7 @@ final class LiveWallpaperRendererTests {
         let layoutSpot = try render(pipeline, time: stillTime, dark: false, pulse: 0.6, origin: origin)
         let upsideDown = try render(pipeline, time: stillTime, dark: false, pulse: 0.6, origin: SIMD2(origin.x, Float(Self.height) - origin.y))
         
-        // With the whole of a view shaped like the still visible, the layout's spot is the shaders' own default.
+        // A fully visible view shaped like the still puts the spot at the shaders' default.
         #expect(meanDifference(shadersOwnSpot, layoutSpot) < 0.1, "\(artwork.id) moves the pulse")
         #expect(changedShare(shadersOwnSpot, layoutSpot) < 0.01, "\(artwork.id) moves the pulse")
         #expect(changedShare(shadersOwnSpot, upsideDown) > 0.02, "\(artwork.id) ignores the pulse origin")
@@ -76,9 +75,7 @@ final class LiveWallpaperRendererTests {
         #expect(first === second)
     }
     
-    // MARK: - Helpers
-    
-    /// The frame as RGBA bytes, rendered offscreen and read back through a buffer, which the simulator needs.
+    /// Read back through a buffer, which the simulator needs.
     private func render(_ pipeline: MTLRenderPipelineState, time: Float, dark: Bool, pulse: Float, origin: SIMD2<Float> = .zero) throws -> [UInt8] {
         let device = try #require(LiveWallpaperShader.device)
         let queue = try #require(LiveWallpaperShader.commandQueue)
@@ -119,7 +116,6 @@ final class LiveWallpaperRendererTests {
         return rgba
     }
     
-    /// The bundled still at the render size, as RGBA bytes.
     private func stillImage(of artwork: ChatArtwork, dark: Bool) throws -> [UInt8] {
         let url = try #require(ChatArtworkLoader.url(for: dark ? artwork.fileNames.dark : artwork.fileNames.light))
         let source = try #require(CGImageSourceCreateWithURL(url as CFURL, nil))
@@ -146,7 +142,6 @@ final class LiveWallpaperRendererTests {
         return Double(changed) / Double(first.count / 4)
     }
     
-    /// The mean absolute difference of the colour channels, in 8-bit levels.
     private func meanDifference(_ first: [UInt8], _ second: [UInt8]) -> Double {
         var total = 0
         for pixel in stride(from: 0, to: min(first.count, second.count), by: 4) {

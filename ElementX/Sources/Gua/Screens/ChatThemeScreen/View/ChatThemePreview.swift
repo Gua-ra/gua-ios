@@ -16,14 +16,12 @@ struct ChatThemePreview: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reducesMotion
     
-    /// The send button previews the send pulse, which only this preview reads.
     @State private var sendPulse = ChatWallpaperSendPulse()
     
     private var previewColorScheme: ColorScheme {
         draft.previewColorScheme ?? colorScheme
     }
     
-    /// Only a wallpaper that can move offers to preview a send.
     private var canPreviewSending: Bool {
         guard case .art(let artwork) = draft.shownTheme.wallpaper else { return false }
         return ChatLiveWallpaperView.canAnimate(artwork, reducesMotion: reducesMotion)
@@ -75,7 +73,6 @@ struct ChatThemePreviewControls<Extra: View>: View {
     let canSave: Bool
     let onPreviewColorScheme: (ColorScheme) -> Void
     let onSave: () -> Void
-    /// Shows a send button that plays the send pulse; set only while the previewed artwork can animate.
     var onPreviewSend: (() -> Void)?
     @ViewBuilder var extra: Extra
     

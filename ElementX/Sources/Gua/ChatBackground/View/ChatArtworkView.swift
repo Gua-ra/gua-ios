@@ -11,7 +11,7 @@ import SwiftUI
 /// An artwork's still for the current appearance, cropped around its anchor, over its fallback preset while it loads.
 struct ChatArtworkView: View {
     let artwork: ChatArtwork
-    /// Set where the artwork tilts: the still is then drawn larger than the view, so moving it never shows its edges.
+    /// Set where the artwork tilts, which draws the still larger than the view so a tilt never shows its edges.
     var parallax: WallpaperParallax?
     
     @Environment(\.colorScheme) private var colorScheme
@@ -62,7 +62,7 @@ struct ChatArtworkView: View {
     }
 }
 
-/// Moves the still's canvas with the tilt. Only this modifier reads the tilt, so the canvas is never redrawn for it.
+/// Only this modifier reads the tilt, so a tilt moves the canvas without redrawing it.
 private struct WallpaperParallaxOffset: ViewModifier {
     let parallax: WallpaperParallax
     let layout: WallpaperStillLayout

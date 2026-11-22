@@ -180,7 +180,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         }
     }
     
-    /// The shader time the still image was rendered at, where a live artwork starts so its first frame is the still.
+    /// The shader time the still was rendered at, so a live artwork's first frame matches its still.
     var stillTime: Double? {
         switch self {
         case .glassDrops, .silk, .seaSparks: 0
@@ -198,7 +198,6 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         ("\(rawValue)-light.webp", "\(rawValue)-dark.webp")
     }
     
-    /// The live artwork's Metal shader source, compiled at runtime.
     var shaderFileName: String? {
         isLive ? "\(rawValue).msl" : nil
     }

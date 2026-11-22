@@ -8,16 +8,15 @@
 import Combine
 import SwiftUI
 
-/// The device-wide inputs of `WallpaperMotionPolicy`, shared by every live wallpaper.
+/// The device-wide inputs to `WallpaperMotionPolicy`.
 @Observable
 final class LiveWallpaperConditions {
     static let shared = LiveWallpaperConditions()
     
     private(set) var isLowPowerModeEnabled = ProcessInfo.processInfo.isLowPowerModeEnabled
     private(set) var thermalState = ProcessInfo.processInfo.thermalState
-    /// Set once by a frame watchdog, after which every live wallpaper stays still until the app restarts.
+    /// Latched by any frame watchdog: every live wallpaper then stays still until the app restarts.
     private(set) var hasSlowFrames = false
-    /// Artworks that can't be drawn live on this device, because there is no Metal or their shader failed to compile.
     private(set) var unavailableArtworks: Set<ChatArtwork> = []
     
     @ObservationIgnored private var cancellables = Set<AnyCancellable>()

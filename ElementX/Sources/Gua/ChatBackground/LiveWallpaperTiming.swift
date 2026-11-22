@@ -7,9 +7,9 @@
 
 import QuartzCore
 
-/// The shader's `u_time`: the artwork's still time plus the seconds it has animated, so its first frame is the still.
+/// The shader's `u_time`: the still time plus the seconds spent animating.
 nonisolated struct LiveWallpaperClock {
-    /// Keeps the float time small enough that it never loses precision.
+    /// Wraps the time so the Float keeps millisecond precision.
     static let period: TimeInterval = 1800
     
     let stillTime: TimeInterval
@@ -41,7 +41,7 @@ nonisolated struct LiveWallpaperClock {
     }
 }
 
-/// The send pulse the Lab plays for its "Send a message" button.
+/// The send pulse envelope from the Wallpaper Lab.
 nonisolated enum LiveWallpaperPulse {
     static let rise: TimeInterval = 0.25
     static let decay: TimeInterval = 0.9
@@ -53,8 +53,7 @@ nonisolated enum LiveWallpaperPulse {
         return rising * rising * (3 - 2 * rising) * exp(-max(0, seconds - rise) / decay)
     }
     
-    /// When the pulse of a send at `time` starts: during a pulse, where its rising edge has the current value, so a send
-    /// never snaps the pulse back to zero.
+    /// A send during a pulse starts where the rising edge has the current value, so the pulse never snaps back to zero.
     static func start(ofSendAt time: TimeInterval, currentStart: TimeInterval?) -> TimeInterval {
         let current = currentStart.map { value(secondsSinceSend: time - $0) } ?? 0
         // The inverse of the rising edge's smoothstep.
@@ -62,22 +61,21 @@ nonisolated enum LiveWallpaperPulse {
     }
 }
 
-/// The send pulse of one chat's live wallpaper, from the events the user sends from this device, and where the chat ends
-/// above the composer, which places it.
+/// A chat's send pulse, from sends on this device, placed above the composer.
 final class ChatWallpaperSendPulse {
     private static var rooms: [String: ChatWallpaperSendPulse] = [:]
     
     private let now: () -> TimeInterval
-    /// When the pulse that plays now started: the last send, or earlier when that send came during a pulse.
+    /// The last send, or earlier when that send came during a pulse.
     private(set) var pulseStart: TimeInterval?
     /// The top edge of the composer, or of the theme preview's controls, in SwiftUI's global space.
     var composerTop: CGFloat?
     /// The transaction IDs of every local echo the room's timeline has shown.
     private var seenLocalEchoes: Set<String> = []
-    /// Set while the timeline on screen is opening: its local echoes were sent before it opened.
+    /// Local echoes seen while the timeline opens were sent before it opened.
     private var isOpeningTimeline = true
     
-    /// Times use `CACurrentMediaTime`, the clock the renderer draws with.
+    /// `now` must be the clock the renderer draws with.
     init(now: @escaping () -> TimeInterval = CACurrentMediaTime) {
         self.now = now
     }
@@ -91,7 +89,7 @@ final class ChatWallpaperSendPulse {
         return pulse
     }
     
-    /// Reads an update of a room's own timeline: a thread, the pinned events or the media don't show the room's wallpaper.
+    /// Threads, pinned events and the media browser don't show the room's wallpaper, so they never pulse it.
     static func recordLocalEchoes(in items: [RoomTimelineItemProtocol], isSwitchingTimelines: Bool, roomID: String, timelineKind: TimelineKind) {
         switch timelineKind {
         case .live, .detached:
@@ -101,12 +99,8 @@ final class ChatWallpaperSendPulse {
         }
     }
     
-    /// Pulses when the update shows a local echo of the user's own event that wasn't in the timeline when it opened.
-    ///
-    /// Only this device's send queue makes local echoes, one per new event: history, edits, reactions and redactions
-    /// add none, and events from the user's other devices arrive with an event ID instead of a transaction ID.
-    /// The echo keeps its transaction ID until its remote echo replaces it, so each send counts once.
-    /// A timeline that opens, or switches between live and an event, starts at its still with no pulse.
+    /// Pulses for each local echo first seen after the timeline opened. Only this device's send queue creates local
+    /// echoes, one per new event, so history, edits, reactions and the user's other devices never pulse.
     func recordLocalEchoes(in items: [RoomTimelineItemProtocol], isSwitchingTimelines: Bool) {
         if isSwitchingTimelines {
             isOpeningTimeline = true
@@ -121,7 +115,7 @@ final class ChatWallpaperSendPulse {
         }
         
         if isOpeningTimeline {
-            // A timeline can open before it has loaded, so the opening lasts until an update holds events.
+            // A timeline can open empty, so opening lasts until an update holds events.
             isOpeningTimeline = !items.contains { $0 is EventBasedTimelineItemProtocol || $0 is CollapsibleTimelineItem }
         } else if hasNewLocalEcho {
             recordSend()

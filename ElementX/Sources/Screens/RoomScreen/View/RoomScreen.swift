@@ -126,7 +126,6 @@ struct RoomScreen: View {
                         TimelineMessageSelectionActionBar(context: timelineContext)
                     }
                 }
-                // GUA FORK: the live wallpaper's send pulse starts just above this, wherever the keyboard moves it.
                 .reportsChatWallpaperComposerTop(to: .forRoom(timelineContext.viewState.roomID))
             }
             .navigationBarBackButtonHidden(isMessageSelectionActive)

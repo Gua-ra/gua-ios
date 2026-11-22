@@ -10,8 +10,6 @@ import SwiftUI
 import Testing
 
 final class LiveWallpaperMotionTests {
-    // MARK: - Policy
-    
     @Test
     func animatesWhenNothingStopsIt() {
         let policy = WallpaperMotionPolicy()
@@ -86,7 +84,6 @@ final class LiveWallpaperMotionTests {
         #expect(policy.including(isInWindow: true, isSceneActive: true, isCovered: false).motion == .animating)
         #expect(policy.including(isInWindow: false, isSceneActive: true, isCovered: false).motion == .paused)
         #expect(policy.including(isInWindow: true, isSceneActive: false, isCovered: false).motion == .paused)
-        // A presentation, or a hidden window under the app lock screen.
         #expect(policy.including(isInWindow: true, isSceneActive: true, isCovered: true).motion == .paused)
     }
     
@@ -147,7 +144,6 @@ final class LiveWallpaperMotionTests {
     @Test
     func onlyTheChatAndThePreviewGetTheRenderer() {
         #expect(ChatLiveWallpaperView.isShown(for: .glassDrops, sendPulse: ChatWallpaperSendPulse(), isEnabled: true))
-        // Theme tiles, the header and the wallpaper picker set no send pulse.
         #expect(!ChatLiveWallpaperView.isShown(for: .glassDrops, sendPulse: nil, isEnabled: true))
         #expect(!ChatLiveWallpaperView.isShown(for: .palmCoast, sendPulse: ChatWallpaperSendPulse(), isEnabled: true, isTiltSupported: false))
     }
@@ -210,7 +206,6 @@ final class LiveWallpaperMotionTests {
         parallax.moveStillToAppliedTilt()
         #expect(parallax.tilt == SIMD2(0.2, -0.1))
         
-        // After a still condition the tilt resumes from rest, so the dead band is measured from there.
         parallax.forgetAppliedTilt()
         #expect(parallax.appliedTilt == .zero)
         #expect(!parallax.apply(SIMD2(0.0005, 0)))
@@ -221,8 +216,6 @@ final class LiveWallpaperMotionTests {
         #expect(!ChatLiveWallpaperView.canAnimate(.glassDrops, reducesMotion: true, isEnabled: true))
         #expect(!ChatLiveWallpaperView.canAnimate(.palmCoast, reducesMotion: false, isEnabled: true))
     }
-    
-    // MARK: - Frame watchdog
     
     @Test
     func watchdogAcceptsSteadyFrames() {
@@ -257,7 +250,6 @@ final class LiveWallpaperMotionTests {
     func watchdogForgetsFramesOlderThanTwoSeconds() {
         var watchdog = WallpaperFrameWatchdog()
         let trippedBySlowFrames = drawFrames(into: &watchdog, count: 9, every: 0.06, taking: 0.06, from: 0)
-        // The slow frames ended over 2 s before these, so the window holds only fast ones.
         let trippedLater = drawFrames(into: &watchdog, count: 60, every: 1.0 / 30, taking: 0.008, from: 2.6)
         #expect(!trippedBySlowFrames)
         #expect(!trippedLater)
@@ -268,7 +260,6 @@ final class LiveWallpaperMotionTests {
         var watchdog = WallpaperFrameWatchdog()
         var time = 0.0
         var tripped = false
-        // One frame in 20 takes 400 ms: the 90th percentile stays on budget.
         for frame in 0..<400 {
             let duration = frame % 20 == 19 ? 0.4 : 0.01
             time += max(duration, 1.0 / 30)
@@ -293,7 +284,6 @@ final class LiveWallpaperMotionTests {
     @Test
     func watchdogIgnoresAStallBetweenFrames() {
         var watchdog = WallpaperFrameWatchdog()
-        // The main thread stalls for 1.8 s: frames stop, but none of them is slow.
         let trippedBefore = drawFrames(into: &watchdog, every: 1.0 / 30, taking: 0.008, from: 0, for: 5)
         let trippedAfter = drawFrames(into: &watchdog, every: 1.0 / 30, taking: 0.008, from: 6.8, for: 5)
         #expect(!trippedBefore)
@@ -303,7 +293,6 @@ final class LiveWallpaperMotionTests {
     @Test
     func watchdogIgnoresOneStrayFrame() {
         var watchdog = WallpaperFrameWatchdog()
-        // One frame held up on the GPU for 1.8 s among steady ones never decides the percentile alone.
         var tripped = drawFrames(into: &watchdog, every: 1.0 / 30, taking: 0.008, from: 0, for: 5)
         tripped = watchdog.recordFrame(duration: 1.8, endingAt: 6.8) || tripped
         tripped = drawFrames(into: &watchdog, every: 1.0 / 30, taking: 0.008, from: 6.83, for: 5) || tripped
@@ -316,7 +305,6 @@ final class LiveWallpaperMotionTests {
         let trippedBefore = drawFrames(into: &watchdog, count: 9, every: 0.06, taking: 0.06, from: 0)
         
         watchdog.restart()
-        // The slow frames before the pause no longer count towards the ten.
         let trippedAfter = drawFrames(into: &watchdog, count: 9, every: 0.06, taking: 0.06, from: 0.6)
         let trippedLater = watchdog.recordFrame(duration: 0.06, endingAt: 1.2)
         #expect(!trippedBefore)
@@ -336,11 +324,8 @@ final class LiveWallpaperMotionTests {
         #expect(trippedAfterARestart)
     }
     
-    // MARK: - Layout and uniforms
-    
     @Test
     func aPhoneChatDrawsTheWholeStillAtHalfItsPixels() throws {
-        // An iPhone 17 Pro chat below the navigation bar, at 3x.
         let viewSize = CGSize(width: 402, height: 758)
         let layout = LiveWallpaperLayout(artwork: .glassDrops, viewSize: viewSize, displayScale: 3)
         
@@ -356,7 +341,6 @@ final class LiveWallpaperMotionTests {
     
     @Test
     func aWideChatGetsAFewerPixelDrawable() {
-        // An iPhone in landscape: the still's rect is over five times the chat.
         let viewSize = CGSize(width: 874, height: 340)
         let layout = LiveWallpaperLayout(artwork: .silk, viewSize: viewSize, displayScale: 3)
         let visiblePixels = viewSize.width * viewSize.height * 1.5 * 1.5
@@ -386,8 +370,8 @@ final class LiveWallpaperMotionTests {
         #expect(canvas.maxX >= viewSize.width - 1e-9 && canvas.maxY >= viewSize.height - 1e-9)
     }
     
-    // An iPhone 17 Pro chat is 402 by 758 points from the navigation bar down to the bottom of the screen, behind a
-    // 34-point home indicator, a 64-point composer and a 336-point keyboard; composer tops below are what those leave.
+    // A 402 by 758 point chat behind a 34-point home indicator, a 64-point composer and a 336-point keyboard;
+    // the composer tops below are what those leave.
     
     @Test(arguments: [(CGSize(width: 402, height: 758), 0...660),
                       (CGSize(width: 402, height: 758), 0...358),
@@ -430,9 +414,6 @@ final class LiveWallpaperMotionTests {
         #expect(abs(584 - spotInCanvas(fourLines, of: layout).y - 584 * 0.113) < 0.5)
     }
     
-    // The same chat in SwiftUI's global space: its canvas starts 116 points down, below the top bar, and the composer
-    // and the keyboard are measured there too.
-    
     @Test(arguments: [(776, 660), (474, 358), (60, -56), (930, 814)] as [(CGFloat, CGFloat)])
     func theComposerIsMeasuredFromTheCanvasTop(composerGlobalTop: CGFloat, visibleBottom: CGFloat) {
         let chat = visibleChat(composerGlobalTop: composerGlobalTop)
@@ -470,7 +451,6 @@ final class LiveWallpaperMotionTests {
         #expect(visibleChat(canvasGlobalTop: nil, composerGlobalTop: nil).bottom == 724)
         #expect(visibleChat(canvasGlobalTop: nil, composerGlobalTop: 776).bottom == 724)
         #expect(visibleChat(composerGlobalTop: nil).bottom == 724)
-        // The canvas's own inset also holds the keyboard, which the window's never does.
         #expect(visibleChat(composerGlobalTop: nil, bottomInset: 370).bottom == 724)
         #expect(visibleChat(composerGlobalTop: nil, bottomInset: 0).bottom == 758)
         #expect(visibleChat(composerGlobalTop: nil, windowBottomInset: nil).bottom == 758)
@@ -507,7 +487,6 @@ final class LiveWallpaperMotionTests {
     
     @Test
     func thePreviewSpotIsAboveItsControls() {
-        // The full-screen theme preview below its Cancel bar, with Light/Dark and Set theme above the home indicator.
         let canvasSize = CGSize(width: 402, height: 758)
         let controlsTop: CGFloat = 598
         for artwork in ChatArtwork.allCases where artwork.isLive {
@@ -521,7 +500,6 @@ final class LiveWallpaperMotionTests {
     
     @Test
     func aCanvasShapedLikeTheStillKeepsTheSpotInTheVisibleChat() {
-        // An iPhone 17 Pro Max chat whose canvas is the still's own shape, so the frame is the canvas.
         let canvasSize = CGSize(width: 430, height: 932)
         let layout = LiveWallpaperLayout(artwork: .glassDrops, viewSize: canvasSize, displayScale: 3)
         let shadersOwnOrigin = SIMD2(Float(layout.drawableSize.width) * 0.83, Float(layout.drawableSize.height) * 0.113)
@@ -532,7 +510,6 @@ final class LiveWallpaperMotionTests {
             #expect(spot.x > 0 && spot.x < canvasSize.width, "\(composerTop)")
             #expect(spot.y > 0 && spot.y < composerTop, "\(composerTop)")
         }
-        // With the keyboard open, the shaders' own spot would be behind it.
         #expect(spotInCanvas(shadersOwnOrigin, of: layout).y > 532)
     }
     
@@ -555,8 +532,6 @@ final class LiveWallpaperMotionTests {
         #expect(held.time == 25.5)
         #expect(held.tilt == SIMD2(0.5, -0.25))
     }
-    
-    // MARK: - Time
     
     @Test
     func timeStartsAtTheStill() {
@@ -601,11 +576,8 @@ final class LiveWallpaperMotionTests {
         #expect(clock.time(at: 1751) == 1799)
         #expect(clock.time(at: 1752) == 0)
         #expect(clock.time(at: 1760) == 8)
-        // A week in, the time still has millisecond precision.
         #expect(abs(clock.time(at: 7 * 86400 + 0.25) - 48.25) < 0.001)
     }
-    
-    // MARK: - Send pulse
     
     @Test
     func pulseFollowsTheLabEnvelope() {
@@ -650,7 +622,6 @@ final class LiveWallpaperMotionTests {
         let pulse = ChatWallpaperSendPulse { now }
         pulse.recordSend()
         
-        // A send while the pulse rises changes nothing.
         now = 10.1
         pulse.recordSend()
         #expect(abs(pulse.value(at: 10.2) - LiveWallpaperPulse.value(secondsSinceSend: 0.2)) < 1e-9)
@@ -672,7 +643,6 @@ final class LiveWallpaperMotionTests {
         pulse.recordLocalEchoes(in: history + [makeEvent(id: localEcho("txn1"), properties: .init(deliveryStatus: .sending))], isSwitchingTimelines: false)
         #expect(pulse.pulseStart == 10)
         
-        // Sent, then replaced by its remote echo: still the same send.
         now = 11
         pulse.recordLocalEchoes(in: history + [makeEvent(id: localEcho("txn1"), properties: .init(deliveryStatus: .sent))], isSwitchingTimelines: false)
         pulse.recordLocalEchoes(in: history + [makeEvent(id: .event(uniqueID: .init("txn1"), eventOrTransactionID: .eventID("$2")))], isSwitchingTimelines: false)
@@ -686,7 +656,6 @@ final class LiveWallpaperMotionTests {
         let history = [makeEvent(id: remoteEvent("$1"), isOutgoing: false)]
         let failed = makeEvent(id: localEcho("txn-failed"), properties: .init(deliveryStatus: .sendingFailed(.unknown(reason: nil))))
         
-        // The timeline opens before it has loaded, then its first items include an echo from an earlier session's send queue.
         pulse.recordLocalEchoes(in: [PaginationIndicatorRoomTimelineItem(position: .start)], isSwitchingTimelines: true)
         pulse.recordLocalEchoes(in: history + [failed], isSwitchingTimelines: false)
         #expect(pulse.pulseStart == nil)
@@ -760,7 +729,6 @@ final class LiveWallpaperMotionTests {
         let sending = makeEvent(id: localEcho("txn1"), properties: .init(deliveryStatus: .sending))
         try await show([sent, sending], in: room, isSwitchingTimelines: true)
         
-        // The edits replace the content of both items, the first one's still on its way.
         let editedSent = makeEvent(id: sent.id, body: "Edited", properties: .init(isEdited: true, deliveryStatus: .sending))
         let editedSending = makeEvent(id: sending.id, body: "Edited", properties: .init(isEdited: true, deliveryStatus: .sending))
         try await show([editedSent, editedSending], in: room)
@@ -808,7 +776,6 @@ final class LiveWallpaperMotionTests {
         try await show(history + [sending], in: room)
         #expect(room.pulse.pulseStart != nil)
         
-        // Opened again within the pulse, with the message still on its way.
         let reopened = makeRoom(id: roomID)
         try await show(history + [sending], in: reopened, isSwitchingTimelines: true)
         #expect(reopened.pulse.pulseStart == nil)
@@ -824,9 +791,7 @@ final class LiveWallpaperMotionTests {
         #expect(ChatWallpaperSendPulse.forRoom("!live-wallpaper-b:example.com").pulseStart == nil)
     }
     
-    // MARK: - Helpers
-    
-    /// A fixed pseudo-random value in -1...1 for each index, standing in for a resting gyroscope's noise.
+    /// Deterministic noise in -1...1, from SplitMix64.
     private func restingNoise(_ index: Int) -> Double {
         var bits = UInt64(index) &+ 0x9E37_79B9_7F4A_7C15
         bits = (bits ^ (bits >> 30)) &* 0xBF58_476D_1CE4_E5B9
@@ -856,7 +821,6 @@ final class LiveWallpaperMotionTests {
                                         windowBottomInset: windowBottomInset)
     }
     
-    /// An animating frame's uniforms with the chat seen from the canvas's top down to `visibleBottom`.
     private func frame(in layout: LiveWallpaperLayout, visibleBottom: CGFloat) -> LiveWallpaperUniforms {
         LiveWallpaperUniforms.frame(in: layout,
                                     origin: layout.pulseOrigin(visibleTop: 0, visibleBottom: visibleBottom),
@@ -866,7 +830,6 @@ final class LiveWallpaperMotionTests {
                                     animates: true)
     }
     
-    /// Draws `count` frames ending `interval` apart from `start`, each taking `gpuTime`, and returns whether the watchdog tripped.
     private func drawFrames(into watchdog: inout WallpaperFrameWatchdog,
                             count: Int,
                             every interval: TimeInterval,
@@ -879,7 +842,6 @@ final class LiveWallpaperMotionTests {
         return tripped
     }
     
-    /// Draws frames ending `interval` apart from `start` for `duration` seconds, each taking `gpuTime`, and returns whether the watchdog tripped.
     private func drawFrames(into watchdog: inout WallpaperFrameWatchdog,
                             every interval: TimeInterval,
                             taking gpuTime: TimeInterval,
@@ -905,7 +867,7 @@ final class LiveWallpaperMotionTests {
         }
     }
     
-    /// A timeline in a room of its own unless given an ID, so no other test's sends reach its pulse.
+    /// A fresh room by default, since pulses are shared per room across tests.
     private func makeRoom(id: String = UUID().uuidString, timelineKind: TimelineKind = .live) -> Room {
         let timelineController = TimelineControllerMock(.init(timelineKind: timelineKind, timelineItems: []))
         let viewModel = TimelineViewModel(roomProxy: JoinedRoomProxyMock(.init(id: id, name: "Live wallpaper")),
@@ -922,7 +884,7 @@ final class LiveWallpaperMotionTests {
         return Room(viewModel: viewModel, timelineController: timelineController)
     }
     
-    /// Sends the items as a timeline update and waits until the timeline has handled it.
+    /// Sends the items with a trailing marker and waits until the marker is shown.
     private func show(_ items: [RoomTimelineItemProtocol], in room: Room, isSwitchingTimelines: Bool = false) async throws {
         let marker = SeparatorRoomTimelineItem(id: .randomVirtual, timestamp: .mock)
         room.timelineController.callbacks.send(.updatedTimelineItems(timelineItems: items + [marker], isSwitchingTimelines: isSwitchingTimelines))

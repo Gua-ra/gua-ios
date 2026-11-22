@@ -10,7 +10,7 @@ import Foundation
 import SwiftUI
 import Testing
 
-/// The tilt, the still's parallax rect and the send pulse against `live-wallpaper-motion-fixtures.json`, which Android reads too.
+/// `live-wallpaper-motion-fixtures.json` is shared with Android.
 final class LiveWallpaperMotionFixtureTests {
     private let fixtures: MotionFixtures
     
@@ -159,7 +159,7 @@ private struct MotionFixtures: Decodable {
     struct PulseCase: Decodable {
         let name: String
         let sends: [Double]
-        /// Each a time and the pulse's value at it.
+        /// Pairs of time and expected value.
         let samples: [[Double]]
     }
     
