@@ -175,7 +175,7 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
                     }
                 }
                 .lineLimit(1)
-                // GUA FORK: the capsule brings the vertical padding, and stays clear of the 8 pt the bubble tucks under the header.
+                // GUA FORK: the capsule has its own vertical padding and must clear the 8 pt the bubble tucks under the header.
                 .scaledPadding(.top, isChatBackgroundActive ? 0 : 3)
                 .legibilityCapsule()
                 .padding(.bottom, isChatBackgroundActive ? 8 : 0)

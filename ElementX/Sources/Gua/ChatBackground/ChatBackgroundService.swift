@@ -29,7 +29,6 @@ protocol ChatBackgroundServiceProtocol: AnyObject {
 }
 
 extension StateEventType {
-    /// SDK 26.11 hides the custom case's payload, so the type is built from its string.
     static let guaChatBackground = stateEventTypeFromString(s: ChatBackground.eventType)
 }
 
