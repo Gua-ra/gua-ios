@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-/// The illustrated wallpapers in gallery order, which must match `Wallpapers/manifest.json`. Raw values go on the wire and never change.
+/// Case order is the gallery order and must match `Wallpapers/manifest.json`. Raw values go on the wire and never change.
 nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
     case glassDrops = "glass-drops"
     case glassDropsBlue = "glass-drops-blue"
@@ -43,9 +43,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         case minimal
     }
     
-    /// The bundle folder that holds the images, kept as a folder so they keep this path.
     static let folder = "Wallpapers"
-    /// Every image is a full phone screen in portrait, in both appearances.
     static let pixelSize = CGSize(width: 1290, height: 2796)
     
     static func artworks(in section: Section) -> [ChatArtwork] {
@@ -65,7 +63,6 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         }
     }
     
-    /// Whether the artwork moves.
     var isLive: Bool {
         section == .live
     }
@@ -101,7 +98,6 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         }
     }
     
-    /// The bubbles the artwork was picked with.
     var bubbles: ChatBubblePair {
         switch self {
         case .glassDrops: ChatBubblePair(.purple, dark: .pink)
@@ -133,7 +129,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         }
     }
     
-    /// The point of the image that stays on screen when it is cropped, used as the photo alignment.
+    /// The point of the image kept on screen when it is cropped.
     var anchor: UnitPoint {
         switch self {
         case .glassDrops: UnitPoint(x: 0.5, y: 0.08)
@@ -152,7 +148,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         }
     }
     
-    /// What builds that don't know the artwork show instead: written with it, and never changed once shipped.
+    /// Written beside the artwork for clients that don't know it, so it never changes once shipped.
     var fallbackPreset: ChatBackgroundPreset {
         switch self {
         case .glassDrops: .blush

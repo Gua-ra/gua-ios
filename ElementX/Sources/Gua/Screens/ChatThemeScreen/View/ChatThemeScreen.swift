@@ -184,7 +184,7 @@ struct ChatThemeTile: View {
                 sampleBubble(color: theme.bubbles.outgoingColor, width: 0.65, alignment: .trailing)
                 Spacer(minLength: 0)
                 
-                // Not in a top corner: beside the selection checkmark there is no room for a translated badge.
+                // The top corners leave no room beside the checkmark for a translated badge.
                 if isLive {
                     ChatArtworkLiveBadge()
                 }

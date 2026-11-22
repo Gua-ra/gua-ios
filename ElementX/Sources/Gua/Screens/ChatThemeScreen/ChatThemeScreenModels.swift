@@ -84,7 +84,6 @@ struct ChatThemeScreenViewState: BindableState {
         mode == .chat ? UntranslatedL10n.guaChatThemeSharedNote : UntranslatedL10n.guaChatThemeDefaultNote
     }
     
-    /// A tile is selected only when the theme has exactly its wallpaper and bubble pair.
     func isSelected(_ tile: ChatTheme) -> Bool {
         tile == current
     }
@@ -105,7 +104,7 @@ struct ChatThemeScreenViewState: BindableState {
 
 struct ChatThemeScreenViewStateBindings {
     var themePreview: ChatThemePreviewDraft?
-    /// The bubble picker shows while this holds its choice, which starts as the theme's pair.
+    /// The bubble picker shows while this holds its choice.
     var bubbleChoice: ChatBubblePair?
     var isWallpaperPickerPresented = false
     var wallpaperPreview: ChatThemePreviewDraft?

@@ -68,7 +68,7 @@ struct ChatBubblePicker: View {
         let isSelected = bubble == choice.shown(in: colorScheme)
         
         return Button {
-            // Choosing the checked swatch would drop the other half of a pair the user cannot see.
+            // Re-choosing the checked swatch would drop the bubble the pair shows in the other appearance.
             guard !isSelected else { return }
             context.send(viewAction: .chooseBubble(bubble))
         } label: {

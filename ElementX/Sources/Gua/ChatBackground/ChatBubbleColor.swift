@@ -55,12 +55,11 @@ nonisolated enum ChatBubbleColor: String, CaseIterable, Identifiable {
     }
 }
 
-/// A theme's outgoing bubble, with the colour it takes in dark appearance when that differs.
 nonisolated struct ChatBubblePair: Hashable {
     static let standard = ChatBubblePair(.standard)
     
     let bubble: ChatBubbleColor
-    /// Only ever a palette colour other than `bubble`, and never beside the standard bubble.
+    /// Nil when it equals `bubble` or either side is the standard bubble.
     let bubbleDark: ChatBubbleColor?
     
     init(_ bubble: ChatBubbleColor, dark: ChatBubbleColor? = nil) {
