@@ -21,7 +21,6 @@ nonisolated struct LiveWallpaperUniforms {
 
 nonisolated enum LiveWallpaperShader {
     enum Failure: Error {
-        case noMetalDevice
         case missingSource(String)
         case missingFunction(String)
     }
@@ -86,7 +85,7 @@ final class LiveWallpaperPipelines {
         guard let device = LiveWallpaperShader.device, LiveWallpaperShader.commandQueue != nil else {
             if !hasLoggedMissingDevice {
                 hasLoggedMissingDevice = true
-                MXLog.error("Live wallpapers show their stills: \(LiveWallpaperShader.Failure.noMetalDevice)")
+                MXLog.error("Live wallpapers show their stills: no Metal device")
             }
             LiveWallpaperConditions.shared.reportUnavailable(artwork)
             return nil

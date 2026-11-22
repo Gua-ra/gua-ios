@@ -141,7 +141,7 @@ struct LiveWallpaperLayout: Equatable {
         let scaleY = drawableSize.height / rect.height
         
         let shown = CGRect(origin: .zero, size: viewSize).intersection(rect)
-        if shown.isNull || shown.isEmpty {
+        if shown.isEmpty {
             scissor = nil
         } else {
             let minX = max(((shown.minX - rect.minX) * scaleX).rounded(.down) - 1, 0)
@@ -152,24 +152,20 @@ struct LiveWallpaperLayout: Equatable {
         }
     }
     
+    /// `u_origin`: the shaders' default spot placed on the visible chat rather than the whole `rect`, which reaches under the
+    /// composer and the keyboard. In drawable pixels from the bottom left.
     func pulseOrigin(visibleTop: CGFloat, visibleBottom: CGFloat) -> SIMD2<Float> {
-        Self.pulseOrigin(canvasSize: viewSize, frame: rect, renderSize: drawableSize, visibleTop: visibleTop, visibleBottom: visibleBottom)
-    }
-    
-    /// `u_origin`: the shaders' default spot placed on the visible chat rather than the whole frame, which reaches under the
-    /// composer and the keyboard. In `renderSize` pixels from the bottom left.
-    static func pulseOrigin(canvasSize: CGSize, frame: CGRect, renderSize: CGSize, visibleTop: CGFloat, visibleBottom: CGFloat) -> SIMD2<Float> {
-        guard frame.width > 0, frame.height > 0, renderSize.width >= 1, renderSize.height >= 1 else { return .zero }
+        guard rect.width > 0, rect.height > 0, drawableSize.width >= 1, drawableSize.height >= 1 else { return .zero }
         
         // With no chat left (landscape with the keyboard open), the spot sits on the top bar's edge.
-        let top = min(max(visibleTop, 0), canvasSize.height)
-        let bottom = min(max(visibleBottom, top), canvasSize.height)
-        let spotX = canvasSize.width * pulseSpot.x
-        let spotY = bottom - (bottom - top) * pulseSpot.y
+        let top = min(max(visibleTop, 0), viewSize.height)
+        let bottom = min(max(visibleBottom, top), viewSize.height)
+        let spotX = viewSize.width * Self.pulseSpot.x
+        let spotY = bottom - (bottom - top) * Self.pulseSpot.y
         
-        let scaleX = renderSize.width / frame.width
-        let scaleY = renderSize.height / frame.height
-        return SIMD2(Float((spotX - frame.minX) * scaleX), Float(renderSize.height - (spotY - frame.minY) * scaleY))
+        let scaleX = drawableSize.width / rect.width
+        let scaleY = drawableSize.height / rect.height
+        return SIMD2(Float((spotX - rect.minX) * scaleX), Float(drawableSize.height - (spotY - rect.minY) * scaleY))
     }
     
     /// The visible chat's unclamped edges in the canvas: from the top inset down to the composer, or to the home indicator

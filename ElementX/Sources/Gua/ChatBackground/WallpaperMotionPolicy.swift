@@ -37,10 +37,6 @@ nonisolated struct WallpaperMotionPolicy: Equatable {
         return .animating
     }
     
-    var animates: Bool {
-        motion == .animating
-    }
-    
     /// Tilt needs no shader, so an artwork without a renderer still tilts.
     var tiltMotion: Motion {
         var policy = self

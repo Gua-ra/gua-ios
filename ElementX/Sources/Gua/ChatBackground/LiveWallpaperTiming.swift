@@ -16,10 +16,6 @@ nonisolated struct LiveWallpaperClock {
     private var elapsed: TimeInterval = 0
     private var runningSince: TimeInterval?
     
-    var isRunning: Bool {
-        runningSince != nil
-    }
-    
     init(stillTime: TimeInterval) {
         self.stillTime = stillTime
     }
@@ -70,8 +66,7 @@ final class ChatWallpaperSendPulse {
     private(set) var pulseStart: TimeInterval?
     /// The top edge of the composer, or of the theme preview's controls, in SwiftUI's global space.
     var composerTop: CGFloat?
-    /// The transaction IDs of every local echo the room's timeline has shown.
-    private var seenLocalEchoes: Set<String> = []
+    private var seenTransactionIDs: Set<String> = []
     /// Local echoes seen while the timeline opens were sent before it opened.
     private var isOpeningTimeline = true
     
@@ -109,7 +104,7 @@ final class ChatWallpaperSendPulse {
         
         var hasNewLocalEcho = false
         for case let item as EventBasedTimelineItemProtocol in items where item.isOutgoing {
-            if let transactionID = item.id.transactionID, seenLocalEchoes.insert(transactionID).inserted {
+            if let transactionID = item.id.transactionID, seenTransactionIDs.insert(transactionID).inserted {
                 hasNewLocalEcho = true
             }
         }

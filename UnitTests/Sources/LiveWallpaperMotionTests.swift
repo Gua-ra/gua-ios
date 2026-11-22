@@ -12,9 +12,7 @@ import Testing
 final class LiveWallpaperMotionTests {
     @Test
     func animatesWhenNothingStopsIt() {
-        let policy = WallpaperMotionPolicy()
-        #expect(policy.motion == .animating)
-        #expect(policy.animates)
+        #expect(WallpaperMotionPolicy().motion == .animating)
     }
     
     @Test
@@ -44,9 +42,7 @@ final class LiveWallpaperMotionTests {
     
     @Test(arguments: [(ProcessInfo.ThermalState.nominal, true), (.fair, true), (.serious, false), (.critical, false)])
     func staysStillWhenTheDeviceIsHot(thermalState: ProcessInfo.ThermalState, animates: Bool) {
-        let policy = WallpaperMotionPolicy(thermalState: thermalState)
-        #expect(policy.animates == animates)
-        #expect(policy.motion == (animates ? .animating : .still))
+        #expect(WallpaperMotionPolicy(thermalState: thermalState).motion == (animates ? .animating : .still))
     }
     
     @Test
@@ -73,9 +69,7 @@ final class LiveWallpaperMotionTests {
     
     @Test
     func stillWinsOverPaused() {
-        let policy = WallpaperMotionPolicy(isOnScreen: false, isAppActive: false, isCovered: true, reducesMotion: true)
-        #expect(policy.motion == .still)
-        #expect(!policy.animates)
+        #expect(WallpaperMotionPolicy(isOnScreen: false, isAppActive: false, isCovered: true, reducesMotion: true).motion == .still)
     }
     
     @Test
@@ -537,14 +531,12 @@ final class LiveWallpaperMotionTests {
     func timeStartsAtTheStill() {
         let clock = LiveWallpaperClock(stillTime: 24)
         #expect(clock.time(at: 1000) == 24)
-        #expect(!clock.isRunning)
     }
     
     @Test
     func timeAdvancesWhileRunning() {
         var clock = LiveWallpaperClock(stillTime: 24)
         clock.start(at: 100)
-        #expect(clock.isRunning)
         #expect(clock.time(at: 100) == 24)
         #expect(clock.time(at: 101.5) == 25.5)
         
@@ -557,7 +549,6 @@ final class LiveWallpaperMotionTests {
         var clock = LiveWallpaperClock(stillTime: 14)
         clock.start(at: 100)
         clock.pause(at: 103)
-        #expect(!clock.isRunning)
         #expect(clock.time(at: 103) == 17)
         #expect(clock.time(at: 500) == 17)
         
