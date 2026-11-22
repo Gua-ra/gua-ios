@@ -67,7 +67,7 @@ final class ChatThemeCodecTests {
     @Test
     func standardIsNeverWritten() {
         for wallpaper in [ChatBackground.preset(.ocean), .photo(.mock)] {
-            #expect(!(ChatTheme(wallpaper: wallpaper).contentJSON.contains("bubble")))
+            #expect(!ChatTheme(wallpaper: wallpaper).contentJSON.contains("bubble"))
         }
     }
     

@@ -104,7 +104,7 @@ extension GraphicsContext {
 /// Aspect fill: a photo overflowing its frame by `o` on an axis is offset by `-o × align`, as on Android.
 struct ChatBackgroundPhotoLayout: View {
     let image: UIImage
-    /// The shape to fill with, when the image is a stand-in of another shape.
+    /// The real photo's size when `image` is a placeholder of another shape.
     var contentSize: CGSize?
     let alignX: Double
     let alignY: Double
