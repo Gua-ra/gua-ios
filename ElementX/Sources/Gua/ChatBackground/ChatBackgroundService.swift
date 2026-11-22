@@ -24,7 +24,7 @@ protocol ChatBackgroundServiceProtocol: AnyObject {
     
     var defaultThemePublisher: CurrentValuePublisher<ChatTheme, Never> { get }
     
-    /// Shows the new theme straight away, and puts the previous one back if the write fails. A photo must be uploaded first.
+    /// Shows the theme at once and restores the previous one if the write fails. A photo must be uploaded first.
     func setDefaultTheme(_ theme: ChatTheme) async -> Result<Void, ClientProxyError>
 }
 

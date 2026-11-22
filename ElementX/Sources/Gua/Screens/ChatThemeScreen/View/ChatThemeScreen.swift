@@ -113,7 +113,7 @@ struct ChatThemeScreen: View {
 }
 
 extension Binding where Value == AlertInfo<ChatThemeScreenAlertType>? {
-    /// Every layer that can raise the alert binds to it, and only the one on top may present it.
+    /// Each layer binds the same alert, and only the topmost may present it.
     func presented(if isTopmost: Bool) -> Binding<Value> {
         Binding {
             isTopmost ? wrappedValue : nil
@@ -328,12 +328,7 @@ struct ChatThemeScreen_Previews: PreviewProvider, TestablePreview {
         .previewDisplayName("Dark")
     }
     
-    enum Mode {
-        case chat
-        case defaultTheme
-    }
-    
-    static func makeViewModel(mode: Mode = .chat,
+    static func makeViewModel(mode: ChatThemeScreenViewState.Mode = .chat,
                               theme: ChatTheme,
                               defaultTheme: ChatTheme = .stock,
                               canChange: Bool = true) -> ChatThemeScreenViewModel {

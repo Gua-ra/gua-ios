@@ -17,7 +17,7 @@ nonisolated struct ChatTheme: Hashable {
         self == .stock
     }
     
-    /// What a chat shows. A photo the chat may not show hands over to the default as a whole, whose own photo always shows.
+    /// When the media setting hides the chat's photo, the whole default theme shows instead. The default's own photo always shows.
     static func effective(chatTheme: ChatTheme, defaultTheme: ChatTheme, roomIsPrivate: Bool, mediaShown: Bool) -> ChatTheme {
         guard !chatTheme.isStock else { return defaultTheme }
         if chatTheme.wallpaper.photo != nil, !roomIsPrivate, !mediaShown {
@@ -27,7 +27,6 @@ nonisolated struct ChatTheme: Hashable {
     }
 }
 
-/// The wallpaper of a chat theme.
 nonisolated enum ChatBackground: Hashable {
     case none
     case preset(ChatBackgroundPreset)
@@ -40,7 +39,7 @@ nonisolated enum ChatBackground: Hashable {
         /// Room versions 6 and later refuse floats in events, so dim is stored in whole percent and align in thousandths.
         static let dimScale = 100.0
         static let alignScale = 1000.0
-        /// The largest file a photo background may declare, and the most that is downloaded to show one.
+        /// The largest photo file accepted as declared and decoded; the SDK downloads the whole file before it is checked.
         static let maxSize = 20_000_000
         
         var url: String
@@ -144,7 +143,7 @@ private nonisolated struct Content: Decodable {
             Self.preset(from: container, key: .fallbackPreset)
         }
         
-        // Only version 1 has bubbles. One it doesn't know reads as the stock bubble and keeps the wallpaper.
+        // Only v1 has bubbles. An unknown bubble reads as standard and keeps the wallpaper.
         let bubble = version == 1 ? (try? container.decode(String.self, forKey: .bubble)).flatMap(ChatBubbleColor.init(rawValue:)) : nil
         theme = ChatTheme(wallpaper: wallpaper, bubble: bubble ?? .standard)
     }
@@ -189,7 +188,7 @@ nonisolated extension ChatBackground.Photo: Decodable {
             throw InvalidContent()
         }
         
-        let blurhash = try container.decodeIfPresentAndNotNull(String.self, forKey: .blurhash)
+        let blurhash = try container.decodeIfPresent(String.self, forKey: .blurhash)
         if let blurhash, blurhash.utf16.count > Self.maxBlurhashLength {
             throw InvalidContent()
         }
@@ -254,19 +253,13 @@ private nonisolated extension KeyedDecodingContainer {
         return try !decodeNil(forKey: key)
     }
     
-    /// Absent and null are both no value, but a value of the wrong type is an error.
-    func decodeIfPresentAndNotNull<T: Decodable>(_ type: T.Type, forKey key: Key) throws -> T? {
-        guard try containsValue(forKey: key) else { return nil }
-        return try decode(type, forKey: key)
-    }
-    
     /// 800.0 is the same JSON number as 800, and Android reads it as an integer too.
     func decodeInteger(forKey key: Key) throws -> Int {
         if let integer = try? decode(Int.self, forKey: key) {
             return integer
         }
         let number = try decode(Double.self, forKey: key)
-        guard number.isFinite, number == number.rounded(), let integer = Int(exactly: number) else {
+        guard let integer = Int(exactly: number) else {
             throw DecodingError.dataCorruptedError(forKey: key, in: self, debugDescription: "Not a whole number")
         }
         return integer
