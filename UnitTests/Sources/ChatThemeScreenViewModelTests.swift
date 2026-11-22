@@ -447,12 +447,7 @@ final class ChatThemeScreenViewModelTests: XCTestCase {
         XCTAssertFalse(roomProxy.powerLevelsCalled)
     }
 
-    private enum Mode {
-        case chat
-        case defaultTheme
-    }
-
-    private func setUpViewModel(mode: Mode = .chat,
+    private func setUpViewModel(mode: ChatThemeScreenViewState.Mode = .chat,
                                 theme: ChatTheme = .stock,
                                 defaultTheme: ChatTheme = .stock,
                                 canChange: Bool = true,

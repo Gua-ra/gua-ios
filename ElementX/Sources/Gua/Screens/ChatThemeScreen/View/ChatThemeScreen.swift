@@ -328,12 +328,7 @@ struct ChatThemeScreen_Previews: PreviewProvider, TestablePreview {
         .previewDisplayName("Dark")
     }
 
-    enum Mode {
-        case chat
-        case defaultTheme
-    }
-
-    static func makeViewModel(mode: Mode = .chat,
+    static func makeViewModel(mode: ChatThemeScreenViewState.Mode = .chat,
                               theme: ChatTheme,
                               defaultTheme: ChatTheme = .stock,
                               canChange: Bool = true) -> ChatThemeScreenViewModel {

@@ -37,7 +37,8 @@ struct ChatThemePreview: View {
                                          saveTitle: saveTitle,
                                          canSave: context.viewState.canSave(draft),
                                          onPreviewColorScheme: { context.send(viewAction: .setPreviewColorScheme($0)) },
-                                         onSave: { context.send(viewAction: .savePreview) })
+                                         onSave: { context.send(viewAction: .savePreview) },
+                                         extra: { EmptyView() })
             }
             .navigationTitle(UntranslatedL10n.guaChatThemeTitle)
             .navigationBarTitleDisplayMode(.inline)
@@ -78,22 +79,6 @@ struct ChatThemePreviewControls<Extra: View>: View {
         }
         .padding(16)
         .background(Color.compound.bgCanvasDefault.ignoresSafeArea())
-    }
-}
-
-extension ChatThemePreviewControls where Extra == EmptyView {
-    init(previewColorScheme: ColorScheme,
-         saveTitle: String,
-         canSave: Bool,
-         onPreviewColorScheme: @escaping (ColorScheme) -> Void,
-         onSave: @escaping () -> Void) {
-        self.init(previewColorScheme: previewColorScheme,
-                  saveTitle: saveTitle,
-                  canSave: canSave,
-                  onPreviewColorScheme: onPreviewColorScheme,
-                  onSave: onSave) {
-            EmptyView()
-        }
     }
 }
 
