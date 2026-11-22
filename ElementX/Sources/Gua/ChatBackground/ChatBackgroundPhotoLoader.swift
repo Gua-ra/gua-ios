@@ -11,7 +11,11 @@ import UniformTypeIdentifiers
 
 @MainActor
 enum ChatBackgroundPhotoLoader {
-    private static let decodedImages = NSCache<NSString, UIImage>()
+    private static let decodedImages = {
+        let cache = NSCache<NSString, UIImage>()
+        cache.totalCostLimit = 48 * 1024 * 1024
+        return cache
+    }()
     private static let placeholders = NSCache<NSString, UIImage>()
     private static let placeholderSize = 32
     /// Gua clients upload at most 2048 pixels on an edge, so anything far larger is refused before decoding.
@@ -38,8 +42,8 @@ enum ChatBackgroundPhotoLoader {
             decodeImage(at: file.url, maxPixelSize: maxPixelSize)
         }.value
 
-        if let image {
-            decodedImages.setObject(image, forKey: cacheKey(photo, maxPixelSize))
+        if let image, let cgImage = image.cgImage {
+            decodedImages.setObject(image, forKey: cacheKey(photo, maxPixelSize), cost: cgImage.bytesPerRow * cgImage.height)
         }
         return image
     }
@@ -80,6 +84,6 @@ enum ChatBackgroundPhotoLoader {
     }
 
     private static func cacheKey(_ photo: ChatBackground.Photo, _ maxPixelSize: Int) -> NSString {
-        "\(photo.url){\(maxPixelSize)}" as NSString
+        "\(photo.url){\(min(maxPixelSize, ChatBackgroundImageProcessor.maxEdge))}" as NSString
     }
 }
