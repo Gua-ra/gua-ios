@@ -517,8 +517,21 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
         
         let chatBackgroundService = userSession.chatBackgroundService
         let roomID = roomProxy.id
-        chatBackgroundService.backgroundPublisher(roomID: roomID)
-            .weakAssign(to: \.state.chatBackground, on: self)
+        chatBackgroundService.themePublisher(roomID: roomID)
+            .weakAssign(to: \.state.chatTheme, on: self)
+            .store(in: &cancellables)
+        
+        chatBackgroundService.defaultThemePublisher
+            .weakAssign(to: \.state.defaultChatTheme, on: self)
+            .store(in: &cancellables)
+        
+        // GUA FORK: an unknown join rule counts as public, as for the live media setting.
+        state.isPrivateRoom = roomProxy.infoPublisher.value.isPrivate ?? false
+        roomProxy.infoPublisher
+            .map { $0.isPrivate ?? false }
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .weakAssign(to: \.state.isPrivateRoom, on: self)
             .store(in: &cancellables)
         
         Task { await chatBackgroundService.refresh(roomID: roomID) }

@@ -34,6 +34,7 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
                                            userID: userSession.clientProxy.userID,
                                            showAccountDeactivation: userSession.clientProxy.canDeactivateAccount,
                                            showDeveloperOptions: appSettings.developerOptionsEnabled,
+                                           showChatTheme: appSettings.guaChatBackgroundsEnabled,
                                            showAnalyticsSettings: appSettings.canPromptForAnalytics,
                                            isBugReportServiceEnabled: isBugReportServiceEnabled,
                                            bindings: .init(appSettings: appSettings)),
@@ -45,6 +46,10 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
         
         appSettings.$spacesEnabled
             .weakAssign(to: \.state.bindings.isSpacesEnabled, on: self)
+            .store(in: &cancellables)
+        
+        appSettings.$guaChatBackgroundsEnabled
+            .weakAssign(to: \.state.showChatTheme, on: self)
             .store(in: &cancellables)
         
         Task { await spacesSetting.refresh() }
@@ -104,6 +109,8 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
                     userIndicatorController.submitIndicator(.init(title: L10n.errorUnknown))
                 }
             }
+        case .chatTheme:
+            actionsSubject.send(.chatTheme)
         case .mediaUploadQuality:
             actionsSubject.send(.mediaUploadQuality)
         case .appLock:

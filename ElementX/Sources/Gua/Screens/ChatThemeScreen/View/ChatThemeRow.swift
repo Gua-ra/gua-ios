@@ -8,19 +8,19 @@
 import Compound
 import SwiftUI
 
-struct ChatBackgroundRow: View {
-    let background: ChatBackground
+struct ChatThemeRow: View {
+    let theme: ChatTheme
     let canChange: Bool
     let action: () -> Void
 
     var body: some View {
         if canChange {
-            ListRow(label: .default(title: UntranslatedL10n.guaChatBackgroundRowTitle, icon: icon),
-                    details: .title(background.displayName),
+            ListRow(label: .default(title: UntranslatedL10n.guaChatThemeTitle, icon: icon),
+                    details: .title(theme.displayName),
                     kind: .navigationLink(action: action))
         } else {
             // Compound's disabled description colour would make the reason the hardest text on the row to read.
-            ListRow(kind: .custom { NoPermissionRowContent(value: background.displayName, icon: icon) })
+            ListRow(kind: .custom { NoPermissionRowContent(value: theme.displayName, icon: icon) })
         }
     }
 
@@ -46,7 +46,7 @@ private struct NoPermissionRowContent: View {
                     .padding(.vertical, Compound.supportsGlass ? -1 : -4)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(UntranslatedL10n.guaChatBackgroundRowTitle)
+                    Text(UntranslatedL10n.guaChatThemeTitle)
                         .font(.compound.bodyLG)
                         .foregroundStyle(.compound.textDisabled)
                     Text(UntranslatedL10n.guaChatBackgroundRowNoPermission)
@@ -65,11 +65,22 @@ private struct NoPermissionRowContent: View {
     }
 }
 
+extension ChatTheme {
+    var displayName: String {
+        switch wallpaper {
+        case .none:
+            isStock ? UntranslatedL10n.guaChatBackgroundValueDefault : bubble.name
+        case .preset, .photo:
+            wallpaper.displayName
+        }
+    }
+}
+
 extension ChatBackground {
     var displayName: String {
         switch self {
         case .none:
-            UntranslatedL10n.guaChatBackgroundValueDefault
+            UntranslatedL10n.guaChatThemeNoWallpaper
         case .preset(let preset):
             preset.name
         case .photo:

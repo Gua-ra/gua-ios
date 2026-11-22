@@ -113,14 +113,32 @@ extension PreviewTests {
         }
     }
 
-    func testChatBackgroundScreen() async throws {
-        for (index, preview) in ChatBackgroundScreen_Previews._allPreviews.enumerated() {
+    func testChatBackgroundView() async throws {
+        for (index, preview) in ChatBackgroundView_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)
         }
     }
 
-    func testChatBackgroundView() async throws {
-        for (index, preview) in ChatBackgroundView_Previews._allPreviews.enumerated() {
+    func testChatBubblePicker() async throws {
+        for (index, preview) in ChatBubblePicker_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    func testChatThemePreview() async throws {
+        for (index, preview) in ChatThemePreview_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    func testChatThemeScreen() async throws {
+        for (index, preview) in ChatThemeScreen_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    func testChatWallpaperPicker() async throws {
+        for (index, preview) in ChatWallpaperPicker_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)
         }
     }

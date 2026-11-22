@@ -132,10 +132,10 @@ class TimelineTableViewController: UIViewController {
         }
     }
     
-    /// GUA FORK: hosted cells don't inherit the SwiftUI environment, so they get the value from here.
-    var isChatBackgroundActive = false {
+    /// GUA FORK: hosted cells don't inherit the SwiftUI environment, so they get the theme from here.
+    var chatTheme = ChatTheme.stock {
         didSet {
-            tableView.backgroundColor = isChatBackgroundActive ? .clear : .compound.bgCanvasDefault
+            tableView.backgroundColor = chatTheme.wallpaper.isNone ? .compound.bgCanvasDefault : .clear
             guard let snapshot = dataSource?.snapshot() else { return }
             dataSource?.applySnapshotUsingReloadData(snapshot)
         }
@@ -280,9 +280,9 @@ class TimelineTableViewController: UIViewController {
                     return cell
                 }
                 
-                cell.contentConfiguration = UIHostingConfiguration { [isChatBackgroundActive] in
+                cell.contentConfiguration = UIHostingConfiguration { [chatTheme] in
                     TypingIndicatorView(typingMembers: self.typingMembers)
-                        .environment(\.chatBackgroundActive, isChatBackgroundActive)
+                        .chatTheme(chatTheme)
                 }
                 .margins(.vertical, 0)
                 .minSize(height: 0)
@@ -303,14 +303,14 @@ class TimelineTableViewController: UIViewController {
                     return cell
                 }
                 
-                cell.contentConfiguration = UIHostingConfiguration { [coordinator, hideTimelineMedia, isChatBackgroundActive] in
+                cell.contentConfiguration = UIHostingConfiguration { [coordinator, hideTimelineMedia, chatTheme] in
                     RoomTimelineItemView(viewState: viewState)
                         .id(id)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .environmentObject(coordinator.context) // Attempted fix at a crash in TimelineItemContextMenu
                         .environment(\.timelineContext, coordinator.context)
                         .environment(\.shouldAutomaticallyLoadImages, !hideTimelineMedia)
-                        .environment(\.chatBackgroundActive, isChatBackgroundActive)
+                        .chatTheme(chatTheme)
                 }
                 .margins(.all, 0) // Margins are handled in the stylers
                 .minSize(height: 1)

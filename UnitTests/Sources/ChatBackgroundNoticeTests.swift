@@ -20,16 +20,16 @@ final class ChatBackgroundNoticeTests: XCTestCase {
         let bob = TimelineItemSender(id: otherUserID, displayName: "Bob")
         let handleOnly = TimelineItemSender(id: otherUserID)
 
-        XCTAssertEqual(builder.buildChatBackgroundString(isRemoval: false, sender: you, isOutgoing: true),
-                       UntranslatedL10n.guaChatBackgroundNoticeChangedByYou)
-        XCTAssertEqual(builder.buildChatBackgroundString(isRemoval: true, sender: you, isOutgoing: true),
-                       UntranslatedL10n.guaChatBackgroundNoticeRemovedByYou)
-        XCTAssertEqual(builder.buildChatBackgroundString(isRemoval: false, sender: bob, isOutgoing: false),
-                       UntranslatedL10n.guaChatBackgroundNoticeChanged("Bob"))
-        XCTAssertEqual(builder.buildChatBackgroundString(isRemoval: true, sender: bob, isOutgoing: false),
-                       UntranslatedL10n.guaChatBackgroundNoticeRemoved("Bob"))
-        XCTAssertEqual(builder.buildChatBackgroundString(isRemoval: false, sender: handleOnly, isOutgoing: false),
-                       UntranslatedL10n.guaChatBackgroundNoticeChanged(otherUserID.guaDisplayHandle))
+        XCTAssertEqual(builder.buildChatThemeString(isRemoval: false, sender: you, isOutgoing: true),
+                       UntranslatedL10n.guaChatThemeNoticeChangedByYou)
+        XCTAssertEqual(builder.buildChatThemeString(isRemoval: true, sender: you, isOutgoing: true),
+                       UntranslatedL10n.guaChatThemeNoticeRemovedByYou)
+        XCTAssertEqual(builder.buildChatThemeString(isRemoval: false, sender: bob, isOutgoing: false),
+                       UntranslatedL10n.guaChatThemeNoticeChanged("Bob"))
+        XCTAssertEqual(builder.buildChatThemeString(isRemoval: true, sender: bob, isOutgoing: false),
+                       UntranslatedL10n.guaChatThemeNoticeRemoved("Bob"))
+        XCTAssertEqual(builder.buildChatThemeString(isRemoval: false, sender: handleOnly, isOutgoing: false),
+                       UntranslatedL10n.guaChatThemeNoticeChanged(otherUserID.guaDisplayHandle))
     }
 
     func testTheChatListNeverShowsTheNotice() {
@@ -42,23 +42,23 @@ final class ChatBackgroundNoticeTests: XCTestCase {
     func testNoticeIsShownInGroupsAndInOneToOneChats() throws {
         for isDM in [false, true] {
             let item = try XCTUnwrap(buildItem(content: #"{"v":1,"kind":"preset","preset":"mint"}"#, isDM: isDM) as? StateRoomTimelineItem, "isDM: \(isDM)")
-            XCTAssertEqual(item.body, UntranslatedL10n.guaChatBackgroundNoticeChanged("Bob"))
+            XCTAssertEqual(item.body, UntranslatedL10n.guaChatThemeNoticeChanged("Bob"))
             XCTAssertEqual(item.chatBackgroundEvent?.eventID, "$background")
             XCTAssertEqual(item.chatBackgroundEvent?.timestamp, 1_730_000_000_123)
-            XCTAssertEqual(ChatBackground(contentJSON: item.chatBackgroundEvent?.contentJSON), .preset(.mint))
+            XCTAssertEqual(ChatTheme(contentJSON: item.chatBackgroundEvent?.contentJSON), ChatTheme(wallpaper: .preset(.mint)))
             XCTAssertFalse(item.canBeRepliedTo)
         }
     }
 
     func testEmptyContentReadsAsRemoved() throws {
         let item = try XCTUnwrap(buildItem(content: "{}", isDM: false) as? StateRoomTimelineItem)
-        XCTAssertEqual(item.body, UntranslatedL10n.guaChatBackgroundNoticeRemoved("Bob"))
+        XCTAssertEqual(item.body, UntranslatedL10n.guaChatThemeNoticeRemoved("Bob"))
         XCTAssertEqual(item.chatBackgroundEvent?.isRemoval, true)
     }
 
     func testUnreadableContentReadsAsChanged() throws {
         let item = try XCTUnwrap(buildItem(eventJSON: nil, isDM: false) as? StateRoomTimelineItem)
-        XCTAssertEqual(item.body, UntranslatedL10n.guaChatBackgroundNoticeChanged("Bob"))
+        XCTAssertEqual(item.body, UntranslatedL10n.guaChatThemeNoticeChanged("Bob"))
         XCTAssertNil(item.chatBackgroundEvent?.contentJSON)
     }
 

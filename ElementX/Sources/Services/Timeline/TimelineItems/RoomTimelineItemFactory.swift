@@ -48,7 +48,7 @@ struct RoomTimelineItemFactory: RoomTimelineItemFactoryProtocol {
         case .failedToParseState(let eventType, _, let error):
             return buildUnsupportedTimelineItem(eventItemProxy, eventType, error, isOutgoing)
         case .state(let stateKey, let content):
-            // GUA FORK: a chat background change is visible chat content, so 1:1 chats show it too.
+            // GUA FORK: a chat theme change is visible chat content, so 1:1 chats show it too.
             if case .custom(let eventType) = content, eventType == ChatBackground.eventType {
                 return stateKey.isEmpty ? buildChatBackgroundTimelineItem(for: eventItemProxy, isOutgoing: isOutgoing) : nil
             }
@@ -802,9 +802,9 @@ struct RoomTimelineItemFactory: RoomTimelineItemFactoryProtocol {
         let event = eventItemProxy.id.eventID.map { eventID in
             ChatBackgroundTimelineEvent(eventID: eventID, timestamp: eventItemProxy.item.timestamp, eventJSON: eventItemProxy.debugInfo.originalJSON)
         }
-        let text = stateEventStringBuilder.buildChatBackgroundString(isRemoval: event?.isRemoval ?? false,
-                                                                     sender: eventItemProxy.sender,
-                                                                     isOutgoing: isOutgoing)
+        let text = stateEventStringBuilder.buildChatThemeString(isRemoval: event?.isRemoval ?? false,
+                                                                sender: eventItemProxy.sender,
+                                                                isOutgoing: isOutgoing)
         return StateRoomTimelineItem(id: eventItemProxy.id,
                                      body: text,
                                      timestamp: eventItemProxy.timestamp,

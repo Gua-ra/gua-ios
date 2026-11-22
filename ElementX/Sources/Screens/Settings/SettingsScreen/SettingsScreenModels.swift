@@ -25,6 +25,7 @@ enum SettingsScreenViewModelAction: Equatable {
     case logout
     case deactivateAccount
     
+    case chatTheme
     case mediaUploadQuality
     case appLock
     case analytics
@@ -41,6 +42,7 @@ struct SettingsScreenViewState: BindableState {
     var userAvatarURL: URL?
     var userDisplayName: String?
     var showDeveloperOptions: Bool
+    var showChatTheme: Bool
     
     var userLocalpart: String {
         userID.hasPrefix("@") ? String(userID.dropFirst().prefix { $0 != ":" }) : userID
@@ -87,6 +89,7 @@ enum SettingsScreenViewAction {
     case deactivateAccount
     
     case toggleSpaces
+    case chatTheme
     case mediaUploadQuality
     case appLock
     case analytics

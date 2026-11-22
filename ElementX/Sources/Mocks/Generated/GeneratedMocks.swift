@@ -2067,18 +2067,23 @@ class BugReportServiceMock: BugReportServiceProtocol, @unchecked Sendable {
     }
 }
 class ChatBackgroundServiceMock: ChatBackgroundServiceProtocol, @unchecked Sendable {
+    var defaultThemePublisher: CurrentValuePublisher<ChatTheme, Never> {
+        get { return underlyingDefaultThemePublisher }
+        set(value) { underlyingDefaultThemePublisher = value }
+    }
+    var underlyingDefaultThemePublisher: CurrentValuePublisher<ChatTheme, Never>!
 
-    //MARK: - backgroundPublisher
+    //MARK: - themePublisher
 
-    var backgroundPublisherRoomIDUnderlyingCallsCount = 0
-    var backgroundPublisherRoomIDCallsCount: Int {
+    var themePublisherRoomIDUnderlyingCallsCount = 0
+    var themePublisherRoomIDCallsCount: Int {
         get {
             if Thread.isMainThread {
-                return backgroundPublisherRoomIDUnderlyingCallsCount
+                return themePublisherRoomIDUnderlyingCallsCount
             } else {
                 var returnValue: Int? = nil
                 DispatchQueue.main.sync {
-                    returnValue = backgroundPublisherRoomIDUnderlyingCallsCount
+                    returnValue = themePublisherRoomIDUnderlyingCallsCount
                 }
 
                 return returnValue!
@@ -2086,29 +2091,29 @@ class ChatBackgroundServiceMock: ChatBackgroundServiceProtocol, @unchecked Senda
         }
         set {
             if Thread.isMainThread {
-                backgroundPublisherRoomIDUnderlyingCallsCount = newValue
+                themePublisherRoomIDUnderlyingCallsCount = newValue
             } else {
                 DispatchQueue.main.sync {
-                    backgroundPublisherRoomIDUnderlyingCallsCount = newValue
+                    themePublisherRoomIDUnderlyingCallsCount = newValue
                 }
             }
         }
     }
-    var backgroundPublisherRoomIDCalled: Bool {
-        return backgroundPublisherRoomIDCallsCount > 0
+    var themePublisherRoomIDCalled: Bool {
+        return themePublisherRoomIDCallsCount > 0
     }
-    var backgroundPublisherRoomIDReceivedRoomID: String?
-    var backgroundPublisherRoomIDReceivedInvocations: [String] = []
+    var themePublisherRoomIDReceivedRoomID: String?
+    var themePublisherRoomIDReceivedInvocations: [String] = []
 
-    var backgroundPublisherRoomIDUnderlyingReturnValue: CurrentValuePublisher<ChatBackground, Never>!
-    var backgroundPublisherRoomIDReturnValue: CurrentValuePublisher<ChatBackground, Never>! {
+    var themePublisherRoomIDUnderlyingReturnValue: CurrentValuePublisher<ChatTheme, Never>!
+    var themePublisherRoomIDReturnValue: CurrentValuePublisher<ChatTheme, Never>! {
         get {
             if Thread.isMainThread {
-                return backgroundPublisherRoomIDUnderlyingReturnValue
+                return themePublisherRoomIDUnderlyingReturnValue
             } else {
-                var returnValue: CurrentValuePublisher<ChatBackground, Never>? = nil
+                var returnValue: CurrentValuePublisher<ChatTheme, Never>? = nil
                 DispatchQueue.main.sync {
-                    returnValue = backgroundPublisherRoomIDUnderlyingReturnValue
+                    returnValue = themePublisherRoomIDUnderlyingReturnValue
                 }
 
                 return returnValue!
@@ -2116,27 +2121,27 @@ class ChatBackgroundServiceMock: ChatBackgroundServiceProtocol, @unchecked Senda
         }
         set {
             if Thread.isMainThread {
-                backgroundPublisherRoomIDUnderlyingReturnValue = newValue
+                themePublisherRoomIDUnderlyingReturnValue = newValue
             } else {
                 DispatchQueue.main.sync {
-                    backgroundPublisherRoomIDUnderlyingReturnValue = newValue
+                    themePublisherRoomIDUnderlyingReturnValue = newValue
                 }
             }
         }
     }
-    var backgroundPublisherRoomIDClosure: ((String) -> CurrentValuePublisher<ChatBackground, Never>)?
+    var themePublisherRoomIDClosure: ((String) -> CurrentValuePublisher<ChatTheme, Never>)?
 
     @MainActor
-    func backgroundPublisher(roomID: String) -> CurrentValuePublisher<ChatBackground, Never> {
-        backgroundPublisherRoomIDCallsCount += 1
-        backgroundPublisherRoomIDReceivedRoomID = roomID
+    func themePublisher(roomID: String) -> CurrentValuePublisher<ChatTheme, Never> {
+        themePublisherRoomIDCallsCount += 1
+        themePublisherRoomIDReceivedRoomID = roomID
         DispatchQueue.main.async {
-            self.backgroundPublisherRoomIDReceivedInvocations.append(roomID)
+            self.themePublisherRoomIDReceivedInvocations.append(roomID)
         }
-        if let backgroundPublisherRoomIDClosure = backgroundPublisherRoomIDClosure {
-            return backgroundPublisherRoomIDClosure(roomID)
+        if let themePublisherRoomIDClosure = themePublisherRoomIDClosure {
+            return themePublisherRoomIDClosure(roomID)
         } else {
-            return backgroundPublisherRoomIDReturnValue
+            return themePublisherRoomIDReturnValue
         }
     }
     //MARK: - refresh
@@ -2252,8 +2257,8 @@ class ChatBackgroundServiceMock: ChatBackgroundServiceProtocol, @unchecked Senda
     var setRoomProxyCalled: Bool {
         return setRoomProxyCallsCount > 0
     }
-    var setRoomProxyReceivedArguments: (background: ChatBackground, roomProxy: JoinedRoomProxyProtocol)?
-    var setRoomProxyReceivedInvocations: [(background: ChatBackground, roomProxy: JoinedRoomProxyProtocol)] = []
+    var setRoomProxyReceivedArguments: (theme: ChatTheme, roomProxy: JoinedRoomProxyProtocol)?
+    var setRoomProxyReceivedInvocations: [(theme: ChatTheme, roomProxy: JoinedRoomProxyProtocol)] = []
 
     var setRoomProxyUnderlyingReturnValue: Result<Void, RoomProxyError>!
     var setRoomProxyReturnValue: Result<Void, RoomProxyError>! {
@@ -2279,19 +2284,90 @@ class ChatBackgroundServiceMock: ChatBackgroundServiceProtocol, @unchecked Senda
             }
         }
     }
-    var setRoomProxyClosure: ((ChatBackground, JoinedRoomProxyProtocol) async -> Result<Void, RoomProxyError>)?
+    var setRoomProxyClosure: ((ChatTheme, JoinedRoomProxyProtocol) async -> Result<Void, RoomProxyError>)?
 
     @MainActor
-    func set(_ background: ChatBackground, roomProxy: JoinedRoomProxyProtocol) async -> Result<Void, RoomProxyError> {
+    func set(_ theme: ChatTheme, roomProxy: JoinedRoomProxyProtocol) async -> Result<Void, RoomProxyError> {
         setRoomProxyCallsCount += 1
-        setRoomProxyReceivedArguments = (background: background, roomProxy: roomProxy)
+        setRoomProxyReceivedArguments = (theme: theme, roomProxy: roomProxy)
         DispatchQueue.main.async {
-            self.setRoomProxyReceivedInvocations.append((background: background, roomProxy: roomProxy))
+            self.setRoomProxyReceivedInvocations.append((theme: theme, roomProxy: roomProxy))
         }
         if let setRoomProxyClosure = setRoomProxyClosure {
-            return await setRoomProxyClosure(background, roomProxy)
+            return await setRoomProxyClosure(theme, roomProxy)
         } else {
             return setRoomProxyReturnValue
+        }
+    }
+    //MARK: - setDefaultTheme
+
+    var setDefaultThemeUnderlyingCallsCount = 0
+    var setDefaultThemeCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return setDefaultThemeUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = setDefaultThemeUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                setDefaultThemeUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    setDefaultThemeUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var setDefaultThemeCalled: Bool {
+        return setDefaultThemeCallsCount > 0
+    }
+    var setDefaultThemeReceivedTheme: ChatTheme?
+    var setDefaultThemeReceivedInvocations: [ChatTheme] = []
+
+    var setDefaultThemeUnderlyingReturnValue: Result<Void, ClientProxyError>!
+    var setDefaultThemeReturnValue: Result<Void, ClientProxyError>! {
+        get {
+            if Thread.isMainThread {
+                return setDefaultThemeUnderlyingReturnValue
+            } else {
+                var returnValue: Result<Void, ClientProxyError>? = nil
+                DispatchQueue.main.sync {
+                    returnValue = setDefaultThemeUnderlyingReturnValue
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                setDefaultThemeUnderlyingReturnValue = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    setDefaultThemeUnderlyingReturnValue = newValue
+                }
+            }
+        }
+    }
+    var setDefaultThemeClosure: ((ChatTheme) async -> Result<Void, ClientProxyError>)?
+
+    @MainActor
+    func setDefaultTheme(_ theme: ChatTheme) async -> Result<Void, ClientProxyError> {
+        setDefaultThemeCallsCount += 1
+        setDefaultThemeReceivedTheme = theme
+        DispatchQueue.main.async {
+            self.setDefaultThemeReceivedInvocations.append(theme)
+        }
+        if let setDefaultThemeClosure = setDefaultThemeClosure {
+            return await setDefaultThemeClosure(theme)
+        } else {
+            return setDefaultThemeReturnValue
         }
     }
 }

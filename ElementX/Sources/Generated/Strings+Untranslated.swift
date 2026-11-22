@@ -36,82 +36,122 @@ internal enum UntranslatedL10n {
   internal static var guaChatBackgroundA11yMoveRight: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_a11y_move_right") }
   /// Move the photo up
   internal static var guaChatBackgroundA11yMoveUp: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_a11y_move_up") }
-  /// Remove background
-  internal static var guaChatBackgroundActionRemove: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_action_remove") }
-  /// Set background
-  internal static var guaChatBackgroundActionSet: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_action_set") }
-  /// Choose photo
-  internal static var guaChatBackgroundChoosePhoto: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_choose_photo") }
   /// Dim in dark mode
   internal static var guaChatBackgroundDim: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_dim") }
   /// Couldn’t change the background. Try again.
   internal static var guaChatBackgroundErrorGeneric: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_error_generic") }
   /// This photo is too large. Choose another one.
   internal static var guaChatBackgroundErrorTooLarge: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_error_too_large") }
-  /// %1$@ changed the chat background
-  internal static func guaChatBackgroundNoticeChanged(_ p1: Any) -> String {
-    return UntranslatedL10n.tr("Untranslated", "gua_chat_background_notice_changed", String(describing: p1))
-  }
-  /// You changed the chat background
-  internal static var guaChatBackgroundNoticeChangedByYou: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_notice_changed_by_you") }
-  /// %1$@ removed the chat background
-  internal static func guaChatBackgroundNoticeRemoved(_ p1: Any) -> String {
-    return UntranslatedL10n.tr("Untranslated", "gua_chat_background_notice_removed", String(describing: p1))
-  }
-  /// You removed the chat background
-  internal static var guaChatBackgroundNoticeRemovedByYou: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_notice_removed_by_you") }
   /// Background photos are not end-to-end encrypted.
   internal static var guaChatBackgroundPhotoNote: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_photo_note") }
   /// Drag to position the photo
   internal static var guaChatBackgroundPositionHint: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_position_hint") }
-  /// Aurora
-  internal static var guaChatBackgroundPresetAurora: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_preset_aurora") }
-  /// Blush
-  internal static var guaChatBackgroundPresetBlush: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_preset_blush") }
-  /// Graphite
-  internal static var guaChatBackgroundPresetGraphite: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_preset_graphite") }
-  /// Lavender
-  internal static var guaChatBackgroundPresetLavender: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_preset_lavender") }
-  /// Mint
-  internal static var guaChatBackgroundPresetMint: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_preset_mint") }
-  /// Night
-  internal static var guaChatBackgroundPresetNight: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_preset_night") }
-  /// Ocean
-  internal static var guaChatBackgroundPresetOcean: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_preset_ocean") }
-  /// Sand
-  internal static var guaChatBackgroundPresetSand: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_preset_sand") }
-  /// Sky
-  internal static var guaChatBackgroundPresetSky: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_preset_sky") }
-  /// Sunset
-  internal static var guaChatBackgroundPresetSunset: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_preset_sunset") }
   /// Background preview
   internal static var guaChatBackgroundPreviewA11y: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_preview_a11y") }
   /// Dark
   internal static var guaChatBackgroundPreviewDark: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_preview_dark") }
   /// Light
   internal static var guaChatBackgroundPreviewLight: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_preview_light") }
-  /// Setting background…
-  internal static var guaChatBackgroundProgress: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_progress") }
-  /// Removing background…
-  internal static var guaChatBackgroundProgressRemove: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_progress_remove") }
   /// Only admins and moderators can change it
   internal static var guaChatBackgroundRowNoPermission: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_row_no_permission") }
-  /// Background
-  internal static var guaChatBackgroundRowTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_row_title") }
   /// How does it look?
   internal static var guaChatBackgroundSampleIncoming: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_sample_incoming") }
   /// Looks great!
   internal static var guaChatBackgroundSampleOutgoing: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_sample_outgoing") }
   /// Today
   internal static var guaChatBackgroundSampleToday: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_sample_today") }
-  /// Chat background
-  internal static var guaChatBackgroundScreenTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_screen_title") }
-  /// Everyone in this chat, including people who join later, will see the background.
-  internal static var guaChatBackgroundSharedNote: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_shared_note") }
   /// Default
   internal static var guaChatBackgroundValueDefault: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_value_default") }
   /// Photo
   internal static var guaChatBackgroundValuePhoto: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_background_value_photo") }
+  /// Set
+  internal static var guaChatThemeActionSet: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_action_set") }
+  /// Set default
+  internal static var guaChatThemeActionSetDefault: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_action_set_default") }
+  /// Set theme
+  internal static var guaChatThemeActionSetTheme: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_action_set_theme") }
+  /// Blue
+  internal static var guaChatThemeBubbleBlue: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_bubble_blue") }
+  /// Graphite
+  internal static var guaChatThemeBubbleGraphite: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_bubble_graphite") }
+  /// Green
+  internal static var guaChatThemeBubbleGreen: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_bubble_green") }
+  /// Orange
+  internal static var guaChatThemeBubbleOrange: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_bubble_orange") }
+  /// Pink
+  internal static var guaChatThemeBubblePink: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_bubble_pink") }
+  /// Purple
+  internal static var guaChatThemeBubblePurple: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_bubble_purple") }
+  /// Standard
+  internal static var guaChatThemeBubbleStandard: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_bubble_standard") }
+  /// Teal
+  internal static var guaChatThemeBubbleTeal: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_bubble_teal") }
+  /// Yellow
+  internal static var guaChatThemeBubbleYellow: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_bubble_yellow") }
+  /// Chat bubble
+  internal static var guaChatThemeChatBubble: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_chat_bubble") }
+  /// Choose a photo
+  internal static var guaChatThemeChoosePhoto: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_choose_photo") }
+  /// Classic
+  internal static var guaChatThemeClassic: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_classic") }
+  /// Applies to every chat that doesn’t have its own theme.
+  internal static var guaChatThemeDefaultNote: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_default_note") }
+  /// No wallpaper
+  internal static var guaChatThemeNoWallpaper: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_no_wallpaper") }
+  /// %1$@ changed the chat theme
+  internal static func guaChatThemeNoticeChanged(_ p1: Any) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_notice_changed", String(describing: p1))
+  }
+  /// You changed the chat theme
+  internal static var guaChatThemeNoticeChangedByYou: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_notice_changed_by_you") }
+  /// %1$@ removed the chat theme
+  internal static func guaChatThemeNoticeRemoved(_ p1: Any) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_notice_removed", String(describing: p1))
+  }
+  /// You removed the chat theme
+  internal static var guaChatThemeNoticeRemovedByYou: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_notice_removed_by_you") }
+  /// Aurora
+  internal static var guaChatThemePresetAurora: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_preset_aurora") }
+  /// Blush
+  internal static var guaChatThemePresetBlush: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_preset_blush") }
+  /// Citrus
+  internal static var guaChatThemePresetCitrus: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_preset_citrus") }
+  /// Dawn
+  internal static var guaChatThemePresetDawn: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_preset_dawn") }
+  /// Dusk
+  internal static var guaChatThemePresetDusk: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_preset_dusk") }
+  /// Forest
+  internal static var guaChatThemePresetForest: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_preset_forest") }
+  /// Graphite
+  internal static var guaChatThemePresetGraphite: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_preset_graphite") }
+  /// Lavender
+  internal static var guaChatThemePresetLavender: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_preset_lavender") }
+  /// Mint
+  internal static var guaChatThemePresetMint: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_preset_mint") }
+  /// Night
+  internal static var guaChatThemePresetNight: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_preset_night") }
+  /// Ocean
+  internal static var guaChatThemePresetOcean: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_preset_ocean") }
+  /// Sand
+  internal static var guaChatThemePresetSand: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_preset_sand") }
+  /// Sky
+  internal static var guaChatThemePresetSky: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_preset_sky") }
+  /// Sunset
+  internal static var guaChatThemePresetSunset: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_preset_sunset") }
+  /// Setting theme…
+  internal static var guaChatThemeProgress: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_progress") }
+  /// Colours
+  internal static var guaChatThemeSectionColours: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_section_colours") }
+  /// Featured
+  internal static var guaChatThemeSectionFeatured: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_section_featured") }
+  /// Gradients
+  internal static var guaChatThemeSectionGradients: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_section_gradients") }
+  /// Everyone in the chat sees this theme.
+  internal static var guaChatThemeSharedNote: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_shared_note") }
+  /// Chat theme
+  internal static var guaChatThemeTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_title") }
+  /// Wallpaper
+  internal static var guaChatThemeWallpaper: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_wallpaper") }
   /// Contact info
   internal static var guaContactInfoTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_contact_info_title") }
   /// Opens country picker
