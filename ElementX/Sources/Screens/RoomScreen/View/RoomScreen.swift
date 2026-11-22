@@ -33,7 +33,7 @@ struct RoomScreen: View {
                 .accessibilityIdentifier(A11yIdentifiers.roomScreen.scrollToBottom)
             }
             .background {
-                // GUA FORK: below the top bar to the edges of the screen, whatever the keyboard does.
+                // GUA FORK: fills from below the top bar to the screen edges and ignores the keyboard.
                 ZStack {
                     Color.compound.bgCanvasDefault.ignoresSafeArea()
                     ChatBackgroundView(background: timelineContext.viewState.effectiveChatTheme.wallpaper,

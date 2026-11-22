@@ -9,7 +9,7 @@ import Foundation
 
 struct ChatBackgroundStoredValue: Codable, Equatable {
     let contentJSON: String
-    /// Nil for no event, or a server reply without one.
+    /// Nil when the server returned no event.
     let eventID: String?
     /// Server milliseconds, or the previous value plus 1 for a send the server has not echoed yet.
     let timestamp: UInt64
@@ -74,13 +74,17 @@ final class ChatBackgroundCache: ChatBackgroundCacheProtocol {
 
     private func write(_ data: Data, to fileURL: URL) {
         writeQueue.async {
-            // Never recreates the directory, so a write landing after sign-out deleted the session's caches fails.
+            // Does not recreate the directory, so a write that lands after sign-out fails.
             do {
                 try data.write(to: fileURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
             } catch {
                 MXLog.error("Failed writing the chat background cache: \(error)")
             }
         }
+    }
+
+    func waitForPendingWrites() {
+        writeQueue.sync { }
     }
 
     private func loadedEntries() -> [Entry] {

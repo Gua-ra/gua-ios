@@ -123,7 +123,7 @@ final class ChatBackgroundServiceTests: XCTestCase {
         cache.values[roomID] = stored(.preset(.aurora), eventID: "$current", timestamp: 1000)
         _ = await service.set(theme(.preset(.night)), roomProxy: roomProxy)
 
-        // The server's clock can be behind the stamp's, and the event must still win.
+        // The server's timestamp can be lower than the local echo's, and the event must still win.
         service.handleTimelineEvent(roomID: roomID, eventID: "$sent", timestamp: 900, contentJSON: theme(.preset(.night)).contentJSON)
         XCTAssertEqual(cache.saved.last?.value.timestamp, 900)
 
@@ -223,12 +223,8 @@ final class ChatBackgroundServiceTests: XCTestCase {
         XCTAssertNil(loaded["!0:gua.global"])
         XCTAssertEqual(loaded["!1:gua.global"]?.eventID, "$again")
 
-        // Writes happen in the background, so the file is read until the last one has landed.
-        var reloaded: [String: ChatBackgroundStoredValue] = [:]
-        for _ in 0..<250 where reloaded["!1:gua.global"]?.eventID != "$again" {
-            Thread.sleep(forTimeInterval: 0.02)
-            reloaded = ChatBackgroundCache(directory: directory).load()
-        }
+        diskCache.waitForPendingWrites()
+        let reloaded = ChatBackgroundCache(directory: directory).load()
         XCTAssertEqual(reloaded.count, ChatBackgroundCache.maxRooms)
         XCTAssertEqual(reloaded["!1:gua.global"]?.eventID, "$again")
     }

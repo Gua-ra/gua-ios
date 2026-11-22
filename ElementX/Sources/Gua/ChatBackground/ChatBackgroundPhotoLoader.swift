@@ -7,12 +7,20 @@
 
 import ImageIO
 import UIKit
+import UniformTypeIdentifiers
 
 @MainActor
 enum ChatBackgroundPhotoLoader {
-    private static let decodedImages = NSCache<NSString, UIImage>()
+    private static let decodedImages = {
+        let cache = NSCache<NSString, UIImage>()
+        cache.totalCostLimit = 48 * 1024 * 1024
+        return cache
+    }()
     private static let placeholders = NSCache<NSString, UIImage>()
     private static let placeholderSize = 32
+    /// Gua clients upload at most 2048 pixels on an edge, so anything far larger is refused before decoding.
+    private nonisolated static let maxDecodedEdge = 4096
+    private nonisolated static let decodableTypes: Set<String> = [UTType.jpeg.identifier, UTType.png.identifier, UTType.heic.identifier, UTType.webP.identifier]
 
     static func cachedImage(for photo: ChatBackground.Photo, maxPixelSize: Int, mediaProvider: MediaProviderProtocol?) -> UIImage? {
         if let image = decodedImages.object(forKey: cacheKey(photo, maxPixelSize)) {
@@ -34,13 +42,13 @@ enum ChatBackgroundPhotoLoader {
             decodeImage(at: file.url, maxPixelSize: maxPixelSize)
         }.value
 
-        if let image {
-            decodedImages.setObject(image, forKey: cacheKey(photo, maxPixelSize))
+        if let image, let cgImage = image.cgImage {
+            decodedImages.setObject(image, forKey: cacheKey(photo, maxPixelSize), cost: cgImage.bytesPerRow * cgImage.height)
         }
         return image
     }
 
-    /// Decoded at a fixed size whatever shape the photo declares, so a crafted width and height cannot make it expensive.
+    /// Fixed size, so a crafted width and height cannot make decoding expensive.
     static func placeholder(blurhash: String) -> UIImage? {
         if let image = placeholders.object(forKey: blurhash as NSString) {
             return image
@@ -52,12 +60,19 @@ enum ChatBackgroundPhotoLoader {
         return image
     }
 
-    /// The declared size is not trusted: the file on disk is checked before anything is decoded.
+    /// The event is not trusted: the file's size, type and pixel size are checked before anything is decoded.
     private nonisolated static func decodeImage(at url: URL?, maxPixelSize: Int) -> UIImage? {
         guard let url,
               let fileSize = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize,
               fileSize <= ChatBackground.Photo.maxSize,
               let source = CGImageSourceCreateWithURL(url as CFURL, [kCGImageSourceShouldCache: false] as CFDictionary),
+              let type = CGImageSourceGetType(source),
+              decodableTypes.contains(type as String),
+              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+              let width = (properties[kCGImagePropertyPixelWidth] as? NSNumber)?.intValue,
+              let height = (properties[kCGImagePropertyPixelHeight] as? NSNumber)?.intValue,
+              (1...maxDecodedEdge).contains(width),
+              (1...maxDecodedEdge).contains(height),
               let image = ChatBackgroundImageProcessor.uprightImage(from: source, maxPixelSize: min(maxPixelSize, ChatBackgroundImageProcessor.maxEdge)) else {
             return nil
         }
@@ -69,6 +84,6 @@ enum ChatBackgroundPhotoLoader {
     }
 
     private static func cacheKey(_ photo: ChatBackground.Photo, _ maxPixelSize: Int) -> NSString {
-        "\(photo.url){\(maxPixelSize)}" as NSString
+        "\(photo.url){\(min(maxPixelSize, ChatBackgroundImageProcessor.maxEdge))}" as NSString
     }
 }

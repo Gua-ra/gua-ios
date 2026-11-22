@@ -8,7 +8,7 @@
 import Foundation
 
 extension RoomTimelineItemFixtures {
-    /// A group chat with every element that is drawn straight on the timeline and so gets a capsule over a background.
+    /// Covers every item that gets a legibility capsule over a background.
     static var chatBackgroundShowcase: [RoomTimelineItemProtocol] {
         let helena = TimelineItemSender(id: "@helena:gua.global", displayName: "Helena")
         let jacob = TimelineItemSender(id: "@jacob:gua.global", displayName: "Jacob", isDisplayNameAmbiguous: true)

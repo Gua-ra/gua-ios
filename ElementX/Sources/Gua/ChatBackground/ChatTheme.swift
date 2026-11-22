@@ -39,7 +39,7 @@ enum ChatBackground: Hashable {
         /// Room versions 6 and later refuse floats in events, so dim is stored in whole percent and align in thousandths.
         static let dimScale = 100.0
         static let alignScale = 1000.0
-        /// The largest file a photo background may declare, and the most that is downloaded to show one.
+        /// The largest photo file accepted as declared and decoded; the SDK downloads the whole file before it is checked.
         static let maxSize = 20_000_000
 
         var url: String
@@ -188,7 +188,7 @@ extension ChatBackground.Photo: Decodable {
             throw InvalidContent()
         }
 
-        let blurhash = try container.decodeIfPresentAndNotNull(String.self, forKey: .blurhash)
+        let blurhash = try container.decodeIfPresent(String.self, forKey: .blurhash)
         if let blurhash, blurhash.utf16.count > Self.maxBlurhashLength {
             throw InvalidContent()
         }
@@ -253,19 +253,13 @@ private extension KeyedDecodingContainer {
         return try !decodeNil(forKey: key)
     }
 
-    /// Absent and null are both no value, but a value of the wrong type is an error.
-    func decodeIfPresentAndNotNull<T: Decodable>(_ type: T.Type, forKey key: Key) throws -> T? {
-        guard try containsValue(forKey: key) else { return nil }
-        return try decode(type, forKey: key)
-    }
-
     /// 800.0 is the same JSON number as 800, and Android reads it as an integer too.
     func decodeInteger(forKey key: Key) throws -> Int {
         if let integer = try? decode(Int.self, forKey: key) {
             return integer
         }
         let number = try decode(Double.self, forKey: key)
-        guard number.isFinite, number == number.rounded(), let integer = Int(exactly: number) else {
+        guard let integer = Int(exactly: number) else {
             throw DecodingError.dataCorruptedError(forKey: key, in: self, debugDescription: "Not a whole number")
         }
         return integer
