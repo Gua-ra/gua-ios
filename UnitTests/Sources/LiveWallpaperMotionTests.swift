@@ -415,6 +415,12 @@ final class LiveWallpaperMotionTests {
         #expect(chat.bottom == visibleBottom)
     }
     
+    @Test(arguments: [(776, true), (120, true), (119, false), (116, false), (60, false)] as [(CGFloat, Bool)])
+    func aComposerUpAtTheTopBarLeavesNoChatToAnimate(composerGlobalTop: CGFloat, showsChat: Bool) {
+        let chat = visibleChat(composerGlobalTop: composerGlobalTop)
+        #expect(LiveWallpaperLayout.showsChat(visibleTop: chat.top, visibleBottom: chat.bottom) == showsChat)
+    }
+    
     @Test
     func aComposerOutsideTheCanvasPutsTheSpotOnItsEdge() {
         let layout = LiveWallpaperLayout(artwork: .glassDrops, viewSize: CGSize(width: 402, height: 758), displayScale: 3)

@@ -110,6 +110,8 @@ struct LiveWallpaperLayout: Equatable {
     static let maximumAreaRatio: CGFloat = 2
     /// The shaders' default send-pulse spot, as a share of the render target from its bottom-left corner.
     static let pulseSpot = CGPoint(x: 0.83, y: 0.113)
+    /// Any less and the composer has reached the top bar, give or take rounding.
+    static let minimumVisibleChatHeight: CGFloat = 4
     
     let viewSize: CGSize
     /// The still's rect at rest; it overflows the view on one axis, or on every side where the artwork tilts.
@@ -181,6 +183,10 @@ struct LiveWallpaperLayout: Equatable {
         }
         // The window's inset is the home indicator alone; the canvas's own can also hold the keyboard.
         return (topInset, canvasHeight - min(bottomInset, windowBottomInset ?? 0))
+    }
+    
+    static func showsChat(visibleTop: CGFloat, visibleBottom: CGFloat) -> Bool {
+        visibleBottom - visibleTop >= minimumVisibleChatHeight
     }
 }
 
@@ -280,14 +286,18 @@ private final class ChatLiveWallpaperUIView: UIView, MTKViewDelegate {
         return policy.including(isInWindow: window != nil, isSceneActive: isSceneActive, isCovered: isCovered).tiltMotion
     }
     
+    private var visibleChat: (top: CGFloat, bottom: CGFloat) {
+        LiveWallpaperLayout.visibleChat(canvasHeight: bounds.height,
+                                        canvasGlobalTop: globalTop,
+                                        composerGlobalTop: sendPulse?.composerTop,
+                                        topInset: safeAreaInsets.top,
+                                        bottomInset: safeAreaInsets.bottom,
+                                        windowBottomInset: window?.safeAreaInsets.bottom)
+    }
+    
     private var pulseOrigin: SIMD2<Float> {
         guard let layout else { return .zero }
-        let chat = LiveWallpaperLayout.visibleChat(canvasHeight: bounds.height,
-                                                   canvasGlobalTop: globalTop,
-                                                   composerGlobalTop: sendPulse?.composerTop,
-                                                   topInset: safeAreaInsets.top,
-                                                   bottomInset: safeAreaInsets.bottom,
-                                                   windowBottomInset: window?.safeAreaInsets.bottom)
+        let chat = visibleChat
         return layout.pulseOrigin(visibleTop: chat.top, visibleBottom: chat.bottom)
     }
     
@@ -299,9 +309,11 @@ private final class ChatLiveWallpaperUIView: UIView, MTKViewDelegate {
         }
     }
     
-    /// The app lock screen hides the window; sheets and menus present over this view's controller or an ancestor.
+    /// The app lock screen hides the window, sheets and menus present over this view's controller or an ancestor, and a
+    /// composer up at the top bar leaves no chat to see.
     private var isCoveredInUIKit: Bool {
-        if window?.isHidden == true {
+        let chat = visibleChat
+        if window?.isHidden == true || !LiveWallpaperLayout.showsChat(visibleTop: chat.top, visibleBottom: chat.bottom) {
             return true
         }
         var controller = sequence(first: self as UIResponder, next: \.next).first { $0 is UIViewController } as? UIViewController
