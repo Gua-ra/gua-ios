@@ -16,6 +16,7 @@ enum ChatBackgroundPhotoLoader {
         cache.totalCostLimit = 48 * 1024 * 1024
         return cache
     }()
+    
     private static let placeholders = NSCache<NSString, UIImage>()
     private static let placeholderSize = 32
     /// Gua clients upload at most 2048 pixels on an edge, so anything far larger is refused before decoding.
