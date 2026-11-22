@@ -17,7 +17,7 @@ struct ChatTheme: Hashable {
         self == .stock
     }
 
-    /// What a chat shows. A photo the chat may not show hands over to the default as a whole, whose own photo always shows.
+    /// When the media setting hides the chat's photo, the whole default theme shows instead. The default's own photo always shows.
     static func effective(chatTheme: ChatTheme, defaultTheme: ChatTheme, roomIsPrivate: Bool, mediaShown: Bool) -> ChatTheme {
         guard !chatTheme.isStock else { return defaultTheme }
         if chatTheme.wallpaper.photo != nil, !roomIsPrivate, !mediaShown {
@@ -27,7 +27,6 @@ struct ChatTheme: Hashable {
     }
 }
 
-/// The wallpaper of a chat theme.
 enum ChatBackground: Hashable {
     case none
     case preset(ChatBackgroundPreset)
@@ -144,7 +143,7 @@ private struct Content: Decodable {
             Self.preset(from: container, key: .fallbackPreset)
         }
 
-        // Only version 1 has bubbles. One it doesn't know reads as the stock bubble and keeps the wallpaper.
+        // Only v1 has bubbles. An unknown bubble reads as standard and keeps the wallpaper.
         let bubble = version == 1 ? (try? container.decode(String.self, forKey: .bubble)).flatMap(ChatBubbleColor.init(rawValue:)) : nil
         theme = ChatTheme(wallpaper: wallpaper, bubble: bubble ?? .standard)
     }

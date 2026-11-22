@@ -113,7 +113,7 @@ struct ChatThemeScreen: View {
 }
 
 extension Binding where Value == AlertInfo<ChatThemeScreenAlertType>? {
-    /// Every layer that can raise the alert binds to it, and only the one on top may present it.
+    /// Each layer binds the same alert, and only the topmost may present it.
     func presented(if isTopmost: Bool) -> Binding<Value> {
         Binding {
             isTopmost ? wrappedValue : nil

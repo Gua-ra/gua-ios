@@ -43,7 +43,7 @@ struct TimelineView: View {
                         }
                         .environmentObject(timelineContext)
                         .environment(\.timelineContext, timelineContext)
-                        // GUA FORK: the lifted copy of the bubble keeps the chat's bubble colour.
+                        // GUA FORK: the menu's copy of the bubble keeps the chat's bubble colour.
                         .environment(\.chatBubbleColor, timelineContext.viewState.effectiveChatTheme.bubble)
                     } else {
                         Color.clear

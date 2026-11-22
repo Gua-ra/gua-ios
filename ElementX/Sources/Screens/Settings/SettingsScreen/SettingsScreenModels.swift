@@ -42,7 +42,6 @@ struct SettingsScreenViewState: BindableState {
     var userAvatarURL: URL?
     var userDisplayName: String?
     var showDeveloperOptions: Bool
-    /// GUA FORK: the Chat theme row, behind the chat backgrounds flag.
     var showChatTheme: Bool
     
     var userLocalpart: String {

@@ -82,7 +82,7 @@ struct ChatWallpaperPicker: View {
     }
 }
 
-/// Phone-shaped swatches up to 88 pt wide, in as many columns as keep the longest name of any preset on one line, and at least three.
+/// Columns fit the longest name of any preset on one line, with at least three.
 struct ChatBackgroundPresetGrid: View {
     let presets: [ChatBackgroundPreset]
     let selected: ChatBackgroundPreset?

@@ -10,7 +10,6 @@ import SwiftUI
 
 struct StickerRoomTimelineView: View {
     @Environment(\.timelineContext) private var context
-    // GUA FORK: the placeholder matches the chat theme's outgoing bubble.
     @Environment(\.chatBubbleColor) private var chatBubbleColor
     let timelineItem: StickerRoomTimelineItem
     

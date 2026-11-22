@@ -275,7 +275,6 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
 }
 
 private extension EventBasedTimelineItemProtocol {
-    /// GUA FORK: the chat theme colours the outgoing bubble.
     func bubbleBackgroundColor(outgoing outgoingColor: Color) -> Color? {
         let defaultColor: Color = isOutgoing ? outgoingColor : .compound._bgBubbleIncoming
         

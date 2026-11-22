@@ -133,7 +133,7 @@ class ChatThemeScreenViewModel: ChatThemeScreenViewModelType, ChatThemeScreenVie
         powerLevels?.canOwnUser(sendStateEvent: .guaChatBackground) ?? false
     }
 
-    /// The chat-side half of `ChatTheme.effective`, with an unknown join rule counted as public.
+    /// The chat side of `ChatTheme.effective`. An unknown join rule counts as public.
     private static func isPhotoHidden(_ visibility: TimelineMediaVisibility, roomInfo: RoomInfoProxyProtocol) -> Bool {
         visibility != .always && !(roomInfo.isPrivate ?? false)
     }

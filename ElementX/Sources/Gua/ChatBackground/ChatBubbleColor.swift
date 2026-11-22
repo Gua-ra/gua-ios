@@ -10,7 +10,7 @@ import SwiftUI
 
 /// Colours only the outgoing bubble, in picker order.
 enum ChatBubbleColor: String, CaseIterable, Identifiable {
-    /// The stock bubble, which is never written.
+    /// The stock bubble, omitted from the stored content.
     case standard
     case green
     case teal
@@ -39,7 +39,7 @@ enum ChatBubbleColor: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Increase Contrast keeps these: they already give the stock text colours the stock bubble's contrast.
+    /// No Increase Contrast variants: these already give the stock text the stock bubble's contrast.
     var hex: (light: UInt32, dark: UInt32)? {
         switch self {
         case .standard: nil
