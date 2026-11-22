@@ -32,7 +32,7 @@ struct ChatPhotoCreditsScreen: View {
         }
     }
     
-    /// One row per link: buttons that share a form row all fire on a single tap.
+    /// One link per row: buttons sharing a Form row all fire on a single tap.
     private func section(artwork: ChatArtwork, credit: ChatArtwork.Credit) -> some View {
         Section {
             ListRow(kind: .custom {

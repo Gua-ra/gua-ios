@@ -68,7 +68,6 @@ struct ChatThemeScreenViewState: BindableState {
         isPhotoHidden && baseTheme.wallpaper.photo != nil ? .none : baseTheme.wallpaper
     }
     
-    /// Shown to everyone who opens the screen, including members who cannot change the theme.
     var photoCredit: ChatArtwork.Credit? {
         shownWallpaper.artwork?.credit
     }

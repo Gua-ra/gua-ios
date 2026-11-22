@@ -15,8 +15,8 @@ struct ChatThemeRow: View {
     
     @Environment(\.colorScheme) private var colorScheme
     
-    /// Members who cannot change the theme still open it, to see the credit of a photo.
     var body: some View {
+        // Members who cannot change the theme still open it to see a photo's credit.
         ListRow(label: .default(title: UntranslatedL10n.guaChatThemeTitle,
                                 description: canChange ? nil : UntranslatedL10n.guaChatBackgroundRowNoPermission,
                                 icon: CompoundIcon(customImage: Asset.Images.theme.swiftUIImage)),

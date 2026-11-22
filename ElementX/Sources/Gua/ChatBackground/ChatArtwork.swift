@@ -63,15 +63,14 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         case minimal
     }
     
-    /// Shown wherever the photo is offered or shown: Brazilian copyright law requires the author's name even under CC0.
+    /// Shown wherever the photo appears: Brazilian copyright law requires the author's name even under CC0.
     struct Credit: Hashable {
         let author: String
         let licence: Licence
-        /// Nil for the author's own photos, which have no public page.
         let sourceURL: URL?
     }
     
-    /// Raw values are the names shown, which are never translated.
+    /// Raw values are displayed untranslated.
     enum Licence: String {
         case cc0 = "CC0 1.0"
         case ccBy4 = "CC BY 4.0"
@@ -122,7 +121,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         section == .photos
     }
     
-    /// In dark appearance a photo gets the scrim of a user's own photo at its default dim.
+    /// Photos have no dark variant, so dark appearance dims them like a user's own photo.
     var photoDim: Double? {
         isPhoto ? ChatBackground.Photo.defaultDim : nil
     }
