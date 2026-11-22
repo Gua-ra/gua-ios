@@ -18,7 +18,7 @@ enum ChatArtworkLoader {
         }
     }
     
-    /// Decoded sizes are rounded up to this step, so a frame that changes a little reuses its image.
+    /// Decode sizes round up to this step, so a slightly resized frame reuses the cached image.
     private static let pixelStep = 256.0
     private static let images: NSCache<NSString, UIImage> = {
         let cache = NSCache<NSString, UIImage>()
@@ -26,7 +26,6 @@ enum ChatArtworkLoader {
         return cache
     }()
     
-    /// The grain drawn over artworks and gradients, a small tile that is decoded once.
     static let grainTile: CGImage? = url(for: "noise.webp")
         .flatMap { CGImageSourceCreateWithURL($0 as CFURL, nil) }
         .flatMap { CGImageSourceCreateImageAtIndex($0, 0, [kCGImageSourceShouldCacheImmediately: true] as CFDictionary) }
@@ -43,7 +42,7 @@ enum ChatArtworkLoader {
         if let image = images.object(forKey: request.cacheKey) {
             return image
         }
-        // Snapshots are drawn once and never wait for a load.
+        // Snapshot tests render once, so they decode here instead of waiting for a load.
         guard ProcessInfo.isRunningTests, let image = decodeImage(for: request) else { return nil }
         store(image, for: request)
         return image

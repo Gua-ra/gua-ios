@@ -49,7 +49,8 @@ struct ChatThemePreview: View {
                                          canSave: context.viewState.canSave(draft),
                                          onPreviewColorScheme: { context.send(viewAction: .setPreviewColorScheme($0)) },
                                          onSave: { context.send(viewAction: .savePreview) },
-                                         onPreviewSend: canPreviewSending ? { sendPulse.recordSend() } : nil)
+                                         onPreviewSend: canPreviewSending ? { sendPulse.recordSend() } : nil,
+                                         extra: { EmptyView() })
                     .reportsChatWallpaperComposerTop(to: sendPulse)
             }
             .navigationTitle(UntranslatedL10n.guaChatThemeTitle)
@@ -99,24 +100,6 @@ struct ChatThemePreviewControls<Extra: View>: View {
         }
         .padding(16)
         .background(Color.compound.bgCanvasDefault.ignoresSafeArea())
-    }
-}
-
-extension ChatThemePreviewControls where Extra == EmptyView {
-    init(previewColorScheme: ColorScheme,
-         saveTitle: String,
-         canSave: Bool,
-         onPreviewColorScheme: @escaping (ColorScheme) -> Void,
-         onSave: @escaping () -> Void,
-         onPreviewSend: (() -> Void)? = nil) {
-        self.init(previewColorScheme: previewColorScheme,
-                  saveTitle: saveTitle,
-                  canSave: canSave,
-                  onPreviewColorScheme: onPreviewColorScheme,
-                  onSave: onSave,
-                  onPreviewSend: onPreviewSend) {
-            EmptyView()
-        }
     }
 }
 

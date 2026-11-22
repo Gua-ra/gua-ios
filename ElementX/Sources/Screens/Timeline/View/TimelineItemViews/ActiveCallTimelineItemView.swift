@@ -114,7 +114,6 @@ struct ActiveCallTimelineItemView: View {
             }
         }
         .padding(12)
-        // GUA FORK: backs the active call tile over a chat background, like the tombstoned tile.
         .legibilityCapsule(.roundedRectangle(cornerRadius: 8), hasPadding: false)
         .overlay(RoundedRectangle(cornerRadius: 8)
             .stroke(.compound.borderInteractivePrimary, lineWidth: 1))

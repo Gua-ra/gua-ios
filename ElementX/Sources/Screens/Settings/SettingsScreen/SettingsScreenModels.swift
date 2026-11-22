@@ -54,7 +54,6 @@ struct SettingsScreenViewState: BindableState {
     var accountProfileURL: URL?
     var showAccountDeactivation: Bool
     var showDeveloperOptions: Bool
-    /// GUA FORK: the Chat theme row, behind the chat backgrounds flag.
     var showChatTheme: Bool
     
     var securitySectionMode = SettingsScreenSecuritySectionMode.none

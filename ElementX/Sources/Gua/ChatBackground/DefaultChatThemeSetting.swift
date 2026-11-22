@@ -8,7 +8,7 @@
 import Combine
 import Foundation
 
-/// The theme of every chat without one of its own, private to the user and synced through global account data.
+/// The theme of every chat without its own, private to the user and synced through global account data.
 @MainActor
 final class DefaultChatThemeSetting {
     static let accountDataType = "global.gua.chat_theme"
@@ -106,7 +106,7 @@ final class DefaultChatThemeSetting {
     }
     
     private func write(_ theme: ChatTheme, request: Int) async -> Result<Void, ClientProxyError> {
-        // A newer choice is already queued, so this one is never sent.
+        // A newer choice is queued, so this one is never sent.
         guard request == latestRequest else { return .success(()) }
         
         let result = await clientProxy.setAccountData(type: Self.accountDataType, content: theme.contentJSON)

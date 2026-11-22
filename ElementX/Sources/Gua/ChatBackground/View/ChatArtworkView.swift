@@ -8,7 +8,6 @@
 import Compound
 import SwiftUI
 
-/// An artwork's still for the current appearance, cropped around its anchor, over its fallback preset while it loads.
 struct ChatArtworkView: View {
     let artwork: ChatArtwork
     /// Set where the artwork tilts, which draws the still larger than the view so a tilt never shows its edges.
@@ -17,7 +16,7 @@ struct ChatArtworkView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.displayScale) private var displayScale
     
-    /// Still shown while another size or appearance loads, so a change never flashes the fallback.
+    /// The last image, shown instead of the fallback while another size or appearance loads.
     @State private var loadedImage: UIImage?
     
     var body: some View {
@@ -43,7 +42,7 @@ struct ChatArtworkView: View {
         let image = ChatArtworkLoader.cachedImage(for: request) ?? loadedImage
         let fallback = artwork.fallbackPreset.fill(for: colorScheme)
         
-        // One canvas, so the grain is blended once rather than on every frame the chat scrolls.
+        // One canvas, so the grain blends once instead of on every scrolled frame.
         return Canvas { context, size in
             context.drawChatBackgroundFill(fallback, size: size)
             if let image {
@@ -73,7 +72,6 @@ private struct WallpaperParallaxOffset: ViewModifier {
     }
 }
 
-/// Marks a tile whose artwork moves, while the tile itself shows a still.
 struct ChatArtworkLiveBadge: View {
     var body: some View {
         Text(UntranslatedL10n.guaChatThemeLiveBadge)
@@ -87,7 +85,7 @@ struct ChatArtworkLiveBadge: View {
 }
 
 extension GraphicsContext {
-    /// A tiled grain at very low strength, about one or two levels, which breaks up the banding of smooth fills.
+    /// Faint grain, about one or two levels, that breaks up banding in smooth fills.
     func drawChatBackgroundGrain(size: CGSize) {
         guard let tile = ChatArtworkLoader.grainTile else { return }
         var context = self

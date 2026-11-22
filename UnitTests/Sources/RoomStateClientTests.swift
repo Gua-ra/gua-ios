@@ -41,7 +41,6 @@ final class RoomStateClientTests {
     @Test
     func pathEscapesTheRoomIDAndEndsWithTheEmptyStateKey() throws {
         #expect(try RoomStateClient.path(roomID: "!room:gua.global") == "/_matrix/client/v3/rooms/!room:gua.global/state/global.gua.room.background/")
-        // Room v12 IDs carry no server name and can hold any URL-safe base64 character.
         #expect(try RoomStateClient.path(roomID: "!Yx8_r-2Lq9/aB+c?d#e") == "/_matrix/client/v3/rooms/!Yx8_r-2Lq9%2FaB+c%3Fd%23e/state/global.gua.room.background/")
     }
     
