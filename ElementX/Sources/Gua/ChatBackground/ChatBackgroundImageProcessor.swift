@@ -23,7 +23,7 @@ nonisolated enum ChatBackgroundImageProcessorError: Error {
     case encodingFailed
 }
 
-/// Only decoded pixels are written, so nothing from the original file, EXIF and GPS included, reaches the upload.
+/// Writes only decoded pixels, so no EXIF, GPS or other metadata from the original reaches the upload.
 nonisolated enum ChatBackgroundImageProcessor {
     static let maxEdge = 2048
     static let reducedMaxEdge = 1600

@@ -32,8 +32,7 @@ struct ChatBackgroundView: View {
             case .none:
                 Color.compound.bgCanvasDefault
             case .preset(let preset):
-                let fill = preset.fill(for: colorScheme)
-                ChatBackgroundFillView(fill: fill, hasGrain: fill.isGradient)
+                ChatBackgroundFillView(fill: preset.fill(for: colorScheme))
                 ChatBackgroundScrim(photoDim: nil)
             case .art(let artwork):
                 ChatArtworkView(artwork: artwork)
@@ -65,12 +64,11 @@ struct ChatBackgroundScrim: View {
 
 struct ChatBackgroundFillView: View {
     let fill: ChatBackgroundFill
-    var hasGrain = false
     
     var body: some View {
         Canvas { context, size in
             context.drawChatBackgroundFill(fill, size: size)
-            if hasGrain {
+            if fill.isGradient {
                 context.drawChatBackgroundGrain(size: size)
             }
         }
@@ -106,7 +104,7 @@ extension GraphicsContext {
 /// Aspect fill: a photo overflowing its frame by `o` on an axis is offset by `-o × align`, as on Android.
 struct ChatBackgroundPhotoLayout: View {
     let image: UIImage
-    /// The shape to fill with, when the image is a stand-in of another shape.
+    /// The real photo's size when `image` is a placeholder of another shape.
     var contentSize: CGSize?
     let alignX: Double
     let alignY: Double

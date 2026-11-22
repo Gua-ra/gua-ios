@@ -24,9 +24,9 @@ struct ChatBackgroundPhotoDraft: Equatable, Identifiable {
 
 struct ChatThemePreviewDraft: Equatable, Identifiable {
     let id = UUID()
-    /// What saving writes, which is no theme for the Default and Classic tiles.
+    /// What saving writes: `.stock` for the Default and Classic tiles.
     let theme: ChatTheme
-    /// What the preview draws, which for the Default tile is the user's default.
+    /// What the preview draws: the user's default for the Default tile.
     let shownTheme: ChatTheme
     var isPickerChoice = false
     /// Nil follows the app's appearance.
@@ -44,7 +44,7 @@ struct ChatThemeScreenViewState: BindableState {
     var current: ChatTheme
     var defaultTheme: ChatTheme
     var canChange: Bool
-    /// A public chat that hides media doesn't show its photo, here either.
+    /// A public chat that hides media hides its photo here too.
     var isPhotoHidden: Bool
     var bindings = ChatThemeScreenViewStateBindings()
     
@@ -58,7 +58,7 @@ struct ChatThemeScreenViewState: BindableState {
         mode == .chat ? UntranslatedL10n.guaChatBackgroundValueDefault : UntranslatedL10n.guaChatThemeClassic
     }
     
-    /// What the pickers start from: in a chat that follows the default, the default without its photo, which stays private.
+    /// In a chat following the default, the pickers start from the default without its photo, which stays private.
     var baseTheme: ChatTheme {
         guard mode == .chat, current.isStock else { return current }
         return ChatTheme(wallpaper: defaultTheme.wallpaper.photo == nil ? defaultTheme.wallpaper : .none, bubbles: defaultTheme.bubbles)
@@ -72,7 +72,7 @@ struct ChatThemeScreenViewState: BindableState {
         shownWallpaper.artwork?.credit
     }
     
-    /// Saving no theme makes a chat follow the default, so its preview shows that, and a photo this chat hides stays hidden.
+    /// Saving `.stock` makes a chat follow the default, so the preview shows the default. A photo this chat hides stays hidden.
     func shownTheme(saving theme: ChatTheme) -> ChatTheme {
         if theme.isStock {
             return firstTileTheme
@@ -88,7 +88,6 @@ struct ChatThemeScreenViewState: BindableState {
         mode == .chat ? UntranslatedL10n.guaChatThemeSharedNote : UntranslatedL10n.guaChatThemeDefaultNote
     }
     
-    /// A tile is selected only when the theme has exactly its wallpaper and bubble pair.
     func isSelected(_ tile: ChatTheme) -> Bool {
         tile == current
     }
@@ -109,7 +108,7 @@ struct ChatThemeScreenViewState: BindableState {
 
 struct ChatThemeScreenViewStateBindings {
     var themePreview: ChatThemePreviewDraft?
-    /// The bubble picker shows while this holds its choice, which starts as the theme's pair.
+    /// Non-nil presents the bubble picker.
     var bubbleChoice: ChatBubblePair?
     var isWallpaperPickerPresented = false
     var wallpaperPreview: ChatThemePreviewDraft?
@@ -145,7 +144,6 @@ enum ChatThemeScreenViewAction {
     case movePhoto(alignX: Double, alignY: Double)
     case discardPhoto
     case setPhoto
-    /// Applies to whichever preview is open.
     case setPreviewColorScheme(ColorScheme)
     case cancelPreview
     case savePreview

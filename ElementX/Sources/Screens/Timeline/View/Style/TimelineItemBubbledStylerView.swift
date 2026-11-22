@@ -175,7 +175,7 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
                     }
                 }
                 .lineLimit(1)
-                // GUA FORK: the capsule brings the vertical padding, and stays clear of the 8 pt the bubble tucks under the header.
+                // GUA FORK: the capsule has its own vertical padding and must clear the 8 pt the bubble tucks under the header.
                 .scaledPadding(.top, isChatBackgroundActive ? 0 : 3)
                 .legibilityCapsule()
                 .padding(.bottom, isChatBackgroundActive ? 8 : 0)
@@ -311,6 +311,8 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
         TimelineBubbleLayout(spacing: 8) {
             if !context.viewState.timelineKind.isThread, timelineItem.properties.isThreaded {
                 ThreadDecorator()
+                    // A sticker has no bubble, so over a chat background the label needs its own.
+                    .legibilityCapsule(isEnabled: timelineItem is StickerRoomTimelineItem)
                     .padding(.leading, 4)
                     .timelineBubbleLayoutSize(.natural)
             }
@@ -359,7 +361,6 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
 }
 
 private extension EventBasedTimelineItemProtocol {
-    /// GUA FORK: the chat theme colours the outgoing bubble.
     func bubbleBackgroundColor(outgoing outgoingColor: Color) -> Color? {
         let defaultColor: Color = isOutgoing ? outgoingColor : .compound._bgBubbleIncoming
         

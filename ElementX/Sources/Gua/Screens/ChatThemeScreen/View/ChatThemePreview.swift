@@ -94,22 +94,6 @@ struct ChatThemePreviewControls<Extra: View>: View {
     }
 }
 
-extension ChatThemePreviewControls where Extra == EmptyView {
-    init(previewColorScheme: ColorScheme,
-         saveTitle: String,
-         canSave: Bool,
-         onPreviewColorScheme: @escaping (ColorScheme) -> Void,
-         onSave: @escaping () -> Void) {
-        self.init(previewColorScheme: previewColorScheme,
-                  saveTitle: saveTitle,
-                  canSave: canSave,
-                  onPreviewColorScheme: onPreviewColorScheme,
-                  onSave: onSave) {
-            EmptyView()
-        }
-    }
-}
-
 struct ChatThemePreview_Previews: PreviewProvider, TestablePreview {
     static let viewModel = ChatThemeScreen_Previews.makeViewModel(theme: .stock)
     

@@ -56,7 +56,6 @@ struct ChatThemeGallerySection: Identifiable {
     }
 }
 
-/// The wallpaper picker's sections, which hold wallpapers without bubbles.
 struct ChatWallpaperGallerySection: Identifiable {
     let id: ChatThemeGallerySection.Kind
     let wallpapers: [ChatBackground]

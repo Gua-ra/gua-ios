@@ -96,7 +96,7 @@ final class ChatThemeScreenViewModelTests {
         
         context.send(viewAction: .selectTheme(ocean))
         
-        #expect(!(context.viewState.canSave(ocean)))
+        #expect(!context.viewState.canSave(ocean))
     }
     
     @Test
@@ -151,7 +151,7 @@ final class ChatThemeScreenViewModelTests {
         
         context.send(viewAction: .presentBubblePicker)
         #expect(context.viewState.bindings.bubbleChoice == ChatBubblePair(.teal))
-        #expect(!(context.viewState.canSave(ChatTheme(wallpaper: ocean.wallpaper, bubble: .teal))))
+        #expect(!context.viewState.canSave(ChatTheme(wallpaper: ocean.wallpaper, bubble: .teal)))
         
         context.send(viewAction: .chooseBubble(.purple))
         let closed = deferFulfillment(context.observe(\.viewState.bindings.bubbleChoice)) { $0 == nil }
@@ -333,7 +333,7 @@ final class ChatThemeScreenViewModelTests {
         context.send(viewAction: .cancelPreview)
         context.send(viewAction: .presentBubblePicker)
         #expect(context.viewState.bindings.bubbleChoice == ChatBubblePair(.green))
-        #expect(!(context.viewState.canSavePickerChoice(aurora)))
+        #expect(!context.viewState.canSavePickerChoice(aurora))
         context.send(viewAction: .setBubble)
         #expect(!service.setRoomProxyCalled)
         
@@ -353,7 +353,7 @@ final class ChatThemeScreenViewModelTests {
         context.send(viewAction: .selectWallpaper(.preset(.aurora)))
         let draft = try #require(context.viewState.bindings.wallpaperPreview)
         #expect(draft.theme == aurora)
-        #expect(!(context.viewState.canSave(draft)))
+        #expect(!context.viewState.canSave(draft))
         context.send(viewAction: .savePreview)
         
         context.send(viewAction: .selectTheme(aurora))
@@ -368,7 +368,7 @@ final class ChatThemeScreenViewModelTests {
         
         context.send(viewAction: .presentBubblePicker)
         context.send(viewAction: .chooseBubble(.standard))
-        #expect(!(context.viewState.canSavePickerChoice(.stock)))
+        #expect(!context.viewState.canSavePickerChoice(.stock))
         context.send(viewAction: .setBubble)
         
         #expect(!service.setRoomProxyCalled)
@@ -432,7 +432,7 @@ final class ChatThemeScreenViewModelTests {
         setUpViewModel(theme: ocean, canChange: false)
         
         #expect(!context.viewState.canChange)
-        #expect(!(context.viewState.canSave(aurora)))
+        #expect(!context.viewState.canSave(aurora))
     }
     
     @Test
@@ -594,12 +594,7 @@ final class ChatThemeScreenViewModelTests {
         #expect(context.viewState.canChange)
     }
     
-    private enum Mode {
-        case chat
-        case defaultTheme
-    }
-    
-    private func setUpViewModel(mode: Mode = .chat,
+    private func setUpViewModel(mode: ChatThemeScreenViewState.Mode = .chat,
                                 theme: ChatTheme = .stock,
                                 defaultTheme: ChatTheme = .stock,
                                 canChange: Bool = true,

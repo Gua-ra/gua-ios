@@ -124,7 +124,7 @@ struct ChatThemeScreen: View {
 }
 
 extension Binding where Value == AlertInfo<ChatThemeScreenAlertType>? {
-    /// Every layer that can raise the alert binds to it, and only the one on top may present it.
+    /// Each layer binds the same alert, and only the topmost may present it.
     func presented(if isTopmost: Bool) -> Binding<Value> {
         Binding {
             isTopmost ? wrappedValue : nil
@@ -222,7 +222,7 @@ struct ChatThemeTile: View {
             sampleBubble(color: theme.bubbles.outgoingColor, width: 0.65, alignment: .trailing)
             Spacer(minLength: 0)
             
-            // Not in a top corner: beside the selection checkmark there is no room for a translated badge.
+            // The top corners leave no room beside the checkmark for a translated badge.
             if isLive {
                 ChatArtworkLiveBadge()
             }
@@ -420,12 +420,7 @@ struct ChatThemeScreen_Previews: PreviewProvider, TestablePreview {
         .previewDisplayName("All sections dark")
     }
     
-    enum Mode {
-        case chat
-        case defaultTheme
-    }
-    
-    static func makeViewModel(mode: Mode = .chat,
+    static func makeViewModel(mode: ChatThemeScreenViewState.Mode = .chat,
                               theme: ChatTheme,
                               defaultTheme: ChatTheme = .stock,
                               canChange: Bool = true) -> ChatThemeScreenViewModel {
