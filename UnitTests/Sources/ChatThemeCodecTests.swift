@@ -166,7 +166,7 @@ final class ChatThemeCodecTests {
     func artworkIDsMatchTheSpec() {
         #expect(ChatArtwork.allCases.map(\.id) == ["glass-drops", "glass-drops-blue", "molten-pearl", "silk", "ipe", "rain-on-glass", "pantanal", "currents-live",
                                                    "boreal", "lagoon", "sea-sparks", "tropic-dusk",
-                                                   "dune-lagoons", "palm-coast", "river-bends", "highland-mist", "glacier-lake", "canola-sky", "harbour-fog", "canyon-glow", "polar-ice", "moon-tide",
+                                                   "dune-lagoons", "palm-coast", "river-bends", "highland-mist", "glacier-lake", "canola-sky", "harbour-fog", "canyon-glow", "polar-ice", "moon-tide", "guara",
                                                    "photo-lencois-lagoon", "photo-lencois-dunes", "photo-gruta-azul", "photo-ipe", "photo-araucaria", "photo-maned-wolf",
                                                    "photo-maned-wolf-standing", "photo-yukon-trail", "photo-yukon-sun", "photo-yukon-forest", "photo-yukon-sled", "photo-yukon-sled-2",
                                                    "photo-peyto-lake", "photo-lone-canoe", "photo-jasper-aurora", "photo-nunavik-aurora", "photo-lac-delage", "photo-quebec-ice",
@@ -258,7 +258,7 @@ final class ChatThemeCodecTests {
                               "ipe+pink/yellow", "rain-on-glass+green/blue", "pantanal+green", "currents-live+purple",
                               "boreal+blue/green", "lagoon+blue/teal", "sea-sparks+blue/teal", "tropic-dusk+pink/orange"],
                              ["dune-lagoons+teal/purple", "palm-coast+orange/blue", "river-bends+teal", "highland-mist+blue/green", "glacier-lake+teal", "canola-sky+green/orange",
-                              "harbour-fog+blue", "canyon-glow+blue/purple", "polar-ice+blue/purple", "moon-tide+blue"],
+                              "harbour-fog+blue", "canyon-glow+blue/purple", "polar-ice+blue/purple", "moon-tide+blue", "guara+green"],
                              ["photo-lencois-lagoon+teal/purple", "photo-lencois-dunes+blue/purple", "photo-gruta-azul+teal/blue", "photo-ipe+blue/orange",
                               "photo-araucaria+green/teal", "photo-maned-wolf+blue/purple", "photo-maned-wolf-standing+blue/purple", "photo-yukon-trail+blue/teal",
                               "photo-yukon-sun+orange/blue", "photo-yukon-forest+green/teal", "photo-yukon-sled+purple/blue", "photo-yukon-sled-2+teal/purple",

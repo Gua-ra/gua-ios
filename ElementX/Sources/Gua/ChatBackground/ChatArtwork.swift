@@ -31,6 +31,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
     case canyonGlow = "canyon-glow"
     case polarIce = "polar-ice"
     case moonTide = "moon-tide"
+    case guara
     case photoLencoisLagoon = "photo-lencois-lagoon"
     case photoLencoisDunes = "photo-lencois-dunes"
     case photoGrutaAzul = "photo-gruta-azul"
@@ -105,7 +106,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
     var section: Section {
         switch self {
         case .glassDrops, .glassDropsBlue, .moltenPearl, .silk, .ipe, .rainOnGlass, .pantanal, .currentsLive, .boreal, .lagoon, .seaSparks, .tropicDusk: .live
-        case .duneLagoons, .palmCoast, .riverBends, .highlandMist, .glacierLake, .canolaSky, .harbourFog, .canyonGlow, .polarIce, .moonTide: .nature
+        case .duneLagoons, .palmCoast, .riverBends, .highlandMist, .glacierLake, .canolaSky, .harbourFog, .canyonGlow, .polarIce, .moonTide, .guara: .nature
         case .photoLencoisLagoon, .photoLencoisDunes, .photoGrutaAzul, .photoIpe, .photoAraucaria, .photoManedWolf, .photoManedWolfStanding,
              .photoYukonTrail, .photoYukonSun, .photoYukonForest, .photoYukonSled, .photoYukonSled2, .photoPeytoLake, .photoLoneCanoe,
              .photoJasperAurora, .photoNunavikAurora, .photoLacDelage, .photoQuebecIce, .photoQuebecLeaves: .photos
@@ -151,6 +152,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         case .canyonGlow: UntranslatedL10n.guaChatThemeArtCanyonGlow
         case .polarIce: UntranslatedL10n.guaChatThemeArtPolarIce
         case .moonTide: UntranslatedL10n.guaChatThemeArtMoonTide
+        case .guara: UntranslatedL10n.guaChatThemeArtGuara
         case .photoLencoisLagoon: UntranslatedL10n.guaChatThemeArtPhotoLencoisLagoon
         case .photoLencoisDunes: UntranslatedL10n.guaChatThemeArtPhotoLencoisDunes
         case .photoGrutaAzul: UntranslatedL10n.guaChatThemeArtPhotoGrutaAzul
@@ -204,6 +206,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         case .canyonGlow: ChatBubblePair(.blue, dark: .purple)
         case .polarIce: ChatBubblePair(.blue, dark: .purple)
         case .moonTide: ChatBubblePair(.blue)
+        case .guara: ChatBubblePair(.green)
         case .photoLencoisLagoon: ChatBubblePair(.teal, dark: .purple)
         case .photoLencoisDunes: ChatBubblePair(.blue, dark: .purple)
         case .photoGrutaAzul: ChatBubblePair(.teal, dark: .blue)
@@ -249,6 +252,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         case .canolaSky: UnitPoint(x: 0.4, y: 0.38)
         case .harbourFog: UnitPoint(x: 0.7, y: 0.3)
         case .moonTide: UnitPoint(x: 0.5, y: 0.72)
+        case .guara: UnitPoint(x: 0.78, y: 0.19)
         case .photoLencoisLagoon: UnitPoint(x: 0.5, y: 0.52)
         case .photoLencoisDunes: UnitPoint(x: 0.35, y: 0.46)
         case .photoGrutaAzul: UnitPoint(x: 0.65, y: 0.68)
@@ -278,7 +282,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         switch self {
         case .glassDrops: .blush
         case .glassDropsBlue, .moltenPearl, .azulejo: .sky
-        case .silk, .pantanal, .lagoon, .duneLagoons, .riverBends, .highlandMist, .doodlesBrasil: .mint
+        case .silk, .pantanal, .lagoon, .duneLagoons, .riverBends, .highlandMist, .guara, .doodlesBrasil: .mint
         case .ipe, .tropicDusk: .sunset
         case .rainOnGlass, .seaSparks: .aurora
         case .currentsLive, .currents: .lavender
@@ -303,7 +307,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         case .lagoon: 36
         case .rainOnGlass: 48
         case .boreal: 151
-        case .duneLagoons, .palmCoast, .riverBends, .highlandMist, .glacierLake, .canolaSky, .harbourFog, .canyonGlow, .polarIce, .moonTide,
+        case .duneLagoons, .palmCoast, .riverBends, .highlandMist, .glacierLake, .canolaSky, .harbourFog, .canyonGlow, .polarIce, .moonTide, .guara,
              .photoLencoisLagoon, .photoLencoisDunes, .photoGrutaAzul, .photoIpe, .photoAraucaria, .photoManedWolf, .photoManedWolfStanding,
              .photoYukonTrail, .photoYukonSun, .photoYukonForest, .photoYukonSled, .photoYukonSled2, .photoPeytoLake, .photoLoneCanoe,
              .photoJasperAurora, .photoNunavikAurora, .photoLacDelage, .photoQuebecIce, .photoQuebecLeaves,
@@ -348,7 +352,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         case .photoQuebecLeaves:
             Credit(author: "Wilfredo Rodriguez (Wilfredor)", licence: .cc0, sourceURL: "https://commons.wikimedia.org/wiki/File:Autumn_leaves_on_the_ground_in_Quebec_City.jpg")
         case .glassDrops, .glassDropsBlue, .moltenPearl, .silk, .ipe, .rainOnGlass, .pantanal, .currentsLive, .boreal, .lagoon, .seaSparks, .tropicDusk,
-             .duneLagoons, .palmCoast, .riverBends, .highlandMist, .glacierLake, .canolaSky, .harbourFog, .canyonGlow, .polarIce, .moonTide,
+             .duneLagoons, .palmCoast, .riverBends, .highlandMist, .glacierLake, .canolaSky, .harbourFog, .canyonGlow, .polarIce, .moonTide, .guara,
              .currents, .azulejo, .calcadao, .knit, .doodlesBrasil, .doodlesCanada, .paper, .paperCut:
             nil
         }

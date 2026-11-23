@@ -61,6 +61,7 @@ pt-BR:gua_chat_theme_art_azulejo
 pt-BR:gua_chat_theme_art_boreal
 pt-BR:gua_chat_theme_art_calcadao
 pt-BR:gua_chat_theme_art_doodles_brasil
+pt-BR:gua_chat_theme_art_guara
 pt-BR:gua_chat_theme_art_ipe
 pt-BR:gua_chat_theme_art_pantanal
 pt-BR:gua_chat_theme_preset_aurora
@@ -76,6 +77,7 @@ es:gua_chat_theme_art_azulejo
 es:gua_chat_theme_art_boreal
 es:gua_chat_theme_art_calcadao
 es:gua_chat_theme_art_doodles_brasil
+es:gua_chat_theme_art_guara
 es:gua_chat_theme_art_ipe
 es:gua_chat_theme_art_pantanal
 es:gua_chat_theme_preset_aurora
@@ -103,6 +105,7 @@ fr:gua_chat_theme_art_azulejo
 fr:gua_chat_theme_art_boreal
 fr:gua_chat_theme_art_calcadao
 fr:gua_chat_theme_art_doodles_canada
+fr:gua_chat_theme_art_guara
 fr:gua_chat_theme_art_ipe
 fr:gua_chat_theme_art_pantanal
 fr:gua_chat_theme_bubble_graphite

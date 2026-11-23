@@ -557,6 +557,28 @@
       }
     },
     {
+      "id": "guara",
+      "section": "nature",
+      "live": false,
+      "files": {
+        "light": "guara-light.webp",
+        "dark": "guara-dark.webp"
+      },
+      "sha256": {
+        "guara-light.webp": "348a02f0c789a8c8baee7889c29c8b2b8fbb35b7654e628bf989bdfc483ce98f",
+        "guara-dark.webp": "4fff0fa187bf0433151544f2c1b6b88e31ccecb0ed76b5f06f0e7be47571a37b"
+      },
+      "anchor": {
+        "x": 0.78,
+        "y": 0.19
+      },
+      "fallback_preset": "mint",
+      "bubble": {
+        "light": "green",
+        "dark": "green"
+      }
+    },
+    {
       "id": "photo-lencois-lagoon",
       "section": "photos",
       "live": false,
