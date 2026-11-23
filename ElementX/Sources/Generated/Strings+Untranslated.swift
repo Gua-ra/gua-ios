@@ -100,6 +100,8 @@ internal nonisolated enum UntranslatedL10n {
   internal static var guaChatThemeArtGlassDrops: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_glass_drops") }
   /// Glass Drops Blue
   internal static var guaChatThemeArtGlassDropsBlue: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_glass_drops_blue") }
+  /// Guará
+  internal static var guaChatThemeArtGuara: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_guara") }
   /// Harbour Fog
   internal static var guaChatThemeArtHarbourFog: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_harbour_fog") }
   /// Highland Mist
