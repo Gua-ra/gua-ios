@@ -1240,6 +1240,317 @@
         "preset": "night",
         "bubble": "purple"
       }
+    },
+    {
+      "name": "artwork with a bubble pair",
+      "content": {
+        "v": 1,
+        "kind": "art",
+        "art": "glass-drops",
+        "bubble": "purple",
+        "bubble_dark": "pink",
+        "fallback_preset": "blush"
+      },
+      "expected": {
+        "kind": "art",
+        "art": "glass-drops",
+        "bubble": "purple",
+        "bubble_dark": "pink"
+      }
+    },
+    {
+      "name": "artwork with one bubble",
+      "content": {
+        "v": 1,
+        "kind": "art",
+        "art": "silk",
+        "bubble": "teal",
+        "fallback_preset": "mint"
+      },
+      "expected": {
+        "kind": "art",
+        "art": "silk",
+        "bubble": "teal"
+      }
+    },
+    {
+      "name": "artwork without a fallback still reads",
+      "content": {
+        "v": 1,
+        "kind": "art",
+        "art": "palm-coast"
+      },
+      "expected": {
+        "kind": "art",
+        "art": "palm-coast"
+      }
+    },
+    {
+      "name": "unknown artwork uses its fallback and keeps both bubbles",
+      "content": {
+        "v": 1,
+        "kind": "art",
+        "art": "northern-lights",
+        "fallback_preset": "night",
+        "bubble": "blue",
+        "bubble_dark": "purple"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "night",
+        "bubble": "blue",
+        "bubble_dark": "purple"
+      }
+    },
+    {
+      "name": "artwork as a number uses the fallback",
+      "content": {
+        "v": 1,
+        "kind": "art",
+        "art": 5,
+        "fallback_preset": "sky",
+        "bubble": "blue"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "sky",
+        "bubble": "blue"
+      }
+    },
+    {
+      "name": "missing artwork uses the fallback",
+      "content": {
+        "v": 1,
+        "kind": "art",
+        "fallback_preset": "sand"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "sand"
+      }
+    },
+    {
+      "name": "artwork id in the wrong case uses the fallback",
+      "content": {
+        "v": 1,
+        "kind": "art",
+        "art": "Silk",
+        "fallback_preset": "mint"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "mint"
+      }
+    },
+    {
+      "name": "unknown artwork with an unknown fallback keeps only the bubbles",
+      "content": {
+        "v": 1,
+        "kind": "art",
+        "art": "northern-lights",
+        "fallback_preset": "rainbow",
+        "bubble": "green",
+        "bubble_dark": "blue"
+      },
+      "expected": {
+        "kind": "none",
+        "bubble": "green",
+        "bubble_dark": "blue"
+      }
+    },
+    {
+      "name": "unknown artwork without a fallback or bubble is no theme",
+      "content": {
+        "v": 1,
+        "kind": "art",
+        "art": "northern-lights"
+      },
+      "expected": {
+        "kind": "none"
+      }
+    },
+    {
+      "name": "a bad bubble_dark keeps the artwork",
+      "content": {
+        "v": 1,
+        "kind": "art",
+        "art": "glass-drops",
+        "bubble": "purple",
+        "bubble_dark": {
+          "id": "pink"
+        },
+        "fallback_preset": "blush"
+      },
+      "expected": {
+        "kind": "art",
+        "art": "glass-drops",
+        "bubble": "purple"
+      }
+    },
+    {
+      "name": "unknown bubble_dark reads as the same bubble",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "aurora",
+        "bubble": "green",
+        "bubble_dark": "rainbow"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "aurora",
+        "bubble": "green"
+      }
+    },
+    {
+      "name": "bubble_dark as a number reads as the same bubble",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "aurora",
+        "bubble": "green",
+        "bubble_dark": 3
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "aurora",
+        "bubble": "green"
+      }
+    },
+    {
+      "name": "bubble_dark written as standard reads as the same bubble",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "aurora",
+        "bubble": "green",
+        "bubble_dark": "standard"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "aurora",
+        "bubble": "green"
+      }
+    },
+    {
+      "name": "bubble_dark equal to the bubble reads as one bubble",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "ocean",
+        "bubble": "teal",
+        "bubble_dark": "teal"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "ocean",
+        "bubble": "teal"
+      }
+    },
+    {
+      "name": "bubble_dark on a preset theme",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "ocean",
+        "bubble": "blue",
+        "bubble_dark": "purple"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "ocean",
+        "bubble": "blue",
+        "bubble_dark": "purple"
+      }
+    },
+    {
+      "name": "bubble_dark without a bubble is ignored",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "mint",
+        "bubble_dark": "pink"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "mint"
+      }
+    },
+    {
+      "name": "bubble_dark with an unknown bubble is ignored",
+      "content": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "mint",
+        "bubble": "rainbow",
+        "bubble_dark": "pink"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "mint"
+      }
+    },
+    {
+      "name": "no wallpaper with a bubble pair",
+      "content": {
+        "v": 1,
+        "kind": "none",
+        "bubble": "blue",
+        "bubble_dark": "purple"
+      },
+      "expected": {
+        "kind": "none",
+        "bubble": "blue",
+        "bubble_dark": "purple"
+      }
+    },
+    {
+      "name": "photo with a bubble pair",
+      "content": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 600,
+          "size": 1000
+        },
+        "bubble": "green",
+        "bubble_dark": "teal"
+      },
+      "expected": {
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/AbCdEf",
+          "mimetype": "image/png",
+          "w": 800,
+          "h": 600,
+          "size": 1000,
+          "blurhash": null,
+          "dim": 35,
+          "align": {
+            "x": 500,
+            "y": 500
+          }
+        },
+        "bubble": "green",
+        "bubble_dark": "teal"
+      }
+    },
+    {
+      "name": "version 2 drops bubble_dark with the bubble",
+      "content": {
+        "v": 2,
+        "kind": "video",
+        "fallback_preset": "dawn",
+        "bubble": "blue",
+        "bubble_dark": "purple"
+      },
+      "expected": {
+        "kind": "preset",
+        "preset": "dawn"
+      }
     }
   ],
   "encode_cases": [
@@ -1313,6 +1624,73 @@
         "bubble": "orange"
       },
       "expected": "{\"bubble\":\"orange\",\"kind\":\"photo\",\"photo\":{\"align\":{\"x\":500,\"y\":500},\"blurhash\":\"LKO2?U%2Tw=w]~RBVZRi};RPxuwH\",\"dim\":35,\"h\":2048,\"mimetype\":\"image/jpeg\",\"size\":412337,\"url\":\"mxc://gua.global/AbCdEf\",\"w\":1536},\"v\":1}"
+    },
+    {
+      "name": "artwork with a bubble pair",
+      "theme": {
+        "kind": "art",
+        "art": "glass-drops",
+        "bubble": "purple",
+        "bubble_dark": "pink"
+      },
+      "expected": "{\"art\":\"glass-drops\",\"bubble\":\"purple\",\"bubble_dark\":\"pink\",\"fallback_preset\":\"blush\",\"kind\":\"art\",\"v\":1}"
+    },
+    {
+      "name": "artwork with one bubble writes no bubble_dark",
+      "theme": {
+        "kind": "art",
+        "art": "silk",
+        "bubble": "teal"
+      },
+      "expected": "{\"art\":\"silk\",\"bubble\":\"teal\",\"fallback_preset\":\"mint\",\"kind\":\"art\",\"v\":1}"
+    },
+    {
+      "name": "artwork with the same bubble in both appearances writes it once",
+      "theme": {
+        "kind": "art",
+        "art": "pantanal",
+        "bubble": "green",
+        "bubble_dark": "green"
+      },
+      "expected": "{\"art\":\"pantanal\",\"bubble\":\"green\",\"fallback_preset\":\"mint\",\"kind\":\"art\",\"v\":1}"
+    },
+    {
+      "name": "artwork with the standard bubble writes neither bubble key",
+      "theme": {
+        "kind": "art",
+        "art": "paper",
+        "bubble": "standard"
+      },
+      "expected": "{\"art\":\"paper\",\"fallback_preset\":\"sand\",\"kind\":\"art\",\"v\":1}"
+    },
+    {
+      "name": "the standard bubble drops the dark bubble",
+      "theme": {
+        "kind": "art",
+        "art": "paper-cut",
+        "bubble": "standard",
+        "bubble_dark": "orange"
+      },
+      "expected": "{\"art\":\"paper-cut\",\"fallback_preset\":\"sand\",\"kind\":\"art\",\"v\":1}"
+    },
+    {
+      "name": "preset with a bubble pair",
+      "theme": {
+        "kind": "preset",
+        "preset": "aurora",
+        "bubble": "green",
+        "bubble_dark": "blue"
+      },
+      "expected": "{\"bubble\":\"green\",\"bubble_dark\":\"blue\",\"kind\":\"preset\",\"preset\":\"aurora\",\"v\":1}"
+    },
+    {
+      "name": "no wallpaper with a bubble pair",
+      "theme": {
+        "kind": "none",
+        "bubble": "blue",
+        "bubble_dark": "purple"
+      },
+      "expected": "{\"bubble\":\"blue\",\"bubble_dark\":\"purple\",\"kind\":\"none\",\"v\":1}"
     }
   ]
 }

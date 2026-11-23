@@ -82,18 +82,18 @@ class ChatThemeScreenViewModel: ChatThemeScreenViewModelType, ChatThemeScreenVie
         case .selectFirstTile:
             state.bindings.themePreview = ChatThemePreviewDraft(theme: .stock, shownTheme: state.shownTheme(saving: .stock))
         case .presentBubblePicker:
-            state.bindings.bubbleChoice = state.baseTheme.bubble
+            state.bindings.bubbleChoice = state.baseTheme.bubbles
         case .chooseBubble(let bubble):
-            state.bindings.bubbleChoice = bubble
+            state.bindings.bubbleChoice = ChatBubblePair(bubble)
         case .setBubble:
-            guard let bubble = state.bindings.bubbleChoice else { return }
-            let theme = ChatTheme(wallpaper: state.baseTheme.wallpaper, bubble: bubble)
+            guard let bubbles = state.bindings.bubbleChoice else { return }
+            let theme = ChatTheme(wallpaper: state.baseTheme.wallpaper, bubbles: bubbles)
             guard state.canSavePickerChoice(theme) else { return }
             Task { await save(theme) }
         case .presentWallpaperPicker:
             state.bindings.isWallpaperPickerPresented = true
         case .selectWallpaper(let wallpaper):
-            let theme = ChatTheme(wallpaper: wallpaper, bubble: state.baseTheme.bubble)
+            let theme = ChatTheme(wallpaper: wallpaper, bubbles: state.baseTheme.bubbles)
             state.bindings.wallpaperPreview = ChatThemePreviewDraft(theme: theme, shownTheme: state.shownTheme(saving: theme), isPickerChoice: true)
         case .photoPicked(let load):
             Task { await preparePhoto(load: load) }
@@ -183,7 +183,7 @@ class ChatThemeScreenViewModel: ChatThemeScreenViewModelType, ChatThemeScreenVie
                                          dim: draft.dim,
                                          alignX: draft.alignX,
                                          alignY: draft.alignY)
-        await send(ChatTheme(wallpaper: .photo(photo), bubble: state.baseTheme.bubble))
+        await send(ChatTheme(wallpaper: .photo(photo), bubbles: state.baseTheme.bubbles))
     }
     
     private func save(_ theme: ChatTheme) async {
