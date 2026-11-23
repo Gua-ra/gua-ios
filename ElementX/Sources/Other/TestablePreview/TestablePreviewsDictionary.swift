@@ -29,6 +29,7 @@ enum TestablePreviewsDictionary {
             "BugReportScreen_Previews" : BugReportScreen_Previews.self,
             "CallInviteRoomTimelineView_Previews" : CallInviteRoomTimelineView_Previews.self,
             "CallNotificationRoomTimelineView_Previews" : CallNotificationRoomTimelineView_Previews.self,
+            "ChatArtworkRoomScreen_Previews" : ChatArtworkRoomScreen_Previews.self,
             "ChatBackgroundPhotoPreview_Previews" : ChatBackgroundPhotoPreview_Previews.self,
             "ChatBackgroundView_Previews" : ChatBackgroundView_Previews.self,
             "ChatBubblePicker_Previews" : ChatBubblePicker_Previews.self,

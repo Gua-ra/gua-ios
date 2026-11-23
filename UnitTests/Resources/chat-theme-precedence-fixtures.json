@@ -275,6 +275,80 @@
         "preset": "sunset",
         "bubble": "pink"
       }
+    },
+    {
+      "name": "a chat artwork in a public room with media off still shows",
+      "chatTheme": {
+        "v": 1,
+        "kind": "art",
+        "art": "glass-drops",
+        "bubble": "purple",
+        "bubble_dark": "pink",
+        "fallback_preset": "blush"
+      },
+      "defaultTheme": {
+        "v": 1,
+        "kind": "preset",
+        "preset": "sunset",
+        "bubble": "pink"
+      },
+      "roomIsPrivate": false,
+      "mediaShown": false,
+      "expected": {
+        "kind": "art",
+        "art": "glass-drops",
+        "bubble": "purple",
+        "bubble_dark": "pink"
+      }
+    },
+    {
+      "name": "a default artwork with media off shows",
+      "chatTheme": {},
+      "defaultTheme": {
+        "v": 1,
+        "kind": "art",
+        "art": "palm-coast",
+        "bubble": "orange",
+        "bubble_dark": "blue",
+        "fallback_preset": "ocean"
+      },
+      "roomIsPrivate": false,
+      "mediaShown": false,
+      "expected": {
+        "kind": "art",
+        "art": "palm-coast",
+        "bubble": "orange",
+        "bubble_dark": "blue"
+      }
+    },
+    {
+      "name": "a chat artwork wins over a default photo",
+      "chatTheme": {
+        "v": 1,
+        "kind": "art",
+        "art": "silk",
+        "bubble": "teal",
+        "fallback_preset": "mint"
+      },
+      "defaultTheme": {
+        "v": 1,
+        "kind": "photo",
+        "photo": {
+          "url": "mxc://gua.global/DefaultPhoto",
+          "mimetype": "image/jpeg",
+          "w": 1536,
+          "h": 2048,
+          "size": 412337
+        },
+        "bubble": "graphite"
+      },
+      "roomIsPrivate": false,
+      "mediaShown": true,
+      "expected": {
+        "kind": "art",
+        "art": "silk",
+        "bubble": "teal"
+      }
     }
   ]
 }

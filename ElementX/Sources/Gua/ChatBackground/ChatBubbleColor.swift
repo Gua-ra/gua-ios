@@ -53,22 +53,43 @@ nonisolated enum ChatBubbleColor: String, CaseIterable, Identifiable {
         case .graphite: (0xE1E4E9, 0x2F333A)
         }
     }
+}
+
+nonisolated struct ChatBubblePair: Hashable {
+    static let standard = ChatBubblePair(.standard)
+    
+    let bubble: ChatBubbleColor
+    /// Nil when it equals `bubble` or either side is the standard bubble.
+    let bubbleDark: ChatBubbleColor?
+    
+    init(_ bubble: ChatBubbleColor, dark: ChatBubbleColor? = nil) {
+        self.bubble = bubble
+        bubbleDark = bubble == .standard || dark == .standard || dark == bubble ? nil : dark
+    }
+    
+    func shown(in colorScheme: ColorScheme) -> ChatBubbleColor {
+        colorScheme == .dark ? bubbleDark ?? bubble : bubble
+    }
+    
+    func name(in colorScheme: ColorScheme) -> String {
+        shown(in: colorScheme).name
+    }
     
     @MainActor var outgoingColor: Color {
-        guard let hex else { return .compound._bgBubbleOutgoing }
+        guard let light = bubble.hex, let dark = (bubbleDark ?? bubble).hex else { return .compound._bgBubbleOutgoing }
         return Color(UIColor { traits in
-            UIColor(chatBackgroundHex: traits.userInterfaceStyle == .dark ? hex.dark : hex.light)
+            UIColor(chatBackgroundHex: traits.userInterfaceStyle == .dark ? dark.dark : light.light)
         })
     }
 }
 
 extension EnvironmentValues {
-    @Entry var chatBubbleColor = ChatBubbleColor.standard
+    @Entry var chatBubbleColor = ChatBubblePair.standard
 }
 
 extension View {
     func chatTheme(_ theme: ChatTheme) -> some View {
         environment(\.chatBackgroundActive, !theme.wallpaper.isNone)
-            .environment(\.chatBubbleColor, theme.bubble)
+            .environment(\.chatBubbleColor, theme.bubbles)
     }
 }

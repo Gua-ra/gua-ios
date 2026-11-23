@@ -6,7 +6,7 @@
 //
 
 @testable import ElementX
-import Foundation
+import SwiftUI
 import Testing
 
 @MainActor
@@ -46,10 +46,18 @@ struct RoomDetailsChatThemeTests {
     
     @Test
     func rowValueNamesTheTheme() {
-        #expect(ChatTheme.stock.displayName == UntranslatedL10n.guaChatBackgroundValueDefault)
-        #expect(ChatTheme(wallpaper: .preset(.dawn), bubble: .blue).displayName == UntranslatedL10n.guaChatThemePresetDawn)
-        #expect(ChatTheme(wallpaper: .photo(.mock), bubble: .pink).displayName == UntranslatedL10n.guaChatBackgroundValuePhoto)
-        #expect(ChatTheme(wallpaper: .none, bubble: .yellow).displayName == UntranslatedL10n.guaChatThemeBubbleYellow)
+        #expect(ChatTheme.stock.displayName(in: .light) == UntranslatedL10n.guaChatBackgroundValueDefault)
+        #expect(ChatTheme(wallpaper: .preset(.dawn), bubble: .blue).displayName(in: .light) == UntranslatedL10n.guaChatThemePresetDawn)
+        #expect(ChatTheme(wallpaper: .photo(.mock), bubble: .pink).displayName(in: .light) == UntranslatedL10n.guaChatBackgroundValuePhoto)
+        #expect(ChatTheme(wallpaper: .none, bubble: .yellow).displayName(in: .light) == UntranslatedL10n.guaChatThemeBubbleYellow)
+        #expect(ChatTheme(wallpaper: .art(.glassDrops), bubble: .purple, bubbleDark: .pink).displayName(in: .dark) == UntranslatedL10n.guaChatThemeArtGlassDrops)
+    }
+    
+    @Test
+    func rowValueWithoutAWallpaperNamesTheBubbleShownInEachAppearance() {
+        let theme = ChatTheme(wallpaper: .none, bubble: .purple, bubbleDark: .pink)
+        #expect(theme.displayName(in: .light) == UntranslatedL10n.guaChatThemeBubblePurple)
+        #expect(theme.displayName(in: .dark) == UntranslatedL10n.guaChatThemeBubblePink)
     }
     
     private func makeDetailsViewModel(members: [RoomMemberProxyMock], isSpace: Bool = false, service: ChatBackgroundServiceMock) -> RoomDetailsScreenViewModel {

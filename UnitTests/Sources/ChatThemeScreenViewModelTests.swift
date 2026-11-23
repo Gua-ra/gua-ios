@@ -16,6 +16,7 @@ import UIKit
 final class ChatThemeScreenViewModelTests {
     private let ocean = ChatTheme(wallpaper: .preset(.ocean), bubble: .teal)
     private let aurora = ChatTheme(wallpaper: .preset(.aurora), bubble: .green)
+    private let glassDrops = ChatTheme(wallpaper: .art(.glassDrops), bubble: .purple, bubbleDark: .pink)
     
     private var roomProxy: JoinedRoomProxyMock!
     private var clientProxy: ClientProxyMock!
@@ -37,7 +38,7 @@ final class ChatThemeScreenViewModelTests {
         #expect(context.viewState.setThemeTitle == UntranslatedL10n.guaChatThemeActionSetTheme)
         #expect(context.viewState.note == UntranslatedL10n.guaChatThemeSharedNote)
         #expect(!context.viewState.current.isStock)
-        #expect(context.viewState.sections.map(\.id) == [.featured, .colours, .gradients])
+        #expect(context.viewState.sections.map(\.id) == [.featured, .live, .nature, .patterns, .minimal, .gradients])
     }
     
     @Test
@@ -148,7 +149,7 @@ final class ChatThemeScreenViewModelTests {
         setUpViewModel(theme: ocean)
         
         context.send(viewAction: .presentBubblePicker)
-        #expect(context.viewState.bindings.bubbleChoice == .teal)
+        #expect(context.viewState.bindings.bubbleChoice == ChatBubblePair(.teal))
         #expect(!context.viewState.canSave(ChatTheme(wallpaper: ocean.wallpaper, bubble: .teal)))
         
         context.send(viewAction: .chooseBubble(.purple))
@@ -157,6 +158,92 @@ final class ChatThemeScreenViewModelTests {
         try await closed.fulfill()
         
         #expect(service.setRoomProxyReceivedArguments?.theme == ChatTheme(wallpaper: .preset(.ocean), bubble: .purple))
+    }
+    
+    @Test
+    func anArtworkTileIsSelectedOnlyWithItsBubblePair() throws {
+        setUpViewModel(theme: glassDrops)
+        
+        let tiles = context.viewState.sections.flatMap(\.themes)
+        #expect(tiles.filter(context.viewState.isSelected).count == 2)
+        #expect(try #require(context.viewState.sections.first { $0.id == .live }).themes.contains(glassDrops))
+        
+        setUpViewModel(theme: ChatTheme(wallpaper: .art(.glassDrops), bubble: .purple))
+        #expect(!context.viewState.sections.flatMap(\.themes).contains(where: context.viewState.isSelected))
+    }
+    
+    @Test
+    func choosingAnArtworkTileSavesItsBubblePair() async throws {
+        setUpViewModel(theme: ocean)
+        
+        let tile = try #require(context.viewState.sections.first { $0.id == .featured }?.themes.first { $0.wallpaper == .art(.glassDrops) })
+        #expect(tile == glassDrops)
+        context.send(viewAction: .selectTheme(tile))
+        
+        let closed = deferFulfillment(context.observe(\.viewState.bindings.themePreview)) { $0 == nil }
+        context.send(viewAction: .savePreview)
+        try await closed.fulfill()
+        
+        #expect(service.setRoomProxyReceivedArguments?.theme == glassDrops)
+        #expect(service.setRoomProxyReceivedArguments?.theme.contentJSON == #"{"art":"glass-drops","bubble":"purple","bubble_dark":"pink","fallback_preset":"blush","kind":"art","v":1}"#)
+    }
+    
+    @Test
+    func bubblePickerClearsTheDarkBubble() async throws {
+        setUpViewModel(theme: glassDrops)
+        
+        context.send(viewAction: .presentBubblePicker)
+        #expect(context.viewState.bindings.bubbleChoice == ChatBubblePair(.purple, dark: .pink))
+        #expect(!(context.viewState.canSavePickerChoice(glassDrops)))
+        context.send(viewAction: .setBubble)
+        #expect(!service.setRoomProxyCalled)
+        
+        context.send(viewAction: .chooseBubble(.purple))
+        #expect(context.viewState.bindings.bubbleChoice == ChatBubblePair(.purple))
+        let closed = deferFulfillment(context.observe(\.viewState.bindings.bubbleChoice)) { $0 == nil }
+        context.send(viewAction: .setBubble)
+        try await closed.fulfill()
+        
+        let theme = try #require(service.setRoomProxyReceivedArguments?.theme)
+        #expect(theme == ChatTheme(wallpaper: .art(.glassDrops), bubble: .purple))
+        #expect(theme.bubbleDark == nil)
+        #expect(theme.contentJSON == #"{"art":"glass-drops","bubble":"purple","fallback_preset":"blush","kind":"art","v":1}"#)
+    }
+    
+    @Test
+    func wallpaperPickerKeepsTheBubblePair() async throws {
+        setUpViewModel(theme: glassDrops)
+        
+        context.send(viewAction: .presentWallpaperPicker)
+        context.send(viewAction: .selectWallpaper(.art(.paperCut)))
+        #expect(context.viewState.bindings.wallpaperPreview?.theme == ChatTheme(wallpaper: .art(.paperCut), bubble: .purple, bubbleDark: .pink))
+        
+        let closed = deferFulfillment(context.observe(\.viewState.bindings.isWallpaperPickerPresented)) { !$0 }
+        context.send(viewAction: .savePreview)
+        try await closed.fulfill()
+        
+        #expect(service.setRoomProxyReceivedArguments?.theme == ChatTheme(wallpaper: .art(.paperCut), bubble: .purple, bubbleDark: .pink))
+    }
+    
+    @Test
+    func aChatFollowingADefaultArtworkStartsFromItsPair() {
+        setUpViewModel(theme: .stock, defaultTheme: glassDrops)
+        
+        #expect(context.viewState.baseTheme == glassDrops)
+        #expect(context.viewState.shownWallpaper == .art(.glassDrops))
+        
+        context.send(viewAction: .presentWallpaperPicker)
+        context.send(viewAction: .selectWallpaper(.preset(.night)))
+        #expect(context.viewState.bindings.wallpaperPreview?.theme == ChatTheme(wallpaper: .preset(.night), bubble: .purple, bubbleDark: .pink))
+    }
+    
+    @Test
+    func anArtworkInAPublicChatThatHidesMediaStillShows() {
+        setUpViewModel(theme: glassDrops, joinRule: .public, timelineMediaVisibility: .never)
+        
+        #expect(context.viewState.isPhotoHidden)
+        #expect(context.viewState.shownWallpaper == .art(.glassDrops))
+        #expect(context.viewState.shownTheme(saving: glassDrops) == glassDrops)
     }
     
     @Test
@@ -214,7 +301,7 @@ final class ChatThemeScreenViewModelTests {
         #expect(context.viewState.bindings.wallpaperPreview?.theme == ChatTheme(wallpaper: .preset(.dawn), bubble: .green))
         context.send(viewAction: .cancelPreview)
         context.send(viewAction: .presentBubblePicker)
-        #expect(context.viewState.bindings.bubbleChoice == .green)
+        #expect(context.viewState.bindings.bubbleChoice == ChatBubblePair(.green))
         #expect(!context.viewState.canSavePickerChoice(aurora))
         context.send(viewAction: .setBubble)
         #expect(!service.setRoomProxyCalled)

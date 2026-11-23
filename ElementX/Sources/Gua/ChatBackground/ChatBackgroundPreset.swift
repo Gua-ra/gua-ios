@@ -23,7 +23,7 @@ nonisolated enum ChatBackgroundPreset: String, CaseIterable, Identifiable {
     case dusk
     case citrus
     
-    static let colours: [ChatBackgroundPreset] = [.mint, .sky, .sand, .blush, .lavender, .graphite]
+    static let solids: [ChatBackgroundPreset] = [.mint, .sky, .sand, .blush, .lavender, .graphite]
     static let gradients: [ChatBackgroundPreset] = [.aurora, .sunset, .ocean, .night, .dawn, .forest, .dusk, .citrus]
     
     var id: String {
@@ -114,6 +114,13 @@ nonisolated enum ChatBackgroundFill {
     case solid(UInt32)
     case linear(start: UnitPoint, end: UnitPoint, stops: [Stop])
     case radialGlows(base: UInt32, glows: [Glow])
+    
+    var isGradient: Bool {
+        if case .solid = self {
+            return false
+        }
+        return true
+    }
     
     static func vertical(_ stops: [Stop]) -> Self {
         .linear(start: UnitPoint(x: 0.5, y: 0), end: UnitPoint(x: 0.5, y: 1), stops: stops)

@@ -18,11 +18,6 @@ struct ChatWallpaperPicker: View {
         context.viewState
     }
     
-    private var selectedPreset: ChatBackgroundPreset? {
-        guard case .preset(let preset) = viewState.baseTheme.wallpaper else { return nil }
-        return preset
-    }
-    
     var body: some View {
         ElementNavigationStack {
             Form {
@@ -39,8 +34,9 @@ struct ChatWallpaperPicker: View {
                             })
                 }
                 
-                section(UntranslatedL10n.guaChatThemeSectionColours, presets: ChatBackgroundPreset.colours)
-                section(UntranslatedL10n.guaChatThemeSectionGradients, presets: ChatBackgroundPreset.gradients)
+                ForEach(ChatWallpaperGallerySection.all) { section in
+                    self.section(section)
+                }
             }
             .compoundList()
             .navigationTitle(UntranslatedL10n.guaChatThemeWallpaper)
@@ -67,34 +63,34 @@ struct ChatWallpaperPicker: View {
         }
     }
     
-    private func section(_ title: String, presets: [ChatBackgroundPreset]) -> some View {
+    private func section(_ section: ChatWallpaperGallerySection) -> some View {
         Section {
             ListRow(kind: .custom {
-                ChatBackgroundPresetGrid(presets: presets, selected: selectedPreset) { preset in
-                    context.send(viewAction: .selectWallpaper(.preset(preset)))
+                ChatWallpaperGrid(wallpapers: section.wallpapers, selected: viewState.baseTheme.wallpaper) { wallpaper in
+                    context.send(viewAction: .selectWallpaper(wallpaper))
                 }
                 .padding(16)
             })
         } header: {
-            Text(title)
+            Text(section.title)
                 .compoundListSectionHeader()
         }
     }
 }
 
-/// Columns fit the longest name of any preset on one line, with at least three.
-struct ChatBackgroundPresetGrid: View {
-    let presets: [ChatBackgroundPreset]
-    let selected: ChatBackgroundPreset?
-    let onSelect: (ChatBackgroundPreset) -> Void
+/// Columns fit the longest preset name on one line, with at least three. Artwork names wrap instead.
+struct ChatWallpaperGrid: View {
+    let wallpapers: [ChatBackground]
+    let selected: ChatBackground
+    let onSelect: (ChatBackground) -> Void
     
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     
     var body: some View {
-        ChatBackgroundPresetGridLayout(minimumCellWidth: minimumCellWidth, maximumCellWidth: max(minimumCellWidth, 88), spacing: 12) {
-            ForEach(presets) { preset in
-                ChatBackgroundPresetSwatch(preset: preset, isSelected: preset == selected) {
-                    onSelect(preset)
+        ChatWallpaperGridLayout(minimumCellWidth: minimumCellWidth, maximumCellWidth: max(minimumCellWidth, 88), spacing: 12) {
+            ForEach(wallpapers, id: \.self) { wallpaper in
+                ChatWallpaperSwatch(wallpaper: wallpaper, isSelected: wallpaper == selected) {
+                    onSelect(wallpaper)
                 }
             }
         }
@@ -110,7 +106,7 @@ struct ChatBackgroundPresetGrid: View {
     }
 }
 
-private struct ChatBackgroundPresetGridLayout: Layout {
+private struct ChatWallpaperGridLayout: Layout {
     private struct Row {
         let indices: Range<Int>
         let columns: Int
@@ -153,18 +149,21 @@ private struct ChatBackgroundPresetGridLayout: Layout {
     }
 }
 
-private struct ChatBackgroundPresetSwatch: View {
-    let preset: ChatBackgroundPreset
+private struct ChatWallpaperSwatch: View {
+    let wallpaper: ChatBackground
     let isSelected: Bool
     let action: () -> Void
     
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.isEnabled) private var isEnabled
+    
+    private var isLive: Bool {
+        wallpaper.artwork?.isLive == true
+    }
     
     var body: some View {
         Button(action: action) {
             VStack(spacing: 4) {
-                ChatBackgroundFillView(fill: preset.fill(for: colorScheme))
+                ChatBackgroundView(background: wallpaper, mediaProvider: nil)
                     .aspectRatio(9 / 16, contentMode: .fit)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                     .overlay {
@@ -179,17 +178,23 @@ private struct ChatBackgroundPresetSwatch: View {
                                 .background(Circle().fill(Color.compound.bgCanvasDefault))
                         }
                     }
+                    .overlay(alignment: .topLeading) {
+                        if isLive {
+                            ChatArtworkLiveBadge()
+                                .padding(4)
+                        }
+                    }
                 
-                Text(preset.name)
+                Text(wallpaper.displayName)
                     .font(.compound.bodySM)
                     .foregroundColor(isEnabled ? .compound.textPrimary : .compound.textDisabled)
-                    .lineLimit(1)
+                    .multilineTextAlignment(.center)
             }
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(preset.name)
+        .accessibilityLabel(isLive ? "\(wallpaper.displayName), \(UntranslatedL10n.guaChatThemeLiveBadge)" : wallpaper.displayName)
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 }
@@ -202,7 +207,7 @@ struct ChatWallpaperPicker_Previews: PreviewProvider, TestablePreview {
     }
     
     static func makeViewModel() -> ChatThemeScreenViewModel {
-        let viewModel = ChatThemeScreen_Previews.makeViewModel(theme: .init(wallpaper: .preset(.dusk), bubble: .orange))
+        let viewModel = ChatThemeScreen_Previews.makeViewModel(theme: .init(wallpaper: .art(.silk), bubbles: ChatArtwork.silk.bubbles))
         viewModel.context.send(viewAction: .presentWallpaperPicker)
         return viewModel
     }
