@@ -18,7 +18,8 @@ nonisolated struct WallpaperMotionPolicy: Equatable {
     
     var isOnScreen = true
     var isAppActive = true
-    /// A sheet, the message menu, a full-screen call or the app lock screen is over the chat.
+    /// A sheet, the message menu, a full-screen call or the app lock screen is over the chat, or the composer is up at the
+    /// top bar and leaves no chat to see.
     var isCovered = false
     var reducesMotion = false
     var isLowPowerModeEnabled = false

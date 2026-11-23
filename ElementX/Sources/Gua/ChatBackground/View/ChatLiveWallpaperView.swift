@@ -230,7 +230,7 @@ private struct ChatLiveWallpaperRepresentable: UIViewRepresentable {
 
 /// Draws the shader in exactly the still's rect and drives the tilt; a static artwork only tilts.
 private final class ChatLiveWallpaperUIView: UIView, MTKViewDelegate {
-    /// Polled, since presentations and hidden windows post no notification.
+    /// Polled, since presentations, hidden windows and the composer's position post no notification.
     private static let coverCheckInterval: TimeInterval = 0.25
     
     var sendPulse: ChatWallpaperSendPulse?
