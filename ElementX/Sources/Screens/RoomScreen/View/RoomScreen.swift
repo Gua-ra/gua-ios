@@ -79,6 +79,7 @@ struct RoomScreen: View {
                     ChatBackgroundView(background: timelineContext.viewState.effectiveChatTheme.wallpaper,
                                        mediaProvider: timelineContext.mediaProvider)
                         .ignoresSafeArea(edges: [.horizontal, .bottom])
+                        .environment(\.chatWallpaperSendPulse, .forRoom(timelineContext.viewState.roomID))
                 }
             }
             .topBanners([
@@ -125,6 +126,7 @@ struct RoomScreen: View {
                         TimelineMessageSelectionActionBar(context: timelineContext)
                     }
                 }
+                .reportsChatWallpaperComposerTop(to: .forRoom(timelineContext.viewState.roomID))
             }
             .navigationBarBackButtonHidden(isMessageSelectionActive)
             .toolbarRole(RoomHeaderView.toolbarRole)
