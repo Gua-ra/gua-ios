@@ -21,7 +21,12 @@ final class ChatArtworkManifestTests {
             #expect(entry["section"] as? String == artwork.section.rawValue, "\(artwork.id)")
             #expect(entry["live"] as? Bool == artwork.isLive, "\(artwork.id)")
             #expect(entry["fallback_preset"] as? String == artwork.fallbackPreset.id, "\(artwork.id)")
-            #expect(entry["files"] as? [String: String] == ["light": artwork.fileNames.light, "dark": artwork.fileNames.dark], "\(artwork.id)")
+            #expect(entry["still_time"] as? Double == artwork.stillTime, "\(artwork.id)")
+            
+            let files = try #require(entry["files"] as? [String: String])
+            #expect(files["light"] == artwork.fileNames.light, "\(artwork.id)")
+            #expect(files["dark"] == artwork.fileNames.dark, "\(artwork.id)")
+            #expect(files["msl"] == artwork.shaderFileName, "\(artwork.id)")
             
             let anchor = try #require(entry["anchor"] as? [String: Double])
             #expect(anchor == ["x": Double(artwork.anchor.x), "y": Double(artwork.anchor.y)], "\(artwork.id)")
@@ -38,12 +43,17 @@ final class ChatArtworkManifestTests {
         
         for (artwork, entry) in zip(ChatArtwork.allCases, entries) {
             let hashes = try #require(entry["sha256"] as? [String: String])
-            #expect(Set(hashes.keys) == [artwork.fileNames.light, artwork.fileNames.dark], "\(artwork.id)")
             
-            for (file, hash) in hashes {
-                let url = try #require(ChatArtworkLoader.url(for: file), "\(file) is not in the app bundle")
-                #expect(try Self.sha256(of: url) == hash, "\(file)")
-                #expect(Self.pixelSize(of: url) == ChatArtwork.pixelSize, "\(file)")
+            for image in [artwork.fileNames.light, artwork.fileNames.dark] {
+                let url = try #require(ChatArtworkLoader.url(for: image), "\(image) is not in the app bundle")
+                #expect(try Self.sha256(of: url) == hashes[image], "\(image)")
+                #expect(Self.pixelSize(of: url) == ChatArtwork.pixelSize, "\(image)")
+            }
+            
+            // The Android shader is listed too, but only the Metal one ships here.
+            if let shader = artwork.shaderFileName {
+                let url = try #require(ChatArtworkLoader.url(for: shader), "\(shader) is not in the app bundle")
+                #expect(try Self.sha256(of: url) == hashes[shader], "\(shader)")
             }
         }
     }

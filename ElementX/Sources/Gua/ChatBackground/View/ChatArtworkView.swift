@@ -10,6 +10,8 @@ import SwiftUI
 
 struct ChatArtworkView: View {
     let artwork: ChatArtwork
+    /// Set where the artwork tilts, which draws the still larger than the view so a tilt never shows its edges.
+    var parallax: WallpaperParallax?
     
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.displayScale) private var displayScale
@@ -18,28 +20,55 @@ struct ChatArtworkView: View {
     @State private var loadedImage: UIImage?
     
     var body: some View {
-        GeometryReader { geometry in
-            let request = ChatArtworkLoader.request(for: artwork, colorScheme: colorScheme, filling: geometry.size, displayScale: displayScale)
-            let image = ChatArtworkLoader.cachedImage(for: request) ?? loadedImage
-            let fallback = artwork.fallbackPreset.fill(for: colorScheme)
-            
-            // One canvas, so the grain blends once instead of on every scrolled frame.
-            Canvas { context, size in
-                context.drawChatBackgroundFill(fallback, size: size)
-                if let image {
-                    let rect = ChatBackgroundPhotoLayout.rect(of: ChatArtwork.pixelSize,
-                                                              filling: size,
-                                                              alignX: artwork.anchor.x,
-                                                              alignY: artwork.anchor.y)
-                    context.draw(Image(uiImage: image).interpolation(.high), in: rect)
-                }
-                context.drawChatBackgroundGrain(size: size)
+        if let parallax {
+            GeometryReader { geometry in
+                let layout = WallpaperStillLayout(viewSize: geometry.size)
+                let canvas = layout.canvasRect(at: .zero)
+                
+                still(canvasSize: canvas.size)
+                    .frame(width: canvas.width, height: canvas.height)
+                    .modifier(WallpaperParallaxOffset(parallax: parallax, layout: layout))
             }
-            .task(id: request) {
-                guard request.maxPixelSize > 0, let image = await ChatArtworkLoader.loadImage(for: request) else { return }
-                loadedImage = image
+            .clipped()
+        } else {
+            GeometryReader { geometry in
+                still(canvasSize: geometry.size)
             }
         }
+    }
+    
+    private func still(canvasSize: CGSize) -> some View {
+        let request = ChatArtworkLoader.request(for: artwork, colorScheme: colorScheme, filling: canvasSize, displayScale: displayScale)
+        let image = ChatArtworkLoader.cachedImage(for: request) ?? loadedImage
+        let fallback = artwork.fallbackPreset.fill(for: colorScheme)
+        
+        // One canvas, so the grain blends once instead of on every scrolled frame.
+        return Canvas { context, size in
+            context.drawChatBackgroundFill(fallback, size: size)
+            if let image {
+                let rect = ChatBackgroundPhotoLayout.rect(of: ChatArtwork.pixelSize,
+                                                          filling: size,
+                                                          alignX: artwork.anchor.x,
+                                                          alignY: artwork.anchor.y)
+                context.draw(Image(uiImage: image).interpolation(.high), in: rect)
+            }
+            context.drawChatBackgroundGrain(size: size)
+        }
+        .task(id: request) {
+            guard request.maxPixelSize > 0, let image = await ChatArtworkLoader.loadImage(for: request) else { return }
+            loadedImage = image
+        }
+    }
+}
+
+/// Only this modifier reads the tilt, so a tilt moves the canvas without redrawing it.
+private struct WallpaperParallaxOffset: ViewModifier {
+    let parallax: WallpaperParallax
+    let layout: WallpaperStillLayout
+    
+    func body(content: Content) -> some View {
+        let canvas = layout.canvasRect(at: parallax.tilt)
+        content.offset(x: canvas.minX, y: canvas.minY)
     }
 }
 

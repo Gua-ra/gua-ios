@@ -122,6 +122,7 @@
 "gua_chat_background_error_generic" = "Não foi possível alterar o fundo. Tente novamente.";
 "gua_chat_background_error_too_large" = "Esta foto é grande demais. Escolha outra.";
 "gua_chat_background_preview_a11y" = "Prévia do fundo";
+"gua_chat_background_preview_send_a11y" = "Ver o efeito de envio";
 "gua_chat_background_sample_incoming" = "Como ficou?";
 "gua_chat_background_sample_outgoing" = "Ficou ótimo!";
 "gua_chat_background_sample_today" = "Hoje";
@@ -169,6 +170,10 @@
 "gua_chat_theme_art_rain_on_glass" = "Chuva na janela";
 "gua_chat_theme_art_pantanal" = "Pantanal";
 "gua_chat_theme_art_currents_live" = "Correntes animadas";
+"gua_chat_theme_art_boreal" = "Boreal";
+"gua_chat_theme_art_lagoon" = "Lagoa";
+"gua_chat_theme_art_sea_sparks" = "Faíscas do mar";
+"gua_chat_theme_art_tropic_dusk" = "Crepúsculo tropical";
 "gua_chat_theme_art_dune_lagoons" = "Lagoas nas dunas";
 "gua_chat_theme_art_palm_coast" = "Costa das palmeiras";
 "gua_chat_theme_art_river_bends" = "Curvas do rio";

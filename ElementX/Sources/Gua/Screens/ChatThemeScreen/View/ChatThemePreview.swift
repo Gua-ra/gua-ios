@@ -14,9 +14,17 @@ struct ChatThemePreview: View {
     let saveTitle: String
     
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reducesMotion
+    
+    @State private var sendPulse = ChatWallpaperSendPulse()
     
     private var previewColorScheme: ColorScheme {
         draft.previewColorScheme ?? colorScheme
+    }
+    
+    private var canPreviewSending: Bool {
+        guard case .art(let artwork) = draft.shownTheme.wallpaper else { return false }
+        return ChatLiveWallpaperView.canAnimate(artwork, reducesMotion: reducesMotion)
     }
     
     var body: some View {
@@ -26,6 +34,9 @@ struct ChatThemePreview: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .background {
                         ChatBackgroundView(background: draft.shownTheme.wallpaper, mediaProvider: context.mediaProvider)
+                            .environment(\.chatWallpaperSendPulse, sendPulse)
+                            // Presented above any call overlay, so the overlay never hides this preview.
+                            .environment(\.isChatHiddenByOverlay, false)
                     }
                     .environment(\.colorScheme, previewColorScheme)
                     .ignoresSafeArea(edges: [.horizontal, .bottom])
@@ -38,7 +49,9 @@ struct ChatThemePreview: View {
                                          canSave: context.viewState.canSave(draft),
                                          onPreviewColorScheme: { context.send(viewAction: .setPreviewColorScheme($0)) },
                                          onSave: { context.send(viewAction: .savePreview) },
+                                         onPreviewSend: canPreviewSending ? { sendPulse.recordSend() } : nil,
                                          extra: { EmptyView() })
+                    .reportsChatWallpaperComposerTop(to: sendPulse)
             }
             .navigationTitle(UntranslatedL10n.guaChatThemeTitle)
             .navigationBarTitleDisplayMode(.inline)
@@ -61,15 +74,23 @@ struct ChatThemePreviewControls<Extra: View>: View {
     let canSave: Bool
     let onPreviewColorScheme: (ColorScheme) -> Void
     let onSave: () -> Void
+    var onPreviewSend: (() -> Void)?
     @ViewBuilder var extra: Extra
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Picker(UntranslatedL10n.guaChatBackgroundPreviewA11y, selection: Binding { previewColorScheme } set: { onPreviewColorScheme($0) }) {
-                Text(UntranslatedL10n.guaChatBackgroundPreviewLight).tag(ColorScheme.light)
-                Text(UntranslatedL10n.guaChatBackgroundPreviewDark).tag(ColorScheme.dark)
+            HStack(spacing: 12) {
+                Picker(UntranslatedL10n.guaChatBackgroundPreviewA11y, selection: Binding { previewColorScheme } set: { onPreviewColorScheme($0) }) {
+                    Text(UntranslatedL10n.guaChatBackgroundPreviewLight).tag(ColorScheme.light)
+                    Text(UntranslatedL10n.guaChatBackgroundPreviewDark).tag(ColorScheme.dark)
+                }
+                .pickerStyle(.segmented)
+                
+                if let onPreviewSend {
+                    SendButton(action: onPreviewSend)
+                        .accessibilityLabel(UntranslatedL10n.guaChatBackgroundPreviewSendA11y)
+                }
             }
-            .pickerStyle(.segmented)
             
             extra
             

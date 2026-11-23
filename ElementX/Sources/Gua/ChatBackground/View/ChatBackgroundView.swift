@@ -14,6 +14,7 @@ struct ChatBackgroundView: View {
     
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.chatWallpaperSendPulse) private var liveWallpaperSendPulse
     
     var body: some View {
         ZStack {
@@ -35,7 +36,11 @@ struct ChatBackgroundView: View {
                 ChatBackgroundFillView(fill: preset.fill(for: colorScheme))
                 ChatBackgroundScrim(photoDim: nil)
             case .art(let artwork):
-                ChatArtworkView(artwork: artwork)
+                if ChatLiveWallpaperView.isShown(for: artwork, sendPulse: liveWallpaperSendPulse), let liveWallpaperSendPulse {
+                    ChatLiveWallpaperView(artwork: artwork, sendPulse: liveWallpaperSendPulse)
+                } else {
+                    ChatArtworkView(artwork: artwork)
+                }
                 ChatBackgroundScrim(photoDim: nil)
             case .photo(let photo):
                 ChatBackgroundPhotoView(photo: photo, mediaProvider: mediaProvider)
@@ -109,12 +114,12 @@ struct ChatBackgroundPhotoLayout: View {
     let alignX: Double
     let alignY: Double
     
-    static func scaledSize(of content: CGSize, filling frame: CGSize) -> CGSize {
+    nonisolated static func scaledSize(of content: CGSize, filling frame: CGSize) -> CGSize {
         let scale = max(frame.width / max(content.width, 1), frame.height / max(content.height, 1))
         return CGSize(width: content.width * scale, height: content.height * scale)
     }
     
-    static func rect(of content: CGSize, filling frame: CGSize, alignX: Double, alignY: Double) -> CGRect {
+    nonisolated static func rect(of content: CGSize, filling frame: CGSize, alignX: Double, alignY: Double) -> CGRect {
         let scaled = scaledSize(of: content, filling: frame)
         return CGRect(origin: CGPoint(x: -(scaled.width - frame.width) * alignX, y: -(scaled.height - frame.height) * alignY), size: scaled)
     }
