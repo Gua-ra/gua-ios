@@ -17,6 +17,7 @@ final class ChatThemeScreenViewModelTests {
     private let ocean = ChatTheme(wallpaper: .preset(.ocean), bubble: .teal)
     private let aurora = ChatTheme(wallpaper: .preset(.aurora), bubble: .green)
     private let glassDrops = ChatTheme(wallpaper: .art(.glassDrops), bubble: .purple, bubbleDark: .pink)
+    private let peytoLake = ChatTheme(wallpaper: .art(.photoPeytoLake), bubbles: ChatArtwork.photoPeytoLake.bubbles)
     
     private var roomProxy: JoinedRoomProxyMock!
     private var clientProxy: ClientProxyMock!
@@ -38,7 +39,7 @@ final class ChatThemeScreenViewModelTests {
         #expect(context.viewState.setThemeTitle == UntranslatedL10n.guaChatThemeActionSetTheme)
         #expect(context.viewState.note == UntranslatedL10n.guaChatThemeSharedNote)
         #expect(!context.viewState.current.isStock)
-        #expect(context.viewState.sections.map(\.id) == [.featured, .live, .nature, .patterns, .minimal, .gradients])
+        #expect(context.viewState.sections.map(\.id) == [.featured, .live, .nature, .photos, .patterns, .minimal, .gradients])
     }
     
     @Test
@@ -244,6 +245,36 @@ final class ChatThemeScreenViewModelTests {
         #expect(context.viewState.isPhotoHidden)
         #expect(context.viewState.shownWallpaper == .art(.glassDrops))
         #expect(context.viewState.shownTheme(saving: glassDrops) == glassDrops)
+    }
+    
+    @Test
+    func aPhotoThemeShowsItsCreditToMembersWhoCannotChangeIt() throws {
+        setUpViewModel(theme: peytoLake, canChange: false)
+        
+        #expect(!context.viewState.canChange)
+        let credit = try #require(context.viewState.photoCredit)
+        #expect(credit == ChatArtwork.photoPeytoLake.credit)
+        #expect(credit.author == "Ezra Jeffrey-Comeau")
+    }
+    
+    @Test
+    func aChatFollowingADefaultPhotoShowsItsCredit() {
+        setUpViewModel(theme: .stock, defaultTheme: peytoLake)
+        
+        #expect(context.viewState.shownWallpaper == .art(.photoPeytoLake))
+        #expect(context.viewState.photoCredit == ChatArtwork.photoPeytoLake.credit)
+    }
+    
+    @Test
+    func onlyPhotosHaveACredit() {
+        setUpViewModel(theme: glassDrops)
+        #expect(context.viewState.photoCredit == nil)
+        
+        setUpViewModel(theme: ocean)
+        #expect(context.viewState.photoCredit == nil)
+        
+        setUpViewModel(mode: .defaultTheme, defaultTheme: peytoLake)
+        #expect(context.viewState.photoCredit == ChatArtwork.photoPeytoLake.credit)
     }
     
     @Test

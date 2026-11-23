@@ -99,6 +99,10 @@ extension AccessibilityTests {
         try await performAccessibilityAudit(named: "ChatBubblePicker_Previews")
     }
 
+    func testChatPhotoCreditsScreen() async throws {
+        try await performAccessibilityAudit(named: "ChatPhotoCreditsScreen_Previews")
+    }
+
     func testChatThemePreview() async throws {
         try await performAccessibilityAudit(named: "ChatThemePreview_Previews")
     }

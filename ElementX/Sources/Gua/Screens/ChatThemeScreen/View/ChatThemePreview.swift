@@ -17,6 +17,7 @@ struct ChatThemePreview: View {
     @Environment(\.accessibilityReduceMotion) private var reducesMotion
     
     @State private var sendPulse = ChatWallpaperSendPulse()
+    @State private var isPhotoCreditsPresented = false
     
     private var previewColorScheme: ColorScheme {
         draft.previewColorScheme ?? colorScheme
@@ -50,7 +51,7 @@ struct ChatThemePreview: View {
                                          onPreviewColorScheme: { context.send(viewAction: .setPreviewColorScheme($0)) },
                                          onSave: { context.send(viewAction: .savePreview) },
                                          onPreviewSend: canPreviewSending ? { sendPulse.recordSend() } : nil,
-                                         extra: { EmptyView() })
+                                         extra: { photoCredit })
                     .reportsChatWallpaperComposerTop(to: sendPulse)
             }
             .navigationTitle(UntranslatedL10n.guaChatThemeTitle)
@@ -63,8 +64,18 @@ struct ChatThemePreview: View {
                 }
             }
             .toolbarBackground(.visible, for: .navigationBar)
+            .chatPhotoCreditsSheet(isPresented: $isPhotoCreditsPresented)
         }
         .alert(item: $context.alertInfo)
+    }
+    
+    @ViewBuilder
+    private var photoCredit: some View {
+        if let credit = draft.shownTheme.wallpaper.artwork?.credit {
+            ChatPhotoCreditLine(credit: credit) {
+                isPhotoCreditsPresented = true
+            }
+        }
     }
 }
 
@@ -135,6 +146,16 @@ struct ChatThemePreview_Previews: PreviewProvider, TestablePreview {
                          draft: artworkDraft(.glassDrops, previewColorScheme: .dark),
                          saveTitle: UntranslatedL10n.guaChatThemeActionSetTheme)
             .previewDisplayName("Live artwork dark")
+        
+        ChatThemePreview(context: viewModel.context,
+                         draft: artworkDraft(.photoPeytoLake, previewColorScheme: .light),
+                         saveTitle: UntranslatedL10n.guaChatThemeActionSetTheme)
+            .previewDisplayName("Photo")
+        
+        ChatThemePreview(context: viewModel.context,
+                         draft: artworkDraft(.photoPeytoLake, previewColorScheme: .dark),
+                         saveTitle: UntranslatedL10n.guaChatThemeActionSetTheme)
+            .previewDisplayName("Photo dark")
     }
     
     static func artworkDraft(_ artwork: ChatArtwork, previewColorScheme: ColorScheme) -> ChatThemePreviewDraft {
