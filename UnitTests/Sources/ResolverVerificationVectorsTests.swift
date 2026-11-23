@@ -269,6 +269,17 @@ final class ResolverVerificationVectorsTests: XCTestCase {
         }
     }
 
+    func testEveryEd25519CaseHasItsExpectedVerdict() throws {
+        for vector in vectors.section("ed25519Cases") {
+            let name = vector.string("name")
+            let message = try XCTUnwrap(ResolverVerificationHex.bytes(vector.string("messageHex")), name)
+            let verified = ResolverVerificationCrypto.publicKey(spkiBase64: vector.string("publicKeySpkiB64")).map {
+                ResolverVerificationCrypto.verify(signatureBase64: vector.string("signatureB64"), over: message, key: $0)
+            } ?? false
+            XCTAssertEqual(verified, vector.bool("verifies"), name)
+        }
+    }
+
     func testEveryPrimitiveEncodesToItsBytes() throws {
         for vector in lpVectors.section("primitives") {
             let name = vector.string("name")
