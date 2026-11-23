@@ -45,6 +45,7 @@ final class ThreadTimelineScreenCoordinator: CoordinatorProtocol {
     private let viewModel: ThreadTimelineScreenViewModelProtocol
     private let timelineViewModel: TimelineViewModelProtocol
     private var composerViewModel: ComposerToolbarViewModelProtocol
+    private let expressionPanelViewModel: ExpressionPanelViewModel?
     private let userSettings: UserSettings
     
     private var cancellables = Set<AnyCancellable>()
@@ -85,6 +86,9 @@ final class ThreadTimelineScreenCoordinator: CoordinatorProtocol {
                                                      userSettings: parameters.userSession.userSettings,
                                                      analyticsService: parameters.analytics,
                                                      composerDraftService: parameters.composerDraftService)
+        expressionPanelViewModel = ExpressionPanelViewModel.makeIfEnabled(userSession: parameters.userSession,
+                                                                          roomProxy: parameters.roomProxy,
+                                                                          timelineController: parameters.timelineController)
     }
     
     func start() {
@@ -152,8 +156,13 @@ final class ThreadTimelineScreenCoordinator: CoordinatorProtocol {
             .sink { [weak self] action in
                 guard let self else { return }
                 
+                expressionPanelViewModel?.process(composerAction: action)
                 timelineViewModel.process(composerAction: action)
             }
+            .store(in: &cancellables)
+        
+        expressionPanelViewModel?.actions
+            .sink { [weak self] action in self?.handleExpressionPanelAction(action) }
             .store(in: &cancellables)
         
         // Loading the draft requires the subscriptions to be set up first otherwise
@@ -166,8 +175,15 @@ final class ThreadTimelineScreenCoordinator: CoordinatorProtocol {
         viewModel.stop()
     }
     
+    private func handleExpressionPanelAction(_ action: ExpressionPanelViewModelAction) {
+        switch action {
+        case .didSendReply:
+            composerViewModel.process(timelineAction: .setMode(mode: .default))
+        }
+    }
+    
     func toPresentable() -> AnyView {
-        let composerToolbar = ComposerToolbar(context: composerViewModel.context)
+        let composerToolbar = ComposerToolbar(context: composerViewModel.context, expressionPanel: expressionPanelViewModel?.context)
         
         return AnyView(ThreadTimelineScreen(context: viewModel.context,
                                             timelineContext: timelineViewModel.context,

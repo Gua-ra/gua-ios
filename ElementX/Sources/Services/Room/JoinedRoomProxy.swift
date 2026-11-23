@@ -465,6 +465,15 @@ class JoinedRoomProxy: JoinedRoomProxyProtocol {
         }
     }
     
+    func sendRaw(eventType: String, content: String) async -> Result<String, RoomProxyError> {
+        do {
+            return try await .success(room.sendRaw(eventType: eventType, content: content, requestConfigOverride: nil))
+        } catch {
+            MXLog.error("Failed sending a \(eventType) event with error: \(error)")
+            return .failure(.sdkError(error))
+        }
+    }
+    
     // MARK: - Privacy settings
     
     func updateJoinRule(_ rule: JoinRule) async -> Result<Void, RoomProxyError> {

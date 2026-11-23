@@ -72,6 +72,7 @@ es:action_no
 es:action_ok
 es:common_error
 es:common_sticker
+es:gua_expression_stickers_tab
 es:dialog_title_error
 es:gua_chat_theme_art_azulejo
 es:gua_chat_theme_art_boreal

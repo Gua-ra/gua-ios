@@ -18,8 +18,6 @@ internal nonisolated enum UntranslatedL10n {
   internal static var commonAccountSettings: String { return UntranslatedL10n.tr("Untranslated", "common_account_settings") }
   /// App settings
   internal static var commonAppSettings: String { return UntranslatedL10n.tr("Untranslated", "common_app_settings") }
-  /// Media upload quality
-  internal static var commonMediaUploadQuality: String { return UntranslatedL10n.tr("Untranslated", "common_media_upload_quality") }
   /// Moderation & safety
   internal static var commonModerationAndSafety: String { return UntranslatedL10n.tr("Untranslated", "common_moderation_and_safety") }
   /// We couldn’t finish setting up your account on this device. Please try again.
@@ -286,6 +284,8 @@ internal nonisolated enum UntranslatedL10n {
   internal static var guaChatThemeWallpaper: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_wallpaper") }
   /// Global Search
   internal static var guaCommonGlobalSearch: String { return UntranslatedL10n.tr("Untranslated", "gua_common_global_search") }
+  /// Media settings
+  internal static var guaCommonMediaSettings: String { return UntranslatedL10n.tr("Untranslated", "gua_common_media_settings") }
   /// Contact info
   internal static var guaContactInfoTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_contact_info_title") }
   /// Opens country picker
@@ -344,6 +344,16 @@ internal nonisolated enum UntranslatedL10n {
   internal static var guaEncryptionResetStillFinishing: String { return UntranslatedL10n.tr("Untranslated", "gua_encryption_reset_still_finishing") }
   /// Too many attempts. Please wait a moment and try again.
   internal static var guaErrorRateLimited: String { return UntranslatedL10n.tr("Untranslated", "gua_error_rate_limited") }
+  /// Favourites
+  internal static var guaExpressionFavourites: String { return UntranslatedL10n.tr("Untranslated", "gua_expression_favourites") }
+  /// Keyboard
+  internal static var guaExpressionKeyboardA11y: String { return UntranslatedL10n.tr("Untranslated", "gua_expression_keyboard_a11y") }
+  /// Stickers and GIFs
+  internal static var guaExpressionOpenA11y: String { return UntranslatedL10n.tr("Untranslated", "gua_expression_open_a11y") }
+  /// Recent
+  internal static var guaExpressionRecent: String { return UntranslatedL10n.tr("Untranslated", "gua_expression_recent") }
+  /// Stickers
+  internal static var guaExpressionStickersTab: String { return UntranslatedL10n.tr("Untranslated", "gua_expression_stickers_tab") }
   /// See which of your contacts are on Gua
   internal static var guaFindFriendsActionDescription: String { return UntranslatedL10n.tr("Untranslated", "gua_find_friends_action_description") }
   /// Looking for your contacts on Gua…
@@ -370,6 +380,12 @@ internal nonisolated enum UntranslatedL10n {
   }
   /// This took too long. Please start again.
   internal static var guaFlowExpired: String { return UntranslatedL10n.tr("Untranslated", "gua_flow_expired") }
+  /// Couldn’t load GIFs
+  internal static var guaGifsLoadError: String { return UntranslatedL10n.tr("Untranslated", "gua_gifs_load_error") }
+  /// Trending
+  internal static var guaGifsTrending: String { return UntranslatedL10n.tr("Untranslated", "gua_gifs_trending") }
+  /// GIFs aren’t available in this version
+  internal static var guaGifsUnavailable: String { return UntranslatedL10n.tr("Untranslated", "gua_gifs_unavailable") }
   /// %1$@’s security details changed. This can happen when they reinstall Gua or get a new phone. %2$@
   internal static func guaIdentityChangeBannerDescription(_ p1: Any, _ p2: Any) -> String {
     return UntranslatedL10n.tr("Untranslated", "gua_identity_change_banner_description", String(describing: p1), String(describing: p2))
@@ -426,6 +442,10 @@ internal nonisolated enum UntranslatedL10n {
   }
   /// We couldn’t sign you back in. Please sign in again.
   internal static var guaRestoreSigninFailed: String { return UntranslatedL10n.tr("Untranslated", "gua_restore_signin_failed") }
+  /// Automatically play GIFs and animated stickers in chat
+  internal static var guaSettingsPlayGifsAutomatically: String { return UntranslatedL10n.tr("Untranslated", "gua_settings_play_gifs_automatically") }
+  /// Opened GIFs always play.
+  internal static var guaSettingsPlayGifsAutomaticallyDescription: String { return UntranslatedL10n.tr("Untranslated", "gua_settings_play_gifs_automatically_description") }
   /// Sign out
   internal static var guaSettingsSignOut: String { return UntranslatedL10n.tr("Untranslated", "gua_settings_sign_out") }
   /// Organize related chats and communities in one place
@@ -448,6 +468,38 @@ internal nonisolated enum UntranslatedL10n {
   internal static var guaSoftLogoutSigninNotice: String { return UntranslatedL10n.tr("Untranslated", "gua_soft_logout_signin_notice") }
   /// You’ll need two-step verification before you can change your number.
   internal static var guaStepUpRequired: String { return UntranslatedL10n.tr("Untranslated", "gua_step_up_required") }
+  /// Add to favourites
+  internal static var guaStickerAddFavourite: String { return UntranslatedL10n.tr("Untranslated", "gua_sticker_add_favourite") }
+  /// Create sticker
+  internal static var guaStickerCreate: String { return UntranslatedL10n.tr("Untranslated", "gua_sticker_create") }
+  /// Delete this sticker?
+  internal static var guaStickerDeleteTitle: String { return UntranslatedL10n.tr("Untranslated", "gua_sticker_delete_title") }
+  /// Cut out
+  internal static var guaStickerEditorCutOut: String { return UntranslatedL10n.tr("Untranslated", "gua_sticker_editor_cut_out") }
+  /// Stickers are stored on Gua’s servers without end-to-end encryption, so you can use them in any chat.
+  internal static var guaStickerEditorNote: String { return UntranslatedL10n.tr("Untranslated", "gua_sticker_editor_note") }
+  /// Add text
+  internal static var guaStickerEditorTextPlaceholder: String { return UntranslatedL10n.tr("Untranslated", "gua_sticker_editor_text_placeholder") }
+  /// From %1$@
+  internal static func guaStickerFromPack(_ p1: Any) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_sticker_from_pack", String(describing: p1))
+  }
+  /// You can have up to %1$d stickers
+  internal static func guaStickerLimitError(_ p1: Int) -> String {
+    return UntranslatedL10n.tr("Untranslated", "gua_sticker_limit_error", p1)
+  }
+  /// Remove from favourites
+  internal static var guaStickerRemoveFavourite: String { return UntranslatedL10n.tr("Untranslated", "gua_sticker_remove_favourite") }
+  /// Remove from recents
+  internal static var guaStickerRemoveRecent: String { return UntranslatedL10n.tr("Untranslated", "gua_sticker_remove_recent") }
+  /// Save to my stickers
+  internal static var guaStickerSave: String { return UntranslatedL10n.tr("Untranslated", "gua_sticker_save") }
+  /// Couldn’t send the sticker
+  internal static var guaStickerSendError: String { return UntranslatedL10n.tr("Untranslated", "gua_sticker_send_error") }
+  /// My stickers
+  internal static var guaStickersMine: String { return UntranslatedL10n.tr("Untranslated", "gua_stickers_mine") }
+  /// Search stickers
+  internal static var guaStickersSearchPlaceholder: String { return UntranslatedL10n.tr("Untranslated", "gua_stickers_search_placeholder") }
   /// Make sure the emojis below match the ones on your other device.
   internal static var guaVerificationCompareEmojisSubtitle: String { return UntranslatedL10n.tr("Untranslated", "gua_verification_compare_emojis_subtitle") }
   /// Your messages will now show up on your other device.

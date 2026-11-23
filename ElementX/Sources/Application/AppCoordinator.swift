@@ -75,6 +75,11 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
     let windowManager: SecureWindowManagerProtocol
     let notificationManager: NotificationManagerProtocol
     
+    // GUA FORK
+    var guaAppSettings: AppSettings? {
+        appSettings
+    }
+    
     private let appRouteURLParser: AppRouteURLParser
     
     private var storedAppRoute: AppRoute?
@@ -244,6 +249,7 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
     func toPresentable() -> AnyView {
         AnyView(navigationRootCoordinator.toPresentable()
             .environment(\.analyticsService, analyticsService)
+            .playsAnimatedImages(following: appSettings) // GUA FORK
             .onReceive(appSettings.appAppearancePublisher) { [weak self] appAppearance in
                 guard let self else { return }
                 

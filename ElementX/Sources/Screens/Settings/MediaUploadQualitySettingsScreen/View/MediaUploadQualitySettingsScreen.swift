@@ -21,9 +21,11 @@ struct MediaUploadQualitySettingsScreen: View {
                         context.send(viewAction: .optimizeMediaUploadsChanged)
                     }
             }
+            
+            AnimatedImageSettingsSection(playGifsAutomatically: $context.playGifsAutomatically) // GUA FORK
         }
         .compoundList()
-        .navigationTitle(UntranslatedL10n.commonMediaUploadQuality)
+        .navigationTitle(UntranslatedL10n.guaCommonMediaSettings)
         .navigationBarTitleDisplayMode(.inline)
     }
 }
@@ -37,5 +39,10 @@ struct MediaUploadQualitySettingsScreen_Previews: PreviewProvider, TestablePrevi
         ElementNavigationStack {
             MediaUploadQualitySettingsScreen(context: viewModel.context)
         }
+        
+        ElementNavigationStack {
+            MediaUploadQualitySettingsScreen(context: gifsPausedViewModel.context)
+        }
+        .previewDisplayName("GIFs paused") // GUA FORK
     }
 }

@@ -341,6 +341,13 @@ extension PreviewTests {
     }
 
     @Test
+    func expressionPanel() async throws {
+        for (index, preview) in ExpressionPanel_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    @Test
     func fileMediaEventsTimelineView() async throws {
         for (index, preview) in FileMediaEventsTimelineView_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)
@@ -392,6 +399,13 @@ extension PreviewTests {
     @Test
     func galleryRoomTimelineView() async throws {
         for (index, preview) in GalleryRoomTimelineView_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    @Test
+    func gifPreviewSheet() async throws {
+        for (index, preview) in GifPreviewSheet_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)
         }
     }
@@ -1433,6 +1447,13 @@ extension PreviewTests {
     }
 
     @Test
+    func stickerEditorScreen() async throws {
+        for (index, preview) in StickerEditorScreen_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    @Test
     func stickerRoomTimelineView() async throws {
         for (index, preview) in StickerRoomTimelineView_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)
@@ -1561,6 +1582,13 @@ extension PreviewTests {
     @Test
     func timelineStartRoomTimelineView() async throws {
         for (index, preview) in TimelineStartRoomTimelineView_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    @Test
+    func timelineStickerSheet() async throws {
+        for (index, preview) in TimelineStickerSheet_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)
         }
     }

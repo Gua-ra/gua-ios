@@ -52,6 +52,7 @@ struct MessageComposerTextField: View {
 
 private struct UITextViewWrapper: UIViewRepresentable {
     @Environment(\.timelineContext) private var timelineContext
+    @Environment(\.supportsStickerGlyphs) private var supportsStickerGlyphs
     
     @Binding var text: NSAttributedString
     @Binding var presendCallback: (() -> Void)?
@@ -106,6 +107,10 @@ private struct UITextViewWrapper: UIViewRepresentable {
         // Prevent the textView from inheriting attributes from mention pills
         textView.typingAttributes = [.font: font,
                                      .foregroundColor: UIColor.compound.textPrimary]
+        
+        if let elementTextView = textView as? ElementTextView, elementTextView.acceptsStickerGlyphs != supportsStickerGlyphs {
+            elementTextView.acceptsStickerGlyphs = supportsStickerGlyphs
+        }
         
         if textView.attributedText != text {
             // Remember the selection if only the attributes have changed.
@@ -210,6 +215,12 @@ private class ElementTextView: UITextView, PillAttachmentViewProviderDelegate {
     
     weak var elementDelegate: ElementTextViewDelegate?
     
+    /// Read this instead of `supportsAdaptiveImageGlyph`, whose getter asks UIKit whether image paste works,
+    /// which calls `canPerformAction(paste:)` again and recurses from inside it.
+    var acceptsStickerGlyphs = false {
+        didSet { supportsAdaptiveImageGlyph = acceptsStickerGlyphs }
+    }
+    
     init(timelineContext: TimelineViewModel.Context?,
          presendCallback: Binding<(() -> Void)?>) {
         self.timelineContext = timelineContext
@@ -274,10 +285,19 @@ private class ElementTextView: UITextView, PillAttachmentViewProviderDelegate {
             return false
         }
         
+        if acceptsStickerGlyphs, UIPasteboard.general.contains(pasteboardTypes: StickerGlyphText.pasteboardTypes) {
+            return true
+        }
+        
         return !UIPasteboard.general.itemProviders.contains { !$0.isSupportedForPasteOrDrop }
     }
     
     override func paste(_ sender: Any?) {
+        if acceptsStickerGlyphs, let stickerProvider = UIPasteboard.general.stickerItemProvider {
+            elementDelegate?.textView(self, didReceivePasteWith: [stickerProvider])
+            return
+        }
+        
         // When pasting a link over a selection, wrap the selection in a markdown link.
         if selectedRange.length > 0, let link = UIPasteboard.general.pastedLink {
             let selectedText = (attributedText.string as NSString).substring(with: selectedRange)

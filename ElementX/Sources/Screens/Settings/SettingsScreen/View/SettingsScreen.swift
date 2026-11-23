@@ -208,7 +208,7 @@ struct SettingsScreen: View {
                         })
             }
             
-            ListRow(label: .default(title: UntranslatedL10n.commonMediaUploadQuality,
+            ListRow(label: .default(title: UntranslatedL10n.guaCommonMediaSettings,
                                     icon: \.image),
                     kind: .navigationLink {
                         context.send(viewAction: .mediaUploadQuality)

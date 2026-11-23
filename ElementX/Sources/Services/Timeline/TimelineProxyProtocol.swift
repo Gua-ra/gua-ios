@@ -125,6 +125,7 @@ protocol TimelineProxyProtocol: Sendable {
                    thumbnailURL: URL,
                    imageInfo: ImageInfo,
                    caption: String?,
+                   inReplyToEventID: String?,
                    requestHandle: @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineProxyError>
     
     func sendLocation(body: String,

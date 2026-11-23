@@ -364,6 +364,7 @@ class UserSessionStore: UserSessionStoreProtocol {
         let chatBackgroundService = ChatBackgroundService(roomStateClient: roomStateClient,
                                                           cache: chatBackgroundCache,
                                                           defaultThemeSetting: defaultChatThemeSetting)
+        let stickersAndGifs = StickersAndGifs(clientProxy: clientProxy, appSettings: userSettings.app, sessionDirectories: sessionDirectories)
         
         return UserSession(clientProxy: clientProxy,
                            userSettings: userSettings,
@@ -372,7 +373,8 @@ class UserSessionStore: UserSessionStoreProtocol {
                            voiceMessageMediaManager: voiceMessageMediaManager,
                            liveLocationService: liveLocationService,
                            notificationService: notificationService,
-                           chatBackgroundService: chatBackgroundService)
+                           chatBackgroundService: chatBackgroundService,
+                           stickersAndGifs: stickersAndGifs)
     }
     
     private func restorePreviousLogin(_ credentials: KeychainCredentials, userSettings: UserSettings) async -> Result<ClientProxyProtocol, UserSessionStoreError> {

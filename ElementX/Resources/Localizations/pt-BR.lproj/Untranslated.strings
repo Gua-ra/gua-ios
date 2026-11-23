@@ -88,7 +88,9 @@
 "action_manage_account_and_devices" = "Gerenciar conta e dispositivos";
 "action_delete_account" = "Excluir conta";
 "gua_action_delete" = "Excluir";
-"common_media_upload_quality" = "Qualidade de envio de mídia";
+"gua_common_media_settings" = "Configurações de mídia";
+"gua_settings_play_gifs_automatically" = "Reproduzir GIFs e figurinhas animadas automaticamente nas conversas";
+"gua_settings_play_gifs_automatically_description" = "GIFs abertos sempre são reproduzidos.";
 
 "common_moderation_and_safety" = "Moderação e segurança";
 "screen_moderation_and_safety_invites_heading" = "Convites";
@@ -222,3 +224,26 @@
 "gua_chat_theme_notice_changed" = "%1$@ alterou o tema da conversa";
 "gua_chat_theme_notice_removed_by_you" = "Você removeu o tema da conversa";
 "gua_chat_theme_notice_removed" = "%1$@ removeu o tema da conversa";
+
+"gua_sticker_send_error" = "Não foi possível enviar a figurinha";
+"gua_sticker_limit_error" = "Você pode ter até %1$d figurinhas";
+"gua_gifs_unavailable" = "Os GIFs não estão disponíveis nesta versão";
+"gua_gifs_load_error" = "Não foi possível carregar os GIFs";
+"gua_expression_open_a11y" = "Figurinhas e GIFs";
+"gua_expression_keyboard_a11y" = "Teclado";
+"gua_expression_stickers_tab" = "Figurinhas";
+"gua_expression_recent" = "Recentes";
+"gua_expression_favourites" = "Favoritos";
+"gua_stickers_mine" = "Minhas figurinhas";
+"gua_gifs_trending" = "Em alta";
+"gua_sticker_create" = "Criar figurinha";
+"gua_stickers_search_placeholder" = "Buscar figurinhas";
+"gua_sticker_add_favourite" = "Adicionar aos favoritos";
+"gua_sticker_remove_favourite" = "Remover dos favoritos";
+"gua_sticker_remove_recent" = "Remover dos recentes";
+"gua_sticker_save" = "Salvar nas minhas figurinhas";
+"gua_sticker_delete_title" = "Excluir esta figurinha?";
+"gua_sticker_from_pack" = "De %1$@";
+"gua_sticker_editor_cut_out" = "Recortar";
+"gua_sticker_editor_text_placeholder" = "Adicionar texto";
+"gua_sticker_editor_note" = "As figurinhas ficam guardadas nos servidores do Gua sem criptografia de ponta a ponta, para que você possa usá-las em qualquer conversa.";

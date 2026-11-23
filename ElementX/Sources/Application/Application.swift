@@ -91,6 +91,7 @@ struct Application: App {
             if let type {
                 appCoordinator.windowManager.windowForType(type)
                     .environment(\.openURL, openURLAction(appCoordinator: appCoordinator, windowType: type))
+                    .playsAnimatedImages(following: appCoordinator.guaAppSettings) // GUA FORK
             }
         }
         .defaultSize(width: ProcessInfo.processInfo.isiOSAppOnMac ? 600 : 400, height: 800)

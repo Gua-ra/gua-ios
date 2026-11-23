@@ -17,6 +17,7 @@ struct UserSessionMockConfiguration {
     var liveLocationService: LiveLocationServiceProtocol = LiveLocationServiceMock(.init())
     var notificationService: NotificationServiceProtocol = NotificationServiceMock(.init())
     var chatBackgroundService: ChatBackgroundServiceProtocol = ChatBackgroundServiceMock(.init())
+    var stickersAndGifs: StickersAndGifs?
 }
 
 @MainActor extension UserSessionMock {
@@ -37,5 +38,6 @@ struct UserSessionMockConfiguration {
         
         liveLocationService = configuration.liveLocationService
         notificationService = configuration.notificationService
+        stickersAndGifs = configuration.stickersAndGifs ?? .mock(appSettings: configuration.userSettings.app)
     }
 }
