@@ -258,6 +258,33 @@ final class ExpressionPanelViewModelTests {
     }
     
     @Test
+    func retryingAFailedStickerDoesNotPulseTheWallpaperAgain() async throws {
+        stickerSender.sendRelationReturnValue = .failure(.sendFailed(.eventNotFound))
+        makeViewModel()
+        
+        viewModel.context.send(viewAction: .sendSticker(StickerPanelItem(section: .recent, image: sticker("cat"), shortcode: nil, isFavourite: false)))
+        try await waitUntil { self.viewModel.state.bindings.alertInfo != nil }
+        let firstPulse = try #require(ChatWallpaperSendPulse.forRoom(roomID).pulseStart)
+        
+        stickerSender.sendRelationReturnValue = .success("$sticker")
+        viewModel.state.bindings.alertInfo?.secondaryButton?.action?()
+        try await waitUntil { self.stickerSender.sendRelationCallsCount == 2 }
+        
+        #expect(ChatWallpaperSendPulse.forRoom(roomID).pulseStart == firstPulse)
+    }
+    
+    @Test
+    func aGifSentFromThePanelLeavesThePulseToItsLocalEcho() async throws {
+        makeViewModel()
+        
+        viewModel.context.send(viewAction: .openGif(gif("hello")))
+        viewModel.context.send(viewAction: .sendGif)
+        try await waitUntil { self.gifSender.sendCaptionInReplyToEventIDCalled }
+        
+        #expect(ChatWallpaperSendPulse.forRoom(roomID).pulseStart == nil)
+    }
+    
+    @Test
     func failedStickerOffersARetry() async throws {
         stickerSender.sendRelationReturnValue = .failure(.sendFailed(.eventNotFound))
         makeViewModel()
