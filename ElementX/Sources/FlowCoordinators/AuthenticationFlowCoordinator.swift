@@ -494,6 +494,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     
     /// GUA FORK: uses the reserved `passkey` login hint because the sign-in page auto-submits a phone hint before
     /// offering the passkey. Signs in to the default account provider; accounts elsewhere must sign in by number.
+    /// An identity-service without the passkey intent shows its page with no phone hint, so no server-version check is needed.
     private func handlePasskeySignIn(coordinator: PhoneEntryScreenCoordinator) {
         guard !isHandlingPhoneSubmission, stateMachine.state == .phoneEntryScreen else { return }
         isHandlingPhoneSubmission = true

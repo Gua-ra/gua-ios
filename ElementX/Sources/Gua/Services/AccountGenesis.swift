@@ -457,6 +457,7 @@ enum Ed25519PublicKeyValidator {
             // Fold the high half back in: 2^256 == 38 (mod p).
             var accumulator = Field(limbs: Array(product[0..<4]))
             var overflowWords = Array(product[4..<8])
+            // Each fold shrinks the overflow by orders of magnitude, so the loop exits early; four rounds is a safety bound.
             for _ in 0..<4 {
                 if overflowWords.allSatisfy({ $0 == 0 }) { break }
                 var scaled = [UInt64](repeating: 0, count: 5)
