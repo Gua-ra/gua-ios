@@ -194,7 +194,7 @@ jobs:
       # So a labelled PR can be told which build number its testers should install.
       pull-requests: write
     outputs:
-      build_number: ${{ steps.upload.outputs.build_number }}
+      tag: ${{ steps.upload.outputs.tag }}
       sha: ${{ steps.upload.outputs.sha }}
     # Derived from `target` itself rather than a separate gate output, so the two can never
     # disagree: anything that is not an explicit QA build routes to `production` and waits for
@@ -704,7 +704,7 @@ jobs:
             2>&1 | tee altool-upload.log
           if grep -qiE 'No errors(, [0-9]+ warnings?)?,? uploading' altool-upload.log; then
             echo "Upload succeeded."
-            echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+            echo "tag=testflight/$([ "$TARGET_ENV" = dev ] && echo qa || echo prod)/$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
             echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           else
             echo "::error::altool upload failed (see log above) — nothing was delivered to TestFlight."
@@ -788,15 +788,15 @@ jobs:
     name: Tag the uploaded commit
     needs: testflight
     # Also after a later step fails: an uploaded build still needs its source tag.
-    if: always() && needs.testflight.outputs.build_number != ''
+    if: always() && needs.testflight.outputs.tag != ''
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Create testflight/<build number>
+      - name: Create testflight/<app>/<build number>
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: testflight/${{ needs.testflight.outputs.build_number }}
+          TAG: ${{ needs.testflight.outputs.tag }}
           SHA: ${{ needs.testflight.outputs.sha }}
         # A re-run finds the tag already pointing at the same commit.
         run: |
