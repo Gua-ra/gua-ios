@@ -12,7 +12,7 @@ enum ResolverVerificationCrypto {
     static let spkiPrefix: [UInt8] = [0x30, 0x2A, 0x30, 0x05, 0x06, 0x03, 0x2B, 0x65, 0x70, 0x03, 0x21, 0x00]
 
     static func rawPublicKey(spkiBase64: String) -> [UInt8]? {
-        guard let spki = Data(base64Encoded: spkiBase64), spki.count == 44 else { return nil }
+        guard let spki = decodeBase64(spkiBase64), spki.count == 44 else { return nil }
         let bytes = [UInt8](spki)
         guard Array(bytes[0..<12]) == spkiPrefix else { return nil }
         let raw = Array(bytes[12...])
@@ -26,8 +26,14 @@ enum ResolverVerificationCrypto {
     }
 
     static func verify(signatureBase64: String, over message: [UInt8], key: Curve25519.Signing.PublicKey) -> Bool {
-        guard let signature = Data(base64Encoded: signatureBase64), signature.count == 64 else { return false }
+        guard let signature = decodeBase64(signatureBase64), signature.count == 64 else { return false }
         return key.isValidSignature(signature, for: message)
+    }
+
+    /// Standard padded base64 with zero trailing bits, the one spelling every Gua verifier reads.
+    static func decodeBase64(_ text: String) -> Data? {
+        guard let data = Data(base64Encoded: text), data.base64EncodedString() == text else { return nil }
+        return data
     }
 
     static func sha256(_ bytes: [UInt8]) -> [UInt8] {

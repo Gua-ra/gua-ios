@@ -413,17 +413,24 @@ enum GenesisProofs {
 
 // MARK: - Ed25519 point validation
 
-/// Ed25519 public-key point decoding, which ADM-008 decision 1 requires a decoder to perform.
+/// Canonical Ed25519 public-key decoding (RFC 8032 section 5.1.3) that also refuses small-order points,
+/// under which signatures can be forged. CryptoKit accepts any 32 bytes and fails only at verification.
 ///
-/// CryptoKit cannot stand in for this: `Curve25519.Signing.PublicKey(rawRepresentation:)` accepts any
-/// 32 bytes, including a `y` larger than the field prime and a `y` that is on no curve point, and only
-/// fails later at verification time. The golden vectors require both to be refused at decode, so the
-/// decompression is done here.
-///
-/// Arithmetic is mod `p = 2^255 - 19` over four 64-bit limbs, little endian. It runs twice per genesis
-/// decode, so it is written for clarity rather than speed, and it is never given secret input: these
-/// are public keys.
+/// Arithmetic is mod `p = 2^255 - 19` over four 64-bit limbs, little endian, on public input only.
 enum Ed25519PublicKeyValidator {
+    /// The y-coordinates of the eight points of order 1, 2, 4 and 8, little endian, sign bit clear.
+    private static let smallOrderY: Set<[UInt8]> = Set([
+        "0100000000000000000000000000000000000000000000000000000000000000",
+        "ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+        "0000000000000000000000000000000000000000000000000000000000000000",
+        "26e8958fc2b227b045c3f489f2ef98f0d5dfac05d3c63339b13802886d53fc05",
+        "c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac037a"
+    ].map { hex in
+        stride(from: 0, to: hex.count, by: 2).map { offset in
+            UInt8(hex.dropFirst(offset).prefix(2), radix: 16) ?? 0
+        }
+    })
+
     static func isValid(_ raw: [UInt8]) -> Bool {
         guard raw.count == 32 else { return false }
         var yBytes = raw
@@ -432,6 +439,7 @@ enum Ed25519PublicKeyValidator {
         let y = Field(yBytes)
         // A y at or above the field prime is a second spelling of a smaller y.
         guard Field.compare(y, Field.prime) < 0 else { return false }
+        guard !smallOrderY.contains(yBytes) else { return false }
 
         let yy = Field.multiply(y, y)
         let u = Field.subtract(yy, Field.one)
