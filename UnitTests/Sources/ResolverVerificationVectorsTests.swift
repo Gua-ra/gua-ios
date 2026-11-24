@@ -8,7 +8,7 @@
 @testable import ElementX
 import XCTest
 
-/// The resolver's golden vectors, byte-identical copies of gua-resolver's `docs/specs` files.
+/// The vector files are byte-identical copies of gua-resolver's `docs/specs`.
 final class ResolverVerificationVectorsTests: XCTestCase {
     private var vectors: JSONObject!
     private var lpVectors: JSONObject!
@@ -216,7 +216,7 @@ final class ResolverVerificationVectorsTests: XCTestCase {
                 XCTAssertGreaterThanOrEqual(count.valid, policyVector.int("threshold"), name)
                 policy = VerifiedRoutingPolicy(bundle: bundle, delegateVerifiedZones: RoutingPolicyVerifier.delegateVerifiedZones(of: bundle))
             }
-            // Affiliations and attributes stated without proof are left out, as the server leaves them out.
+            // Unproven affiliations and attributes are dropped, as on the server.
             let contextJSON = vector.object("context")
             let context = PlacementContext(phone: contextJSON.stringIfPresent("phone"),
                                            country: contextJSON.stringIfPresent("country"),

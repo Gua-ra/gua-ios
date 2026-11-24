@@ -7,7 +7,6 @@
 
 import Foundation
 
-/// The `gua-lp.v1` encoding. It has no delimiters, so no value can be confused with framing.
 struct GuaLPEncoder {
     enum EncodingError: Error, Equatable {
         case duplicateSetElement
@@ -63,8 +62,7 @@ extension GuaLPEncoder {
     }
 }
 
-/// The `gua-member-entry.v1` bytes a homeserver signs about itself, in the resolver's field order. The authority
-/// attributes `weight`, `acceptsNew`, `claims`, `admittedAt` and `status` are not covered.
+/// Resolver field order. The authority-set `weight`, `acceptsNew`, `claims`, `admittedAt` and `status` are not covered.
 enum CanonicalMemberEntry {
     static let schema = "gua-member-entry.v1"
     static let alg = "Ed25519"

@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// An instant as the resolver writes it, with the fraction truncated to milliseconds, never rounded.
+/// Truncates the fraction to milliseconds, as the resolver does.
 struct ResolverInstant: Equatable {
     let epochMilliseconds: Int64
     let hasSubMillisecondDigits: Bool

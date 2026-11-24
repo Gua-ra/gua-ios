@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// A public caller has no verified claims, so affiliations and attributes are left out, as the server does.
+/// Affiliations and attributes stay empty, as on the server for a caller without verified claims.
 struct PlacementContext: Equatable {
     var phone: String?
     var country: String?
@@ -102,7 +102,7 @@ enum PlacementReproducer {
         return best.map { PlacementDecision(homeserver: $0.homeserver, rule: .rosterClaim(priority: $0.priority)) }
     }
 
-    /// Affiliation and attribute predicates need verified claims, so a claim that names either never matches.
+    /// Affiliation and attribute predicates need verified claims.
     private static func matchesLocally(_ claim: RosterClaimPredicate, context: PlacementContext) -> Bool {
         if claim.affiliation != nil || claim.attributeMatch?.isEmpty == false { return false }
         if let country = claim.country, country.lowercased() != context.country?.lowercased() { return false }
@@ -117,7 +117,6 @@ enum PlacementReproducer {
             .sorted { JavaStringOrder.compare($0.id, $1.id) < 0 }
     }
 
-    /// Summed in Int64, so a total of Int32 weights never overflows.
     static func totalWeight(of candidates: [RosterHomeserver]) -> Int64 {
         candidates.reduce(0) { $0 + Int64(max(0, $1.weight)) }
     }

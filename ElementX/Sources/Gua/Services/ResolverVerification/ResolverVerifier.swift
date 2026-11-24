@@ -10,7 +10,7 @@ import Foundation
 import os
 
 protocol ResolverVerifying: Sendable {
-    /// Returns at once; the outcome is only logged and never changes what the app connects to.
+    /// Returns immediately. Report-only, without affecting which homeserver the app uses.
     func startVerification(of resolution: HomeserverResolution, phoneNumber: String)
 }
 
@@ -280,7 +280,7 @@ final class ResolverVerifier: ResolverVerifying {
     }
 
     static func logOutcome(for served: ServedPolicy?, checkpoint: RosterLogCheckpoint, events: [TransparencyLogEvent]) -> Report.Policy {
-        // Only the leaves under the signed checkpoint are authenticated, so only they are hashed.
+        // Only leaves under the signed checkpoint are authenticated.
         let signed = events.prefix(checkpoint.size)
         guard checkpoint.size <= events.count, MerkleTree.root(leafHashes: signed.map(\.leafHash)) == checkpoint.merkleRoot else {
             return .invalid(.logMismatch)
@@ -315,7 +315,7 @@ final class ResolverVerifier: ResolverVerifying {
             return .indeterminate(.unsignedRule)
         }
         if let decision, decision.homeserver.hasEndpoint(of: resolution.homeserver) { return .match }
-        // The resolver may have decided against another roster, so only the same version makes a difference a misroute.
+        // The resolver may have used another roster version; only a same-version difference is a misroute.
         return resolution.rosterVersion == roster.version ? .mismatch : .indeterminate(.unattributed)
     }
 
@@ -324,7 +324,7 @@ final class ResolverVerifier: ResolverVerifying {
     }
 }
 
-/// Runs against one base URL take turns across every verifier, so no run moves the pin between another's read and write.
+/// Serializes runs per base URL across all verifiers, so no run moves the checkpoint between another's read and write.
 private actor ResolverRunQueue {
     static let shared = ResolverRunQueue()
 

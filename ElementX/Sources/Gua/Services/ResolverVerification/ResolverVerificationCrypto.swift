@@ -30,7 +30,7 @@ enum ResolverVerificationCrypto {
         return key.isValidSignature(signature, for: message)
     }
 
-    /// Standard padded base64 with zero trailing bits, the one spelling every Gua verifier reads.
+    /// Canonical padded base64 only, with zero trailing bits, as every Gua verifier requires.
     static func decodeBase64(_ text: String) -> Data? {
         guard let data = Data(base64Encoded: text), data.base64EncodedString() == text else { return nil }
         return data

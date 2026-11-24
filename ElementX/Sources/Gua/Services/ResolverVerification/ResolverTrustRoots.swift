@@ -7,13 +7,13 @@
 
 import Foundation
 
-/// An Ed25519 key whose `publicKey` is a base64 X.509 SubjectPublicKeyInfo.
+/// `publicKey` is a base64 Ed25519 X.509 SubjectPublicKeyInfo.
 struct ResolverTrustedKey: Equatable {
     let id: String
     let publicKey: String
 }
 
-/// Policy keys never fall back to the authority keys, so an empty policy list verifies no policy.
+/// No fallback from policy keys to authority keys: an empty `policyKeys` verifies no policy.
 struct ResolverTrustRoots: Equatable {
     let authorityKeys: [ResolverTrustedKey]
     let authorityThreshold: Int
@@ -22,7 +22,7 @@ struct ResolverTrustRoots: Equatable {
 
     static let empty = ResolverTrustRoots(authorityKeys: [], authorityThreshold: 1, policyKeys: [], policyThreshold: 1)
 
-    /// Production lists no policy keys until governance keys exist, so a policy served there is `no_policy_keys`.
+    /// No policy keys until governance keys exist; production policies report `no_policy_keys`.
     static let production = ResolverTrustRoots(authorityKeys: [ResolverTrustedKey(id: "gua-authority-prod",
                                                                                   publicKey: "MCowBQYDK2VwAyEAmrJntRXbxGkoPe92j1epyM3RBXcx4nmr2wIzL6eb0a0=")],
                                                authorityThreshold: 1, policyKeys: [], policyThreshold: 1)
@@ -35,7 +35,7 @@ struct ResolverTrustRoots: Equatable {
         self.policyThreshold = max(1, policyThreshold)
     }
 
-    /// Android's token format; a value with any token that does not read is refused whole.
+    /// Android's token format. Any unreadable token makes the whole value `.empty`.
     init(developmentSecret value: String?) {
         var authorityKeys = [ResolverTrustedKey]()
         var policyKeys = [ResolverTrustedKey]()

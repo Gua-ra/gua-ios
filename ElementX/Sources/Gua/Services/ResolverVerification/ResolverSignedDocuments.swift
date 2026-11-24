@@ -7,8 +7,8 @@
 
 import Foundation
 
-// A `member` block is read strictly, because its signature must cover every field the reader uses; the rest is
-// read leniently. Enum-valued fields are kept as served, so the signature over them decides an unknown value.
+// `member` decodes strictly because its signature must cover every field read. Enum fields stay raw strings so an
+// unknown value reaches the signature check instead of failing decoding.
 
 struct SignedRosterDocument: Decodable {
     let version: Int64
@@ -214,7 +214,7 @@ private enum StrictKeys {
 }
 
 private extension KeyedDecodingContainer {
-    /// Unlike `decodeIfPresent`, a present null is refused.
+    /// Refuses a present null.
     func decodeStrictly<Value: Decodable>(_ type: Value.Type, forKey key: Key) throws -> Value? {
         try contains(key) ? decode(type, forKey: key) : nil
     }

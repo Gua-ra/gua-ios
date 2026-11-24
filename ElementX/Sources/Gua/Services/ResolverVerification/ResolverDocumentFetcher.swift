@@ -40,7 +40,7 @@ struct ResolverDocumentFetcher {
         }
     }
 
-    /// Counts brackets outside strings without recursing, so a deep document is refused before any parser walks it.
+    /// Refuses deep nesting before JSONDecoder can recurse into it.
     static func isNestedWithinLimit(_ body: [UInt8]) -> Bool {
         var depth = 0
         var inString = false

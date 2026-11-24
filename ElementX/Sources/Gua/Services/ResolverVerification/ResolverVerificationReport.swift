@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// The raw values are the report line's codes, the same on every Gua app.
+/// Raw values are the report codes shared by every Gua app.
 enum ResolverVerificationReason: String, Error {
     case noTrustRoots = "no_trust_roots"
     case rosterUnavailable = "roster_unavailable"
@@ -45,7 +45,7 @@ enum ResolverVerificationReason: String, Error {
     case unattributed
 }
 
-/// The report is logged, so it never holds the phone, the answer or a hostname.
+/// Logged: never add the phone number, the resolver answer or a hostname.
 struct ResolverVerificationReport: Equatable {
     typealias Reason = ResolverVerificationReason
 

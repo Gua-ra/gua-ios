@@ -13,8 +13,7 @@ enum RosterForm: String {
     case legacy
 }
 
-/// The `gua-roster.v1` bytes the authority signs, byte for byte as the resolver's `CanonicalRoster`.
-/// Null and empty collapse in this form, so it is never reused for a new signed object.
+/// Byte-for-byte port of the resolver's `CanonicalRoster`. Null and empty collapse; do not reuse for new signed objects.
 enum CanonicalRoster {
     private static let separator = "\u{1F}"
 

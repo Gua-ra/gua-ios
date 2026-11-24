@@ -10,13 +10,13 @@ import CryptoKit
 @testable import ElementX
 import XCTest
 
-/// Rosters the tests change are signed again with the RFC 8032 test keys, so their signatures really verify.
+/// Modified rosters are re-signed with the RFC 8032 test keys so their signatures verify.
 final class ResolverVerifierTests: XCTestCase {
     private static let phone = "+5511987654321"
 
     private var vectors: [String: Any]!
     private var checkpoints: InMemoryCheckpointStore!
-    /// Unique per test, because runs against one base URL take turns across the whole process.
+    /// Unique per test: runs are serialized per base URL across the process.
     private var baseURL: URL!
     /// A moment inside every validity window the vectors sign.
     private var now: Int64 = 0
@@ -796,7 +796,7 @@ final class ResolverVerifierTests: XCTestCase {
         try await signInStarted.fulfill()
 
         XCTAssertNil(verifier.lastReport, "sign-in reached the web session while the roster request was still hanging")
-        // The detached fetch starts on its own schedule, so wait for it before reading what was requested.
+        // The detached fetch starts asynchronously; wait for it before reading the requested paths.
         await fulfillment(of: [rosterRequested], timeout: 5)
         XCTAssertEqual(VerifierStub.requestedPaths, ["/roster"])
     }

@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// A stored checkpoint moves forward only after a consistency proof verified, so a rewritten history is caught.
+/// Store a checkpoint only after its consistency proof verifies, or a rewritten log goes undetected.
 protocol ResolverCheckpointStoring: Sendable {
     func checkpoint(for baseURL: URL) throws -> RosterLogCheckpoint?
     func store(_ checkpoint: RosterLogCheckpoint, for baseURL: URL) throws

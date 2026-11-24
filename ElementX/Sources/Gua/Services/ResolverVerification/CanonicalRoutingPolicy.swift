@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// Ports of the resolver's `CanonicalRoutingPolicy` and `CanonicalDelegatedRules`.
+/// Must match the resolver's `CanonicalRoutingPolicy` and `CanonicalDelegatedRules` byte for byte.
 enum CanonicalRoutingPolicy {
     private static let separator = "\u{1F}"
 

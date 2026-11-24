@@ -15,7 +15,7 @@ enum RoutingPolicyVerifier {
                                        over: canonical, keys: keys)
     }
 
-    /// Each `delegatePublicKey` is trusted only through the bundle's authority signatures, so those must verify first.
+    /// Call only after the bundle's authority signatures verify; they are the only trust in each `delegatePublicKey`.
     static func delegateVerifiedZones(of bundle: RoutingPolicyBundle) -> Set<String> {
         var verified = Set<String>()
         for zone in bundle.delegationZones {

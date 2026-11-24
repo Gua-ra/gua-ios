@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// A port of the resolver's `MemberEntryVerifier` without key continuity, since the app keeps no earlier entry.
+/// Omits the resolver's key-continuity check: the app keeps no earlier entry.
 enum MemberEntryVerifier {
     static let maxLifetimeMilliseconds: Int64 = 400 * 86_400_000
 
