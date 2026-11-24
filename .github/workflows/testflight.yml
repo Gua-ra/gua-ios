@@ -193,6 +193,9 @@ jobs:
       contents: read
       # So a labelled PR can be told which build number its testers should install.
       pull-requests: write
+    outputs:
+      build_number: ${{ steps.upload.outputs.build_number }}
+      sha: ${{ steps.upload.outputs.sha }}
     # Derived from `target` itself rather than a separate gate output, so the two can never
     # disagree: anything that is not an explicit QA build routes to `production` and waits for
     # an approver. A gate bug therefore fails towards the gate, never around it.
@@ -650,6 +653,7 @@ jobs:
           fi
 
       - name: Upload to TestFlight
+        id: upload
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -700,6 +704,8 @@ jobs:
             2>&1 | tee altool-upload.log
           if grep -qiE 'No errors(, [0-9]+ warnings?)?,? uploading' altool-upload.log; then
             echo "Upload succeeded."
+            echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           else
             echo "::error::altool upload failed (see log above) — nothing was delivered to TestFlight."
             exit 1
@@ -777,3 +783,22 @@ jobs:
             security delete-keychain "$GUA_SIGNING_KEYCHAIN" 2>/dev/null || true
           fi
           rm -f "$RUNNER_TEMP/dist.p12" || true
+
+  tag-source:
+    name: Tag the uploaded commit
+    needs: testflight
+    # Also after a later step fails: an uploaded build still needs its source tag.
+    if: always() && needs.testflight.outputs.build_number != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create testflight/<build number>
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: testflight/${{ needs.testflight.outputs.build_number }}
+          SHA: ${{ needs.testflight.outputs.sha }}
+        # A re-run finds the tag already pointing at the same commit.
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$TAG" -f sha="$SHA" ||
+            gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" --jq .object.sha | grep -qx "$SHA"
