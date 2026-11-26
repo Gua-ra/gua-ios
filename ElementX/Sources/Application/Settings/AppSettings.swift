@@ -72,6 +72,7 @@ final class AppSettings {
         case latestEventSorterEnabled
         case legacyAuthEnabled
         case guaAccountGenesisEnabled
+        case guaResolverVerificationEnabled
         
         // Doug's tweaks 🔧
         case hideUnreadMessagesBadge
@@ -486,6 +487,10 @@ final class AppSettings {
     /// fails to attach fails the signup.
     @UserPreference(key: UserDefaultsKeys.guaAccountGenesisEnabled, defaultValue: false, storageType: .userDefaults(store))
     var guaAccountGenesisEnabled
+
+    /// GUA FORK: report-only resolver verification.
+    @UserPreference(key: UserDefaultsKeys.guaResolverVerificationEnabled, defaultValue: true, storageType: .userDefaults(store))
+    var guaResolverVerificationEnabled
 
     @UserPreference(key: UserDefaultsKeys.developerOptionsEnabled, defaultValue: isDevelopmentBuild, storageType: .userDefaults(store))
     var developerOptionsEnabled
