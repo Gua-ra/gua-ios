@@ -645,7 +645,7 @@ jobs:
             --apiKey "$ASC_KEY_ID" \
             --apiIssuer "$ASC_ISSUER_ID" \
             2>&1 | tee altool-validate.log
-          if grep -qi 'No errors validating' altool-validate.log; then
+          if grep -qiE 'No errors(, [0-9]+ warnings?)?,? validating' altool-validate.log; then
             echo "Validation succeeded."
           else
             echo "::error::altool validation failed (see log above)."
@@ -701,7 +701,7 @@ jobs:
             --bundle-version "$BUILD_NUMBER" \
             --bundle-short-version-string "$MARKETING_VERSION" \
             2>&1 | tee altool-upload.log
-          if grep -qi 'No errors uploading' altool-upload.log; then
+          if grep -qiE 'No errors(, [0-9]+ warnings?)?,? uploading' altool-upload.log; then
             echo "Upload succeeded."
           else
             echo "::error::altool upload failed (see log above) — nothing was delivered to TestFlight."
