@@ -2066,6 +2066,235 @@ class BugReportServiceMock: BugReportServiceProtocol, @unchecked Sendable {
         }
     }
 }
+class ChatBackgroundServiceMock: ChatBackgroundServiceProtocol, @unchecked Sendable {
+
+    //MARK: - backgroundPublisher
+
+    var backgroundPublisherRoomIDUnderlyingCallsCount = 0
+    var backgroundPublisherRoomIDCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return backgroundPublisherRoomIDUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = backgroundPublisherRoomIDUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                backgroundPublisherRoomIDUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    backgroundPublisherRoomIDUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var backgroundPublisherRoomIDCalled: Bool {
+        return backgroundPublisherRoomIDCallsCount > 0
+    }
+    var backgroundPublisherRoomIDReceivedRoomID: String?
+    var backgroundPublisherRoomIDReceivedInvocations: [String] = []
+
+    var backgroundPublisherRoomIDUnderlyingReturnValue: CurrentValuePublisher<ChatBackground, Never>!
+    var backgroundPublisherRoomIDReturnValue: CurrentValuePublisher<ChatBackground, Never>! {
+        get {
+            if Thread.isMainThread {
+                return backgroundPublisherRoomIDUnderlyingReturnValue
+            } else {
+                var returnValue: CurrentValuePublisher<ChatBackground, Never>? = nil
+                DispatchQueue.main.sync {
+                    returnValue = backgroundPublisherRoomIDUnderlyingReturnValue
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                backgroundPublisherRoomIDUnderlyingReturnValue = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    backgroundPublisherRoomIDUnderlyingReturnValue = newValue
+                }
+            }
+        }
+    }
+    var backgroundPublisherRoomIDClosure: ((String) -> CurrentValuePublisher<ChatBackground, Never>)?
+
+    @MainActor
+    func backgroundPublisher(roomID: String) -> CurrentValuePublisher<ChatBackground, Never> {
+        backgroundPublisherRoomIDCallsCount += 1
+        backgroundPublisherRoomIDReceivedRoomID = roomID
+        DispatchQueue.main.async {
+            self.backgroundPublisherRoomIDReceivedInvocations.append(roomID)
+        }
+        if let backgroundPublisherRoomIDClosure = backgroundPublisherRoomIDClosure {
+            return backgroundPublisherRoomIDClosure(roomID)
+        } else {
+            return backgroundPublisherRoomIDReturnValue
+        }
+    }
+    //MARK: - refresh
+
+    var refreshRoomIDUnderlyingCallsCount = 0
+    var refreshRoomIDCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return refreshRoomIDUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = refreshRoomIDUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                refreshRoomIDUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    refreshRoomIDUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var refreshRoomIDCalled: Bool {
+        return refreshRoomIDCallsCount > 0
+    }
+    var refreshRoomIDReceivedRoomID: String?
+    var refreshRoomIDReceivedInvocations: [String] = []
+    var refreshRoomIDClosure: ((String) async -> Void)?
+
+    @MainActor
+    func refresh(roomID: String) async {
+        refreshRoomIDCallsCount += 1
+        refreshRoomIDReceivedRoomID = roomID
+        DispatchQueue.main.async {
+            self.refreshRoomIDReceivedInvocations.append(roomID)
+        }
+        await refreshRoomIDClosure?(roomID)
+    }
+    //MARK: - handleTimelineEvent
+
+    var handleTimelineEventRoomIDEventIDTimestampContentJSONUnderlyingCallsCount = 0
+    var handleTimelineEventRoomIDEventIDTimestampContentJSONCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return handleTimelineEventRoomIDEventIDTimestampContentJSONUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = handleTimelineEventRoomIDEventIDTimestampContentJSONUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                handleTimelineEventRoomIDEventIDTimestampContentJSONUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    handleTimelineEventRoomIDEventIDTimestampContentJSONUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var handleTimelineEventRoomIDEventIDTimestampContentJSONCalled: Bool {
+        return handleTimelineEventRoomIDEventIDTimestampContentJSONCallsCount > 0
+    }
+    var handleTimelineEventRoomIDEventIDTimestampContentJSONReceivedArguments: (roomID: String, eventID: String, timestamp: UInt64, contentJSON: String)?
+    var handleTimelineEventRoomIDEventIDTimestampContentJSONReceivedInvocations: [(roomID: String, eventID: String, timestamp: UInt64, contentJSON: String)] = []
+    var handleTimelineEventRoomIDEventIDTimestampContentJSONClosure: ((String, String, UInt64, String) -> Void)?
+
+    @MainActor
+    func handleTimelineEvent(roomID: String, eventID: String, timestamp: UInt64, contentJSON: String) {
+        handleTimelineEventRoomIDEventIDTimestampContentJSONCallsCount += 1
+        handleTimelineEventRoomIDEventIDTimestampContentJSONReceivedArguments = (roomID: roomID, eventID: eventID, timestamp: timestamp, contentJSON: contentJSON)
+        DispatchQueue.main.async {
+            self.handleTimelineEventRoomIDEventIDTimestampContentJSONReceivedInvocations.append((roomID: roomID, eventID: eventID, timestamp: timestamp, contentJSON: contentJSON))
+        }
+        handleTimelineEventRoomIDEventIDTimestampContentJSONClosure?(roomID, eventID, timestamp, contentJSON)
+    }
+    //MARK: - set
+
+    var setRoomProxyUnderlyingCallsCount = 0
+    var setRoomProxyCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return setRoomProxyUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = setRoomProxyUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                setRoomProxyUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    setRoomProxyUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var setRoomProxyCalled: Bool {
+        return setRoomProxyCallsCount > 0
+    }
+    var setRoomProxyReceivedArguments: (background: ChatBackground, roomProxy: JoinedRoomProxyProtocol)?
+    var setRoomProxyReceivedInvocations: [(background: ChatBackground, roomProxy: JoinedRoomProxyProtocol)] = []
+
+    var setRoomProxyUnderlyingReturnValue: Result<Void, RoomProxyError>!
+    var setRoomProxyReturnValue: Result<Void, RoomProxyError>! {
+        get {
+            if Thread.isMainThread {
+                return setRoomProxyUnderlyingReturnValue
+            } else {
+                var returnValue: Result<Void, RoomProxyError>? = nil
+                DispatchQueue.main.sync {
+                    returnValue = setRoomProxyUnderlyingReturnValue
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                setRoomProxyUnderlyingReturnValue = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    setRoomProxyUnderlyingReturnValue = newValue
+                }
+            }
+        }
+    }
+    var setRoomProxyClosure: ((ChatBackground, JoinedRoomProxyProtocol) async -> Result<Void, RoomProxyError>)?
+
+    @MainActor
+    func set(_ background: ChatBackground, roomProxy: JoinedRoomProxyProtocol) async -> Result<Void, RoomProxyError> {
+        setRoomProxyCallsCount += 1
+        setRoomProxyReceivedArguments = (background: background, roomProxy: roomProxy)
+        DispatchQueue.main.async {
+            self.setRoomProxyReceivedInvocations.append((background: background, roomProxy: roomProxy))
+        }
+        if let setRoomProxyClosure = setRoomProxyClosure {
+            return await setRoomProxyClosure(background, roomProxy)
+        } else {
+            return setRoomProxyReturnValue
+        }
+    }
+}
 class ClientProxyMock: ClientProxyProtocol, @unchecked Sendable {
     var actionsPublisher: AnyPublisher<ClientProxyAction, Never> {
         get { return underlyingActionsPublisher }
@@ -3225,6 +3454,76 @@ class ClientProxyMock: ClientProxyProtocol, @unchecked Sendable {
             return await uploadMediaClosure(media)
         } else {
             return uploadMediaReturnValue
+        }
+    }
+    //MARK: - uploadMedia
+
+    var uploadMediaDataMimeTypeUnderlyingCallsCount = 0
+    var uploadMediaDataMimeTypeCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return uploadMediaDataMimeTypeUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = uploadMediaDataMimeTypeUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                uploadMediaDataMimeTypeUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    uploadMediaDataMimeTypeUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var uploadMediaDataMimeTypeCalled: Bool {
+        return uploadMediaDataMimeTypeCallsCount > 0
+    }
+    var uploadMediaDataMimeTypeReceivedArguments: (data: Data, mimeType: String)?
+    var uploadMediaDataMimeTypeReceivedInvocations: [(data: Data, mimeType: String)] = []
+
+    var uploadMediaDataMimeTypeUnderlyingReturnValue: Result<String, ClientProxyError>!
+    var uploadMediaDataMimeTypeReturnValue: Result<String, ClientProxyError>! {
+        get {
+            if Thread.isMainThread {
+                return uploadMediaDataMimeTypeUnderlyingReturnValue
+            } else {
+                var returnValue: Result<String, ClientProxyError>? = nil
+                DispatchQueue.main.sync {
+                    returnValue = uploadMediaDataMimeTypeUnderlyingReturnValue
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                uploadMediaDataMimeTypeUnderlyingReturnValue = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    uploadMediaDataMimeTypeUnderlyingReturnValue = newValue
+                }
+            }
+        }
+    }
+    var uploadMediaDataMimeTypeClosure: ((Data, String) async -> Result<String, ClientProxyError>)?
+
+    func uploadMedia(data: Data, mimeType: String) async -> Result<String, ClientProxyError> {
+        uploadMediaDataMimeTypeCallsCount += 1
+        uploadMediaDataMimeTypeReceivedArguments = (data: data, mimeType: mimeType)
+        DispatchQueue.main.async {
+            self.uploadMediaDataMimeTypeReceivedInvocations.append((data: data, mimeType: mimeType))
+        }
+        if let uploadMediaDataMimeTypeClosure = uploadMediaDataMimeTypeClosure {
+            return await uploadMediaDataMimeTypeClosure(data, mimeType)
+        } else {
+            return uploadMediaDataMimeTypeReturnValue
         }
     }
     //MARK: - roomForIdentifier
@@ -7681,6 +7980,76 @@ class JoinedRoomProxyMock: JoinedRoomProxyProtocol, @unchecked Sendable {
             return await setTopicClosure(topic)
         } else {
             return setTopicReturnValue
+        }
+    }
+    //MARK: - sendStateEvent
+
+    var sendStateEventTypeStateKeyContentUnderlyingCallsCount = 0
+    var sendStateEventTypeStateKeyContentCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return sendStateEventTypeStateKeyContentUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = sendStateEventTypeStateKeyContentUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                sendStateEventTypeStateKeyContentUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    sendStateEventTypeStateKeyContentUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var sendStateEventTypeStateKeyContentCalled: Bool {
+        return sendStateEventTypeStateKeyContentCallsCount > 0
+    }
+    var sendStateEventTypeStateKeyContentReceivedArguments: (type: String, stateKey: String, content: String)?
+    var sendStateEventTypeStateKeyContentReceivedInvocations: [(type: String, stateKey: String, content: String)] = []
+
+    var sendStateEventTypeStateKeyContentUnderlyingReturnValue: Result<String, RoomProxyError>!
+    var sendStateEventTypeStateKeyContentReturnValue: Result<String, RoomProxyError>! {
+        get {
+            if Thread.isMainThread {
+                return sendStateEventTypeStateKeyContentUnderlyingReturnValue
+            } else {
+                var returnValue: Result<String, RoomProxyError>? = nil
+                DispatchQueue.main.sync {
+                    returnValue = sendStateEventTypeStateKeyContentUnderlyingReturnValue
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                sendStateEventTypeStateKeyContentUnderlyingReturnValue = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    sendStateEventTypeStateKeyContentUnderlyingReturnValue = newValue
+                }
+            }
+        }
+    }
+    var sendStateEventTypeStateKeyContentClosure: ((String, String, String) async -> Result<String, RoomProxyError>)?
+
+    func sendStateEvent(type: String, stateKey: String, content: String) async -> Result<String, RoomProxyError> {
+        sendStateEventTypeStateKeyContentCallsCount += 1
+        sendStateEventTypeStateKeyContentReceivedArguments = (type: type, stateKey: stateKey, content: content)
+        DispatchQueue.main.async {
+            self.sendStateEventTypeStateKeyContentReceivedInvocations.append((type: type, stateKey: stateKey, content: content))
+        }
+        if let sendStateEventTypeStateKeyContentClosure = sendStateEventTypeStateKeyContentClosure {
+            return await sendStateEventTypeStateKeyContentClosure(type, stateKey, content)
+        } else {
+            return sendStateEventTypeStateKeyContentReturnValue
         }
     }
     //MARK: - removeAvatar
@@ -15424,6 +15793,79 @@ class RoomProxyMock: RoomProxyProtocol, @unchecked Sendable {
     var underlyingOwnUserID: String!
 
 }
+class RoomStateClientMock: RoomStateClientProtocol, @unchecked Sendable {
+
+    //MARK: - chatBackground
+
+    var chatBackgroundRoomIDUnderlyingCallsCount = 0
+    var chatBackgroundRoomIDCallsCount: Int {
+        get {
+            if Thread.isMainThread {
+                return chatBackgroundRoomIDUnderlyingCallsCount
+            } else {
+                var returnValue: Int? = nil
+                DispatchQueue.main.sync {
+                    returnValue = chatBackgroundRoomIDUnderlyingCallsCount
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                chatBackgroundRoomIDUnderlyingCallsCount = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    chatBackgroundRoomIDUnderlyingCallsCount = newValue
+                }
+            }
+        }
+    }
+    var chatBackgroundRoomIDCalled: Bool {
+        return chatBackgroundRoomIDCallsCount > 0
+    }
+    var chatBackgroundRoomIDReceivedRoomID: String?
+    var chatBackgroundRoomIDReceivedInvocations: [String] = []
+
+    var chatBackgroundRoomIDUnderlyingReturnValue: RoomStateReadResult!
+    var chatBackgroundRoomIDReturnValue: RoomStateReadResult! {
+        get {
+            if Thread.isMainThread {
+                return chatBackgroundRoomIDUnderlyingReturnValue
+            } else {
+                var returnValue: RoomStateReadResult? = nil
+                DispatchQueue.main.sync {
+                    returnValue = chatBackgroundRoomIDUnderlyingReturnValue
+                }
+
+                return returnValue!
+            }
+        }
+        set {
+            if Thread.isMainThread {
+                chatBackgroundRoomIDUnderlyingReturnValue = newValue
+            } else {
+                DispatchQueue.main.sync {
+                    chatBackgroundRoomIDUnderlyingReturnValue = newValue
+                }
+            }
+        }
+    }
+    var chatBackgroundRoomIDClosure: ((String) async -> RoomStateReadResult)?
+
+    func chatBackground(roomID: String) async -> RoomStateReadResult {
+        chatBackgroundRoomIDCallsCount += 1
+        chatBackgroundRoomIDReceivedRoomID = roomID
+        DispatchQueue.main.async {
+            self.chatBackgroundRoomIDReceivedInvocations.append(roomID)
+        }
+        if let chatBackgroundRoomIDClosure = chatBackgroundRoomIDClosure {
+            return await chatBackgroundRoomIDClosure(roomID)
+        } else {
+            return chatBackgroundRoomIDReturnValue
+        }
+    }
+}
 class RoomSummaryProviderMock: RoomSummaryProviderProtocol, @unchecked Sendable {
     var statePublisher: CurrentValuePublisher<RoomSummaryProviderState, Never> {
         get { return underlyingStatePublisher }
@@ -19950,6 +20392,11 @@ class UserSessionMock: UserSessionProtocol, @unchecked Sendable {
         set(value) { underlyingVoiceMessageMediaManager = value }
     }
     var underlyingVoiceMessageMediaManager: VoiceMessageMediaManagerProtocol!
+    var chatBackgroundService: ChatBackgroundServiceProtocol {
+        get { return underlyingChatBackgroundService }
+        set(value) { underlyingChatBackgroundService = value }
+    }
+    var underlyingChatBackgroundService: ChatBackgroundServiceProtocol!
     var sessionSecurityStatePublisher: CurrentValuePublisher<SessionSecurityState, Never> {
         get { return underlyingSessionSecurityStatePublisher }
         set(value) { underlyingSessionSecurityStatePublisher = value }

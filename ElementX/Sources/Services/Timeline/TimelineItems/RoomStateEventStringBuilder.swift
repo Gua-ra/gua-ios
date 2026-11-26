@@ -30,11 +30,7 @@ struct RoomStateEventStringBuilder {
         let senderIsYou = isOutgoing
         let memberIsYou = memberUserID == userID
         let member = memberDisplayName ?? memberUserID.guaDisplayHandle
-        let senderDisplayName = if shouldDisambiguateDisplayNames {
-            sender.disambiguatedDisplayName ?? sender.id.guaDisplayHandle
-        } else {
-            sender.displayName ?? sender.id.guaDisplayHandle
-        }
+        let senderDisplayName = name(of: sender)
         
         // Joining, being invited and accepting an invite are all implicit in a 1:1 chat —
         // hide them so the DM doesn't read like a group.
@@ -142,12 +138,23 @@ struct RoomStateEventStringBuilder {
         }
     }
     
-    func buildString(for state: OtherState, sender: TimelineItemSender, isOutgoing: Bool) -> String? {
-        let displayName = if shouldDisambiguateDisplayNames {
-            sender.disambiguatedDisplayName ?? sender.id.guaDisplayHandle
-        } else {
-            sender.displayName ?? sender.id.guaDisplayHandle
+    func buildChatBackgroundString(isRemoval: Bool, sender: TimelineItemSender, isOutgoing: Bool) -> String {
+        let displayName = name(of: sender)
+        
+        switch (isRemoval, isOutgoing) {
+        case (true, true):
+            return UntranslatedL10n.guaChatBackgroundNoticeRemovedByYou
+        case (true, false):
+            return UntranslatedL10n.guaChatBackgroundNoticeRemoved(displayName)
+        case (false, true):
+            return UntranslatedL10n.guaChatBackgroundNoticeChangedByYou
+        case (false, false):
+            return UntranslatedL10n.guaChatBackgroundNoticeChanged(displayName)
         }
+    }
+    
+    func buildString(for state: OtherState, sender: TimelineItemSender, isOutgoing: Bool) -> String? {
+        let displayName = name(of: sender)
         
         switch state {
         case .roomAvatar(let url):
@@ -231,5 +238,13 @@ struct RoomStateEventStringBuilder {
         
         MXLog.verbose("Filtering timeline item for state: \(state)")
         return nil
+    }
+    
+    private func name(of sender: TimelineItemSender) -> String {
+        if shouldDisambiguateDisplayNames {
+            sender.disambiguatedDisplayName ?? sender.id.guaDisplayHandle
+        } else {
+            sender.displayName ?? sender.id.guaDisplayHandle
+        }
     }
 }

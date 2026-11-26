@@ -45,6 +45,8 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
     
     private var paginateBackwardsTask: Task<Void, Never>?
     private var paginateForwardsTask: Task<Void, Never>?
+    
+    private var lastReportedChatBackgroundEventID: String?
 
     init(roomProxy: JoinedRoomProxyProtocol,
          focussedEventID: String? = nil,
@@ -116,6 +118,7 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
         
         setupSubscriptions()
         setupDirectRoomSubscriptionsIfNeeded()
+        setupChatBackgroundSubscriptionsIfNeeded()
         
         state.audioPlayerStateProvider = { [weak self] itemID -> AudioPlayerState? in
             guard let self else {
@@ -139,6 +142,7 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
         
         state.timelineState.paginationState = timelineController.paginationState
         buildTimelineViews(timelineItems: timelineController.timelineItems)
+        reportChatBackgroundChange(in: timelineController.timelineItems)
         
         updateRoomInfo(roomProxy.infoPublisher.value)
         updateMembers(roomProxy.membersPublisher.value)
@@ -420,6 +424,7 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
                 switch callback {
                 case .updatedTimelineItems(let updatedItems, let isSwitchingTimelines):
                     buildTimelineViews(timelineItems: updatedItems, isSwitchingTimelines: isSwitchingTimelines)
+                    reportChatBackgroundChange(in: updatedItems)
                 case .paginationState(let paginationState):
                     if state.timelineState.paginationState != paginationState {
                         state.timelineState.paginationState = paginationState
@@ -500,6 +505,43 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
                 }
             }
             .store(in: &cancellables)
+    }
+    
+    private func setupChatBackgroundSubscriptionsIfNeeded() {
+        switch timelineController.timelineKind {
+        case .live, .detached:
+            break
+        case .pinned, .thread, .media:
+            return
+        }
+        
+        let chatBackgroundService = userSession.chatBackgroundService
+        let roomID = roomProxy.id
+        chatBackgroundService.backgroundPublisher(roomID: roomID)
+            .weakAssign(to: \.state.chatBackground, on: self)
+            .store(in: &cancellables)
+        
+        Task { await chatBackgroundService.refresh(roomID: roomID) }
+        
+        NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)
+            .sink { _ in
+                Task { await chatBackgroundService.refresh(roomID: roomID) }
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func reportChatBackgroundChange(in items: [RoomTimelineItemProtocol]) {
+        let latest = items
+            .compactMap { ($0 as? StateRoomTimelineItem)?.chatBackgroundEvent }
+            .max { $0.timestamp < $1.timestamp }
+        guard let latest, let contentJSON = latest.contentJSON, latest.eventID != lastReportedChatBackgroundEventID else {
+            return
+        }
+        lastReportedChatBackgroundEventID = latest.eventID
+        userSession.chatBackgroundService.handleTimelineEvent(roomID: roomProxy.id,
+                                                              eventID: latest.eventID,
+                                                              timestamp: latest.timestamp,
+                                                              contentJSON: contentJSON)
     }
     
     private func setupAppSettingsSubscriptions() {

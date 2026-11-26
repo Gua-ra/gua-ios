@@ -56,7 +56,7 @@ class UserSessionStore: UserSessionStoreProtocol {
         switch await restorePreviousLogin(credentials) {
         case .success(let clientProxy):
             restoreKeyStorageIfNeeded(clientProxy)
-            return .success(buildUserSessionWithClient(clientProxy))
+            return await .success(buildUserSessionWithClient(clientProxy, sessionDirectories: credentials.restorationToken.sessionDirectories))
         case .failure(let error):
             MXLog.error("Failed restoring login with error: \(error)")
             
@@ -84,7 +84,7 @@ class UserSessionStore: UserSessionStoreProtocol {
 
             bootstrapKeyStorageIfNeeded(clientProxy)
 
-            return .success(buildUserSessionWithClient(clientProxy))
+            return await .success(buildUserSessionWithClient(clientProxy, sessionDirectories: sessionDirectories))
         } catch {
             MXLog.error("Failed creating user session with error: \(error)")
             return .failure(.failedSettingUpSession)
@@ -332,16 +332,22 @@ class UserSessionStore: UserSessionStoreProtocol {
         }
     }
 
-    private func buildUserSessionWithClient(_ clientProxy: ClientProxyProtocol) -> UserSessionProtocol {
+    @MainActor
+    private func buildUserSessionWithClient(_ clientProxy: ClientProxyProtocol, sessionDirectories: SessionDirectories) -> UserSessionProtocol {
         let mediaProvider = MediaProvider(mediaLoader: clientProxy.mediaLoader,
                                           imageCache: .onlyInMemory,
                                           homeserverReachabilityPublisher: clientProxy.homeserverReachabilityPublisher)
         
         let voiceMessageMediaManager = VoiceMessageMediaManager(mediaProvider: mediaProvider)
         
+        let roomStateClient = RoomStateClient(homeserver: { clientProxy.homeserver }, accessToken: { clientProxy.accessToken })
+        let chatBackgroundService = ChatBackgroundService(roomStateClient: roomStateClient,
+                                                          cache: ChatBackgroundCache(directory: sessionDirectories.cacheDirectory))
+        
         return UserSession(clientProxy: clientProxy,
                            mediaProvider: mediaProvider,
-                           voiceMessageMediaManager: voiceMessageMediaManager)
+                           voiceMessageMediaManager: voiceMessageMediaManager,
+                           chatBackgroundService: chatBackgroundService)
     }
     
     private func restorePreviousLogin(_ credentials: KeychainCredentials) async -> Result<ClientProxyProtocol, UserSessionStoreError> {

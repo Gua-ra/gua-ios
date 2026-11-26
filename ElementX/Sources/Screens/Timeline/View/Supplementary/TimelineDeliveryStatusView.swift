@@ -28,6 +28,7 @@ struct TimelineDeliveryStatusView: View {
     var body: some View {
         icon
             .foregroundColor(.compound.iconSecondary)
+            .legibilityCapsule(.circle, hasPadding: false)
             .accessibilityLabel(accessibilityLabel)
     }
     

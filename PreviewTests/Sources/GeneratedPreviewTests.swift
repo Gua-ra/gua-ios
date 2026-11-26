@@ -107,6 +107,24 @@ extension PreviewTests {
         }
     }
 
+    func testChatBackgroundPhotoPreview() async throws {
+        for (index, preview) in ChatBackgroundPhotoPreview_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    func testChatBackgroundScreen() async throws {
+        for (index, preview) in ChatBackgroundScreen_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    func testChatBackgroundView() async throws {
+        for (index, preview) in ChatBackgroundView_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
     func testCollapsibleRoomTimelineView() async throws {
         for (index, preview) in CollapsibleRoomTimelineView_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)
@@ -367,6 +385,12 @@ extension PreviewTests {
 
     func testLegalInformationScreen() async throws {
         for (index, preview) in LegalInformationScreen_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    func testLegibilityCapsule() async throws {
+        for (index, preview) in LegibilityCapsule_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)
         }
     }

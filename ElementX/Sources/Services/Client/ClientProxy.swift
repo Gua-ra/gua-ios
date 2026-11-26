@@ -653,6 +653,18 @@ class ClientProxy: ClientProxyProtocol {
             return .failure(ClientProxyError.sdkError(error))
         }
     }
+    
+    func uploadMedia(data: Data, mimeType: String) async -> Result<String, ClientProxyError> {
+        do {
+            return try await .success(client.uploadMedia(mimeType: mimeType, data: data, progressWatcher: nil))
+        } catch let ClientError.MatrixApi(errorKind, _, _, _) {
+            MXLog.error("Failed uploading media with error kind: \(errorKind)")
+            return .failure(ClientProxyError.failedUploadingMedia(errorKind))
+        } catch {
+            MXLog.error("Failed uploading media with error: \(error)")
+            return .failure(ClientProxyError.sdkError(error))
+        }
+    }
         
     func roomForIdentifier(_ identifier: String) async -> RoomProxyType? {
         let shouldAwait = roomsToAwait.remove(identifier) != nil

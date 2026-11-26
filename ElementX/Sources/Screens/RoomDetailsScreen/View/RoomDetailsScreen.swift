@@ -175,6 +175,12 @@ struct RoomDetailsScreen: View {
                     context.send(viewAction: .toggleFavourite(isFavourite: newValue))
                 }
             
+            if let chatBackground = context.viewState.chatBackground {
+                ChatBackgroundRow(background: chatBackground, canChange: context.viewState.canChangeChatBackground) {
+                    context.send(viewAction: .processTapChatBackground)
+                }
+            }
+            
             if context.viewState.canSeeSecurityAndPrivacy {
                 ListRow(label: .default(title: L10n.screenRoomDetailsSecurityAndPrivacyTitle, icon: \.lock),
                         kind: .navigationLink {
@@ -335,6 +341,8 @@ struct RoomDetailsScreen_Previews: PreviewProvider, TestablePreview {
     static let dmRoomViewModel = makeDMViewModel(verificationState: .notVerified)
     static let dmRoomVerifiedViewModel = makeDMViewModel(verificationState: .verified)
     static let dmRoomVerificationViolationViewModel = makeDMViewModel(verificationState: .verificationViolation)
+    static let photoBackgroundViewModel = makeSimpleRoomViewModel(chatBackground: .photo(.mock))
+    static let noBackgroundPermissionViewModel = makeSimpleRoomViewModel(chatBackground: .preset(.sunset), canChangeBackground: false)
     
     static var previews: some View {
         RoomDetailsScreen(context: genericRoomViewModel.context)
@@ -356,6 +364,14 @@ struct RoomDetailsScreen_Previews: PreviewProvider, TestablePreview {
         RoomDetailsScreen(context: dmRoomVerificationViolationViewModel.context)
             .snapshotPreferences(expect: dmRoomVerificationViolationViewModel.context.observe(\.viewState.accountOwner).map { $0 != nil }.eraseToStream())
             .previewDisplayName("DM Room Verification Violation")
+        
+        RoomDetailsScreen(context: photoBackgroundViewModel.context)
+            .snapshotPreferences(expect: photoBackgroundViewModel.context.observe(\.viewState.permalink).map { $0 != nil }.eraseToStream())
+            .previewDisplayName("Background photo")
+        
+        RoomDetailsScreen(context: noBackgroundPermissionViewModel.context)
+            .snapshotPreferences(expect: noBackgroundPermissionViewModel.context.observe(\.viewState.permalink).map { $0 != nil }.eraseToStream())
+            .previewDisplayName("Background no permission")
     }
     
     private static func makeGenericRoomViewModel() -> RoomDetailsScreenViewModel {
@@ -400,12 +416,12 @@ struct RoomDetailsScreen_Previews: PreviewProvider, TestablePreview {
                      appSettings: ServiceLocator.shared.settings)
     }
     
-    private static func makeSimpleRoomViewModel() -> RoomDetailsScreenViewModel {
+    private static func makeSimpleRoomViewModel(chatBackground: ChatBackground = .none, canChangeBackground: Bool = true) -> RoomDetailsScreenViewModel {
         ServiceLocator.shared.settings.knockingEnabled = true
         let knockRequests: [KnockRequestProxyMock] = [.init()]
         
         let members: [RoomMemberProxyMock] = [
-            .mockMeAdmin,
+            canChangeBackground ? .mockMeAdmin : .mockMe,
             .mockAlice,
             .mockBob,
             .mockCharlie
@@ -421,7 +437,7 @@ struct RoomDetailsScreen_Previews: PreviewProvider, TestablePreview {
         let notificationSettingsProxy = NotificationSettingsProxyMock(with: .init())
         
         return .init(roomProxy: roomProxy,
-                     userSession: UserSessionMock(.init()),
+                     userSession: UserSessionMock(.init(chatBackgroundService: ChatBackgroundServiceMock(.init(background: chatBackground)))),
                      analyticsService: ServiceLocator.shared.analytics,
                      userIndicatorController: ServiceLocator.shared.userIndicatorController,
                      notificationSettingsProxy: notificationSettingsProxy,
@@ -442,6 +458,9 @@ struct RoomDetailsScreen_Previews: PreviewProvider, TestablePreview {
                                                   isEncrypted: true,
                                                   members: members,
                                                   heroes: [.mockDan]))
+        
+        // GUA FORK: DMs are created as trusted private chats, which give both people full power.
+        (roomProxy.infoPublisher.value.powerLevels as? RoomPowerLevelsProxyMock)?.canOwnUserSendStateEventClosure = { _ in true }
         
         let clientProxyMock = ClientProxyMock(.init())
         
