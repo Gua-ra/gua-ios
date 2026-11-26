@@ -193,6 +193,7 @@
 "gua_chat_theme_art_photo_araucaria" = "Cime d'araucaria";
 "gua_chat_theme_art_photo_maned_wolf" = "Loup à crinière endormi";
 "gua_chat_theme_art_photo_maned_wolf_standing" = "Loup à crinière";
+"gua_chat_theme_art_photo_maned_wolf_smiling" = "Loup à crinière souriant";
 "gua_chat_theme_art_photo_yukon_trail" = "Piste du Yukon";
 "gua_chat_theme_art_photo_yukon_sun" = "Soleil du Yukon";
 "gua_chat_theme_art_photo_yukon_forest" = "Piste boréale";
@@ -218,6 +219,7 @@
 "gua_chat_theme_photo_credits" = "Crédits photo";
 "gua_chat_theme_photo_source" = "Source";
 "gua_chat_theme_photo_changes" = "Recadrée et redimensionnée pour les téléphones.";
+"gua_chat_theme_photo_licence_all_rights_reserved" = "Tous droits réservés";
 "gua_chat_theme_notice_changed_by_you" = "Vous avez modifié le thème de la conversation";
 "gua_chat_theme_notice_changed" = "%1$@ a modifié le thème de la conversation";
 "gua_chat_theme_notice_removed_by_you" = "Vous avez supprimé le thème de la conversation";

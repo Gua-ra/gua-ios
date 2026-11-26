@@ -39,6 +39,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
     case photoAraucaria = "photo-araucaria"
     case photoManedWolf = "photo-maned-wolf"
     case photoManedWolfStanding = "photo-maned-wolf-standing"
+    case photoManedWolfSmiling = "photo-maned-wolf-smiling"
     case photoYukonTrail = "photo-yukon-trail"
     case photoYukonSun = "photo-yukon-sun"
     case photoYukonForest = "photo-yukon-forest"
@@ -75,19 +76,24 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         let sourceURL: URL?
     }
     
-    /// Raw values are displayed untranslated.
+    /// Raw values are the manifest's licence names. Licence names are displayed untranslated.
     enum Licence: String {
         case cc0 = "CC0 1.0"
         case ccBy4 = "CC BY 4.0"
+        case allRightsReserved = "All rights reserved"
         
         var name: String {
-            rawValue
+            switch self {
+            case .cc0, .ccBy4: rawValue
+            case .allRightsReserved: UntranslatedL10n.guaChatThemePhotoLicenceAllRightsReserved
+            }
         }
         
         var deedURL: URL {
             switch self {
             case .cc0: "https://creativecommons.org/publicdomain/zero/1.0/"
             case .ccBy4: "https://creativecommons.org/licenses/by/4.0/"
+            case .allRightsReserved: "https://github.com/Gua-ra/gua-android/blob/develop/tools/wallpapers/licenses/LicenseRef-Gabriel-Bonfa-Photo.txt"
             }
         }
     }
@@ -107,7 +113,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         switch self {
         case .glassDrops, .glassDropsBlue, .moltenPearl, .silk, .ipe, .rainOnGlass, .pantanal, .currentsLive, .boreal, .lagoon, .seaSparks, .tropicDusk: .live
         case .duneLagoons, .palmCoast, .riverBends, .highlandMist, .glacierLake, .canolaSky, .harbourFog, .canyonGlow, .polarIce, .moonTide, .guara: .nature
-        case .photoLencoisLagoon, .photoLencoisDunes, .photoGrutaAzul, .photoIpe, .photoAraucaria, .photoManedWolf, .photoManedWolfStanding,
+        case .photoLencoisLagoon, .photoLencoisDunes, .photoGrutaAzul, .photoIpe, .photoAraucaria, .photoManedWolf, .photoManedWolfStanding, .photoManedWolfSmiling,
              .photoYukonTrail, .photoYukonSun, .photoYukonForest, .photoYukonSled, .photoYukonSled2, .photoPeytoLake, .photoLoneCanoe,
              .photoJasperAurora, .photoNunavikAurora, .photoLacDelage, .photoQuebecIce, .photoQuebecLeaves: .photos
         case .currents, .azulejo, .calcadao, .knit, .doodlesBrasil, .doodlesCanada: .patterns
@@ -160,6 +166,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         case .photoAraucaria: UntranslatedL10n.guaChatThemeArtPhotoAraucaria
         case .photoManedWolf: UntranslatedL10n.guaChatThemeArtPhotoManedWolf
         case .photoManedWolfStanding: UntranslatedL10n.guaChatThemeArtPhotoManedWolfStanding
+        case .photoManedWolfSmiling: UntranslatedL10n.guaChatThemeArtPhotoManedWolfSmiling
         case .photoYukonTrail: UntranslatedL10n.guaChatThemeArtPhotoYukonTrail
         case .photoYukonSun: UntranslatedL10n.guaChatThemeArtPhotoYukonSun
         case .photoYukonForest: UntranslatedL10n.guaChatThemeArtPhotoYukonForest
@@ -214,6 +221,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         case .photoAraucaria: ChatBubblePair(.green, dark: .teal)
         case .photoManedWolf: ChatBubblePair(.blue, dark: .purple)
         case .photoManedWolfStanding: ChatBubblePair(.blue, dark: .purple)
+        case .photoManedWolfSmiling: ChatBubblePair(.blue, dark: .purple)
         case .photoYukonTrail: ChatBubblePair(.blue, dark: .teal)
         case .photoYukonSun: ChatBubblePair(.orange, dark: .blue)
         case .photoYukonForest: ChatBubblePair(.green, dark: .teal)
@@ -260,6 +268,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         case .photoAraucaria: UnitPoint(x: 0.45, y: 0.42)
         case .photoManedWolf: UnitPoint(x: 0.38, y: 0.55)
         case .photoManedWolfStanding: UnitPoint(x: 0.72, y: 0.25)
+        case .photoManedWolfSmiling: UnitPoint(x: 0.38, y: 0.32)
         case .photoYukonTrail: UnitPoint(x: 0.45, y: 0.55)
         case .photoYukonSun: UnitPoint(x: 0.5, y: 0.72)
         case .photoYukonForest: UnitPoint(x: 0.53, y: 0.68)
@@ -293,7 +302,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         case .photoLencoisLagoon, .photoGrutaAzul, .photoAraucaria, .photoYukonTrail, .photoYukonSun, .photoYukonForest, .photoYukonSled, .photoYukonSled2, .photoJasperAurora: .sky
         case .photoLencoisDunes, .photoIpe: .graphite
         case .photoManedWolf, .photoLacDelage, .photoQuebecIce, .photoQuebecLeaves: .sand
-        case .photoManedWolfStanding, .photoNunavikAurora: .mint
+        case .photoManedWolfStanding, .photoManedWolfSmiling, .photoNunavikAurora: .mint
         case .photoPeytoLake, .photoLoneCanoe: .ocean
         }
     }
@@ -308,7 +317,7 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
         case .rainOnGlass: 48
         case .boreal: 151
         case .duneLagoons, .palmCoast, .riverBends, .highlandMist, .glacierLake, .canolaSky, .harbourFog, .canyonGlow, .polarIce, .moonTide, .guara,
-             .photoLencoisLagoon, .photoLencoisDunes, .photoGrutaAzul, .photoIpe, .photoAraucaria, .photoManedWolf, .photoManedWolfStanding,
+             .photoLencoisLagoon, .photoLencoisDunes, .photoGrutaAzul, .photoIpe, .photoAraucaria, .photoManedWolf, .photoManedWolfStanding, .photoManedWolfSmiling,
              .photoYukonTrail, .photoYukonSun, .photoYukonForest, .photoYukonSled, .photoYukonSled2, .photoPeytoLake, .photoLoneCanoe,
              .photoJasperAurora, .photoNunavikAurora, .photoLacDelage, .photoQuebecIce, .photoQuebecLeaves,
              .currents, .azulejo, .calcadao, .knit, .doodlesBrasil, .doodlesCanada, .paper, .paperCut: nil
@@ -335,6 +344,8 @@ nonisolated enum ChatArtwork: String, CaseIterable, Identifiable {
                    sourceURL: "https://commons.wikimedia.org/wiki/File:Chrysocyon_brachyurus_in_S%C3%A3o_Paulo_Zoo.jpg")
         case .photoManedWolfStanding:
             Credit(author: "Gil Myers, Smithsonian's National Zoo", licence: .cc0, sourceURL: "https://nationalzoo.si.edu/object/nzp_NZP-20160729-011GM")
+        case .photoManedWolfSmiling:
+            Credit(author: "Gabriel Bonfa", licence: .allRightsReserved, sourceURL: nil)
         case .photoYukonTrail, .photoYukonSun, .photoYukonForest, .photoYukonSled, .photoYukonSled2:
             Credit(author: "Sarah Lacerda", licence: .ccBy4, sourceURL: nil)
         case .photoPeytoLake:

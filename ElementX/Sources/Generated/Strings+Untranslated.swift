@@ -146,6 +146,8 @@ internal nonisolated enum UntranslatedL10n {
   internal static var guaChatThemeArtPhotoLoneCanoe: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_photo_lone_canoe") }
   /// Sleeping Maned Wolf
   internal static var guaChatThemeArtPhotoManedWolf: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_photo_maned_wolf") }
+  /// Smiling Maned Wolf
+  internal static var guaChatThemeArtPhotoManedWolfSmiling: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_photo_maned_wolf_smiling") }
   /// Maned Wolf
   internal static var guaChatThemeArtPhotoManedWolfStanding: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_art_photo_maned_wolf_standing") }
   /// Nunavik Aurora
@@ -232,6 +234,8 @@ internal nonisolated enum UntranslatedL10n {
   }
   /// Photo credits
   internal static var guaChatThemePhotoCredits: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_photo_credits") }
+  /// All rights reserved
+  internal static var guaChatThemePhotoLicenceAllRightsReserved: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_photo_licence_all_rights_reserved") }
   /// Source
   internal static var guaChatThemePhotoSource: String { return UntranslatedL10n.tr("Untranslated", "gua_chat_theme_photo_source") }
   /// Aurora
