@@ -5249,6 +5249,11 @@ nonisolated class ElementCallServiceMock: ElementCallServiceProtocol, @unchecked
         set(value) { underlyingOngoingCallRoomIDPublisher = value }
     }
     nonisolated(unsafe) var underlyingOngoingCallRoomIDPublisher: CurrentValuePublisher<String?, Never>!
+    var hasCallPublisher: CurrentValuePublisher<Bool, Never> {
+        get { return underlyingHasCallPublisher }
+        set(value) { underlyingHasCallPublisher = value }
+    }
+    nonisolated(unsafe) var underlyingHasCallPublisher: CurrentValuePublisher<Bool, Never>!
     nonisolated(unsafe) var nativeCallController: ElementCallController?
 
     //MARK: - setUserSession
@@ -5513,6 +5518,23 @@ nonisolated class ElementCallServiceMock: ElementCallServiceProtocol, @unchecked
         setAudioEnabledRoomIDReceivedArguments = (enabled: enabled, roomID: roomID)
         setAudioEnabledRoomIDReceivedInvocationsLock.withLock { setAudioEnabledRoomIDUnderlyingReceivedInvocations.append((enabled: enabled, roomID: roomID)) }
         setAudioEnabledRoomIDClosure?(enabled, roomID)
+    }
+    //MARK: - observeIncomingCallIfNeeded
+
+    private let observeIncomingCallIfNeededCallsCountLock = NSLock()
+    private nonisolated(unsafe) var observeIncomingCallIfNeededUnderlyingCallsCount = 0
+    var observeIncomingCallIfNeededCallsCount: Int {
+        get { observeIncomingCallIfNeededCallsCountLock.withLock { observeIncomingCallIfNeededUnderlyingCallsCount } }
+        set { observeIncomingCallIfNeededCallsCountLock.withLock { observeIncomingCallIfNeededUnderlyingCallsCount = newValue } }
+    }
+    var observeIncomingCallIfNeededCalled: Bool {
+        return observeIncomingCallIfNeededCallsCount > 0
+    }
+    nonisolated(unsafe) var observeIncomingCallIfNeededClosure: (() async -> Void)?
+
+    @concurrent func observeIncomingCallIfNeeded() async {
+        observeIncomingCallIfNeededCallsCountLock.withLock { observeIncomingCallIfNeededUnderlyingCallsCount += 1 }
+        await observeIncomingCallIfNeededClosure?()
     }
 }
 nonisolated class ElementCallWidgetDriverMock: ElementCallWidgetDriverProtocol, @unchecked Sendable {
@@ -8422,6 +8444,11 @@ nonisolated class LinkNewDeviceServiceMock: LinkNewDeviceServiceProtocol, @unche
     }
 }
 nonisolated class LiveLocationManagerMock: LiveLocationManagerProtocol, @unchecked Sendable {
+    var isAnyAccountSharingPublisher: CurrentValuePublisher<Bool, Never> {
+        get { return underlyingIsAnyAccountSharingPublisher }
+        set(value) { underlyingIsAnyAccountSharingPublisher = value }
+    }
+    nonisolated(unsafe) var underlyingIsAnyAccountSharingPublisher: CurrentValuePublisher<Bool, Never>!
 
     //MARK: - add
 

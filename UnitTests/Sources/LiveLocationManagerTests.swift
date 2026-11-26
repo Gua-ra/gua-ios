@@ -39,6 +39,24 @@ final class LiveLocationManagerTests {
     }
     
     @Test
+    func anyAccountSharingFollowsEveryAccount() {
+        setUp()
+        let aliceSharing = CurrentValueSubject<Bool, Never>(false)
+        manager.add(makeService(userID: "@alice:matrix.org", isSharing: aliceSharing))
+        manager.add(makeService(userID: "@bob:matrix.org", isSharing: .init(true)))
+        #expect(manager.isAnyAccountSharingPublisher.value)
+        
+        manager.remove(userID: "@bob:matrix.org")
+        #expect(!manager.isAnyAccountSharingPublisher.value)
+        
+        aliceSharing.send(true)
+        #expect(manager.isAnyAccountSharingPublisher.value)
+        
+        aliceSharing.send(false)
+        #expect(!manager.isAnyAccountSharingPublisher.value)
+    }
+    
+    @Test
     func locationsReachOnlyTheSharingAccounts() {
         setUp()
         let alice = makeService(userID: "@alice:matrix.org", isSharing: .init(true))

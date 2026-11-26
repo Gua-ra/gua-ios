@@ -26,6 +26,11 @@ final class LiveLocationManager: NSObject, LiveLocationManagerProtocol, CLLocati
         services.values.contains { $0.isSharingPublisher.value }
     }
     
+    private let isAnyAccountSharingSubject = CurrentValueSubject<Bool, Never>(false)
+    var isAnyAccountSharingPublisher: CurrentValuePublisher<Bool, Never> {
+        isAnyAccountSharingSubject.asCurrentValuePublisher()
+    }
+    
     init(appSettings: AppSettings,
          locationManager: @autoclosure @MainActor () -> CLLocationManagerProtocol = CLLocationManager()) {
         self.appSettings = appSettings
@@ -154,6 +159,8 @@ final class LiveLocationManager: NSObject, LiveLocationManagerProtocol, CLLocati
     }
     
     private func syncLocationUpdates() {
+        isAnyAccountSharingSubject.send(isAnyAccountSharing)
+        
         if isAnyAccountSharing {
             startUpdatingLocation()
         } else {

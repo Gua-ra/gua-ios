@@ -7,6 +7,8 @@
 
 // sourcery: AutoMockable
 protocol LiveLocationManagerProtocol: AnyObject {
+    var isAnyAccountSharingPublisher: CurrentValuePublisher<Bool, Never> { get }
+    
     func add(_ service: LiveLocationServiceProtocol)
     func remove(userID: String)
 }

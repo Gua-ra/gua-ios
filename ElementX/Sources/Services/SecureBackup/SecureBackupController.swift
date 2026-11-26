@@ -247,7 +247,8 @@ class SecureBackupController: SecureBackupControllerProtocol {
             defer { publishSDKRecoveryStateIfStillSettingUp() }
             
             let keyUploadErrored = Mutex(false)
-            let recoveryKey = try await encryption.enableRecovery(waitForBackupsToUpload: false, passphrase: passphrase, progressListener: SDKListener.onMainActor { [weak self] state in
+            let passphraseKey = passphrase.map { SecretStorageKey.newFromPassphrase(passphrase: $0) }
+            let recoveryKey = try await encryption.enableRecovery(waitForBackupsToUpload: false, key: passphraseKey, progressListener: SDKListener.onMainActor { [weak self] state in
                 guard let self else { return }
                 
                 switch state {
@@ -646,7 +647,7 @@ class SecureBackupController: SecureBackupControllerProtocol {
         }
         
         let key = try await encryption.enableRecovery(waitForBackupsToUpload: false,
-                                                      passphrase: nil,
+                                                      key: nil,
                                                       progressListener: SDKListener { _ in })
         persistRecoveryKey(key)
         return key

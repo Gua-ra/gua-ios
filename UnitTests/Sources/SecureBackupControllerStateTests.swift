@@ -138,7 +138,7 @@ final class SecureBackupControllerStateTests {
                                       returning outcome: Result<String, Error>,
                                       sdkStateAfterwards: RecoveryState) async -> Result<String, SecureBackupControllerError> {
         encryption.recoveryStateReturnValue = sdkStateAfterwards
-        encryption.enableRecoveryWaitForBackupsToUploadPassphraseProgressListenerClosure = { _, _, listener in
+        encryption.enableRecoveryWaitForBackupsToUploadKeyProgressListenerClosure = { _, _, listener in
             for step in progress {
                 listener.onUpdate(status: step)
             }

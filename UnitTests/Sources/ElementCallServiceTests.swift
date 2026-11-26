@@ -6,9 +6,11 @@
 //
 
 import CallKit
+import Combine
 import ElementCall
 @testable import ElementX
 import PushKit
+import Synchronization
 import Testing
 
 @MainActor
@@ -146,6 +148,97 @@ final class ElementCallServiceTests {
         
         let reason = try await deferredEndedCall.fulfill()
         #expect(reason == .unanswered, "Call should have ended as unanswered")
+    }
+    
+    @Test
+    func aRingingOrOngoingCallIsReported() async {
+        #expect(!service.hasCallPublisher.value)
+        
+        await reportIncomingPush(isVoiceCall: false)
+        #expect(service.hasCallPublisher.value)
+        
+        await service.setupCallSession(roomID: "!room:example.com", roomDisplayName: "welcome", isVideo: true)
+        #expect(service.hasCallPublisher.value)
+        
+        service.tearDownCallSession(roomID: "!room:example.com")
+        #expect(!service.hasCallPublisher.value)
+    }
+    
+    @Test
+    func aRingCallKitRefusedIsNotReported() async {
+        callProvider.reportNewIncomingCallWithUpdateCompletionClosure = { _, _, completion in
+            completion(CXErrorCodeIncomingCallError(.filteredByDoNotDisturb))
+        }
+        
+        await reportIncomingPush(isVoiceCall: false)
+        
+        #expect(!service.hasCallPublisher.value)
+    }
+    
+    @Test
+    func aRingAnsweredForTheWebViewIsNotReported() async throws {
+        await reportIncomingPush(isVoiceCall: false)
+        
+        try await answerReportedCall()
+        
+        #expect(!service.hasCallPublisher.value)
+    }
+    
+    @Test
+    func decliningARingAsksTheAppToSendTheDecline() async throws {
+        await reportIncomingPush(isVoiceCall: false)
+        let callID = try #require(callProvider.reportNewIncomingCallWithUpdateCompletionReceivedArguments?.uuid)
+        
+        var declines: [(roomID: String, rtcNotificationID: String)] = []
+        let cancellable = service.actions.sink { action in
+            if case .declineCall(let roomID, let rtcNotificationID) = action {
+                declines.append((roomID, rtcNotificationID))
+            }
+        }
+        defer { cancellable.cancel() }
+        
+        service.endCall(withCallKitID: callID)
+        
+        #expect(declines.map(\.roomID) == ["!room:example.com"])
+        #expect(declines.map(\.rtcNotificationID) == ["$000"])
+        #expect(!service.hasCallPublisher.value)
+    }
+    
+    @Test
+    func aRingIsWatchedOnceItsRoomLoads() async throws {
+        let roomInfoSubject = CurrentValueSubject<RoomInfoProxyProtocol, Never>(RoomInfoProxyMock(.init(id: "!room:example.com", hasOngoingCall: true)))
+        let roomProxy = JoinedRoomProxyMock(.init(id: "!room:example.com"))
+        roomProxy.infoPublisher = roomInfoSubject.asCurrentValuePublisher()
+        roomProxy.subscribeToCallDeclineEventsRtcNotificationEventIDListenerReturnValue = .failure(.eventNotFound)
+        
+        let canLoadRoom = Mutex(false)
+        let lookups = PassthroughSubject<Void, Never>()
+        let clientProxy = ClientProxyMock(.init())
+        clientProxy.roomForIdentifierClosure = { _ in
+            let room: RoomProxyType? = canLoadRoom.withLock { $0 } ? .joined(roomProxy) : nil
+            lookups.send(())
+            return room
+        }
+        await reportIncomingPush(isVoiceCall: false)
+        
+        let deferredFailedLookup = deferFulfillment(lookups) { _ in true }
+        userSession = UserSessionMock(.init(clientProxy: clientProxy))
+        service.setUserSession(userSession)
+        try await deferredFailedLookup.fulfill()
+        
+        canLoadRoom.withLock { $0 = true }
+        let lookupCount = clientProxy.roomForIdentifierCallsCount
+        await service.observeIncomingCallIfNeeded()
+        #expect(clientProxy.roomForIdentifierCallsCount > lookupCount)
+        
+        let (endedCalls, endedCallsContinuation) = AsyncStream<CXCallEndedReason>.makeStream()
+        callProvider.reportCallWithEndedAtReasonClosure = { _, _, reason in
+            endedCallsContinuation.yield(reason)
+        }
+        let deferredEndedCall = deferFulfillment(endedCalls) { _ in true }
+        roomInfoSubject.send(RoomInfoProxyMock(.init(id: "!room:example.com", hasOngoingCall: false)))
+        
+        #expect(try await deferredEndedCall.fulfill() == .remoteEnded)
     }
     
     @Test

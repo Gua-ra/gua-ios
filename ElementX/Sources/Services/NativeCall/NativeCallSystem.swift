@@ -43,6 +43,8 @@ final class NativeCallSystem: ElementCallSystemProvidingProtocol {
                 // as an ordinary start.
                 case .startCall, .receivedIncomingCallRequest, .nativeCall:
                     nil
+                case .declineCall:
+                    nil
                 }
             }
             .eraseToAnyPublisher()

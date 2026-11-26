@@ -19,6 +19,7 @@ extension ElementCallServiceMock {
         
         actions = PassthroughSubject().eraseToAnyPublisher()
         ongoingCallRoomIDPublisher = .init(.init(configuration.ongoingCallRoomID))
+        hasCallPublisher = .init(configuration.ongoingCallRoomID != nil)
         handleNativeCallRequestRoomProxyIsVoiceCallReturnValue = false
     }
 }
