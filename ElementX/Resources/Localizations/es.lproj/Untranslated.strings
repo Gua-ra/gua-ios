@@ -195,6 +195,7 @@
 "gua_chat_theme_art_photo_araucaria" = "Copa de araucaria";
 "gua_chat_theme_art_photo_maned_wolf" = "Aguará guazú dormido";
 "gua_chat_theme_art_photo_maned_wolf_standing" = "Aguará guazú";
+"gua_chat_theme_art_photo_maned_wolf_smiling" = "Lobo de crin sonriente";
 "gua_chat_theme_art_photo_yukon_trail" = "Sendero del Yukón";
 "gua_chat_theme_art_photo_yukon_sun" = "Sol del Yukón";
 "gua_chat_theme_art_photo_yukon_forest" = "Sendero boreal";
@@ -220,6 +221,7 @@
 "gua_chat_theme_photo_credits" = "Créditos de las fotos";
 "gua_chat_theme_photo_source" = "Fuente";
 "gua_chat_theme_photo_changes" = "Recortada y redimensionada para móviles.";
+"gua_chat_theme_photo_licence_all_rights_reserved" = "Todos los derechos reservados";
 "gua_chat_theme_notice_changed_by_you" = "Cambiaste el tema del chat";
 "gua_chat_theme_notice_changed" = "%1$@ cambió el tema del chat";
 "gua_chat_theme_notice_removed_by_you" = "Quitaste el tema del chat";

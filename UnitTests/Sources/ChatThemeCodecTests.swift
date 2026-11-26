@@ -168,7 +168,7 @@ final class ChatThemeCodecTests {
                                                    "boreal", "lagoon", "sea-sparks", "tropic-dusk",
                                                    "dune-lagoons", "palm-coast", "river-bends", "highland-mist", "glacier-lake", "canola-sky", "harbour-fog", "canyon-glow", "polar-ice", "moon-tide", "guara",
                                                    "photo-lencois-lagoon", "photo-lencois-dunes", "photo-gruta-azul", "photo-ipe", "photo-araucaria", "photo-maned-wolf",
-                                                   "photo-maned-wolf-standing", "photo-yukon-trail", "photo-yukon-sun", "photo-yukon-forest", "photo-yukon-sled", "photo-yukon-sled-2",
+                                                   "photo-maned-wolf-standing", "photo-maned-wolf-smiling", "photo-yukon-trail", "photo-yukon-sun", "photo-yukon-forest", "photo-yukon-sled", "photo-yukon-sled-2",
                                                    "photo-peyto-lake", "photo-lone-canoe", "photo-jasper-aurora", "photo-nunavik-aurora", "photo-lac-delage", "photo-quebec-ice",
                                                    "photo-quebec-leaves",
                                                    "currents", "azulejo", "calcadao", "knit", "doodles-brasil", "doodles-canada",
@@ -188,6 +188,8 @@ final class ChatThemeCodecTests {
         #expect(ChatArtwork.Licence.cc0.deedURL.absoluteString == "https://creativecommons.org/publicdomain/zero/1.0/")
         #expect(ChatArtwork.Licence.ccBy4.name == "CC BY 4.0")
         #expect(ChatArtwork.Licence.ccBy4.deedURL.absoluteString == "https://creativecommons.org/licenses/by/4.0/")
+        #expect(ChatArtwork.Licence.allRightsReserved.name == UntranslatedL10n.guaChatThemePhotoLicenceAllRightsReserved)
+        #expect(ChatArtwork.Licence.allRightsReserved.deedURL.absoluteString == "https://github.com/Gua-ra/gua-android/blob/develop/tools/wallpapers/licenses/LicenseRef-Gabriel-Bonfa-Photo.txt")
         
         for artwork in ChatArtwork.allCases {
             #expect((artwork.credit != nil) == artwork.isPhoto, "\(artwork.id)")
@@ -199,7 +201,8 @@ final class ChatThemeCodecTests {
         
         let ownPhotos: [ChatArtwork] = [.photoYukonTrail, .photoYukonSun, .photoYukonForest, .photoYukonSled, .photoYukonSled2]
         #expect(photos.filter { $0.credit?.licence == .ccBy4 } == ownPhotos)
-        #expect(photos.filter { $0.credit?.sourceURL == nil } == ownPhotos)
+        #expect(photos.filter { $0.credit?.licence == .allRightsReserved } == [.photoManedWolfSmiling])
+        #expect(photos.filter { $0.credit?.sourceURL == nil } == [.photoManedWolfSmiling] + ownPhotos)
     }
     
     @Test
@@ -260,7 +263,7 @@ final class ChatThemeCodecTests {
                              ["dune-lagoons+teal/purple", "palm-coast+orange/blue", "river-bends+teal", "highland-mist+blue/green", "glacier-lake+teal", "canola-sky+green/orange",
                               "harbour-fog+blue", "canyon-glow+blue/purple", "polar-ice+blue/purple", "moon-tide+blue", "guara+green"],
                              ["photo-lencois-lagoon+teal/purple", "photo-lencois-dunes+blue/purple", "photo-gruta-azul+teal/blue", "photo-ipe+blue/orange",
-                              "photo-araucaria+green/teal", "photo-maned-wolf+blue/purple", "photo-maned-wolf-standing+blue/purple", "photo-yukon-trail+blue/teal",
+                              "photo-araucaria+green/teal", "photo-maned-wolf+blue/purple", "photo-maned-wolf-standing+blue/purple", "photo-maned-wolf-smiling+blue/purple", "photo-yukon-trail+blue/teal",
                               "photo-yukon-sun+orange/blue", "photo-yukon-forest+green/teal", "photo-yukon-sled+purple/blue", "photo-yukon-sled-2+teal/purple",
                               "photo-peyto-lake+teal/blue", "photo-lone-canoe+orange/purple", "photo-jasper-aurora+green/teal", "photo-nunavik-aurora+purple/pink",
                               "photo-lac-delage+blue", "photo-quebec-ice+green/teal", "photo-quebec-leaves+teal/graphite"],

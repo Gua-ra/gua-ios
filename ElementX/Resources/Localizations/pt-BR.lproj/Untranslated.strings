@@ -195,6 +195,7 @@
 "gua_chat_theme_art_photo_araucaria" = "Copa da araucária";
 "gua_chat_theme_art_photo_maned_wolf" = "Lobo-guará dormindo";
 "gua_chat_theme_art_photo_maned_wolf_standing" = "Lobo-guará";
+"gua_chat_theme_art_photo_maned_wolf_smiling" = "Lobo-guará sorrindo";
 "gua_chat_theme_art_photo_yukon_trail" = "Trilha do Yukon";
 "gua_chat_theme_art_photo_yukon_sun" = "Sol do Yukon";
 "gua_chat_theme_art_photo_yukon_forest" = "Trilha boreal";
@@ -220,6 +221,7 @@
 "gua_chat_theme_photo_credits" = "Créditos das fotos";
 "gua_chat_theme_photo_source" = "Fonte";
 "gua_chat_theme_photo_changes" = "Recortada e redimensionada para celulares.";
+"gua_chat_theme_photo_licence_all_rights_reserved" = "Todos os direitos reservados";
 "gua_chat_theme_notice_changed_by_you" = "Você alterou o tema da conversa";
 "gua_chat_theme_notice_changed" = "%1$@ alterou o tema da conversa";
 "gua_chat_theme_notice_removed_by_you" = "Você removeu o tema da conversa";

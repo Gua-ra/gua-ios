@@ -38,7 +38,7 @@ final class ChatArtworkManifestTests {
             let credit = entry["credit"] as? [String: Any]
             #expect((credit == nil) == (artwork.credit == nil), "\(artwork.id)")
             #expect(credit?["author"] as? String == artwork.credit?.author, "\(artwork.id)")
-            #expect(credit?["licence"] as? String == artwork.credit?.licence.name, "\(artwork.id)")
+            #expect(credit?["licence"] as? String == artwork.credit?.licence.rawValue, "\(artwork.id)")
             #expect(credit?["licence_url"] as? String == artwork.credit?.licence.deedURL.absoluteString, "\(artwork.id)")
             #expect(credit?["source_url"] as? String == artwork.credit?.sourceURL?.absoluteString, "\(artwork.id)")
             #expect(credit?["modified"] as? String == (artwork.credit == nil ? nil : "cropped and resized"), "\(artwork.id)")
