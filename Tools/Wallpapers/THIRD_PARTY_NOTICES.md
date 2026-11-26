@@ -2,7 +2,7 @@
 
 ## Photo wallpapers
 
-The photo wallpapers, `ElementX/Resources/Wallpapers/photo-*.webp` in gua-ios and `libraries/matrixui/src/main/assets/wallpapers/photo-*.webp` in gua-android, are not under the AGPL. Each keeps its own licence, listed below. The legal code is in `licenses/CC0-1.0.txt` and `licenses/CC-BY-4.0.txt`.
+The photo wallpapers, `ElementX/Resources/Wallpapers/photo-*.webp` in gua-ios and `libraries/matrixui/src/main/assets/wallpapers/photo-*.webp` in gua-android, are not under the AGPL. Each keeps its own licence, listed below. The legal code is in `licenses/CC0-1.0.txt` and `licenses/CC-BY-4.0.txt`, and the terms of Smiling Maned Wolf in `licenses/LicenseRef-Gabriel-Bonfa-Photo.txt`.
 
 Every photo was cropped to the 1290:2796 phone shape, resized to 1290x2796 where needed and re-encoded as WebP. Its colours were converted to sRGB and its metadata removed, and an XMP packet names the author, licence and source. `tools/wallpapers/bake.mjs` in gua-android bakes them from its `photos.json`, which records each original's URL, sha256 and crop.
 
@@ -15,6 +15,7 @@ Every photo was cropped to the 1290:2796 phone shape, resized to 1290x2796 where
 | `photo-araucaria.webp` | Araucária Crown | Themium | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Arauc%C3%A1ria_jordanense_1.jpg) | Cropped to 1290x2796 at 1116,0 |
 | `photo-maned-wolf.webp` | Sleeping Maned Wolf | Wilfredo Rodriguez (Wilfredor) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Chrysocyon_brachyurus_in_S%C3%A3o_Paulo_Zoo.jpg) | Cropped to 1314x2848 at 1468,0 and resized |
 | `photo-maned-wolf-standing.webp` | Maned Wolf | Gil Myers, Smithsonian's National Zoo | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | [Smithsonian's National Zoo](https://nationalzoo.si.edu/object/nzp_NZP-20160729-011GM) | Cropped to 1384x3000 at 100,0 and resized |
+| `photo-maned-wolf-smiling.webp` | Smiling Maned Wolf | Gabriel Bonfa | [All rights reserved](licenses/LicenseRef-Gabriel-Bonfa-Photo.txt) | Supplied by the author | Cropped to 2343x5078 at 880,0 and resized |
 | `photo-yukon-trail.webp` | Yukon Trail | Sarah Lacerda | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | Author's own photo | Cropped to 3720x8064 at 1164,0 and resized |
 | `photo-yukon-sun.webp` | Yukon Sun | Sarah Lacerda | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | Author's own photo | Cropped to 3720x8064 at 1164,0 and resized |
 | `photo-yukon-forest.webp` | Boreal Trail | Sarah Lacerda | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | Author's own photo | Cropped to 3720x8064 at 1000,0 and resized |
@@ -27,5 +28,7 @@ Every photo was cropped to the 1290:2796 phone shape, resized to 1290x2796 where
 | `photo-lac-delage.webp` | Moonlit Lake | Wilfredo Rodriguez (Wilfredor) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Lac_Delage_at_night,_Quebec,_Canada.jpg) | Cropped to 2539x5504 at 2095,0 and resized |
 | `photo-quebec-ice.webp` | Cedar Ice | Wilfredo Rodriguez (Wilfredor) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Ice_on_a_branch_in_Quebec_City.jpg) | Cropped to 2823x6118 at 542,0 and resized |
 | `photo-quebec-leaves.webp` | Maple Leaves | Wilfredo Rodriguez (Wilfredor) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Autumn_leaves_on_the_ground_in_Quebec_City.jpg) | Cropped to 1845x4000 at 2077,0 and resized |
+
+Smiling Maned Wolf is not free to reuse. Gabriel Bonfa licensed it to Gua for Gua's official apps only, and anyone distributing a modified version of this software must remove or replace it.
 
 Unsplash released photos under CC0 until 4 June 2017 and has used its own licence since 5 June 2017. Peyto Lake, Lone Canoe and Jasper Aurora were published on Unsplash before that change, and Wikimedia Commons hosts them under CC0.

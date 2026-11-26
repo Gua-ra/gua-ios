@@ -236,6 +236,7 @@
 "gua_chat_theme_art_photo_araucaria" = "Araucária Crown";
 "gua_chat_theme_art_photo_maned_wolf" = "Sleeping Maned Wolf";
 "gua_chat_theme_art_photo_maned_wolf_standing" = "Maned Wolf";
+"gua_chat_theme_art_photo_maned_wolf_smiling" = "Smiling Maned Wolf";
 "gua_chat_theme_art_photo_yukon_trail" = "Yukon Trail";
 "gua_chat_theme_art_photo_yukon_sun" = "Yukon Sun";
 "gua_chat_theme_art_photo_yukon_forest" = "Boreal Trail";
@@ -261,6 +262,7 @@
 "gua_chat_theme_photo_credits" = "Photo credits";
 "gua_chat_theme_photo_source" = "Source";
 "gua_chat_theme_photo_changes" = "Cropped and resized for phones.";
+"gua_chat_theme_photo_licence_all_rights_reserved" = "All rights reserved";
 "gua_chat_theme_notice_changed_by_you" = "You changed the chat theme";
 "gua_chat_theme_notice_changed" = "%1$@ changed the chat theme";
 "gua_chat_theme_notice_removed_by_you" = "You removed the chat theme";
