@@ -14,10 +14,12 @@ enum MediaUploadPreviewScreenViewModelAction {
 }
 
 struct MediaUploadPreviewScreenViewState: BindableState {
-    let mediaURLs: [URL]
+    var mediaURLs: [URL]
     let title: String?
     let shouldShowCaptionWarning: Bool
     var shouldDisableInteraction = false
+    /// False once a stack's first item has gone out, as only that item carries the caption.
+    var canEditCaption = true
     
     var mediaEditVersion = 0
     

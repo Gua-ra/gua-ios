@@ -649,6 +649,20 @@ extension PreviewTests {
     }
 
     @Test
+    func mediaStackGridScreen() async throws {
+        for (index, preview) in MediaStackGridScreen_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    @Test
+    func mediaStackRoomTimelineView() async throws {
+        for (index, preview) in MediaStackRoomTimelineView_Previews._allPreviews.enumerated() {
+            try await assertSnapshots(matching: preview, step: index)
+        }
+    }
+
+    @Test
     func mediaUploadPreviewScreen() async throws {
         for (index, preview) in MediaUploadPreviewScreen_Previews._allPreviews.enumerated() {
             try await assertSnapshots(matching: preview, step: index)

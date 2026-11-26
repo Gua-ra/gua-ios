@@ -67,6 +67,7 @@ protocol DeveloperOptionsProtocol: AnyObject {
     var viewSourceEnabled: Bool { get set }
     
     var jumpToReadMarkerEnabled: Bool { get set }
+    var guaMediaStacksEnabled: Bool { get set }
     
     var linkNewDeviceEnabled: Bool { get set }
     

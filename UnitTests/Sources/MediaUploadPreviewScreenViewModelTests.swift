@@ -18,6 +18,7 @@ final class MediaUploadPreviewScreenViewModelTests {
     private let userSettings: UserSettings
     
     var viewModel: MediaUploadPreviewScreenViewModel!
+    private var sentMedia = [SentMedia]()
     var context: MediaUploadPreviewScreenViewModel.Context {
         viewModel.context
     }
@@ -58,7 +59,7 @@ final class MediaUploadPreviewScreenViewModelTests {
         try await loadingFinished.fulfill()
         
         // Then nothing is sent and no error is shown.
-        #expect(timelineProxy.sendImageUrlThumbnailURLImageInfoCaptionRequestHandleCallsCount == 0)
+        #expect(timelineProxy.sendImageUrlThumbnailURLImageInfoCaptionExtraContentJSONRequestHandleCallsCount == 0)
         #expect(userIndicatorController.submitIndicatorDelayCallsCount == 1, "Only the loading indicator should be shown")
         #expect(context.viewState.bindings.alertInfo == nil)
     }
@@ -226,7 +227,7 @@ final class MediaUploadPreviewScreenViewModelTests {
         try await deferredDismiss.fulfill()
         #expect(timelineProxy.sendGalleryItemInfosCaptionInReplyToEventIDCallsCount == 1)
         #expect(timelineProxy.sendGalleryItemInfosCaptionInReplyToEventIDReceivedArguments?.itemInfos.count == 3)
-        #expect(timelineProxy.sendImageUrlThumbnailURLImageInfoCaptionRequestHandleCallsCount == 0)
+        #expect(timelineProxy.sendImageUrlThumbnailURLImageInfoCaptionExtraContentJSONRequestHandleCallsCount == 0)
         #expect(timelineProxy.sendFileUrlFileInfoCaptionRequestHandleCallsCount == 0)
         #expect(userIndicatorController.submitIndicatorDelayCallsCount == 1, "Only a loading indicator should be shown.")
     }
@@ -287,10 +288,103 @@ final class MediaUploadPreviewScreenViewModelTests {
         try await deferredDismiss.fulfill()
         #expect(timelineProxy.sendGalleryItemInfosCaptionInReplyToEventIDCallsCount == 0)
         #expect(timelineProxy.sendFileUrlFileInfoCaptionRequestHandleCallsCount == 2)
-        #expect(timelineProxy.sendImageUrlThumbnailURLImageInfoCaptionRequestHandleCallsCount == 1)
+        #expect(timelineProxy.sendImageUrlThumbnailURLImageInfoCaptionExtraContentJSONRequestHandleCallsCount == 1)
+    }
+    
+    @Test
+    func photoLibraryPickIsSentAsOneStack() async throws {
+        let caption = "Beach day"
+        setUpViewModel(urls: [imageURL, imageURL, imageURL], expectedCaption: nil, galleryEnabled: false, sendsMediaBatch: true)
+        timelineProxy.sendImageUrlThumbnailURLImageInfoCaptionExtraContentJSONRequestHandleClosure = { [weak self] _, _, _, caption, extraContentJSON, _ in
+            self?.sentMedia.append(.init(caption: caption, extraContentJSON: extraContentJSON))
+            return .success(())
+        }
+        context.caption = .init(string: caption)
+        
+        try await send()
+        
+        let batches = sentMedia.map(\.mediaBatch)
+        #expect(batches.map { $0?.index } == [0, 1, 2])
+        #expect(batches.map { $0?.count } == [3, 3, 3])
+        #expect(Set(batches.map { $0?.id }).count == 1)
+        #expect(sentMedia.map(\.caption) == [caption, nil, nil])
+    }
+    
+    @Test
+    func photoLibraryPickWithStacksOffSendsNoMarker() async throws {
+        setUpViewModel(urls: [imageURL, imageURL], expectedCaption: nil, galleryEnabled: false, sendsMediaBatch: false)
+        try await send()
+        #expect(sentMedia.map(\.extraContentJSON) == [nil, nil])
+    }
+    
+    @Test
+    func pickWithAFileSendsNoMarker() async throws {
+        setUpViewModel(urls: [imageURL, fileURL], expectedCaption: nil, galleryEnabled: false, sendsMediaBatch: true)
+        try await send()
+        #expect(sentMedia.map(\.extraContentJSON) == [nil])
+        #expect(timelineProxy.sendFileUrlFileInfoCaptionRequestHandleCallsCount == 1)
+    }
+    
+    @Test
+    func singlePhotoSendsNoMarker() async throws {
+        setUpViewModel(urls: [imageURL], expectedCaption: nil, galleryEnabled: false, sendsMediaBatch: true)
+        try await send()
+        #expect(sentMedia.map(\.extraContentJSON) == [nil])
+    }
+    
+    @Test
+    func stackSendStopsAtAFailureAndRetriesOnlyTheUnsentItems() async throws {
+        let caption = "Beach day"
+        setUpViewModel(urls: [imageURL, imageURL, imageURL], expectedCaption: nil, galleryEnabled: false, sendsMediaBatch: true)
+        failSending(onAttempt: 2)
+        context.caption = .init(string: caption)
+        
+        try await sendExpectingFailure()
+        
+        #expect(context.viewState.mediaURLs.count == 2, "Only the unsent items stay.")
+        #expect(context.caption.string.isEmpty, "The caption went out with the first item.")
+        #expect(!context.viewState.canEditCaption, "A caption typed now could not be sent.")
+        
+        try await send()
+        
+        let batches = sentMedia.map(\.mediaBatch)
+        #expect(batches.map { $0?.index } == [0, 1, 1, 2])
+        #expect(batches.map { $0?.count } == [3, 3, 3, 3])
+        #expect(Set(batches.map { $0?.id }).count == 1)
+        #expect(sentMedia.map(\.caption) == [caption, nil, nil, nil])
+    }
+    
+    @Test
+    func stackSendKeepsTheCaptionOnTheFirstItemWhenItFails() async throws {
+        let caption = "Beach day"
+        setUpViewModel(urls: [imageURL, imageURL], expectedCaption: nil, galleryEnabled: false, sendsMediaBatch: true)
+        failSending(onAttempt: 1)
+        context.caption = .init(string: caption)
+        
+        try await sendExpectingFailure()
+        #expect(context.viewState.mediaURLs.count == 2)
+        #expect(context.viewState.canEditCaption)
+        try await send()
+        
+        #expect(sentMedia.map { $0.mediaBatch?.index } == [0, 0, 1])
+        #expect(sentMedia.map(\.caption) == [caption, caption, nil])
     }
     
     // MARK: - Helpers
+    
+    private struct SentMedia {
+        let caption: String?
+        let extraContentJSON: String?
+        
+        var mediaBatch: MediaBatch? {
+            guard let extraContentJSON,
+                  var content = try? JSONSerialization.jsonObject(with: Data(extraContentJSON.utf8)) as? [String: Any] else {
+                return nil
+            }
+            content["msgtype"] = "m.image"
+            return MediaBatch(content: content)
+        }
+    }
     
     private var audioURL: URL {
         assertResourceURL(filename: "test_audio.mp3")
@@ -323,6 +417,7 @@ final class MediaUploadPreviewScreenViewModelTests {
                                 maxUploadSizeResult: Result<UInt, ClientProxyError>? = nil,
                                 simulateGallerySendFailure: Bool = false,
                                 galleryEnabled: Bool = true,
+                                sendsMediaBatch: Bool = false,
                                 maxUploadSizeClosure: (() async -> Result<UInt, ClientProxyError>)? = nil) {
         timelineProxy = TimelineProxyMock(.init())
         timelineProxy.sendAudioUrlAudioInfoCaptionRequestHandleClosure = { [weak self] _, _, caption, _ in
@@ -331,11 +426,13 @@ final class MediaUploadPreviewScreenViewModelTests {
         timelineProxy.sendFileUrlFileInfoCaptionRequestHandleClosure = { [weak self] _, _, caption, _ in
             self?.verifyCaption(caption, expectedCaption: expectedCaption) ?? .failure(.sdkError(TestError.unknown))
         }
-        timelineProxy.sendImageUrlThumbnailURLImageInfoCaptionRequestHandleClosure = { [weak self] _, _, _, caption, _ in
-            self?.verifyCaption(caption, expectedCaption: expectedCaption) ?? .failure(.sdkError(TestError.unknown))
+        timelineProxy.sendImageUrlThumbnailURLImageInfoCaptionExtraContentJSONRequestHandleClosure = { [weak self] _, _, _, caption, extraContentJSON, _ in
+            self?.sentMedia.append(.init(caption: caption, extraContentJSON: extraContentJSON))
+            return self?.verifyCaption(caption, expectedCaption: expectedCaption) ?? .failure(.sdkError(TestError.unknown))
         }
-        timelineProxy.sendVideoUrlThumbnailURLVideoInfoCaptionRequestHandleClosure = { [weak self] _, _, _, caption, _ in
-            self?.verifyCaption(caption, expectedCaption: expectedCaption) ?? .failure(.sdkError(TestError.unknown))
+        timelineProxy.sendVideoUrlThumbnailURLVideoInfoCaptionExtraContentJSONRequestHandleClosure = { [weak self] _, _, _, caption, extraContentJSON, _ in
+            self?.sentMedia.append(.init(caption: caption, extraContentJSON: extraContentJSON))
+            return self?.verifyCaption(caption, expectedCaption: expectedCaption) ?? .failure(.sdkError(TestError.unknown))
         }
         timelineProxy.sendGalleryItemInfosCaptionInReplyToEventIDClosure = { [weak self] _, caption, _ in
             guard !simulateGallerySendFailure else { return .failure(.sdkError(TestError.unknown)) }
@@ -353,6 +450,7 @@ final class MediaUploadPreviewScreenViewModelTests {
                                                       title: "Some File",
                                                       shouldShowCaptionWarning: true,
                                                       galleryEnabled: galleryEnabled,
+                                                      sendsMediaBatch: sendsMediaBatch,
                                                       mediaUploadingPreprocessor: MediaUploadingPreprocessor(userSettings: userSettings),
                                                       timelineController: TimelineControllerMock(.init(timelineProxy: timelineProxy)),
                                                       clientProxy: clientProxy,
@@ -365,6 +463,23 @@ final class MediaUploadPreviewScreenViewModelTests {
             return .failure(.sdkError(TestError.unexpectedParameter))
         }
         return .success(())
+    }
+    
+    private func failSending(onAttempt failingAttempt: Int) {
+        timelineProxy.sendImageUrlThumbnailURLImageInfoCaptionExtraContentJSONRequestHandleClosure = { [weak self] _, _, _, caption, extraContentJSON, _ in
+            guard let self else { return .failure(.sdkError(TestError.unknown)) }
+            sentMedia.append(.init(caption: caption, extraContentJSON: extraContentJSON))
+            return sentMedia.count == failingAttempt ? .failure(.sdkError(TestError.unknown)) : .success(())
+        }
+    }
+    
+    private func sendExpectingFailure() async throws {
+        let deferredFailure = deferFailure(viewModel.actions, timeout: .seconds(1), message: "The screen should remain visible.") { $0 == .dismiss }
+        context.send(viewAction: .send)
+        let deferredInteraction = deferFulfillment(context.observe(\.viewState.shouldDisableInteraction)) { !$0 }
+        try await deferredFailure.fulfill()
+        try await deferredInteraction.fulfill()
+        #expect(userIndicatorController.submitIndicatorDelayCallsCount == 2, "An error indicator should be shown.")
     }
     
     private func send(timeout: Duration = .seconds(10)) async throws {

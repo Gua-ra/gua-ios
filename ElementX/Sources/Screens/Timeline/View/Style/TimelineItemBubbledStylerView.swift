@@ -34,7 +34,11 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
     }
     
     private var isFocussed: Bool {
-        focussedEventID != nil && timelineItem.id.eventID == focussedEventID
+        focussedEventID.map { timelineItem.represents(eventID: $0) } ?? false
+    }
+    
+    private var isMediaStack: Bool {
+        timelineItem is MediaStackRoomTimelineItem
     }
     
     private var isPinned: Bool {
@@ -117,7 +121,8 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
     
     private var bubble: some View {
         ZStack(alignment: .trailingFirstTextBaseline) {
-            VStack(alignment: alignment, spacing: -8) {
+            // The avatar overlaps a bubble's padded corner, but a stack has no bubble and the overlap would cover its count header.
+            VStack(alignment: alignment, spacing: isMediaStack ? 0 : -8) {
                 if !timelineItem.isOutgoing, !isDM {
                     header
                         .zIndex(1)
@@ -236,7 +241,8 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
             .longPressWithFeedback(isEnabled: !isMessageSelectionActive) {
                 displayMenu(showsActions: true)
             }
-            .swipeRightAction {
+            // A stack pages its cards with a horizontal drag, so its reply stays in the menu.
+            .swipeRightAction(isEnabled: !isMediaStack) {
                 CompoundIcon(\.reply)
                     .foregroundColor(.compound.iconPrimary)
                     .accessibilityHidden(true)
@@ -256,10 +262,11 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
             .padding(.top, messageBubbleTopPadding)
     }
     
-    /// Only text reacts to a double tap: other content handles single taps itself, and the Mac keeps double-click for selecting words.
+    /// Only text and stacks react to a double tap: other content opens on a single tap, and the Mac keeps double-click for selecting words.
     private var canDoubleTapToReact: Bool {
+        let isReactable = (timelineItem as? MediaStackRoomTimelineItem)?.isFirstMemberReactable ?? (timelineItem.isCopyable && timelineItem.isReactable)
         guard !ProcessInfo.processInfo.isiOSAppOnMac, !isMessageSelectionActive,
-              timelineItem.isCopyable, timelineItem.isReactable, !timelineItem.isRedacted else { return false }
+              isReactable, !timelineItem.isRedacted else { return false }
         
         switch context.viewState.timelineKind {
         case .live, .detached, .thread: return true
@@ -289,16 +296,28 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
         }
     }
     
+    @ViewBuilder
     var messageBubble: some View {
-        contentWithReply
+        let content = contentWithReply
             .timelineItemSendInfo(timelineItem: timelineItem,
                                   adjustedDeliveryStatus: adjustedDeliveryStatus,
                                   hasContentScanningFailure: hasContentScanningFailure,
                                   context: context)
-            .bubbleBackground(isOutgoing: timelineItem.isOutgoing,
-                              insets: timelineItem.bubbleInsets(hasContentScanningFailure: hasContentScanningFailure),
-                              color: hasContentScanningFailure ? .compound.bgCriticalSubtle : timelineItem.bubbleBackgroundColor,
-                              borderColor: hasContentScanningFailure ? .compound.borderCriticalSubtle : nil)
+        
+        // A stack has no bubble, and its cards fan out past their frame and follow the finger, so nothing may clip them.
+        if isMediaStack, timelineItem.hasMediaCaption {
+            // Its caption bubble shows the send info instead, as a captioned photo's bubble does.
+            contentWithReply
+                .environment(\.mediaStackDeliveryStatus, adjustedDeliveryStatus)
+        } else if isMediaStack {
+            content
+        } else {
+            content
+                .bubbleBackground(isOutgoing: timelineItem.isOutgoing,
+                                  insets: timelineItem.bubbleInsets(hasContentScanningFailure: hasContentScanningFailure),
+                                  color: hasContentScanningFailure ? .compound.bgCriticalSubtle : timelineItem.bubbleBackgroundColor,
+                                  borderColor: hasContentScanningFailure ? .compound.borderCriticalSubtle : nil)
+        }
     }
     
     var contentWithReply: some View {
@@ -327,9 +346,14 @@ struct TimelineItemBubbledStylerView<Content: View>: View {
                     .hidden()
             }
             
-            content()
-                .timelineBubbleLayoutSize(.natural)
-                .cornerRadius(timelineItem.contentCornerRadius)
+            if isMediaStack {
+                content()
+                    .timelineBubbleLayoutSize(.natural)
+            } else {
+                content()
+                    .timelineBubbleLayoutSize(.natural)
+                    .cornerRadius(timelineItem.contentCornerRadius)
+            }
         }
     }
     

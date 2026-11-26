@@ -21,7 +21,7 @@ struct ReportContentScreenViewModelTests {
         let roomProxy = JoinedRoomProxyMock(.init(name: "test"))
         roomProxy.reportContentReasonReturnValue = .success(())
         let clientProxy = ClientProxyMock(.init())
-        let viewModel = ReportContentScreenViewModel(eventID: eventID,
+        let viewModel = ReportContentScreenViewModel(eventIDs: [eventID],
                                                      senderID: senderID,
                                                      roomProxy: roomProxy,
                                                      clientProxy: clientProxy)
@@ -51,7 +51,7 @@ struct ReportContentScreenViewModelTests {
         let roomProxy = JoinedRoomProxyMock(.init(name: "test"))
         roomProxy.reportContentReasonReturnValue = .success(())
         let clientProxy = ClientProxyMock(.init())
-        let viewModel = ReportContentScreenViewModel(eventID: eventID,
+        let viewModel = ReportContentScreenViewModel(eventIDs: [eventID],
                                                      senderID: senderID,
                                                      roomProxy: roomProxy,
                                                      clientProxy: clientProxy)
@@ -74,5 +74,23 @@ struct ReportContentScreenViewModelTests {
         #expect(roomProxy.reportContentReasonReceivedArguments?.reason == reportReason, "The reason should match the user input.")
         #expect(clientProxy.ignoreUserCallsCount == 1, "A call should have been made to ignore the sender.")
         #expect(clientProxy.ignoreUserReceivedUserID == senderID, "The ignored user ID should match the sender.")
+    }
+    
+    @Test
+    func reportStack() async throws {
+        let roomProxy = JoinedRoomProxyMock(.init(name: "test"))
+        roomProxy.reportContentReasonReturnValue = .success(())
+        let viewModel = ReportContentScreenViewModel(eventIDs: ["$1", "$2", "$3"],
+                                                     senderID: senderID,
+                                                     roomProxy: roomProxy,
+                                                     clientProxy: ClientProxyMock(.init()))
+        
+        viewModel.state.bindings.reasonText = reportReason
+        let deferred = deferFulfillment(viewModel.actions) { $0 == .submitFinished }
+        viewModel.context.send(viewAction: .submit)
+        try await deferred.fulfill()
+        
+        #expect(roomProxy.reportContentReasonReceivedInvocations.map(\.eventID) == ["$1", "$2", "$3"])
+        #expect(roomProxy.reportContentReasonReceivedInvocations.allSatisfy { $0.reason == reportReason })
     }
 }

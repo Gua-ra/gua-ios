@@ -91,6 +91,42 @@ struct TimelineItemMenuActionProviderTests {
         #expect(!hasForward)
     }
     
+    @Test
+    func stackOffersActionsForAllOfItsMembers() throws {
+        let stack = MediaStackRoomTimelineItem.mock(members: [.mockImage(index: 0, count: 2, isOutgoing: true, caption: "Beach day"),
+                                                              .mockVideo(index: 1, count: 2, isOutgoing: true)])
+        let actions = try #require(makeActions(for: stack))
+        
+        #expect(actions.actions == [.reply(isThread: false), .replyInThread, .forward(itemID: stack.id), .saveMedia, .copyCaption, .copyPermalink, .viewSource])
+        #expect(actions.secondaryActions == [.redact(isMedia: false)])
+        #expect(!actions.reactions.isEmpty)
+    }
+    
+    @Test
+    func stackFromSomeoneElseCanBeReportedButNotRemoved() throws {
+        let stack = MediaStackRoomTimelineItem.mock(members: (0..<2).map { .mockImage(index: $0, count: 2) })
+        let actions = try #require(makeActions(for: stack))
+        
+        #expect(!actions.actions.contains(.copyCaption))
+        #expect(actions.secondaryActions == [.report])
+    }
+    
+    @Test
+    func stackWithAnUnsentMemberCannotBeForwarded() throws {
+        let unsent = ImageRoomTimelineItem(id: .event(uniqueID: .init("local"), eventOrTransactionID: .transactionID("txn")),
+                                           timestamp: .mock, isOutgoing: true, isEditable: true, canBeRepliedTo: false,
+                                           sender: .init(id: "@me:matrix.org"),
+                                           content: .init(filename: "IMG_1.jpg", imageInfo: .mockImage, thumbnailInfo: nil),
+                                           properties: .init(deliveryStatus: .sending),
+                                           mediaBatch: .init(id: "batch", index: 1, count: 2))
+        let stack = MediaStackRoomTimelineItem.mock(members: [.mockImage(index: 0, count: 2, isOutgoing: true), .image(unsent)])
+        let actions = try #require(makeActions(for: stack))
+        
+        let hasForward = actions.actions.contains(where: \.isForward)
+        #expect(!hasForward)
+        #expect(actions.actions.contains(.saveMedia))
+    }
+    
     // MARK: - Helpers
     
     private func makeTextItem(id: TimelineItemIdentifier = .randomEvent) -> TextRoomTimelineItem {

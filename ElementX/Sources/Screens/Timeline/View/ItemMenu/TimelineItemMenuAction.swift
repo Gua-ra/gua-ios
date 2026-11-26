@@ -72,6 +72,7 @@ enum TimelineItemMenuAction: Identifiable, Hashable {
     case unpin
     case viewInRoomTimeline
     case downloadMedia
+    case saveMedia
     case select
     
     var id: Self {
@@ -186,6 +187,8 @@ enum TimelineItemMenuAction: Identifiable, Hashable {
             Label(L10n.actionViewInTimeline, icon: \.visibilityOn)
         case .downloadMedia:
             Label(L10n.actionDownload, icon: \.downloadIos)
+        case .saveMedia:
+            Label(L10n.actionSave, icon: \.downloadIos)
         case .select:
             Label(UntranslatedL10n.guaActionSelect, systemImage: "selection.pin.in.out")
         }

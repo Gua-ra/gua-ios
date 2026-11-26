@@ -186,6 +186,30 @@ final nonisolated class EventTimelineItemProxy: Sendable {
         item.readReceipts
     }
     
+    var isLocalEcho: Bool {
+        item.localSendState != nil
+    }
+    
+    var mediaBatch: MediaBatch? {
+        // Once a photo is edited its latest JSON is the edit, whose content never carries the marker.
+        let eventJSON = isEditedMessage ? item.lazyProvider.debugInfo().originalJson : item.lazyProvider.latestJson()
+        return eventJSON.flatMap(MediaBatch.init(eventJSON:))
+    }
+    
+    var uploadProgress: Double? {
+        guard case let .notSentYet(progress?) = item.localSendState, progress.progress.total > 0 else {
+            return nil
+        }
+        return Double(progress.progress.current) / Double(progress.progress.total)
+    }
+    
+    private var isEditedMessage: Bool {
+        guard case let .msgLike(content) = item.content, case let .message(message) = content.kind else {
+            return false
+        }
+        return message.isEdited
+    }
+    
     var reactions: [Reaction] {
         item.reactions
     }

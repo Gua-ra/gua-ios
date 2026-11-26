@@ -59,7 +59,7 @@ extension RoomFlowCoordinator {
         case emojiPicker(selectedEmojis: Set<String>, previousState: State)
         case mapNavigator(previousState: State)
         case messageForwarding(forwardingPayload: MessageForwardingPayload, previousState: State)
-        case reportContent(itemID: TimelineItemIdentifier, senderID: String, previousState: State)
+        case reportContent(eventIDs: [String], senderID: String, previousState: State)
         case pollForm(previousState: State)
         case pollsHistory
         case pollsHistoryForm
@@ -91,6 +91,7 @@ extension RoomFlowCoordinator {
         var spaceRoomListProxy: SpaceRoomListProxyProtocol?
         var authorizedSpacesSelection: AuthorizedSpacesSelection?
         var emojiPickerContinuation: EmojiPickerScreenContinuation?
+        var mediaSource: MediaPickerScreenSource?
     }
     
     enum Event: EventType {
@@ -110,7 +111,7 @@ extension RoomFlowCoordinator {
         case startSpaceFlow
         case finishedSpaceFlow
         
-        case presentReportContent(itemID: TimelineItemIdentifier, senderID: String)
+        case presentReportContent(eventIDs: [String], senderID: String)
         case dismissReportContent
         
         case presentRoomDetails
@@ -196,8 +197,8 @@ extension RoomFlowCoordinator {
             case (_, .dismissFlow):
                 return .complete
                 
-            case (.room, .presentReportContent(let itemID, let senderID)):
-                return .reportContent(itemID: itemID, senderID: senderID, previousState: fromState)
+            case (.room, .presentReportContent(let eventIDs, let senderID)):
+                return .reportContent(eventIDs: eventIDs, senderID: senderID, previousState: fromState)
                 
             case (.room, .presentMediaUploadPicker(let mode, let caption)):
                 return .mediaUploadPicker(mode: mode, caption: caption, previousState: fromState)
@@ -245,8 +246,8 @@ extension RoomFlowCoordinator {
             case (.thread(_, let previousState), .dismissThread):
                 return previousState
                 
-            case (.thread, .presentReportContent(let itemID, let senderID)):
-                return .reportContent(itemID: itemID, senderID: senderID, previousState: fromState)
+            case (.thread, .presentReportContent(let eventIDs, let senderID)):
+                return .reportContent(eventIDs: eventIDs, senderID: senderID, previousState: fromState)
                 
             case (.thread, .presentMediaUploadPicker(let mode, let caption)):
                 return .mediaUploadPicker(mode: mode, caption: caption, previousState: fromState)

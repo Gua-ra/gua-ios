@@ -17,6 +17,8 @@ extension TimelineControllerFactoryMock {
     convenience init(_ configuration: Configuration) {
         self.init()
         
+        pendingMediaBatches = PendingMediaBatchStore()
+        
         buildTimelineControllerRoomProxyInitialFocussedEventIDTimelineItemFactoryMediaProviderClosure = { _, _, _, _ in
             if let timelineController = configuration.threadTimelineController {
                 return timelineController

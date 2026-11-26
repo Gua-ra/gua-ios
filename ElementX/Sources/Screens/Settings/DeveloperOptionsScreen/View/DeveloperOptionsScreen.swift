@@ -94,6 +94,11 @@ struct DeveloperOptionsScreen: View {
                 Toggle(isOn: $context.viewSourceEnabled) {
                     Text(L10n.actionViewSource)
                 }
+                
+                Toggle(isOn: $context.guaMediaStacksEnabled) {
+                    Text("Send photo stacks")
+                    Text("Photos and videos picked together show as one stack.")
+                }
             }
             
             Section {

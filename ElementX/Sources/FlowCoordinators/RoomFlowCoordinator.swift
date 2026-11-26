@@ -421,8 +421,8 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
             case (.spaceFlow, .finishedSpaceFlow, _):
                 spaceFlowCoordinator = nil
                 
-            case (_, .presentReportContent, .reportContent(let itemID, let senderID, _)):
-                presentReportContent(for: itemID, from: senderID)
+            case (_, .presentReportContent, .reportContent(let eventIDs, let senderID, _)):
+                presentReportContent(for: eventIDs, from: senderID)
                 
             case (_, .presentMediaUploadPicker, .mediaUploadPicker(let mode, let caption, _)):
                 guard let timelineController = (context.userInfo as? EventUserInfo)?.timelineController else {
@@ -535,11 +535,15 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
                 presentPollForm(mode: mode, timelineController: timelineController)
                 
             case (_, .presentMediaUploadPreview, .mediaUploadPreview(let mediaURLs, let caption, _)):
-                guard let timelineController = (context.userInfo as? EventUserInfo)?.timelineController else {
+                guard let userInfo = context.userInfo as? EventUserInfo, let timelineController = userInfo.timelineController else {
                     fatalError("Missing required TimelineController")
                 }
                 
-                presentMediaUploadPreviewScreen(for: mediaURLs, caption: caption, timelineController: timelineController, animated: animated)
+                presentMediaUploadPreviewScreen(for: mediaURLs,
+                                                caption: caption,
+                                                mediaSource: userInfo.mediaSource,
+                                                timelineController: timelineController,
+                                                animated: animated)
                 
             case (_, .presentInviteUsersScreen(let flow), .inviteUsersScreen):
                 presentInviteUsersScreen(flow: flow)
@@ -694,8 +698,8 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
                 switch action {
                 case .presentRoomDetails:
                     stateMachine.tryEvent(.presentRoomDetails)
-                case .presentReportContent(let itemID, let senderID):
-                    stateMachine.tryEvent(.presentReportContent(itemID: itemID,
+                case .presentReportContent(let eventIDs, let senderID):
+                    stateMachine.tryEvent(.presentReportContent(eventIDs: eventIDs,
                                                                 senderID: senderID))
                 case .presentMediaUploadPicker(let mode, let caption):
                     stateMachine.tryEvent(.presentMediaUploadPicker(mode: mode, caption: caption),
@@ -806,8 +810,8 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
             guard let self else { return }
             
             switch action {
-            case .presentReportContent(let itemID, let senderID):
-                stateMachine.tryEvent(.presentReportContent(itemID: itemID, senderID: senderID))
+            case .presentReportContent(let eventIDs, let senderID):
+                stateMachine.tryEvent(.presentReportContent(eventIDs: eventIDs, senderID: senderID))
             case .presentMediaUploadPicker(let mode, let caption):
                 stateMachine.tryEvent(.presentMediaUploadPicker(mode: mode, caption: caption),
                                       userInfo: EventUserInfo(animated: animated, timelineController: timelineController))
@@ -1047,13 +1051,9 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
         }
     }
     
-    private func presentReportContent(for itemID: TimelineItemIdentifier, from senderID: String) {
-        guard let eventID = itemID.eventID else {
-            fatalError()
-        }
-        
+    private func presentReportContent(for eventIDs: [String], from senderID: String) {
         let stackCoordinator = NavigationStackCoordinator()
-        let parameters = ReportContentScreenCoordinatorParameters(eventID: eventID,
+        let parameters = ReportContentScreenCoordinatorParameters(eventIDs: eventIDs,
                                                                   senderID: senderID,
                                                                   roomProxy: roomProxy,
                                                                   clientProxy: userSession.clientProxy,
@@ -1098,7 +1098,7 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
                 navigationStackCoordinator.setSheetCoordinator(nil)
             case .selectedMediaAtURLs(let urls):
                 stateMachine.tryEvent(.presentMediaUploadPreview(mediaURLs: urls, caption: caption),
-                                      userInfo: EventUserInfo(animated: animated, timelineController: timelineController))
+                                      userInfo: EventUserInfo(animated: animated, timelineController: timelineController, mediaSource: mode.source))
             }
         }
         
@@ -1113,6 +1113,7 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
     
     private func presentMediaUploadPreviewScreen(for mediaURLs: [URL],
                                                  caption: NSAttributedString?,
+                                                 mediaSource: MediaPickerScreenSource?,
                                                  timelineController: TimelineControllerProtocol,
                                                  animated: Bool) {
         let stackCoordinator = NavigationStackCoordinator()
@@ -1128,6 +1129,7 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
                                                                        title: title,
                                                                        shouldShowCaptionWarning: userSession.userSettings.app.shouldShowMediaCaptionWarning,
                                                                        galleryEnabled: userSession.userSettings.app.galleryEnabled,
+                                                                       sendsMediaBatch: mediaSource == .photoLibrary && userSession.userSettings.app.guaMediaStacksEnabled,
                                                                        mediaUploadingPreprocessor: MediaUploadingPreprocessor(userSettings: userSession.userSettings),
                                                                        timelineController: timelineController,
                                                                        clientProxy: userSession.clientProxy,

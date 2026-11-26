@@ -23,6 +23,10 @@ class MediaUploadPreviewScreenViewModel: MediaUploadPreviewScreenViewModelType, 
     private var requestHandle: SendAttachmentJoinHandleProtocol?
     private let clientProxy: ClientProxyProtocol
     private let galleryEnabled: Bool
+    private let sendsMediaBatch: Bool
+    /// The markers of the items in `mediaURLs`, fixed by the first send so that a retry stays in the same batch.
+    private var unsentMediaBatches: [MediaBatch?]?
+    private var hasSentFirstItem = false
     
     private var actionsSubject: PassthroughSubject<MediaUploadPreviewScreenViewModelAction, Never> = .init()
     
@@ -35,6 +39,7 @@ class MediaUploadPreviewScreenViewModel: MediaUploadPreviewScreenViewModelType, 
          title: String?,
          shouldShowCaptionWarning: Bool,
          galleryEnabled: Bool,
+         sendsMediaBatch: Bool,
          mediaUploadingPreprocessor: MediaUploadingPreprocessor,
          timelineController: TimelineControllerProtocol,
          clientProxy: ClientProxyProtocol,
@@ -45,6 +50,7 @@ class MediaUploadPreviewScreenViewModel: MediaUploadPreviewScreenViewModelType, 
         self.clientProxy = clientProxy
         self.userIndicatorController = userIndicatorController
         self.galleryEnabled = galleryEnabled
+        self.sendsMediaBatch = sendsMediaBatch
         
         // Start processing the media whilst the user is reviewing it/adding a caption.
         processingTask = Self.processMedia(at: mediaURLs, preprocessor: mediaUploadingPreprocessor, clientProxy: clientProxy)
@@ -78,6 +84,8 @@ class MediaUploadPreviewScreenViewModel: MediaUploadPreviewScreenViewModelType, 
                             MXLog.error("Failed sending gallery with error: \(error)")
                             showError(label: L10n.screenMediaUploadPreviewErrorFailedSending)
                         }
+                    } else if let mediaBatches = unsentMediaBatches ?? mediaBatches(for: mediaInfos) {
+                        guard await sendMediaBatches(mediaInfos, mediaBatches: mediaBatches, caption: caption) else { return }
                     } else {
                         var perItemCaption = caption
                         for mediaInfo in mediaInfos {
@@ -171,7 +179,40 @@ class MediaUploadPreviewScreenViewModel: MediaUploadPreviewScreenViewModelType, 
         }
     }
     
-    private func sendAttachment(mediaInfo: MediaInfo, caption: String?) async -> Result<Void, TimelineControllerError> {
+    private func mediaBatches(for mediaInfos: [MediaInfo]) -> [MediaBatch?]? {
+        guard sendsMediaBatch, mediaInfos.count > 1, mediaInfos.allSatisfy(\.isPhotoOrVideo) else { return nil }
+        return MediaBatch.makeBatches(count: mediaInfos.count)
+    }
+    
+    /// Stops at the first failure and keeps the unsent items, so a retry sends nothing twice and the caption never leaves the first item.
+    private func sendMediaBatches(_ mediaInfos: [MediaInfo], mediaBatches: [MediaBatch?], caption: String?) async -> Bool {
+        for (offset, (mediaInfo, mediaBatch)) in zip(mediaInfos, mediaBatches).enumerated() {
+            switch await sendAttachment(mediaInfo: mediaInfo, caption: hasSentFirstItem ? nil : caption, mediaBatch: mediaBatch) {
+            case .success:
+                hasSentFirstItem = true
+            case .failure(let error):
+                MXLog.error("Failed sending media with error: \(error)")
+                keepUnsentMedia(Array(mediaInfos[offset...]), mediaBatches: Array(mediaBatches[offset...]))
+                showError(label: L10n.screenMediaUploadPreviewErrorFailedSending)
+                return false
+            }
+        }
+        return true
+    }
+    
+    private func keepUnsentMedia(_ mediaInfos: [MediaInfo], mediaBatches: [MediaBatch?]) {
+        mediaURLs.removeFirst(mediaURLs.count - mediaInfos.count)
+        state.mediaURLs = mediaURLs
+        unsentMediaBatches = mediaBatches
+        processingTask = Task { .success(mediaInfos) }
+        
+        if hasSentFirstItem {
+            state.bindings.caption = NSAttributedString() // It went out with the first item.
+            state.canEditCaption = false
+        }
+    }
+    
+    private func sendAttachment(mediaInfo: MediaInfo, caption: String?, mediaBatch: MediaBatch? = nil) async -> Result<Void, TimelineControllerError> {
         let requestHandle: (@MainActor @Sendable (SendAttachmentJoinHandleProtocol) -> Void) = { [weak self] handle in
             self?.requestHandle = handle
         }
@@ -182,12 +223,14 @@ class MediaUploadPreviewScreenViewModel: MediaUploadPreviewScreenViewModelType, 
                                                       thumbnailURL: thumbnailURL,
                                                       imageInfo: imageInfo,
                                                       caption: caption,
+                                                      mediaBatch: mediaBatch,
                                                       requestHandle: requestHandle)
         case let .video(videoURL, thumbnailURL, videoInfo):
             return await timelineController.sendVideo(url: videoURL,
                                                       thumbnailURL: thumbnailURL,
                                                       videoInfo: videoInfo,
                                                       caption: caption,
+                                                      mediaBatch: mediaBatch,
                                                       requestHandle: requestHandle)
         case let .audio(audioURL, audioInfo):
             return await timelineController.sendAudio(url: audioURL,
@@ -249,5 +292,14 @@ extension NSAttributedString {
     var nonBlankString: String? {
         guard !string.isBlank else { return nil }
         return string
+    }
+}
+
+private extension MediaInfo {
+    var isPhotoOrVideo: Bool {
+        switch self {
+        case .image, .video: true
+        case .audio, .file: false
+        }
     }
 }

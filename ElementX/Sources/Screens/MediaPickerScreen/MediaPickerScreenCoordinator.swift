@@ -35,6 +35,10 @@ enum MediaPickerScreenSelectionType: Hashable {
     static func multiple(galleryEnabled: Bool) -> Self {
         .multiple(limit: galleryEnabled ? galleryLimit : individualUploadLimit)
     }
+    
+    static func multiple(galleryEnabled: Bool, mediaStacksEnabled: Bool) -> Self {
+        mediaStacksEnabled ? .multiple(limit: MediaBatch.sendLimit) : .multiple(galleryEnabled: galleryEnabled)
+    }
 }
 
 enum MediaPickerScreenCoordinatorAction {

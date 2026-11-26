@@ -371,6 +371,14 @@ extension AccessibilityTests {
         try await performAccessibilityAudit(named: "MediaEventsTimelineScreen_Previews")
     }
 
+    func testMediaStackGridScreen() async throws {
+        try await performAccessibilityAudit(named: "MediaStackGridScreen_Previews")
+    }
+
+    func testMediaStackRoomTimelineView() async throws {
+        try await performAccessibilityAudit(named: "MediaStackRoomTimelineView_Previews")
+    }
+
     func testMediaUploadPreviewScreen() async throws {
         try await performAccessibilityAudit(named: "MediaUploadPreviewScreen_Previews")
     }

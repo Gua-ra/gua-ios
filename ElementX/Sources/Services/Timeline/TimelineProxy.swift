@@ -328,6 +328,7 @@ final class TimelineProxy: TimelineProxyProtocol {
                    thumbnailURL: URL,
                    imageInfo: ImageInfo,
                    caption: String?,
+                   extraContentJSON: String?,
                    requestHandle: @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineProxyError> {
         MXLog.info("Sending image")
         
@@ -336,7 +337,8 @@ final class TimelineProxy: TimelineProxyProtocol {
                                                               caption: caption,
                                                               formattedCaption: nil, // Rust will build this from the caption's markdown.
                                                               mentions: nil,
-                                                              inReplyTo: nil),
+                                                              inReplyTo: nil,
+                                                              extraContentJson: extraContentJSON),
                                                 thumbnailSource: .file(filename: thumbnailURL.path(percentEncoded: false)),
                                                 imageInfo: imageInfo)
             
@@ -380,6 +382,7 @@ final class TimelineProxy: TimelineProxyProtocol {
                    thumbnailURL: URL,
                    videoInfo: VideoInfo,
                    caption: String?,
+                   extraContentJSON: String?,
                    requestHandle: @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineProxyError> {
         MXLog.info("Sending video")
         
@@ -388,7 +391,8 @@ final class TimelineProxy: TimelineProxyProtocol {
                                                               caption: caption,
                                                               formattedCaption: nil,
                                                               mentions: nil,
-                                                              inReplyTo: nil),
+                                                              inReplyTo: nil,
+                                                              extraContentJson: extraContentJSON),
                                                 thumbnailSource: .file(filename: thumbnailURL.path(percentEncoded: false)),
                                                 videoInfo: videoInfo)
             
@@ -490,13 +494,15 @@ final class TimelineProxy: TimelineProxyProtocol {
         return .success(())
     }
     
-    func sendMessageEventContent(_ messageContent: RoomMessageEventContentWithoutRelation) async -> Result<Void, TimelineProxyError> {
+    func sendMessageEventContent(_ messageContent: RoomMessageEventContentWithoutRelation, extraContentJSON: String?) async -> Result<Void, TimelineProxyError> {
         MXLog.info("Sending message content")
         
         do {
-            _ = try await timeline.send(msg: messageContent)
+            _ = try await timeline.sendWithExtraContent(msg: messageContent, extraContentJson: extraContentJSON)
         } catch {
             MXLog.error("Failed sending message with error: \(error)")
+            // Gua: upstream returns success here, but a forward must stop a chat at a failed enqueue and resume there on retry.
+            return .failure(.sdkError(error))
         }
         
         MXLog.info("Finished sending message content")

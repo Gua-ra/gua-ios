@@ -12,7 +12,7 @@ import SwiftUI
 typealias ReportContentScreenViewModelType = StateStoreViewModelV2<ReportContentScreenViewState, ReportContentScreenViewAction>
 
 class ReportContentScreenViewModel: ReportContentScreenViewModelType, ReportContentScreenViewModelProtocol {
-    private let eventID: String
+    private let eventIDs: [String]
     private let senderID: String
     private let roomProxy: JoinedRoomProxyProtocol
     private let clientProxy: ClientProxyProtocol
@@ -22,8 +22,8 @@ class ReportContentScreenViewModel: ReportContentScreenViewModelType, ReportCont
         actionsSubject.eraseToAnyPublisher()
     }
     
-    init(eventID: String, senderID: String, roomProxy: JoinedRoomProxyProtocol, clientProxy: ClientProxyProtocol) {
-        self.eventID = eventID
+    init(eventIDs: [String], senderID: String, roomProxy: JoinedRoomProxyProtocol, clientProxy: ClientProxyProtocol) {
+        self.eventIDs = eventIDs
         self.senderID = senderID
         self.roomProxy = roomProxy
         self.clientProxy = clientProxy
@@ -47,10 +47,12 @@ class ReportContentScreenViewModel: ReportContentScreenViewModelType, ReportCont
     private func submitReport() async {
         actionsSubject.send(.submitStarted)
         
-        if case let .failure(error) = await roomProxy.reportContent(eventID, reason: state.bindings.reasonText) {
-            MXLog.error("Submit Report Content failed: \(error)")
-            actionsSubject.send(.submitFailed(message: error.localizedDescription))
-            return
+        for eventID in eventIDs {
+            if case let .failure(error) = await roomProxy.reportContent(eventID, reason: state.bindings.reasonText) {
+                MXLog.error("Submit Report Content failed: \(error)")
+                actionsSubject.send(.submitFailed(message: error.localizedDescription))
+                return
+            }
         }
         
         // Ignore the sender if the user wants to.

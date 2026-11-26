@@ -23,6 +23,9 @@ nonisolated struct VideoRoomTimelineItem: EventBasedMessageTimelineItemProtocol,
     
     var properties = RoomTimelineItemProperties()
     
+    var mediaBatch: MediaBatch?
+    var uploadProgress: Double?
+    
     var body: String {
         content.caption ?? content.filename
     }

@@ -32,6 +32,7 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
     private let userSettings: UserSettings
     private let analyticsService: AnalyticsServiceProtocol
     private let emojiProvider: EmojiProviderProtocol
+    private let pendingMediaBatches: PendingMediaBatchStore
     
     private let timelineInteractionHandler: TimelineInteractionHandler
     
@@ -67,6 +68,7 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
         self.userIndicatorController = userIndicatorController
         self.appMediator = appMediator
         self.emojiProvider = emojiProvider
+        pendingMediaBatches = timelineControllerFactory.pendingMediaBatches
         
         let voiceMessageRecorder = VoiceMessageRecorder(audioRecorder: AudioRecorder(), mediaPlayerProvider: mediaPlayerProvider)
         
@@ -161,6 +163,8 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
             Task { await handleMediaTapped(with: id) }
         case .galleryItemTapped(let galleryItemID):
             Task { await handleMediaTapped(with: galleryItemID.timelineItemID, galleryIndex: galleryItemID.mediaIndex) }
+        case .mediaStackHeaderTapped(let stackID):
+            openMediaStackGrid(stackID: stackID)
         case .itemSendInfoTapped(let itemID):
             handleItemSendInfoTapped(itemID: itemID)
         case .toggleReaction(let emoji, let itemID):
@@ -195,6 +199,8 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
             }
         case .displayTimelineItemMenu(let itemID, let presentation):
             timelineInteractionHandler.displayTimelineItemActionMenu(for: itemID, presentation: presentation)
+        case .handleTimelineItemMenuAction(let itemID, .forward) where timelineController.timelineItems.mediaStack(itemID) != nil:
+            forwardMediaStack(itemID: itemID)
         case .handleTimelineItemMenuAction(let itemID, .forward) where state.canSelectMessages:
             startSelection(itemID: itemID)
         case .handleTimelineItemMenuAction(let itemID, let action):
@@ -284,6 +290,7 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
     func focusOnEvent(eventID: String) async {
         if state.timelineState.hasLoadedItem(with: eventID) {
             state.timelineState.focussedEvent = .init(eventID: eventID, appearance: .animated)
+            bringFocussedMemberToFront()
             return
         }
         
@@ -534,8 +541,8 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
                     Task { await self.forwardMessage(itemID: itemID) }
                 case .displayEditPollForm(let eventID, let poll):
                     actionsSubject.send(.displayEditPollForm(eventID: eventID, poll: poll))
-                case .displayReportContent(let itemID, let senderID):
-                    actionsSubject.send(.displayReportContent(itemID: itemID, senderID: senderID))
+                case .displayReportContent(let eventIDs, let senderID):
+                    actionsSubject.send(.displayReportContent(eventIDs: eventIDs, senderID: senderID))
                 case .displayMediaUploadPreviewScreen(let mediaURLs):
                     actionsSubject.send(.displayMediaUploadPreviewScreen(mediaURLs: mediaURLs))
                 case .showActionMenu(let actionMenuInfo):
@@ -549,7 +556,7 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
                         self.state.bindings.actionMenuInfo = actionMenuInfo
                     }
                 case .showRedactConfirmation(let itemID):
-                    state.bindings.redactConfirmationInfo = .init(id: itemID)
+                    state.bindings.redactConfirmationInfo = redactConfirmationInfo(for: itemID)
                 case .showDebugInfo(let debugInfo):
                     state.bindings.debugInfo = debugInfo
                 case .showTextSelection(let item):
@@ -736,7 +743,7 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
             actionsSubject.send(.composer(action: .removeFocus)) // Hide the keyboard otherwise a big white space is sometimes shown when dismissing the preview.
             
             let mediaPreviewViewModel = makeMediaPreviewViewModel(item: item, timelineViewModelKind: timelineViewModelKind)
-            actionsSubject.send(.displayMediaPreview(mediaPreviewViewModel))
+            presentMediaPreview(mediaPreviewViewModel)
         case .displayGalleryPreview(let galleryItem, let timelineViewModelKind):
             actionsSubject.send(.composer(action: .removeFocus))
             
@@ -754,11 +761,12 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
         state.showLoading = false
     }
     
-    private func handleItemSendInfoTapped(itemID: TimelineItemIdentifier) {
-        guard let timelineItem = timelineController.timelineItems.firstUsingStableID(itemID) else {
+    private func handleItemSendInfoTapped(itemID tappedItemID: TimelineItemIdentifier) {
+        guard let timelineItem = sendInfoItem(for: tappedItemID) else {
             MXLog.warning("Couldn't find timeline item.")
             return
         }
+        let itemID = timelineItem.id
         
         guard let eventTimelineItem = timelineItem as? EventBasedTimelineItemProtocol else {
             fatalError("Only events can have send info.")
@@ -949,6 +957,7 @@ class TimelineViewModel: TimelineViewModelType, TimelineViewModelProtocol {
         
         state.timelineState.itemsDictionary = timelineItemsDictionary
         state.timelineState.recomputeReadMarkerUniqueID()
+        bringFocussedMemberToFront()
     }
     
     private func updateViewState(item: RoomTimelineItemProtocol, groupStyle: TimelineGroupStyle) -> RoomTimelineItemViewState {
@@ -1196,6 +1205,81 @@ extension TimelineViewModel {
     private func forwardMessage(itemID: TimelineItemIdentifier) async {
         guard let forwardingPayload = await makeForwardingPayload(for: [itemID]) else { return }
         actionsSubject.send(.displayMessageForwarding(forwardingPayload: forwardingPayload))
+    }
+}
+
+extension TimelineViewModel {
+    private func openMediaStackGrid(stackID: TimelineItemIdentifier) {
+        guard let stack = timelineController.timelineItems.mediaStack(stackID) else { return }
+        state.mediaStackPositions.reveal(stack)
+        state.bindings.mediaStackGrid = stack
+    }
+    
+    /// A stack shows a failure when any of its members failed, which is the one to retry or remove.
+    private func sendInfoItem(for itemID: TimelineItemIdentifier) -> RoomTimelineItemProtocol? {
+        let timelineItem = timelineController.timelineItems.firstUsingStableID(itemID)
+        return (timelineItem as? MediaStackRoomTimelineItem)?.firstFailedMember?.item ?? timelineItem
+    }
+    
+    private func redactConfirmationInfo(for itemID: TimelineItemIdentifier) -> TimelineRedactConfirmationInfo {
+        guard let stack = timelineController.timelineItems.mediaStack(itemID) else { return .init(id: itemID) }
+        return .init(id: itemID, title: stack.removeConfirmationTitle, message: UntranslatedL10n.guaMediaStackRemoveSubtitle)
+    }
+    
+    private func bringFocussedMemberToFront() {
+        guard let focussedEvent = state.timelineState.focussedEvent, focussedEvent.appearance != .hasAppeared else { return }
+        
+        for case let .mediaStack(stack) in state.timelineState.itemViewStates.map(\.type) {
+            if let member = stack.members.first(where: { $0.id.eventID == focussedEvent.eventID }) {
+                state.mediaStackPositions.bringToFront(member, of: stack)
+                return
+            }
+        }
+    }
+    
+    /// A stack goes straight to the chat picker with all of its members, as a selection is capped below a stack's size.
+    private func forwardMediaStack(itemID: TimelineItemIdentifier) {
+        guard let stack = timelineController.timelineItems.mediaStack(itemID) else { return }
+        
+        Task {
+            guard var forwardingPayload = await makeForwardingPayload(for: stack.members.map(\.id)) else {
+                displayErrorToast(L10n.errorUnknown)
+                return
+            }
+            if userSettings.app.guaMediaStacksEnabled {
+                let files = forwardingPayload.ids.compactMap { id in stack.members.first { $0.id == id }?.file }
+                forwardingPayload.mediaBatch = MediaBatchForwarding(files: files, pendingBatches: pendingMediaBatches)
+            }
+            actionsSubject.send(.displayMessageForwarding(forwardingPayload: forwardingPayload))
+        }
+    }
+    
+    /// From the grid the viewer is presented over it, so that closing the viewer goes back to the grid.
+    private func presentMediaPreview(_ mediaPreviewViewModel: TimelineMediaPreviewViewModel) {
+        guard state.bindings.mediaStackGrid != nil else {
+            actionsSubject.send(.displayMediaPreview(mediaPreviewViewModel))
+            return
+        }
+        
+        mediaPreviewViewModel.actions.sink { [weak self] action in
+            guard let self else { return }
+            switch action {
+            case .dismiss:
+                state.bindings.mediaStackGridPreviewViewModel = nil
+            case .displayMessageForwarding(let forwardingPayload):
+                state.bindings.mediaStackGridPreviewViewModel = nil
+                state.bindings.mediaStackGrid = nil
+                // The viewer and the grid must be gone before the chat picker can be presented.
+                DispatchQueue.main.asyncAfter(deadline: .now() + TimelineMediaPreviewViewModel.displayMessageForwardingDelay) {
+                    self.actionsSubject.send(.displayMessageForwarding(forwardingPayload: forwardingPayload))
+                }
+            case .viewInRoomTimeline:
+                fatalError("\(action) should not be visible on a chat's own media.")
+            }
+        }
+        .store(in: &cancellables)
+        
+        state.bindings.mediaStackGridPreviewViewModel = mediaPreviewViewModel
     }
 }
 

@@ -126,7 +126,7 @@ extension TimelineItemMenuAction {
         case .translate: (.primary, 4)
         case .edit, .editCaption, .addCaption, .editPoll: (.primary, 5)
         case .forward: (.primary, 6)
-        case .downloadMedia: (.primary, 7)
+        case .downloadMedia, .saveMedia: (.primary, 7)
         case .replyInThread: (.more, 0)
         case .pin, .unpin: (.more, 1)
         case .copyPermalink: (.more, 2)

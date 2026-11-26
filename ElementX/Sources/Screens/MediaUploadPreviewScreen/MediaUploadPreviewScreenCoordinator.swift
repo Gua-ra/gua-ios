@@ -16,6 +16,7 @@ struct MediaUploadPreviewScreenCoordinatorParameters {
     let shouldShowCaptionWarning: Bool
     /// When `false`, multiple attachments are sent as individual messages.
     let galleryEnabled: Bool
+    let sendsMediaBatch: Bool
     let mediaUploadingPreprocessor: MediaUploadingPreprocessor
     let timelineController: TimelineControllerProtocol
     let clientProxy: ClientProxyProtocol
@@ -41,6 +42,7 @@ final class MediaUploadPreviewScreenCoordinator: CoordinatorProtocol {
                                                       title: parameters.title,
                                                       shouldShowCaptionWarning: parameters.shouldShowCaptionWarning,
                                                       galleryEnabled: parameters.galleryEnabled,
+                                                      sendsMediaBatch: parameters.sendsMediaBatch,
                                                       mediaUploadingPreprocessor: parameters.mediaUploadingPreprocessor,
                                                       timelineController: parameters.timelineController,
                                                       clientProxy: parameters.clientProxy,

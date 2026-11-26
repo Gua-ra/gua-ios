@@ -11,6 +11,8 @@ import MatrixRustSDK
 
 struct TimelineControllerFactory: TimelineControllerFactoryProtocol {
     let userSettings: UserSettings
+    /// Shared by the session's timelines, as sends outlive the chat they started in and forwards land in another.
+    let pendingMediaBatches = PendingMediaBatchStore()
     
     func buildTimelineController(roomProxy: JoinedRoomProxyProtocol,
                                  initialFocussedEventID: String?,
@@ -21,7 +23,8 @@ struct TimelineControllerFactory: TimelineControllerFactoryProtocol {
                            initialFocussedEventID: initialFocussedEventID,
                            timelineItemFactory: timelineItemFactory,
                            mediaProvider: mediaProvider,
-                           userSettings: userSettings)
+                           userSettings: userSettings,
+                           pendingMediaBatches: pendingMediaBatches)
     }
     
     func buildThreadTimelineController(threadRootEventID: String,
@@ -36,7 +39,8 @@ struct TimelineControllerFactory: TimelineControllerFactoryProtocol {
                                                initialFocussedEventID: initialFocussedEventID,
                                                timelineItemFactory: timelineItemFactory,
                                                mediaProvider: mediaProvider,
-                                               userSettings: userSettings))
+                                               userSettings: userSettings,
+                                               pendingMediaBatches: pendingMediaBatches))
         case .failure(let error):
             return .failure(.roomProxyError(error))
         }

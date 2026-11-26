@@ -125,6 +125,7 @@ protocol TimelineControllerProtocol: Sendable {
                    thumbnailURL: URL,
                    imageInfo: ImageInfo,
                    caption: String?,
+                   mediaBatch: MediaBatch?,
                    requestHandle: @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineControllerError>
     
     func sendLocation(body: String,
@@ -137,6 +138,7 @@ protocol TimelineControllerProtocol: Sendable {
                    thumbnailURL: URL,
                    videoInfo: VideoInfo,
                    caption: String?,
+                   mediaBatch: MediaBatch?,
                    requestHandle: @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineControllerError>
     
     func sendVoiceMessage(url: URL,
