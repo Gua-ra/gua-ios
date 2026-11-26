@@ -36,7 +36,10 @@ class ServerSelectionUITests: XCTestCase {
         // When typing in an invalid homeserver
         app.textFields[A11yIdentifiers.changeServerScreen.server].clearAndTypeText("thisisbad\n", app: app) // The tests only accept an address from LoginHomeserver.mockXYZ
         
-        // Then an error should be shown and the confirmation button disabled.
+        // Then an error should be shown and the confirmation button disabled, once the lookup's loading indicator has gone.
+        let loadingIndicator = app.staticTexts["Loading…"]
+        _ = loadingIndicator.waitForExistence(timeout: 2)
+        XCTAssertTrue(loadingIndicator.waitForNonExistence(timeout: 10))
         try await app.assertScreenshot()
         XCTAssertFalse(app.buttons[A11yIdentifiers.changeServerScreen.continue].isEnabled, "The continue button should be disabled when there is an error.")
     }
