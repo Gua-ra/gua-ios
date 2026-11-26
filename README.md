@@ -2,7 +2,7 @@
 
 <div align="center">
   
-  ![Gua Logo](https://github.com/user-attachments/assets/33d5300f-24ac-42fe-84c2-37ca84920bd1)
+  <img src="https://github.com/user-attachments/assets/33d5300f-24ac-42fe-84c2-37ca84920bd1" width="180" alt="Gua logo" />
   
   <h1>Gua for iOS</h1>
 </div>
