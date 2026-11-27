@@ -26,6 +26,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     private let userIndicatorController: UserIndicatorControllerProtocol
     private let resolverClient: ResolverClientProtocol? // GUA FORK: phone -> homeserver routing
     private let accountGenesisService: AccountGenesisServiceProtocol? // GUA FORK: ADM-008 account genesis
+    private let resolverVerifier: ResolverVerifying? // GUA FORK: report-only resolver verification
     private let usesPhoneLoginHint: Bool // GUA FORK
     private let oAuthPresenterFactory: ((UIWindow) -> OAuthAuthenticationPresenterProtocol)? // GUA FORK
     
@@ -33,7 +34,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         /// The state machine hasn't started.
         case initial
         
-        /// GUA FORK: Gua phone-number entry screen (default entry point for normal users).
+        /// GUA FORK: the default entry point.
         case phoneEntryScreen
         
         /// The initial screen shown when you first launch the app.
@@ -63,7 +64,6 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         /// Modify the flow using the provisioning parameters in the `userInfo`.
         case applyProvisioningParameters
         /// GUA FORK BEGIN: Gua phone-OAuth events
-        /// The Gua phone-entry flow is being started.
         case startPhoneAuth
         /// The user dropped into the legacy auth flow from the phone screen.
         case useLegacyAuth
@@ -108,8 +108,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     // periphery:ignore - retaining purpose
     private var phoneEntryScreenCoordinator: PhoneEntryScreenCoordinator?
     private var isHandlingPhoneSubmission = false
-    /// GUA FORK: the genesis this signup registered, held for the length of that signup and no longer.
-    /// The attach proof is signed against it when the sign-in page asks for one.
+    /// GUA FORK: held only for the signup that registered it; the attach proof is signed against it.
     private var pendingAccountGenesis: PendingAccountGenesis?
     
     weak var delegate: AuthenticationFlowCoordinatorDelegate?
@@ -123,6 +122,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
          userIndicatorController: UserIndicatorControllerProtocol,
          resolverClient: ResolverClientProtocol? = nil,
          accountGenesisService: AccountGenesisServiceProtocol? = nil,
+         resolverVerifier: ResolverVerifying? = nil,
          usesPhoneLoginHint: Bool = false,
          oAuthPresenterFactory: ((UIWindow) -> OAuthAuthenticationPresenterProtocol)? = nil) {
         self.authenticationService = authenticationService
@@ -135,6 +135,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         self.userIndicatorController = userIndicatorController
         self.resolverClient = resolverClient
         self.accountGenesisService = accountGenesisService
+        self.resolverVerifier = resolverVerifier
         self.usesPhoneLoginHint = usesPhoneLoginHint
         self.oAuthPresenterFactory = oAuthPresenterFactory
         
@@ -144,7 +145,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         configureStateMachine()
     }
     
-    /// GUA FORK: the phone flow starts on the phone-entry screen and never shows the start screen.
+    /// GUA FORK: starts on the phone-entry screen instead of the start screen.
     private var usesPhoneFlow: Bool {
         usesPhoneLoginHint && !appSettings.legacyAuthEnabled
     }
@@ -403,11 +404,8 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
             guard let self else { return }
             defer { endPhoneEntrySubmission(coordinator: coordinator) }
             
-            // GUA FORK: ask the resolver which homeserver this phone belongs to (login) or should be
-            // created on (register), instead of hardcoding a single account provider.
-            // Use the homeserver base URL the resolver returned directly (configure(for:) accepts a
-            // server name OR a homeserver URL). This avoids re-discovering via HTTPS well-known on the
-            // server name, which is redundant and fails for http/localhost homeservers.
+            // GUA FORK: configure with the resolver's base URL, not the server name: well-known
+            // rediscovery is redundant and fails for http and localhost homeservers.
             let resolution: HomeserverResolution
             do {
                 resolution = try await resolveHomeserver(forPhone: phoneNumber)
@@ -441,9 +439,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                 return
             }
             
-            // GUA FORK: ADM-008 Phase 3. A flagged-on signup mints an AccountGenesis on this device
-            // and carries its attach handle in the reserved login-hint grammar. Every other case,
-            // this one included when the flag is off, sends the bare phone number as before.
+            // GUA FORK: a flagged-on signup sends its genesis attach handle in the login hint.
             let loginHint: String
             do {
                 loginHint = try await guaLoginHint(phoneNumber: phoneNumber, flow: flow)
@@ -467,14 +463,8 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         }
     }
     
-    /// GUA FORK: the `login_hint` this submission should send (ADM-008 decision 6).
-    ///
-    /// Returns the bare phone number, exactly as this flow has always sent it, in every case that is
-    /// not a flagged-on signup: the feature flag is off, no genesis service is configured, this is an
-    /// existing account signing in, or the deployment answered 503 and does not do genesis. Only the
-    /// last of those involved a network call, and none of them is shown to the user.
-    ///
-    /// Throws when this device meant to register a genesis and could not, which fails the signup.
+    /// GUA FORK: the bare phone number unless this is a flagged-on signup on a deployment that supports genesis.
+    /// Throws when a genesis was meant to be registered and could not be, which fails the signup.
     private func guaLoginHint(phoneNumber: String, flow: AuthenticationFlow) async throws -> String {
         // A resubmitted number starts a new signup, so whatever the last one registered is abandoned
         // here rather than left in the keychain.
@@ -497,40 +487,17 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         }
     }
     
-    /// GUA FORK: drop the genesis of a signup that will not complete.
-    ///
-    /// The authority and recovery keys are filed in the keychain under the accountId, and nothing but
-    /// this pending value knows that accountId. An abandoned signup that does not discard them leaves
-    /// two Ed25519 private keys behind that no later code path can read or remove, once per abandoned
-    /// attempt. Every path that ends a signup without attaching calls this, so the only keys that
-    /// outlive a signup are the ones an account actually owns.
+    /// GUA FORK: call on every path that ends a signup without attaching. Only this pending value knows the
+    /// accountId its keychain keys are filed under, so skipping it leaks two private keys.
     private func discardPendingAccountGenesis() {
         guard let pendingAccountGenesis else { return }
         accountGenesisService?.discard(pendingAccountGenesis)
         self.pendingAccountGenesis = nil
     }
     
-    /// GUA FORK: start the OAuth flow with the reserved `passkey` login hint so the sign-in page leads
-    /// with the passkey.
-    ///
-    /// A passkey here is a discoverable credential: it was registered with a resident key and the
-    /// assertion carries neither a username nor an allow list, so the credential identifies the
-    /// account by itself. Nothing about signing in this way needs a phone number. Sending the number
-    /// as the login hint is what used to cost a verification code per passkey sign-in, because the
-    /// page auto-submits a phone hint before the passkey is ever offered.
-    ///
-    /// The contract with the sign-in page: the app sends `login_hint=passkey`
-    /// (`AuthenticationService.passkeyLoginHint`) and keeps `prompt=login`, MAS forwards the hint
-    /// verbatim, and identity-service maps this reserved value to the session intent `PASSKEY`
-    /// (`LoginState.intent`, absent on older servers) instead of a phone hint. With that intent the
-    /// page leads with a primary "Sign in with a passkey" button and a visible "Use my phone number
-    /// instead" link. It never starts the WebAuthn ceremony on its own, because WebKit only allows
-    /// one from a user gesture. A server that predates the intent sees no phone hint at all, which
-    /// is the behaviour this button shipped with, so the app can roll out ahead of the server.
-    ///
-    /// The resolver is skipped because it maps a phone number to a homeserver and there is no number
-    /// here. The passkey signs in to the deployment's default account provider instead, so someone
-    /// whose account lives elsewhere still has to sign in by number.
+    /// GUA FORK: uses the reserved `passkey` login hint because the sign-in page auto-submits a phone hint before
+    /// offering the passkey. Signs in to the default account provider; accounts elsewhere must sign in by number.
+    /// An identity-service without the passkey intent shows its page with no phone hint, so no server-version check is needed.
     private func handlePasskeySignIn(coordinator: PhoneEntryScreenCoordinator) {
         guard !isHandlingPhoneSubmission, oAuthPresenter == nil, stateMachine.state == .phoneEntryScreen else { return }
         isHandlingPhoneSubmission = true
@@ -539,8 +506,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
             guard let self else { return }
             defer { endPhoneEntrySubmission(coordinator: coordinator) }
             
-            // GUA FORK: signing in with a passkey abandons any genesis a signup on this screen had
-            // already registered, so its keys go with it.
+            // GUA FORK: a passkey sign-in abandons any genesis a signup on this screen registered.
             discardPendingAccountGenesis()
             
             // A build with no Gua deployment configured (a development build without the injected
@@ -593,11 +559,12 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         isHandlingPhoneSubmission = false
     }
     
-    /// GUA FORK: resolve a phone to its homeserver via the Gua resolver. The resolver is required for
-    /// phone auth so the app doesn't silently route to the wrong MAS/homeserver.
+    /// GUA FORK: throws without a resolver rather than risk routing to the wrong MAS or homeserver.
     private func resolveHomeserver(forPhone phoneNumber: String) async throws -> HomeserverResolution {
         guard let resolverClient else { throw ResolverError.notConfigured }
-        return try await resolverClient.resolve(phoneNumber: phoneNumber)
+        let resolution = try await resolverClient.resolve(phoneNumber: phoneNumber)
+        resolverVerifier?.startVerification(of: resolution, phoneNumber: phoneNumber)
+        return resolution
     }
     
     // MARK: - QR Code
@@ -686,8 +653,7 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
             case .success(let userSession):
                 stateMachine.tryEvent(.signedIn, userInfo: userSession)
             case .failure:
-                // GUA FORK: the sign-in page was cancelled or failed, so the genesis this signup
-                // registered will never be attached and its keys go with it.
+                // GUA FORK: a cancelled or failed sign-in page never attaches the genesis.
                 discardPendingAccountGenesis()
                 phoneEntryScreenCoordinator?.setSubmitting(false)
                 // Nothing more to do, any alerts will be handled by the presenter.
