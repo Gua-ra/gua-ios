@@ -122,3 +122,5 @@ Licensed under the GNU Affero General Public License v3.0 (AGPL-3.0), see [LICEN
 Alternatively available under a paid Element Commercial License for the upstream portions; see [LICENSE-COMMERCIAL](LICENSE-COMMERCIAL) if applicable.
 
 Gua's modifications are available under AGPL-3.0-only. The Element Commercial License applies only to the upstream portions.
+
+The photo wallpapers (`ElementX/Resources/Wallpapers/photo-*.webp`) are not under the AGPL. Each keeps its own licence; see [Tools/Wallpapers/THIRD_PARTY_NOTICES.md](Tools/Wallpapers/THIRD_PARTY_NOTICES.md). `photo-maned-wolf-smiling.webp` is licensed to Gua for its official apps only, so a modified version must remove or replace it.

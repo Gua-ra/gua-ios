@@ -68,6 +68,10 @@ struct ChatThemeScreenViewState: BindableState {
         isPhotoHidden && baseTheme.wallpaper.photo != nil ? .none : baseTheme.wallpaper
     }
     
+    var photoCredit: ChatArtwork.Credit? {
+        shownWallpaper.artwork?.credit
+    }
+    
     /// Saving `.stock` makes a chat follow the default, so the preview shows the default. A photo this chat hides stays hidden.
     func shownTheme(saving theme: ChatTheme) -> ChatTheme {
         if theme.isStock {

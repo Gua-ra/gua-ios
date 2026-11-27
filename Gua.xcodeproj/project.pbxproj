@@ -939,6 +939,7 @@
 		83CBC9E62618B798350583E1 /* NSEAccountSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5CDCEFEDC238D56CCA00DD9 /* NSEAccountSettings.swift */; };
 		83DE56982AD08F2AE437B65D /* CreateRoomScreenViewModelProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CA15A1DE6CCDD604EB222D1 /* CreateRoomScreenViewModelProtocol.swift */; };
 		844D35D1BC2A9AA4129D92C8 /* AnalyticsPromptScreenModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C7C18A00C0A6FE5520EADBB /* AnalyticsPromptScreenModels.swift */; };
+		84685ABD2BE3B9F08FFC6A26 /* ChatPhotoCreditsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD9265A4234B05C511A527CB /* ChatPhotoCreditsScreen.swift */; };
 		847C22BCE06BC3BC68AB4003 /* TraceLogPack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 931DABDFEBF38930762C9E41 /* TraceLogPack.swift */; };
 		847C2BF13BA7A5A130E139C0 /* MessageTextViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 888CE3891ACEFEAF7A5E8211 /* MessageTextViewTests.swift */; };
 		84D2B1AEA0B80D040A71526D /* SpaceListScreenViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA5C33D576C32E15B0233FF2 /* SpaceListScreenViewModelTests.swift */; };
@@ -3279,6 +3280,7 @@
 		DCD0CD0FFC7D86D493E8B39D /* ReportContentScreenViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportContentScreenViewModel.swift; sourceTree = "<group>"; };
 		DCEEA2A9798617E81AA12806 /* AccountUserDefaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountUserDefaults.swift; sourceTree = "<group>"; };
 		DD825427CEA42FF6162888D0 /* AppRoutes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRoutes.swift; sourceTree = "<group>"; };
+		DD9265A4234B05C511A527CB /* ChatPhotoCreditsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatPhotoCreditsScreen.swift; sourceTree = "<group>"; };
 		DDD13BAA78252E9C9FC77012 /* UserProfileScreenViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileScreenViewModel.swift; sourceTree = "<group>"; };
 		DDF1A66CBEAF756D6A955162 /* BuildExtensions */ = {isa = PBXFileReference; lastKnownFileType = folder; name = BuildExtensions; path = Components/BuildExtensions; sourceTree = SOURCE_ROOT; };
 		DDF3A46962C44A18951C0204 /* LegalInformationScreenViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalInformationScreenViewModel.swift; sourceTree = "<group>"; };
@@ -4018,6 +4020,7 @@
 			children = (
 				4D3818FDBB03B0559EE97B7E /* ChatBackgroundPhotoPreview.swift */,
 				7602F317AA3085BA23C9CB89 /* ChatBubblePicker.swift */,
+				DD9265A4234B05C511A527CB /* ChatPhotoCreditsScreen.swift */,
 				8901A9EA91A5288415E25710 /* ChatThemePreview.swift */,
 				C8147AE2A41D0CA949CB53EA /* ChatThemeRow.swift */,
 				FF90E7BE6ED5B06ED9282DD0 /* ChatThemeScreen.swift */,
@@ -9076,6 +9079,7 @@
 				792683727D49B45BC03BB61D /* ChatBackgroundView.swift in Sources */,
 				C175854F02DB3148C40DFD55 /* ChatBubbleColor.swift in Sources */,
 				678771875E4DC1E0448EF99F /* ChatBubblePicker.swift in Sources */,
+				84685ABD2BE3B9F08FFC6A26 /* ChatPhotoCreditsScreen.swift in Sources */,
 				79FC591D08627E96BD5FEC51 /* ChatTheme.swift in Sources */,
 				7542C9FC2F0D47B7F589516D /* ChatThemeGallery.swift in Sources */,
 				9F6D8A87026846DB72102932 /* ChatThemePreview.swift in Sources */,

@@ -33,6 +33,7 @@ enum TestablePreviewsDictionary {
             "ChatBackgroundPhotoPreview_Previews" : ChatBackgroundPhotoPreview_Previews.self,
             "ChatBackgroundView_Previews" : ChatBackgroundView_Previews.self,
             "ChatBubblePicker_Previews" : ChatBubblePicker_Previews.self,
+            "ChatPhotoCreditsScreen_Previews" : ChatPhotoCreditsScreen_Previews.self,
             "ChatThemePreview_Previews" : ChatThemePreview_Previews.self,
             "ChatThemeScreen_Previews" : ChatThemeScreen_Previews.self,
             "ChatWallpaperPicker_Previews" : ChatWallpaperPicker_Previews.self,

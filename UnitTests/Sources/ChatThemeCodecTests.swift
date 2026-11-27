@@ -166,6 +166,10 @@ final class ChatThemeCodecTests {
     func artworkIDsMatchTheSpec() {
         #expect(ChatArtwork.allCases.map(\.id) == ["glass-drops", "glass-drops-blue", "molten-pearl", "silk", "ipe", "rain-on-glass", "pantanal", "currents-live",
                                                    "dune-lagoons", "palm-coast", "river-bends", "highland-mist", "glacier-lake", "canola-sky", "harbour-fog", "canyon-glow", "polar-ice", "moon-tide",
+                                                   "photo-lencois-lagoon", "photo-lencois-dunes", "photo-gruta-azul", "photo-ipe", "photo-araucaria", "photo-maned-wolf",
+                                                   "photo-maned-wolf-standing", "photo-maned-wolf-smiling", "photo-yukon-trail", "photo-yukon-sun", "photo-yukon-forest", "photo-yukon-sled", "photo-yukon-sled-2",
+                                                   "photo-peyto-lake", "photo-lone-canoe", "photo-jasper-aurora", "photo-nunavik-aurora", "photo-lac-delage", "photo-quebec-ice",
+                                                   "photo-quebec-leaves",
                                                    "currents", "azulejo", "calcadao", "knit", "doodles-brasil", "doodles-canada",
                                                    "paper", "paper-cut"])
         #expect(ChatArtwork.allCases.filter(\.isLive) == ChatArtwork.artworks(in: .live))
@@ -175,6 +179,37 @@ final class ChatThemeCodecTests {
         
         let reserved: Set = ["rainbow", "pattern", "video", "Blue"]
         #expect(reserved.isDisjoint(with: ChatArtwork.allCases.map(\.id)))
+    }
+    
+    @Test
+    func photoCreditsMatchTheSpec() {
+        #expect(ChatArtwork.Licence.cc0.name == "CC0 1.0")
+        #expect(ChatArtwork.Licence.cc0.deedURL.absoluteString == "https://creativecommons.org/publicdomain/zero/1.0/")
+        #expect(ChatArtwork.Licence.ccBy4.name == "CC BY 4.0")
+        #expect(ChatArtwork.Licence.ccBy4.deedURL.absoluteString == "https://creativecommons.org/licenses/by/4.0/")
+        #expect(ChatArtwork.Licence.allRightsReserved.name == UntranslatedL10n.guaChatThemePhotoLicenceAllRightsReserved)
+        #expect(ChatArtwork.Licence.allRightsReserved.deedURL.absoluteString == "https://github.com/Gua-ra/gua-android/blob/develop/tools/wallpapers/licenses/LicenseRef-Gabriel-Bonfa-Photo.txt")
+        
+        for artwork in ChatArtwork.allCases {
+            #expect((artwork.credit != nil) == artwork.isPhoto, "\(artwork.id)")
+        }
+        
+        let photos = ChatArtwork.artworks(in: .photos)
+        #expect(photos.allSatisfy { $0.id.hasPrefix("photo-") && !$0.isLive })
+        #expect(photos.allSatisfy { $0.fileNames.light == "\($0.id).webp" && $0.fileNames.dark == "\($0.id).webp" })
+        
+        let ownPhotos: [ChatArtwork] = [.photoYukonTrail, .photoYukonSun, .photoYukonForest, .photoYukonSled, .photoYukonSled2]
+        #expect(photos.filter { $0.credit?.licence == .ccBy4 } == ownPhotos)
+        #expect(photos.filter { $0.credit?.licence == .allRightsReserved } == [.photoManedWolfSmiling])
+        #expect(photos.filter { $0.credit?.sourceURL == nil } == [.photoManedWolfSmiling] + ownPhotos)
+    }
+    
+    @Test
+    func photosGetTheScrimOfAUsersPhotoAtItsDefaultDim() {
+        #expect(ChatBackground.Photo.defaultDim == 0.35)
+        for artwork in ChatArtwork.allCases {
+            #expect(artwork.photoDim == (artwork.isPhoto ? ChatBackground.Photo.defaultDim : nil), "\(artwork.id)")
+        }
     }
     
     @Test
@@ -219,12 +254,17 @@ final class ChatThemeCodecTests {
                 return "\(Self.id(of: theme.wallpaper))+\(bubbles)"
             }
         }
-        #expect(ChatThemeGallerySection.all.map(\.id) == [.featured, .live, .nature, .patterns, .minimal, .gradients])
+        #expect(ChatThemeGallerySection.all.map(\.id) == [.featured, .live, .nature, .photos, .patterns, .minimal, .gradients])
         #expect(sections == [["silk+teal", "glacier-lake+teal", "glass-drops+purple/pink", "currents+purple", "palm-coast+orange/blue", "ipe+pink/yellow", "azulejo+blue", "paper+green"],
                              ["glass-drops+purple/pink", "glass-drops-blue+teal", "molten-pearl+purple/blue", "silk+teal",
                               "ipe+pink/yellow", "rain-on-glass+green/blue", "pantanal+green", "currents-live+purple"],
                              ["dune-lagoons+teal/purple", "palm-coast+orange/blue", "river-bends+teal", "highland-mist+blue/green", "glacier-lake+teal", "canola-sky+green/orange",
                               "harbour-fog+blue", "canyon-glow+blue/purple", "polar-ice+blue/purple", "moon-tide+blue"],
+                             ["photo-lencois-lagoon+teal/purple", "photo-lencois-dunes+blue/purple", "photo-gruta-azul+teal/blue", "photo-ipe+blue/orange",
+                              "photo-araucaria+green/teal", "photo-maned-wolf+blue/purple", "photo-maned-wolf-standing+blue/purple", "photo-maned-wolf-smiling+blue/purple", "photo-yukon-trail+blue/teal",
+                              "photo-yukon-sun+orange/blue", "photo-yukon-forest+green/teal", "photo-yukon-sled+purple/blue", "photo-yukon-sled-2+teal/purple",
+                              "photo-peyto-lake+teal/blue", "photo-lone-canoe+orange/purple", "photo-jasper-aurora+green/teal", "photo-nunavik-aurora+purple/pink",
+                              "photo-lac-delage+blue", "photo-quebec-ice+green/teal", "photo-quebec-leaves+teal/graphite"],
                              ["currents+purple", "azulejo+blue", "calcadao+teal", "knit+blue", "doodles-brasil+green", "doodles-canada+blue"],
                              ["paper+green", "paper-cut+teal/orange", "mint+green", "sky+blue", "sand+orange", "blush+pink", "lavender+purple", "graphite+graphite"],
                              ["aurora+teal", "sunset+orange", "ocean+blue", "night+purple", "dawn+pink", "forest+teal", "dusk+purple", "citrus+green"]])
@@ -232,9 +272,10 @@ final class ChatThemeCodecTests {
     
     @Test
     func wallpaperPickerMatchesTheSpec() {
-        #expect(ChatWallpaperGallerySection.all.map(\.id) == [.live, .nature, .patterns, .minimal, .gradients])
+        #expect(ChatWallpaperGallerySection.all.map(\.id) == [.live, .nature, .photos, .patterns, .minimal, .gradients])
         #expect(ChatWallpaperGallerySection.all.map { $0.wallpapers.map(Self.id) } == [ChatArtwork.artworks(in: .live).map(\.id),
                                                                                        ChatArtwork.artworks(in: .nature).map(\.id),
+                                                                                       ChatArtwork.artworks(in: .photos).map(\.id),
                                                                                        ChatArtwork.artworks(in: .patterns).map(\.id),
                                                                                        ["paper", "paper-cut", "mint", "sky", "sand", "blush", "lavender", "graphite"],
                                                                                        ["aurora", "sunset", "ocean", "night", "dawn", "forest", "dusk", "citrus"]])
