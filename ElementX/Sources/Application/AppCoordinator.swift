@@ -156,8 +156,7 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         userSessionManager = UserSessionManager(userSessionStore: userSessionStore, appSettings: appSettings, notificationManager: notificationManager, liveLocationManager: liveLocationManager)
         
         let appLockService = AppLockService(keychainController: keychainController, appSettings: appSettings)
-        // GUA FORK: unlocking with Face ID/Touch ID is the default, so switch it on for anyone who
-        // set their PIN code up before this shipped (or before their device had biometrics).
+        // GUA FORK: biometric unlock is the default, so turn it on for PIN codes set up without it.
         appLockService.applyBiometricUnlockDefault()
         let appLockNavigationCoordinator = NavigationRootCoordinator()
         appLockFlowCoordinator = AppLockFlowCoordinator(appLockService: appLockService,
@@ -840,6 +839,7 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
                                                         userIndicatorController: userIndicatorController,
                                                         resolverClient: ResolverClient(), // GUA FORK: required for phone -> homeserver routing.
                                                         accountGenesisService: AccountGenesisService(appSettings: appSettings), // GUA FORK: ADM-008, inert while the flag is off.
+                                                        resolverVerifier: ResolverVerifier(appSettings: appSettings), // GUA FORK: report-only resolver verification.
                                                         usesPhoneLoginHint: true) // Flip to false to restore the stock start screen entry.
         coordinator.delegate = self
         
