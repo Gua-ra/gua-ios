@@ -192,6 +192,9 @@ jobs:
       contents: read
       # So a labelled PR can be told which build number its testers should install.
       pull-requests: write
+    outputs:
+      tag: ${{ steps.upload.outputs.tag }}
+      sha: ${{ steps.upload.outputs.sha }}
     # Derived from `target` itself rather than a separate gate output, so the two can never
     # disagree: anything that is not an explicit QA build routes to `production` and waits for
     # an approver. A gate bug therefore fails towards the gate, never around it.
@@ -307,6 +310,7 @@ jobs:
           GUA_DEV_RESOLVER_BASE_URL: ${{ secrets.GUA_DEV_RESOLVER_BASE_URL }}
           GUA_DEV_IDENTITY_SERVICE_BASE_URL: ${{ secrets.GUA_DEV_IDENTITY_SERVICE_BASE_URL }}
           GUA_DEV_ACCOUNT_PROVIDER: ${{ secrets.GUA_DEV_ACCOUNT_PROVIDER }}
+          GUA_DEV_RESOLVER_TRUST_ROOTS: ${{ secrets.GUA_DEV_RESOLVER_TRUST_ROOTS }}
         run: |
           set -euo pipefail
           if [ -z "${GUA_DEV_RESOLVER_BASE_URL:-}" ] || [ -z "${GUA_DEV_IDENTITY_SERVICE_BASE_URL:-}" ] || [ -z "${GUA_DEV_ACCOUNT_PROVIDER:-}" ]; then
@@ -336,6 +340,8 @@ jobs:
               static let identityServiceBaseURL: String? = "${GUA_DEV_IDENTITY_SERVICE_BASE_URL}"
               static let resolverBaseURL: String? = "${GUA_DEV_RESOLVER_BASE_URL}"
               static let defaultAccountProvider: String? = "${GUA_DEV_ACCOUNT_PROVIDER}"
+              // Resolver trust roots as space-separated authority:<keyId>:<spkiBase64>, policy:<keyId>:<spkiBase64>, authority-threshold:<n> and policy-threshold:<n> tokens.
+              static let resolverTrustRoots: String? = "${GUA_DEV_RESOLVER_TRUST_ROOTS:-}"
           }
           EOF
           echo "Wrote Secrets.swift with dev backend endpoints (values masked by Actions)."
@@ -679,6 +685,7 @@ jobs:
           fi
 
       - name: Upload to TestFlight
+        id: upload
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -729,6 +736,8 @@ jobs:
             2>&1 | tee altool-upload.log
           if grep -qiE 'No errors(, [0-9]+ warnings?)?,? uploading' altool-upload.log; then
             echo "Upload succeeded."
+            echo "tag=testflight/$([ "$TARGET_ENV" = dev ] && echo qa || echo prod)/$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           else
             echo "::error::altool upload failed (see log above) — nothing was delivered to TestFlight."
             exit 1
@@ -806,3 +815,22 @@ jobs:
             security delete-keychain "$GUA_SIGNING_KEYCHAIN" 2>/dev/null || true
           fi
           rm -f "$RUNNER_TEMP/dist.p12" || true
+
+  tag-source:
+    name: Tag the uploaded commit
+    needs: testflight
+    # Also after a later step fails: an uploaded build still needs its source tag.
+    if: always() && needs.testflight.outputs.tag != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create testflight/<app>/<build number>
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.testflight.outputs.tag }}
+          SHA: ${{ needs.testflight.outputs.sha }}
+        # A re-run finds the tag already pointing at the same commit.
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$TAG" -f sha="$SHA" ||
+            gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" --jq .object.sha | grep -qx "$SHA"

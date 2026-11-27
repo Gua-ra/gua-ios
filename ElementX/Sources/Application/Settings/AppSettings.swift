@@ -506,6 +506,10 @@ final nonisolated class AppSettings: @unchecked Sendable {
     @UserPreference(defaultValue: AppBuildType.isGuaDevelopment)
     var guaChatBackgroundsEnabled: Bool
     
+    /// GUA FORK: report-only resolver verification.
+    @UserPreference(defaultValue: true)
+    var guaResolverVerificationEnabled: Bool
+    
     @UserPreference(defaultValue: AppBuildType.current != .release)
     var developerOptionsEnabled: Bool
     
