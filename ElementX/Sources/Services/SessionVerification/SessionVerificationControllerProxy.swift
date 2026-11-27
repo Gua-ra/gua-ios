@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -9,47 +10,64 @@ import Combine
 import Foundation
 import MatrixRustSDK
 
-private class WeakSessionVerificationControllerProxy: SessionVerificationControllerDelegate {
-    private weak var proxy: SessionVerificationControllerProxy?
+private final class WeakSessionVerificationControllerProxy: SessionVerificationControllerDelegate {
+    @MainActor private weak var proxy: SessionVerificationControllerProxy?
     
-    init(proxy: SessionVerificationControllerProxy) {
+    @MainActor init(proxy: SessionVerificationControllerProxy) {
         self.proxy = proxy
     }
     
     // MARK: - SessionVerificationControllerDelegate
     
+    // The delegate methods are called by the SDK from arbitrary threads,
+    // hop to the main actor where the proxy lives.
+    
     func didReceiveVerificationRequest(details: MatrixRustSDK.SessionVerificationRequestDetails) {
-        proxy?.didReceiveVerificationRequest(details: details)
+        Task { @MainActor in
+            self.proxy?.didReceiveVerificationRequest(details: details)
+        }
     }
     
     func didReceiveVerificationData(data: MatrixRustSDK.SessionVerificationData) {
         switch data {
         // We can handle only emojis for now
         case .emojis(let emojis, _):
-            proxy?.didReceiveData(emojis)
+            Task { @MainActor in
+                self.proxy?.didReceiveData(emojis)
+            }
         default:
             break
         }
     }
     
     func didAcceptVerificationRequest() {
-        proxy?.didAcceptVerificationRequest()
+        Task { @MainActor in
+            self.proxy?.didAcceptVerificationRequest()
+        }
     }
     
     func didStartSasVerification() {
-        proxy?.didStartSasVerification()
+        Task { @MainActor in
+            self.proxy?.didStartSasVerification()
+        }
     }
     
     func didFail() {
-        proxy?.didFail()
+        Task { @MainActor in
+            self.proxy?.didFail()
+        }
     }
     
     func didCancel() {
-        proxy?.didCancel()
+        Task { @MainActor in
+            self.proxy?.didCancel()
+        }
     }
     
     func didFinish() {
-        proxy?.didFinish()
+        Task { @MainActor in
+            self.proxy?.didFinish()
+        }
     }
 }
 
@@ -71,7 +89,7 @@ class SessionVerificationControllerProxy: SessionVerificationControllerProxyProt
         MXLog.info("Acknowledging verification request")
         
         do {
-            try await sessionVerificationController.acknowledgeVerificationRequest(senderId: details.senderProfile.userID, flowId: details.flowID)
+            try await sessionVerificationController.acknowledgeVerificationRequest(senderId: details.senderProfile.id, flowId: details.flowID)
             return .success(())
         } catch {
             MXLog.error("Failed requesting session verification with error: \(error)")
@@ -84,13 +102,17 @@ class SessionVerificationControllerProxy: SessionVerificationControllerProxyProt
         
         do {
             try await sessionVerificationController.acceptVerificationRequest()
+            
+            MXLog.info("Accepted verification request")
+            actions.send(.acceptedVerificationRequest)
+            
             return .success(())
         } catch {
             MXLog.error("Failed requesting session verification with error: \(error)")
             return .failure(.failedAcceptingVerificationRequest)
         }
     }
-        
+    
     func requestDeviceVerification() async -> Result<Void, SessionVerificationControllerProxyError> {
         MXLog.info("Requesting device verification")
         
@@ -168,7 +190,7 @@ class SessionVerificationControllerProxy: SessionVerificationControllerProxyProt
     fileprivate func didReceiveVerificationRequest(details: MatrixRustSDK.SessionVerificationRequestDetails) {
         MXLog.info("Received verification request \(details)")
         
-        let details = SessionVerificationRequestDetails(senderProfile: UserProfileProxy(sdkUserProfile: details.senderProfile),
+        let details = SessionVerificationRequestDetails(senderProfile: UserProfile(rustUserProfile: details.senderProfile),
                                                         flowID: details.flowId,
                                                         deviceID: details.deviceId,
                                                         deviceDisplayName: details.deviceDisplayName,
@@ -178,8 +200,9 @@ class SessionVerificationControllerProxy: SessionVerificationControllerProxyProt
     }
     
     fileprivate func didAcceptVerificationRequest() {
-        MXLog.info("Accepted verification request")
-        
+        // Only called when the other device accepted our request. Accepting an incoming one is
+        // reported from the `acceptVerificationRequest` method above.
+        MXLog.info("Verification request accepted by the other device")
         actions.send(.acceptedVerificationRequest)
     }
     

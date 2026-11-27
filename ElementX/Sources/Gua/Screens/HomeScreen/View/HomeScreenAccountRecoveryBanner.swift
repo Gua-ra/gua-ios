@@ -14,12 +14,12 @@ import SwiftUI
 struct HomeScreenAccountRecoveryBanner: View {
     let recovery: PendingAccountRecovery
     var context: HomeScreenViewModel.Context
-
+    
     /// Set to the completable time when it arrives, so a device left open on the home screen switches
     /// to "can be finished now" instead of showing a time that has already passed. Nothing else
     /// redraws the banner then: the periodic re-read reports the same recovery.
     @State private var reachedCompletableAt = Date.distantPast
-
+    
     var body: some View {
         VStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
@@ -27,7 +27,7 @@ struct HomeScreenAccountRecoveryBanner: View {
                     .font(.compound.bodyLGSemibold)
                     .foregroundColor(.compound.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
-
+                
                 Text(Self.message(for: recovery, now: max(reachedCompletableAt, .now)))
                     .font(.compound.bodyMD)
                     .foregroundColor(.compound.textSecondary)
@@ -38,7 +38,7 @@ struct HomeScreenAccountRecoveryBanner: View {
                         reachedCompletableAt = completableAt
                     }
             }
-
+            
             Button {
                 context.send(viewAction: .cancelAccountRecovery)
             } label: {
@@ -52,7 +52,7 @@ struct HomeScreenAccountRecoveryBanner: View {
         .cornerRadius(14)
         .padding(.horizontal, 16)
     }
-
+    
     /// When it can be finished, as a date in the device's locale, or that it can be finished
     /// already. A report without the date still says what to do about it.
     ///
@@ -71,7 +71,7 @@ struct HomeScreenAccountRecoveryBanner: View {
 
 struct HomeScreenAccountRecoveryBanner_Previews: PreviewProvider {
     static let viewModel = HomeScreenRecoveryKeyConfirmationBanner_Previews.makeViewModel()
-
+    
     static var previews: some View {
         HomeScreenAccountRecoveryBanner(recovery: .init(completableAt: .now.addingTimeInterval(3 * 24 * 60 * 60),
                                                         expiresAt: .now.addingTimeInterval(10 * 24 * 60 * 60)),

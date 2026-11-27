@@ -1,18 +1,18 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Compound
 import SwiftUI
 
-@MainActor
 struct TimelineReactionsView: View {
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .heavy)
     @Environment(\.layoutDirection) private var layoutDirection: LayoutDirection
-
+    
     let context: TimelineViewModel.Context
     let itemID: TimelineItemIdentifier
     let reactions: [AggregatedReaction]
@@ -138,8 +138,6 @@ struct TimelineCollapseButtonLabel: View {
 }
 
 struct TimelineReactionButton: View {
-    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
-    
     let reaction: AggregatedReaction
     let toggleReaction: (String) -> Void
     let showReactionSummary: (String) -> Void

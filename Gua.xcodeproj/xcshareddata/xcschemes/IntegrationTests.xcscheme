@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "1430"
+   LastUpgradeVersion = "1620"
    version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -42,7 +42,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "4B70733CD7C13746395196E0"
-            BuildableName = "Gua.app"
+            BuildableName = "ElementX.app"
             BlueprintName = "ElementX"
             ReferencedContainer = "container:Gua.xcodeproj">
          </BuildableReference>

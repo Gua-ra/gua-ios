@@ -1,7 +1,8 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -86,25 +87,25 @@ struct HighlightedTimelineItemModifier_Previews: PreviewProvider, TestablePrevie
 struct HighlightedTimelineItemTimeline_Previews: PreviewProvider {
     static let roomProxyMock = JoinedRoomProxyMock(.init(name: "Preview room"))
     static let roomViewModel = RoomScreenViewModel.mock(roomProxyMock: roomProxyMock)
-    static let focussedEventID = "RoomTimelineItemFixtures.default.5"
+    static let focussedEventID = "TimelineFixtures.default.5"
+    static let composerViewModel = ComposerToolbarViewModel.mock()
     static let timelineViewModel = TimelineViewModel(roomProxy: roomProxyMock,
                                                      focussedEventID: focussedEventID,
-                                                     timelineController: MockTimelineController(),
+                                                     timelineController: TimelineControllerMock(.init()),
                                                      userSession: UserSessionMock(.init()),
                                                      mediaPlayerProvider: MediaPlayerProviderMock(),
-                                                     userIndicatorController: ServiceLocator.shared.userIndicatorController,
-                                                     appMediator: AppMediatorMock.default,
-                                                     appSettings: ServiceLocator.shared.settings,
-                                                     analyticsService: ServiceLocator.shared.analytics,
-                                                     emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                                     userIndicatorController: UserIndicatorControllerMock(),
+                                                     appMediator: AppMediatorMock(.init()),
+                                                     analyticsService: AnalyticsServiceMock(.init()),
+                                                     emojiProvider: EmojiProvider(userSettings: .mock()),
                                                      linkMetadataProvider: LinkMetadataProvider(),
                                                      timelineControllerFactory: TimelineControllerFactoryMock(.init()))
-
+    
     static var previews: some View {
-        NavigationStack {
+        ElementNavigationStack {
             RoomScreen(context: roomViewModel.context,
                        timelineContext: timelineViewModel.context,
-                       composerToolbar: ComposerToolbar.mock())
+                       composerToolbar: ComposerToolbar(context: composerViewModel.context))
         }
         .previewDisplayName("Timeline")
     }

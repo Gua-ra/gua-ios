@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -9,14 +10,14 @@ import Combine
 import Kingfisher
 import UIKit
 
-struct MediaProvider: MediaProviderProtocol {
+nonisolated struct MediaProvider: MediaProviderProtocol {
     private let mediaLoader: MediaLoaderProtocol
     private let imageCache: Kingfisher.ImageCache
-    private let homeserverReachabilityPublisher: CurrentValuePublisher<NetworkMonitorReachability, Never>?
+    private let homeserverReachabilityPublisher: CurrentValuePublisher<HomeserverReachability, Never>?
     
     init(mediaLoader: MediaLoaderProtocol,
          imageCache: Kingfisher.ImageCache,
-         homeserverReachabilityPublisher: CurrentValuePublisher<NetworkMonitorReachability, Never>?) {
+         homeserverReachabilityPublisher: CurrentValuePublisher<HomeserverReachability, Never>?) {
         self.mediaLoader = mediaLoader
         self.imageCache = imageCache
         self.homeserverReachabilityPublisher = homeserverReachabilityPublisher
@@ -43,7 +44,7 @@ struct MediaProvider: MediaProviderProtocol {
            let image = cacheResult.image {
             return .success(image)
         }
-
+        
         do {
             let imageData: Data
             if let size {
@@ -51,14 +52,14 @@ struct MediaProvider: MediaProviderProtocol {
             } else {
                 imageData = try await mediaLoader.loadMediaContentForSource(source)
             }
-
+            
             guard let image = UIImage(data: imageData) else {
                 MXLog.error("Invalid image data")
                 return .failure(.invalidImageData)
             }
-
+            
             try await imageCache.store(image, forKey: cacheKey)
-
+            
             return .success(image)
         } catch {
             MXLog.error("Failed retrieving image with error: \(error)")

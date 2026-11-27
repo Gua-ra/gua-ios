@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -14,14 +15,14 @@ struct PollOptionView: View {
     let pollOption: Poll.Option
     let showVotes: Bool
     let isFinalResult: Bool
-
+    
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
             Image(systemSymbol: pollOption.isSelected ? .checkmarkCircleFill : .circle)
                 .font(.compound.bodyLG)
                 .foregroundColor(pollOption.isSelected && isEnabled ? .compound.iconPrimary : .compound.iconTertiary)
                 .accessibilityAddTraits(pollOption.isSelected ? .isSelected : [])
-
+            
             VStack(spacing: 10) {
                 HStack(alignment: .lastTextBaseline, spacing: 8) {
                     Text(pollOption.text)
@@ -29,18 +30,19 @@ struct PollOptionView: View {
                         .multilineTextAlignment(.leading)
                         .foregroundColor(.compound.textPrimary)
                         .frame(maxWidth: .infinity, alignment: .leading)
-
+                    
                     if showVotes {
                         if isFinalWinningOption {
                             HStack(spacing: 4) {
                                 CompoundIcon(asset: Asset.Images.pollWinner)
-                                    .foregroundColor(.compound.iconAccentTertiary)
+                                    .foregroundColor(.compound.iconAccentPrimary)
                                     .accessibilityLabel(L10n.a11yPollsWinningAnswer)
                                 
                                 Text(L10n.commonPollVotesCount(pollOption.votes))
                                     .font(.compound.bodySMSemibold)
                                     .foregroundColor(.compound.textPrimary)
                             }
+                            .accessibilityElement(children: .combine)
                         } else {
                             Text(L10n.commonPollVotesCount(pollOption.votes))
                                 .font(.compound.bodySM)
@@ -48,14 +50,16 @@ struct PollOptionView: View {
                         }
                     }
                 }
-
+                
                 PollProgressView(progress: progress)
+                    .accessibilityHidden(true)
             }
         }
+        .accessibilityElement(children: .combine)
     }
-
+    
     // MARK: - Private
-
+    
     private var progress: Double {
         switch (showVotes, pollOption.allVotes, pollOption.isSelected) {
         case (true, let allVotes, _) where allVotes > 0:
@@ -66,7 +70,7 @@ struct PollOptionView: View {
             return 0
         }
     }
-
+    
     private var isFinalWinningOption: Bool {
         pollOption.isWinning && isFinalResult
     }
@@ -74,13 +78,13 @@ struct PollOptionView: View {
 
 private struct PollProgressView: View {
     let progress: Double
-
+    
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 Capsule()
                     .foregroundColor(.compound._bgEmptyItemAlpha)
-
+                
                 Capsule()
                     .frame(maxWidth: progress * geometry.size.width)
             }
@@ -101,7 +105,7 @@ struct PollOptionView_Previews: PreviewProvider, TestablePreview {
                                                  isWinning: false),
                                showVotes: false,
                                isFinalResult: false)
-
+                
                 PollOptionView(pollOption: .init(id: "2",
                                                  text: "Chinese 🇨🇳",
                                                  votes: 9,
@@ -110,7 +114,7 @@ struct PollOptionView_Previews: PreviewProvider, TestablePreview {
                                                  isWinning: true),
                                showVotes: true,
                                isFinalResult: false)
-
+                
                 PollOptionView(pollOption: .init(id: "2",
                                                  text: "Chinese 🇨🇳",
                                                  votes: 9,

@@ -1,11 +1,13 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import SwiftUI
+import Translation
 import WysiwygComposer
 
 struct TimelineView: View {
@@ -26,6 +28,11 @@ struct TimelineView: View {
                 ManageRoomMemberSheetView(context: $0.context)
             }
             .sheet(item: $timelineContext.debugInfo) { TimelineItemDebugView(info: $0) }
+            .sheet(item: $timelineContext.redactConfirmationInfo) { info in
+                RedactConfirmationView { reason in
+                    timelineContext.send(viewAction: .redactConfirmed(itemID: info.id, reason: reason))
+                }
+            }
             .sheet(item: actionMenuSheetInfo) { info in
                 if let actions = menuActions(for: info.item) {
                     TimelineItemMenu(item: info.item, actions: actions)
@@ -68,6 +75,13 @@ struct TimelineView: View {
                 ReadReceiptsSummaryView(orderedReadReceipts: $0.orderedReceipts)
                     .environmentObject(timelineContext)
             }
+            .translationPresentation(isPresented: $timelineContext.showTranslation, text: timelineContext.textToBeTranslated ?? "")
+            .onChange(of: timelineContext.showTranslation) { oldValue, newValue in
+                if oldValue, !newValue {
+                    // clear texts after translation was dismissed
+                    timelineContext.textToBeTranslated = nil
+                }
+            }
             .onDrop(of: ["public.item", "public.file-url"], isTargeted: $dragOver) { providers -> Bool in
                 let supportedProviders = providers.filter(\.isSupportedForPasteOrDrop)
                 
@@ -104,11 +118,16 @@ struct TimelineView: View {
 /// A table view wrapper that displays the timeline of a room.
 struct TimelineViewRepresentable: UIViewControllerRepresentable {
     @EnvironmentObject private var viewModelContext: TimelineViewModel.Context
-
+    
     func makeUIViewController(context: Context) -> TimelineTableViewController {
         TimelineTableViewController(coordinator: context.coordinator,
                                     isScrolledToBottom: $viewModelContext.isScrolledToBottom,
-                                    scrollToBottomPublisher: viewModelContext.viewState.timelineState.scrollToBottomPublisher)
+                                    isReadMarkerVisible: $viewModelContext.isReadMarkerVisible,
+                                    hasNewMessagesAtBottom: $viewModelContext.hasNewMessagesAtBottom,
+                                    floatingDate: $viewModelContext.floatingDate,
+                                    scrollToBottomPublisher: viewModelContext.viewState.timelineState.scrollToBottomPublisher,
+                                    scrollToFirstItemForDatePublisher: viewModelContext.viewState.timelineState.scrollToFirstItemForDatePublisher,
+                                    scrollToReadMarkerPublisher: viewModelContext.viewState.timelineState.scrollToReadMarkerPublisher)
     }
     
     func updateUIViewController(_ uiViewController: TimelineTableViewController, context: Context) {
@@ -121,7 +140,6 @@ struct TimelineViewRepresentable: UIViewControllerRepresentable {
     
     // MARK: - Coordinator
     
-    @MainActor
     class Coordinator {
         let context: TimelineViewModel.Context
         
@@ -150,6 +168,9 @@ struct TimelineViewRepresentable: UIViewControllerRepresentable {
             if tableViewController.hideTimelineMedia != context.viewState.hideTimelineMedia {
                 tableViewController.hideTimelineMedia = context.viewState.hideTimelineMedia
             }
+            if tableViewController.readMarkerUniqueID != context.viewState.timelineState.readMarkerUniqueID {
+                tableViewController.readMarkerUniqueID = context.viewState.timelineState.readMarkerUniqueID
+            }
             
             if tableViewController.typingMembers.members != context.viewState.typingMembers {
                 tableViewController.setTypingMembers(context.viewState.typingMembers)
@@ -164,27 +185,27 @@ struct TimelineViewRepresentable: UIViewControllerRepresentable {
 
 // MARK: - Previews
 
-struct TimelineView_Previews: PreviewProvider, TestablePreview {
+struct TimelineView_Previews: PreviewProvider { // Not testable as this preview is built the same way as RoomScreen.
     static let roomProxyMock = JoinedRoomProxyMock(.init(id: "stable_id",
                                                          name: "Preview room"))
     static let roomViewModel = RoomScreenViewModel.mock(roomProxyMock: roomProxyMock)
+    static let composerViewModel = ComposerToolbarViewModel.mock()
     static let timelineViewModel = TimelineViewModel(roomProxy: roomProxyMock,
-                                                     timelineController: MockTimelineController(),
+                                                     timelineController: TimelineControllerMock(.init()),
                                                      userSession: UserSessionMock(.init()),
                                                      mediaPlayerProvider: MediaPlayerProviderMock(),
-                                                     userIndicatorController: ServiceLocator.shared.userIndicatorController,
-                                                     appMediator: AppMediatorMock.default,
-                                                     appSettings: ServiceLocator.shared.settings,
-                                                     analyticsService: ServiceLocator.shared.analytics,
-                                                     emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                                     userIndicatorController: UserIndicatorControllerMock(),
+                                                     appMediator: AppMediatorMock(.init()),
+                                                     analyticsService: AnalyticsServiceMock(.init()),
+                                                     emojiProvider: EmojiProvider(userSettings: .mock()),
                                                      linkMetadataProvider: LinkMetadataProvider(),
                                                      timelineControllerFactory: TimelineControllerFactoryMock(.init()))
-
+    
     static var previews: some View {
-        NavigationStack {
+        ElementNavigationStack {
             RoomScreen(context: roomViewModel.context,
                        timelineContext: timelineViewModel.context,
-                       composerToolbar: ComposerToolbar.mock())
+                       composerToolbar: ComposerToolbar(context: composerViewModel.context))
         }
     }
 }

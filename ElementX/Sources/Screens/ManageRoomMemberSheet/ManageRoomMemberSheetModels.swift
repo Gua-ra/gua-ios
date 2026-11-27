@@ -1,9 +1,12 @@
 //
+// Copyright 2025 Element Creations Ltd.
 // Copyright 2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
+
+import Foundation
 
 enum ManageRoomMemberSheetViewModelAction: Equatable {
     case dismiss(shouldShowDetails: Bool)
@@ -45,6 +48,7 @@ struct ManageRoomMemberSheetViewState: BindableState {
 
 struct ManageRoomMemberSheetViewStateBindings {
     var alertInfo: AlertInfo<ManageRoomMemberSheetViewAlertType>?
+    var mediaPreviewItem: MediaPreviewItem?
 }
 
 enum ManageRoomMemberSheetViewAlertType {
@@ -58,6 +62,7 @@ enum ManageRoomMemberSheetViewAction {
     case ban
     case unban
     case displayDetails
+    case displayAvatar(URL)
 }
 
 enum ManageRoomMemberDetails {

@@ -1,0 +1,222 @@
+//
+// Copyright 2026 Element Creations Ltd.
+//
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// Please see LICENSE files in the repository root for full details.
+//
+
+import Combine
+@testable import ElementX
+import Testing
+
+@MainActor
+struct SearchScreenViewModelTests {
+    let viewModel: SearchScreenViewModelProtocol
+    let searchService: SearchServiceProxyMock
+    let userIndicatorController: UserIndicatorControllerMock
+    let userSettings: UserSettings
+    /// The rooms known to the client, empty until the room list loads.
+    let staticRoomListSubject = CurrentValueSubject<[RoomSummary], Never>([])
+    /// Fires with the query each time the (async, debounced) message search runs.
+    let setQuerySubject = PassthroughSubject<String, Never>()
+    /// Fires each time an indicator is submitted.
+    let submitIndicatorSubject = PassthroughSubject<Void, Never>()
+    /// Fires each time a search backfill is started, with whether it used the foreground strategy.
+    let startSearchBackfillSubject = PassthroughSubject<Bool, Never>()
+    
+    var context: SearchScreenViewModelType.Context {
+        viewModel.context
+    }
+    
+    init() {
+        searchService = SearchServiceProxyMock()
+        searchService.underlyingResultsPublisher = CurrentValueSubject<[SearchServiceResult], Never>([]).asCurrentValuePublisher()
+        searchService.underlyingPaginationStatePublisher = CurrentValueSubject(.idle(endReached: true)).asCurrentValuePublisher()
+        searchService.setQueryClosure = { [setQuerySubject] query in
+            setQuerySubject.send(query)
+            return .success(())
+        }
+        
+        userIndicatorController = UserIndicatorControllerMock()
+        userIndicatorController.submitIndicatorDelayClosure = { [submitIndicatorSubject] _, _ in
+            submitIndicatorSubject.send(())
+        }
+        
+        let clientProxy = ClientProxyMock(.init())
+        clientProxy.searchService = searchService
+        clientProxy.startSearchBackfillStrategyClosure = { [startSearchBackfillSubject] strategy in
+            startSearchBackfillSubject.send(strategy == .foreground)
+        }
+        let staticRoomSummaryProvider = RoomSummaryProviderMock()
+        staticRoomSummaryProvider.roomListPublisher = staticRoomListSubject.asCurrentValuePublisher()
+        clientProxy.staticRoomSummaryProvider = staticRoomSummaryProvider
+        clientProxy.roomSummaryForIdentifierClosure = { [staticRoomListSubject] identifier in
+            staticRoomListSubject.value.first { $0.id == identifier }
+        }
+        
+        userSettings = UserSettings.mock()
+        
+        viewModel = SearchScreenViewModel(roomSummaryProvider: RoomSummaryProviderMock(.init(state: .loaded(.mockRooms))),
+                                          userSession: UserSessionMock(.init(clientProxy: clientProxy, userSettings: userSettings)),
+                                          userIndicatorController: userIndicatorController)
+    }
+    
+    @Test
+    func searching() async throws {
+        let deferred = deferFulfillment(context.observe(\.viewState.rooms)) { $0.count == 1 }
+        context.searchQuery = "Second"
+        try await deferred.fulfill()
+        
+        // The rooms tab must not trigger the slow message search.
+        #expect(!searchService.setQueryCalled)
+    }
+    
+    @Test
+    func messageSearch() async throws {
+        let deferred = deferFulfillment(setQuerySubject) { $0 == "Foundation" }
+        context.searchMode = .messages
+        context.searchQuery = "Foundation"
+        try await deferred.fulfill()
+        
+        #expect(searchService.setQueryReceivedQuery == "Foundation")
+    }
+    
+    @Test
+    func openingMessagesTabStartsSearchBackfill() async throws {
+        let deferred = deferFulfillment(startSearchBackfillSubject) { $0 }
+        context.searchMode = .messages
+        try await deferred.fulfill()
+    }
+    
+    @Test
+    func messageSearchFailureShowsErrorIndicator() async throws {
+        searchService.setQueryClosure = { _ in .failure(.sdkError(SearchScreenViewModelTestsError.failed)) }
+        
+        let deferred = deferFulfillment(submitIndicatorSubject) { _ in true }
+        context.searchMode = .messages
+        context.searchQuery = "Foundation"
+        try await deferred.fulfill()
+        
+        #expect(userIndicatorController.submitIndicatorDelayCalled)
+    }
+    
+    @Test
+    func roomSelection() async throws {
+        let deferred = deferFulfillment(viewModel.actionsPublisher) { action in
+            switch action {
+            case .presentRoom(let roomID, _):
+                roomID == "2"
+            case .cancel:
+                false
+            }
+        }
+        
+        context.send(viewAction: .selectRoom(roomID: "2"))
+        
+        try await deferred.fulfill()
+    }
+    
+    @Test
+    func selectionRecordsBreadcrumbs() {
+        // Typing alone doesn't record the query, only submitting it does.
+        context.searchQuery = "Second"
+        context.send(viewAction: .selectRoom(roomID: "2"))
+        
+        #expect(userSettings.account.searchBreadcrumbs == [.room(roomID: "2")])
+        
+        context.send(viewAction: .submitQuery)
+        
+        #expect(userSettings.account.searchBreadcrumbs == [.query("Second"), .room(roomID: "2")])
+        
+        // Selecting the same room again from the empty state only bumps it back to the top.
+        context.searchQuery = ""
+        context.send(viewAction: .selectRoom(roomID: "2"))
+        
+        #expect(userSettings.account.searchBreadcrumbs == [.room(roomID: "2"), .query("Second")])
+        
+        // Submitting an empty query records nothing.
+        context.send(viewAction: .submitQuery)
+        
+        #expect(userSettings.account.searchBreadcrumbs == [.room(roomID: "2"), .query("Second")])
+    }
+    
+    @Test
+    func removingBreadcrumbs() {
+        userSettings.account.searchBreadcrumbs = [.query("Second"), .room(roomID: "2")]
+        
+        context.send(viewAction: .removeBreadcrumb(.query("Second")))
+        
+        #expect(userSettings.account.searchBreadcrumbs == [.room(roomID: "2")])
+        
+        context.send(viewAction: .removeBreadcrumb(.room(SearchScreenRoom(.mock(id: "2", name: "Second")))))
+        
+        #expect(userSettings.account.searchBreadcrumbs.isEmpty)
+    }
+    
+    @Test
+    func clearingBreadcrumbs() {
+        userSettings.account.searchBreadcrumbs = [.query("Second"), .room(roomID: "2")]
+        
+        context.send(viewAction: .clearBreadcrumbs)
+        
+        #expect(userSettings.account.searchBreadcrumbs.isEmpty)
+    }
+    
+    @Test
+    func breadcrumbsAreDisplayed() async throws {
+        staticRoomListSubject.send([.mock(id: "2", name: "Second")])
+        
+        let deferred = deferFulfillment(context.observe(\.viewState.breadcrumbs)) { $0.count == 2 }
+        userSettings.account.searchBreadcrumbs = [.query("Second"), .room(roomID: "2")]
+        try await deferred.fulfill()
+        
+        #expect(context.viewState.breadcrumbs.map(\.id) == ["query-Second", "room-2"])
+    }
+    
+    @Test
+    func breadcrumbsOfRoomsThatAreNotJoinedAreHidden() async throws {
+        staticRoomListSubject.send([.mock(id: "2", name: "Second"), .mock(id: "left", name: "Left", isJoined: false)])
+        
+        let deferred = deferFulfillment(context.observe(\.viewState.breadcrumbs)) { !$0.isEmpty }
+        userSettings.account.searchBreadcrumbs = [.room(roomID: "left"), .room(roomID: "2")]
+        try await deferred.fulfill()
+        
+        #expect(context.viewState.breadcrumbs.map(\.id) == ["room-2"])
+    }
+    
+    /// The room list is empty when the app launches, so the rooms need resolving again once it has loaded.
+    @Test
+    func roomBreadcrumbsAreDisplayedAfterTheRoomListLoads() async throws {
+        var deferred = deferFulfillment(context.observe(\.viewState.breadcrumbs)) { $0.count == 1 }
+        userSettings.account.searchBreadcrumbs = [.query("Second"), .room(roomID: "2")]
+        try await deferred.fulfill()
+        
+        #expect(context.viewState.breadcrumbs.map(\.id) == ["query-Second"])
+        
+        deferred = deferFulfillment(context.observe(\.viewState.breadcrumbs)) { $0.count == 2 }
+        staticRoomListSubject.send([.mock(id: "2", name: "Second")])
+        try await deferred.fulfill()
+        
+        #expect(context.viewState.breadcrumbs.map(\.id) == ["query-Second", "room-2"])
+    }
+    
+    @Test
+    func cancel() async throws {
+        let deferred = deferFulfillment(viewModel.actionsPublisher) { action in
+            switch action {
+            case .cancel:
+                true
+            default:
+                false
+            }
+        }
+        
+        context.send(viewAction: .cancel)
+        
+        try await deferred.fulfill()
+    }
+}
+
+private enum SearchScreenViewModelTestsError: Error {
+    case failed
+}

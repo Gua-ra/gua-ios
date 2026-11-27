@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -18,15 +19,21 @@ enum SettingsFlowCoordinatorAction {
 
 class SettingsFlowCoordinator: FlowCoordinatorProtocol {
     private let appLockService: AppLockServiceProtocol
+    private let isInSecondaryWindow: Bool
     private let navigationStackCoordinator: NavigationStackCoordinator
     private let flowParameters: CommonFlowParameters
     
+    private var userSettings: UserSettings {
+        flowParameters.userSession.userSettings
+    }
+    
     // periphery:ignore - retaining purpose
     private var appLockSetupFlowCoordinator: AppLockSetupFlowCoordinator?
-    // periphery:ignore - retaining purpose
     private var bugReportFlowCoordinator: BugReportFlowCoordinator?
     // periphery:ignore - retaining purpose
     private var encryptionSettingsFlowCoordinator: EncryptionSettingsFlowCoordinator?
+    // periphery:ignore - retaining purpose
+    private var linkNewDeviceFlowCoordinator: LinkNewDeviceFlowCoordinator?
     
     private var cancellables = Set<AnyCancellable>()
     
@@ -36,18 +43,22 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
     }
     
     init(appLockService: AppLockServiceProtocol,
+         isInSecondaryWindow: Bool,
          navigationStackCoordinator: NavigationStackCoordinator,
          flowParameters: CommonFlowParameters) {
         self.appLockService = appLockService
+        self.isInSecondaryWindow = isInSecondaryWindow
         self.navigationStackCoordinator = navigationStackCoordinator
         self.flowParameters = flowParameters
     }
     
-    func start() {
+    func start(animated: Bool) {
         fatalError("Unavailable")
     }
     
     func handleAppRoute(_ appRoute: AppRoute, animated: Bool) {
+        MXLog.info("Handling app route: \(appRoute)")
+        
         switch appRoute {
         case .settings:
             presentSettingsScreen(animated: animated)
@@ -55,7 +66,7 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
             presentSettingsScreen(animated: animated)
             presentTwoStepVerification()
         case .chatBackupSettings:
-            startEncryptionSettingsFlow(animated: animated)
+            startEncryptionSettingsFlow()
         default:
             break
         }
@@ -69,10 +80,10 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
     
     private func presentSettingsScreen(animated: Bool) {
         let settingsScreenCoordinator = SettingsScreenCoordinator(parameters: .init(userSession: flowParameters.userSession,
-                                                                                    appSettings: flowParameters.appSettings,
                                                                                     spacesSetting: flowParameters.spacesSetting,
-                                                                                    userIndicatorController: flowParameters.userIndicatorController,
-                                                                                    isBugReportServiceEnabled: flowParameters.bugReportService.isEnabled))
+                                                                                    isBugReportServiceEnabled: flowParameters.bugReportService.isEnabled,
+                                                                                    isInSecondaryWindow: isInSecondaryWindow,
+                                                                                    userIndicatorController: flowParameters.userIndicatorController))
         
         settingsScreenCoordinator.actions
             .sink { [weak self] action in
@@ -81,32 +92,34 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                 switch action {
                 case .dismiss:
                     actionsSubject.send(.dismiss)
-                case .logout:
-                    actionsSubject.send(.runLogoutFlow)
+                    
                 case .userDetails:
                     presentUserDetailsEditScreen()
+                case let .userStatusEmojiPicker(continuation):
+                    presentEmojiPicker(emojiPickerContinuation: continuation)
+                    
+                case .addAccount:
+                    break // Nothing to present until the add account flow exists.
+                    
                 case let .manageAccount(url):
                     presentAccountManagementURL(url)
-                case .analytics:
-                    presentAnalyticsScreen()
-                case .appLock:
-                    presentAppLockSetupFlow()
+                case .linkNewDevice:
+                    startLinkNewDeviceFlow()
+                case .notifications:
+                    presentNotificationSettings()
+                case .secureBackup:
+                    startEncryptionSettingsFlow()
+                case .moderationAndSafety:
+                    presentModerationAndSafetySettings()
                 case .bugReport:
                     bugReportFlowCoordinator = BugReportFlowCoordinator(parameters: .init(presentationMode: .push(navigationStackCoordinator),
                                                                                           userIndicatorController: flowParameters.userIndicatorController,
                                                                                           bugReportService: flowParameters.bugReportService,
                                                                                           userSession: flowParameters.userSession))
                     bugReportFlowCoordinator?.start()
-                case .about:
-                    presentLegalInformationScreen()
-                case .moderationAndSafety:
-                    presentModerationAndSafetyScreen()
-                case .notifications:
-                    presentNotificationSettings()
-                case .mediaUploadQuality:
-                    presentMediaUploadQualitySettings()
-                case .developerOptions:
-                    presentDeveloperOptions()
+                    
+                case .logout:
+                    actionsSubject.send(.runLogoutFlow)
                 case .deactivateAccount:
                     presentDeactivateAccount()
                 case .twoStepVerification:
@@ -115,16 +128,45 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                     presentChangePhone()
                 case .findFriends:
                     presentFindFriends()
+                    
+                case .mediaUploadQuality:
+                    presentMediaUploadQualitySettings()
+                case .appLock:
+                    presentAppLockSetupFlow()
+                case .locationSharing:
+                    presentLocationSharingSettings()
+                case .analytics:
+                    presentAnalyticsScreen()
+                case .labs:
+                    presentLabs()
+                case .about:
+                    presentLegalInformationScreen()
+                    
+                case .developerOptions:
+                    presentDeveloperOptions()
                 }
             }
             .store(in: &cancellables)
-
+        
         navigationStackCoordinator.setRootCoordinator(settingsScreenCoordinator, animated: animated)
     }
     
-    private func startEncryptionSettingsFlow(animated: Bool) {
+    private func presentLabs() {
+        let coordinator = LabsScreenCoordinator(parameters: .init(userSettings: userSettings))
+        coordinator.actions
+            .sink { [weak self] action in
+                switch action {
+                case .clearCache:
+                    self?.actionsSubject.send(.clearCache)
+                }
+            }
+            .store(in: &cancellables)
+        
+        navigationStackCoordinator.push(coordinator)
+    }
+    
+    private func startEncryptionSettingsFlow() {
         let coordinator = EncryptionSettingsFlowCoordinator(parameters: .init(userSession: flowParameters.userSession,
-                                                                              appSettings: flowParameters.appSettings,
                                                                               userIndicatorController: flowParameters.userIndicatorController,
                                                                               navigationStackCoordinator: navigationStackCoordinator))
         coordinator.actionsPublisher.sink { [weak self] action in
@@ -140,19 +182,71 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
         coordinator.start()
     }
     
+    private func presentEmojiPicker(emojiPickerContinuation: EmojiPickerScreenContinuation) {
+        let coordinator = EmojiPickerScreenCoordinator(parameters: .init(mode: .userStatus,
+                                                                         selectedEmojis: [],
+                                                                         emojiProvider: flowParameters.emojiProvider,
+                                                                         continuation: emojiPickerContinuation))
+        coordinator.actions
+            .sink { [weak self] action in
+                switch action {
+                case .dismiss:
+                    self?.navigationStackCoordinator.setSheetCoordinator(nil)
+                }
+            }
+            .store(in: &cancellables)
+        
+        navigationStackCoordinator.setSheetCoordinator(coordinator)
+    }
+    
     private func presentUserDetailsEditScreen() {
-        let coordinator = UserDetailsEditScreenCoordinator(parameters: .init(orientationManager: flowParameters.windowManager,
-                                                                             userSession: flowParameters.userSession,
-                                                                             mediaUploadingPreprocessor: MediaUploadingPreprocessor(appSettings: flowParameters.appSettings),
+        let coordinator = UserDetailsEditScreenCoordinator(parameters: .init(userSession: flowParameters.userSession,
+                                                                             mediaUploadingPreprocessor: MediaUploadingPreprocessor(userSettings: userSettings),
                                                                              navigationStackCoordinator: navigationStackCoordinator,
-                                                                             userIndicatorController: flowParameters.userIndicatorController,
-                                                                             appSettings: flowParameters.appSettings))
+                                                                             appMediator: flowParameters.appMediator,
+                                                                             userIndicatorController: flowParameters.userIndicatorController))
+        coordinator.actions
+            .sink { [weak self] action in
+                switch action {
+                case .dismiss:
+                    self?.navigationStackCoordinator.pop()
+                }
+            }
+            .store(in: &cancellables)
         
         navigationStackCoordinator.push(coordinator)
     }
     
+    private func startLinkNewDeviceFlow() {
+        let stackCoordinator = NavigationStackCoordinator()
+        let flowCoordinator = LinkNewDeviceFlowCoordinator(navigationStackCoordinator: stackCoordinator,
+                                                           appLockService: appLockService,
+                                                           flowParameters: flowParameters)
+        flowCoordinator.actionsPublisher
+            .sink { [weak self] action in
+                guard let self else { return }
+                
+                switch action {
+                case .dismiss:
+                    navigationStackCoordinator.setSheetCoordinator(nil)
+                case .requestOAuthAuthorisation(let url, let continuation):
+                    presentAccountManagementURL(url, continuation: continuation)
+                case .forceLogout:
+                    actionsSubject.send(.forceLogout)
+                }
+            }
+            .store(in: &cancellables)
+        
+        linkNewDeviceFlowCoordinator = flowCoordinator
+        flowCoordinator.start()
+        
+        navigationStackCoordinator.setSheetCoordinator(stackCoordinator) { [weak self] in
+            self?.linkNewDeviceFlowCoordinator = nil
+        }
+    }
+    
     private func presentAnalyticsScreen() {
-        let coordinator = AnalyticsSettingsScreenCoordinator(parameters: .init(appSettings: flowParameters.appSettings,
+        let coordinator = AnalyticsSettingsScreenCoordinator(parameters: .init(userSettings: userSettings,
                                                                                analytics: flowParameters.analytics))
         navigationStackCoordinator.push(coordinator)
     }
@@ -178,18 +272,37 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
     }
     
     private func presentLegalInformationScreen() {
-        navigationStackCoordinator.push(LegalInformationScreenCoordinator(appSettings: flowParameters.appSettings))
+        navigationStackCoordinator.push(LegalInformationScreenCoordinator(userSettings: userSettings))
     }
     
-    private func presentModerationAndSafetyScreen() {
-        let coordinator = ModerationAndSafetySettingsScreenCoordinator(parameters: .init(userSession: flowParameters.userSession,
-                                                                                         appSettings: flowParameters.appSettings,
-                                                                                         userIndicatorController: flowParameters.userIndicatorController))
+    private func presentBlockedUsersScreen() {
+        let coordinator = BlockedUsersScreenCoordinator(parameters: .init(hideProfiles: userSettings.app.hideIgnoredUserProfiles,
+                                                                          userSession: flowParameters.userSession,
+                                                                          userIndicatorController: flowParameters.userIndicatorController))
+        navigationStackCoordinator.push(coordinator)
+    }
+    
+    private func presentNotificationSettings() {
+        let notificationParameters = NotificationSettingsScreenCoordinatorParameters(navigationStackCoordinator: navigationStackCoordinator,
+                                                                                     userSession: flowParameters.userSession,
+                                                                                     userNotificationCenter: UNUserNotificationCenter.current(),
+                                                                                     userIndicatorController: flowParameters.userIndicatorController,
+                                                                                     isModallyPresented: false)
+        let coordinator = NotificationSettingsScreenCoordinator(parameters: notificationParameters)
+        navigationStackCoordinator.push(coordinator)
+    }
+    
+    private func presentModerationAndSafetySettings() {
+        let parameters = ModerationAndSafetySettingsScreenCoordinatorParameters(userSession: flowParameters.userSession,
+                                                                                userIndicatorController: flowParameters.userIndicatorController)
+        let coordinator = ModerationAndSafetySettingsScreenCoordinator(parameters: parameters)
         coordinator.actionsPublisher
             .sink { [weak self] action in
+                guard let self else { return }
+                
                 switch action {
                 case .blockedUsers:
-                    self?.presentBlockedUsersScreen()
+                    presentBlockedUsersScreen()
                 }
             }
             .store(in: &cancellables)
@@ -197,32 +310,23 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
         navigationStackCoordinator.push(coordinator)
     }
     
-    private func presentBlockedUsersScreen() {
-        let coordinator = BlockedUsersScreenCoordinator(parameters: .init(hideProfiles: flowParameters.appSettings.hideIgnoredUserProfiles,
-                                                                          userSession: flowParameters.userSession,
-                                                                          userIndicatorController: flowParameters.userIndicatorController))
-        navigationStackCoordinator.push(coordinator)
-    }
-        
-    private func presentNotificationSettings() {
-        let notificationParameters = NotificationSettingsScreenCoordinatorParameters(navigationStackCoordinator: navigationStackCoordinator,
-                                                                                     userSession: flowParameters.userSession,
-                                                                                     userNotificationCenter: UNUserNotificationCenter.current(),
-                                                                                     isModallyPresented: false,
-                                                                                     appSettings: flowParameters.appSettings)
-        let coordinator = NotificationSettingsScreenCoordinator(parameters: notificationParameters)
-        navigationStackCoordinator.push(coordinator)
-    }
-    
     private func presentMediaUploadQualitySettings() {
-        let parameters = MediaUploadQualitySettingsScreenCoordinatorParameters(appSettings: flowParameters.appSettings,
+        let parameters = MediaUploadQualitySettingsScreenCoordinatorParameters(userSettings: userSettings,
                                                                                analytics: flowParameters.analytics)
         let coordinator = MediaUploadQualitySettingsScreenCoordinator(parameters: parameters)
         navigationStackCoordinator.push(coordinator)
     }
     
+    private func presentLocationSharingSettings() {
+        let parameters = LocationSharingSettingsScreenCoordinatorParameters(userSettings: userSettings)
+        let coordinator = LocationSharingSettingsScreenCoordinator(parameters: parameters)
+        navigationStackCoordinator.push(coordinator)
+    }
+    
     private func presentDeveloperOptions() {
-        let coordinator = DeveloperOptionsScreenCoordinator(appSettings: flowParameters.appSettings)
+        let coordinator = DeveloperOptionsScreenCoordinator(appSettings: userSettings.app,
+                                                            screenHook: flowParameters.userSession.userHooks.developerOptionsScreenHook,
+                                                            clientProxy: flowParameters.userSession.clientProxy)
         
         coordinator.actions
             .sink { [weak self] action in
@@ -250,7 +354,7 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
             presentAccountManagementURL(url)
         }
     }
-
+    
     /// GUA FORK: Find-friends-from-contacts entry-point.
     /// GUA FORK: Two-step verification entry-point.
     private func presentTwoStepVerification(initialSetup: AuthFactor? = nil) {
@@ -262,17 +366,17 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                                                                         identityServiceClient: identityServiceClient,
                                                                         userIndicatorController: flowParameters.userIndicatorController,
                                                                         windowManager: flowParameters.windowManager,
-                                                                        appSettings: flowParameters.appSettings,
+                                                                        appSettings: userSettings.app,
                                                                         initialSetup: initialSetup)
         let coordinator = TwoStepVerificationScreenCoordinator(parameters: parameters)
-
+        
         coordinator.actionsPublisher
             .sink { _ in }
             .store(in: &cancellables)
-
+        
         navigationStackCoordinator.push(coordinator)
     }
-
+    
     /// GUA FORK: Change-phone-number entry-point.
     private func presentChangePhone() {
         guard let identityServiceClient = IdentityServiceClient() else {
@@ -284,7 +388,7 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                                                                 userIndicatorController: flowParameters.userIndicatorController,
                                                                 windowManager: flowParameters.windowManager)
         let coordinator = ChangePhoneScreenCoordinator(parameters: parameters)
-
+        
         coordinator.actionsPublisher
             .sink { [weak self] action in
                 guard let self else { return }
@@ -301,11 +405,11 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                 }
             }
             .store(in: &cancellables)
-
+        
         coordinator.start()
         navigationStackCoordinator.push(coordinator)
     }
-
+    
     private func presentFindFriends() {
         guard let identityServiceClient = IdentityServiceClient() else {
             MXLog.warning("Identity service is not configured; cannot show Find Friends.")
@@ -321,7 +425,7 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                                                                 clientProxy: flowParameters.userSession.clientProxy,
                                                                 accessToken: accessToken)
         let coordinator = FindFriendsScreenCoordinator(parameters: parameters)
-
+        
         coordinator.actionsPublisher
             .sink { [weak self] action in
                 guard let self else { return }
@@ -337,16 +441,16 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                 }
             }
             .store(in: &cancellables)
-
+        
         navigationStackCoordinator.push(coordinator)
     }
-
+    
     private func presentFindFriendsUserProfile(userID: String) {
         let parameters = UserProfileScreenCoordinatorParameters(userID: userID,
                                                                 isPresentedModally: false,
                                                                 userSession: flowParameters.userSession,
-                                                                userIndicatorController: flowParameters.userIndicatorController,
-                                                                analytics: flowParameters.analytics)
+                                                                analytics: flowParameters.analytics,
+                                                                userIndicatorController: flowParameters.userIndicatorController)
         let coordinator = UserProfileScreenCoordinator(parameters: parameters)
         coordinator.actionsPublisher.sink { [weak self] action in
             guard let self else { return }
@@ -362,18 +466,21 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
             }
         }
         .store(in: &cancellables)
-
+        
         navigationStackCoordinator.push(coordinator)
     }
-
-    private var accountSettingsPresenter: OIDCAccountSettingsPresenter?
-    private func presentAccountManagementURL(_ url: URL) {
+    
+    // MARK: OAuth Account Management
+    
+    private var accountSettingsPresenter: OAuthAccountSettingsPresenter?
+    private func presentAccountManagementURL(_ url: URL, continuation: OAuthAccountSettingsPresenter.Continuation? = nil) {
         // Note to anyone in the future if you come back here to make this open in Safari instead of a WAS.
         // As of iOS 16, there is an issue on the simulator with accessing the cookie but it works on a device. 🤷‍♂️
-        let presenter = OIDCAccountSettingsPresenter(accountURL: url,
-                                                     presentationAnchor: flowParameters.windowManager.mainWindow,
-                                                     appSettings: flowParameters.appSettings)
-        accountSettingsPresenter = presenter
-        Task { await presenter.start() }
+        accountSettingsPresenter = OAuthAccountSettingsPresenter(accountURL: url,
+                                                                 presentationAnchor: flowParameters.windowManager.mainWindow,
+                                                                 appMediator: flowParameters.appMediator,
+                                                                 userSession: flowParameters.userSession,
+                                                                 continuation: continuation)
+        accountSettingsPresenter?.start()
     }
 }

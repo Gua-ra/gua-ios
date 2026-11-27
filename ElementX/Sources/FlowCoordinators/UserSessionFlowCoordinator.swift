@@ -1,14 +1,15 @@
 //
+// Copyright 2025 Element Creations Ltd.
 // Copyright 2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import AVKit
 import Combine
 import Compound
-import MatrixRustSDK
+import ElementCall
 import SwiftState
 import SwiftUI
 
@@ -20,12 +21,14 @@ enum UserSessionFlowCoordinatorAction {
 }
 
 class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
-    enum HomeTab: Hashable { case chats, spaces }
+    enum HomeTab: Hashable { case chats, spaces, search }
     
     private let navigationRootCoordinator: NavigationRootCoordinator
     private let navigationTabCoordinator: NavigationTabCoordinator<HomeTab>
     private let appLockService: AppLockServiceProtocol
     private let flowParameters: CommonFlowParameters
+    // periphery:ignore - retaining purpose
+    private let presenceService: PresenceService
     
     private var userSession: UserSessionProtocol {
         flowParameters.userSession
@@ -33,12 +36,15 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
     
     private let onboardingFlowCoordinator: OnboardingFlowCoordinator
     private let onboardingStackCoordinator: NavigationStackCoordinator
-    private let chatsFlowCoordinator: ChatsFlowCoordinator
+    private let chatsTabFlowCoordinator: ChatsTabFlowCoordinator
     private let chatsTabDetails: NavigationTabCoordinator<HomeTab>.TabDetails
-    private let spaceExplorerFlowCoordinator: SpaceExplorerFlowCoordinator
+    private let spacesTabFlowCoordinator: SpacesTabFlowCoordinator
     private let spacesTabDetails: NavigationTabCoordinator<HomeTab>.TabDetails
     
-    // periphery:ignore - retaining purpose
+    private let searchScreenCoordinator: SearchScreenCoordinator?
+    private let searchTabNavigationStackCoordinator: NavigationStackCoordinator?
+    private let searchTabDetails: NavigationTabCoordinator<HomeTab>.TabDetails?
+    
     private var settingsFlowCoordinator: SettingsFlowCoordinator?
     
     private(set) var newSignInNudgeMonitor: NewSignInNudgeMonitor?
@@ -79,26 +85,53 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
         self.navigationRootCoordinator = navigationRootCoordinator
         self.appLockService = appLockService
         self.flowParameters = flowParameters
+        presenceService = PresenceService(clientProxy: flowParameters.userSession.clientProxy,
+                                          userSettings: flowParameters.userSession.userSettings)
         
         navigationTabCoordinator = NavigationTabCoordinator()
         navigationRootCoordinator.setRootCoordinator(navigationTabCoordinator)
         
-        let chatsSplitCoordinator = NavigationSplitCoordinator(placeholderCoordinator: PlaceholderScreenCoordinator())
-        chatsFlowCoordinator = ChatsFlowCoordinator(isNewLogin: isNewLogin,
-                                                    navigationSplitCoordinator: chatsSplitCoordinator,
-                                                    flowParameters: flowParameters)
-        chatsTabDetails = .init(tag: HomeTab.chats, title: L10n.screenHomeTabChats, icon: \.chat, selectedIcon: \.chatSolid)
+        let chatsSplitCoordinator = NavigationSplitCoordinator(placeholderCoordinator: PlaceholderScreenCoordinator(hideBrandChrome: flowParameters.userSession.userSettings.app.hideBrandChrome))
+        chatsTabFlowCoordinator = ChatsTabFlowCoordinator(navigationSplitCoordinator: chatsSplitCoordinator,
+                                                          flowParameters: flowParameters)
+        chatsTabDetails = .init(tag: HomeTab.chats,
+                                title: L10n.screenHomeTabChats,
+                                icon: \.chat,
+                                selectedIcon: \.chatSolid,
+                                accessibilityIdentifier: A11yIdentifiers.homeTabs.chats)
+        
         chatsTabDetails.navigationSplitCoordinator = chatsSplitCoordinator
         
-        if !flowParameters.appSettings.spacesEnabled {
-            chatsTabDetails.barVisibilityOverride = .hidden
-        }
+        let spacesSplitCoordinator = NavigationSplitCoordinator(placeholderCoordinator: PlaceholderScreenCoordinator(hideBrandChrome: flowParameters.userSession.userSettings.app.hideBrandChrome))
+        spacesTabFlowCoordinator = SpacesTabFlowCoordinator(navigationSplitCoordinator: spacesSplitCoordinator,
+                                                            flowParameters: flowParameters)
+        spacesTabDetails = .init(tag: HomeTab.spaces,
+                                 title: L10n.screenHomeTabSpaces,
+                                 icon: \.space,
+                                 selectedIcon: \.spaceSolid,
+                                 accessibilityIdentifier: A11yIdentifiers.homeTabs.spaces)
         
-        let spacesSplitCoordinator = NavigationSplitCoordinator(placeholderCoordinator: PlaceholderScreenCoordinator())
-        spaceExplorerFlowCoordinator = SpaceExplorerFlowCoordinator(navigationSplitCoordinator: spacesSplitCoordinator,
-                                                                    flowParameters: flowParameters)
-        spacesTabDetails = .init(tag: HomeTab.spaces, title: L10n.screenHomeTabSpaces, icon: \.space, selectedIcon: \.spaceSolid)
         spacesTabDetails.navigationSplitCoordinator = spacesSplitCoordinator
+        
+        if flowParameters.userSession.userSettings.app.globalSearchEnabled {
+            let searchCoordinator = SearchScreenCoordinator(parameters: .init(roomSummaryProvider: flowParameters.userSession.clientProxy.alternateRoomSummaryProvider,
+                                                                              userSession: flowParameters.userSession,
+                                                                              userIndicatorController: flowParameters.userIndicatorController))
+            let searchStackCoordinator = NavigationStackCoordinator()
+            searchStackCoordinator.setRootCoordinator(searchCoordinator)
+            
+            searchScreenCoordinator = searchCoordinator
+            searchTabNavigationStackCoordinator = searchStackCoordinator
+            searchTabDetails = .init(tag: HomeTab.search, title: L10n.screenHomeTabSearch,
+                                     icon: \.search,
+                                     selectedIcon: \.search,
+                                     isSearch: true,
+                                     accessibilityIdentifier: A11yIdentifiers.homeTabs.search)
+        } else {
+            searchScreenCoordinator = nil
+            searchTabNavigationStackCoordinator = nil
+            searchTabDetails = nil
+        }
         
         onboardingStackCoordinator = NavigationStackCoordinator()
         onboardingFlowCoordinator = OnboardingFlowCoordinator(isNewLogin: isNewLogin,
@@ -106,10 +139,16 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
                                                               navigationStackCoordinator: onboardingStackCoordinator,
                                                               flowParameters: flowParameters)
         
-        navigationTabCoordinator.setTabs([
+        var tabs: [NavigationTabCoordinator<HomeTab>.Tab] = [
             .init(coordinator: chatsSplitCoordinator, details: chatsTabDetails),
             .init(coordinator: spacesSplitCoordinator, details: spacesTabDetails)
-        ])
+        ]
+        
+        if let searchTabNavigationStackCoordinator, let searchTabDetails {
+            tabs.append(.init(coordinator: searchTabNavigationStackCoordinator, details: searchTabDetails))
+        }
+        
+        navigationTabCoordinator.setTabs(tabs)
         
         stateMachine = flowParameters.stateMachineFactory.makeUserSessionFlowStateMachine(state: .initial)
         configureStateMachine()
@@ -117,13 +156,13 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
         setupObservers()
         
         newSignInNudgeMonitor = NewSignInNudgeMonitor(clientProxy: flowParameters.userSession.clientProxy,
-                                                      appSettings: flowParameters.appSettings,
+                                                      appSettings: flowParameters.userSession.userSettings.app,
                                                       environment: newSignInNudgeEnvironment,
                                                       isAppActive: { [weak self] in self?.flowParameters.appMediator.appState == .active },
                                                       isIdle: { [weak self] in self?.isIdleForNewSignInNudge ?? false })
     }
     
-    func start() {
+    func start(animated: Bool) {
         stateMachine.tryEvent(.start)
     }
     
@@ -131,37 +170,46 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
         // GUA FORK: runs before the sign-out reset so an in-flight write cannot undo it.
         flowParameters.spacesSetting.invalidate()
         newSignInNudgeMonitor?.stop()
-        chatsFlowCoordinator.stop()
+        chatsTabFlowCoordinator.stop()
     }
     
     func handleAppRoute(_ appRoute: AppRoute, animated: Bool) {
+        MXLog.info("Handling app route: \(appRoute)")
+        
         switch appRoute {
-        case .accountProvisioningLink:
-            break // We always ignore this flow when logged in.
+        case .accountProvisioningLink, .oAuthCallback:
+            break // We always ignore these flows when logged in.
         case .settings, .settingsTwoStepVerification, .chatBackupSettings:
-            if stateMachine.state != .settingsScreen {
-                stateMachine.tryEvent(.showSettingsScreen)
+            if ProcessInfo.processInfo.isiOSAppOnMac, flowParameters.windowManager.secondaryWindowsEnabled {
+                startSettingsFlow(detached: true)
+            } else {
+                if stateMachine.state != .settingsScreen {
+                    stateMachine.tryEvent(.showSettingsScreen)
+                }
+                settingsFlowCoordinator?.handleAppRoute(appRoute, animated: animated)
             }
-            settingsFlowCoordinator?.handleAppRoute(appRoute, animated: animated)
-        case .call(let roomID):
-            Task { await presentCallScreen(roomID: roomID) }
-        case .genericCallLink(let url):
-            presentCallScreen(genericCallLink: url)
+        case .call(let roomID, let isVoiceCall):
+            Task { await presentCallScreen(roomID: roomID, isVoiceCall: isVoiceCall) }
         case .roomList, .room, .roomAlias, .childRoom, .childRoomAlias,
              .roomDetails, .roomMemberDetails, .userProfile,
              .event, .eventOnRoomAlias, .childEvent, .childEventOnRoomAlias,
-             .share, .transferOwnership:
+             .share, .transferOwnership, .thread:
             clearPresentedSheets(animated: animated) // Make sure the presented route is visible.
-            chatsFlowCoordinator.handleAppRoute(appRoute, animated: animated)
+            chatsTabFlowCoordinator.handleAppRoute(appRoute, animated: animated)
             if navigationTabCoordinator.selectedTab != .chats {
                 navigationTabCoordinator.selectedTab = .chats
+            }
+        case .search:
+            // Switch to the dedicated search tab when it's available (flag enabled), otherwise ignore.
+            if searchTabNavigationStackCoordinator != nil {
+                navigationTabCoordinator.selectedTab = .search
             }
         }
     }
     
     func clearRoute(animated: Bool) {
         clearPresentedSheets(animated: animated)
-        chatsFlowCoordinator.clearRoute(animated: animated)
+        chatsTabFlowCoordinator.clearRoute(animated: animated)
     }
     
     /// Clearing routes is more complicated than it first seems. When passing routes
@@ -181,7 +229,7 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
     
     func isDisplayingRoomScreen(withRoomID roomID: String) -> Bool {
         guard navigationTabCoordinator.selectedTab == .chats else { return false }
-        return chatsFlowCoordinator.isDisplayingRoomScreen(withRoomID: roomID)
+        return chatsTabFlowCoordinator.isDisplayingRoomScreen(withRoomID: roomID)
     }
     
     // MARK: - Private
@@ -190,14 +238,14 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
         stateMachine.addRoutes(event: .start, transitions: [.initial => .tabBar]) { [weak self] _ in
             guard let self else { return }
             
-            chatsFlowCoordinator.start()
-            spaceExplorerFlowCoordinator.start()
+            chatsTabFlowCoordinator.start()
+            spacesTabFlowCoordinator.start()
             attemptStartingOnboarding()
             newSignInNudgeMonitor?.start()
         }
         
         stateMachine.addRoutes(event: .showSettingsScreen, transitions: [.tabBar => .settingsScreen]) { [weak self] _ in
-            self?.startSettingsFlow()
+            self?.startSettingsFlow(detached: false)
         }
         stateMachine.addRoutes(event: .dismissedSettingsScreen, transitions: [.settingsScreen => .tabBar]) { [weak self] _ in
             self?.settingsFlowCoordinator = nil
@@ -209,10 +257,12 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
     }
     
     private func setupObservers() {
-        chatsFlowCoordinator.actionsPublisher
+        chatsTabFlowCoordinator.actionsPublisher
             .sink { [weak self] action in
                 guard let self else { return }
                 switch action {
+                case .switchToChatsTab:
+                    navigationTabCoordinator.selectedTab = .chats
                 case .showSettings:
                     handleAppRoute(.settings, animated: true)
                 case .showTwoStepVerification:
@@ -221,8 +271,8 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
                     handleAppRoute(.chatBackupSettings, animated: true)
                 case .sessionVerification(let flow):
                     presentSessionVerificationScreen(flow: flow)
-                case .showCallScreen(let roomProxy):
-                    presentCallScreen(roomProxy: roomProxy)
+                case .showCallScreen(let roomProxy, let isVoiceCall):
+                    presentCallScreen(roomProxy: roomProxy, voiceOnly: isVoiceCall)
                 case .hideCallScreenOverlay:
                     hideCallScreenOverlay()
                 case .logout:
@@ -231,12 +281,12 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
             }
             .store(in: &cancellables)
         
-        spaceExplorerFlowCoordinator.actionsPublisher
+        spacesTabFlowCoordinator.actionsPublisher
             .sink { [weak self] action in
                 guard let self else { return }
                 switch action {
-                case .presentCallScreen(let roomProxy):
-                    presentCallScreen(roomProxy: roomProxy)
+                case .presentCallScreen(let roomProxy, let isVoiceCall):
+                    presentCallScreen(roomProxy: roomProxy, voiceOnly: isVoiceCall)
                 case .verifyUser(let userID):
                     presentSessionVerificationScreen(flow: .userInitiator(userID: userID))
                 case .showSettings:
@@ -265,17 +315,18 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
                 MXLog.info("Homeserver reachability: \(homeserverReachability)")
                 
                 guard let self else { return }
-                switch (homeserverReachability, networkReachability) {
-                case (.reachable, _):
-                    flowParameters.userIndicatorController.retractIndicatorWithId(reachabilityNotificationID)
-                case (.unreachable, .unreachable):
+                switch (networkReachability, homeserverReachability) {
+                case (.unreachable, _):
                     flowParameters.userIndicatorController.submitIndicator(.init(id: reachabilityNotificationID,
                                                                                  title: L10n.commonOffline,
                                                                                  persistent: true))
-                case (.unreachable, .reachable):
+                case (.reachable, .unreachable):
                     flowParameters.userIndicatorController.submitIndicator(.init(id: reachabilityNotificationID,
                                                                                  title: L10n.commonServerUnreachable,
                                                                                  persistent: true))
+                // Don't alarm the user while we've intentionally suspended the client.
+                case (.reachable, .reachable), (.reachable, .suspended):
+                    flowParameters.userIndicatorController.retractIndicatorWithId(reachabilityNotificationID)
                 }
             }
             .store(in: &cancellables)
@@ -289,20 +340,30 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
                     navigationTabCoordinator.setFullScreenCoverCoordinator(onboardingStackCoordinator, animated: animated)
                 case .dismiss:
                     navigationTabCoordinator.setFullScreenCoverCoordinator(nil)
-                case .logout:
-                    logout()
+                case .logoutConfirmed:
+                    actionsSubject.send(.logout)
                 }
             }
             .store(in: &cancellables)
         
-        flowParameters.elementCallService.actions
-            .receive(on: DispatchQueue.main)
+        setupCallObservers()
+        setupUnreadNotificationsObserver()
+        
+        searchScreenCoordinator?.actionsPublisher
             .sink { [weak self] action in
+                guard let self else { return }
                 switch action {
-                case .endCall:
-                    self?.dismissCallScreenIfNeeded()
-                default:
-                    break
+                case .presentRoom(let roomID, let eventID):
+                    if let eventID {
+                        handleAppRoute(.event(eventID: eventID, roomID: roomID, via: []), animated: true)
+                    } else {
+                        handleAppRoute(.room(roomID: roomID, via: []), animated: true)
+                    }
+                case .cancel:
+                    // The search screen is also dismissed when leaving the tab, ignore it in that case.
+                    guard navigationTabCoordinator.selectedTab == .search else { return }
+                    // Return to the tab the user came from, but never back into search.
+                    navigationTabCoordinator.selectedTab = navigationTabCoordinator.previousTab == .search ? .chats : navigationTabCoordinator.previousTab ?? .chats
                 }
             }
             .store(in: &cancellables)
@@ -311,13 +372,13 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
     }
     
     private func setupSpacesObservers() {
-        flowParameters.appSettings.$spacesEnabled
+        userSession.userSettings.app.spacesEnabledPublisher
             .sink { [weak self] isEnabled in
                 guard let self else { return }
                 if !isEnabled, navigationTabCoordinator.selectedTab == .spaces {
                     navigationTabCoordinator.selectedTab = .chats
                 }
-                chatsTabDetails.barVisibilityOverride = isEnabled ? nil : .hidden
+                spacesTabDetails.isHidden = !isEnabled
             }
             .store(in: &cancellables)
         
@@ -344,9 +405,10 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
     
     // MARK: - Settings
     
-    private func startSettingsFlow() {
+    private func startSettingsFlow(detached: Bool) {
         let navigationStackCoordinator = NavigationStackCoordinator()
         let coordinator = SettingsFlowCoordinator(appLockService: appLockService,
+                                                  isInSecondaryWindow: detached,
                                                   navigationStackCoordinator: navigationStackCoordinator,
                                                   flowParameters: flowParameters)
         
@@ -363,7 +425,7 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
                     self.navigationTabCoordinator.setSheetCoordinator(nil)
                     
                     // The sheet needs to be dismissed before the alert can be shown
-                    try await Task.sleep(for: .milliseconds(100))
+                    try? await Task.sleep(for: .milliseconds(100))
                     await self.runLogoutFlow()
                 }
             case .forceLogout:
@@ -372,11 +434,18 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
         }
         .store(in: &cancellables)
         
-        settingsFlowCoordinator = coordinator
         coordinator.handleAppRoute(.settings, animated: false)
         
-        navigationTabCoordinator.setSheetCoordinator(navigationStackCoordinator) { [weak self] in
-            self?.stateMachine.tryEvent(.dismissedSettingsScreen)
+        if detached {
+            flowParameters.windowManager.registerCoordinator(navigationStackCoordinator,
+                                                             flowCoordinator: coordinator,
+                                                             forWindowType: .settings)
+        } else {
+            settingsFlowCoordinator = coordinator
+            
+            navigationTabCoordinator.setSheetCoordinator(navigationStackCoordinator) { [weak self] in
+                self?.stateMachine.tryEvent(.dismissedSettingsScreen)
+            }
         }
     }
     
@@ -397,7 +466,7 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
                 
                 MXLog.info("Received session verification request")
                 
-                if details.senderProfile.userID == userSession.clientProxy.userID {
+                if details.senderProfile.id == userSession.clientProxy.userID {
                     newSignInNudgeMonitor?.recordVerificationRequest(fromDeviceID: details.deviceID)
                     presentSessionVerificationScreen(flow: .deviceResponder(requestDetails: details))
                 } else {
@@ -412,7 +481,7 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
               navigationTabCoordinator.fullScreenCoverCoordinator == nil,
               navigationTabCoordinator.overlayCoordinator == nil,
               flowParameters.ongoingCallRoomIDPublisher.value == nil,
-              flowParameters.userIndicatorController.alertInfo == nil,
+              navigationRootCoordinator.alertInfo == nil,
               flowParameters.windowManager.alternateWindow?.isHidden ?? true else {
             return false
         }
@@ -430,8 +499,7 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
         
         let parameters = SessionVerificationScreenCoordinatorParameters(sessionVerificationControllerProxy: sessionVerificationController,
                                                                         flow: flow,
-                                                                        appSettings: flowParameters.appSettings,
-                                                                        mediaProvider: userSession.mediaProvider)
+                                                                        userSession: userSession)
         
         let coordinator = SessionVerificationScreenCoordinator(parameters: parameters)
         
@@ -453,30 +521,37 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
     
     // MARK: - Calls
     
-    private func presentCallScreen(genericCallLink url: URL) {
-        presentCallScreen(configuration: .init(genericCallLink: url))
-    }
-    
-    private func presentCallScreen(roomID: String) async {
+    private func presentCallScreen(roomID: String, isVoiceCall: Bool) async {
         guard case let .joined(roomProxy) = await userSession.clientProxy.roomForIdentifier(roomID) else {
+            // An answered call is left up for the native stack, so it has to be ended here rather
+            // than leaving the system with a call this room can no longer serve.
+            MXLog.error("Cannot present the call screen, \(roomID) isn't a joined room")
+            flowParameters.elementCallService.tearDownCallSession(roomID: roomID)
             return
         }
         
-        presentCallScreen(roomProxy: roomProxy)
+        presentCallScreen(roomProxy: roomProxy, voiceOnly: isVoiceCall)
     }
     
-    private func presentCallScreen(roomProxy: JoinedRoomProxyProtocol) {
+    private func presentCallScreen(roomProxy: JoinedRoomProxyProtocol, voiceOnly: Bool) {
         let colorScheme: ColorScheme = flowParameters.windowManager.mainWindow.traitCollection.userInterfaceStyle == .light ? .light : .dark
         presentCallScreen(configuration: .init(roomProxy: roomProxy,
                                                clientProxy: userSession.clientProxy,
                                                clientID: InfoPlistReader.main.bundleIdentifier,
-                                               elementCallBaseURL: flowParameters.appSettings.elementCallBaseURL,
-                                               elementCallBaseURLOverride: flowParameters.appSettings.elementCallBaseURLOverride,
+                                               elementCallBaseURL: userSession.userSettings.app.elementCallBaseURL,
+                                               elementCallBaseURLOverride: userSession.userSettings.app.elementCallBaseURLOverride,
+                                               voiceOnly: voiceOnly,
                                                colorScheme: colorScheme))
     }
     
     private var callScreenPictureInPictureController: AVPictureInPictureController?
     private func presentCallScreen(configuration: ElementCallConfiguration) {
+        // The service runs native calls and drives their screen through its own actions.
+        if flowParameters.elementCallService.handleNativeCallRequest(roomProxy: configuration.roomProxy,
+                                                                     isVoiceCall: configuration.voiceOnly) {
+            return
+        }
+        
         guard flowParameters.ongoingCallRoomIDPublisher.value != configuration.callRoomID else {
             MXLog.info("Returning to existing call.")
             callScreenPictureInPictureController?.stopPictureInPicture()
@@ -486,8 +561,7 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
         let callScreenCoordinator = CallScreenCoordinator(parameters: .init(elementCallService: flowParameters.elementCallService,
                                                                             configuration: configuration,
                                                                             allowPictureInPicture: true,
-                                                                            appSettings: flowParameters.appSettings,
-                                                                            appHooks: flowParameters.appHooks,
+                                                                            userSettings: userSession.userSettings,
                                                                             analytics: flowParameters.analytics))
         
         callScreenCoordinator.actions
@@ -515,6 +589,11 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
     }
     
     private func hideCallScreenOverlay() {
+        if navigationTabCoordinator.overlayCoordinator is NativeCallScreenCoordinator {
+            flowParameters.elementCallService.minimizeNativeCall()
+            return
+        }
+        
         guard let callScreenPictureInPictureController else {
             MXLog.warning("Picture in picture isn't available, dismissing the call screen.")
             dismissCallScreenIfNeeded()
@@ -526,51 +605,121 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
         navigationTabCoordinator.setOverlayPresentationMode(.minimized)
     }
     
-    private func dismissCallScreenIfNeeded() {
-        guard navigationTabCoordinator.overlayCoordinator is CallScreenCoordinator else {
+    private func setupUnreadNotificationsObserver() {
+        userSession.notificationService.badgeCountPublisher
+            .removeDuplicates()
+            .weakAssign(to: \.badgeCount, on: chatsTabDetails)
+            .store(in: &cancellables)
+    }
+    
+    // MARK: - Native calls
+    
+    private func setupCallObservers() {
+        flowParameters.elementCallService.actions
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] action in
+                guard let self else { return }
+                switch action {
+                case .endCall:
+                    // A native call comes down on `.nativeCall(.dismiss)` instead, once it has
+                    // actually left the room.
+                    if navigationTabCoordinator.overlayCoordinator is CallScreenCoordinator {
+                        dismissCallScreenIfNeeded()
+                    }
+                case .nativeCall(let presentation):
+                    handleNativeCall(presentation)
+                default:
+                    break
+                }
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func handleNativeCall(_ presentation: NativeCallPresentation) {
+        switch presentation {
+        case .present:
+            presentNativeCallScreen()
+        case .restore:
+            restoreNativeCallScreen()
+        case .minimize:
+            navigationTabCoordinator.setOverlayPresentationMode(.minimized)
+        case .dismiss:
+            dismissCallScreenIfNeeded()
+        }
+    }
+    
+    private func presentNativeCallScreen() {
+        guard let controller = flowParameters.elementCallService.nativeCallController else {
+            MXLog.error("Cannot present a native call without a call stack")
             return
         }
         
-        navigationTabCoordinator.setOverlayCoordinator(nil)
+        guard !(navigationTabCoordinator.overlayCoordinator is NativeCallScreenCoordinator) else {
+            restoreNativeCallScreen()
+            return
+        }
+        
+        let coordinator = NativeCallScreenCoordinator(parameters: .init(controller: controller))
+        
+        if ProcessInfo.processInfo.isiOSAppOnMac {
+            flowParameters.appMediator.windowManager.registerCoordinator(coordinator, flowCoordinator: nil, forWindowType: .call)
+        } else {
+            navigationTabCoordinator.setOverlayCoordinator(coordinator, animated: true)
+            flowParameters.analytics.track(screen: .RoomCall)
+        }
     }
-
+    
+    private func restoreNativeCallScreen() {
+        flowParameters.elementCallService.restoreNativeCall()
+        navigationTabCoordinator.setOverlayPresentationMode(.fullScreen)
+    }
+    
+    private func dismissCallScreenIfNeeded() {
+        if ProcessInfo.processInfo.isiOSAppOnMac {
+            flowParameters.appMediator.windowManager.closeSecondaryWindow(forType: .call)
+        } else {
+            guard navigationTabCoordinator.overlayCoordinator is CallScreenCoordinator
+                || navigationTabCoordinator.overlayCoordinator is NativeCallScreenCoordinator else {
+                return
+            }
+            
+            navigationTabCoordinator.setOverlayCoordinator(nil)
+        }
+    }
+    
     // MARK: - Logout
     
     private func runLogoutFlow() async {
         let secureBackupController = userSession.clientProxy.secureBackupController
         
         guard case let .success(isLastDevice) = await userSession.clientProxy.isOnlyDeviceLeft() else {
-            flowParameters.userIndicatorController.alertInfo = .init(id: .init())
+            navigationRootCoordinator.alertInfo = .init(id: .init())
             return
         }
         
         guard isLastDevice else {
-            logout()
+            navigationRootCoordinator.alertInfo = .init(id: .init(),
+                                                        title: UntranslatedL10n.guaSettingsSignOut,
+                                                        message: UntranslatedL10n.guaSignoutConfirmationMessage,
+                                                        primaryButton: .init(title: UntranslatedL10n.guaSettingsSignOut, role: .destructive) { [weak self] in
+                                                            self?.actionsSubject.send(.logout)
+                                                        })
             return
         }
         
         // GUA FORK: one warning with no route to a recovery key.
         guard secureBackupController.recoveryState.value == .enabled,
               secureBackupController.keyBackupState.value == .enabled else {
-            flowParameters.userIndicatorController.alertInfo = .init(id: .init(),
-                                                                     title: UntranslatedL10n.guaSignoutLastDeviceTitle,
-                                                                     message: UntranslatedL10n.guaSignoutLastDeviceMessage,
-                                                                     primaryButton: .init(title: L10n.screenSignoutConfirmationDialogSubmit, role: .destructive) { [weak self] in
-                                                                         self?.actionsSubject.send(.logout)
-                                                                     }, secondaryButton: .init(title: L10n.actionCancel, role: .cancel) { })
+            navigationRootCoordinator.alertInfo = .init(id: .init(),
+                                                        title: UntranslatedL10n.guaSignoutLastDeviceTitle,
+                                                        message: UntranslatedL10n.guaSignoutLastDeviceMessage,
+                                                        primaryButton: .init(title: UntranslatedL10n.guaSettingsSignOut, role: .destructive) { [weak self] in
+                                                            self?.actionsSubject.send(.logout)
+                                                        }, secondaryButton: .init(title: L10n.actionCancel, role: .cancel) { })
             return
         }
         
         presentSecureBackupLogoutConfirmationScreen()
-    }
-    
-    private func logout() {
-        flowParameters.userIndicatorController.alertInfo = .init(id: .init(),
-                                                                 title: L10n.screenSignoutConfirmationDialogTitle,
-                                                                 message: L10n.screenSignoutConfirmationDialogContent,
-                                                                 primaryButton: .init(title: L10n.screenSignoutConfirmationDialogSubmit, role: .destructive) { [weak self] in
-                                                                     self?.actionsSubject.send(.logout)
-                                                                 })
     }
     
     private func presentSecureBackupLogoutConfirmationScreen() {
@@ -585,7 +734,7 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
                 case .cancel:
                     navigationTabCoordinator.setSheetCoordinator(nil)
                 case .settings:
-                    chatsFlowCoordinator.handleAppRoute(.chatBackupSettings, animated: true)
+                    chatsTabFlowCoordinator.handleAppRoute(.chatBackupSettings, animated: true)
                     navigationTabCoordinator.setSheetCoordinator(nil)
                 case .logout:
                     actionsSubject.send(.logout)

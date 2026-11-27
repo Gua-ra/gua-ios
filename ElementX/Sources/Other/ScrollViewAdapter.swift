@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -15,9 +16,9 @@ class ScrollViewAdapter: NSObject, UIScrollViewDelegate {
             scrollView?.delegate = self
         }
     }
-
+    
     var shouldScrollToTopClosure: ((UIScrollView) -> Bool)?
-
+    
     private let didScrollSubject = PassthroughSubject<Void, Never>()
     var didScroll: AnyPublisher<Void, Never> {
         didScrollSubject.eraseToAnyPublisher()
@@ -28,18 +29,10 @@ class ScrollViewAdapter: NSObject, UIScrollViewDelegate {
         .init(isScrollingSubject)
     }
     
-    private let isAtTopEdgeSubject: CurrentValueSubject<Bool, Never> = .init(false)
-    var isAtTopEdge: CurrentValuePublisher<Bool, Never> {
-        isAtTopEdgeSubject
-            .asCurrentValuePublisher()
-    }
-    
     // MARK: - UIScrollViewDelegate
     
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         didScrollSubject.send(())
-        let insetContentOffset = scrollView.contentOffset.y + scrollView.contentInset.top
-        isAtTopEdgeSubject.send(insetContentOffset >= 3)
     }
     
     func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
@@ -53,7 +46,7 @@ class ScrollViewAdapter: NSObject, UIScrollViewDelegate {
     func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
         updateDidScroll(scrollView)
     }
-        
+    
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
         updateDidScroll(scrollView)
     }
@@ -61,7 +54,7 @@ class ScrollViewAdapter: NSObject, UIScrollViewDelegate {
     func scrollViewDidScrollToTop(_ scrollView: UIScrollView) {
         updateDidScroll(scrollView)
     }
-
+    
     func scrollViewShouldScrollToTop(_ scrollView: UIScrollView) -> Bool {
         guard let shouldScrollToTopClosure else {
             // Default behaviour

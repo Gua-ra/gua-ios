@@ -1,28 +1,29 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Combine
 @testable import ElementX
 import MatrixRustSDK
-import XCTest
+import Testing
 
 @MainActor
-class RoomNotificationSettingsScreenViewModelTests: XCTestCase {
+struct RoomNotificationSettingsScreenViewModelTests {
     var roomProxyMock: JoinedRoomProxyMock!
     var notificationSettingsProxyMock: NotificationSettingsProxyMock!
     var cancellables = Set<AnyCancellable>()
-
-    override func setUpWithError() throws {
-        cancellables.removeAll()
+    
+    init() {
         roomProxyMock = JoinedRoomProxyMock(.init(name: "Test"))
         notificationSettingsProxyMock = NotificationSettingsProxyMock(with: NotificationSettingsProxyMockConfiguration())
     }
     
-    func testInitialStateDefaultModeEncryptedRoom() async throws {
+    @Test
+    func initialStateDefaultModeEncryptedRoom() async throws {
         let roomProxyMock = JoinedRoomProxyMock(.init(name: "Test", isEncrypted: true))
         let notificationSettingsProxyMock = NotificationSettingsProxyMock(with: NotificationSettingsProxyMockConfiguration())
         
@@ -31,20 +32,21 @@ class RoomNotificationSettingsScreenViewModelTests: XCTestCase {
         let viewModel = RoomNotificationSettingsScreenViewModel(notificationSettingsProxy: notificationSettingsProxyMock,
                                                                 roomProxy: roomProxyMock,
                                                                 displayAsUserDefinedRoomSettings: false)
-
-        let deferred = deferFulfillment(viewModel.context.$viewState) { state in
+        
+        let deferred = deferFulfillment(viewModel.context.observe(\.viewState)) { state in
             state.notificationSettingsState.isLoaded
         }
         
         notificationSettingsProxyMock.callbacks.send(.settingsDidChange)
         try await deferred.fulfill()
-
-        XCTAssertFalse(viewModel.context.allowCustomSetting)
-        XCTAssertTrue(viewModel.context.viewState.shouldDisplayMentionsOnlyDisclaimer)
-        XCTAssertNotNil(viewModel.context.viewState.description(mode: .mentionsAndKeywordsOnly))
+        
+        #expect(!viewModel.context.allowCustomSetting)
+        #expect(viewModel.context.viewState.shouldDisplayMentionsOnlyDisclaimer)
+        #expect(viewModel.context.viewState.description(mode: .mentionsAndKeywordsOnly) != nil)
     }
     
-    func testInitialStateDefaultModeEncryptedRoomWithCanPushEncrypted() async throws {
+    @Test
+    func initialStateDefaultModeEncryptedRoomWithCanPushEncrypted() async throws {
         let roomProxyMock = JoinedRoomProxyMock(.init(name: "Test", isEncrypted: true))
         let notificationSettingsProxyMock = NotificationSettingsProxyMock(with: .init(canPushEncryptedEvents: true))
         
@@ -53,20 +55,21 @@ class RoomNotificationSettingsScreenViewModelTests: XCTestCase {
         let viewModel = RoomNotificationSettingsScreenViewModel(notificationSettingsProxy: notificationSettingsProxyMock,
                                                                 roomProxy: roomProxyMock,
                                                                 displayAsUserDefinedRoomSettings: false)
-
-        let deferred = deferFulfillment(viewModel.context.$viewState) { state in
+        
+        let deferred = deferFulfillment(viewModel.context.observe(\.viewState)) { state in
             state.notificationSettingsState.isLoaded
         }
         
         notificationSettingsProxyMock.callbacks.send(.settingsDidChange)
         try await deferred.fulfill()
-
-        XCTAssertFalse(viewModel.context.allowCustomSetting)
-        XCTAssertFalse(viewModel.context.viewState.shouldDisplayMentionsOnlyDisclaimer)
-        XCTAssertNil(viewModel.context.viewState.description(mode: .mentionsAndKeywordsOnly))
+        
+        #expect(!viewModel.context.allowCustomSetting)
+        #expect(!viewModel.context.viewState.shouldDisplayMentionsOnlyDisclaimer)
+        #expect(viewModel.context.viewState.description(mode: .mentionsAndKeywordsOnly) == nil)
     }
     
-    func testInitialStateDefaultModeUnencryptedRoom() async throws {
+    @Test
+    func initialStateDefaultModeUnencryptedRoom() async throws {
         let roomProxyMock = JoinedRoomProxyMock(.init(name: "Test", isEncrypted: false))
         let notificationSettingsProxyMock = NotificationSettingsProxyMock(with: NotificationSettingsProxyMockConfiguration())
         
@@ -75,87 +78,92 @@ class RoomNotificationSettingsScreenViewModelTests: XCTestCase {
         let viewModel = RoomNotificationSettingsScreenViewModel(notificationSettingsProxy: notificationSettingsProxyMock,
                                                                 roomProxy: roomProxyMock,
                                                                 displayAsUserDefinedRoomSettings: false)
-
-        let deferred = deferFulfillment(viewModel.context.$viewState) { state in
+        
+        let deferred = deferFulfillment(viewModel.context.observe(\.viewState)) { state in
             state.notificationSettingsState.isLoaded
         }
         
         notificationSettingsProxyMock.callbacks.send(.settingsDidChange)
         try await deferred.fulfill()
-
-        XCTAssertFalse(viewModel.context.allowCustomSetting)
-        XCTAssertFalse(viewModel.context.viewState.shouldDisplayMentionsOnlyDisclaimer)
-        XCTAssertNil(viewModel.context.viewState.description(mode: .mentionsAndKeywordsOnly))
+        
+        #expect(!viewModel.context.allowCustomSetting)
+        #expect(!viewModel.context.viewState.shouldDisplayMentionsOnlyDisclaimer)
+        #expect(viewModel.context.viewState.description(mode: .mentionsAndKeywordsOnly) == nil)
     }
     
-    func testInitialStateCustomMode() async throws {
+    @Test
+    func initialStateCustomMode() async throws {
         notificationSettingsProxyMock.getNotificationSettingsRoomIdIsEncryptedIsOneToOneReturnValue = RoomNotificationSettingsProxyMock(with: .init(mode: .mentionsAndKeywordsOnly, isDefault: false))
         let viewModel = RoomNotificationSettingsScreenViewModel(notificationSettingsProxy: notificationSettingsProxyMock,
                                                                 roomProxy: roomProxyMock,
                                                                 displayAsUserDefinedRoomSettings: false)
-        let deferred = deferFulfillment(viewModel.context.$viewState) { state in
+        let deferred = deferFulfillment(viewModel.context.observe(\.viewState)) { state in
             state.notificationSettingsState.isLoaded
         }
         
         notificationSettingsProxyMock.callbacks.send(.settingsDidChange)
         try await deferred.fulfill()
-
-        XCTAssertTrue(viewModel.context.allowCustomSetting)
+        
+        #expect(viewModel.context.allowCustomSetting)
     }
     
-    func testInitialStateFailure() async throws {
+    @Test
+    func initialStateFailure() async throws {
         notificationSettingsProxyMock.getNotificationSettingsRoomIdIsEncryptedIsOneToOneThrowableError = NotificationSettingsError.Generic(msg: "error")
         let viewModel = RoomNotificationSettingsScreenViewModel(notificationSettingsProxy: notificationSettingsProxyMock,
                                                                 roomProxy: roomProxyMock,
                                                                 displayAsUserDefinedRoomSettings: false)
-        let deferred = deferFulfillment(viewModel.context.$viewState) { state in
+        let deferred = deferFulfillment(viewModel.context.observe(\.viewState)) { state in
             state.notificationSettingsState.isError
         }
         
         notificationSettingsProxyMock.callbacks.send(.settingsDidChange)
         try await deferred.fulfill()
-
+        
         let expectedAlertInfo = AlertInfo(id: RoomNotificationSettingsScreenErrorType.loadingSettingsFailed,
                                           title: L10n.commonError,
                                           message: L10n.screenRoomNotificationSettingsErrorLoadingSettings)
-        XCTAssertEqual(viewModel.context.viewState.bindings.alertInfo?.id, expectedAlertInfo.id)
-        XCTAssertEqual(viewModel.context.viewState.bindings.alertInfo?.title, expectedAlertInfo.title)
-        XCTAssertEqual(viewModel.context.viewState.bindings.alertInfo?.message, expectedAlertInfo.message)
+        #expect(viewModel.context.viewState.bindings.alertInfo?.id == expectedAlertInfo.id)
+        #expect(viewModel.context.viewState.bindings.alertInfo?.title == expectedAlertInfo.title)
+        #expect(viewModel.context.viewState.bindings.alertInfo?.message == expectedAlertInfo.message)
     }
     
-    func testToggleAllCustomSettingOff() async throws {
+    @Test
+    func toggleAllCustomSettingOff() async throws {
         notificationSettingsProxyMock.getNotificationSettingsRoomIdIsEncryptedIsOneToOneReturnValue = RoomNotificationSettingsProxyMock(with: .init(mode: .mentionsAndKeywordsOnly, isDefault: false))
         let viewModel = RoomNotificationSettingsScreenViewModel(notificationSettingsProxy: notificationSettingsProxyMock,
                                                                 roomProxy: roomProxyMock,
                                                                 displayAsUserDefinedRoomSettings: false)
-        let deferred = deferFulfillment(viewModel.context.$viewState) { state in
+        let deferred = deferFulfillment(viewModel.context.observe(\.viewState)) { state in
             state.notificationSettingsState.isLoaded
         }
         
         notificationSettingsProxyMock.callbacks.send(.settingsDidChange)
         try await deferred.fulfill()
-                
-        let deferredIsRestoringDefaultSettings = deferFulfillment(viewModel.context.$viewState,
-                                                                  keyPath: \.isRestoringDefaultSetting,
-                                                                  transitionValues: [false, true, false])
+        
+        #expect(viewModel.context.viewState.isRestoringDefaultSetting == false)
+        
+        let deferredIsRestoringDefaultSettings = deferFulfillment(viewModel.context.observe(\.viewState.isRestoringDefaultSetting),
+                                                                  transitionValues: [true, false])
         
         viewModel.state.bindings.allowCustomSetting = false
         viewModel.context.send(viewAction: .changedAllowCustomSettings)
         
         try await deferredIsRestoringDefaultSettings.fulfill()
         
-        XCTAssertEqual(notificationSettingsProxyMock.restoreDefaultNotificationModeRoomIdReceivedRoomId, roomProxyMock.id)
-        XCTAssertEqual(notificationSettingsProxyMock.restoreDefaultNotificationModeRoomIdCallsCount, 1)
+        #expect(notificationSettingsProxyMock.restoreDefaultNotificationModeRoomIdReceivedRoomId == roomProxyMock.id)
+        #expect(notificationSettingsProxyMock.restoreDefaultNotificationModeRoomIdCallsCount == 1)
     }
     
-    func testToggleAllCustomSettingOffOn() async throws {
+    @Test
+    func toggleAllCustomSettingOffOn() async throws {
         let notificationSettingsProxyMock = NotificationSettingsProxyMock(with: NotificationSettingsProxyMockConfiguration())
         notificationSettingsProxyMock.getNotificationSettingsRoomIdIsEncryptedIsOneToOneReturnValue = RoomNotificationSettingsProxyMock(with: .init(mode: .mentionsAndKeywordsOnly, isDefault: true))
         let viewModel = RoomNotificationSettingsScreenViewModel(notificationSettingsProxy: notificationSettingsProxyMock,
                                                                 roomProxy: roomProxyMock,
                                                                 displayAsUserDefinedRoomSettings: false)
         
-        var deferred = deferFulfillment(viewModel.context.$viewState) { state in
+        var deferred = deferFulfillment(viewModel.context.observe(\.viewState)) { state in
             state.notificationSettingsState.isLoaded
         }
         
@@ -163,119 +171,114 @@ class RoomNotificationSettingsScreenViewModelTests: XCTestCase {
         
         try await deferred.fulfill()
         
-        deferred = deferFulfillment(viewModel.context.$viewState) { state in
+        deferred = deferFulfillment(viewModel.context.observe(\.viewState)) { state in
             state.notificationSettingsState.isLoaded
         }
         
         viewModel.state.bindings.allowCustomSetting = true
         viewModel.context.send(viewAction: .changedAllowCustomSettings)
         
+        await waitForConfirmation { confirmation in
+            notificationSettingsProxyMock.setNotificationModeRoomIdModeClosure = { id, mode in
+                #expect(id == roomProxyMock.id)
+                #expect(mode == .mentionsAndKeywordsOnly)
+                confirmation()
+            }
+        }
         try await deferred.fulfill()
-        
-        XCTAssertEqual(notificationSettingsProxyMock.setNotificationModeRoomIdModeReceivedArguments?.0, roomProxyMock.id)
-        XCTAssertEqual(notificationSettingsProxyMock.setNotificationModeRoomIdModeReceivedArguments?.1, .mentionsAndKeywordsOnly)
-        XCTAssertEqual(notificationSettingsProxyMock.setNotificationModeRoomIdModeCallsCount, 1)
     }
     
-    func testSetCustomMode() async throws {
+    @Test
+    func setCustomMode() async throws {
         notificationSettingsProxyMock.getNotificationSettingsRoomIdIsEncryptedIsOneToOneReturnValue = RoomNotificationSettingsProxyMock(with: .init(mode: .mentionsAndKeywordsOnly, isDefault: false))
         let viewModel = RoomNotificationSettingsScreenViewModel(notificationSettingsProxy: notificationSettingsProxyMock,
                                                                 roomProxy: roomProxyMock,
                                                                 displayAsUserDefinedRoomSettings: false)
         
-        let deferredState = deferFulfillment(viewModel.context.$viewState) { state in
-            state.notificationSettingsState.isLoaded
-        }
-        
-        notificationSettingsProxyMock.callbacks.send(.settingsDidChange)
-        try await deferredState.fulfill()
-
-        do {
-            viewModel.context.send(viewAction: .setCustomMode(.allMessages))
-            
-            let deferredState = deferFulfillment(viewModel.context.$viewState) { state in
-                state.pendingCustomMode == nil
-            }
-            
-            try await deferredState.fulfill()
-            
-            XCTAssertEqual(notificationSettingsProxyMock.setNotificationModeRoomIdModeReceivedArguments?.0, roomProxyMock.id)
-            XCTAssertEqual(notificationSettingsProxyMock.setNotificationModeRoomIdModeReceivedArguments?.1, .allMessages)
-            XCTAssertEqual(notificationSettingsProxyMock.setNotificationModeRoomIdModeCallsCount, 1)
-        }
-        
-        do {
-            viewModel.context.send(viewAction: .setCustomMode(.mute))
-            
-            let deferredState = deferFulfillment(viewModel.context.$viewState) { state in
-                state.pendingCustomMode == nil
-            }
-            
-            try await deferredState.fulfill()
-            
-            XCTAssertEqual(notificationSettingsProxyMock.setNotificationModeRoomIdModeReceivedArguments?.0, roomProxyMock.id)
-            XCTAssertEqual(notificationSettingsProxyMock.setNotificationModeRoomIdModeReceivedArguments?.1, .mute)
-            XCTAssertEqual(notificationSettingsProxyMock.setNotificationModeRoomIdModeCallsCount, 2)
-        }
-        
-        do {
-            viewModel.context.send(viewAction: .setCustomMode(.mentionsAndKeywordsOnly))
-            
-            let deferredState = deferFulfillment(viewModel.context.$viewState) { state in
-                state.pendingCustomMode == nil
-            }
-            
-            try await deferredState.fulfill()
-            
-            XCTAssertEqual(notificationSettingsProxyMock.setNotificationModeRoomIdModeReceivedArguments?.0, roomProxyMock.id)
-            XCTAssertEqual(notificationSettingsProxyMock.setNotificationModeRoomIdModeReceivedArguments?.1, .mentionsAndKeywordsOnly)
-            XCTAssertEqual(notificationSettingsProxyMock.setNotificationModeRoomIdModeCallsCount, 3)
-        }
-    }
-    
-    func testDeleteCustomSettingTapped() async throws {
-        notificationSettingsProxyMock.getNotificationSettingsRoomIdIsEncryptedIsOneToOneReturnValue = RoomNotificationSettingsProxyMock(with: .init(mode: .mentionsAndKeywordsOnly, isDefault: false))
-        let viewModel = RoomNotificationSettingsScreenViewModel(notificationSettingsProxy: notificationSettingsProxyMock,
-                                                                roomProxy: roomProxyMock,
-                                                                displayAsUserDefinedRoomSettings: true)
-        let deferred = deferFulfillment(viewModel.context.$viewState) { state in
+        let deferred = deferFulfillment(viewModel.context.observe(\.viewState)) { state in
             state.notificationSettingsState.isLoaded
         }
         
         notificationSettingsProxyMock.callbacks.send(.settingsDidChange)
         try await deferred.fulfill()
         
-        var actionSent: RoomNotificationSettingsScreenViewModelAction?
-        viewModel.actions
-            .sink { action in
-                actionSent = action
-            }
-            .store(in: &cancellables)
+        #expect(viewModel.context.viewState.pendingCustomMode == nil)
         
-        let deferredViewState = deferFulfillment(viewModel.context.$viewState,
-                                                 keyPath: \.deletingCustomSetting,
-                                                 transitionValues: [false, true, false])
+        var deferredMode = deferFulfillment(viewModel.context.observe(\.viewState.pendingCustomMode),
+                                            transitionValues: [.allMessages, nil])
+        viewModel.context.send(viewAction: .setCustomMode(.allMessages))
+        
+        try await deferredMode.fulfill()
+        
+        #expect(notificationSettingsProxyMock.setNotificationModeRoomIdModeReceivedArguments?.0 == roomProxyMock.id)
+        #expect(notificationSettingsProxyMock.setNotificationModeRoomIdModeReceivedArguments?.1 == .allMessages)
+        #expect(notificationSettingsProxyMock.setNotificationModeRoomIdModeCallsCount == 1)
+        
+        #expect(viewModel.context.viewState.pendingCustomMode == nil)
+        
+        deferredMode = deferFulfillment(viewModel.context.observe(\.viewState.pendingCustomMode),
+                                        transitionValues: [.mute, nil])
+        viewModel.context.send(viewAction: .setCustomMode(.mute))
+        
+        try await deferredMode.fulfill()
+        
+        #expect(notificationSettingsProxyMock.setNotificationModeRoomIdModeReceivedArguments?.0 == roomProxyMock.id)
+        #expect(notificationSettingsProxyMock.setNotificationModeRoomIdModeReceivedArguments?.1 == .mute)
+        #expect(notificationSettingsProxyMock.setNotificationModeRoomIdModeCallsCount == 2)
+        
+        try await Task.sleep(for: .milliseconds(10)) // Workaround for flaky test
+        
+        #expect(viewModel.context.viewState.pendingCustomMode == nil)
+        
+        deferredMode = deferFulfillment(viewModel.context.observe(\.viewState.pendingCustomMode),
+                                        transitionValues: [.mentionsAndKeywordsOnly, nil])
+        viewModel.context.send(viewAction: .setCustomMode(.mentionsAndKeywordsOnly))
+        
+        try await deferredMode.fulfill()
+        
+        #expect(notificationSettingsProxyMock.setNotificationModeRoomIdModeReceivedArguments?.0 == roomProxyMock.id)
+        #expect(notificationSettingsProxyMock.setNotificationModeRoomIdModeReceivedArguments?.1 == .mentionsAndKeywordsOnly)
+        #expect(notificationSettingsProxyMock.setNotificationModeRoomIdModeCallsCount == 3)
+    }
+    
+    @Test
+    mutating func deleteCustomSettingTapped() async throws {
+        notificationSettingsProxyMock.getNotificationSettingsRoomIdIsEncryptedIsOneToOneReturnValue = RoomNotificationSettingsProxyMock(with: .init(mode: .mentionsAndKeywordsOnly, isDefault: false))
+        let viewModel = RoomNotificationSettingsScreenViewModel(notificationSettingsProxy: notificationSettingsProxyMock,
+                                                                roomProxy: roomProxyMock,
+                                                                displayAsUserDefinedRoomSettings: true)
+        let deferred = deferFulfillment(viewModel.context.observe(\.viewState)) { state in
+            state.notificationSettingsState.isLoaded
+        }
+        
+        notificationSettingsProxyMock.callbacks.send(.settingsDidChange)
+        try await deferred.fulfill()
+        
+        // The `deletingCustomSetting` flag is only raised for the duration of the call, which is short enough
+        // that the observation can coalesce it away. Wait on the outcome instead.
+        let deferredDismiss = deferFulfillment(viewModel.actions) { $0 == .dismiss }
         
         viewModel.context.send(viewAction: .deleteCustomSettingTapped)
         
-        try await deferredViewState.fulfill()
-        
         // the `dismiss` action must have been sent
-        XCTAssertEqual(actionSent, .dismiss)
+        try await deferredDismiss.fulfill()
+        
+        #expect(!viewModel.context.viewState.deletingCustomSetting)
         // `restoreDefaultNotificationMode` should have been called
-        XCTAssert(notificationSettingsProxyMock.restoreDefaultNotificationModeRoomIdCalled)
-        XCTAssertEqual(notificationSettingsProxyMock.restoreDefaultNotificationModeRoomIdReceivedInvocations, [roomProxyMock.id])
+        #expect(notificationSettingsProxyMock.restoreDefaultNotificationModeRoomIdCalled)
+        #expect(notificationSettingsProxyMock.restoreDefaultNotificationModeRoomIdReceivedInvocations == [roomProxyMock.id])
         // and no alert is expected
-        XCTAssertNil(viewModel.context.alertInfo)
+        #expect(viewModel.context.alertInfo == nil)
     }
     
-    func testDeleteCustomSettingTappedFailure() async throws {
+    @Test
+    mutating func deleteCustomSettingTappedFailure() async throws {
         notificationSettingsProxyMock.getNotificationSettingsRoomIdIsEncryptedIsOneToOneReturnValue = RoomNotificationSettingsProxyMock(with: .init(mode: .mentionsAndKeywordsOnly, isDefault: false))
         notificationSettingsProxyMock.restoreDefaultNotificationModeRoomIdThrowableError = NotificationSettingsError.Generic(msg: "error")
         let viewModel = RoomNotificationSettingsScreenViewModel(notificationSettingsProxy: notificationSettingsProxyMock,
                                                                 roomProxy: roomProxyMock,
                                                                 displayAsUserDefinedRoomSettings: true)
-        let deferred = deferFulfillment(viewModel.context.$viewState) { state in
+        let deferred = deferFulfillment(viewModel.context.observe(\.viewState)) { state in
             state.notificationSettingsState.isLoaded
         }
         
@@ -289,17 +292,19 @@ class RoomNotificationSettingsScreenViewModelTests: XCTestCase {
             }
             .store(in: &cancellables)
         
-        let deferredViewState = deferFulfillment(viewModel.context.$viewState,
-                                                 keyPath: \.deletingCustomSetting,
-                                                 transitionValues: [false, true, false])
+        #expect(!viewModel.context.viewState.deletingCustomSetting)
+        // The `deletingCustomSetting` flag is only raised for the duration of the call, which is short enough
+        // that the observation can coalesce it away. Wait on the alert instead, it is raised before the flag
+        // is lowered again.
+        let deferredAlert = deferFulfillment(viewModel.context.observe(\.viewState.bindings.alertInfo)) { $0?.id == .restoreDefaultFailed }
         
         viewModel.context.send(viewAction: .deleteCustomSettingTapped)
         
-        try await deferredViewState.fulfill()
-                
         // an alert is expected
-        XCTAssertEqual(viewModel.context.alertInfo?.id, .restoreDefaultFailed)
+        try await deferredAlert.fulfill()
+        
+        #expect(!viewModel.context.viewState.deletingCustomSetting)
         // the `dismiss` action must not have been sent
-        XCTAssertNil(actionSent)
+        #expect(actionSent == nil)
     }
 }

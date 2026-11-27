@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -13,20 +14,20 @@ typealias RoomChangeRolesScreenViewModelType = StateStoreViewModelV2<RoomChangeR
 class RoomChangeRolesScreenViewModel: RoomChangeRolesScreenViewModelType, RoomChangeRolesScreenViewModelProtocol {
     private let roomProxy: JoinedRoomProxyProtocol
     private let userIndicatorController: UserIndicatorControllerProtocol
-    private let analytics: AnalyticsService
+    private let analytics: AnalyticsServiceProtocol
     
     private let actionsSubject: PassthroughSubject<RoomChangeRolesScreenViewModelAction, Never> = .init()
     var actionsPublisher: AnyPublisher<RoomChangeRolesScreenViewModelAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
-
+    
     init(mode: RoomRole,
          roomProxy: JoinedRoomProxyProtocol,
          mediaProvider: MediaProviderProtocol,
          userIndicatorController: UserIndicatorControllerProtocol,
-         analytics: AnalyticsService) {
+         analytics: AnalyticsServiceProtocol) {
         guard mode != .user || mode != .creator else { fatalError("Invalid screen configuration: \(mode)") }
-
+        
         self.roomProxy = roomProxy
         self.userIndicatorController = userIndicatorController
         self.analytics = analytics
@@ -164,7 +165,11 @@ class RoomChangeRolesScreenViewModel: RoomChangeRolesScreenViewModelType, RoomCh
         
         // A task we can await until the room's info gets modified with the new power levels.
         // Note: Ignore the first value as the publisher is backed by a current value subject.
-        let infoTask = Task { await roomProxy.infoPublisher.dropFirst().values.first { _ in true } }
+        let infoTask = Task {
+            var iterator = roomProxy.infoPublisher.values.makeAsyncIterator()
+            _ = await iterator.next(isolation: #isolation) // The publisher's current value.
+            _ = await iterator.next(isolation: #isolation)
+        }
         
         switch await roomProxy.updatePowerLevelsForUsers(promotingUpdates + demotingUpdates) {
         case .success:
@@ -184,11 +189,15 @@ class RoomChangeRolesScreenViewModel: RoomChangeRolesScreenViewModelType, RoomCh
     }
     
     private func confirmDiscardChanges() {
-        state.bindings.alertInfo = AlertInfo(id: .discardChanges,
-                                             title: L10n.screenRoomChangeRoleUnsavedChangesTitle,
-                                             message: L10n.screenRoomChangeRoleUnsavedChangesDescription,
-                                             primaryButton: .init(title: L10n.actionSave) { Task { await self.save() } },
-                                             secondaryButton: .init(title: L10n.actionDiscard, role: .cancel) { self.actionsSubject.send(.complete) })
+        if state.hasChanges {
+            state.bindings.alertInfo = AlertInfo(id: .discardChanges,
+                                                 title: L10n.screenRoomChangeRoleUnsavedChangesTitle,
+                                                 message: L10n.screenRoomChangeRoleUnsavedChangesDescription,
+                                                 primaryButton: .init(title: L10n.actionSave) { Task { await self.save() } },
+                                                 secondaryButton: .init(title: L10n.actionDiscard, role: .cancel) { self.actionsSubject.send(.complete) })
+        } else {
+            actionsSubject.send(.complete)
+        }
     }
     
     // MARK: Loading indicator

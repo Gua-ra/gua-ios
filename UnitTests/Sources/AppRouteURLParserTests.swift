@@ -1,122 +1,91 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 @testable import ElementX
-import XCTest
+import Foundation
+import Testing
 
-class AppRouteURLParserTests: XCTestCase {
-    var appSettings: AppSettings!
-    var appRouteURLParser: AppRouteURLParser!
+@MainActor
+struct AppRouteURLParserTests {
+    var appSettings: AppSettings
+    var appRouteURLParser: AppRouteURLParser
     
-    override func setUp() {
-        AppSettings.resetAllSettings()
-        appSettings = AppSettings()
+    init() {
+        appSettings = AppSettings.volatile()
         appRouteURLParser = AppRouteURLParser(appSettings: appSettings)
     }
     
-    func testElementCallRoutes() {
-        guard let url = URL(string: "https://call.element.io/test") else {
-            XCTFail("URL invalid")
-            return
-        }
+    @Test
+    func oAuthCallbackRoute() {
+        // Given an OAuth callback for this app.
+        let callbackURL = appSettings.oAuthRedirectURL.appending(queryItems: [URLQueryItem(name: "state", value: "12345"),
+                                                                              URLQueryItem(name: "code", value: "67890")])
         
-        XCTAssertEqual(appRouteURLParser.route(from: url), AppRoute.genericCallLink(url: url))
+        // When parsing that route.
+        let route = appRouteURLParser.route(from: callbackURL)
         
-        guard let customSchemeURL = URL(string: "io.element.call:/?url=https%3A%2F%2Fcall.element.io%2Ftest") else {
-            XCTFail("URL invalid")
-            return
-        }
-        
-        XCTAssertEqual(appRouteURLParser.route(from: customSchemeURL), AppRoute.genericCallLink(url: url))
+        // Then it should be considered a valid OAuth callback.
+        #expect(route == .oAuthCallback(url: callbackURL))
     }
     
-    func testCustomDomainUniversalLinkCallRoutes() {
-        guard let url = URL(string: "https://somecustomdomain.element.io/test") else {
-            XCTFail("URL invalid")
-            return
-        }
+    @Test
+    func oAuthCallbackAppVariantRoute() {
+        // Given an OAuth callback for a different app variant.
+        let callbackURL = appSettings.oAuthRedirectURL
+            .deletingLastPathComponent()
+            .appending(component: "io.element.elementz")
+            .appending(queryItems: [URLQueryItem(name: "state", value: "12345"),
+                                    URLQueryItem(name: "code", value: "67890")])
         
-        XCTAssertEqual(appRouteURLParser.route(from: url), nil)
+        // When parsing that route in this app.
+        let route = appRouteURLParser.route(from: callbackURL)
+        
+        // Then the route shouldn't be considered valid and should be ignored.
+        #expect(route == nil)
     }
     
-    func testCustomSchemeLinkCallRoutes() {
-        let urlString = "https://somecustomdomain.element.io/test?param=123"
-        guard let url = URL(string: urlString) else {
-            XCTFail("URL invalid")
-            return
-        }
-        
-        guard let encodedURLString = urlString.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) else {
-            XCTFail("Could not encode URL string")
-            return
-        }
-        
-        guard let customSchemeURL = URL(string: "io.element.call:/?url=\(encodedURLString)") else {
-            XCTFail("URL invalid")
-            return
-        }
-        
-        XCTAssertEqual(appRouteURLParser.route(from: customSchemeURL), AppRoute.genericCallLink(url: url))
-    }
-    
-    func testHttpCustomSchemeLinkCallRoutes() {
-        guard let customSchemeURL = URL(string: "io.element.call:/?url=http%3A%2F%2Fcall.element.io%2Ftest") else {
-            XCTFail("URL invalid")
-            return
-        }
-        
-        XCTAssertEqual(appRouteURLParser.route(from: customSchemeURL), nil)
-    }
-    
-    func testMatrixUserURL() {
+    @Test
+    func matrixUserURL() throws {
         let userID = "@test:matrix.org"
-        guard let url = URL(string: "https://matrix.to/#/\(userID)") else {
-            XCTFail("Invalid url")
-            return
-        }
+        let url = try #require(URL(string: "https://matrix.to/#/\(userID)"))
         
         let route = appRouteURLParser.route(from: url)
         
-        XCTAssertEqual(route, .userProfile(userID: userID))
+        #expect(route == .userProfile(userID: userID))
     }
     
-    func testMatrixRoomIdentifierURL() {
+    @Test
+    func matrixRoomIdentifierURL() throws {
         let id = "!abcdefghijklmnopqrstuvwxyz1234567890:matrix.org"
-        guard let url = URL(string: "https://matrix.to/#/\(id)") else {
-            XCTFail("Invalid url")
-            return
-        }
+        let url = try #require(URL(string: "https://matrix.to/#/\(id)"))
         
         let route = appRouteURLParser.route(from: url)
         
-        XCTAssertEqual(route, .room(roomID: id, via: []))
+        #expect(route == .room(roomID: id, via: []))
     }
     
-    func testWebRoomIDURL() {
+    @Test
+    func webRoomIDURL() throws {
         let id = "!abcdefghijklmnopqrstuvwxyz1234567890:matrix.org"
-        guard let url = URL(string: "https://app.element.io/#/room/\(id)") else {
-            XCTFail("URL invalid")
-            return
-        }
+        let url = try #require(URL(string: "https://app.element.io/#/room/\(id)"))
         
         let route = appRouteURLParser.route(from: url)
         
-        XCTAssertEqual(route, .room(roomID: id, via: []))
+        #expect(route == .room(roomID: id, via: []))
     }
     
-    func testWebUserIDURL() {
+    @Test
+    func webUserIDURL() throws {
         let id = "@alice:matrix.org"
-        guard let url = URL(string: "https://develop.element.io/#/user/\(id)") else {
-            XCTFail("URL invalid")
-            return
-        }
+        let url = try #require(URL(string: "https://develop.element.io/#/user/\(id)"))
         
         let route = appRouteURLParser.route(from: url)
         
-        XCTAssertEqual(route, .userProfile(userID: id))
+        #expect(route == .userProfile(userID: id))
     }
 }

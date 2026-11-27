@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -9,7 +10,7 @@ import Combine
 import KZFileWatchers
 import SwiftUI
 
-extension Notification.Name: Codable { }
+extension Notification.Name: @retroactive Codable { }
 
 enum UITestsSignal: Codable, Equatable {
     /// An internal signal used to indicate that one side of the connection is ready.
@@ -59,6 +60,7 @@ enum UITestsSignalling {
     /// - Within the app, create a `Client` in `app` mode. This will check that the tests are ready and echo back that the app is too.
     /// - Call `waitForApp()` in the tests when you need to send the signal. This will suspend execution until the app has signalled it is ready.
     /// - The two `Client` objects can now be used for two-way signalling.
+    @MainActor
     class Client {
         /// The file watcher responsible for receiving signals.
         private let fileWatcher: FileWatcher.Local
@@ -95,7 +97,7 @@ enum UITestsSignalling {
                 try rawMessage(.ready).write(to: fileURL, atomically: false, encoding: .utf8)
             case .app:
                 // The app client is started second and checks that there is a ready signal from the tests.
-                guard try String(contentsOf: fileURL) == Message(mode: .tests, signal: .ready).rawValue else { throw UITestsSignalError.testsClientNotReady }
+                guard try String(contentsOf: fileURL, encoding: .utf8) == Message(mode: .tests, signal: .ready).rawValue else { throw UITestsSignalError.testsClientNotReady }
                 isConnected = true
                 // The app client then echoes back to the tests that it is now ready.
                 try send(.ready)
@@ -111,15 +113,16 @@ enum UITestsSignalling {
             guard mode == .tests else { fatalError("The app can't wait for itself.") }
             
             guard !isConnected else { return }
-            await _ = signals.values.first { $0 == .ready }
+            var iterator = signals.values.makeAsyncIterator()
+            while let signal = await iterator.next(isolation: #isolation), signal != .ready { }
             NSLog("UITestsSignalling: Connected to app.")
         }
-
+        
         /// Stops listening for signals.
         func stop() throws {
             try fileWatcher.stop()
         }
-
+        
         /// Sends a signal.
         func send(_ signal: UITestsSignal) throws {
             guard isConnected else { throw UITestsSignalError.notConnected }

@@ -1,18 +1,19 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Foundation
 
-enum VoiceMessageCacheError: Error {
+nonisolated enum VoiceMessageCacheError: Error {
     case invalidFileExtension
     case failedStoringFileInCache
 }
 
-protocol VoiceMessageCacheProtocol {
+nonisolated protocol VoiceMessageCacheProtocol: Sendable {
     /// URL to use for recording
     var urlForRecording: URL { get }
     
@@ -28,7 +29,7 @@ protocol VoiceMessageCacheProtocol {
     ///   - move: wheter to move or copy the source file
     /// - Returns: the cached URL
     func cache(mediaSource: MediaSourceProxy, using fileURL: URL, move: Bool) -> Result<URL, VoiceMessageCacheError>
-        
+    
     /// Clears the cache
     func clearCache()
 }

@@ -1,26 +1,40 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct MediaPickerScreenMode: Hashable {
     let source: MediaPickerScreenSource
     let selectionType: MediaPickerScreenSelectionType
 }
 
-enum MediaPickerScreenSource {
+enum MediaPickerScreenSource: Hashable {
     case camera
     case photoLibrary
-    case documents
+    case documents(types: [UTType] = [.data])
 }
 
-enum MediaPickerScreenSelectionType {
+enum MediaPickerScreenSelectionType: Hashable {
     case single
-    case multiple
+    /// Multiple items, up to the given limit.
+    case multiple(limit: Int)
+    
+    /// The number of attachments a gallery may contain, as recommended by
+    /// [MSC4274](https://github.com/matrix-org/matrix-spec-proposals/pull/4274).
+    static let galleryLimit = 60
+    /// The number of items to allow when each is sent as an individual message.
+    static let individualUploadLimit = 10
+    
+    /// Multiple items, capped for a gallery when they're sent as one, or for individual uploads when not.
+    static func multiple(galleryEnabled: Bool) -> Self {
+        .multiple(limit: galleryEnabled ? galleryLimit : individualUploadLimit)
+    }
 }
 
 enum MediaPickerScreenCoordinatorAction {
@@ -78,10 +92,12 @@ class MediaPickerScreenCoordinator: CoordinatorProtocol {
                     self?.callback(.selectedMediaAtURLs(urls))
                 }
             }
-        case .documents:
+        case .documents(let types):
             // The document picker automatically dismisses everything on selection
             // Strongly retain self in the callback to forward actions correctly
-            DocumentPicker(selectionType: mode.selectionType, userIndicatorController: userIndicatorController) { action in
+            DocumentPicker(selectionType: mode.selectionType,
+                           contentTypes: types,
+                           userIndicatorController: userIndicatorController) { action in
                 switch action {
                 case .cancel:
                     self.callback(.cancel)

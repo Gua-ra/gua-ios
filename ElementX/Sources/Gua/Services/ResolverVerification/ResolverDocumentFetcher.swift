@@ -7,13 +7,13 @@
 
 import Foundation
 
-struct ResolverDocumentFetcher {
+nonisolated struct ResolverDocumentFetcher {
     enum Failure: Error, Equatable {
         case status(Int)
         case unavailable
         case timeout
         case malformed
-
+        
         func reason(unavailable: ResolverVerificationReason) -> ResolverVerificationReason {
             switch self {
             case .timeout: .timeout
@@ -22,13 +22,13 @@ struct ResolverDocumentFetcher {
             }
         }
     }
-
+    
     static let maxBodyBytes = 2 * 1024 * 1024
     static let maxNestingDepth = 64
-
+    
     let baseURL: URL
     let session: URLSession
-
+    
     func document<Document: Decodable>(_ type: Document.Type, at path: String, query: [URLQueryItem] = [],
                                        deadline: ContinuousClock.Instant) async throws(Failure) -> Document {
         let body = try await fetchBody(at: path, query: query, deadline: deadline)
@@ -39,7 +39,7 @@ struct ResolverDocumentFetcher {
             throw .malformed
         }
     }
-
+    
     /// Refuses deep nesting before JSONDecoder can recurse into it.
     static func isNestedWithinLimit(_ body: [UInt8]) -> Bool {
         var depth = 0
@@ -61,7 +61,9 @@ struct ResolverDocumentFetcher {
                 inString = true
             case UInt8(ascii: "["), UInt8(ascii: "{"):
                 depth += 1
-                if depth > maxNestingDepth { return false }
+                if depth > maxNestingDepth {
+                    return false
+                }
             case UInt8(ascii: "]"), UInt8(ascii: "}"):
                 depth -= 1
             default:
@@ -70,7 +72,7 @@ struct ResolverDocumentFetcher {
         }
         return true
     }
-
+    
     private func fetchBody(at path: String, query: [URLQueryItem], deadline: ContinuousClock.Instant) async throws(Failure) -> [UInt8] {
         guard deadline > .now else { throw .timeout }
         guard let relative = URL(string: path, relativeTo: baseURL),
@@ -98,7 +100,7 @@ struct ResolverDocumentFetcher {
             throw .unavailable
         }
     }
-
+    
     private static func read(_ request: URLRequest, from session: URLSession) async throws -> [UInt8] {
         let (stream, response) = try await session.bytes(for: request)
         defer { stream.task.cancel() }

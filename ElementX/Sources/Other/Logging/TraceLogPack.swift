@@ -1,49 +1,56 @@
 //
+// Copyright 2025 Element Creations Ltd.
 // Copyright 2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Foundation
 import MatrixRustSDK
 
-enum TraceLogPack: Codable, CaseIterable {
-    case eventCache, sendQueue, timeline, notificationClient, syncProfiling, latestEvents
+nonisolated enum TraceLogPack: Codable, CaseIterable {
+    case eventCache, backPagination, sendQueue, timeline, notificationClient, syncProfiling, latestEvents, search
     
     var title: String {
         switch self {
         case .eventCache: "Event cache"
+        case .backPagination: "Back pagination"
         case .sendQueue: "Send queue"
         case .timeline: "Timeline"
         case .notificationClient: "Notification client"
         case .syncProfiling: "Sync profiling"
         case .latestEvents: "Latest events"
+        case .search: "Search"
         }
     }
 }
 
-extension TraceLogPack {
+nonisolated extension TraceLogPack {
     // periphery:ignore - Unused, but added to detect new cases when updating the SDK.
     init(rustLogPack: MatrixRustSDK.TraceLogPacks) {
-        switch rustLogPack {
-        case .eventCache: self = .eventCache
-        case .sendQueue: self = .sendQueue
-        case .timeline: self = .timeline
-        case .notificationClient: self = .notificationClient
-        case .syncProfiling: self = .syncProfiling
-        case .latestEvents: self = .latestEvents
+        self = switch rustLogPack {
+        case .eventCache: .eventCache
+        case .backPagination: .backPagination
+        case .sendQueue: .sendQueue
+        case .timeline: .timeline
+        case .notificationClient: .notificationClient
+        case .syncProfiling: .syncProfiling
+        case .latestEvents: .latestEvents
+        case .search: .search
         }
     }
     
     var rustLogPack: MatrixRustSDK.TraceLogPacks {
         switch self {
         case .eventCache: .eventCache
+        case .backPagination: .backPagination
         case .sendQueue: .sendQueue
         case .timeline: .timeline
         case .notificationClient: .notificationClient
         case .syncProfiling: .syncProfiling
         case .latestEvents: .latestEvents
+        case .search: .search
         }
     }
 }

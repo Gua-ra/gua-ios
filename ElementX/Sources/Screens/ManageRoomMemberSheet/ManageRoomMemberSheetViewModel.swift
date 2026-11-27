@@ -1,7 +1,8 @@
 //
+// Copyright 2025 Element Creations Ltd.
 // Copyright 2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -14,7 +15,8 @@ typealias ManageRoomMemberSheetViewModelType = StateStoreViewModelV2<ManageRoomM
 class ManageRoomMemberSheetViewModel: ManageRoomMemberSheetViewModelType, ManageRoomMemberSheetViewModelProtocol {
     private let roomProxy: JoinedRoomProxyProtocol
     private let userIndicatorController: UserIndicatorControllerProtocol
-    private let analyticsService: AnalyticsService
+    private let analyticsService: AnalyticsServiceProtocol
+    private let mediaProvider: MediaProviderProtocol
     
     private var actionsSubject: PassthroughSubject<ManageRoomMemberSheetViewModelAction, Never> = .init()
     
@@ -26,11 +28,12 @@ class ManageRoomMemberSheetViewModel: ManageRoomMemberSheetViewModelType, Manage
          permissions: ManageRoomMemberPermissions,
          roomProxy: JoinedRoomProxyProtocol,
          userIndicatorController: UserIndicatorControllerProtocol,
-         analyticsService: AnalyticsService,
+         analyticsService: AnalyticsServiceProtocol,
          mediaProvider: MediaProviderProtocol) {
         self.userIndicatorController = userIndicatorController
         self.roomProxy = roomProxy
         self.analyticsService = analyticsService
+        self.mediaProvider = mediaProvider
         super.init(initialViewState: .init(memberDetails: memberDetails, permissions: permissions), mediaProvider: mediaProvider)
     }
     
@@ -44,6 +47,8 @@ class ManageRoomMemberSheetViewModel: ManageRoomMemberSheetViewModelType, Manage
             actionsSubject.send(.dismiss(shouldShowDetails: true))
         case .unban:
             displayAlert(.unban)
+        case .displayAvatar(let url):
+            Task { await displayFullScreenAvatar(url) }
         }
     }
     
@@ -58,7 +63,7 @@ class ManageRoomMemberSheetViewModel: ManageRoomMemberSheetViewModelType, Manage
         case .kick:
             state.bindings.alertInfo = .init(id: alertType,
                                              title: L10n.screenBottomSheetManageRoomMemberKickMemberConfirmationTitle,
-                                             message: L10n.screenBottomSheetManageRoomMemberKickMemberConfirmationDescription,
+                                             message: roomProxy.infoPublisher.value.isSpace ? L10n.screenBottomSheetManageRoomMemberKickMemberFromSpaceConfirmationDescription : L10n.screenBottomSheetManageRoomMemberKickMemberConfirmationDescription,
                                              primaryButton: .init(title: L10n.actionCancel, role: .cancel) { },
                                              secondaryButton: .init(title: L10n.screenBottomSheetManageRoomMemberKickMemberConfirmationAction) { [weak self] in Task { await self?.kickMember(id: memberID, name: memberName, reason: reason) } },
                                              textFields: [.init(placeholder: L10n.commonReason,
@@ -68,7 +73,7 @@ class ManageRoomMemberSheetViewModel: ManageRoomMemberSheetViewModelType, Manage
         case .ban:
             state.bindings.alertInfo = .init(id: alertType,
                                              title: L10n.screenBottomSheetManageRoomMemberBanMemberConfirmationTitle,
-                                             message: L10n.screenBottomSheetManageRoomMemberBanMemberConfirmationDescription,
+                                             message: roomProxy.infoPublisher.value.isSpace ? L10n.screenBottomSheetManageRoomMemberBanMemberFromSpaceConfirmationDescription : L10n.screenBottomSheetManageRoomMemberBanMemberConfirmationDescription,
                                              primaryButton: .init(title: L10n.actionCancel, role: .cancel) { },
                                              secondaryButton: .init(title: L10n.screenBottomSheetManageRoomMemberBanMemberConfirmationAction) { [weak self] in Task { await self?.banMember(id: memberID, name: memberName, reason: reason) } },
                                              textFields: [.init(placeholder: L10n.commonReason,
@@ -85,7 +90,7 @@ class ManageRoomMemberSheetViewModel: ManageRoomMemberSheetViewModelType, Manage
     }
     
     private func kickMember(id: String, name: String?, reason: String?) async {
-        let indicatorTitle = L10n.screenBottomSheetManageRoomMemberRemovingUser(name ?? id)
+        let indicatorTitle = L10n.screenBottomSheetManageRoomMemberRemovingUser(name ?? id.guaDisplayHandle)
         showManageMemberIndicator(title: indicatorTitle)
         
         switch await roomProxy.kickUser(id, reason: reason) {
@@ -99,7 +104,7 @@ class ManageRoomMemberSheetViewModel: ManageRoomMemberSheetViewModelType, Manage
     }
     
     private func banMember(id: String, name: String?, reason: String?) async {
-        let indicatorTitle = L10n.screenBottomSheetManageRoomMemberBanningUser(name ?? id)
+        let indicatorTitle = L10n.screenBottomSheetManageRoomMemberBanningUser(name ?? id.guaDisplayHandle)
         showManageMemberIndicator(title: indicatorTitle)
         
         switch await roomProxy.banUser(id, reason: reason) {
@@ -113,7 +118,7 @@ class ManageRoomMemberSheetViewModel: ManageRoomMemberSheetViewModelType, Manage
     }
     
     private func unbanMember(id: String, name: String?) async {
-        let indicatorTitle = L10n.screenBottomSheetManageRoomMemberUnbanningUser(name ?? id)
+        let indicatorTitle = L10n.screenBottomSheetManageRoomMemberUnbanningUser(name ?? id.guaDisplayHandle)
         showManageMemberIndicator(title: indicatorTitle)
         
         switch await roomProxy.unbanUser(id) {
@@ -124,6 +129,14 @@ class ManageRoomMemberSheetViewModel: ManageRoomMemberSheetViewModelType, Manage
         case .failure:
             showManageMemberFailure(title: indicatorTitle)
         }
+    }
+    
+    private func displayFullScreenAvatar(_ url: URL) async {
+        let loadingIndicatorIdentifier = "manageRoomMemberAvatarLoadingIndicator"
+        userIndicatorController.submitIndicator(UserIndicator(id: loadingIndicatorIdentifier, type: .modal, title: L10n.commonLoading, persistent: true))
+        defer { userIndicatorController.retractIndicatorWithId(loadingIndicatorIdentifier) }
+        
+        state.bindings.mediaPreviewItem = await MediaPreviewItem.load(from: url, title: state.memberDetails.name, using: mediaProvider)
     }
     
     private func showManageMemberIndicator(title: String) {
@@ -139,7 +152,7 @@ class ManageRoomMemberSheetViewModel: ManageRoomMemberSheetViewModelType, Manage
     
     private func showManageMemberFailure(title: String) {
         userIndicatorController.retractIndicatorWithId(title)
-        userIndicatorController.submitIndicator(UserIndicator(title: L10n.commonFailed, iconName: "xmark"))
+        userIndicatorController.submitIndicator(UserIndicator(title: L10n.commonFailed, icon: \.close))
     }
 }
 

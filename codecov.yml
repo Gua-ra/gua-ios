@@ -15,11 +15,16 @@ ignore:
   - "ElementX/Sources/UITests"
   - "ElementX/Sources/UnitTests"
   - "ElementX/Sources/Settings/DeveloperOptionsScreen"
+  - "Components/SDKMocks/Sources/Generated"
   - "Tools"
   - "**/Mock*.swift"
   - "**/*Mock.swift"
   - "**/*Proxy.swift"
   - "**/*Protocol.swift"
+  - "compound-ios/Inspector"
+  - "compound-ios/Tests"
+  - "compound-ios/Sources/Previews"
+  - "compound-ios/Tools"
 
 flag_management:
   default_rules:

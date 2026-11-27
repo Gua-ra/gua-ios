@@ -8,9 +8,9 @@
 import Foundation
 
 /// Must match the resolver's `CanonicalRoutingPolicy` and `CanonicalDelegatedRules` byte for byte.
-enum CanonicalRoutingPolicy {
+nonisolated enum CanonicalRoutingPolicy {
     private static let separator = "\u{1F}"
-
+    
     static func bytes(of bundle: RoutingPolicyBundle) -> [UInt8]? {
         guard let issuedAt = epoch(bundle.issuedAt), let notBefore = epoch(bundle.notBefore), let expiresAt = epoch(bundle.expiresAt) else {
             return nil
@@ -33,7 +33,7 @@ enum CanonicalRoutingPolicy {
         text += "fallback=\(fallback)\n"
         return Array(text.utf8)
     }
-
+    
     static func delegatedRulesBytes(policyId: String?, version: Int64, zoneId: String, rules: [RoutingPolicyRule]) -> [UInt8] {
         var text = "gua-delegated-rules.v1\n"
         text += "policyId=\(policyId ?? "")\n"
@@ -44,16 +44,18 @@ enum CanonicalRoutingPolicy {
         }
         return Array(text.utf8)
     }
-
+    
     static func sortedRules(_ rules: [RoutingPolicyRule]) -> [RoutingPolicyRule] {
         rules.sorted { compareRules($0, $1) < 0 }
     }
-
+    
     static func compareRules(_ lhs: RoutingPolicyRule, _ rhs: RoutingPolicyRule) -> Int {
-        if lhs.priority != rhs.priority { return lhs.priority < rhs.priority ? -1 : 1 }
+        if lhs.priority != rhs.priority {
+            return lhs.priority < rhs.priority ? -1 : 1
+        }
         return JavaStringOrder.compare(lhs.id, rhs.id)
     }
-
+    
     private static func zoneLine(_ zone: DelegationZone) -> String? {
         guard let notBefore = epoch(zone.notBefore), let expiresAt = epoch(zone.expiresAt) else { return nil }
         return ["zone",
@@ -67,7 +69,7 @@ enum CanonicalRoutingPolicy {
                 String(notBefore),
                 String(expiresAt)].joined(separator: separator)
     }
-
+    
     private static func ruleLine(_ rule: RoutingPolicyRule) -> String {
         ["rule",
          rule.id ?? "",
@@ -82,7 +84,7 @@ enum CanonicalRoutingPolicy {
          rule.effectiveAssignmentPolicy,
          rule.isEnabled ? "true" : "false"].joined(separator: separator)
     }
-
+    
     static func epoch(_ iso: String?) -> Int64? {
         guard let iso else { return 0 }
         return ResolverInstant(iso: iso)?.epochMilliseconds

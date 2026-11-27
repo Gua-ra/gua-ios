@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -10,17 +11,15 @@ import SwiftUI
 
 struct InviteUsersScreenCoordinatorParameters {
     let userSession: UserSessionProtocol
-    let selectedUsers: CurrentValuePublisher<[UserProfileProxy], Never>
     let roomType: InviteUsersScreenRoomType
+    let isSkippable: Bool
     let userDiscoveryService: UserDiscoveryServiceProtocol
     let userIndicatorController: UserIndicatorControllerProtocol
 }
 
 enum InviteUsersScreenCoordinatorAction {
-    case cancel
-    case proceed
-    case invite(users: [String])
-    case toggleUser(UserProfileProxy)
+    case dismiss
+    case openRoom(roomID: String)
 }
 
 final class InviteUsersScreenCoordinator: CoordinatorProtocol {
@@ -34,8 +33,8 @@ final class InviteUsersScreenCoordinator: CoordinatorProtocol {
     
     init(parameters: InviteUsersScreenCoordinatorParameters) {
         viewModel = InviteUsersScreenViewModel(userSession: parameters.userSession,
-                                               selectedUsers: parameters.selectedUsers,
                                                roomType: parameters.roomType,
+                                               isSkippable: parameters.isSkippable,
                                                userDiscoveryService: parameters.userDiscoveryService,
                                                userIndicatorController: parameters.userIndicatorController)
     }
@@ -44,14 +43,10 @@ final class InviteUsersScreenCoordinator: CoordinatorProtocol {
         viewModel.actions.sink { [weak self] action in
             guard let self else { return }
             switch action {
-            case .cancel:
-                actionsSubject.send(.cancel)
-            case .proceed:
-                actionsSubject.send(.proceed)
-            case .invite(let users):
-                actionsSubject.send(.invite(users: users))
-            case .toggleUser(let user):
-                actionsSubject.send(.toggleUser(user))
+            case .dismiss:
+                actionsSubject.send(.dismiss)
+            case .openRoom(let roomID):
+                actionsSubject.send(.openRoom(roomID: roomID))
             }
         }
         .store(in: &cancellables)

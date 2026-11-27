@@ -7,24 +7,24 @@
 
 import Foundation
 
-struct GuaLPEncoder {
+nonisolated struct GuaLPEncoder {
     enum EncodingError: Error, Equatable {
         case duplicateSetElement
         case missingRequiredValue
     }
-
+    
     var bytes = [UInt8]()
-
+    
     mutating func string(_ value: String) {
         let utf8 = Array(value.utf8)
         u32(utf8.count)
         bytes.append(contentsOf: utf8)
     }
-
+    
     mutating func int64(_ value: Int64) {
         bytes.append(contentsOf: withUnsafeBytes(of: value.bigEndian, Array.init))
     }
-
+    
     mutating func optionalString(_ value: String?) {
         guard let value else {
             bytes.append(0)
@@ -33,11 +33,11 @@ struct GuaLPEncoder {
         bytes.append(1)
         string(value)
     }
-
+    
     mutating func enumName(_ name: String) {
         string(name)
     }
-
+    
     mutating func stringSet(_ values: [String]) throws {
         let encoded = values.map { Array($0.utf8) }.sorted { $0.lexicographicallyPrecedes($1) }
         for index in encoded.indices.dropFirst() where encoded[index - 1] == encoded[index] {
@@ -49,13 +49,13 @@ struct GuaLPEncoder {
             bytes.append(contentsOf: element)
         }
     }
-
+    
     private mutating func u32(_ count: Int) {
         bytes.append(contentsOf: withUnsafeBytes(of: UInt32(count).bigEndian, Array.init))
     }
 }
 
-extension GuaLPEncoder {
+nonisolated extension GuaLPEncoder {
     init(schemaTag: String) {
         self.init()
         string(schemaTag)
@@ -63,10 +63,10 @@ extension GuaLPEncoder {
 }
 
 /// Resolver field order. The authority-set `weight`, `acceptsNew`, `claims`, `admittedAt` and `status` are not covered.
-enum CanonicalMemberEntry {
+nonisolated enum CanonicalMemberEntry {
     static let schema = "gua-member-entry.v1"
     static let alg = "Ed25519"
-
+    
     static func bytes(homeserver: RosterHomeserver, member: RosterMemberAttestation,
                       notBefore: Int64, notAfter: Int64) throws -> [UInt8] {
         guard let id = homeserver.id, let serverName = homeserver.serverName, let baseUrl = homeserver.baseUrl,

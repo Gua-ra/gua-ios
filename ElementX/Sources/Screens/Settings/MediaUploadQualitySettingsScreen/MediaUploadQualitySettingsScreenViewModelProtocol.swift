@@ -7,7 +7,6 @@
 
 import Combine
 
-@MainActor
 protocol MediaUploadQualitySettingsScreenViewModelProtocol {
     var context: MediaUploadQualitySettingsScreenViewModelType.Context { get }
 }

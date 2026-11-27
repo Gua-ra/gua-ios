@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -54,11 +55,11 @@ struct RoomMemberDetailsScreen: View {
                     }
                     
                     otherUserFooter
+                        .padding(.top, 8)
                 }
-                .padding(.top, 24)
             }
         } else {
-            AvatarHeaderView(user: UserProfileProxy(userID: context.viewState.userID),
+            AvatarHeaderView(user: UserProfile(userID: context.viewState.userID),
                              isVerified: context.viewState.showVerifiedBadge,
                              avatarSize: .user(on: .memberDetails),
                              mediaProvider: context.mediaProvider) { }
@@ -102,13 +103,22 @@ struct RoomMemberDetailsScreen: View {
                 .accessibilityIdentifier(A11yIdentifiers.roomMemberDetailsScreen.directChat)
             }
             
-            if let roomID = context.viewState.dmRoomID {
+            if let roomID = context.viewState.dmRoomID, context.viewState.isCallingEnabled {
                 Button {
-                    context.send(viewAction: .startCall(roomID: roomID))
+                    context.send(viewAction: .startCall(roomID: roomID, isVoiceCall: true))
+                } label: {
+                    CompoundIcon(\.voiceCall)
+                }
+                .accessibilityLabel(L10n.a11yStartVoiceCall)
+                .buttonStyle(FormActionButtonStyle(title: L10n.actionCall))
+                
+                Button {
+                    context.send(viewAction: .startCall(roomID: roomID, isVoiceCall: false))
                 } label: {
                     CompoundIcon(\.videoCall)
                 }
-                .buttonStyle(FormActionButtonStyle(title: L10n.actionCall))
+                .accessibilityLabel(L10n.a11yStartVideoCall)
+                .buttonStyle(FormActionButtonStyle(title: L10n.commonVideo))
             }
             
             if let permalink = context.viewState.memberDetails?.permalink {
@@ -148,7 +158,7 @@ struct RoomMemberDetailsScreen: View {
             }
         }
     }
-
+    
     @ViewBuilder
     private func blockUserAlertActions(_ item: RoomMemberDetailsScreenViewStateBindings.IgnoreUserAlertItem) -> some View {
         Button(item.cancelTitle, role: .cancel) { }
@@ -157,7 +167,7 @@ struct RoomMemberDetailsScreen: View {
             context.send(viewAction: item.viewAction)
         }
     }
-
+    
     private func blockUserAlertMessage(_ item: RoomMemberDetailsScreenViewStateBindings.IgnoreUserAlertItem) -> some View {
         Text(item.description)
     }
@@ -184,20 +194,20 @@ struct RoomMemberDetailsScreen_Previews: PreviewProvider, TestablePreview {
                 state.verificationState == .verificationViolation
             })
             .previewDisplayName("Verification Violation User")
-            
+        
         RoomMemberDetailsScreen(context: otherUserViewModel.context)
             .snapshotPreferences(expect: otherUserViewModel.context.$viewState.map { state in
                 state.memberDetails?.role == .user && state.dmRoomID != nil
             }
             .delay(for: .milliseconds(100), scheduler: DispatchQueue.main))
             .previewDisplayName("Other User")
-            
+        
         RoomMemberDetailsScreen(context: accountOwnerViewModel.context)
             .snapshotPreferences(expect: accountOwnerViewModel.context.$viewState.map { state in
                 state.isOwnMemberDetails == true
             })
             .previewDisplayName("Account Owner")
-            
+        
         RoomMemberDetailsScreen(context: ignoredUserViewModel.context)
             .snapshotPreferences(expect: ignoredUserViewModel.context.$viewState.map { state in
                 state.memberDetails?.isIgnored ?? false && state.dmRoomID != nil
@@ -211,14 +221,14 @@ struct RoomMemberDetailsScreen_Previews: PreviewProvider, TestablePreview {
         
         let clientProxyMock = ClientProxyMock(.init())
         
-        clientProxyMock.userIdentityForClosure = { userID in
+        clientProxyMock.userIdentityForFallBackToServerClosure = { userID, _ in
             let identity = switch userID {
             case RoomMemberProxyMock.mockDan.userID:
-                UserIdentityProxyMock(configuration: .init(verificationState: .verified))
+                UserIdentityProxyMock(.init(verificationState: .verified))
             case RoomMemberProxyMock.mockBob.userID:
-                UserIdentityProxyMock(configuration: .init(verificationState: .verificationViolation))
+                UserIdentityProxyMock(.init(verificationState: .verificationViolation))
             default:
-                UserIdentityProxyMock(configuration: .init())
+                UserIdentityProxyMock(.init())
             }
             
             return .success(identity)
@@ -232,7 +242,7 @@ struct RoomMemberDetailsScreen_Previews: PreviewProvider, TestablePreview {
         return RoomMemberDetailsScreenViewModel(userID: member.userID,
                                                 roomProxy: roomProxyMock,
                                                 userSession: UserSessionMock(.init(clientProxy: clientProxyMock)),
-                                                userIndicatorController: ServiceLocator.shared.userIndicatorController,
-                                                analytics: ServiceLocator.shared.analytics)
+                                                analytics: AnalyticsServiceMock(.init()),
+                                                userIndicatorController: UserIndicatorControllerMock())
     }
 }

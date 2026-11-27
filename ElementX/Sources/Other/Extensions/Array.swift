@@ -1,13 +1,14 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Foundation
 
-extension Array {
+nonisolated extension Array {
     func groupBy(_ isGroupable: (Element) -> Bool) -> [[Element]] {
         var newItems = [[Element]]()
         
@@ -59,8 +60,38 @@ extension Array {
     }
 }
 
-extension Array where Element == RoomTimelineItemProtocol {
+nonisolated extension Array where Element == RoomTimelineItemProtocol {
     func firstUsingStableID(_ id: TimelineItemIdentifier) -> Element? {
         first { $0.id.uniqueID == id.uniqueID }
+    }
+    
+    /// The voice message that directly follows the item with the given ID, if there is one.
+    ///
+    /// Decorations such as date separators and the read marker are ignored, but any other
+    /// kind of item in between means that no voice message directly follows.
+    func voiceMessageDirectlyFollowing(_ id: TimelineItemIdentifier) -> VoiceMessageRoomTimelineItem? {
+        guard let index = firstIndex(where: { $0.id.uniqueID == id.uniqueID }) else { return nil }
+        
+        for item in self[index...].dropFirst() where !(item is DecorationTimelineItemProtocol) {
+            return item as? VoiceMessageRoomTimelineItem
+        }
+        
+        return nil
+    }
+    
+    /// The items that can be forwarded, in timeline order.
+    var forwardableItems: [EventBasedTimelineItemProtocol] {
+        compactMap { item in
+            guard let item = item as? EventBasedTimelineItemProtocol, item.isForwardable else { return nil }
+            return item
+        }
+    }
+    
+    /// The selected items in timeline order, whatever the order they were selected in.
+    func selectedItems(_ selectedEventIDs: Set<String>) -> [EventBasedTimelineItemProtocol] {
+        forwardableItems.filter { item in
+            guard let eventID = item.id.eventID else { return false }
+            return selectedEventIDs.contains(eventID)
+        }
     }
 }

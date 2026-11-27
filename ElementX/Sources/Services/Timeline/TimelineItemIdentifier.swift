@@ -1,7 +1,8 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -13,7 +14,7 @@ import Foundation
 /// Its value is consistent only per timeline instance, it should **not** be used to identify an item across timeline instances.
 /// - eventOrTransactionID: Contains the 2 possible identifiers of an event, either it has a remote event id or
 /// a local transaction id, never both or none.
-enum TimelineItemIdentifier: Hashable {
+nonisolated enum TimelineItemIdentifier: Hashable {
     struct UniqueID: Hashable {
         let value: String
         
@@ -25,6 +26,7 @@ enum TimelineItemIdentifier: Hashable {
             self.init(rustValue.id)
         }
         
+        // periphery:ignore - might be useful to have
         var rustValue: TimelineUniqueId {
             .init(id: value)
         }
@@ -68,6 +70,7 @@ enum TimelineItemIdentifier: Hashable {
         return eventID
     }
     
+    // periphery:ignore - might be useful to have
     var transactionID: String? {
         guard case let .event(_, .transactionID(transactionID)) = self else { return nil }
         return transactionID
@@ -76,7 +79,7 @@ enum TimelineItemIdentifier: Hashable {
 
 // MARK: - Mocks
 
-extension TimelineItemIdentifier {
+nonisolated extension TimelineItemIdentifier {
     static var randomEvent: Self {
         .event(uniqueID: .init(UUID().uuidString), eventOrTransactionID: .eventID(UUID().uuidString))
     }

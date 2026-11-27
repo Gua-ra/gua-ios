@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -21,7 +22,7 @@ class DeactivateAccountScreenViewModel: DeactivateAccountScreenViewModelType, De
     var actionsPublisher: AnyPublisher<DeactivateAccountScreenViewModelAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
-
+    
     init(clientProxy: ClientProxyProtocol,
          userIndicatorController: UserIndicatorControllerProtocol,
          identityServiceClient: IdentityServiceClientProtocol? = nil) {
@@ -113,14 +114,14 @@ class DeactivateAccountScreenViewModel: DeactivateAccountScreenViewModelType, De
     
     func showDeactivationConfirmation() {
         state.bindings.alertInfo = .init(id: .confirmation,
-                                         title: L10n.screenDeactivateAccountTitle,
+                                         title: UntranslatedL10n.actionDeleteAccount,
                                          message: L10n.screenDeactivateAccountConfirmationDialogContent,
-                                         primaryButton: .init(title: L10n.actionDeactivate) {
+                                         primaryButton: .init(title: UntranslatedL10n.guaActionDelete) {
                                              Task { await self.deactivateAccount() }
                                          },
                                          secondaryButton: .init(title: L10n.actionCancel, role: .cancel, action: nil))
     }
-
+    
     func deactivateAccount() async {
         userIndicatorController.submitIndicator(UserIndicator(id: deactivatingIndicatorID,
                                                               type: .modal(progress: .indeterminate, interactiveDismissDisabled: true, allowsInteraction: false),
@@ -155,16 +156,7 @@ class DeactivateAccountScreenViewModel: DeactivateAccountScreenViewModelType, De
             }
         }
         
-        // Legacy / dev fallback: attempt with no auth first, then with provided password.
-        switch await clientProxy.deactivateAccount(password: nil, eraseData: state.bindings.eraseData) {
-        case .success:
-            MXLog.info("Account deactivated (no password needed).")
-            actionsSubject.send(.accountDeactivated)
-            return
-        case .failure:
-            MXLog.info("Request failed, including password.")
-        }
-        
+        // Legacy / dev fallback: the SDK password flow.
         switch await clientProxy.deactivateAccount(password: state.bindings.password, eraseData: state.bindings.eraseData) {
         case .success:
             MXLog.info("Account deactivated.")

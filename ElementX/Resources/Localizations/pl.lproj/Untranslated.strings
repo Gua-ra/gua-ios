@@ -10,6 +10,12 @@
 "gua_encryption_reset_required_action" = "Zresetuj i zakończ";
 "gua_signout_last_device_title" = "Wylogowanie usunie Twoje wiadomości z tego urządzenia";
 "gua_signout_last_device_message" = "To Twoje jedyne urządzenie. Wiadomości zapisane tylko tutaj nie będą dostępne po ponownym zalogowaniu.";
+"gua_settings_sign_out" = "Wyloguj";
+"gua_signout_confirmation_message" = "Czy na pewno chcesz się wylogować?";
+"gua_signout_key_backup_ongoing_subtitle" = "Zanim się wylogujesz, poczekaj na zakończenie operacji.";
+"gua_signout_key_backup_offline_subtitle" = "Twoje klucze były nadal archiwizowane po przejściu w tryb offline. Połącz się ponownie, aby zapisać je w chmurze przed wylogowaniem.";
+"gua_app_lock_signout_alert_title" = "Trwa wylogowywanie";
+"gua_signing_out" = "Wylogowywanie";
 "gua_encryption_reset_finishing" = "Kończę konfigurację…";
 "gua_encryption_reset_failed" = "Nie udało się zakończyć konfiguracji. Stuknij „Zresetuj i zakończ”, aby spróbować ponownie.";
 "gua_encryption_recover_from_other_device_title" = "Przywróć swoje wcześniejsze wiadomości";

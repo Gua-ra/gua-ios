@@ -1,50 +1,52 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 @testable import ElementX
-import XCTest
+import Testing
 
 @MainActor
-class StartChatScreenViewModelTests: XCTestCase {
-    var viewModel: StartChatScreenViewModelProtocol!
-    var clientProxy: ClientProxyMock!
-    var userDiscoveryService: UserDiscoveryServiceMock!
+struct StartChatScreenViewModelTests {
+    private var viewModel: StartChatScreenViewModelProtocol!
+    private var clientProxy: ClientProxyMock!
+    private var userDiscoveryService: UserDiscoveryServiceMock!
     
-    var context: StartChatScreenViewModel.Context {
+    private var context: StartChatScreenViewModel.Context {
         viewModel.context
     }
     
-    override func setUpWithError() throws {
+    init() {
         clientProxy = .init(.init(userID: ""))
         userDiscoveryService = UserDiscoveryServiceMock()
         userDiscoveryService.searchProfilesWithReturnValue = .success([])
         let userSession = UserSessionMock(.init(clientProxy: clientProxy))
         viewModel = StartChatScreenViewModel(userSession: userSession,
-                                             analytics: ServiceLocator.shared.analytics,
+                                             analytics: AnalyticsServiceMock(.init()),
                                              userIndicatorController: UserIndicatorControllerMock(),
-                                             userDiscoveryService: userDiscoveryService,
-                                             appSettings: ServiceLocator.shared.settings)
+                                             userDiscoveryService: userDiscoveryService)
     }
     
-    func testQueryShowingNoResults() async {
+    @Test
+    mutating func queryShowingNoResults() async {
         await search(query: "A")
-        XCTAssertEqual(context.viewState.usersSection.type, .suggestions)
+        #expect(context.viewState.usersSection.type == .suggestions)
         
         await search(query: "AA")
-        XCTAssertEqual(context.viewState.usersSection.type, .suggestions)
-        XCTAssertFalse(userDiscoveryService.searchProfilesWithCalled)
+        #expect(context.viewState.usersSection.type == .suggestions)
+        #expect(!userDiscoveryService.searchProfilesWithCalled)
         
         await search(query: "AAA")
         assertSearchResults(toBe: 0)
         
-        XCTAssertTrue(userDiscoveryService.searchProfilesWithCalled)
+        #expect(userDiscoveryService.searchProfilesWithCalled)
     }
     
-    func testJoinRoomByAddress() async throws {
+    @Test
+    func joinRoomByAddress() async throws {
         clientProxy.resolveRoomAliasReturnValue = .success(.init(roomId: "id", servers: []))
         
         let deferredViewState = deferFulfillment(viewModel.context.$viewState) { viewState in
@@ -54,13 +56,14 @@ class StartChatScreenViewModelTests: XCTestCase {
         try await deferredViewState.fulfill()
         
         let deferredAction = deferFulfillment(viewModel.actions) { action in
-            action == .showRoom(withIdentifier: "id")
+            action == .showRoom(roomID: "id")
         }
         context.send(viewAction: .joinRoomByAddress)
         try await deferredAction.fulfill()
     }
     
-    func testJoinRoomByAddressFailsBecauseInvalid() async throws {
+    @Test
+    func joinRoomByAddressFailsBecauseInvalid() async throws {
         let deferred = deferFulfillment(viewModel.context.$viewState) { viewState in
             viewState.joinByAddressState == .invalidAddress
         }
@@ -69,7 +72,8 @@ class StartChatScreenViewModelTests: XCTestCase {
         try await deferred.fulfill()
     }
     
-    func testJoinRoomByAddressFailsBecauseNotFound() async throws {
+    @Test
+    func joinRoomByAddressFailsBecauseNotFound() async throws {
         clientProxy.resolveRoomAliasReturnValue = .failure(.failedResolvingRoomAlias)
         
         let deferred = deferFulfillment(viewModel.context.$viewState) { viewState in
@@ -80,17 +84,49 @@ class StartChatScreenViewModelTests: XCTestCase {
         try await deferred.fulfill()
     }
     
+    // MARK: - History Sharing
+    
+    @Test
+    func inviteConfirmationFetchesIdentity() async throws {
+        clientProxy.directRoomForUserIDReturnValue = .success(nil)
+        clientProxy.userIdentityForFallBackToServerReturnValue = .success(UserIdentityProxyMock(.init(verificationState: .notVerified)))
+        
+        // User identity becomes known, i.e. not unknown
+        let deferred = deferFulfillment(viewModel.context.$viewState.compactMap(\.bindings.selectedUserToInvite)) {
+            !$0.isUnknown
+        }
+        context.send(viewAction: .selectUser(.mockBob))
+        try await deferred.fulfill()
+        
+        #expect(clientProxy.userIdentityForFallBackToServerCalled)
+    }
+    
+    @Test
+    func inviteConfirmationFallsBackToUnknownIdentityOnFailure() async throws {
+        clientProxy.directRoomForUserIDReturnValue = .success(nil)
+        clientProxy.userIdentityForFallBackToServerReturnValue = .failure(.forbiddenAccess)
+        
+        // User identity never becomes known, i.e. is never not unknown
+        let deferred = deferFailure(viewModel.context.$viewState.compactMap(\.bindings.selectedUserToInvite), timeout: .seconds(5)) {
+            !$0.isUnknown
+        }
+        context.send(viewAction: .selectUser(.mockBob))
+        try await deferred.fulfill()
+        
+        #expect(clientProxy.userIdentityForFallBackToServerCalled)
+    }
+    
     // MARK: - Private
     
     private func assertSearchResults(toBe count: Int) {
-        XCTAssertTrue(count >= 0)
-        XCTAssertEqual(context.viewState.usersSection.type, .searchResult)
-        XCTAssertEqual(context.viewState.usersSection.users.count, count)
-        XCTAssertEqual(context.viewState.hasEmptySearchResults, count == 0)
+        #expect(count >= 0)
+        #expect(context.viewState.usersSection.type == .searchResult)
+        #expect(context.viewState.usersSection.users.count == count)
+        #expect(context.viewState.hasEmptySearchResults == (count == 0))
     }
     
     @discardableResult
-    private func search(query: String) async -> StartChatScreenViewState? {
+    private mutating func search(query: String) async -> StartChatScreenViewState? {
         viewModel.context.searchQuery = query
         return await context.$viewState.nextValue
     }

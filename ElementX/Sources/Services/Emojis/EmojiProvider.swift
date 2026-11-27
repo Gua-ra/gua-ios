@@ -1,23 +1,24 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
-import Emojibase
+@preconcurrency import Emojibase
 import Foundation
 
 class EmojiProvider: EmojiProviderProtocol {
     private let maxFrequentEmojis = 20
     private let loader: EmojiLoaderProtocol
-    private let appSettings: AppSettings
+    private let userSettings: UserSettings
     
     private(set) var state: EmojiProviderState = .notLoaded
     
-    init(loader: EmojiLoaderProtocol = EmojibaseDatasource(), appSettings: AppSettings) {
+    init(loader: EmojiLoaderProtocol = EmojibaseDatasource(), userSettings: UserSettings) {
         self.loader = loader
-        self.appSettings = appSettings
+        self.userSettings = userSettings
         
         Task {
             await loadIfNeeded()
@@ -60,7 +61,7 @@ class EmojiProvider: EmojiProviderProtocol {
             return []
         }
         
-        return appSettings.frequentlyUsedSystemEmojis.map(\.key)
+        return userSettings.app.frequentlyUsedSystemEmojis.map(\.key)
     }
     
     func markEmojiAsFrequentlyUsed(_ emoji: String) {
@@ -69,9 +70,9 @@ class EmojiProvider: EmojiProviderProtocol {
         }
         
         let frequentlyUsed = if !frequentlyUsedSystemEmojis().contains(emoji) {
-            appSettings.frequentlyUsedSystemEmojis + [.init(count: 0, key: emoji)]
+            userSettings.app.frequentlyUsedSystemEmojis + [.init(count: 0, key: emoji)]
         } else {
-            appSettings.frequentlyUsedSystemEmojis.map { frequentlyUsedEmoji in
+            userSettings.app.frequentlyUsedSystemEmojis.map { frequentlyUsedEmoji in
                 if frequentlyUsedEmoji.key == emoji {
                     return FrequentlyUsedEmoji(count: frequentlyUsedEmoji.count + 1, key: emoji)
                 }
@@ -80,7 +81,7 @@ class EmojiProvider: EmojiProviderProtocol {
             }
         }
         
-        appSettings.frequentlyUsedSystemEmojis = frequentlyUsed.sorted { $0.count > $1.count }
+        userSettings.app.frequentlyUsedSystemEmojis = frequentlyUsed.sorted { $0.count > $1.count }
     }
     
     // MARK: - Private
@@ -113,7 +114,7 @@ class EmojiProvider: EmojiProviderProtocol {
     }
 }
 
-extension EmojibaseDatasource: EmojiLoaderProtocol {
+nonisolated extension EmojibaseDatasource: EmojiLoaderProtocol {
     func load() async -> [EmojiCategory] {
         do {
             let store: EmojibaseStore = try await load()

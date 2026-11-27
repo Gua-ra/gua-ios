@@ -10,6 +10,12 @@
 "gua_encryption_reset_required_action" = "Återställ och slutför";
 "gua_signout_last_device_title" = "Att logga ut tar bort dina meddelanden från den här enheten";
 "gua_signout_last_device_message" = "Det här är din enda enhet. Meddelanden som bara finns här kommer inte att vara tillgängliga när du loggar in igen.";
+"gua_settings_sign_out" = "Logga ut";
+"gua_signout_confirmation_message" = "Är du säker på att du vill logga ut?";
+"gua_signout_key_backup_ongoing_subtitle" = "Vänta tills detta är klart innan du loggar ut.";
+"gua_signout_key_backup_offline_subtitle" = "Dina nycklar säkerhetskopierades fortfarande när du gick offline. Anslut igen så att dina nycklar kan säkerhetskopieras innan du loggar ut.";
+"gua_app_lock_signout_alert_title" = "Du blir utloggad";
+"gua_signing_out" = "Loggar ut";
 "gua_encryption_reset_finishing" = "Slutför konfigurationen …";
 "gua_encryption_reset_failed" = "Kunde inte slutföra konfigurationen. Tryck på ”Återställ och slutför” för att försöka igen.";
 "gua_encryption_recover_from_other_device_title" = "Få tillbaka dina tidigare meddelanden";

@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -17,17 +18,58 @@ class DeveloperOptionsScreenViewModel: DeveloperOptionsScreenViewModelType, Deve
         actionsSubject.eraseToAnyPublisher()
     }
     
-    init(developerOptions: DeveloperOptionsProtocol, elementCallBaseURL: URL) {
-        let bindings = DeveloperOptionsScreenViewStateBindings(developerOptions: developerOptions)
-        let state = DeveloperOptionsScreenViewState(elementCallBaseURL: elementCallBaseURL, bindings: bindings)
+    private let clientProxy: ClientProxyProtocol?
+    
+    init(developerOptions: DeveloperOptionsProtocol, screenHook: DeveloperOptionsScreenHookProtocol, clientProxy: ClientProxyProtocol?) {
+        self.clientProxy = clientProxy
+        super.init(initialViewState: .init(screenHook: screenHook,
+                                           isSignedIn: clientProxy != nil,
+                                           bindings: .init(developerOptions: developerOptions)))
         
-        super.init(initialViewState: state)
+        developerOptions.multiAccountEnabledPublisher
+            .removeDuplicates()
+            .dropFirst() // The publisher replays the current value, so only an actual toggle arms the announcement.
+            .filter { $0 }
+            .sink { _ in developerOptions.hasSeenMultiAccountAnnouncement = false }
+            .store(in: &cancellables)
+        
+        Task {
+            if case let .success(sizes) = await clientProxy?.storeSizes() {
+                let formatter = ByteCountFormatStyle(style: .file)
+                
+                var components = [DeveloperOptionsScreenViewState.StoreSize]()
+                if let cryptoStore = sizes.cryptoStore {
+                    components.append(.init(name: "CryptoStore", size: formatter.format(Int64(cryptoStore))))
+                }
+                if let stateStore = sizes.stateStore {
+                    components.append(.init(name: "StateStore", size: formatter.format(Int64(stateStore))))
+                }
+                if let eventCacheStore = sizes.eventCacheStore {
+                    components.append(.init(name: "EventCacheStore", size: formatter.format(Int64(eventCacheStore))))
+                }
+                if let mediaStore = sizes.mediaStore {
+                    components.append(.init(name: "MediaStore", size: formatter.format(Int64(mediaStore))))
+                }
+                if let searchIndex = sizes.searchIndex {
+                    components.append(.init(name: "SearchIndex", size: formatter.format(Int64(searchIndex))))
+                }
+                if let logsSize = try? FileManager.default.sizeForDirectory(at: .appGroupLogsDirectory) {
+                    components.append(.init(name: "Log Files", size: formatter.format(Int64(logsSize))))
+                }
+                
+                state.storeSizes = components
+            }
+        }
     }
     
     override func process(viewAction: DeveloperOptionsScreenViewAction) {
         switch viewAction {
         case .clearCache:
             actionsSubject.send(.clearCache)
+        case .markAllRoomsAsRead:
+            Task {
+                await self.clientProxy?.markAllRoomsAsRead()
+            }
         }
     }
 }

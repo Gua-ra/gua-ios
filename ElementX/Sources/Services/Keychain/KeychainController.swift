@@ -1,18 +1,19 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Foundation
-import KeychainAccess
+@preconcurrency import KeychainAccess
 import MatrixRustSDK
 
-enum KeychainControllerService: String {
+nonisolated enum KeychainControllerService: String {
     case sessions
     case tests
-
+    
     var restorationTokenID: String {
         InfoPlistReader.main.baseBundleIdentifier + "." + rawValue
     }
@@ -20,13 +21,13 @@ enum KeychainControllerService: String {
     var mainID: String {
         InfoPlistReader.main.baseBundleIdentifier + ".keychain.\(rawValue)"
     }
-
+    
     /// GUA FORK: the recovery key lives in its own keychain so it can be marked
     /// `synchronizable` without also pushing session restoration tokens to iCloud.
     var recoveryID: String {
         InfoPlistReader.main.baseBundleIdentifier + ".keychain.recovery.\(rawValue)"
     }
-
+    
     /// GUA FORK: the account authority and recovery keys an `AccountGenesis` commits live in their own
     /// keychain, kept device-only and non-synced (ADM-008 decision 5). Deliberately separate from
     /// `recoveryID`, which syncs on purpose, and from the session tokens, which must not leave the device.
@@ -35,7 +36,9 @@ enum KeychainControllerService: String {
     }
 }
 
-class KeychainController: KeychainControllerProtocol {
+/// The SDK calls the `ClientSessionDelegate` methods from arbitrary threads and the
+/// underlying `Keychain` is thread-safe, so the controller doesn't need an actor.
+final nonisolated class KeychainController: KeychainControllerProtocol {
     /// The keychain responsible for storing account restoration tokens (keyed by userID).
     private let restorationTokenKeychain: Keychain
     /// The keychain responsible for storing all other secrets in the app (keyed by `Key`s).
@@ -55,9 +58,9 @@ class KeychainController: KeychainControllerProtocol {
         case appLockPINCode
         case appLockBiometricState
     }
-
+    
     private static let recoveryKeyPrefix = "recoveryKey."
-
+    
     init(service: KeychainControllerService, accessGroup: String) {
         restorationTokenKeychain = Keychain(service: service.restorationTokenID, accessGroup: accessGroup)
         mainKeychain = Keychain(service: service.mainID, accessGroup: accessGroup)
@@ -67,7 +70,7 @@ class KeychainController: KeychainControllerProtocol {
     }
     
     // MARK: - Restoration Tokens
-
+    
     func setRestorationToken(_ restorationToken: RestorationToken, forUsername username: String) {
         do {
             let tokenData = try JSONEncoder().encode(restorationToken)
@@ -76,7 +79,7 @@ class KeychainController: KeychainControllerProtocol {
             MXLog.error("Failed storing user restore token with error: \(error)")
         }
     }
-
+    
     func restorationTokenForUsername(_ username: String) -> RestorationToken? {
         do {
             guard let tokenData = try restorationTokenKeychain.getData(username) else {
@@ -93,18 +96,18 @@ class KeychainController: KeychainControllerProtocol {
             return nil
         }
     }
-
+    
     func restorationTokens() -> [KeychainCredentials] {
         restorationTokenKeychain.allKeys().compactMap { username in
             guard !username.hasPrefix(Self.recoveryKeyPrefix),
                   let restorationToken = restorationTokenForUsername(username) else {
                 return nil
             }
-
+            
             return KeychainCredentials(userID: username, restorationToken: restorationToken)
         }
     }
-
+    
     func removeRestorationTokenForUsername(_ username: String) {
         MXLog.warning("Removing restoration token for user: \(username).")
         
@@ -114,19 +117,19 @@ class KeychainController: KeychainControllerProtocol {
             MXLog.error("Failed removing restore token with error: \(error)")
         }
     }
-
+    
     func removeAllRestorationTokens() {
         MXLog.warning("Removing all user restoration tokens.")
-
+        
         do {
             try restorationTokenKeychain.removeAll()
         } catch {
             MXLog.error("Failed removing all tokens")
         }
     }
-
+    
     // MARK: - Recovery Keys
-
+    
     func setRecoveryKey(_ key: String, forUsername username: String) {
         do {
             try recoveryKeychain.set(key, key: Self.recoveryKeyPrefix + username)
@@ -134,31 +137,31 @@ class KeychainController: KeychainControllerProtocol {
             MXLog.error("Failed storing recovery key with error: \(error)")
         }
     }
-
+    
     func recoveryKey(forUsername username: String) -> String? {
         do {
             if let key = try recoveryKeychain.getString(Self.recoveryKeyPrefix + username) {
                 return key
             }
-
+            
             // GUA FORK: keys written before the recovery keychain existed live in the
             // restoration-token keychain and are device-local. Move them across on first
             // read so those installs also gain iCloud sync, then drop the old copy.
             guard let legacyKey = try restorationTokenKeychain.getString(Self.recoveryKeyPrefix + username) else {
                 return nil
             }
-
+            
             MXLog.info("Migrating recovery key to the synchronised keychain.")
             try recoveryKeychain.set(legacyKey, key: Self.recoveryKeyPrefix + username)
             try? restorationTokenKeychain.remove(Self.recoveryKeyPrefix + username)
-
+            
             return legacyKey
         } catch {
             MXLog.error("Failed retrieving recovery key")
             return nil
         }
     }
-
+    
     func removeRecoveryKey(forUsername username: String) {
         do {
             try recoveryKeychain.remove(Self.recoveryKeyPrefix + username)
@@ -168,7 +171,7 @@ class KeychainController: KeychainControllerProtocol {
             MXLog.error("Failed removing recovery key with error: \(error)")
         }
     }
-
+    
     // MARK: - ClientSessionDelegate
     
     func retrieveSessionFromKeychain(userId: String) throws -> Session {

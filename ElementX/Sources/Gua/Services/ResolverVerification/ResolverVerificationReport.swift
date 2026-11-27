@@ -8,7 +8,7 @@
 import Foundation
 
 /// Raw values are the report codes shared by every Gua app.
-enum ResolverVerificationReason: String, Error {
+nonisolated enum ResolverVerificationReason: String, Error {
     case noTrustRoots = "no_trust_roots"
     case rosterUnavailable = "roster_unavailable"
     case parseError = "parse_error"
@@ -46,15 +46,15 @@ enum ResolverVerificationReason: String, Error {
 }
 
 /// Logged: never add the phone number, the resolver answer or a hostname.
-struct ResolverVerificationReport: Equatable {
+nonisolated struct ResolverVerificationReport: Equatable {
     typealias Reason = ResolverVerificationReason
-
+    
     enum RosterSignature: Equatable {
         case valid
         case invalid(Reason)
         case unverifiable(Reason)
     }
-
+    
     enum HomeserverMatch: Equatable {
         case activeMatch
         case inactive
@@ -62,14 +62,14 @@ struct ResolverVerificationReport: Equatable {
         case notInRoster
         case unverifiable(Reason)
     }
-
+    
     enum MemberEntry: Equatable {
         case valid
         case unattested
         case invalid(Reason)
         case unverifiable(Reason)
     }
-
+    
     enum LogConsistency: Equatable {
         case firstSeen
         case consistent
@@ -77,31 +77,31 @@ struct ResolverVerificationReport: Equatable {
         case inconsistent
         case unverifiable(Reason)
     }
-
+    
     enum Policy: Equatable {
         case notPresent
         case valid
         case invalid(Reason)
         case unverifiable(Reason)
     }
-
+    
     enum Placement: Equatable {
         case match
         case mismatch
         case indeterminate(Reason)
         case unverifiable(Reason)
     }
-
+    
     enum Check: String {
         case rosterSignature, homeserverMatch, memberEntry, logConsistency, policy, placement
     }
-
+    
     enum Overall: Equatable {
         case verified
         case failed(Check)
         case unverifiable(Check)
     }
-
+    
     let environment: String
     let rosterVersion: Int64?
     let rosterForm: String?
@@ -112,58 +112,62 @@ struct ResolverVerificationReport: Equatable {
     let policy: Policy
     let placement: Placement
     let durationMs: Int
-
+    
     var overall: Overall {
-        if let failed = checks.first(where: { $0.summary.verdict == .failed }) { return .failed(failed.check) }
-        if let undecided = checks.first(where: { $0.summary.verdict == .undecided }) { return .unverifiable(undecided.check) }
+        if let failed = checks.first(where: { $0.summary.verdict == .failed }) {
+            return .failed(failed.check)
+        }
+        if let undecided = checks.first(where: { $0.summary.verdict == .undecided }) {
+            return .unverifiable(undecided.check)
+        }
         return .verified
     }
-
+    
     var logDescription: String {
         (["environment=\(environment)", "rosterVersion=\(rosterVersion.map(String.init) ?? "none")", "rosterForm=\(rosterForm ?? "none")"]
             + checks.map { "\($0.check.rawValue)=\($0.summary.code)" }
             + ["overall=\(overall.code)", "durationMs=\(durationMs)"])
             .joined(separator: " ")
     }
-
+    
     private var checks: [(check: Check, summary: Summary)] {
         [(.rosterSignature, rosterSignature.summary), (.homeserverMatch, homeserverMatch.summary), (.memberEntry, memberEntry.summary),
          (.logConsistency, logConsistency.summary), (.policy, policy.summary), (.placement, placement.summary)]
     }
 }
 
-extension ResolverVerificationReport {
+nonisolated extension ResolverVerificationReport {
     struct Summary: Equatable {
         enum Verdict {
             case passed, failed, undecided
         }
-
+        
         let code: String
         let verdict: Verdict
-
+        
         static func passed(_ code: String) -> Summary {
             Summary(code: code, verdict: .passed)
         }
-
+        
         static func failed(_ code: String) -> Summary {
             Summary(code: code, verdict: .failed)
         }
-
+        
         static func invalid(_ reason: Reason) -> Summary {
             .failed("invalid(\(reason.rawValue))")
         }
-
+        
         static func unverifiable(_ reason: Reason) -> Summary {
             Summary(code: "unverifiable(\(reason.rawValue))", verdict: .undecided)
         }
-
+        
         static func indeterminate(_ reason: Reason) -> Summary {
             Summary(code: "indeterminate(\(reason.rawValue))", verdict: .undecided)
         }
     }
 }
 
-extension ResolverVerificationReport.RosterSignature {
+nonisolated extension ResolverVerificationReport.RosterSignature {
     var summary: ResolverVerificationReport.Summary {
         switch self {
         case .valid: .passed("valid")
@@ -173,7 +177,7 @@ extension ResolverVerificationReport.RosterSignature {
     }
 }
 
-extension ResolverVerificationReport.HomeserverMatch {
+nonisolated extension ResolverVerificationReport.HomeserverMatch {
     var summary: ResolverVerificationReport.Summary {
         switch self {
         case .activeMatch: .passed("ACTIVE_MATCH")
@@ -185,7 +189,7 @@ extension ResolverVerificationReport.HomeserverMatch {
     }
 }
 
-extension ResolverVerificationReport.MemberEntry {
+nonisolated extension ResolverVerificationReport.MemberEntry {
     var summary: ResolverVerificationReport.Summary {
         switch self {
         case .valid: .passed("valid")
@@ -196,7 +200,7 @@ extension ResolverVerificationReport.MemberEntry {
     }
 }
 
-extension ResolverVerificationReport.LogConsistency {
+nonisolated extension ResolverVerificationReport.LogConsistency {
     var summary: ResolverVerificationReport.Summary {
         switch self {
         case .firstSeen: .passed("firstSeen")
@@ -208,7 +212,7 @@ extension ResolverVerificationReport.LogConsistency {
     }
 }
 
-extension ResolverVerificationReport.Policy {
+nonisolated extension ResolverVerificationReport.Policy {
     var summary: ResolverVerificationReport.Summary {
         switch self {
         case .notPresent: .passed("notPresent")
@@ -219,7 +223,7 @@ extension ResolverVerificationReport.Policy {
     }
 }
 
-extension ResolverVerificationReport.Placement {
+nonisolated extension ResolverVerificationReport.Placement {
     var summary: ResolverVerificationReport.Summary {
         switch self {
         case .match: .passed("match")
@@ -230,7 +234,7 @@ extension ResolverVerificationReport.Placement {
     }
 }
 
-private extension ResolverVerificationReport.Overall {
+private nonisolated extension ResolverVerificationReport.Overall {
     var code: String {
         switch self {
         case .verified: "verified"

@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -11,7 +12,8 @@ import SwiftUI
 typealias SettingsScreenViewModelType = StateStoreViewModelV2<SettingsScreenViewState, SettingsScreenViewAction>
 
 class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewModelProtocol {
-    private let appSettings: AppSettings
+    private let userSettings: UserSettings
+    private let clientProxy: ClientProxyProtocol
     private let spacesSetting: SpacesSetting
     private let userIndicatorController: UserIndicatorControllerProtocol
     
@@ -22,48 +24,81 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
     }
     
     init(userSession: UserSessionProtocol,
-         appSettings: AppSettings,
          spacesSetting: SpacesSetting,
-         userIndicatorController: UserIndicatorControllerProtocol,
-         isBugReportServiceEnabled: Bool) {
-        self.appSettings = appSettings
+         isBugReportServiceEnabled: Bool,
+         isInSecondaryWindow: Bool,
+         userIndicatorController: UserIndicatorControllerProtocol) {
+        userSettings = userSession.userSettings
+        clientProxy = userSession.clientProxy
         self.spacesSetting = spacesSetting
         self.userIndicatorController = userIndicatorController
         
         super.init(initialViewState: .init(deviceID: userSession.clientProxy.deviceID,
-                                           userID: userSession.clientProxy.userID,
+                                           userProfile: userSession.clientProxy.userProfilePublisher.value,
+                                           showLinkNewDeviceButton: userSettings.app.linkNewDeviceEnabled,
+                                           showAddAccountButton: userSettings.app.multiAccountEnabled,
                                            showAccountDeactivation: userSession.clientProxy.canDeactivateAccount,
-                                           showDeveloperOptions: appSettings.developerOptionsEnabled,
-                                           showAnalyticsSettings: appSettings.canPromptForAnalytics,
+                                           showDeveloperOptions: userSettings.app.developerOptionsEnabled,
+                                           showAnalyticsSettings: userSettings.app.canPromptForAnalytics,
+                                           showLocationSharingSettings: userSettings.app.mapTilerConfiguration.publisher.value.isEnabled,
+                                           showLabsSettings: AppSettings.appBuildType != .release,
                                            isBugReportServiceEnabled: isBugReportServiceEnabled,
-                                           bindings: .init(appSettings: appSettings)),
+                                           navigationBarVisibility: isInSecondaryWindow ? .hidden : .automatic,
+                                           bindings: .init(userSettings: userSettings)),
                    mediaProvider: userSession.mediaProvider)
         
-        appSettings.$developerOptionsEnabled
+        userSettings.app.developerOptionsEnabledPublisher
             .weakAssign(to: \.state.showDeveloperOptions, on: self)
             .store(in: &cancellables)
         
-        appSettings.$spacesEnabled
+        userSettings.app.linkNewDeviceEnabledPublisher
+            .weakAssign(to: \.state.showLinkNewDeviceButton, on: self)
+            .store(in: &cancellables)
+        
+        userSettings.app.multiAccountEnabledPublisher
+            .weakAssign(to: \.state.showAddAccountButton, on: self)
+            .store(in: &cancellables)
+        
+        userSettings.app.spacesEnabledPublisher
             .weakAssign(to: \.state.bindings.isSpacesEnabled, on: self)
             .store(in: &cancellables)
         
         Task { await spacesSetting.refresh() }
-
-        userSession.clientProxy.userAvatarURLPublisher
+        
+        userSession.clientProxy.userProfilePublisher
             .receive(on: DispatchQueue.main)
-            .weakAssign(to: \.state.userAvatarURL, on: self)
+            .weakAssign(to: \.state.userProfile, on: self)
             .store(in: &cancellables)
         
-        userSession.clientProxy.userDisplayNamePublisher
+        userSession.sessionSecurityStatePublisher
             .receive(on: DispatchQueue.main)
-            .weakAssign(to: \.state.userDisplayName, on: self)
+            .sink { [weak self] securityState in
+                guard let self else { return }
+                
+                switch (securityState.verificationState, securityState.recoveryState) {
+                case (.verified, .disabled):
+                    state.showSecuritySectionBadge = true
+                    state.securitySectionMode = .secureBackup
+                case (.verified, .incomplete):
+                    state.showSecuritySectionBadge = true
+                    state.securitySectionMode = .secureBackup
+                case (.unknown, _):
+                    state.showSecuritySectionBadge = false
+                    state.securitySectionMode = .none
+                default:
+                    state.showSecuritySectionBadge = false
+                    state.securitySectionMode = .secureBackup
+                }
+            }
             .store(in: &cancellables)
         
         Task {
-            await userSession.clientProxy.loadUserAvatarURL()
-            await userSession.clientProxy.loadUserDisplayName()
-            await state.accountProfileURL = userSession.clientProxy.accountURL(action: .profile)
+            if case .success(true) = await userSession.clientProxy.isUserStatusSupported() {
+                state.showUserStatusInput = true
+            }
+            await userSession.clientProxy.loadUserProfileIfNeeded()
         }
+        Task { await state.accountProfileURL = userSession.clientProxy.accountURL(action: .profile) }
     }
     
     override func process(viewAction: SettingsScreenViewAction) {
@@ -73,9 +108,25 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
             
         case .userDetails:
             actionsSubject.send(.userDetails)
+        case .userStatus(.pickStatus):
+            state.bindings.isPresentingStatusPicker = true
+        case .userStatus(.customStatus):
+            state.bindings.isPresentingStatusPicker = false
+            state.bindings.isShowingCustomStatusField = true
+        case .userStatus(.pickCustomEmoji):
+            pickCustomEmoji()
+        case .userStatus(.set(let status)):
+            Task { await setUserStatus(status) }
+        case .userStatus(.clear):
+            Task { await clearUserStatus() }
+        case .userStatus(.cancel):
+            state.bindings.isPresentingStatusPicker = false
+            state.bindings.isShowingCustomStatusField = false
             
         case .findFriends:
             actionsSubject.send(.findFriends)
+        case .addAccount:
+            actionsSubject.send(.addAccount)
             
         case let .manageAccount(url):
             actionsSubject.send(.manageAccount(url: url))
@@ -83,8 +134,12 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
             actionsSubject.send(.twoStepVerification)
         case .changePhoneNumber:
             actionsSubject.send(.changePhoneNumber)
+        case .linkNewDevice:
+            actionsSubject.send(.linkNewDevice)
         case .notifications:
             actionsSubject.send(.notifications)
+        case .secureBackup:
+            actionsSubject.send(.secureBackup)
         case .moderationAndSafety:
             actionsSubject.send(.moderationAndSafety)
         case .reportBug:
@@ -97,7 +152,7 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
             
         case .toggleSpaces:
             let isEnabled = state.bindings.isSpacesEnabled
-            guard isEnabled != appSettings.spacesEnabled else { return }
+            guard isEnabled != userSettings.app.spacesEnabled else { return }
             Task {
                 if case .failure(let error) = await spacesSetting.setEnabled(isEnabled) {
                     MXLog.error("Failed changing the Spaces switch: \(error)")
@@ -108,15 +163,87 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
             actionsSubject.send(.mediaUploadQuality)
         case .appLock:
             actionsSubject.send(.appLock)
+        case .locationSharing:
+            actionsSubject.send(.locationSharing)
         case .analytics:
             actionsSubject.send(.analytics)
+        case .labs:
+            actionsSubject.send(.labs)
         case .about:
             actionsSubject.send(.about)
             
         case .enableDeveloperOptions:
-            appSettings.developerOptionsEnabled.toggle()
+            userSettings.app.developerOptionsEnabled.toggle()
         case .developerOptions:
             actionsSubject.send(.developerOptions)
         }
+    }
+    
+    // MARK: - Private
+    
+    private var pickCustomEmojiCancellable: AnyCancellable?
+    private func pickCustomEmoji() {
+        let (stream, continuation) = AsyncStream<String>.makeStream()
+        actionsSubject.send(.userStatusEmojiPicker(continuation))
+        
+        pickCustomEmojiCancellable = Task { [weak self] in
+            for await emoji in stream {
+                self?.state.bindings.customStatusEmoji = Character(emoji)
+            }
+        }
+        .asCancellable()
+    }
+    
+    private func setUserStatus(_ status: UserStatus.Raw) async {
+        showSavingIndicator()
+        defer { hideSavingIndicator() }
+        
+        state.bindings.isPresentingStatusPicker = false
+        state.bindings.isShowingCustomStatusField = false
+        
+        if case .failure = await clientProxy.setUserStatus(status) {
+            showFailureIndicator()
+        }
+    }
+    
+    /// Clears both the `UserStatus.Raw` and `UserStatus.Call` values simultaneously.
+    private func clearUserStatus() async {
+        showSavingIndicator()
+        defer { hideSavingIndicator() }
+        
+        state.bindings.isPresentingStatusPicker = false
+        state.bindings.isShowingCustomStatusField = false
+        
+        if case .failure = await clientProxy.clearUserStatus() {
+            showFailureIndicator()
+        }
+    }
+    
+    // MARK: - Indicators
+    
+    private static var savingIndicatorID: String {
+        "\(Self.self)-Saving"
+    }
+    
+    private static var failureIndicatorID: String {
+        "\(Self.self)-Failure"
+    }
+    
+    private func showSavingIndicator() {
+        userIndicatorController.submitIndicator(UserIndicator(id: Self.savingIndicatorID,
+                                                              type: .toast(progress: .indeterminate),
+                                                              title: L10n.commonSaving,
+                                                              persistent: true))
+    }
+    
+    private func hideSavingIndicator() {
+        userIndicatorController.retractIndicatorWithId(Self.savingIndicatorID)
+    }
+    
+    private func showFailureIndicator() {
+        userIndicatorController.submitIndicator(UserIndicator(id: Self.failureIndicatorID,
+                                                              type: .toast,
+                                                              title: L10n.commonFailed,
+                                                              icon: \.close))
     }
 }

@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -14,23 +15,32 @@ struct VoiceMessageRoomPlaybackView: View {
     @ScaledMetric private var waveformLineWidth = 2.0
     @ScaledMetric private var waveformLinePadding = 2.0
     @GestureState var isDragging = false
-
+    
+    /// Whether the voice message is being scanned by the content scanner, in which case
+    /// the play button shows a spinner and playback isn't available (which prevents the audio file from being downloaded).
+    var isScanning = false
+    
     let onPlayPause: () -> Void
     let onSeek: (Double) -> Void
     let onScrubbing: (Bool) -> Void
+    let onPlaybackSpeedChange: () -> Void
     
     var body: some View {
         HStack(spacing: 8) {
-            VoiceMessageButton(state: .init(playerState.playerButtonPlaybackState),
+            VoiceMessageButton(state: isScanning ? .loading : .init(playerState.playerButtonPlaybackState),
                                size: .medium,
                                action: onPlayPause)
-            Text(timeLabelContent)
-                .lineLimit(1)
-                .font(.compound.bodySMSemibold)
-                .foregroundColor(.compound.textSecondary)
-                .monospacedDigit()
-                .fixedSize(horizontal: true, vertical: true)
-
+            VStack(spacing: 2) {
+                PlaybackSpeedButton(speed: playerState.playbackSpeed,
+                                    onTap: onPlaybackSpeedChange)
+                Text(timeLabelContent)
+                    .lineLimit(1)
+                    .font(.compound.bodyXSSemibold)
+                    .foregroundColor(.compound.textSecondary)
+                    .monospacedDigit()
+                    .fixedSize(horizontal: true, vertical: true)
+            }
+            
             waveformView
                 .waveformInteraction(isDragging: $isDragging,
                                      progress: playerState.progress,
@@ -42,6 +52,7 @@ struct VoiceMessageRoomPlaybackView: View {
         .onChange(of: isDragging) { _, newValue in
             onScrubbing(newValue)
         }
+        .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
     }
     
@@ -55,7 +66,7 @@ struct VoiceMessageRoomPlaybackView: View {
             DateFormatter.elapsedTimeFormatter.string(from: duration)
         }
     }
-
+    
     private var timeLabelContent: String {
         // Display the duration if progress is 0.0
         let percent = playerState.progress > 0.0 ? playerState.progress : 1.0
@@ -75,7 +86,7 @@ struct VoiceMessageRoomPlaybackView: View {
             L10n.a11yVoiceMessage(durationString)
         }
     }
-
+    
     @ViewBuilder
     private var waveformView: some View {
         if let url = playerState.fileURL {
@@ -89,7 +100,7 @@ struct VoiceMessageRoomPlaybackView: View {
             estimatedWaveformView
         }
     }
-
+    
     private var estimatedWaveformView: some View {
         EstimatedWaveformView(lineWidth: waveformLineWidth,
                               linePadding: waveformLinePadding,
@@ -104,7 +115,7 @@ private extension DateFormatter {
         dateFormatter.dateFormat = "m:ss"
         return dateFormatter
     }()
-
+    
     static let longElapsedTimeFormatter: DateFormatter = {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "mm:ss"
@@ -128,7 +139,8 @@ struct VoiceMessageRoomPlaybackView_Previews: PreviewProvider, TestablePreview {
         VoiceMessageRoomPlaybackView(playerState: playerState,
                                      onPlayPause: { },
                                      onSeek: { value in Task { await playerState.updateState(progress: value) } },
-                                     onScrubbing: { _ in })
+                                     onScrubbing: { _ in },
+                                     onPlaybackSpeedChange: { })
             .fixedSize(horizontal: false, vertical: true)
     }
 }

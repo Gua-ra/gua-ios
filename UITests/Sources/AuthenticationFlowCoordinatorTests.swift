@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -19,14 +20,9 @@ class AuthenticationFlowCoordinatorUITests: XCTestCase {
         // Splash Screen: Tap get started button
         app.buttons[A11yIdentifiers.authenticationStartScreen.signIn].tap()
         
-        // Server Confirmation: Tap change server button
-        app.buttons[A11yIdentifiers.serverConfirmationScreen.changeServer].tap()
-        
-        // Server Selection: Clear the default, enter OIDC server and continue.
+        // Server Selection: Clear the default, enter a server address and submit.
+        // The \n triggers confirm directly, navigating to the login screen.
         app.textFields[A11yIdentifiers.changeServerScreen.server].clearAndTypeText("example.com\n", app: app)
-        
-        // Server Confirmation: Tap continue button
-        app.buttons[A11yIdentifiers.serverConfirmationScreen.continue].tap()
         
         // Login Screen: Wait for continue button to appear
         let continueButton = app.buttons[A11yIdentifiers.loginScreen.continue]
@@ -35,7 +31,7 @@ class AuthenticationFlowCoordinatorUITests: XCTestCase {
         // Login Screen: Enter valid credentials
         app.textFields[A11yIdentifiers.loginScreen.emailUsername].clearAndTypeText("alice\n", app: app)
         app.secureTextFields[A11yIdentifiers.loginScreen.password].clearAndTypeText("12345678", app: app)
-
+        
         try await app.assertScreenshot()
         
         // Login Screen: Tap next
@@ -49,14 +45,9 @@ class AuthenticationFlowCoordinatorUITests: XCTestCase {
         // Splash Screen: Tap get started button
         app.buttons[A11yIdentifiers.authenticationStartScreen.signIn].tap()
         
-        // Server Confirmation: Tap change server button
-        app.buttons[A11yIdentifiers.serverConfirmationScreen.changeServer].tap()
-        
-        // Server Selection: Clear the default, enter OIDC server and continue.
+        // Server Selection: Clear the default, enter a server address and submit.
+        // The \n triggers confirm directly, navigating to the login screen.
         app.textFields[A11yIdentifiers.changeServerScreen.server].clearAndTypeText("example.com\n", app: app)
-        
-        // Server Confirmation: Tap continue button
-        app.buttons[A11yIdentifiers.serverConfirmationScreen.continue].tap()
         
         // Login Screen: Wait for continue button to appear
         let continueButton = app.buttons[A11yIdentifiers.loginScreen.continue]
@@ -65,7 +56,7 @@ class AuthenticationFlowCoordinatorUITests: XCTestCase {
         // Login Screen: Enter invalid credentials
         app.textFields[A11yIdentifiers.loginScreen.emailUsername].clearAndTypeText("alice", app: app)
         app.secureTextFields[A11yIdentifiers.loginScreen.password].clearAndTypeText("87654321", app: app)
-
+        
         // Login Screen: Tap continue
         XCTAssertTrue(continueButton.isEnabled)
         continueButton.tap()
@@ -81,14 +72,9 @@ class AuthenticationFlowCoordinatorUITests: XCTestCase {
         // Splash Screen: Tap get started button
         app.buttons[A11yIdentifiers.authenticationStartScreen.signIn].tap()
         
-        // Server Confirmation: Tap change server button
-        app.buttons[A11yIdentifiers.serverConfirmationScreen.changeServer].tap()
-        
-        // Server Selection: Clear the default, enter OIDC server and continue.
+        // Server Selection: Clear the default, enter a server address and submit.
+        // The \n triggers confirm directly, navigating to the login screen.
         app.textFields[A11yIdentifiers.changeServerScreen.server].clearAndTypeText("example.com\n", app: app)
-        
-        // Server Confirmation: Tap continue button
-        app.buttons[A11yIdentifiers.serverConfirmationScreen.continue].tap()
         
         // Login Screen: Wait for continue button to appear
         let continueButton = app.buttons[A11yIdentifiers.loginScreen.continue]
@@ -101,9 +87,10 @@ class AuthenticationFlowCoordinatorUITests: XCTestCase {
         try await app.assertScreenshot()
     }
     
-    /// Disabled for now as the looping isn't 100% fool-proof and we have OIDC on the integration tests
+    // periphery:ignore - might be useful to have
+    /// Disabled for now as the looping isn't 100% fool-proof and we have OAuth on the integration tests
     /// so this mock version doesn't really add anything to the tests as a whole.
-    func disabled_testSelectingOIDCServer() {
+    func disabled_testSelectingOAuthServer() {
         // Allow this test to run for longer to help with the loop whilst waiting to resolve the
         // webcredentials for the Web Authentication Session (see below).
         executionTimeAllowance = 300
@@ -114,10 +101,7 @@ class AuthenticationFlowCoordinatorUITests: XCTestCase {
         // Splash Screen: Tap get started button
         app.buttons[A11yIdentifiers.authenticationStartScreen.signIn].tap()
         
-        // Server Confirmation: Tap change server button
-        app.buttons[A11yIdentifiers.serverConfirmationScreen.changeServer].tap()
-        
-        // Server Selection: Clear the default, enter OIDC server and continue.
+        // Server Selection: Clear the default, enter OAuth server and continue.
         app.textFields[A11yIdentifiers.changeServerScreen.server].clearAndTypeText("company.com\n", app: app)
         
         let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
@@ -128,8 +112,8 @@ class AuthenticationFlowCoordinatorUITests: XCTestCase {
         // Keep looping on the Continue button for ~5 minutes until the Authentication Session is happy.
         var remainingAttempts = 30
         while !wasAlertText.exists {
-            // Server Confirmation: Tap continue button
-            app.buttons[A11yIdentifiers.serverConfirmationScreen.continue].tap()
+            // Server Selection: Tap continue button
+            app.buttons[A11yIdentifiers.changeServerScreen.continue].tap()
             
             if wasAlertText.waitForExistence(timeout: 10) {
                 break
@@ -145,7 +129,7 @@ class AuthenticationFlowCoordinatorUITests: XCTestCase {
             }
         }
         
-        XCTAssertTrue(wasAlertText.exists, "The web authentication prompt should be shown after selecting a homeserver with OIDC.")
+        XCTAssertTrue(wasAlertText.exists, "The web authentication prompt should be shown after selecting a homeserver with OAuth.")
     }
     
     func testProvisionedLoginWithPassword() async throws {
@@ -212,9 +196,11 @@ class AuthenticationFlowCoordinatorUITests: XCTestCase {
         // Splash Screen: Tap get started button
         app.buttons[A11yIdentifiers.authenticationStartScreen.signIn].tap()
         
-        // Server Confirmation: Tap the picker and confirm
-        app.switches.matching(identifier: A11yIdentifiers.serverConfirmationScreen.serverPicker).element(boundBy: 1).tap()
-        app.buttons[A11yIdentifiers.serverConfirmationScreen.continue].tap()
+        // Server Selection: Tap the second server in the picker and confirm.
+        // Use descendants(matching: .any) since ListRow used outside a List produces an ambiguous
+        // accessibility element type, making element-type-specific queries unreliable.
+        app.descendants(matching: .any).matching(identifier: "example.com").firstMatch.tap()
+        app.buttons[A11yIdentifiers.changeServerScreen.continue].tap()
         
         // Login Screen: Wait for continue button to appear
         let continueButton = app.buttons[A11yIdentifiers.loginScreen.continue]

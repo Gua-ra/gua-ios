@@ -8,38 +8,38 @@
 import Foundation
 
 /// Affiliations and attributes stay empty, as on the server for a caller without verified claims.
-struct PlacementContext: Equatable {
+nonisolated struct PlacementContext: Equatable {
     var phone: String?
     var country: String?
     var mccmnc: String?
     var carrier: String?
     var regionHint: String?
-
+    
     var canonicalRoutingKey: String {
         "phone=\(phone ?? "")\ncountry=\(country ?? "")\nmccmnc=\(mccmnc ?? "")\ncarrier=\(carrier ?? "")\nregion=\(regionHint ?? "")\naffiliations=\nattrs="
     }
 }
 
-struct PlacementDecision {
+nonisolated struct PlacementDecision {
     enum Rule {
         case policy(RoutingPolicyRule)
         case rosterClaim(priority: Int32)
         case weightedFallback
     }
-
+    
     let homeserver: RosterHomeserver
     let rule: Rule
 }
 
-struct VerifiedRoutingPolicy {
+nonisolated struct VerifiedRoutingPolicy {
     let bundle: RoutingPolicyBundle
     let delegateVerifiedZones: Set<String>
 }
 
-enum PlacementReproducer {
+nonisolated enum PlacementReproducer {
     /// `weighted-fallback.v1` decides nothing above this total, where the signed 32-bit hash would skew the split.
     private static let maxTotalWeight: Int64 = 1 << 24
-
+    
     static func decide(context: PlacementContext, roster: SignedRosterDocument, policy: VerifiedRoutingPolicy?,
                        nowEpochMilliseconds now: Int64) -> PlacementDecision? {
         if let policy, let decision = policyRule(context: context, roster: roster, policy: policy, now: now) {
@@ -50,7 +50,7 @@ enum PlacementReproducer {
         }
         return weightedFallback(context: context, roster: roster)
     }
-
+    
     /// Delegate signatures sit outside the bundle signatures and its log leaf, so a resolver can strip one to hide a rule.
     static func unsignedRuleRanksAbove(_ decision: PlacementDecision?, context: PlacementContext, policy: VerifiedRoutingPolicy,
                                        nowEpochMilliseconds now: Int64) -> Bool {
@@ -58,7 +58,7 @@ enum PlacementReproducer {
         guard case .policy(let decided) = decision?.rule else { return true }
         return CanonicalRoutingPolicy.compareRules(unsigned, decided) < 0
     }
-
+    
     private static func policyRule(context: PlacementContext, roster: SignedRosterDocument, policy: VerifiedRoutingPolicy,
                                    now: Int64) -> PlacementDecision? {
         let candidates = roster.activeEntries.map(\.homeserver).filter(\.acceptsNew)
@@ -70,13 +70,15 @@ enum PlacementReproducer {
         }
         return nil
     }
-
+    
     /// Only phone prefix rules can match without verified claims.
     private static func phoneRules(of policy: VerifiedRoutingPolicy, context: PlacementContext, now: Int64,
                                    delegateSigned: Bool) -> [RoutingPolicyRule] {
         var zones = [String: DelegationZone]()
         for zone in policy.bundle.delegationZones {
-            if let id = zone.id, zones[id] == nil { zones[id] = zone }
+            if let id = zone.id, zones[id] == nil {
+                zones[id] = zone
+            }
         }
         let rules = policy.bundle.rules.filter { rule in
             guard rule.isEnabled, rule.matchType == "PHONE_PREFIX", let prefix = rule.matchValue, context.phone?.hasPrefix(prefix) == true,
@@ -87,7 +89,7 @@ enum PlacementReproducer {
         }
         return CanonicalRoutingPolicy.sortedRules(rules)
     }
-
+    
     private static func claimRule(context: PlacementContext, roster: SignedRosterDocument) -> PlacementDecision? {
         var best: (priority: Int32, homeserver: RosterHomeserver)?
         for entry in roster.activeEntries where entry.homeserver.acceptsNew {
@@ -96,31 +98,41 @@ enum PlacementReproducer {
                     claim.priority < current.priority
                         || (claim.priority == current.priority && JavaStringOrder.compare(entry.homeserver.id, current.homeserver.id) < 0)
                 } ?? true
-                if isBetter { best = (claim.priority, entry.homeserver) }
+                if isBetter {
+                    best = (claim.priority, entry.homeserver)
+                }
             }
         }
         return best.map { PlacementDecision(homeserver: $0.homeserver, rule: .rosterClaim(priority: $0.priority)) }
     }
-
+    
     /// Affiliation and attribute predicates need verified claims.
     private static func matchesLocally(_ claim: RosterClaimPredicate, context: PlacementContext) -> Bool {
-        if claim.affiliation != nil || claim.attributeMatch?.isEmpty == false { return false }
-        if let country = claim.country, country.lowercased() != context.country?.lowercased() { return false }
-        if let mccmnc = claim.mccmnc, mccmnc != context.mccmnc { return false }
-        if let carrier = claim.carrier, carrier.lowercased() != context.carrier?.lowercased() { return false }
+        if claim.affiliation != nil || claim.attributeMatch?.isEmpty == false {
+            return false
+        }
+        if let country = claim.country, country.lowercased() != context.country?.lowercased() {
+            return false
+        }
+        if let mccmnc = claim.mccmnc, mccmnc != context.mccmnc {
+            return false
+        }
+        if let carrier = claim.carrier, carrier.lowercased() != context.carrier?.lowercased() {
+            return false
+        }
         guard let prefixes = claim.phonePrefixes, !prefixes.isEmpty else { return true }
         return prefixes.contains { context.phone?.hasPrefix($0) == true }
     }
-
+    
     static func fallbackCandidates(in roster: SignedRosterDocument) -> [RosterHomeserver] {
         roster.activeEntries.map(\.homeserver).filter(\.acceptsNew)
             .sorted { JavaStringOrder.compare($0.id, $1.id) < 0 }
     }
-
+    
     static func totalWeight(of candidates: [RosterHomeserver]) -> Int64 {
         candidates.reduce(0) { $0 + Int64(max(0, $1.weight)) }
     }
-
+    
     private static func weightedFallback(context: PlacementContext, roster: SignedRosterDocument) -> PlacementDecision? {
         let candidates = fallbackCandidates(in: roster)
         let total = totalWeight(of: candidates)
@@ -128,18 +140,20 @@ enum PlacementReproducer {
         let hash = stableHash(context: context, rosterVersion: roster.version, candidates: candidates)
         return PlacementDecision(homeserver: pick(from: candidates, totalWeight: total, hash: hash), rule: .weightedFallback)
     }
-
+    
     private static func pick(from candidates: [RosterHomeserver], totalWeight: Int64, hash: Int32) -> RosterHomeserver {
         guard totalWeight > 0 else { return candidates[Int(floorMod(hash, Int64(candidates.count)))] }
         let target = floorMod(hash, totalWeight)
         var cumulative: Int64 = 0
         for candidate in candidates {
             cumulative += Int64(max(0, candidate.weight))
-            if target < cumulative { return candidate }
+            if target < cumulative {
+                return candidate
+            }
         }
         return candidates[candidates.count - 1]
     }
-
+    
     static func stableHash(context: PlacementContext, rosterVersion: Int64, candidates: [RosterHomeserver]) -> Int32 {
         var message = Array("weighted-fallback.v1\nroster=\(rosterVersion)\n".utf8)
         message += Array(context.canonicalRoutingKey.utf8)
@@ -150,7 +164,7 @@ enum PlacementReproducer {
         let value = UInt32(digest[0]) << 24 | UInt32(digest[1]) << 16 | UInt32(digest[2]) << 8 | UInt32(digest[3])
         return Int32(bitPattern: value)
     }
-
+    
     private static func floorMod(_ value: Int32, _ modulus: Int64) -> Int64 {
         let remainder = Int64(value) % modulus
         return remainder < 0 ? remainder + modulus : remainder

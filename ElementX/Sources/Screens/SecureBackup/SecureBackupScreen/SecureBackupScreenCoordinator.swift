@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -9,7 +10,7 @@ import Combine
 import SwiftUI
 
 struct SecureBackupScreenCoordinatorParameters {
-    let appSettings: AppSettings
+    let userSettings: UserSettings
     let clientProxy: ClientProxyProtocol
     let userIndicatorController: UserIndicatorControllerProtocol
 }
@@ -20,7 +21,6 @@ enum SecureBackupScreenCoordinatorAction {
 }
 
 final class SecureBackupScreenCoordinator: CoordinatorProtocol {
-    private let parameters: SecureBackupScreenCoordinatorParameters
     private var viewModel: SecureBackupScreenViewModelProtocol
     
     private var cancellables = Set<AnyCancellable>()
@@ -31,11 +31,9 @@ final class SecureBackupScreenCoordinator: CoordinatorProtocol {
     }
     
     init(parameters: SecureBackupScreenCoordinatorParameters) {
-        self.parameters = parameters
-        
         viewModel = SecureBackupScreenViewModel(secureBackupController: parameters.clientProxy.secureBackupController,
                                                 userIndicatorController: parameters.userIndicatorController,
-                                                chatBackupDetailsURL: parameters.appSettings.chatBackupDetailsURL)
+                                                chatBackupDetailsURL: parameters.userSettings.app.chatBackupDetailsURL)
     }
     
     func start() {

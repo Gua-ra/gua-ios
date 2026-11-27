@@ -1,5 +1,6 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
@@ -22,7 +23,6 @@ struct PinnedItemsBannerView: View {
         .padding(.vertical, 16)
         .padding(.leading, 16)
         .background(Color.compound.bgCanvasDefault)
-        .shadow(color: Color(red: 0.11, green: 0.11, blue: 0.13).opacity(0.1), radius: 12, x: 0, y: 4)
     }
     
     private var mainButton: some View {
@@ -40,7 +40,9 @@ struct PinnedItemsBannerView: View {
             }
         }
         .disabled(state.isLoading)
-        .accessibilityElement(children: .contain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(state.displayedMessage))
+        .accessibilityValue(String(state.bannerIndicatorDescription.characters), isEnabled: state.count > 1)
     }
     
     private var viewAllButton: some View {
@@ -58,6 +60,7 @@ struct PinnedItemsBannerView: View {
                 .padding(.vertical, 5)
         }
         .disabled(state.isLoading)
+        .accessibilityLabel(L10n.screenRoomPinnedBannerViewAllButtonTitle)
     }
     
     private var content: some View {
@@ -108,5 +111,8 @@ struct PinnedItemsBannerView_Previews: PreviewProvider, TestablePreview {
                                   onMainButtonTap: { },
                                   onViewAllButtonTap: { })
         }
+        .padding()
+        .background(.gray)
+        .previewLayout(.sizeThatFits)
     }
 }

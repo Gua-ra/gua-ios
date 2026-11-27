@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -9,18 +10,29 @@ import Compound
 import SwiftUI
 
 struct AudioMediaEventsTimelineView: View {
+    @Environment(\.timelineContext) private var context
+    
     let timelineItem: AudioRoomTimelineItem
+    
+    /// Whether the item's media failed content scanning, in which case the bubble adopts
+    /// the critical styling. Reported by the `ContentScanningView` through the preference key.
+    @State private var contentScanningFailure: ContentScanningFailure?
     
     var body: some View {
         MediaFileRoomTimelineContent(filename: timelineItem.content.filename,
                                      fileSize: timelineItem.content.fileSize,
                                      caption: timelineItem.content.caption,
                                      formattedCaption: timelineItem.content.formattedCaption,
-                                     additionalWhitespaces: timelineItem.additionalWhitespaces(),
-                                     isAudioFile: true)
+                                     trailingReservedSize: timelineItem.trailingReservedSize,
+                                     isAudioFile: true,
+                                     contentScannerService: context?.contentScannerService,
+                                     mediaSource: timelineItem.content.source)
             .accessibilityLabel(L10n.commonAudio)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .bubbleBackground(isOutgoing: timelineItem.isOutgoing)
+            .bubbleBackground(isOutgoing: timelineItem.isOutgoing,
+                              color: contentScanningFailure == nil ? .compound.bgSubtleSecondary : .compound.bgCriticalSubtle,
+                              borderColor: contentScanningFailure == nil ? nil : .compound.borderCriticalSubtle)
+            .onPreferenceChange(ContentScanningFailurePreferenceKey.self) { contentScanningFailure = $0 }
     }
 }
 

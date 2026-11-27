@@ -11,19 +11,19 @@ import SwiftUI
 typealias MediaUploadQualitySettingsScreenViewModelType = StateStoreViewModelV2<MediaUploadQualitySettingsScreenViewState, MediaUploadQualitySettingsScreenViewAction>
 
 class MediaUploadQualitySettingsScreenViewModel: MediaUploadQualitySettingsScreenViewModelType, MediaUploadQualitySettingsScreenViewModelProtocol {
-    private let analytics: AnalyticsService
+    private let analytics: AnalyticsServiceProtocol
     
-    init(appSettings: AppSettings, analytics: AnalyticsService) {
+    init(userSettings: UserSettings, analytics: AnalyticsServiceProtocol) {
         self.analytics = analytics
         
-        let state = MediaUploadQualitySettingsScreenViewState(bindings: .init(appSettings: appSettings))
+        let state = MediaUploadQualitySettingsScreenViewState(bindings: .init(userSettings: userSettings))
         super.init(initialViewState: state)
     }
     
     override func process(viewAction: MediaUploadQualitySettingsScreenViewAction) {
         switch viewAction {
         case .optimizeMediaUploadsChanged:
-            // Note: Using a view action here as sinking the AppSettings publisher tracks the initial value.
+            // Note: Using a view action here as sinking the UserSettings publisher tracks the initial value.
             analytics.trackInteraction(name: state.bindings.optimizeMediaUploads ? .MobileSettingsOptimizeMediaUploadsEnabled : .MobileSettingsOptimizeMediaUploadsDisabled)
         }
     }

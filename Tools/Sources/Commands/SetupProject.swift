@@ -4,26 +4,30 @@ import Foundation
 
 struct SetupProject: ParsableCommand {
     static let configuration = CommandConfiguration(abstract: "A tool to setup the required components to efficiently run and contribute to Element X iOS")
-
+    
     func run() throws {
         try setupGitHooks()
         try brewInstall()
         try mintPackagesInstall()
         try xcodegen()
     }
-
+    
     func setupGitHooks() throws {
         try Zsh.run(command: "git config core.hooksPath .githooks")
     }
-
+    
     func brewInstall() throws {
-        try Zsh.run(command: "brew install xcodegen swiftgen swiftformat git-lfs sourcery mint pkl kiliankoe/formulae/swift-outdated localazy/tools/localazy peripheryapp/periphery/periphery FelixHerrmann/tap/swift-package-list")
+        // Uninstall SwiftFormat from HEAD first if it is installed.
+        try Zsh.run(command: "if brew list --versions swiftformat | grep -q HEAD; then brew uninstall swiftformat; fi")
+        // Uninstall Periphery from the deprecated tap first if it is installed (superseded by the homebrew-core formula).
+        try Zsh.run(command: "if brew list --cask --versions periphery &> /dev/null; then brew uninstall --cask periphery; fi")
+        try Zsh.run(command: "brew install xcodegen swiftgen swiftformat git-lfs sourcery mint pkl kiliankoe/formulae/swift-outdated localazy/tools/localazy periphery")
     }
-
+    
     func mintPackagesInstall() throws {
         try Zsh.run(command: "mint install Asana/locheck")
     }
-
+    
     func xcodegen() throws {
         try Zsh.run(command: "xcodegen")
     }

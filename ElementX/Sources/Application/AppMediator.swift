@@ -1,7 +1,8 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -16,12 +17,12 @@ class AppMediator: AppMediatorProtocol {
         self.windowManager = windowManager
         self.networkMonitor = networkMonitor
     }
-        
+    
     /// UIApplication.State won't update if we store this e.g. in the constructor
     private var application: UIApplication {
         UIApplication.shared
     }
-
+    
     var appState: UIApplication.State {
         switch application.applicationState {
         case .active:
@@ -35,10 +36,14 @@ class AppMediator: AppMediatorProtocol {
         }
     }
     
-    func beginBackgroundTask(expirationHandler handler: (() -> Void)?) -> UIBackgroundTaskIdentifier {
+    var isCameraAvailable: Bool {
+        UIImagePickerController.isSourceTypeAvailable(.camera)
+    }
+    
+    func beginBackgroundTask(expirationHandler handler: (@MainActor @Sendable () -> Void)?) -> UIBackgroundTaskIdentifier {
         application.beginBackgroundTask(expirationHandler: handler)
     }
-
+    
     func endBackgroundTask(_ identifier: UIBackgroundTaskIdentifier) {
         application.endBackgroundTask(identifier)
     }

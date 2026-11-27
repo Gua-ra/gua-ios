@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -12,19 +13,6 @@ protocol ConfirmationDialogProtocol {
 }
 
 extension View {
-    func confirmationDialog<Item: ConfirmationDialogProtocol, Actions: View>(item: Binding<Item?>,
-                                                                             titleVisibility: Visibility = .automatic,
-                                                                             @ViewBuilder actions: (Item) -> Actions) -> some View {
-        let binding = Binding<Bool>(get: {
-            item.wrappedValue != nil
-        }, set: { newValue in
-            if !newValue {
-                item.wrappedValue = nil
-            }
-        })
-        return confirmationDialog(item.wrappedValue?.title ?? "", isPresented: binding, titleVisibility: titleVisibility, presenting: item.wrappedValue, actions: actions)
-    }
-
     // periphery: ignore - not used yet but might be useful
     func confirmationDialog<Item: ConfirmationDialogProtocol, Actions: View, Message: View>(item: Binding<Item?>,
                                                                                             titleVisibility: Visibility = .automatic,

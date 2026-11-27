@@ -1,5 +1,6 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
@@ -10,7 +11,7 @@ import SwiftUI
 
 struct IdentityConfirmationScreenCoordinatorParameters {
     let userSession: UserSessionProtocol
-    let appSettings: AppSettings
+    let userSettings: UserSettings
     let userIndicatorController: UserIndicatorControllerProtocol
 }
 
@@ -20,25 +21,22 @@ enum IdentityConfirmationScreenCoordinatorAction {
     /// Only possible in debug builds.
     case skip
     case reset
-    case logout
+    case logoutConfirmed
 }
 
 final class IdentityConfirmationScreenCoordinator: CoordinatorProtocol {
-    private let parameters: IdentityConfirmationScreenCoordinatorParameters
     private let viewModel: IdentityConfirmationScreenViewModelProtocol
     
     private var cancellables = Set<AnyCancellable>()
- 
+    
     private let actionsSubject: PassthroughSubject<IdentityConfirmationScreenCoordinatorAction, Never> = .init()
     var actionsPublisher: AnyPublisher<IdentityConfirmationScreenCoordinatorAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
     
     init(parameters: IdentityConfirmationScreenCoordinatorParameters) {
-        self.parameters = parameters
-        
         viewModel = IdentityConfirmationScreenViewModel(userSession: parameters.userSession,
-                                                        appSettings: parameters.appSettings,
+                                                        userSettings: parameters.userSettings,
                                                         userIndicatorController: parameters.userIndicatorController)
     }
     
@@ -56,13 +54,13 @@ final class IdentityConfirmationScreenCoordinator: CoordinatorProtocol {
                 actionsSubject.send(.skip)
             case .reset:
                 actionsSubject.send(.reset)
-            case .logout:
-                actionsSubject.send(.logout)
+            case .logoutConfirmed:
+                actionsSubject.send(.logoutConfirmed)
             }
         }
         .store(in: &cancellables)
     }
-        
+    
     func toPresentable() -> AnyView {
         AnyView(IdentityConfirmationScreen(context: viewModel.context))
     }

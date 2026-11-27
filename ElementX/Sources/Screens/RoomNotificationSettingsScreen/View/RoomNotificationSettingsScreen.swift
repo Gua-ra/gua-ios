@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -9,12 +10,12 @@ import Compound
 import SwiftUI
 
 struct RoomNotificationSettingsScreen: View {
-    @ObservedObject var context: RoomNotificationSettingsScreenViewModel.Context
+    @Bindable var context: RoomNotificationSettingsScreenViewModel.Context
     
     var body: some View {
         Form {
             allowCustomSettingSection
-
+            
             if !context.allowCustomSetting {
                 defaultSettingSection
             } else {
@@ -28,7 +29,7 @@ struct RoomNotificationSettingsScreen: View {
     }
     
     // MARK: - Private
-
+    
     private var allowCustomSettingSection: some View {
         Section {
             ListRow(label: .plain(title: L10n.screenRoomNotificationSettingsAllowCustom),
@@ -73,17 +74,17 @@ struct RoomNotificationSettingsScreen: View {
 struct RoomNotificationSettingsScreen_Previews: PreviewProvider, TestablePreview {
     static let viewModel = {
         let notificationSettingsProxy = NotificationSettingsProxyMock(with: .init(defaultRoomMode: .mentionsAndKeywordsOnly, roomMode: .mentionsAndKeywordsOnly))
-
+        
         let roomProxy = JoinedRoomProxyMock(.init(name: "Room", isEncrypted: true))
         
         return RoomNotificationSettingsScreenViewModel(notificationSettingsProxy: notificationSettingsProxy,
                                                        roomProxy: roomProxy,
                                                        displayAsUserDefinedRoomSettings: false)
     }()
-
+    
     static let viewModelCustom = {
         let notificationSettingsProxy = NotificationSettingsProxyMock(with: .init(defaultRoomMode: .allMessages, roomMode: .mentionsAndKeywordsOnly))
-
+        
         let roomProxy = JoinedRoomProxyMock(.init(name: "Room", isEncrypted: true))
         
         return RoomNotificationSettingsScreenViewModel(notificationSettingsProxy: notificationSettingsProxy,

@@ -1,5 +1,6 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
@@ -17,7 +18,7 @@ struct BugReportScreen: View {
     var canSendLogFiles: Bool {
         context.viewState.canSendLogFiles
     }
-
+    
     var photosPickerTitle: String {
         context.viewState.screenshot == nil ? L10n.screenBugReportAttachScreenshot : L10n.screenBugReportEditScreenshot
     }
@@ -81,7 +82,7 @@ struct BugReportScreen: View {
             }
         }
     }
-
+    
     private var canContactSection: some View {
         Section {
             ListRow(label: .plain(title: L10n.screenBugReportContactMeTitle),
@@ -92,14 +93,17 @@ struct BugReportScreen: View {
                 .compoundListSectionFooter()
         }
     }
-
+    
     private var attachScreenshotSection: some View {
         Section {
             ListRow(kind: .custom {
                 PhotosPicker(selection: $selectedScreenshot,
                              matching: .screenshots,
                              photoLibrary: .shared()) {
-                    ListRowLabel.plain(title: photosPickerTitle)
+                    // The label builder isn't isolated in SwiftUI's signature but is only ever called on the main actor.
+                    MainActor.assumeIsolated {
+                        ListRowLabel.plain(title: photosPickerTitle)
+                    }
                 }
             })
             .accessibilityIdentifier(A11yIdentifiers.bugReportScreen.attachScreenshot)
@@ -154,7 +158,7 @@ struct BugReportScreen: View {
 
 struct BugReportScreen_Previews: PreviewProvider, TestablePreview {
     static var previews: some View {
-        NavigationStack {
+        ElementNavigationStack {
             let clientProxy = ClientProxyMock(.init(userID: "@mock:client.com", roomSummaryProvider: RoomSummaryProviderMock(.init(state: .loaded(.mockRooms)))))
             BugReportScreen(context: BugReportScreenViewModel(bugReportService: BugReportServiceMock(.init()),
                                                               clientProxy: clientProxy,
@@ -163,7 +167,7 @@ struct BugReportScreen_Previews: PreviewProvider, TestablePreview {
         }
         .previewDisplayName("Without Screenshot")
         
-        NavigationStack {
+        ElementNavigationStack {
             let clientProxy = ClientProxyMock(.init(userID: "@mock:client.com", roomSummaryProvider: RoomSummaryProviderMock(.init(state: .loaded(.mockRooms)))))
             BugReportScreen(context: BugReportScreenViewModel(bugReportService: BugReportServiceMock(.init()),
                                                               clientProxy: clientProxy,

@@ -8,25 +8,25 @@
 import Foundation
 
 /// `publicKey` is a base64 Ed25519 X.509 SubjectPublicKeyInfo.
-struct ResolverTrustedKey: Equatable {
+nonisolated struct ResolverTrustedKey: Equatable {
     let id: String
     let publicKey: String
 }
 
 /// No fallback from policy keys to authority keys: an empty `policyKeys` verifies no policy.
-struct ResolverTrustRoots: Equatable {
+nonisolated struct ResolverTrustRoots: Equatable {
     let authorityKeys: [ResolverTrustedKey]
     let authorityThreshold: Int
     let policyKeys: [ResolverTrustedKey]
     let policyThreshold: Int
-
+    
     static let empty = ResolverTrustRoots(authorityKeys: [], authorityThreshold: 1, policyKeys: [], policyThreshold: 1)
-
+    
     /// No policy keys until governance keys exist; production policies report `no_policy_keys`.
     static let production = ResolverTrustRoots(authorityKeys: [ResolverTrustedKey(id: "gua-authority-prod",
                                                                                   publicKey: "MCowBQYDK2VwAyEAmrJntRXbxGkoPe92j1epyM3RBXcx4nmr2wIzL6eb0a0=")],
                                                authorityThreshold: 1, policyKeys: [], policyThreshold: 1)
-
+    
     init(authorityKeys: [ResolverTrustedKey], authorityThreshold: Int,
          policyKeys: [ResolverTrustedKey], policyThreshold: Int) {
         self.authorityKeys = authorityKeys
@@ -34,7 +34,7 @@ struct ResolverTrustRoots: Equatable {
         self.policyKeys = policyKeys
         self.policyThreshold = max(1, policyThreshold)
     }
-
+    
     /// Android's token format. Any unreadable token makes the whole value `.empty`.
     init(developmentSecret value: String?) {
         var authorityKeys = [ResolverTrustedKey]()
@@ -63,7 +63,7 @@ struct ResolverTrustRoots: Equatable {
         }
         self.init(authorityKeys: authorityKeys, authorityThreshold: authorityThreshold, policyKeys: policyKeys, policyThreshold: policyThreshold)
     }
-
+    
     private static func key(id: String, publicKey: String) -> ResolverTrustedKey? {
         guard !id.isEmpty, ResolverVerificationCrypto.publicKey(spkiBase64: publicKey) != nil else { return nil }
         return ResolverTrustedKey(id: id, publicKey: publicKey)

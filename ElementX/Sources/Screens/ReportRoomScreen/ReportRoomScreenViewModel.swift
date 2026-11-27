@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -18,7 +19,7 @@ class ReportRoomScreenViewModel: ReportRoomScreenViewModelType, ReportRoomScreen
     var actionsPublisher: AnyPublisher<ReportRoomScreenViewModelAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
-
+    
     init(roomProxy: JoinedRoomProxyProtocol, userIndicatorController: UserIndicatorControllerProtocol) {
         self.roomProxy = roomProxy
         self.userIndicatorController = userIndicatorController
@@ -35,7 +36,7 @@ class ReportRoomScreenViewModel: ReportRoomScreenViewModelType, ReportRoomScreen
             actionsSubject.send(.dismiss(shouldLeaveRoom: false))
         }
     }
-        
+    
     private func report() async {
         showLoadingIndicator()
         let result = await roomProxy.reportRoom(reason: state.bindings.reason)
@@ -46,7 +47,7 @@ class ReportRoomScreenViewModel: ReportRoomScreenViewModelType, ReportRoomScreen
                 await leaveRoom(showLoading: false)
             } else {
                 hideLoadingIndicator()
-                userIndicatorController.submitIndicator(.init(title: L10n.dialogRoomReported, iconName: "checkmark"))
+                userIndicatorController.submitIndicator(.init(title: L10n.dialogRoomReported, icon: \.check))
                 actionsSubject.send(.dismiss(shouldLeaveRoom: false))
             }
         case .failure:
@@ -69,7 +70,7 @@ class ReportRoomScreenViewModel: ReportRoomScreenViewModelType, ReportRoomScreen
         
         switch result {
         case .success:
-            userIndicatorController.submitIndicator(.init(title: L10n.dialogRoomReportedAndLeft, iconName: "checkmark"))
+            userIndicatorController.submitIndicator(.init(title: L10n.dialogRoomReportedAndLeft, icon: \.check))
             actionsSubject.send(.dismiss(shouldLeaveRoom: true))
         case .failure:
             state.bindings.alert = .init(id: .leaveRoomFailed,

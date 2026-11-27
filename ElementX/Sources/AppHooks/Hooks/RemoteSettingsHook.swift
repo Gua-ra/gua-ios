@@ -1,7 +1,8 @@
 //
+// Copyright 2025 Element Creations Ltd.
 // Copyright 2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -12,13 +13,13 @@ enum RemoteSettingsError: Error {
     case elementProRequired(serverName: String)
 }
 
-protocol RemoteSettingsHookProtocol {
+protocol RemoteSettingsHookProtocol: Sendable {
     #if IS_MAIN_APP
-    func initializeCache(using client: ClientProtocol, applyingTo appSettings: CommonSettingsProtocol) async -> Result<Void, RemoteSettingsError>
+    @MainActor func initializeCache(using client: ClientProtocol, applyingTo appSettings: AppSettings) async -> Result<Void, RemoteSettingsError>
     func updateCache(using client: ClientProtocol) async
-    func reset(_ appSettings: CommonSettingsProtocol)
+    @MainActor func reset(_ appSettings: AppSettings)
     #endif
-    func loadCache(forHomeserver homeserver: String, applyingTo appSettings: CommonSettingsProtocol)
+    @MainActor func loadCache(forHomeserver homeserver: String, applyingTo appSettings: AppSettings)
 }
 
 struct DefaultRemoteSettingsHook: RemoteSettingsHookProtocol {
@@ -26,7 +27,7 @@ struct DefaultRemoteSettingsHook: RemoteSettingsHookProtocol {
     /// A best effort implementation to let Element X advertise to users when they should be using
     /// Element Pro. In an ideal world the backend would be able to validate the client's requests
     /// instead of relying on it to check a well-known file for this.
-    func initializeCache(using client: ClientProtocol, applyingTo appSettings: CommonSettingsProtocol) async -> Result<Void, RemoteSettingsError> {
+    func initializeCache(using client: ClientProtocol, applyingTo appSettings: AppSettings) async -> Result<Void, RemoteSettingsError> {
         guard case let .success(wellKnownData) = await client.elementWellKnown() else {
             // Nothing to check, carry on as normal.
             return .success(())
@@ -36,7 +37,7 @@ struct DefaultRemoteSettingsHook: RemoteSettingsHookProtocol {
             let wellKnown = try JSONDecoder().decode(ElementWellKnown.self, from: wellKnownData)
             if wellKnown.enforceElementPro == true {
                 let serverName = client.server() ?? client.homeserver()
-                let displayableServerName = LoginHomeserver(address: serverName, loginMode: .unknown).address
+                let displayableServerName = AccountProvider.generic(serverName).serverNameOrBaseURL
                 return .failure(.elementProRequired(serverName: displayableServerName))
             } else {
                 return .success(())
@@ -48,18 +49,16 @@ struct DefaultRemoteSettingsHook: RemoteSettingsHookProtocol {
     }
     
     func updateCache(using client: ClientProtocol) async { }
-    func reset(_ appSettings: any CommonSettingsProtocol) { }
+    func reset(_ appSettings: AppSettings) { }
     #endif
     
-    func loadCache(forHomeserver homeserver: String, applyingTo appSettings: CommonSettingsProtocol) { }
+    func loadCache(forHomeserver homeserver: String, applyingTo appSettings: AppSettings) { }
 }
 
 private struct ElementWellKnown: Decodable {
-    var version: Int
     var enforceElementPro: Bool?
     
     enum CodingKeys: String, CodingKey {
-        case version
         case enforceElementPro = "enforce_element_pro"
     }
 }

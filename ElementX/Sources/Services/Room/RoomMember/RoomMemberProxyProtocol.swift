@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -9,13 +10,13 @@ import Foundation
 import MatrixRustSDK
 
 // sourcery: AutoMockable
-protocol RoomMemberProxyProtocol: AnyObject {
+nonisolated protocol RoomMemberProxyProtocol: AnyObject, Sendable {
     var userID: String { get }
     
     var displayName: String? { get }
     var disambiguatedDisplayName: String? { get }
-    
     var avatarURL: URL? { get }
+    var status: UserStatus { get }
     
     var membership: MembershipState { get }
     
@@ -24,9 +25,12 @@ protocol RoomMemberProxyProtocol: AnyObject {
     var isIgnored: Bool { get }
     
     var powerLevel: RoomPowerLevel { get }
+    
+    // periphery:ignore - might be useful to have
+    var isServiceMember: Bool { get }
 }
 
-extension RoomMemberProxyProtocol {
+nonisolated extension RoomMemberProxyProtocol {
     /// The member is active in the room (joined or invited).
     var isActive: Bool {
         membership == .join || membership == .invite || membership == .knock
@@ -45,11 +49,16 @@ extension RoomMemberProxyProtocol {
     }
 }
 
-extension [RoomMemberProxyProtocol] {
-    /// The members, sorted first by power-level, and then alphabetically within each power-level.
-    func sorted() -> Self {
+nonisolated extension [RoomMemberProxyProtocol] {
+    /// The members, sorted first by call participation, then by power-level, and then alphabetically within each power-level.
+    func sorted(prioritisingRoomCallParticipants roomCallParticipants: [String] = []) -> Self {
         sorted { lhs, rhs in
-            if lhs.powerLevel != rhs.powerLevel {
+            let lhsIsRoomCallParticipant = roomCallParticipants.contains(lhs.userID)
+            let rhsIsRoomCallParticipant = roomCallParticipants.contains(rhs.userID)
+            
+            return if lhsIsRoomCallParticipant != rhsIsRoomCallParticipant {
+                lhsIsRoomCallParticipant
+            } else if lhs.powerLevel != rhs.powerLevel {
                 lhs.powerLevel > rhs.powerLevel
             } else {
                 lhs.sortingName.localizedStandardCompare(rhs.sortingName) == .orderedAscending
@@ -58,7 +67,7 @@ extension [RoomMemberProxyProtocol] {
     }
 }
 
-extension RoomMemberProxyProtocol {
+nonisolated extension RoomMemberProxyProtocol {
     var role: RoomRole {
         .init(powerLevel: powerLevel)
     }

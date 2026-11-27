@@ -3,8 +3,9 @@ disabled_rules:
   - unused_setter_value
   - redundant_discardable_let
   - identifier_name
+  - void_function_in_ternary
 
-opt_in_rules:  
+opt_in_rules:
   - force_unwrapping
   - private_action
   - explicit_init
@@ -17,7 +18,8 @@ included:
 excluded:
   - "*/Sources/Generated/*"
   - Tools/Sources # Our command-line tools use a lot of print commands.
-  - Secrets
+  - Components/Secrets
+  - compound-ios/Inspector
 
 line_length:
   warning: 250
@@ -87,3 +89,11 @@ custom_rules:
     match_kinds: identifier
     message: "MXLog should be used instead of os_log()"
     severity: error
+
+  prefer_element_navigation_stack:
+    regex: "\\b(NavigationStack)\\b"
+    match_kinds: identifier
+    message: "Use ElementNavigationStack instead of NavigationStack"
+    severity: error
+    included: "ElementX/Sources/.*\\.swift"
+    excluded: "ElementNavigationStack.swift"

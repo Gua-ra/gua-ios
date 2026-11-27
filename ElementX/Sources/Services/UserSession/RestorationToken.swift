@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -12,10 +13,10 @@ enum RestorationTokenError: Error {
     case slidingSyncProxyNotSupported
 }
 
-struct RestorationToken: Equatable {
+nonisolated struct RestorationToken: Equatable {
     let session: MatrixRustSDK.Session
     let sessionDirectories: SessionDirectories
-    let passphrase: String
+    let passphrase: Data
     let pusherNotificationClientIdentifier: String?
     
     enum CodingKeys: CodingKey {
@@ -27,7 +28,7 @@ struct RestorationToken: Equatable {
     }
 }
 
-extension RestorationToken: Codable {
+nonisolated extension RestorationToken: Codable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
@@ -41,9 +42,14 @@ extension RestorationToken: Codable {
             SessionDirectories(dataDirectory: dataDirectory)
         }
         
+        let base64Passphrase = try container.decode(String.self, forKey: .passphrase)
+        guard let passphrase = Data(base64Encoded: base64Passphrase) else {
+            throw DecodingError.dataCorruptedError(forKey: .passphrase, in: container, debugDescription: "The passphrase isn't valid base64.")
+        }
+        
         self = try .init(session: session,
                          sessionDirectories: sessionDirectories,
-                         passphrase: container.decode(String.self, forKey: .passphrase),
+                         passphrase: passphrase,
                          pusherNotificationClientIdentifier: container.decodeIfPresent(String.self, forKey: .pusherNotificationClientIdentifier))
     }
     
@@ -52,12 +58,12 @@ extension RestorationToken: Codable {
         try container.encode(session, forKey: .session)
         try container.encode(sessionDirectories.dataDirectory, forKey: .sessionDirectory)
         try container.encode(sessionDirectories.cacheDirectory, forKey: .cacheDirectory)
-        try container.encode(passphrase, forKey: .passphrase)
+        try container.encode(passphrase.base64EncodedString(), forKey: .passphrase)
         try container.encode(pusherNotificationClientIdentifier, forKey: .pusherNotificationClientIdentifier)
     }
 }
 
-extension MatrixRustSDK.Session: Codable {
+extension MatrixRustSDK.Session: @retroactive Codable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
@@ -92,6 +98,6 @@ extension MatrixRustSDK.Session: Codable {
     
     enum CodingKeys: String, CodingKey {
         case accessToken, refreshToken, userId, deviceId, homeserverUrl, slidingSyncProxy
-        case oauthData = "oidcData"
+        case oauthData = "oidcData" // We're using the name from before the MSC was stabilised.
     }
 }

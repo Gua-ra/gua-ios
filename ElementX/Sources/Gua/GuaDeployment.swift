@@ -7,20 +7,20 @@
 import Foundation
 
 /// Development endpoints come from the injected `Secrets`, keeping the non-public dev host out of this public repo.
-enum GuaDeployment {
+nonisolated enum GuaDeployment {
     case development
     case production
-
+    
     static var current: GuaDeployment {
         #if GUA_DEVELOPMENT
-        return .development
+        .development
         #elseif DEBUG
-        return .development
+        .development
         #else
-        return .production
+        .production
         #endif
     }
-
+    
     var resolverBaseURL: URL? {
         switch self {
         case .production:
@@ -29,7 +29,7 @@ enum GuaDeployment {
             return Self.url(from: Secrets.resolverBaseURL)
         }
     }
-
+    
     var resolverTrustRoots: ResolverTrustRoots {
         switch self {
         case .production:
@@ -38,7 +38,7 @@ enum GuaDeployment {
             return ResolverTrustRoots(developmentSecret: Secrets.resolverTrustRoots)
         }
     }
-
+    
     var identityServiceBaseURL: URL? {
         switch self {
         case .production:
@@ -47,15 +47,15 @@ enum GuaDeployment {
             return Self.url(from: Secrets.identityServiceBaseURL)
         }
     }
-
+    
     /// Not optional and no upstream fallback: registering a pusher hands this host the device's APNs token.
     /// Development uses the production gateway, which knows the development app ids.
     var pushGatewayBaseURL: URL {
         Self.pushGateway
     }
-
+    
     private static let pushGateway: URL = "https://push.gua.global"
-
+    
     var defaultAccountProvider: String? {
         switch self {
         case .production:
@@ -65,7 +65,7 @@ enum GuaDeployment {
             return provider
         }
     }
-
+    
     /// Host for user-facing share links, such as `https://gua.global/u/<handle>`.
     var linkHost: String {
         switch self {
@@ -76,7 +76,7 @@ enum GuaDeployment {
             return provider
         }
     }
-
+    
     private static func url(from raw: String?) -> URL? {
         guard let raw, !raw.isEmpty else { return nil }
         return URL(string: raw)

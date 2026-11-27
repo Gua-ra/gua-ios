@@ -1,0 +1,6 @@
+"NSCameraUsageDescription" = "برای گرفتن عکس یا فیلم و ارسال آنها به عنوان پیام، Element X نیاز به دسترسی به دوربین دارد.";
+"NSFaceIDUsageDescription" = "از Face ID برای دسترسی به حسابتان استفاده می‌شود.";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "برای اشتراک‌گذاری موقعیت مکانی خود به صورت زنده در چت‌ها، دسترسی به موقعیت مکانی در زمان فعال بودن برنامه در پس‌زمینه ضروری است.";
+"NSLocationWhenInUseUsageDescription" = "این به شما امکان می‌دهد مکان فعلی یا مکان‌های نزدیک خود را در چت‌ها ارسال کنید.";
+"NSMicrophoneUsageDescription" = "برای ضبط و ارسال پیام‌های صوتی، Element X باید به میکروفون دسترسی داشته باشد.";
+"NSPhotoLibraryUsageDescription" = "این به شما امکان می‌دهد تصاویر و ویدیوها را در کتابخانه عکس خود ذخیره کنید.";

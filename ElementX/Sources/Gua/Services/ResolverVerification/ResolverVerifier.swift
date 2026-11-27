@@ -9,17 +9,17 @@ import CryptoKit
 import Foundation
 import os
 
-protocol ResolverVerifying: Sendable {
+nonisolated protocol ResolverVerifying: Sendable {
     /// Returns immediately. Report-only, without affecting which homeserver the app uses.
     func startVerification(of resolution: HomeserverResolution, phoneNumber: String)
 }
 
-final class ResolverVerifier: ResolverVerifying {
+final nonisolated class ResolverVerifier: ResolverVerifying {
     typealias Report = ResolverVerificationReport
     typealias Reason = ResolverVerificationReason
-
+    
     static let maxLogSize = 4096
-
+    
     private let baseURL: URL
     private let environment: String
     private let authorityKeys: [String: Curve25519.Signing.PublicKey]
@@ -32,11 +32,11 @@ final class ResolverVerifier: ResolverVerifying {
     private let now: @Sendable () -> Int64
     private let isEnabled: @Sendable () -> Bool
     private let latestReport = OSAllocatedUnfairLock<Report?>(initialState: nil)
-
+    
     var lastReport: Report? {
         latestReport.withLock { $0 }
     }
-
+    
     /// `now` is the wall clock in epoch milliseconds, for validity windows; the budget runs on a monotonic clock.
     init(baseURL: URL,
          trustRoots: ResolverTrustRoots,
@@ -65,7 +65,7 @@ final class ResolverVerifier: ResolverVerifying {
             fetcher = ResolverDocumentFetcher(baseURL: baseURL, session: URLSession(configuration: configuration))
         }
     }
-
+    
     convenience init?(appSettings: AppSettings) {
         let deployment = GuaDeployment.current
         guard let baseURL = deployment.resolverBaseURL else { return nil }
@@ -73,14 +73,14 @@ final class ResolverVerifier: ResolverVerifying {
             appSettings.guaResolverVerificationEnabled
         }
     }
-
+    
     func startVerification(of resolution: HomeserverResolution, phoneNumber: String) {
         guard isEnabled() else { return }
         Task.detached(priority: .utility) { [self] in
             _ = await verify(resolution: resolution, phoneNumber: phoneNumber)
         }
     }
-
+    
     func verify(resolution: HomeserverResolution, phoneNumber: String) async -> Report? {
         guard isEnabled() else { return nil }
         let report = await ResolverRunQueue.shared.run(for: baseURL) { [self] in
@@ -90,7 +90,7 @@ final class ResolverVerifier: ResolverVerifying {
         MXLog.info("Resolver verification \(report.logDescription)")
         return report
     }
-
+    
     private func run(_ resolution: HomeserverResolution, phoneNumber: String) async -> Report {
         let started = ContinuousClock.now
         let deadline = started + budget
@@ -110,21 +110,21 @@ final class ResolverVerifier: ResolverVerifying {
                       placement: checkPlacement(of: resolution, phoneNumber: phoneNumber, roster: roster.document, policy: policy),
                       durationMs: Self.milliseconds(since: started))
     }
-
+    
     private struct VerifiedRoster {
         let document: SignedRosterDocument
         let form: RosterForm
     }
-
+    
     private struct RosterStop: Error {
         let rosterSignature: Report.RosterSignature
         var rosterForm: String?
-
+        
         var dependentReason: Reason {
             rosterSignature == .unverifiable(.noTrustRoots) ? .noTrustRoots : .rosterUnverified
         }
     }
-
+    
     private func verifyRoster(deadline: ContinuousClock.Instant) async throws(RosterStop) -> VerifiedRoster {
         guard !authorityKeys.isEmpty else { throw RosterStop(rosterSignature: .unverifiable(.noTrustRoots)) }
         let roster = try await loadRoster(deadline: deadline)
@@ -141,7 +141,7 @@ final class ResolverVerifier: ResolverVerifying {
         }
         return VerifiedRoster(document: roster, form: form)
     }
-
+    
     private func loadRoster(deadline: ContinuousClock.Instant) async throws(RosterStop) -> SignedRosterDocument {
         do {
             return try await fetcher.document(SignedRosterDocument.self, at: "/roster", deadline: deadline)
@@ -149,31 +149,39 @@ final class ResolverVerifier: ResolverVerifying {
             throw RosterStop(rosterSignature: .unverifiable(error.reason(unavailable: .rosterUnavailable)))
         }
     }
-
+    
     private func report(stoppedAt stop: RosterStop, started: ContinuousClock.Instant) -> Report {
         let reason = stop.dependentReason
         return Report(environment: environment, rosterVersion: nil, rosterForm: stop.rosterForm, rosterSignature: stop.rosterSignature,
                       homeserverMatch: .unverifiable(reason), memberEntry: .unverifiable(reason), logConsistency: .unverifiable(reason),
                       policy: .unverifiable(reason), placement: .unverifiable(reason), durationMs: Self.milliseconds(since: started))
     }
-
+    
     static func locate(_ answer: ResolvedHomeserver, in roster: SignedRosterDocument) -> (match: Report.HomeserverMatch, entry: SignedRosterEntry?) {
         let named = roster.entries.filter { $0.homeserver.serverName == answer.serverName }
         let sameEndpoint = named.filter { $0.homeserver.hasEndpoint(of: answer) }
-        if let entry = sameEndpoint.first(where: \.isActive) { return (.activeMatch, entry) }
-        if let entry = sameEndpoint.first { return (.inactive, entry) }
-        if let entry = named.first { return (.fieldMismatch, entry) }
+        if let entry = sameEndpoint.first(where: \.isActive) {
+            return (.activeMatch, entry)
+        }
+        if let entry = sameEndpoint.first {
+            return (.inactive, entry)
+        }
+        if let entry = named.first {
+            return (.fieldMismatch, entry)
+        }
         return (.notInRoster, nil)
     }
-
+    
     private func checkMember(of located: (match: Report.HomeserverMatch, entry: SignedRosterEntry?)) -> Report.MemberEntry {
         guard let entry = located.entry, located.match == .activeMatch || located.match == .inactive else {
             return .unverifiable(.noMatchingEntry)
         }
-        if entry.memberIsMalformed { return .invalid(.parseError) }
+        if entry.memberIsMalformed {
+            return .invalid(.parseError)
+        }
         return MemberEntryVerifier.verify(homeserver: entry.homeserver, member: entry.member, atEpochMilliseconds: now())
     }
-
+    
     private func checkLogConsistency(of served: RosterLogCheckpoint, deadline: ContinuousClock.Instant) async -> Report.LogConsistency {
         let pinned: RosterLogCheckpoint?
         do {
@@ -182,8 +190,12 @@ final class ResolverVerifier: ResolverVerifying {
             return .unverifiable(.storageUnavailable)
         }
         guard let pinned, pinned.size > 0 else { return pin(served, as: .firstSeen) }
-        if served.size < pinned.size { return .rollback }
-        if served.size == pinned.size { return served.merkleRoot == pinned.merkleRoot ? .consistent : .inconsistent }
+        if served.size < pinned.size {
+            return .rollback
+        }
+        if served.size == pinned.size {
+            return served.merkleRoot == pinned.merkleRoot ? .consistent : .inconsistent
+        }
         let proof: ConsistencyProofDocument
         do {
             let query = [URLQueryItem(name: "first", value: String(pinned.size)), URLQueryItem(name: "second", value: String(served.size))]
@@ -197,7 +209,7 @@ final class ResolverVerifier: ResolverVerifying {
         }
         return pin(served, as: .consistent)
     }
-
+    
     private func pin(_ checkpoint: RosterLogCheckpoint, as outcome: Report.LogConsistency) -> Report.LogConsistency {
         do {
             try checkpointStore.store(checkpoint, for: baseURL)
@@ -206,12 +218,12 @@ final class ResolverVerifier: ResolverVerifying {
             return .unverifiable(.storageUnavailable)
         }
     }
-
+    
     private enum PolicyStage {
         case notPresent
         case verified(VerifiedRoutingPolicy)
         case failed(Report.Policy)
-
+        
         var outcome: Report.Policy {
             switch self {
             case .notPresent: .notPresent
@@ -220,19 +232,19 @@ final class ResolverVerifier: ResolverVerifying {
             }
         }
     }
-
+    
     private struct PolicyFailure: Error {
         let outcome: Report.Policy
-
+        
         static func invalid(_ reason: Reason) -> PolicyFailure {
             PolicyFailure(outcome: .invalid(reason))
         }
-
+        
         static func unverifiable(_ reason: Reason) -> PolicyFailure {
             PolicyFailure(outcome: .unverifiable(reason))
         }
     }
-
+    
     private func checkPolicy(under checkpoint: RosterLogCheckpoint, deadline: ContinuousClock.Instant) async -> PolicyStage {
         do {
             return try await verifyPolicy(under: checkpoint, deadline: deadline)
@@ -240,7 +252,7 @@ final class ResolverVerifier: ResolverVerifying {
             return .failed(error.outcome)
         }
     }
-
+    
     private func verifyPolicy(under checkpoint: RosterLogCheckpoint, deadline: ContinuousClock.Instant) async throws(PolicyFailure) -> PolicyStage {
         let bundle: RoutingPolicyBundle?
         do {
@@ -256,20 +268,24 @@ final class ResolverVerifier: ResolverVerifying {
                                       contentHash: ResolverVerificationCrypto.sha256Hex(verifiedBytes(of: bundle)))
         }
         let outcome = try await Self.logOutcome(for: served, checkpoint: checkpoint, events: fetchLog(under: checkpoint, deadline: deadline))
-        if outcome == .notPresent { return .notPresent }
+        if outcome == .notPresent {
+            return .notPresent
+        }
         guard outcome == .valid, let bundle else { throw PolicyFailure(outcome: outcome) }
         return .verified(VerifiedRoutingPolicy(bundle: bundle, delegateVerifiedZones: RoutingPolicyVerifier.delegateVerifiedZones(of: bundle)))
     }
-
+    
     private func verifiedBytes(of bundle: RoutingPolicyBundle) throws(PolicyFailure) -> [UInt8] {
         guard let canonical = CanonicalRoutingPolicy.bytes(of: bundle) else { throw .unverifiable(.parseError) }
         guard !policyKeys.isEmpty else { throw .unverifiable(.noPolicyKeys) }
         let count = RoutingPolicyVerifier.validSignatureCount(of: bundle, canonical: canonical, keys: policyKeys)
-        if let failure = count.failureReason(threshold: policyThreshold) { throw .invalid(failure) }
+        if let failure = count.failureReason(threshold: policyThreshold) {
+            throw .invalid(failure)
+        }
         guard bundle.isInEffect(atEpochMilliseconds: now()) else { throw .invalid(.outsideWindow) }
         return canonical
     }
-
+    
     private func fetchLog(under checkpoint: RosterLogCheckpoint, deadline: ContinuousClock.Instant) async throws(PolicyFailure) -> [TransparencyLogEvent] {
         guard checkpoint.size <= Self.maxLogSize else { throw .unverifiable(.logTooLarge) }
         do {
@@ -278,7 +294,7 @@ final class ResolverVerifier: ResolverVerifying {
             throw .unverifiable(error.reason(unavailable: .logUnavailable))
         }
     }
-
+    
     static func logOutcome(for served: ServedPolicy?, checkpoint: RosterLogCheckpoint, events: [TransparencyLogEvent]) -> Report.Policy {
         // Only leaves under the signed checkpoint are authenticated.
         let signed = events.prefix(checkpoint.size)
@@ -296,7 +312,7 @@ final class ResolverVerifier: ResolverVerifying {
         guard published < checkpoint.size else { return .unverifiable(.policyNewerThanCheckpoint) }
         return signed.contains { $0.publishesLaterVersion(of: served) } ? .unverifiable(.policySuperseded) : .valid
     }
-
+    
     private func checkPlacement(of resolution: HomeserverResolution, phoneNumber: String, roster: SignedRosterDocument,
                                 policy: PolicyStage) -> Report.Placement {
         // A directory lookup cannot be reproduced: the phone graph is private and no inclusion proof is served.
@@ -314,11 +330,13 @@ final class ResolverVerifier: ResolverVerifying {
            PlacementReproducer.unsignedRuleRanksAbove(decision, context: context, policy: verifiedPolicy, nowEpochMilliseconds: evaluatedAt) {
             return .indeterminate(.unsignedRule)
         }
-        if let decision, decision.homeserver.hasEndpoint(of: resolution.homeserver) { return .match }
+        if let decision, decision.homeserver.hasEndpoint(of: resolution.homeserver) {
+            return .match
+        }
         // The resolver may have used another roster version; only a same-version difference is a misroute.
         return resolution.rosterVersion == roster.version ? .mismatch : .indeterminate(.unattributed)
     }
-
+    
     private static func milliseconds(since start: ContinuousClock.Instant) -> Int {
         Int((ContinuousClock.now - start) / .milliseconds(1))
     }
@@ -327,9 +345,9 @@ final class ResolverVerifier: ResolverVerifying {
 /// Serializes runs per base URL across all verifiers, so no run moves the checkpoint between another's read and write.
 private actor ResolverRunQueue {
     static let shared = ResolverRunQueue()
-
+    
     private var lastRuns = [URL: Task<ResolverVerificationReport, Never>]()
-
+    
     func run(for baseURL: URL, _ operation: @escaping @Sendable () async -> ResolverVerificationReport) async -> ResolverVerificationReport {
         let previous = lastRuns[baseURL]
         let run = Task {

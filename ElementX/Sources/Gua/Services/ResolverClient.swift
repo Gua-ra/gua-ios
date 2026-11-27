@@ -6,14 +6,14 @@
 
 import Foundation
 
-struct ResolvedHomeserver: Equatable {
+nonisolated struct ResolvedHomeserver: Equatable {
     let serverName: String
     let baseURL: String
     let masIssuer: String?
     let region: String?
 }
 
-struct HomeserverResolution: Equatable {
+nonisolated struct HomeserverResolution: Equatable {
     let exists: Bool
     let homeserver: ResolvedHomeserver
     /// Set only when `ResolveOptions.trace` was requested; for debugging, never shown in the UI.
@@ -53,7 +53,7 @@ struct ClaimSignature: Codable, Equatable {
     let signatureB64: String
 }
 
-struct DecisionTrace: Decodable, Equatable {
+nonisolated struct DecisionTrace: Decodable, Equatable {
     let source: String
     let rule: String
     let ruleId: String?
@@ -78,7 +78,7 @@ struct FederationRosterServer: Decodable, Equatable {
 struct FederationRosterEntry: Decodable, Equatable {
     let homeserver: FederationRosterServer
     let status: String
-
+    
     var isActive: Bool {
         status == "ACTIVE"
     }
@@ -101,7 +101,7 @@ enum ResolverError: Error, LocalizedError {
     case noPlacementAvailable
     case rateLimited(retryAfter: TimeInterval?)
     case temporarilyUnavailable(retryAfter: TimeInterval?)
-
+    
     var errorDescription: String? {
         switch self {
         case .notConfigured: "The routing service is not configured."
@@ -118,7 +118,7 @@ enum ResolverError: Error, LocalizedError {
         case .temporarilyUnavailable: "The routing service is temporarily unavailable."
         }
     }
-
+    
     /// Shown on the phone-entry screen; `errorDescription` is for logs.
     var userFacingMessage: String {
         switch self {
@@ -136,7 +136,7 @@ enum ResolverError: Error, LocalizedError {
             L10n.errorUnknown
         }
     }
-
+    
     /// Waits of a minute or more round up to whole minutes, so the user is never told to retry early.
     static func formattedWait(_ retryAfter: TimeInterval?) -> String? {
         guard let seconds = retryAfter?.rounded(.up), seconds.isFinite, seconds >= 1 else { return nil }
@@ -157,7 +157,7 @@ enum ResolverError: Error, LocalizedError {
 protocol ResolverClientProtocol: Sendable {
     /// The resolver does not verify ownership of the number.
     func resolve(phoneNumber: String) async throws -> HomeserverResolution
-
+    
     /// Use `resolve(phoneNumber:)` unless there are verified identity claims to send.
     func resolve(phoneNumber: String, options: ResolveOptions) async throws -> HomeserverResolution
 }
@@ -178,21 +178,21 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
     private let session: URLSession
     private let decoder = JSONDecoder()
     private let encoder = JSONEncoder()
-
+    
     init(baseURL: URL, session: URLSession = .shared) {
         self.baseURL = baseURL
         self.session = session
     }
-
+    
     convenience init?() {
         guard let url = GuaDeployment.current.resolverBaseURL else { return nil }
         self.init(baseURL: url)
     }
-
+    
     func resolve(phoneNumber: String) async throws -> HomeserverResolution {
         try await resolve(phoneNumber: phoneNumber, options: ResolveOptions())
     }
-
+    
     func resolve(phoneNumber: String, options: ResolveOptions) async throws -> HomeserverResolution {
         // Synthesized Encodable omits nil fields, so a plain resolve still sends the legacy `{"phone"}` body.
         struct RequestBody: Encodable {
@@ -218,11 +218,11 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
             let registerAt: HomeserverRef?
             let rosterVersion: Int64?
             let trace: DecisionTrace?
-
+            
             private enum CodingKeys: String, CodingKey {
                 case exists, homeserver, registerAt, rosterVersion, trace
             }
-
+            
             init(from decoder: Decoder) throws {
                 let container = try decoder.container(keyedBy: CodingKeys.self)
                 exists = try container.decode(Bool.self, forKey: .exists)
@@ -233,7 +233,7 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
                 trace = try container.decodeIfPresent(DecisionTrace.self, forKey: .trace)
             }
         }
-
+        
         guard let url = URL(string: "/resolve", relativeTo: baseURL) else { throw ResolverError.invalidURL }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -252,7 +252,7 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
         } catch {
             throw ResolverError.decoding(error)
         }
-
+        
         let data: Data
         let response: URLResponse
         do {
@@ -264,14 +264,14 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
         guard httpResponse.statusCode == 200 else {
             throw resolveError(response: httpResponse, body: data)
         }
-
+        
         let parsed: Response
         do {
             parsed = try decoder.decode(Response.self, from: data)
         } catch {
             throw ResolverError.decoding(error)
         }
-
+        
         guard let ref = parsed.exists ? parsed.homeserver : parsed.registerAt else {
             throw ResolverError.malformedResponse
         }
@@ -283,7 +283,7 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
                                     trace: parsed.trace,
                                     rosterVersion: parsed.rosterVersion)
     }
-
+    
     /// A 429 is rate limiting whatever its body: the ingress answers it in plain text.
     private func resolveError(response: HTTPURLResponse, body: Data) -> ResolverError {
         struct ProblemResponse: Decodable {
@@ -304,7 +304,7 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
         default: .server(status: status)
         }
     }
-
+    
     /// Measures an HTTP-date from the response's `Date` header when present, so client clock skew does not change the wait.
     static func retryAfter(of response: HTTPURLResponse, now: Date = .now) -> TimeInterval? {
         guard let value = response.value(forHTTPHeaderField: "Retry-After")?.trimmingCharacters(in: .whitespaces),
@@ -319,7 +319,7 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
         let delay = retryDate.timeIntervalSince(reference)
         return delay > 0 ? delay : nil
     }
-
+    
     /// RFC 9110 HTTP-date: IMF-fixdate plus the obsolete RFC 850 and asctime forms recipients must accept.
     private static func httpDate(from value: String) -> Date? {
         let normalized = value.split(separator: " ").joined(separator: " ")
@@ -334,13 +334,13 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
         }
         return nil
     }
-
+    
     func fetchRoster() async throws -> FederationRoster {
         guard let url = URL(string: "/roster", relativeTo: baseURL) else { throw ResolverError.invalidURL }
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-
+        
         let data: Data
         let response: URLResponse
         do {
@@ -350,7 +350,7 @@ final class ResolverClient: ResolverClientProtocol, FederationRosterFetching {
         }
         guard let httpResponse = response as? HTTPURLResponse else { throw ResolverError.malformedResponse }
         guard httpResponse.statusCode == 200 else { throw ResolverError.server(status: httpResponse.statusCode) }
-
+        
         do {
             return try decoder.decode(FederationRoster.self, from: data)
         } catch {

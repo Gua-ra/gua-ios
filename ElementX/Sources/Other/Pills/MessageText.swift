@@ -1,14 +1,15 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import MatrixRustSDK
 import SwiftUI
 
-final class MessageTextView: UITextView, PillAttachmentViewProviderDelegate, UIGestureRecognizerDelegate {
+final class MessageTextView: UITextView, PillAttachmentViewProviderDelegate, UIGestureRecognizerDelegate, NSLayoutManagerDelegate {
     var timelineContext: TimelineViewModel.Context?
     var updateClosure: (() -> Void)?
     private var pillViews = NSHashTable<UIView>.weakObjects()
@@ -40,11 +41,23 @@ final class MessageTextView: UITextView, PillAttachmentViewProviderDelegate, UIG
             updateClosure?()
         }
     }
-
+    
+    /// Stops TextKit from hyphenating code when a word doesn't fit on a line, wrapping it by
+    /// character instead. Code is meant to be verbatim, so an inserted hyphen would corrupt it.
+    nonisolated func layoutManager(_ layoutManager: NSLayoutManager, shouldBreakLineByHyphenatingBeforeCharacterAt charIndex: Int) -> Bool {
+        guard let textStorage = layoutManager.textStorage, charIndex < textStorage.length else {
+            return true
+        }
+        
+        let isCode = textStorage.attribute(.InlineCode, at: charIndex, effectiveRange: nil) != nil
+            || textStorage.attribute(.CodeBlock, at: charIndex, effectiveRange: nil) != nil
+        return !isCode
+    }
+    
     func registerPillView(_ pillView: UIView) {
         pillViews.add(pillView)
     }
-
+    
     func flushPills() {
         for view in pillViews.allObjects {
             view.alpha = 0.0
@@ -54,17 +67,110 @@ final class MessageTextView: UITextView, PillAttachmentViewProviderDelegate, UIG
     }
 }
 
+/// An `NSTextAttachment` that takes up its declared `bounds` but draws nothing — used
+/// as an invisible spacer so a message bubble's text reserves room for the overlaid
+/// timestamp. Without this subclass, an attachment with no image would render TextKit's
+/// default "missing image" glyph.
+private final nonisolated class TransparentTextAttachment: NSTextAttachment {
+    override func image(forBounds imageBounds: CGRect,
+                        textContainer: NSTextContainer?,
+                        characterIndex charIndex: Int) -> UIImage? {
+        let format = UIGraphicsImageRendererFormat()
+        format.opaque = false
+        let size = CGSize(width: max(imageBounds.width, 1), height: max(imageBounds.height, 1))
+        return UIGraphicsImageRenderer(size: size, format: format).image { _ in }
+    }
+}
+
 struct MessageText: UIViewRepresentable {
     @Environment(\.openURL) private var openURLAction
     @Environment(\.timelineContext) private var viewModel
-    @State private var computedSizes = [Double: CGSize]()
+    @Environment(\.layoutDirection) private var layoutDirection
+    
+    /// Cache key for `sizeThatFits`. Keyed on the reserved trailing size as well as the proposed
+    /// width to account for any changes on the send info label that happen after the first rendering.
+    private struct SizeCacheKey: Hashable {
+        // periphery:ignore - used via the synthesized Hashable conformance
+        let width: Double
+        // periphery:ignore - used via the synthesized Hashable conformance
+        let reservedSize: CGSize
+    }
+    
+    @State private var computedSizes = [SizeCacheKey: CGSize]()
     
     @State var attributedString: AttributedString {
         didSet {
             computedSizes.removeAll()
         }
     }
-
+    
+    /// Reserves an invisible inline area of this size at the very end of the rendered
+    /// text. Used so that the message bubble's natural size accommodates the timestamp
+    /// overlaid on top of the bubble's bottom-trailing corner. TextKit decides whether
+    /// the reserved region fits on the last line (timestamp tucks) or wraps to a new
+    /// line (timestamp drops below the text).
+    var trailingReservedSize: CGSize = .zero
+    
+    private func makeAttributedText() -> NSAttributedString? {
+        guard let baseText = try? NSAttributedString(attributedString, including: \.elementX) else {
+            return nil
+        }
+        
+        let combined = NSMutableAttributedString(attributedString: baseText)
+        if trailingReservedSize.width > 0 {
+            let attachment = TransparentTextAttachment()
+            attachment.isAccessibilityElement = false
+            attachment.bounds = CGRect(origin: .zero,
+                                       size: CGSize(width: trailingReservedSize.width,
+                                                    height: max(trailingReservedSize.height, 1)))
+            
+            // Inherit the font from the preceding character so the appended runs
+            // (newline and attachment) carry the same line metrics as the surrounding
+            // text — otherwise a small default font on those characters can shrink the
+            // line height and clip e.g. a font-boosted lone emoji.
+            let trailingFont = baseText.length > 0
+                ? baseText.attribute(.font, at: baseText.length - 1, effectiveRange: nil)
+                : nil
+            
+            // When the last paragraph's natural text direction doesn't match the layout
+            // direction, the inline attachment would land on the wrong side and overlap the
+            // overlaid timestamp. Force it onto its own line so the bubble just grows taller.
+            if !lastParagraphDirectionMatchesLayout(in: combined) {
+                let newlineString = NSMutableAttributedString(string: "\n")
+                if let trailingFont {
+                    newlineString.addAttribute(.font,
+                                               value: trailingFont,
+                                               range: NSRange(location: 0, length: newlineString.length))
+                }
+                combined.append(newlineString)
+            }
+            
+            let attachmentString = NSMutableAttributedString(attachment: attachment)
+            if let trailingFont {
+                attachmentString.addAttribute(.font,
+                                              value: trailingFont,
+                                              range: NSRange(location: 0, length: attachmentString.length))
+            }
+            combined.append(attachmentString)
+        }
+        
+        return combined
+    }
+    
+    private func lastParagraphDirectionMatchesLayout(in attributedText: NSAttributedString) -> Bool {
+        let string = attributedText.string as NSString
+        guard string.length > 0 else { return true }
+        
+        // Isolate the last paragraph because its direction is what decides
+        // which side the trailing attachment ends up on.
+        let lastParagraphRange = string.paragraphRange(for: NSRange(location: string.length - 1, length: 0))
+        let lastParagraph = string.substring(with: lastParagraphRange)
+        
+        let textIsRTL = lastParagraph.firstStrongCharacterIsRTL
+        let layoutIsRTL = layoutDirection == .rightToLeft
+        return textIsRTL == layoutIsRTL
+    }
+    
     func makeUIView(context: Context) -> MessageTextView {
         // Need to use TextKit 1 for mentions
         let textView = MessageTextView(usingTextLayoutManager: false)
@@ -81,7 +187,7 @@ struct MessageText: UIViewRepresentable {
         textView.isEditable = false
         textView.isScrollEnabled = false
         textView.adjustsFontForContentSizeCategory = true
-
+        
         // Required to allow tapping links
         // We disable selection at delegate level
         textView.isSelectable = true
@@ -89,50 +195,58 @@ struct MessageText: UIViewRepresentable {
         
         // Otherwise links can be dragged and dropped when long pressed
         textView.textDragInteraction?.isEnabled = false
-
+        // Otherwise items dropped onto a bubble land on the text view instead of
+        // bubbling up to the timeline's drop handler.
+        if let textDropInteraction = textView.textDropInteraction {
+            textView.removeInteraction(textDropInteraction)
+        }
+        
         textView.contentInset = .zero
         textView.contentInsetAdjustmentBehavior = .never
         textView.textContainerInset = .zero
         textView.textContainer.lineFragmentPadding = 0
         textView.layoutManager.usesFontLeading = false
+        textView.layoutManager.delegate = textView
         textView.backgroundColor = .clear
-        if let attributedText = try? NSAttributedString(attributedString, including: \.elementX) {
+        if let attributedText = makeAttributedText() {
             textView.attributedText = attributedText
         }
         textView.delegate = context.coordinator
         return textView
     }
-
+    
     func updateUIView(_ uiView: MessageTextView, context: Context) {
-        if let newAttributedText = try? NSAttributedString(attributedString, including: \.elementX),
+        if let newAttributedText = makeAttributedText(),
            uiView.attributedText != newAttributedText {
             uiView.flushPills()
             uiView.attributedText = newAttributedText
+            computedSizes.removeAll()
         }
         context.coordinator.openURLAction = openURLAction
     }
-
+    
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: MessageTextView, context: Context) -> CGSize? {
         let proposalWidth = proposal.width ?? UIView.layoutFittingExpandedSize.width
+        let key = SizeCacheKey(width: proposalWidth, reservedSize: trailingReservedSize)
         
-        if let size = computedSizes[proposalWidth] {
+        if let size = computedSizes[key] {
             return size
         }
         
         let size = uiView.sizeThatFits(CGSize(width: proposalWidth, height: UIView.layoutFittingCompressedSize.height))
         DispatchQueue.main.async {
-            computedSizes[proposalWidth] = size
+            computedSizes[key] = size
         }
         return size
     }
-
+    
     func makeCoordinator() -> Coordinator {
         Coordinator(openURLAction: openURLAction)
     }
-
+    
     final class Coordinator: NSObject, UITextViewDelegate {
         var openURLAction: OpenURLAction
-
+        
         init(openURLAction: OpenURLAction) {
             self.openURLAction = openURLAction
         }
@@ -157,7 +271,6 @@ struct MessageText: UIViewRepresentable {
             return defaultAction
         }
         
-        @available(iOS 17.0, *)
         func textView(_ textView: UITextView, menuConfigurationFor textItem: UITextItem, defaultMenu: UIMenu) -> UITextItem.MenuConfiguration? {
             switch textItem.content {
             case let .link(url):
@@ -196,15 +309,14 @@ struct MessageText_Previews: PreviewProvider, TestablePreview {
             .mergeAttributes(defaultFontContainer)
         return attributedString
     }()
-
+    
     private static let htmlStringWithQuote =
         """
-        <blockquote>A blockquote that is long and goes onto multiple lines as the first item in the message</blockquote>
-        <p>Then another line of text here to reply to the blockquote, which is also a multiline component.</p>
+        <blockquote>A blockquote that is long and goes onto multiple lines as the first item in the message</blockquote><p>Then another line of text here to reply to the blockquote, which is also a multiline component.</p>
         """
     
-    private static let htmlStringWithList = "<p>This is a list</p>\n<ul>\n<li>One</li>\n<li>Two</li>\n<li>And number 3</li>\n</ul>\n"
-
+    private static let htmlStringWithList = "<p>This is a list</p>\n<ul><li>One</li>\n<li>Two</li>\n<li>And number 3</li>\n</ul>\n"
+    
     private static let attributedStringBuilder = AttributedStringBuilder(mentionBuilder: MentionBuilder())
     
     static var attachmentPreview: some View {
@@ -212,7 +324,7 @@ struct MessageText_Previews: PreviewProvider, TestablePreview {
             .border(Color.purple)
             .environmentObject(TimelineViewModel.mock.context)
     }
-
+    
     static var previews: some View {
         MessageText(attributedString: attributedString)
             .border(Color.purple)

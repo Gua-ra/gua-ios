@@ -1,71 +1,219 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Combine
 @testable import ElementX
-import XCTest
+import Foundation
+import Testing
 
 @MainActor
-class SettingsScreenViewModelTests: XCTestCase {
-    var viewModel: SettingsScreenViewModelProtocol!
-    var context: SettingsScreenViewModelType.Context!
-    var clientProxy: ClientProxyMock!
-    var appSettings: AppSettings!
-    var userIndicatorController: UserIndicatorControllerMock!
-    var cancellables = Set<AnyCancellable>()
-    
-    @MainActor override func setUpWithError() throws {
-        cancellables.removeAll()
-        AppSettings.resetAllSettings()
-        appSettings = AppSettings()
-        clientProxy = ClientProxyMock(.init(userID: ""))
-        userIndicatorController = UserIndicatorControllerMock()
-        makeViewModel()
+struct SettingsScreenViewModelTests {
+    private var clientProxy: ClientProxyMock!
+    private var userSettings: UserSettings!
+    private var userIndicatorController: UserIndicatorControllerMock!
+    private var viewModel: SettingsScreenViewModelProtocol!
+    private var context: SettingsScreenViewModelType.Context {
+        viewModel.context
     }
     
-    private func makeViewModel() {
-        viewModel = SettingsScreenViewModel(userSession: UserSessionMock(.init(clientProxy: clientProxy)),
-                                            appSettings: appSettings,
-                                            spacesSetting: SpacesSetting(clientProxy: clientProxy, appSettings: appSettings),
-                                            userIndicatorController: userIndicatorController,
-                                            isBugReportServiceEnabled: true)
-        context = viewModel.context
+    // MARK: - User status
+    
+    @Test
+    mutating func statusPickerFlow() {
+        // Given a screen where no status has been set.
+        setupViewModel()
+        #expect(!context.viewState.bindings.isPresentingStatusPicker)
+        #expect(!context.viewState.bindings.isShowingCustomStatusField)
+        #expect(context.viewState.userStatusRowMode == .pickStatusButton)
+        
+        // When choosing to pick a status.
+        context.send(viewAction: .userStatus(.pickStatus))
+        
+        // Then the status picker should be presented.
+        #expect(context.viewState.bindings.isPresentingStatusPicker)
+        #expect(!context.viewState.bindings.isShowingCustomStatusField)
+        #expect(context.viewState.userStatusRowMode == .pickStatusButton)
+        
+        // When choosing to enter a custom status.
+        context.send(viewAction: .userStatus(.customStatus))
+        
+        // Then the picker should be dismissed and the custom status field shown.
+        #expect(!context.viewState.bindings.isPresentingStatusPicker)
+        #expect(context.viewState.bindings.isShowingCustomStatusField)
+        #expect(context.viewState.userStatusRowMode == .customStatusInput(emoji: "😄"))
+        
+        // When cancelling.
+        context.send(viewAction: .userStatus(.cancel))
+        
+        // Then all status editing should be dismissed.
+        #expect(!context.viewState.bindings.isPresentingStatusPicker)
+        #expect(!context.viewState.bindings.isShowingCustomStatusField)
+        #expect(context.viewState.userStatusRowMode == .pickStatusButton)
     }
     
-    override func tearDown() {
-        AppSettings.resetAllSettings()
+    @Test
+    mutating func persistingStatus() async throws {
+        // Given a screen where no status has been set or removed yet.
+        setupViewModel()
+        #expect(clientProxy.setUserStatusCallsCount == 0)
+        #expect(clientProxy.clearUserStatusCallsCount == 0)
+        
+        // When setting a status.
+        let status = UserStatus.Raw(text: "Away", emoji: "🌴")
+        let (setStream, setContinuation) = AsyncStream<UserStatus.Raw>.makeStream()
+        clientProxy.setUserStatusClosure = {
+            setContinuation.yield($0)
+            return .success(())
+        }
+        let statusSet = deferFulfillment(setStream) { _ in true }
+        context.send(viewAction: .userStatus(.set(status)))
+        
+        // Then only the set endpoint should be called, with the chosen status.
+        #expect(try await statusSet.fulfill() == status)
+        #expect(clientProxy.setUserStatusCallsCount == 1)
+        #expect(clientProxy.clearUserStatusCallsCount == 0)
+        
+        // When clearing the status.
+        let (removeStream, removeContinuation) = AsyncStream<Void>.makeStream()
+        clientProxy.clearUserStatusClosure = {
+            removeContinuation.yield()
+            return .success(())
+        }
+        let statusRemoved = deferFulfillment(removeStream) { _ in true }
+        context.send(viewAction: .userStatus(.clear))
+        
+        // Then the clear user status endpoint should be called.
+        try await statusRemoved.fulfill()
+        #expect(clientProxy.clearUserStatusCallsCount == 1)
+        #expect(clientProxy.setUserStatusCallsCount == 1)
     }
-
-    @MainActor func testLogout() async throws {
-        let deferred = deferFulfillment(viewModel.actions) { $0 == .logout }
-        context.send(viewAction: .logout)
-        try await deferred.fulfill()
+    
+    @Test
+    mutating func clearCallStatus() async throws {
+        // Given a screen where the user has a call status set.
+        let callStatus = UserStatus.mockCall
+        setupViewModel(status: callStatus)
+        #expect(!clientProxy.clearUserStatusCalled)
+        #expect(!clientProxy.setUserStatusCalled)
+        
+        // When clearing the status.
+        let (removeStream, removeContinuation) = AsyncStream<Void>.makeStream()
+        clientProxy.clearUserStatusClosure = {
+            removeContinuation.yield()
+            return .success(())
+        }
+        let statusRemoved = deferFulfillment(removeStream) { _ in true }
+        context.send(viewAction: .userStatus(.clear))
+        
+        // Then the clear user status endpoint should be called.
+        try await statusRemoved.fulfill()
+        #expect(clientProxy.clearUserStatusCallsCount == 1)
+        #expect(!clientProxy.setUserStatusCalled)
     }
-
-    func testReportBug() async throws {
-        let deferred = deferFulfillment(viewModel.actions) { $0 == .reportBug }
+    
+    @Test
+    mutating func showsExistingStatus() throws {
+        // Given a screen where the user has a status set.
+        let status = UserStatus.mockHoliday
+        setupViewModel(status: status)
+        
+        // Then that status should be shown.
+        let displayedStatus = try #require(status.displayed)
+        #expect(context.viewState.userStatusRowMode == .showingStatus(displayedStatus))
+    }
+    
+    @Test
+    mutating func selectingCustomStatusEmoji() async throws {
+        // Given a custom status field showing the default emoji.
+        setupViewModel()
+        context.send(viewAction: .userStatus(.customStatus))
+        #expect(context.viewState.userStatusRowMode == .customStatusInput(emoji: "😄"))
+        
+        // When selecting an emoji from the picker.
+        try await selectCustomStatusEmoji("🎉")
+        
+        // Then the custom status field should show the selected emoji.
+        #expect(context.viewState.userStatusRowMode == .customStatusInput(emoji: "🎉"))
+        
+        // When cancelling and returning to the custom status field.
+        context.send(viewAction: .userStatus(.cancel))
+        context.send(viewAction: .userStatus(.customStatus))
+        
+        // Then the emoji should have been reset to the default.
+        #expect(context.viewState.userStatusRowMode == .customStatusInput(emoji: "😄"))
+    }
+    
+    @Test
+    mutating func reportBug() async throws {
+        setupViewModel()
+        
+        let deferred = deferFulfillment(viewModel.actions) { $0.isReportBug }
         context.send(viewAction: .reportBug)
         try await deferred.fulfill()
     }
     
-    func testAnalytics() async throws {
-        let deferred = deferFulfillment(viewModel.actions) { $0 == .analytics }
+    @Test
+    mutating func analytics() async throws {
+        setupViewModel()
+        
+        let deferred = deferFulfillment(viewModel.actions) { $0.isAnalytics }
         context.send(viewAction: .analytics)
         try await deferred.fulfill()
     }
     
-    func testMediaUploadQuality() async throws {
-        let deferred = deferFulfillment(viewModel.actions) { $0 == .mediaUploadQuality }
+    @Test
+    mutating func logout() async throws {
+        setupViewModel()
+        
+        let deferred = deferFulfillment(viewModel.actions) { $0.isLogout }
+        context.send(viewAction: .logout)
+        try await deferred.fulfill()
+    }
+    
+    // MARK: - Add account
+    
+    @Test
+    mutating func addAccountButtonFollowsTheFeatureFlag() async throws {
+        let userSettings = UserSettings.mock()
+        setupViewModel(userSettings: userSettings)
+        #expect(!context.viewState.showAddAccountButton)
+        
+        var deferred = deferFulfillment(context.observe(\.viewState.showAddAccountButton)) { $0 }
+        userSettings.app.multiAccountEnabled = true
+        try await deferred.fulfill()
+        
+        deferred = deferFulfillment(context.observe(\.viewState.showAddAccountButton)) { !$0 }
+        userSettings.app.multiAccountEnabled = false
+        try await deferred.fulfill()
+    }
+    
+    @Test
+    mutating func addAccount() async throws {
+        setupViewModel()
+        
+        let deferred = deferFulfillment(viewModel.actions) { $0.isAddAccount }
+        context.send(viewAction: .addAccount)
+        try await deferred.fulfill()
+    }
+    
+    @Test
+    mutating func mediaUploadQuality() async throws {
+        setupViewModel()
+        
+        let deferred = deferFulfillment(viewModel.actions) { $0.isMediaUploadQuality }
         context.send(viewAction: .mediaUploadQuality)
         try await deferred.fulfill()
     }
     
-    func testManageAccountAndDevicesOpensTheAccountProfile() async throws {
-        let profileURL = try XCTUnwrap(URL(string: "https://account.example.com/profile"))
+    @Test
+    mutating func manageAccountAndDevicesOpensTheAccountProfile() async throws {
+        setupViewModel()
+        let profileURL = try #require(URL(string: "https://account.example.com/profile"))
         clientProxy.accountURLActionClosure = { action in
             action == .profile ? profileURL : nil
         }
@@ -73,71 +221,162 @@ class SettingsScreenViewModelTests: XCTestCase {
         let loaded = deferFulfillment(context.observe(\.viewState.accountProfileURL)) { $0 != nil }
         try await loaded.fulfill()
         
-        let url = try XCTUnwrap(context.viewState.accountProfileURL)
-        XCTAssertEqual(url, profileURL)
-        let deferred = deferFulfillment(viewModel.actions) { $0 == .manageAccount(url: profileURL) }
+        let url = try #require(context.viewState.accountProfileURL)
+        #expect(url == profileURL)
+        let deferred = deferFulfillment(viewModel.actions) { $0.manageAccountURL == profileURL }
         context.send(viewAction: .manageAccount(url: url))
         try await deferred.fulfill()
     }
     
-    func testToggleSpacesWritesAccountDataOnce() async {
-        let written = expectation(description: "The switch is written to account data")
+    @Test
+    mutating func toggleSpacesWritesAccountDataOnce() async throws {
+        setupViewModel()
+        let (writeStream, writeContinuation) = AsyncStream<Void>.makeStream()
         clientProxy.setAccountDataTypeContentClosure = { _, _ in
-            written.fulfill()
+            writeContinuation.yield()
             return .success(())
         }
-        XCTAssertFalse(context.isSpacesEnabled)
+        #expect(!context.isSpacesEnabled)
         
+        let written = deferFulfillment(writeStream) { _ in true }
         context.isSpacesEnabled = true
         context.send(viewAction: .toggleSpaces)
-        await fulfillment(of: [written], timeout: 1)
-        XCTAssertTrue(appSettings.spacesEnabled)
+        try await written.fulfill()
+        #expect(userSettings.app.spacesEnabled)
         
         // The device copy echoes back into the binding, which sends the action again.
         context.send(viewAction: .toggleSpaces)
         
-        XCTAssertEqual(clientProxy.setAccountDataTypeContentCallsCount, 1)
-        XCTAssertEqual(clientProxy.setAccountDataTypeContentReceivedArguments?.type, SpacesSetting.accountDataType)
-        XCTAssertEqual(clientProxy.setAccountDataTypeContentReceivedArguments?.content, #"{"enabled":true}"#)
+        #expect(clientProxy.setAccountDataTypeContentCallsCount == 1)
+        #expect(clientProxy.setAccountDataTypeContentReceivedArguments?.type == SpacesSetting.accountDataType)
+        #expect(clientProxy.setAccountDataTypeContentReceivedArguments?.content == #"{"enabled":true}"#)
     }
     
-    func testOpeningSettingsCopiesTheStoredSpacesValue() async throws {
+    @Test
+    mutating func openingSettingsCopiesTheStoredSpacesValue() async throws {
+        setupViewModel()
         clientProxy.accountDataTypeReturnValue = .success(#"{"enabled":true}"#)
-        let deferred = deferFulfillment(appSettings.$spacesEnabled) { $0 }
+        let deferred = deferFulfillment(userSettings.app.spacesEnabledPublisher) { $0 }
         
         makeViewModel()
         
         try await deferred.fulfill()
-        XCTAssertFalse(clientProxy.setAccountDataTypeContentCalled)
+        #expect(!clientProxy.setAccountDataTypeContentCalled)
     }
     
-    func testOpeningSettingsDoesNotDecideTheSpacesDefault() async {
-        clientProxy.spaceService = SpaceServiceProxyMock(.init(joinedSpaces: .mockJoinedSpaces))
-        let read = expectation(description: "The stored value is read")
-        read.assertForOverFulfill = false
+    @Test
+    mutating func openingSettingsDoesNotDecideTheSpacesDefault() async throws {
+        setupViewModel()
+        clientProxy.spaceService = SpaceServiceProxyMock(.populated)
+        let (readStream, readContinuation) = AsyncStream<Void>.makeStream()
         clientProxy.accountDataTypeClosure = { _ in
-            read.fulfill()
+            readContinuation.yield()
             return .success(nil)
         }
         
+        let read = deferFulfillment(readStream) { _ in true }
         makeViewModel()
-        await fulfillment(of: [read], timeout: 1)
-        try? await Task.sleep(for: .milliseconds(100))
+        try await read.fulfill()
+        try await Task.sleep(for: .milliseconds(100))
         
-        XCTAssertFalse(appSettings.spacesEnabled)
-        XCTAssertFalse(clientProxy.setAccountDataTypeContentCalled, "Only a sync response can prove the value is absent.")
+        #expect(!userSettings.app.spacesEnabled)
+        #expect(!clientProxy.setAccountDataTypeContentCalled, "Only a sync response can prove the value is absent.")
     }
     
-    func testFailedSpacesToggleMovesBackAndSaysSo() async throws {
+    @Test
+    mutating func failedSpacesToggleMovesBackAndSaysSo() async throws {
+        setupViewModel()
         clientProxy.setAccountDataTypeContentReturnValue = .failure(.forbiddenAccess)
         
-        let deferred = deferFulfillment(appSettings.$spacesEnabled, keyPath: \.self, transitionValues: [false, true, false])
+        let deferred = deferFulfillment(userSettings.app.spacesEnabledPublisher, keyPath: \.self, transitionValues: [false, true, false])
         context.isSpacesEnabled = true
         context.send(viewAction: .toggleSpaces)
         try await deferred.fulfill()
         
         try await Task.sleep(for: .milliseconds(100))
-        XCTAssertFalse(context.isSpacesEnabled)
-        XCTAssertTrue(userIndicatorController.submitIndicatorDelayReceivedInvocations.contains { $0.indicator.title == L10n.errorUnknown })
+        #expect(!context.isSpacesEnabled)
+        #expect(userIndicatorController.submitIndicatorDelayReceivedInvocations.contains { $0.indicator.title == L10n.errorUnknown })
+    }
+    
+    // MARK: - Helpers
+    
+    private mutating func setupViewModel(status: UserStatus = .init(), userSettings: UserSettings = .mock()) {
+        clientProxy = ClientProxyMock(.init(userID: "", status: status))
+        self.userSettings = userSettings
+        userIndicatorController = UserIndicatorControllerMock()
+        makeViewModel()
+    }
+    
+    private mutating func makeViewModel() {
+        viewModel = SettingsScreenViewModel(userSession: UserSessionMock(.init(clientProxy: clientProxy, userSettings: userSettings)),
+                                            spacesSetting: SpacesSetting(clientProxy: clientProxy, appSettings: userSettings.app),
+                                            isBugReportServiceEnabled: true,
+                                            isInSecondaryWindow: false,
+                                            userIndicatorController: userIndicatorController)
+    }
+    
+    /// Shows the emoji picker and selects the provided emoji through its continuation.
+    private func selectCustomStatusEmoji(_ emoji: String) async throws {
+        let pickerPresented = deferFulfillment(viewModel.actions) { $0.isUserStatusEmojiPicker }
+        context.send(viewAction: .userStatus(.pickCustomEmoji))
+        guard case let .userStatusEmojiPicker(continuation) = try await pickerPresented.fulfill() else {
+            Issue.record("Expected the emoji picker to be presented.")
+            return
+        }
+        
+        let emojiUpdated = deferFulfillment(context.observe(\.viewState.bindings.customStatusEmoji)) { $0 == Character(emoji) }
+        continuation.yield(emoji)
+        try await emojiUpdated.fulfill()
+    }
+}
+
+private extension SettingsScreenViewModelAction {
+    var isUserStatusEmojiPicker: Bool {
+        switch self {
+        case .userStatusEmojiPicker: true
+        default: false
+        }
+    }
+    
+    var isReportBug: Bool {
+        switch self {
+        case .reportBug: true
+        default: false
+        }
+    }
+    
+    var isAnalytics: Bool {
+        switch self {
+        case .analytics: true
+        default: false
+        }
+    }
+    
+    var isLogout: Bool {
+        switch self {
+        case .logout: true
+        default: false
+        }
+    }
+    
+    var isAddAccount: Bool {
+        switch self {
+        case .addAccount: true
+        default: false
+        }
+    }
+    
+    var isMediaUploadQuality: Bool {
+        switch self {
+        case .mediaUploadQuality: true
+        default: false
+        }
+    }
+    
+    var manageAccountURL: URL? {
+        switch self {
+        case .manageAccount(let url): url
+        default: nil
+        }
     }
 }

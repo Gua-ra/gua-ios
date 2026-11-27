@@ -1,6 +1,12 @@
 
 "gua_signout_last_device_title" = "Saioa ixteak zure mezuak gailu honetatik kenduko ditu";
 "gua_signout_last_device_message" = "Hau da zure gailu bakarra. Hemen soilik gordetako mezuak ez dira eskuragarri egongo berriro saioa hastean.";
+"gua_settings_sign_out" = "Amaitu saioa";
+"gua_signout_confirmation_message" = "Ziur saioa amaitu nahi duzula?";
+"gua_signout_key_backup_ongoing_subtitle" = "Itxaron eragiketa amaitu arte saioa amaitu baino lehen.";
+"gua_signout_key_backup_offline_subtitle" = "Zure gakoen babeskopia egiten ari zen konexioa galdu zenuenean. Konektatu berriro, gakoen babeskopia saioa amaitu baino lehen egin ahal izateko.";
+"gua_app_lock_signout_alert_title" = "Saioa amaitzen ari zara";
+"gua_signing_out" = "Saioa amaitzen";
 "gua_encryption_reset_required_title" = "Aurreko mezu batzuk ezin dira berreskuratu";
 "gua_encryption_reset_required_message" = "Gailu honetan zifratutako txatak konfiguratzen amaitzeko, zure zifratutako babeskopia berrezarri behar da. Babeskopia horretan bakarrik gordetako mezuak galdu egingo dira. Zure gailuetan dagoeneko dauden mezuei ez die eragingo.";
 "gua_encryption_reset_required_action" = "Berrezarri eta amaitu";

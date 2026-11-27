@@ -1,7 +1,8 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -9,7 +10,6 @@ import OrderedCollections
 import SFSafeSymbols
 import SwiftUI
 
-@MainActor
 struct TimelineItemMenuActions {
     let reactions: [TimelineItemMenuReaction]
     let actions: [TimelineItemMenuAction]
@@ -51,6 +51,7 @@ struct TimelineItemMenuReaction: Hashable {
 
 enum TimelineItemMenuAction: Identifiable, Hashable {
     case copy
+    case translate
     case copyCaption
     case edit
     case addCaption
@@ -58,7 +59,7 @@ enum TimelineItemMenuAction: Identifiable, Hashable {
     case removeCaption
     case editPoll
     case copyPermalink
-    case redact
+    case redact(isMedia: Bool)
     case reply(isThread: Bool)
     case replyInThread
     case forward(itemID: TimelineItemIdentifier)
@@ -70,8 +71,7 @@ enum TimelineItemMenuAction: Identifiable, Hashable {
     case pin
     case unpin
     case viewInRoomTimeline
-    case share
-    case save
+    case downloadMedia
     case select
     
     var id: Self {
@@ -129,7 +129,7 @@ enum TimelineItemMenuAction: Identifiable, Hashable {
     
     var canAppearInMediaDetails: Bool {
         switch self {
-        case .viewInRoomTimeline, .share, .save, .redact:
+        case .viewInRoomTimeline, .downloadMedia, .redact, .forward:
             true
         default:
             false
@@ -142,10 +142,13 @@ enum TimelineItemMenuAction: Identifiable, Hashable {
         switch self {
         case .copy:
             Label(L10n.actionCopyText, icon: \.copy)
+        case .translate:
+            Label(L10n.actionTranslate, icon: \.translate)
         case .copyCaption:
             Label(L10n.actionCopyCaption, icon: \.copy)
         case .edit:
             Label(L10n.actionEdit, icon: \.edit)
+                .accessibilityIdentifier(A11yIdentifiers.roomScreen.timelineItemActionMenuAction.edit)
         case .addCaption:
             Label(L10n.actionAddCaption, icon: \.edit)
         case .editCaption:
@@ -162,8 +165,8 @@ enum TimelineItemMenuAction: Identifiable, Hashable {
             Label(L10n.actionReplyInThread, icon: \.threads)
         case .forward:
             Label(L10n.actionForward, icon: \.forward)
-        case .redact:
-            Label(L10n.actionRemoveMessage, icon: \.delete)
+        case .redact(let isMedia):
+            Label(isMedia ? L10n.actionDeleteFile : L10n.actionRemoveMessage, icon: \.delete)
         case .viewSource:
             Label(L10n.actionViewSource, icon: \.code)
         case .report:
@@ -181,10 +184,8 @@ enum TimelineItemMenuAction: Identifiable, Hashable {
             Label(L10n.actionUnpin, icon: \.unpin)
         case .viewInRoomTimeline:
             Label(L10n.actionViewInTimeline, icon: \.visibilityOn)
-        case .share:
-            Label(L10n.actionShare, icon: \.shareIos)
-        case .save:
-            Label(L10n.actionSave, icon: \.downloadIos)
+        case .downloadMedia:
+            Label(L10n.actionDownload, icon: \.downloadIos)
         case .select:
             Label(UntranslatedL10n.guaActionSelect, systemImage: "selection.pin.in.out")
         }

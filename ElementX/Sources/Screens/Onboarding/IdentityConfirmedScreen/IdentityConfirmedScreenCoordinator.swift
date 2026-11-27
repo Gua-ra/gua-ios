@@ -1,33 +1,29 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Combine
 import SwiftUI
 
-struct IdentityConfirmedScreenCoordinatorParameters { }
-
 enum IdentityConfirmedScreenCoordinatorAction {
     case done
 }
 
 final class IdentityConfirmedScreenCoordinator: CoordinatorProtocol {
-    private let parameters: IdentityConfirmedScreenCoordinatorParameters
     private let viewModel: IdentityConfirmedScreenViewModelProtocol
     
     private var cancellables = Set<AnyCancellable>()
- 
+    
     private let actionsSubject: PassthroughSubject<IdentityConfirmedScreenCoordinatorAction, Never> = .init()
     var actionsPublisher: AnyPublisher<IdentityConfirmedScreenCoordinatorAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
     
-    init(parameters: IdentityConfirmedScreenCoordinatorParameters) {
-        self.parameters = parameters
-        
+    init() {
         viewModel = IdentityConfirmedScreenViewModel()
     }
     
@@ -43,7 +39,7 @@ final class IdentityConfirmedScreenCoordinator: CoordinatorProtocol {
         }
         .store(in: &cancellables)
     }
-        
+    
     func toPresentable() -> AnyView {
         AnyView(IdentityConfirmedScreen(context: viewModel.context))
     }

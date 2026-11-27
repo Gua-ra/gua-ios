@@ -1,18 +1,20 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
+import Compound
 import Foundation
 import SwiftUI
 
 struct TimelineSenderAvatarView: View {
     @Environment(\.timelineContext) private var context
-
+    
     let timelineItem: EventBasedTimelineItemProtocol
-        
+    
     var body: some View {
         LoadableAvatarImage(url: timelineItem.sender.avatarURL,
                             name: timelineItem.sender.displayName,
@@ -20,7 +22,9 @@ struct TimelineSenderAvatarView: View {
                             avatarSize: .user(on: .timeline),
                             mediaProvider: context?.mediaProvider)
             .overlay {
-                Circle().stroke(Color.compound.bgCanvasDefault, lineWidth: 3)
+                Circle()
+                    .inset(by: -1)
+                    .stroke(.compound.bgCanvasDefault, lineWidth: 2)
             }
     }
 }

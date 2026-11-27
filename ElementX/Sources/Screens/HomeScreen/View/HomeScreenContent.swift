@@ -1,7 +1,8 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -10,10 +11,10 @@ import SentrySwiftUI
 import SwiftUI
 
 struct HomeScreenContent: View {
-    @Environment(\.verticalSizeClass) private var verticalSizeClass
-    
     @ObservedObject var context: HomeScreenViewModel.Context
     let scrollViewAdapter: ScrollViewAdapter
+    
+    @State private var topSectionHeight: CGFloat = 0
     
     var body: some View {
         roomList
@@ -24,7 +25,7 @@ struct HomeScreenContent: View {
         GeometryReader { geometry in
             ScrollView {
                 switch context.viewState.roomListMode {
-                case .skeletons:
+                case .awaitingCachedRooms, .skeletons:
                     VStack(spacing: 0) {
                         // GUA FORK: a live account recovery is not held back until the rooms have loaded.
                         if let recovery = context.viewState.accountRecoveryBanner {
@@ -39,6 +40,8 @@ struct HomeScreenContent: View {
                             }
                         }
                         .disabled(true)
+                        // Laid out but hidden while awaiting so the rooms replace it without a growing animation.
+                        .opacity(context.viewState.roomListMode == .awaitingCachedRooms ? 0 : 1)
                         .accessibilityRepresentation {
                             Text(L10n.commonLoading)
                         }
@@ -53,17 +56,20 @@ struct HomeScreenContent: View {
                 case .rooms:
                     LazyVStack(spacing: 0) {
                         Section {
-                            if !context.viewState.shouldShowEmptyFilterState {
+                            if context.viewState.shouldShowEmptyFilterState {
+                                RoomListFiltersEmptyStateView(state: context.filtersState)
+                                    .frame(maxWidth: .infinity, minHeight: max(0, geometry.size.height - topSectionHeight))
+                            } else {
                                 HomeScreenRoomList(context: context)
+                                    .accessibilityAddTraits(.updatesFrequently)
                             }
                         } header: {
                             topSection
                         }
                     }
-                    .isSearching($context.isSearchFieldFocused)
-                    .searchable(text: $context.searchQuery, placement: .navigationBarDrawer(displayMode: .always))
-                    .compoundSearchField()
-                    .disableAutocorrection(true)
+                    .roomListSearchable(isEnabled: context.viewState.isRoomListSearchEnabled,
+                                        isSearchFieldFocused: $context.isSearchFieldFocused,
+                                        searchQuery: $context.searchQuery)
                 }
             }
             .introspect(.scrollView, on: .supportedVersions) { scrollView in
@@ -71,7 +77,7 @@ struct HomeScreenContent: View {
                 scrollViewAdapter.scrollView = scrollView
             }
             .onReceive(scrollViewAdapter.didScroll) { _ in
-                updateVisibleRange()
+                sendVisibleRange()
             }
             .onReceive(scrollViewAdapter.isScrolling) { _ in
                 updateVisibleRange()
@@ -105,21 +111,8 @@ struct HomeScreenContent: View {
                     scrollView.setContentOffset(oldOffset, animated: false)
                 }
             }
-            .background {
-                Button("") {
-                    context.send(viewAction: .globalSearch)
-                }
-                .keyboardShortcut(KeyEquivalent("k"), modifiers: [.command])
-            }
-            .overlay {
-                if context.viewState.shouldShowEmptyFilterState {
-                    RoomListFiltersEmptyStateView(state: context.filtersState)
-                        .background(.compound.bgCanvasDefault)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-            }
             .scrollDismissesKeyboard(.immediately)
-            .scrollDisabled(context.viewState.roomListMode == .skeletons)
+            .scrollDisabled(context.viewState.roomListMode == .skeletons || context.viewState.roomListMode == .awaitingCachedRooms)
             .scrollBounceBehavior(context.viewState.roomListMode == .empty ? .basedOnSize : .automatic)
             .animation(.elementDefault, value: context.viewState.roomListMode)
             .animation(.none, value: context.viewState.visibleRooms)
@@ -129,46 +122,59 @@ struct HomeScreenContent: View {
     @ViewBuilder
     private var topSection: some View {
         // An empty VStack causes glitches within the room list
-        if context.viewState.shouldShowFilters || context.viewState.securityBannerMode.isShown || context.viewState.pinSetupReminderVisible || context.viewState.accountRecoveryBanner != nil {
+        if context.viewState.shouldShowFilters || context.viewState.shouldShowBanner || context.viewState.pinSetupReminderVisible || context.viewState.accountRecoveryBanner != nil {
             VStack(spacing: 0) {
                 if context.viewState.shouldShowFilters {
                     RoomListFiltersView(state: $context.filtersState)
                 }
-
+                
                 // GUA FORK: a live account recovery comes first. It cannot be dismissed.
                 if let recovery = context.viewState.accountRecoveryBanner {
                     HomeScreenAccountRecoveryBanner(recovery: recovery, context: context)
                 }
-
+                
                 if case let .show(state) = context.viewState.securityBannerMode {
                     HomeScreenRecoveryKeyConfirmationBanner(state: state, context: context, isWorking: context.viewState.isFinishingEncryptionSetup)
+                } else if context.viewState.shouldShowNewSoundBanner {
+                    HomeScreenNewSoundBanner { context.send(viewAction: .dismissNewSoundBanner) }
                 }
-
+                
                 // GUA FORK: Two-step verification PIN setup reminder.
                 if context.viewState.pinSetupReminderVisible {
                     HomeScreenPinSetupReminderBanner(context: context)
                 }
             }
             .background(Color.compound.bgCanvasDefault)
+            .readHeight($topSectionHeight)
         }
     }
     
     /// Often times the scroll view's content size isn't correct yet when this method is called e.g. when cancelling a search
     /// Dispatch it with a delay to allow the UI to update and the computations to be correct
     /// Once we move to iOS 17 we should remove all of this and use scroll anchors instead
+    /// Update: We're on iOS 26 now and the scroll achors still don't work properly.
     private func updateVisibleRange() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { delayedUpdateVisibleRange() }
     }
     
     private func delayedUpdateVisibleRange() {
+        guard scrollViewAdapter.isScrolling.value == false else {
+            // Scrolling reports live through didScroll
+            return
+        }
+        sendVisibleRange()
+    }
+    
+    private func sendVisibleRange() {
         guard let scrollView = scrollViewAdapter.scrollView,
-              scrollViewAdapter.isScrolling.value == false, // Ignore while scrolling
               context.searchQuery.isEmpty == true, // Ignore while filtering
-              context.viewState.visibleRooms.count > 0 else {
+              !context.viewState.visibleRooms.isEmpty else {
             return
         }
         
         guard scrollView.contentSize.height > scrollView.bounds.height else {
+            // This list never scrolls, publish the range manually.
+            context.send(viewAction: .updateVisibleItemRange(0..<context.viewState.visibleRooms.count))
             return
         }
         
@@ -180,5 +186,19 @@ struct HomeScreenContent: View {
         
         // This will be deduped and throttled on the view model layer
         context.send(viewAction: .updateVisibleItemRange(firstIndex..<lastIndex))
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func roomListSearchable(isEnabled: Bool, isSearchFieldFocused: Binding<Bool>, searchQuery: Binding<String>) -> some View {
+        if isEnabled {
+            isSearching(isSearchFieldFocused)
+                .searchable(text: searchQuery, placement: .navigationBarDrawer(displayMode: .always))
+                .compoundSearchField()
+                .disableAutocorrection(true)
+        } else {
+            self
+        }
     }
 }

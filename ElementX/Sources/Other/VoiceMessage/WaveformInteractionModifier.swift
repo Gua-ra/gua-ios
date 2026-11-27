@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -18,11 +19,11 @@ private struct WaveformInteractionModifier: ViewModifier {
     let progress: Double
     let showCursor: Bool
     let onSeek: (Double) -> Void
-
+    
     @ScaledMetric private var cursorVisibleWidth = 2.0
     @ScaledMetric private var cursorVisibleHeight = 24.0
     private let cursorInteractiveSize: CGFloat = 50
-
+    
     func body(content: Content) -> some View {
         GeometryReader { geometry in
             content
@@ -40,6 +41,7 @@ private struct WaveformInteractionModifier: ViewModifier {
                                 onSeek(max(0, min(progress, 1.0)))
                             })
                         .offset(x: -cursorInteractiveSize / 2, y: 0)
+                        .allowsHitTesting(showCursor)
                 }
                 .gesture(SpatialTapGesture()
                     .onEnded { tapGesture in
@@ -50,6 +52,6 @@ private struct WaveformInteractionModifier: ViewModifier {
         .coordinateSpace(name: Self.namespaceName)
         .animation(nil, value: progress)
     }
-
+    
     private static let namespaceName = "voice-message-waveform"
 }

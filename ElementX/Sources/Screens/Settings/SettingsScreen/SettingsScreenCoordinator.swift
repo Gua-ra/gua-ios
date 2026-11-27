@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -10,23 +11,27 @@ import SwiftUI
 
 struct SettingsScreenCoordinatorParameters {
     let userSession: UserSessionProtocol
-    let appSettings: AppSettings
     let spacesSetting: SpacesSetting
-    let userIndicatorController: UserIndicatorControllerProtocol
     let isBugReportServiceEnabled: Bool
+    let isInSecondaryWindow: Bool
+    let userIndicatorController: UserIndicatorControllerProtocol
 }
 
 enum SettingsScreenCoordinatorAction {
     case dismiss
     
     case userDetails
+    case userStatusEmojiPicker(EmojiPickerScreenContinuation)
     
     case findFriends
+    case addAccount
     
     case manageAccount(url: URL)
     case twoStepVerification
     case changePhoneNumber
+    case linkNewDevice
     case notifications
+    case secureBackup
     case moderationAndSafety
     case bugReport
     
@@ -35,7 +40,9 @@ enum SettingsScreenCoordinatorAction {
     
     case mediaUploadQuality
     case appLock
+    case locationSharing
     case analytics
+    case labs
     case about
     
     case developerOptions
@@ -55,10 +62,10 @@ final class SettingsScreenCoordinator: CoordinatorProtocol {
     
     init(parameters: SettingsScreenCoordinatorParameters) {
         viewModel = SettingsScreenViewModel(userSession: parameters.userSession,
-                                            appSettings: parameters.appSettings,
                                             spacesSetting: parameters.spacesSetting,
-                                            userIndicatorController: parameters.userIndicatorController,
-                                            isBugReportServiceEnabled: parameters.isBugReportServiceEnabled)
+                                            isBugReportServiceEnabled: parameters.isBugReportServiceEnabled,
+                                            isInSecondaryWindow: parameters.isInSecondaryWindow,
+                                            userIndicatorController: parameters.userIndicatorController)
         
         viewModel.actions
             .sink { [weak self] action in
@@ -70,9 +77,13 @@ final class SettingsScreenCoordinator: CoordinatorProtocol {
                     
                 case .userDetails:
                     actionsSubject.send(.userDetails)
+                case let .userStatusEmojiPicker(continuation):
+                    actionsSubject.send(.userStatusEmojiPicker(continuation))
                     
                 case .findFriends:
                     actionsSubject.send(.findFriends)
+                case .addAccount:
+                    actionsSubject.send(.addAccount)
                     
                 case let .manageAccount(url):
                     actionsSubject.send(.manageAccount(url: url))
@@ -80,8 +91,12 @@ final class SettingsScreenCoordinator: CoordinatorProtocol {
                     actionsSubject.send(.twoStepVerification)
                 case .changePhoneNumber:
                     actionsSubject.send(.changePhoneNumber)
+                case .linkNewDevice:
+                    actionsSubject.send(.linkNewDevice)
                 case .notifications:
                     actionsSubject.send(.notifications)
+                case .secureBackup:
+                    actionsSubject.send(.secureBackup)
                 case .moderationAndSafety:
                     actionsSubject.send(.moderationAndSafety)
                 case .reportBug:
@@ -96,8 +111,12 @@ final class SettingsScreenCoordinator: CoordinatorProtocol {
                     actionsSubject.send(.mediaUploadQuality)
                 case .appLock:
                     actionsSubject.send(.appLock)
+                case .locationSharing:
+                    actionsSubject.send(.locationSharing)
                 case .analytics:
                     actionsSubject.send(.analytics)
+                case .labs:
+                    actionsSubject.send(.labs)
                 case .about:
                     actionsSubject.send(.about)
                     

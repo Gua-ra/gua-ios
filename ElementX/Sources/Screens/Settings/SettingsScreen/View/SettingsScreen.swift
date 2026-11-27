@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -18,6 +19,10 @@ struct SettingsScreen: View {
             
             findFriendsSection
             
+            if context.viewState.showAddAccountButton {
+                addAccountSection
+            }
+            
             accountSettingsSection
             
             signOutSection
@@ -27,7 +32,15 @@ struct SettingsScreen: View {
         .compoundList()
         .navigationTitle(L10n.commonSettings)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarVisibility(context.viewState.navigationBarVisibility, for: .navigationBar)
         .toolbar { toolbar }
+        .sheet(isPresented: $context.isPresentingStatusPicker) {
+            SettingsScreenUserStatusPickerView { action in
+                context.send(viewAction: .userStatus(action))
+            }
+            .presentationDetents([.medium])
+            .presentationBackground(.compound.bgCanvasDefault)
+        }
     }
     
     private var userSection: some View {
@@ -37,17 +50,18 @@ struct SettingsScreen: View {
                     context.send(viewAction: .userDetails)
                 } label: {
                     HStack(spacing: 12) {
-                        LoadableAvatarImage(url: context.viewState.userAvatarURL,
-                                            name: context.viewState.userDisplayName,
-                                            contentID: context.viewState.userID,
+                        LoadableAvatarImage(url: context.viewState.userProfile.avatarURL,
+                                            name: context.viewState.userProfile.displayName,
+                                            contentID: context.viewState.userProfile.id,
                                             avatarSize: .user(on: .settings),
                                             mediaProvider: context.mediaProvider)
                             .accessibilityHidden(true)
                         
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(context.viewState.userDisplayName ?? "")
+                            Text(context.viewState.userProfile.displayName ?? "")
                                 .font(.compound.headingMD)
                                 .foregroundColor(.compound.textPrimary)
+                            
                             Text(context.viewState.userLocalpart)
                                 .font(.compound.bodySM)
                                 .foregroundColor(.compound.textSecondary)
@@ -61,6 +75,12 @@ struct SettingsScreen: View {
                     .padding(.vertical, 8)
                 }
             })
+            
+            if context.viewState.showUserStatusInput {
+                SettingsScreenUserStatusRow(mode: context.viewState.userStatusRowMode) { action in
+                    context.send(viewAction: .userStatus(action))
+                }
+            }
         }
     }
     
@@ -71,6 +91,17 @@ struct SettingsScreen: View {
                     kind: .navigationLink {
                         context.send(viewAction: .findFriends)
                     })
+        }
+    }
+    
+    private var addAccountSection: some View {
+        Section {
+            ListRow(label: .default(title: L10n.screenSettingsAddAccount,
+                                    icon: \.plus),
+                    kind: .navigationLink {
+                        context.send(viewAction: .addAccount)
+                    })
+                    .accessibilityIdentifier(A11yIdentifiers.settingsScreen.addAccount)
         }
     }
     
@@ -96,6 +127,14 @@ struct SettingsScreen: View {
                     kind: .navigationLink {
                         context.send(viewAction: .changePhoneNumber)
                     })
+            
+            if context.viewState.showLinkNewDeviceButton {
+                ListRow(label: .default(title: L10n.commonLinkNewDevice,
+                                        icon: \.devices),
+                        kind: .navigationLink {
+                            context.send(viewAction: .linkNewDevice)
+                        })
+            }
             
             ListRow(label: .default(title: L10n.screenNotificationSettingsTitle,
                                     icon: \.notifications),
@@ -126,7 +165,7 @@ struct SettingsScreen: View {
     
     private var signOutSection: some View {
         Section {
-            ListRow(label: .action(title: L10n.screenSignoutPreferenceItem,
+            ListRow(label: .action(title: UntranslatedL10n.guaSettingsSignOut,
                                    icon: \.close,
                                    role: .destructive),
                     kind: .button {
@@ -174,6 +213,14 @@ struct SettingsScreen: View {
                     })
                     .accessibilityIdentifier(A11yIdentifiers.settingsScreen.screenLock)
             
+            if context.viewState.showLocationSharingSettings {
+                ListRow(label: .default(title: L10n.commonLocationSharing,
+                                        icon: \.locationPin),
+                        kind: .navigationLink {
+                            context.send(viewAction: .locationSharing)
+                        })
+            }
+            
             if context.viewState.showAnalyticsSettings {
                 ListRow(label: .default(title: L10n.commonAnalytics,
                                         icon: \.chart),
@@ -181,6 +228,14 @@ struct SettingsScreen: View {
                             context.send(viewAction: .analytics)
                         })
                         .accessibilityIdentifier(A11yIdentifiers.settingsScreen.analytics)
+            }
+            
+            if context.viewState.showLabsSettings {
+                ListRow(label: .default(title: L10n.screenAdvancedSettingsLabs,
+                                        icon: \.labs),
+                        kind: .navigationLink {
+                            context.send(viewAction: .labs)
+                        })
             }
             
             ListRow(label: .default(title: L10n.commonAbout,
@@ -224,6 +279,7 @@ struct SettingsScreen: View {
     }
     
     private var versionText: Text {
+        // Let's not snapshot a changing version string.
         let shortVersion = ProcessInfo.isRunningTests ? "0.0.0" : InfoPlistReader.main.bundleShortVersionString
         let version = ProcessInfo.isRunningTests ? "1" : InfoPlistReader.main.bundleVersion
         return Text(L10n.settingsVersionNumber(shortVersion, version))
@@ -241,60 +297,66 @@ private extension AppAppearance {
     var name: String {
         switch self {
         case .system:
-            return L10n.commonSystem
+            L10n.themeSystem
         case .light:
-            return L10n.commonLight
+            L10n.themeLight
         case .dark:
-            return L10n.commonDark
+            L10n.themeDark
         }
     }
 }
 
 // MARK: - Previews
 
+@available(iOS 26.0, *)
 struct SettingsScreen_Previews: PreviewProvider, TestablePreview {
     static let viewModel = makeViewModel()
     static let bugReportDisabledViewModel = makeViewModel(isBugReportServiceEnabled: false)
-    static let guaMarketingViewModel = makeViewModel(userID: "@anacosta:gua", displayName: "Ana Costa")
-
+    static let guaMarketingViewModel = makeViewModel(userID: "@anacosta:gua", displayName: "Ana Costa", enablesFeatureFlags: false)
+    
     static var previews: some View {
-        NavigationStack {
+        ElementNavigationStack {
             SettingsScreen(context: guaMarketingViewModel.context)
         }
         .environment(\.colorScheme, .dark)
         .preferredColorScheme(.dark)
-        .snapshotPreferences(expect: guaMarketingViewModel.context.observe(\.viewState.accountProfileURL).map { $0 != nil }.eraseToStream())
+        .snapshotPreferences(expect: guaMarketingViewModel.context.observe(\.viewState.accountProfileURL).map { $0 != nil })
         .previewDisplayName("GuaMarketingAjustes")
-
-        NavigationStack {
+        
+        ElementNavigationStack {
             SettingsScreen(context: viewModel.context)
         }
-        .snapshotPreferences(expect: viewModel.context.observe(\.viewState.accountProfileURL).map { $0 != nil }.eraseToStream())
-        .frame(height: 1400)
+        .snapshotPreferences(expect: viewModel.context.observe(\.viewState.accountProfileURL).map { $0 != nil })
+        .frame(height: 1500)
         .previewLayout(.sizeThatFits)
         .previewDisplayName("Default")
-
-        NavigationStack {
+        
+        ElementNavigationStack {
             SettingsScreen(context: bugReportDisabledViewModel.context)
         }
-        .snapshotPreferences(expect: bugReportDisabledViewModel.context.observe(\.viewState.accountProfileURL).map { $0 != nil }.eraseToStream())
-        .frame(height: 1350)
+        .snapshotPreferences(expect: bugReportDisabledViewModel.context.observe(\.viewState.accountProfileURL).map { $0 != nil })
+        .frame(height: 1450)
         .previewLayout(.sizeThatFits)
         .previewDisplayName("Bug report disabled")
     }
-
+    
     static func makeViewModel(isBugReportServiceEnabled: Bool = true,
-                              userID: String = "@userid:example.com",
-                              displayName: String? = nil) -> SettingsScreenViewModel {
-        let clientProxy = ClientProxyMock(.init(userID: userID, deviceID: "AAAAAAAAAAA"))
-        if let displayName {
-            clientProxy.userDisplayNamePublisher = .init(displayName)
-        }
-        let userSession = UserSessionMock(.init(clientProxy: clientProxy))
+                              userID: String = "@alice:example.com",
+                              displayName: String = "Alice Liddell",
+                              enablesFeatureFlags: Bool = true) -> SettingsScreenViewModel {
+        let userSettings = UserSettings.mock(userID: userID)
+        userSettings.app.multiAccountEnabled = enablesFeatureFlags
+        userSettings.app.linkNewDeviceEnabled = enablesFeatureFlags
+        let clientProxy = ClientProxyMock(.init(userID: userID,
+                                                deviceID: "AAAAAAAAAAA",
+                                                displayName: displayName,
+                                                status: .mockFocussing))
+        let userSession = UserSessionMock(.init(clientProxy: clientProxy,
+                                                userSettings: userSettings))
         return SettingsScreenViewModel(userSession: userSession,
-                                       appSettings: ServiceLocator.shared.settings,
-                                       spacesSetting: SpacesSetting(clientProxy: clientProxy, appSettings: ServiceLocator.shared.settings),
-                                       userIndicatorController: UserIndicatorControllerMock(),
-                                       isBugReportServiceEnabled: isBugReportServiceEnabled)
+                                       spacesSetting: SpacesSetting(clientProxy: clientProxy, appSettings: userSettings.app),
+                                       isBugReportServiceEnabled: isBugReportServiceEnabled,
+                                       isInSecondaryWindow: false,
+                                       userIndicatorController: UserIndicatorControllerMock())
     }
 }

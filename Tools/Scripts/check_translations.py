@@ -50,7 +50,8 @@ TEXT_APIS = (r'(?:\bText|\bLabel|\bButton|\bTextField|\bSecureField|\bToggle|\bS
              r'|\.alert|\.confirmationDialog|\bprompt:|\b(?:title|subtitle|message|placeholder):)')
 LITERAL_CALL = re.compile(TEXT_APIS + r'\(?\s*"((?:[^"\\]|\\.)*)"')
 IGNORE_MARKER = "// l10n-ignore"
-LITERAL_EXCLUDED_DIRS = ("ElementX/Sources/Generated/", "ElementX/Sources/UITests/", "ElementX/Sources/Mocks/")
+LITERAL_EXCLUDED_DIRS = ("ElementX/Sources/Generated/", "ElementX/Sources/UITests/", "ElementX/Sources/Mocks/",
+                         "ElementX/Sources/Screens/Settings/DeveloperOptionsScreen/")
 # Previews sit at the end of a screen's file; literals from there on are sample data, not copy.
 PREVIEW_START = re.compile(r"PreviewProvider|#Preview\b")
 

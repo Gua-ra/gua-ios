@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -9,10 +10,10 @@ import Combine
 import SwiftUI
 
 enum EncryptionResetScreenCoordinatorAction {
-    case requestOIDCAuthorisation(URL, completionPublisher: PassthroughSubject<OIDCAccountSettingsPresenter.Outcome, Never>)
+    case requestOAuthAuthorisation(URL, completionPublisher: PassthroughSubject<OAuthAccountSettingsPresenter.Outcome, Never>)
     case requestPassword(passwordPublisher: PassthroughSubject<String, Never>)
     /// GUA FORK: the approval landed, so close the web sheet rather than leaving the user to.
-    case dismissOIDCPresentation
+    case dismissOAuthPresentation
     case resetFinished
     case recoverFromOtherDevice
     case cancel
@@ -24,18 +25,16 @@ struct EncryptionResetScreenCoordinatorParameters {
 }
 
 final class EncryptionResetScreenCoordinator: CoordinatorProtocol {
-    private let parameters: EncryptionResetScreenCoordinatorParameters
     private let viewModel: EncryptionResetScreenViewModelProtocol
     
     private var cancellables = Set<AnyCancellable>()
- 
+    
     private let actionsSubject: PassthroughSubject<EncryptionResetScreenCoordinatorAction, Never> = .init()
     var actionsPublisher: AnyPublisher<EncryptionResetScreenCoordinatorAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
     
     init(parameters: EncryptionResetScreenCoordinatorParameters) {
-        self.parameters = parameters
         viewModel = EncryptionResetScreenViewModel(clientProxy: parameters.clientProxy,
                                                    userIndicatorController: parameters.userIndicatorController)
     }
@@ -46,10 +45,10 @@ final class EncryptionResetScreenCoordinator: CoordinatorProtocol {
             
             guard let self else { return }
             switch action {
-            case .requestOIDCAuthorisation(let url, let completionPublisher):
-                self.actionsSubject.send(.requestOIDCAuthorisation(url, completionPublisher: completionPublisher))
-            case .dismissOIDCPresentation:
-                self.actionsSubject.send(.dismissOIDCPresentation)
+            case .requestOAuthAuthorisation(let url, let completionPublisher):
+                self.actionsSubject.send(.requestOAuthAuthorisation(url, completionPublisher: completionPublisher))
+            case .dismissOAuthPresentation:
+                self.actionsSubject.send(.dismissOAuthPresentation)
             case .requestPassword(let passwordPublisher):
                 self.actionsSubject.send(.requestPassword(passwordPublisher: passwordPublisher))
             case .resetFinished:
@@ -66,7 +65,7 @@ final class EncryptionResetScreenCoordinator: CoordinatorProtocol {
     func stop() {
         viewModel.stop()
     }
-        
+    
     func toPresentable() -> AnyView {
         AnyView(EncryptionResetScreen(context: viewModel.context))
     }

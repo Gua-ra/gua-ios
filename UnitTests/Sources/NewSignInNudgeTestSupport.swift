@@ -9,50 +9,61 @@ import Combine
 @testable import ElementX
 import Foundation
 
-final class OwnDevicesHTTPStub: URLProtocol {
-    struct Request {
+final nonisolated class OwnDevicesHTTPStub: URLProtocol {
+    struct Request: Sendable {
         let method: String
         let path: String
         let authorization: String?
         let body: Data
-
+        
         var json: NSDictionary? {
             (try? JSONSerialization.jsonObject(with: body)) as? NSDictionary
         }
     }
-
-    typealias Responder = (Request) -> (status: Int, body: String)
-
+    
+    typealias Responder = @Sendable (Request) -> (status: Int, body: String)
+    
     private static let lock = NSLock()
-    private static var recordedRequests: [Request] = []
-    private static var responder: Responder = { _ in (404, "{}") }
-
+    private nonisolated(unsafe) static var recordedRequests: [Request] = []
+    private nonisolated(unsafe) static var responder: Responder = { _ in (404, "{}") }
+    private nonisolated(unsafe) static var servedFixture: OwnDevicesFixture?
+    
+    static var fixture: OwnDevicesFixture? {
+        get { lock.withLock { servedFixture } }
+        set { lock.withLock { servedFixture = newValue } }
+    }
+    
     static var requests: [Request] {
         lock.withLock { recordedRequests }
     }
-
+    
     static var nudges: [Request] {
         requests.filter { $0.method == "PUT" && $0.path.hasPrefix("/_matrix/client/v3/sendToDevice/") }
     }
-
+    
     static func respond(_ newResponder: @escaping Responder) {
         lock.withLock { responder = newResponder }
     }
-
+    
     static func reset() {
         lock.withLock {
             recordedRequests = []
             responder = { _ in (404, "{}") }
+            servedFixture = nil
         }
     }
-
+    
     static func makeSession() -> URLSession {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [OwnDevicesHTTPStub.self]
         return URLSession(configuration: configuration)
     }
-
-    static func serve(devices: @escaping () -> String, keys: @escaping () -> String) {
+    
+    static func serveFixture() {
+        serve(devices: { fixture?.devicesJSON ?? "{}" }, keys: { fixture?.keysJSON ?? "{}" })
+    }
+    
+    static func serve(devices: @escaping @Sendable () -> String, keys: @escaping @Sendable () -> String) {
         respond { request in
             switch (request.method, request.path) {
             case ("GET", "/_matrix/client/v3/devices"):
@@ -66,26 +77,27 @@ final class OwnDevicesHTTPStub: URLProtocol {
             }
         }
     }
-
+    
     override static func canInit(with request: URLRequest) -> Bool {
         true
     }
-
+    
     override static func canonicalRequest(for request: URLRequest) -> URLRequest {
         request
     }
-
+    
     override func startLoading() {
         guard let url = request.url else { return }
         let recorded = Request(method: request.httpMethod ?? "GET",
                                path: url.path(percentEncoded: false),
                                authorization: request.value(forHTTPHeaderField: "Authorization"),
                                body: request.httpBody ?? Self.readBody(of: request))
-        let answer = Self.lock.withLock {
+        let responder = Self.lock.withLock {
             Self.recordedRequests.append(recorded)
-            return Self.responder(recorded)
+            return Self.responder
         }
-
+        let answer = responder(recorded)
+        
         guard let response = HTTPURLResponse(url: url,
                                              statusCode: answer.status,
                                              httpVersion: nil,
@@ -94,9 +106,9 @@ final class OwnDevicesHTTPStub: URLProtocol {
         client?.urlProtocol(self, didLoad: Data(answer.body.utf8))
         client?.urlProtocolDidFinishLoading(self)
     }
-
+    
     override func stopLoading() { }
-
+    
     private static func readBody(of request: URLRequest) -> Data {
         guard let stream = request.httpBodyStream else { return Data() }
         stream.open()
@@ -112,19 +124,19 @@ final class OwnDevicesHTTPStub: URLProtocol {
     }
 }
 
-struct OwnDevicesFixture {
-    struct Device {
+nonisolated struct OwnDevicesFixture: Sendable {
+    struct Device: Sendable {
         var id: String
         var lastSeen: Date?
         var signedBySelfSigningKey = false
         var dehydrated: Bool?
         var listedInDevices = true
     }
-
+    
     let userID: String
     var selfSigningPublicKey: String? = "SSKPUBLICKEY"
     var devices: [Device]
-
+    
     var devicesJSON: String {
         let entries: [[String: Any]] = devices.filter(\.listedInDevices).map { device in
             var entry: [String: Any] = ["device_id": device.id, "display_name": "Device \(device.id)"]
@@ -136,7 +148,7 @@ struct OwnDevicesFixture {
         }
         return Self.json(["devices": entries])
     }
-
+    
     var keysJSON: String {
         var deviceKeys: [String: Any] = [:]
         for device in devices {
@@ -154,7 +166,7 @@ struct OwnDevicesFixture {
             }
             deviceKeys[device.id] = keys
         }
-
+        
         var body: [String: Any] = ["failures": [:],
                                    "device_keys": [userID: deviceKeys],
                                    "master_keys": [userID: ["user_id": userID, "usage": ["master"], "keys": ["ed25519:MASTER": "MASTER"]]]]
@@ -166,7 +178,7 @@ struct OwnDevicesFixture {
         }
         return Self.json(body)
     }
-
+    
     private static func json(_ object: Any) -> String {
         guard let data = try? JSONSerialization.data(withJSONObject: object) else { return "{}" }
         return String(bytes: data, encoding: .utf8) ?? "{}"
@@ -181,49 +193,55 @@ final class ManualNewSignInNudgeScheduler: NewSignInNudgeScheduling {
         let work: @MainActor () -> Void
         var isCancelled = false
         var hasFired = false
-
+        
         var isLive: Bool {
             !isCancelled && !(hasFired && !repeats)
         }
-
+        
         init(delay: Duration, repeats: Bool, work: @escaping @MainActor () -> Void) {
             self.delay = delay
             self.repeats = repeats
             self.work = work
         }
     }
-
+    
     private(set) var entries: [Entry] = []
-
+    
     var liveEntries: [Entry] {
         entries.filter(\.isLive)
     }
-
+    
     func after(_ delay: Duration, _ work: @escaping @MainActor () -> Void) -> AnyCancellable {
         schedule(Entry(delay: delay, repeats: false, work: work))
     }
-
+    
     func every(_ interval: Duration, _ work: @escaping @MainActor () -> Void) -> AnyCancellable {
         schedule(Entry(delay: interval, repeats: true, work: work))
     }
-
+    
     func fire(_ delay: Duration) {
         for entry in liveEntries where entry.delay == delay {
             entry.hasFired = true
             entry.work()
         }
     }
-
+    
     private func schedule(_ entry: Entry) -> AnyCancellable {
         entries.append(entry)
         return AnyCancellable { entry.isCancelled = true }
     }
 }
 
-final class NewSignInNudgeTestClock {
-    var now: Date
-
+final nonisolated class NewSignInNudgeTestClock: @unchecked Sendable {
+    private let lock = NSLock()
+    private var current: Date
+    
+    var now: Date {
+        get { lock.withLock { current } }
+        set { lock.withLock { current = newValue } }
+    }
+    
     init(now: Date) {
-        self.now = now
+        current = now
     }
 }

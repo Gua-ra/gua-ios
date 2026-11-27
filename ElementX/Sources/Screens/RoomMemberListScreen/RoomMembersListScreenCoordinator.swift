@@ -1,5 +1,6 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
@@ -12,7 +13,7 @@ struct RoomMembersListScreenCoordinatorParameters {
     let userSession: UserSessionProtocol
     let roomProxy: JoinedRoomProxyProtocol
     let userIndicatorController: UserIndicatorControllerProtocol
-    let analytics: AnalyticsService
+    let analytics: AnalyticsServiceProtocol
 }
 
 enum RoomMembersListScreenCoordinatorAction {
@@ -55,7 +56,7 @@ final class RoomMembersListScreenCoordinator: CoordinatorProtocol {
     func stop() {
         viewModel.stop()
     }
-        
+    
     func toPresentable() -> AnyView {
         AnyView(RoomMembersListScreen(context: viewModel.context))
     }

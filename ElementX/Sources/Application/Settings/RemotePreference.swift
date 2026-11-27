@@ -1,7 +1,8 @@
 //
+// Copyright 2025 Element Creations Ltd.
 // Copyright 2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -12,13 +13,13 @@ import Combine
 ///
 /// Unlike ``UserPreference``, this type of setting isn't settable by the user, nor is the
 /// remote value persisted between app launches.
-class RemotePreference<T: Equatable> {
+nonisolated class RemotePreference<T: Equatable> {
     private let defaultValue: T
     private let subject: CurrentValueSubject<T, Never>
     var publisher: CurrentValuePublisher<T, Never> {
         subject.asCurrentValuePublisher()
     }
-
+    
     var isRemotelyConfigured: Bool {
         subject.value != defaultValue
     }

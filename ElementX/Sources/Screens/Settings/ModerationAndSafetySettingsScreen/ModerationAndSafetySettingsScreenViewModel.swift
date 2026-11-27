@@ -23,14 +23,13 @@ class ModerationAndSafetySettingsScreenViewModel: ModerationAndSafetySettingsScr
     }
     
     init(userSession: UserSessionProtocol,
-         appSettings: AppSettings,
          userIndicatorController: UserIndicatorControllerProtocol) {
         clientProxy = userSession.clientProxy
         self.userIndicatorController = userIndicatorController
         
         let state = ModerationAndSafetySettingsScreenViewState(hideInviteAvatars: clientProxy.hideInviteAvatarsPublisher.value,
                                                                timelineMediaVisibility: clientProxy.timelineMediaVisibilityPublisher.value,
-                                                               bindings: .init(appSettings: appSettings))
+                                                               bindings: .init(userSettings: userSession.userSettings))
         super.init(initialViewState: state)
         
         clientProxy.hideInviteAvatarsPublisher
@@ -72,6 +71,7 @@ class ModerationAndSafetySettingsScreenViewModel: ModerationAndSafetySettingsScr
         let previousState = state.timelineMediaVisibility
         state.isWaitingTimelineMediaVisibility = true
         state.timelineMediaVisibility = value
+        // If the other value is updating wait also for it to finish
         await hideInviteAvatarsTask?.value
         
         switch await clientProxy.setTimelineMediaVisibility(value) {
@@ -92,6 +92,7 @@ class ModerationAndSafetySettingsScreenViewModel: ModerationAndSafetySettingsScr
         let previousState = state.hideInviteAvatars
         state.isWaitingHideInviteAvatars = true
         state.hideInviteAvatars = value
+        // If the other value is updating wait also for it to finish
         await timelineMediaVisibilityTask?.value
         
         switch await clientProxy.setHideInviteAvatars(value) {

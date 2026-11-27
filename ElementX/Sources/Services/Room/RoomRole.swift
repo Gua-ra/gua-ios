@@ -1,13 +1,14 @@
 //
+// Copyright 2025 Element Creations Ltd.
 // Copyright 2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import MatrixRustSDK
 
-enum RoomRole: Comparable {
+nonisolated enum RoomRole: Comparable {
     /// Default role PL 0...49
     case user
     /// Able to perform room moderation actions PL 50...99
@@ -20,7 +21,7 @@ enum RoomRole: Comparable {
     case creator
 }
 
-extension RoomRole {
+nonisolated extension RoomRole {
     init(powerLevel: RoomPowerLevel) {
         do {
             let role = try suggestedRoleForPowerLevel(powerLevel: powerLevel.rustPowerLevel)
@@ -48,7 +49,7 @@ extension RoomRole {
             self = .user
         }
     }
-        
+    
     var isAdminOrHigher: Bool {
         switch self {
         case .administrator, .creator, .owner:
@@ -68,7 +69,7 @@ extension RoomRole {
     }
 }
 
-extension RoomRole {
+nonisolated extension RoomRole {
     init(powerLevelValue: Int64) {
         // Also this is not great, and should be handled by a `suggestedRoleForPowerLevelValue` function from the SDK
         guard powerLevelValue < 150 else {
@@ -109,21 +110,25 @@ extension RoomRole {
     /// To be used when setting the power level of a user to get the suggested equivalent power level value for that specific role
     /// NOTE: Do not use for comparison, use the true power level instead.
     var powerLevelValue: Int64 {
+        switch powerLevel {
+        case .infinite:
+            fatalError("Impossible")
+        case .value(let value):
+            return Int64(value)
+        }
+    }
+    
+    var powerLevel: RoomPowerLevel {
         guard self != .owner else {
             // Would be better if the SDK would return this, maybe a `suggestedPowerLevelValueForRole` function would solve the problem
-            return 150
+            return .value(150)
         }
         
         do {
-            switch try suggestedPowerLevelForRole(role: rustRole) {
-            case .infinite:
-                fatalError("Impossible")
-            case .value(let value):
-                return value
-            }
+            return try RoomPowerLevel(rustPowerLevel: suggestedPowerLevelForRole(role: rustRole))
         } catch {
             MXLog.error("Falied to convert role to power level value: \(error)")
-            return 0
+            return .value(0)
         }
     }
 }

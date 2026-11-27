@@ -1,7 +1,8 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -31,13 +32,19 @@ class EncryptionSettingsUITests: XCTestCase {
         // Toggle key storage off.
         // app.switches[A11yIdentifiers.secureBackupScreen.keyStorage].tap()
         // Broken by https://github.com/element-hq/compound-ios/pull/140
-        app.switches[A11yIdentifiers.secureBackupScreen.keyStorage].switches.firstMatch.tap()
+        let keyStorageToggle = app.switches[A11yIdentifiers.secureBackupScreen.keyStorage].switches.firstMatch
+        keyStorageToggle.tap()
+        
+        // The tap is occasionally lost on CI, retry it once.
+        if !app.buttons[A11yIdentifiers.secureBackupKeyBackupScreen.deleteKeyStorage].waitForExistence(timeout: 5) {
+            keyStorageToggle.tap()
+        }
         
         try await app.assertScreenshot(step: Step.keyBackupScreen)
         
         // Confirm deletion of keys.
         app.buttons[A11yIdentifiers.secureBackupKeyBackupScreen.deleteKeyStorage].tap()
-        app.buttons[A11yIdentifiers.alertInfo.primaryButton].tap()
+        app.buttons[A11yIdentifiers.alertInfo.primaryButton].firstMatch.tap()
         try await app.assertScreenshot(step: Step.secureBackupScreenDisabled)
         
         // Toggle key storage back on and set up recovery.
@@ -52,7 +59,7 @@ class EncryptionSettingsUITests: XCTestCase {
         app.buttons[A11yIdentifiers.secureBackupRecoveryKeyScreen.generateRecoveryKey].tap()
         app.buttons[A11yIdentifiers.secureBackupRecoveryKeyScreen.copyRecoveryKey].tap()
         app.buttons[A11yIdentifiers.secureBackupRecoveryKeyScreen.done].tap()
-        app.buttons[A11yIdentifiers.alertInfo.primaryButton].tap()
+        app.buttons[A11yIdentifiers.alertInfo.primaryButton].firstMatch.tap()
         try await app.assertScreenshot(step: Step.secureBackupScreenSetUp)
         
         // Change the recovery key.
@@ -63,7 +70,7 @@ class EncryptionSettingsUITests: XCTestCase {
         app.buttons[A11yIdentifiers.secureBackupRecoveryKeyScreen.generateRecoveryKey].tap()
         app.buttons[A11yIdentifiers.secureBackupRecoveryKeyScreen.copyRecoveryKey].tap()
         app.buttons[A11yIdentifiers.secureBackupRecoveryKeyScreen.done].tap()
-        app.buttons[A11yIdentifiers.alertInfo.primaryButton].tap()
+        app.buttons[A11yIdentifiers.alertInfo.primaryButton].firstMatch.tap()
         try await app.assertScreenshot(step: Step.secureBackupScreenSetUp)
     }
     

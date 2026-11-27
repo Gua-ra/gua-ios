@@ -30,7 +30,6 @@ targets:
     - package: MatrixRustSDK
     - package: AnalyticsEvents
     - package: DeviceKit
-    - package: DTCoreText
     - package: KeychainAccess
     - package: Kingfisher
     - package: KZFileWatchers
@@ -49,6 +48,8 @@ targets:
       base:
         PRODUCT_NAME: UITests
         PRODUCT_BUNDLE_IDENTIFIER: ${BASE_BUNDLE_IDENTIFIER}.ui.tests
+        SWIFT_VERSION: 6
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
       configs:
       # This is required to remove the $(inherited) flags
       # which would prevent SnapshotTesting to be imported in UI Tests

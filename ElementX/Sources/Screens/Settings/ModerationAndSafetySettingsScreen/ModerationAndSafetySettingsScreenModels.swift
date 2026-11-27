@@ -1,11 +1,12 @@
 //
 // Copyright 2026 Element Creations Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Foundation
+import UIKit
 
 enum ModerationAndSafetySettingsScreenViewModelAction {
     case blockedUsers
@@ -24,15 +25,15 @@ struct ModerationAndSafetySettingsScreenViewState: BindableState {
 }
 
 struct ModerationAndSafetySettingsScreenViewStateBindings {
-    private let appSettings: AppSettings
+    private let userSettings: UserSettings
     
-    init(appSettings: AppSettings) {
-        self.appSettings = appSettings
+    init(userSettings: UserSettings) {
+        self.userSettings = userSettings
     }
     
     var sharePresence: Bool {
-        get { appSettings.sharePresence }
-        set { appSettings.sharePresence = newValue }
+        get { userSettings.account.sharePresence }
+        set { userSettings.account.sharePresence = newValue }
     }
 }
 

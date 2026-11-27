@@ -7,7 +7,7 @@
 
 import Foundation
 
-extension URLComponents {
+nonisolated extension URLComponents {
     /// Why not `queryItems.append(...)`: assigning through `URLComponents.queryItems` re-serializes
     /// the whole query and, in doing so, decodes an already-encoded `%2B` back to a bare `+`. A
     /// bare `+` in a query value is `application/x-www-form-urlencoded` shorthand for a space, so
@@ -17,10 +17,10 @@ extension URLComponents {
     /// raw `percentEncodedQuery` string leaves the existing `%2B` (and every other escape) untouched.
     mutating func appendUILocalesPreservingEncoding(languageCode: String? = Bundle.guaAppLanguage) {
         guard let languageCode, !languageCode.isEmpty else { return }
-
+        
         appendQueryItemPreservingEncoding(name: "ui_locales", value: languageCode)
     }
-
+    
     /// Names the signed-in account to MAS with `org.matrix.msc4198.login_hint=mxid:<userID>`, for the
     /// same reason as above appended to the raw query rather than through `queryItems`.
     ///
@@ -31,7 +31,7 @@ extension URLComponents {
         guard !userID.isEmpty else { return }
         appendQueryItemPreservingEncoding(name: "org.matrix.msc4198.login_hint", value: "mxid:\(userID)")
     }
-
+    
     /// Appends one `name=value` pair to the percent-encoded query, leaving every existing escape as
     /// it is. Both halves are encoded as a query value: never a bare `+`, `&`, `=` that would be
     /// misread.
@@ -39,7 +39,7 @@ extension URLComponents {
         let encodedName = name.addingPercentEncoding(withAllowedCharacters: .guaURLQueryValueAllowed) ?? name
         let encodedValue = value.addingPercentEncoding(withAllowedCharacters: .guaURLQueryValueAllowed) ?? value
         let param = "\(encodedName)=\(encodedValue)"
-
+        
         if let existing = percentEncodedQuery, !existing.isEmpty {
             percentEncodedQuery = existing + "&" + param
         } else {
@@ -48,7 +48,7 @@ extension URLComponents {
     }
 }
 
-private extension CharacterSet {
+private nonisolated extension CharacterSet {
     /// Characters allowed unescaped in a single query-parameter **value** (RFC 3986 `query` minus the
     /// sub-delimiters that carry meaning inside a query string, plus `+` which a form-urlencoded
     /// parser would read as a space).

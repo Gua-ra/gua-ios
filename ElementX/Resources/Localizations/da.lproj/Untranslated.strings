@@ -10,6 +10,12 @@
 "gua_encryption_reset_required_action" = "Nulstil og færdiggør";
 "gua_signout_last_device_title" = "Log ud fjerner dine beskeder fra denne enhed";
 "gua_signout_last_device_message" = "Dette er din eneste enhed. Beskeder, der kun er gemt her, vil ikke være tilgængelige, når du logger ind igen.";
+"gua_settings_sign_out" = "Log ud";
+"gua_signout_confirmation_message" = "Er du sikker på, at du vil logge ud?";
+"gua_signout_key_backup_ongoing_subtitle" = "Vent på, at dette er fuldført, før du logger ud.";
+"gua_signout_key_backup_offline_subtitle" = "Dine nøgler blev stadig sikkerhedskopieret, da du gik offline. Opret forbindelse igen, så dine nøgler kan sikkerhedskopieres, før du logger ud.";
+"gua_app_lock_signout_alert_title" = "Du bliver logget ud";
+"gua_signing_out" = "Logger ud";
 "gua_encryption_reset_finishing" = "Færdiggør opsætningen…";
 "gua_encryption_reset_failed" = "Opsætningen kunne ikke færdiggøres. Tryk på Nulstil og færdiggør for at prøve igen.";
 "gua_encryption_recover_from_other_device_title" = "Gendan dine tidligere beskeder";

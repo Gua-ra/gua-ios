@@ -1,43 +1,42 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import LocalAuthentication
 
 /// A customised context that allows injecting a few mock values but otherwise behaves as expected.
-/// It works as the actual context does and won't update the return values of `biometryType` and
-/// `evaluatedPolicyDomainStateValue` until either `canEvaluatePolicy` or
-/// `evaluatePolicy` have been called.
-class LAContextMock: LAContext {
+nonisolated class LAContextMock: LAContext {
     var biometryTypeValue: LABiometryType!
-    private var internalBiometryTypeValue: LABiometryType!
     override var biometryType: LABiometryType {
-        internalBiometryTypeValue
+        biometryTypeValue
     }
     
-    var evaluatedPolicyDomainStateValue: Data?
-    private var internalEvaluatedPolicyDomainStateValue: Data?
-    override var evaluatedPolicyDomainState: Data? {
-        internalEvaluatedPolicyDomainStateValue
+    var biometricStateHashValue: Data?
+    override var biometricStateHash: Data? {
+        biometricStateHashValue
     }
     
+    var canEvaluatePolicyReturnValue: Bool?
     override func canEvaluatePolicy(_ policy: LAPolicy, error: NSErrorPointer) -> Bool {
-        let result = super.canEvaluatePolicy(policy, error: error)
-        updateInternalValues()
-        return result
+        canEvaluatePolicyReturnValue ?? super.canEvaluatePolicy(policy, error: error)
     }
     
     var evaluatePolicyReturnValue: Bool!
-    override func evaluatePolicy(_ policy: LAPolicy, localizedReason: String) async throws -> Bool {
-        updateInternalValues()
-        return evaluatePolicyReturnValue
+    var evaluatePolicyThrowableError: Error?
+    var evaluatePolicyCallsCount = 0
+    var evaluatePolicyCalled: Bool {
+        evaluatePolicyCallsCount > 0
     }
     
-    private func updateInternalValues() {
-        internalBiometryTypeValue = biometryTypeValue
-        internalEvaluatedPolicyDomainStateValue = evaluatedPolicyDomainStateValue
+    override func evaluatePolicy(_ policy: LAPolicy, localizedReason: String) async throws -> Bool {
+        evaluatePolicyCallsCount += 1
+        if let evaluatePolicyThrowableError {
+            throw evaluatePolicyThrowableError
+        }
+        return evaluatePolicyReturnValue
     }
 }

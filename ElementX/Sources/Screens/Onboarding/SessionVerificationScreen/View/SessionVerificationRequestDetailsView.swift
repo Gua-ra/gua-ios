@@ -1,7 +1,8 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -29,18 +30,18 @@ struct SessionVerificationRequestDetailsView: View {
         HStack(spacing: 12) {
             LoadableAvatarImage(url: details.senderProfile.avatarURL,
                                 name: details.senderProfile.displayName,
-                                contentID: details.senderProfile.userID,
+                                contentID: details.senderProfile.id,
                                 avatarSize: .user(on: .sessionVerification),
                                 mediaProvider: mediaProvider)
                 .accessibilityHidden(true)
             
             VStack(alignment: .leading, spacing: 0) {
-                Text(details.senderProfile.displayName ?? details.senderProfile.userID.guaDisplayHandle)
+                Text(details.senderProfile.displayName ?? details.senderProfile.id.guaDisplayHandle)
                     .font(.compound.bodySM)
                     .foregroundColor(.compound.textSecondary)
-
+                
                 if details.senderProfile.displayName != nil {
-                    Text(details.senderProfile.userID.guaDisplayHandle)
+                    Text(details.senderProfile.id.guaDisplayHandle)
                         .font(.compound.bodyMD)
                         .foregroundColor(.compound.textPrimary)
                 }
@@ -65,7 +66,7 @@ struct SessionVerificationRequestDetailsView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                     
                     let displayName = isUserVerification ? details.senderProfile.displayName : details.deviceDisplayName
-                    Text(displayName ?? details.senderProfile.userID.guaDisplayHandle)
+                    Text(displayName ?? details.senderProfile.id.guaDisplayHandle)
                         .font(.compound.bodyMDSemibold)
                         .foregroundColor(.compound.textPrimary)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -109,9 +110,9 @@ struct SessionVerificationRequestDetailsView: View {
 }
 
 struct SessionVerificationRequestDetailsView_Previews: PreviewProvider, TestablePreview {
-    static let details = SessionVerificationRequestDetails(senderProfile: UserProfileProxy(userID: "@bob:matrix.org",
-                                                                                           displayName: "Billy bob",
-                                                                                           avatarURL: .mockMXCUserAvatar),
+    static let details = SessionVerificationRequestDetails(senderProfile: UserProfile(userID: "@bob:matrix.org",
+                                                                                      displayName: "Billy bob",
+                                                                                      avatarURL: .mockMXCUserAvatar),
                                                            flowID: "123",
                                                            deviceID: "CODEMISTAKE",
                                                            deviceDisplayName: "Bob's Element X iOS",
@@ -120,13 +121,13 @@ struct SessionVerificationRequestDetailsView_Previews: PreviewProvider, Testable
     static var previews: some View {
         SessionVerificationRequestDetailsView(details: details,
                                               isUserVerification: true,
-                                              mediaProvider: MediaProviderMock(configuration: .init()))
+                                              mediaProvider: MediaProviderMock(.init()))
             .padding()
             .previewDisplayName("User")
         
         SessionVerificationRequestDetailsView(details: details,
                                               isUserVerification: false,
-                                              mediaProvider: MediaProviderMock(configuration: .init()))
+                                              mediaProvider: MediaProviderMock(.init()))
             .padding()
             .previewDisplayName("Device")
     }

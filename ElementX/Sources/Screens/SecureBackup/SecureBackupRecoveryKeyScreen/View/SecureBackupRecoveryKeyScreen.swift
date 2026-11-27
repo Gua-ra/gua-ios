@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -177,31 +178,19 @@ struct SecureBackupRecoveryKeyScreen: View {
     }
     
     private var confirmRecoveryKeySection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(L10n.commonRecoveryKey)
-                .foregroundColor(.compound.textPrimary)
-                .font(.compound.bodySMSemibold)
-            
-            SecureField(L10n.screenRecoveryKeyConfirmKeyPlaceholder, text: $context.confirmationRecoveryKey)
-                .tint(.compound.iconAccentTertiary)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color.compound.bgSubtleSecondaryLevel0)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .id(textFieldIdentifier)
-                .focused($focused)
-                .submitLabel(.done)
-                .onSubmit {
-                    context.send(viewAction: .confirmKey)
-                }
-                .accessibilityIdentifier(A11yIdentifiers.secureBackupRecoveryKeyScreen.recoveryKeyField)
-            
-            if let subtitle = context.viewState.recoveryKeySubtitle {
-                Text(subtitle)
-                    .foregroundColor(.compound.textSecondary)
-                    .font(.compound.bodySM)
+        SecureField(L10n.screenRecoveryKeyConfirmKeyPlaceholder, text: $context.confirmationRecoveryKey)
+            .focused($focused)
+            .textFieldStyle(.compound(.plain(.secure(hideLabel: L10n.a11yHidePassword, showLabel: L10n.a11yShowPassword)),
+                                      labelText: L10n.commonRecoveryKey,
+                                      footerText: context.viewState.recoveryKeySubtitle,
+                                      accessibilityIdentifier: A11yIdentifiers.secureBackupRecoveryKeyScreen.recoveryKeyField))
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .submitLabel(.done)
+            .onSubmit {
+                context.send(viewAction: .confirmKey)
             }
-        }
+            .id(textFieldIdentifier)
     }
 }
 
@@ -236,6 +225,7 @@ private struct RecoveryKeyView: View {
 
 // MARK: - Previews
 
+@available(iOS 26.0, *)
 struct SecureBackupRecoveryKeyScreen_Previews: PreviewProvider, TestablePreview {
     static let key = "EsTM njec uHYA yHmh dQdW Nj4o bNRU 9jMN XGMc KUNM UFr5 R8GY"
     static let notSetUpViewModel = viewModel(recoveryState: .disabled)
@@ -245,28 +235,28 @@ struct SecureBackupRecoveryKeyScreen_Previews: PreviewProvider, TestablePreview 
     static let unknownViewModel = viewModel(recoveryState: .unknown)
     
     static var previews: some View {
-        NavigationStack {
+        ElementNavigationStack {
             SecureBackupRecoveryKeyScreen(context: notSetUpViewModel.context)
         }
         .previewDisplayName("Not set up")
         
-        NavigationStack {
+        ElementNavigationStack {
             SecureBackupRecoveryKeyScreen(context: generatingViewModel.context)
         }
         .previewDisplayName("Generating")
         
-        NavigationStack {
+        ElementNavigationStack {
             SecureBackupRecoveryKeyScreen(context: setupViewModel.context)
         }
-        .snapshotPreferences(expect: setupViewModel.context.observe(\.viewState.recoveryKey).map { $0 != nil }.eraseToStream())
+        .snapshotPreferences(expect: setupViewModel.context.observe(\.viewState.recoveryKey).map { $0 != nil })
         .previewDisplayName("Set up")
         
-        NavigationStack {
+        ElementNavigationStack {
             SecureBackupRecoveryKeyScreen(context: incompleteViewModel.context)
         }
         .previewDisplayName("Incomplete")
         
-        NavigationStack {
+        ElementNavigationStack {
             SecureBackupRecoveryKeyScreen(context: unknownViewModel.context)
         }
         .previewDisplayName("Unknown")
@@ -274,12 +264,12 @@ struct SecureBackupRecoveryKeyScreen_Previews: PreviewProvider, TestablePreview 
     
     static func viewModel(recoveryState: SecureBackupRecoveryState, generateKey: Bool = false, key: String? = nil) -> SecureBackupRecoveryKeyScreenViewModelType {
         let backupController = SecureBackupControllerMock()
-        backupController.underlyingRecoveryState = CurrentValueSubject<SecureBackupRecoveryState, Never>(recoveryState).asCurrentValuePublisher()
+        backupController.recoveryState = CurrentValueSubject<SecureBackupRecoveryState, Never>(recoveryState).asCurrentValuePublisher()
         
         if let key {
-            backupController.generateRecoveryKeyReturnValue = .success(key)
+            backupController.generateRecoveryKeyWithPassphraseReturnValue = .success(key)
         } else {
-            backupController.generateRecoveryKeyClosure = {
+            backupController.generateRecoveryKeyWithPassphraseClosure = { _ in
                 try? await Task.sleep(for: .seconds(1000))
                 return .success("youshouldntseeme")
             }

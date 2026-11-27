@@ -10,7 +10,7 @@ enum GuaPhoneNumber {
     /// The separators a person, or their address book, puts inside a number. They are how a number
     /// is written down, never part of it, so they are dropped rather than refused.
     private static let separators: Set<Character> = ["-", "(", ")", ".", "/"]
-
+    
     /// The E.164 the identity service is given, which is a `+` followed by the country code and the
     /// national digits, or `nil` when the text cannot be read as one.
     ///
@@ -38,7 +38,7 @@ enum GuaPhoneNumber {
         guard digits.count >= 8, digits.count <= 15 else { return nil }
         return "+" + digits
     }
-
+    
     /// Whether the string names a number that can be sent. Kept for the screens that only ask the
     /// question, such as whether to enable a Continue button.
     static func isE164(_ phone: String) -> Bool {

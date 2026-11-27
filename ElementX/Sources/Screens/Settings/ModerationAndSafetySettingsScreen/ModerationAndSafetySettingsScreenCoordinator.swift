@@ -10,7 +10,6 @@ import SwiftUI
 
 struct ModerationAndSafetySettingsScreenCoordinatorParameters {
     let userSession: UserSessionProtocol
-    let appSettings: AppSettings
     let userIndicatorController: UserIndicatorControllerProtocol
 }
 
@@ -30,7 +29,6 @@ final class ModerationAndSafetySettingsScreenCoordinator: CoordinatorProtocol {
     
     init(parameters: ModerationAndSafetySettingsScreenCoordinatorParameters) {
         viewModel = ModerationAndSafetySettingsScreenViewModel(userSession: parameters.userSession,
-                                                               appSettings: parameters.appSettings,
                                                                userIndicatorController: parameters.userIndicatorController)
         
         viewModel.actionsPublisher

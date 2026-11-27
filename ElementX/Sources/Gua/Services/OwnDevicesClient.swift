@@ -26,7 +26,7 @@ struct OwnDeviceKeys: Equatable {
         let isDehydrated: Bool
         let ownerSignatureKeyIDs: Set<String>
     }
-
+    
     /// `ed25519:<public key>` ids, the same form as the key ids in a device's signatures.
     let selfSigningKeyIDs: Set<String>
     let devices: [String: Device]
@@ -35,31 +35,31 @@ struct OwnDeviceKeys: Equatable {
 /// Client-server calls the SDK does not expose.
 final class OwnDevicesClient {
     static let verificationRetryEventType = "global.gua.verification.retry_request"
-
+    
     private let session: URLSession
     private let decoder = JSONDecoder()
     private let encoder = JSONEncoder()
     private let timeout: TimeInterval = 15
-
+    
     init(session: URLSession = .shared) {
         self.session = session
     }
-
+    
     func devices(homeserver: String, accessToken: String) async throws -> [OwnDevice] {
         struct Response: Decodable {
             struct Device: Decodable {
                 let deviceID: String
                 let lastSeenTimestamp: Int64?
-
+                
                 enum CodingKeys: String, CodingKey {
                     case deviceID = "device_id"
                     case lastSeenTimestamp = "last_seen_ts"
                 }
             }
-
+            
             let devices: [Device]
         }
-
+        
         let request = try makeRequest(homeserver: homeserver, path: "/_matrix/client/v3/devices", method: "GET", accessToken: accessToken, body: nil)
         let response: Response = try await decode(send(request))
         return response.devices.map { device in
@@ -67,39 +67,39 @@ final class OwnDevicesClient {
                       lastSeen: device.lastSeenTimestamp.map { Date(timeIntervalSince1970: TimeInterval($0) / 1000) })
         }
     }
-
+    
     func deviceKeys(homeserver: String, accessToken: String, userID: String) async throws -> OwnDeviceKeys {
         struct Body: Encodable {
             let deviceKeys: [String: [String]]
-
+            
             enum CodingKeys: String, CodingKey {
                 case deviceKeys = "device_keys"
             }
         }
-
+        
         struct Response: Decodable {
             struct DeviceKeys: Decodable {
                 let signatures: [String: [String: String]]?
                 let dehydrated: Bool?
             }
-
+            
             struct CrossSigningKey: Decodable {
                 let keys: [String: String]
             }
-
+            
             let deviceKeys: [String: [String: DeviceKeys]]?
             let selfSigningKeys: [String: CrossSigningKey]?
-
+            
             enum CodingKeys: String, CodingKey {
                 case deviceKeys = "device_keys"
                 case selfSigningKeys = "self_signing_keys"
             }
         }
-
+        
         let body = try encode(Body(deviceKeys: [userID: []]))
         let request = try makeRequest(homeserver: homeserver, path: "/_matrix/client/v3/keys/query", method: "POST", accessToken: accessToken, body: body)
         let response: Response = try await decode(send(request))
-
+        
         let selfSigningKeyIDs = Set(response.selfSigningKeys?[userID]?.keys.keys.filter { $0.hasPrefix("ed25519:") } ?? [])
         let devices = (response.deviceKeys?[userID] ?? [:]).mapValues { keys in
             OwnDeviceKeys.Device(isDehydrated: keys.dehydrated == true,
@@ -107,7 +107,7 @@ final class OwnDevicesClient {
         }
         return OwnDeviceKeys(selfSigningKeyIDs: selfSigningKeyIDs, devices: devices)
     }
-
+    
     func sendVerificationRetryRequest(homeserver: String,
                                       accessToken: String,
                                       userID: String,
@@ -117,13 +117,13 @@ final class OwnDevicesClient {
         struct Body: Encodable {
             let messages: [String: [String: [String: String]]]
         }
-
+        
         let path = try "/_matrix/client/v3/sendToDevice/\(Self.verificationRetryEventType)/\(Self.pathComponent(transactionID))"
         let body = try encode(Body(messages: [userID: [targetDeviceID: ["from_device": fromDeviceID]]]))
         let request = try makeRequest(homeserver: homeserver, path: path, method: "PUT", accessToken: accessToken, body: body)
         _ = try await send(request)
     }
-
+    
     private func makeRequest(homeserver: String, path: String, method: String, accessToken: String, body: Data?) throws -> URLRequest {
         var base = homeserver
         while base.hasSuffix("/") {
@@ -132,7 +132,7 @@ final class OwnDevicesClient {
         guard let url = URL(string: base + path), url.scheme == "https" || url.scheme == "http", url.host() != nil else {
             throw OwnDevicesClientError.invalidURL
         }
-
+        
         var request = URLRequest(url: url, timeoutInterval: timeout)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Accept")
@@ -143,7 +143,7 @@ final class OwnDevicesClient {
         }
         return request
     }
-
+    
     private func send(_ request: URLRequest) async throws -> Data {
         let data: Data
         let response: URLResponse
@@ -164,7 +164,7 @@ final class OwnDevicesClient {
             throw OwnDevicesClientError.server(status: httpResponse.statusCode)
         }
     }
-
+    
     private func encode(_ value: some Encodable) throws -> Data {
         do {
             return try encoder.encode(value)
@@ -172,7 +172,7 @@ final class OwnDevicesClient {
             throw OwnDevicesClientError.transport(error)
         }
     }
-
+    
     private func decode<T: Decodable>(_ data: Data) throws -> T {
         do {
             return try decoder.decode(T.self, from: data)
@@ -180,7 +180,7 @@ final class OwnDevicesClient {
             throw OwnDevicesClientError.decoding(error)
         }
     }
-
+    
     private static func pathComponent(_ value: String) throws -> String {
         var allowed = CharacterSet.urlPathAllowed
         allowed.remove("/")

@@ -1,5 +1,6 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
@@ -23,7 +24,7 @@ struct RoomScreenFooterView: View {
             Color.compound.bgCanvasDefault
         }
     }
-
+    
     private var gradient: Gradient {
         switch details {
         case .pinViolation, .verificationViolation:
@@ -36,9 +37,7 @@ struct RoomScreenFooterView: View {
     var body: some View {
         if let details {
             detailsView(details)
-                .highlight(gradient: gradient,
-                           borderColor: borderColor,
-                           backgroundColor: .compound.bgCanvasDefault)
+                .highlight(gradient: gradient, borderColor: borderColor)
                 .padding(.top, 8)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -57,7 +56,7 @@ struct RoomScreenFooterView: View {
             identityChange(member: member, learnMoreURL: learnMoreURL, action: .resolveVerificationViolation(userID: member.userID))
         }
     }
-
+    
     private func identityChange(member: RoomMemberProxyProtocol,
                                 learnMoreURL: URL,
                                 action: RoomScreenFooterViewAction) -> some View {
@@ -68,14 +67,14 @@ struct RoomScreenFooterView: View {
                                     contentID: member.userID,
                                     avatarSize: .user(on: .timeline),
                                     mediaProvider: mediaProvider)
-
+                
                 Text(identityChangeDescriptionWithLearnMoreLink(displayName: member.displayName,
                                                                 userID: member.userID,
                                                                 url: learnMoreURL))
                     .font(.compound.bodyMD)
                     .foregroundColor(.compound.textPrimary)
             }
-
+            
             Button {
                 callback(action)
             } label: {
@@ -88,12 +87,12 @@ struct RoomScreenFooterView: View {
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
     }
-
+    
     private func identityChangeDescriptionWithLearnMoreLink(displayName: String?, userID: String, url: URL) -> AttributedString {
         let linkPlaceholder = "{link}"
         let displayName = displayName ?? fallbackDisplayName(userID)
         var description = AttributedString(UntranslatedL10n.guaIdentityChangeBannerDescription(displayName, linkPlaceholder))
-
+        
         var linkString = AttributedString(L10n.actionLearnMore)
         linkString.link = url
         linkString.bold()
@@ -112,16 +111,16 @@ struct RoomScreenFooterView_Previews: PreviewProvider, TestablePreview {
                                                                        learnMoreURL: "https://gua.global/help#security-changes")
     static let noNameDetails: RoomScreenFooterViewDetails = .pinViolation(member: RoomMemberProxyMock.mockNoName,
                                                                           learnMoreURL: "https://gua.global/help#security-changes")
-
+    
     static let verificationViolationDetails: RoomScreenFooterViewDetails = .verificationViolation(member: RoomMemberProxyMock.mockBob,
                                                                                                   learnMoreURL: "https://gua.global/help#security-changes")
     
     static var previews: some View {
-        RoomScreenFooterView(details: bobDetails, mediaProvider: MediaProviderMock(configuration: .init())) { _ in }
+        RoomScreenFooterView(details: bobDetails, mediaProvider: MediaProviderMock(.init())) { _ in }
             .previewDisplayName("With displayname")
-        RoomScreenFooterView(details: noNameDetails, mediaProvider: MediaProviderMock(configuration: .init())) { _ in }
+        RoomScreenFooterView(details: noNameDetails, mediaProvider: MediaProviderMock(.init())) { _ in }
             .previewDisplayName("Without displayname")
-        RoomScreenFooterView(details: verificationViolationDetails, mediaProvider: MediaProviderMock(configuration: .init())) { _ in }
+        RoomScreenFooterView(details: verificationViolationDetails, mediaProvider: MediaProviderMock(.init())) { _ in }
             .previewDisplayName("Verification Violation")
     }
 }

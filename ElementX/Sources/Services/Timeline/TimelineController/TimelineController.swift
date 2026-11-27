@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -16,7 +17,7 @@ class TimelineController: TimelineControllerProtocol {
     private let liveTimelineItemProvider: TimelineItemProviderProtocol
     private let timelineItemFactory: RoomTimelineItemFactoryProtocol
     private let mediaProvider: MediaProviderProtocol
-    private let appSettings: AppSettings
+    private let userSettings: UserSettings
     
     let callbacks = PassthroughSubject<TimelineControllerCallback, Never>()
     
@@ -29,12 +30,12 @@ class TimelineController: TimelineControllerProtocol {
     
     private(set) var timelineItems = [RoomTimelineItemProtocol]()
     
-    private(set) var paginationState: PaginationState = .initial {
+    private(set) var paginationState: TimelinePaginationState = .initial {
         didSet {
             callbacks.send(.paginationState(paginationState))
         }
     }
-
+    
     var roomID: String {
         roomProxy.id
     }
@@ -43,28 +44,33 @@ class TimelineController: TimelineControllerProtocol {
         activeTimelineItemProvider.kind
     }
     
+    let allowedGalleryItemTypes: [TimelineAllowedGalleryItemType]?
+    
     init(roomProxy: JoinedRoomProxyProtocol,
          timelineProxy: TimelineProxyProtocol,
          initialFocussedEventID: String?,
          timelineItemFactory: RoomTimelineItemFactoryProtocol,
          mediaProvider: MediaProviderProtocol,
-         appSettings: AppSettings) {
+         userSettings: UserSettings,
+         allowedGalleryItemTypes: [TimelineAllowedGalleryItemType]? = nil) {
+        self.allowedGalleryItemTypes = allowedGalleryItemTypes
         self.roomProxy = roomProxy
         liveTimelineItemProvider = timelineProxy.timelineItemProvider
         self.timelineItemFactory = timelineItemFactory
         self.mediaProvider = mediaProvider
-        self.appSettings = appSettings
+        self.userSettings = userSettings
         
         activeTimeline = timelineProxy
         activeTimelineItemProvider = liveTimelineItemProvider
         
-        guard let initialFocussedEventID else {
+        // No need for a detached timeline when the live one has already loaded the event.
+        guard let initialFocussedEventID, !liveTimelineItemProvider.containsEvent(initialFocussedEventID) else {
             configureActiveTimelineItemProvider()
             return
         }
         
         Task {
-            paginationState = PaginationState(backward: .paginating, forward: .paginating)
+            paginationState = TimelinePaginationState(backward: .paginating, forward: .paginating)
             
             switch await focusOnEvent(initialFocussedEventID, timelineSize: 100) {
             case .success:
@@ -122,12 +128,12 @@ class TimelineController: TimelineControllerProtocol {
     }
     
     func sendReadReceipt(for itemID: TimelineItemIdentifier) async {
-        let receiptType: MatrixRustSDK.ReceiptType = appSettings.sharePresence ? .read : .readPrivate
+        let receiptType: MatrixRustSDK.ReceiptType = userSettings.account.sharePresence ? .read : .readPrivate
         
         guard let eventID = itemID.eventID else {
             return
         }
-            
+        
         _ = await activeTimeline.sendReadReceipt(for: eventID, type: receiptType)
     }
     
@@ -170,6 +176,7 @@ class TimelineController: TimelineControllerProtocol {
         switch await activeTimeline.edit(eventOrTransactionID, newContent: .roomMessage(content: messageContent)) {
         case .success:
             MXLog.info("Finished editing message by event")
+            callbacks.send(.messageSentOrEdited)
         case let .failure(error):
             MXLog.error("Failed editing message by event with error: \(error)")
         }
@@ -187,6 +194,7 @@ class TimelineController: TimelineControllerProtocol {
                                            mentions: intentionalMentions.toRustMentions())
         switch await activeTimeline.edit(eventOrTransactionID, newContent: newContent) {
         case .success:
+            callbacks.send(.messageSentOrEdited)
             MXLog.info("Finished editing caption")
         case let .failure(error):
             MXLog.error("Failed editing caption with error: \(error)")
@@ -204,10 +212,10 @@ class TimelineController: TimelineControllerProtocol {
         }
     }
     
-    func redact(_ eventOrTransactionID: TimelineItemIdentifier.EventOrTransactionID) async {
+    func redact(_ eventOrTransactionID: TimelineItemIdentifier.EventOrTransactionID, reason: String?) async {
         MXLog.info("Send redaction in \(roomID)")
         
-        switch await activeTimeline.redact(eventOrTransactionID, reason: nil) {
+        switch await activeTimeline.redact(eventOrTransactionID, reason: reason) {
         case .success:
             MXLog.info("Finished redacting message")
         case .failure(let error):
@@ -281,6 +289,53 @@ class TimelineController: TimelineControllerProtocol {
         return nil
     }
     
+    func pendingSendTarget(for itemID: TimelineItemIdentifier) -> SendTarget? {
+        for timelineItemProxy in activeTimelineItemProvider.itemProxies {
+            switch timelineItemProxy {
+            case .event(let item):
+                if item.id == itemID {
+                    return item.pendingSend?.target
+                }
+            default:
+                continue
+            }
+        }
+        
+        return nil
+    }
+    
+    func retrySend(_ itemID: TimelineItemIdentifier, target: SendTarget) async {
+        guard let eventOrTransactionID = itemID.eventOrTransactionID else {
+            MXLog.error("Cannot retry sending on \(itemID).")
+            return
+        }
+        
+        MXLog.info("Retry \(target) send in \(roomID)")
+        
+        switch await activeTimeline.retrySend(eventOrTransactionID, target: target) {
+        case .success(let hadPendingSend):
+            MXLog.info("Finished retrying send, had one pending: \(hadPendingSend)")
+        case .failure(let error):
+            MXLog.error("Failed retrying send with error: \(error)")
+        }
+    }
+    
+    func abortSend(_ itemID: TimelineItemIdentifier, target: SendTarget) async {
+        guard let eventOrTransactionID = itemID.eventOrTransactionID else {
+            MXLog.error("Cannot abort sending on \(itemID).")
+            return
+        }
+        
+        MXLog.info("Abort \(target) send in \(roomID)")
+        
+        switch await activeTimeline.abortSend(eventOrTransactionID, target: target) {
+        case .success(let hadPendingSend):
+            MXLog.info("Finished aborting send, had one pending: \(hadPendingSend)")
+        case .failure(let error):
+            MXLog.error("Failed aborting send with error: \(error)")
+        }
+    }
+    
     // MARK: - Sending
     
     func sendMessage(_ message: String,
@@ -295,6 +350,7 @@ class TimelineController: TimelineControllerProtocol {
                                                 intentionalMentions: intentionalMentions) {
         case .success:
             MXLog.info("Finished sending message")
+            callbacks.send(.messageSentOrEdited)
             await donateSendMessageIntent()
         case .failure(let error):
             MXLog.error("Failed sending message with error: \(error)")
@@ -305,20 +361,32 @@ class TimelineController: TimelineControllerProtocol {
                    audioInfo: MatrixRustSDK.AudioInfo,
                    caption: String?,
                    requestHandle: @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineControllerError> {
-        await activeTimeline.sendAudio(url: url,
-                                       audioInfo: audioInfo,
-                                       caption: caption,
-                                       requestHandle: requestHandle).mapError(TimelineControllerError.timelineProxyError)
+        switch await activeTimeline.sendAudio(url: url,
+                                              audioInfo: audioInfo,
+                                              caption: caption,
+                                              requestHandle: requestHandle).mapError(TimelineControllerError.timelineProxyError) {
+        case .success:
+            callbacks.send(.messageSentOrEdited)
+            return .success(())
+        case .failure(let error):
+            return .failure(error)
+        }
     }
     
     func sendFile(url: URL,
                   fileInfo: MatrixRustSDK.FileInfo,
                   caption: String?,
                   requestHandle: @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineControllerError> {
-        await activeTimeline.sendFile(url: url,
-                                      fileInfo: fileInfo,
-                                      caption: caption,
-                                      requestHandle: requestHandle).mapError(TimelineControllerError.timelineProxyError)
+        switch await activeTimeline.sendFile(url: url,
+                                             fileInfo: fileInfo,
+                                             caption: caption,
+                                             requestHandle: requestHandle).mapError(TimelineControllerError.timelineProxyError) {
+        case .success:
+            callbacks.send(.messageSentOrEdited)
+            return .success(())
+        case .failure(let error):
+            return .failure(error)
+        }
     }
     
     func sendImage(url: URL,
@@ -326,11 +394,17 @@ class TimelineController: TimelineControllerProtocol {
                    imageInfo: MatrixRustSDK.ImageInfo,
                    caption: String?,
                    requestHandle: @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineControllerError> {
-        await activeTimeline.sendImage(url: url,
-                                       thumbnailURL: thumbnailURL,
-                                       imageInfo: imageInfo,
-                                       caption: caption,
-                                       requestHandle: requestHandle).mapError(TimelineControllerError.timelineProxyError)
+        switch await activeTimeline.sendImage(url: url,
+                                              thumbnailURL: thumbnailURL,
+                                              imageInfo: imageInfo,
+                                              caption: caption,
+                                              requestHandle: requestHandle).mapError(TimelineControllerError.timelineProxyError) {
+        case .success:
+            callbacks.send(.messageSentOrEdited)
+            return .success(())
+        case .failure(let error):
+            return .failure(error)
+        }
     }
     
     func sendVideo(url: URL,
@@ -338,11 +412,17 @@ class TimelineController: TimelineControllerProtocol {
                    videoInfo: MatrixRustSDK.VideoInfo,
                    caption: String?,
                    requestHandle: @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineControllerError> {
-        await activeTimeline.sendVideo(url: url,
-                                       thumbnailURL: thumbnailURL,
-                                       videoInfo: videoInfo,
-                                       caption: caption,
-                                       requestHandle: requestHandle).mapError(TimelineControllerError.timelineProxyError)
+        switch await activeTimeline.sendVideo(url: url,
+                                              thumbnailURL: thumbnailURL,
+                                              videoInfo: videoInfo,
+                                              caption: caption,
+                                              requestHandle: requestHandle).mapError(TimelineControllerError.timelineProxyError) {
+        case .success:
+            callbacks.send(.messageSentOrEdited)
+            return .success(())
+        case .failure(let error):
+            return .failure(error)
+        }
     }
     
     func sendLocation(body: String,
@@ -350,26 +430,52 @@ class TimelineController: TimelineControllerProtocol {
                       description: String?,
                       zoomLevel: UInt8?,
                       assetType: AssetType?) async -> Result<Void, TimelineControllerError> {
-        await activeTimeline.sendLocation(body: body, geoURI: geoURI, description: description, zoomLevel: zoomLevel, assetType: assetType).mapError(TimelineControllerError.timelineProxyError)
+        switch await activeTimeline.sendLocation(body: body, geoURI: geoURI, description: description, zoomLevel: zoomLevel, assetType: assetType).mapError(TimelineControllerError.timelineProxyError) {
+        case .success:
+            callbacks.send(.messageSentOrEdited)
+            return .success(())
+        case .failure(let error):
+            return .failure(error)
+        }
     }
     
     func sendVoiceMessage(url: URL,
                           audioInfo: MatrixRustSDK.AudioInfo,
-                          waveform: [UInt16],
+                          waveform: [Float],
                           requestHandle: @MainActor (SendAttachmentJoinHandleProtocol) -> Void) async -> Result<Void, TimelineControllerError> {
-        await activeTimeline.sendVoiceMessage(url: url,
-                                              audioInfo: audioInfo,
-                                              waveform: waveform, requestHandle: requestHandle).mapError(TimelineControllerError.timelineProxyError)
+        switch await activeTimeline.sendVoiceMessage(url: url,
+                                                     audioInfo: audioInfo,
+                                                     waveform: waveform, requestHandle: requestHandle).mapError(TimelineControllerError.timelineProxyError) {
+        case .success:
+            callbacks.send(.messageSentOrEdited)
+            return .success(())
+        case .failure(let error):
+            return .failure(error)
+        }
+    }
+    
+    func sendGallery(itemInfos: [GalleryItemInfo],
+                     caption: String?,
+                     inReplyToEventID: String?) async -> Result<Void, TimelineControllerError> {
+        await activeTimeline.sendGallery(itemInfos: itemInfos,
+                                         caption: caption,
+                                         inReplyToEventID: inReplyToEventID).mapError(TimelineControllerError.timelineProxyError)
     }
     
     // MARK: - Polls
     
-    func createPoll(question: String, answers: [String], pollKind: Poll.Kind) async -> Result<Void, TimelineControllerError> {
-        await activeTimeline.createPoll(question: question, answers: answers, pollKind: pollKind).mapError(TimelineControllerError.timelineProxyError)
+    func createPoll(question: String, answers: [String], maxSelections: Int, pollKind: Poll.Kind) async -> Result<Void, TimelineControllerError> {
+        switch await activeTimeline.createPoll(question: question, answers: answers, maxSelections: maxSelections, pollKind: pollKind).mapError(TimelineControllerError.timelineProxyError) {
+        case .success:
+            callbacks.send(.messageSentOrEdited)
+            return .success(())
+        case .failure(let error):
+            return .failure(error)
+        }
     }
     
-    func editPoll(original eventID: String, question: String, answers: [String], pollKind: Poll.Kind) async -> Result<Void, TimelineControllerError> {
-        await activeTimeline.editPoll(original: eventID, question: question, answers: answers, pollKind: pollKind).mapError(TimelineControllerError.timelineProxyError)
+    func editPoll(original eventID: String, question: String, answers: [String], maxSelections: Int, pollKind: Poll.Kind) async -> Result<Void, TimelineControllerError> {
+        await activeTimeline.editPoll(original: eventID, question: question, answers: answers, maxSelections: maxSelections, pollKind: pollKind).mapError(TimelineControllerError.timelineProxyError)
     }
     
     func sendPollResponse(pollStartID: String, answers: [String]) async -> Result<Void, TimelineControllerError> {
@@ -395,26 +501,30 @@ class TimelineController: TimelineControllerProtocol {
         isSwitchingTimelines = true
         
         // Inform the world that the initial items are loading from the store
-        paginationState = PaginationState(backward: .paginating, forward: .paginating)
+        paginationState = TimelinePaginationState(backward: .paginating, forward: .paginating)
         callbacks.send(.isLive(activeTimelineItemProvider.kind == .live))
         
-        updateTimelineItemsCancellable = Task { [weak self, activeTimelineItemProvider] in
-            let contentSizeChangePublisher = NotificationCenter.default.publisher(for: UIContentSizeCategory.didChangeNotification)
-            let timelineUpdates = activeTimelineItemProvider.updatePublisher.merge(with: contentSizeChangePublisher.map { _ in
-                (activeTimelineItemProvider.itemProxies, activeTimelineItemProvider.paginationState)
-            })
+        let contentSizeChangePublisher = NotificationCenter.default.publisher(for: UIContentSizeCategory.didChangeNotification)
+        let timelineUpdates = activeTimelineItemProvider.updatePublisher.merge(with: contentSizeChangePublisher.compactMap { [weak self] _ in
+            guard let activeTimelineProvider = self?.activeTimelineItemProvider else {
+                return nil
+            }
             
+            return (activeTimelineProvider.itemProxies, activeTimelineProvider.paginationState)
+        })
+        
+        updateTimelineItemsCancellable = Task { [weak self] in
             for await (items, paginationState) in timelineUpdates.values {
                 await self?.updateTimelineItems(itemProxies: items, paginationState: paginationState)
             }
         }.asCancellable()
     }
     
-    private func updateTimelineItems(itemProxies: [TimelineItemProxy], paginationState: PaginationState) async {
+    private func updateTimelineItems(itemProxies: [TimelineItemProxy], paginationState: TimelinePaginationState) async {
         let isNewTimeline = isSwitchingTimelines
         isSwitchingTimelines = false
         
-        let isDM = roomProxy.isDirectOneToOneRoom
+        let isDM = roomProxy.infoPublisher.value.isDM
         let displayName = roomProxy.infoPublisher.value.displayName
         let hasPredecessor = roomProxy.predecessorRoom != nil
         
@@ -459,14 +569,14 @@ class TimelineController: TimelineControllerProtocol {
         switch paginationState.backward {
         case .paginating:
             newTimelineItems.insert(PaginationIndicatorRoomTimelineItem(position: .start), at: 0)
-        case .idle, .timelineEndReached:
+        case .idle, .endReached:
             break
         }
         
         switch paginationState.forward {
         case .paginating:
             newTimelineItems.insert(PaginationIndicatorRoomTimelineItem(position: .end), at: newTimelineItems.count)
-        case .idle, .timelineEndReached:
+        case .idle, .endReached:
             break
         }
         
@@ -521,13 +631,17 @@ class TimelineController: TimelineControllerProtocol {
         guard let eventID = timelineItem.id.eventID else {
             return
         }
-
+        
         switch timelineItem.properties.replyDetails {
         case .notLoaded:
-            activeTimeline.fetchDetails(for: eventID)
+            Task { @MainActor in
+                activeTimeline.fetchDetails(for: eventID)
+            }
         case .error:
             if refetchOnError {
-                activeTimeline.fetchDetails(for: eventID)
+                Task { @MainActor in
+                    activeTimeline.fetchDetails(for: eventID)
+                }
             }
         default:
             break
@@ -584,8 +698,14 @@ class TimelineController: TimelineControllerProtocol {
         }
         
         if let avatarURL, let mediaSource = try? MediaSourceProxy(url: avatarURL, mimeType: nil) {
-            if case let .success(avatarData) = await mediaProvider.loadThumbnailForSource(source: mediaSource, size: .init(width: 100, height: 100)) {
-                sendMessageIntent.setImage(INImage(imageData: avatarData), forParameterNamed: \.speakableGroupName)
+            // Request a generous size so the square crop of a non-square avatar keeps enough resolution.
+            if case let .success(avatarData) = await mediaProvider.loadThumbnailForSource(source: mediaSource, size: .init(width: 256, height: 256)) {
+                if let squareAvatarData = Self.squareAvatarImageData(from: avatarData) {
+                    sendMessageIntent.setImage(INImage(imageData: squareAvatarData), forParameterNamed: \.speakableGroupName)
+                } else {
+                    MXLog.error("Failed processing the room avatar for the send message intent, using a placeholder.")
+                    addPlacehoder()
+                }
             } else {
                 addPlacehoder()
             }
@@ -603,7 +723,36 @@ class TimelineController: TimelineControllerProtocol {
     }
 }
 
-private extension TimelineItemProxy {
+private extension TimelineController {
+    /// Media repo thumbnails are scaled, not cropped, so they keep the source's aspect
+    /// ratio. The share sheet's conversation suggestions stretch the donated image to fill
+    /// their circle, so centre-crop it to a square first.
+    static func squareAvatarImageData(from data: Data) -> Data? {
+        guard let image = UIImage(data: data) else { return nil }
+        
+        let side = min(image.size.width, image.size.height)
+        guard side > 0 else { return nil }
+        
+        if image.size.width == image.size.height {
+            return data
+        }
+        
+        let format = UIGraphicsImageRendererFormat()
+        // UIImage(data:) decodes at scale 1; pin the renderer to that so the
+        // output isn't silently multiplied by the device's screen scale.
+        format.scale = image.scale
+        
+        return UIGraphicsImageRenderer(size: CGSize(width: side, height: side), format: format)
+            .pngData { _ in
+                // Round the offsets to pixel boundaries so the crop is a straight
+                // copy rather than resampling (and softening) the whole image.
+                image.draw(at: CGPoint(x: ((side - image.size.width) / 2).rounded(),
+                                       y: ((side - image.size.height) / 2).rounded()))
+            }
+    }
+}
+
+private nonisolated extension TimelineItemProxy {
     var isItemCollapsible: Bool {
         if case let .event(eventItem) = self {
             switch eventItem.content {
@@ -615,5 +764,14 @@ private extension TimelineItemProxy {
         }
         
         return false
+    }
+}
+
+private extension TimelineItemProviderProtocol {
+    func containsEvent(_ eventID: String) -> Bool {
+        itemProxies.contains { item in
+            guard case let .event(eventItem) = item else { return false }
+            return eventItem.id.eventID == eventID
+        }
     }
 }

@@ -1,5 +1,6 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
@@ -14,7 +15,7 @@ class RoomMembersListScreenViewModel: RoomMembersListScreenViewModelType, RoomMe
     private let userSession: UserSessionProtocol
     private let roomProxy: JoinedRoomProxyProtocol
     private let userIndicatorController: UserIndicatorControllerProtocol
-    private let analytics: AnalyticsService
+    private let analytics: AnalyticsServiceProtocol
     
     private var members: [RoomMemberProxyProtocol] = []
     private var currentUserProxy: RoomMemberProxyProtocol?
@@ -24,12 +25,12 @@ class RoomMembersListScreenViewModel: RoomMembersListScreenViewModelType, RoomMe
     var actions: AnyPublisher<RoomMembersListScreenViewModelAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
-
+    
     init(initialMode: RoomMembersListScreenMode = .members,
          userSession: UserSessionProtocol,
          roomProxy: JoinedRoomProxyProtocol,
          userIndicatorController: UserIndicatorControllerProtocol,
-         analytics: AnalyticsService) {
+         analytics: AnalyticsServiceProtocol) {
         self.userSession = userSession
         self.roomProxy = roomProxy
         self.userIndicatorController = userIndicatorController
@@ -67,7 +68,8 @@ class RoomMembersListScreenViewModel: RoomMembersListScreenViewModelType, RoomMe
             hideLoadingIndicator(Self.setupMembersLoadingIndicatorIdentifier)
         }
         
-        roomProxy.membersPublisher.combineLatest(roomProxy.identityStatusChangesPublisher)
+        roomProxy.membersPublisher
+            .combineLatest(roomProxy.identityStatusChangesPublisher)
             .filter { !$0.0.isEmpty }
             .receive(on: DispatchQueue.main)
             .sink { [weak self] members, _ in
@@ -79,6 +81,14 @@ class RoomMembersListScreenViewModel: RoomMembersListScreenViewModelType, RoomMe
             Task { await roomProxy.updateMembers() }
         }
         .store(in: &cancellables)
+        
+        roomProxy.infoPublisher
+            .map(\.powerLevels)
+            .removeDuplicates { $0?.userPowerLevels == $1?.userPowerLevels }
+            .sink { [weak self] _ in
+                Task { await self?.roomProxy.updateMembers() }
+            }
+            .store(in: &cancellables)
     }
     
     private func updateState(members: [RoomMemberProxyProtocol]) {
@@ -89,16 +99,20 @@ class RoomMembersListScreenViewModel: RoomMembersListScreenViewModelType, RoomMe
                 hideLoadingIndicator(Self.updateStateLoadingIndicatorIdentifier)
             }
             
-            let members = members.sorted()
+            let members = members.sorted(prioritisingRoomCallParticipants: roomProxy.infoPublisher.value.activeRoomCallParticipants)
             let roomMembersDetails = await buildMembersDetails(members: members)
             self.members = members
             self.currentUserProxy = members.first { $0.userID == roomProxy.ownUserID }
             
+            var newBindings = state.bindings
+            if roomMembersDetails.bannedMembers.isEmpty {
+                newBindings.mode = .members
+            }
             self.state = .init(joinedMembersCount: roomProxy.infoPublisher.value.joinedMembersCount,
                                joinedMembers: roomMembersDetails.joinedMembers,
                                invitedMembers: roomMembersDetails.invitedMembers,
                                bannedMembers: roomMembersDetails.bannedMembers,
-                               bindings: state.bindings)
+                               bindings: newBindings)
             
             if let powerLevels = roomProxy.infoPublisher.value.powerLevels {
                 self.state.canInviteUsers = powerLevels.canOwnUserInvite()
@@ -109,7 +123,11 @@ class RoomMembersListScreenViewModel: RoomMembersListScreenViewModelType, RoomMe
     }
     
     private func buildMembersDetails(members: [RoomMemberProxyProtocol]) async -> RoomMembersDetails {
-        await Task.detached { [userSession, roomProxy] in
+        // We don't care about identity statuses on non-encrypted rooms
+        let isEncrypted = roomProxy.infoPublisher.value.isEncrypted
+        let activeRoomCallParticipants = Set(roomProxy.infoPublisher.value.activeRoomCallParticipants)
+        
+        return await Task.detached { [weak self] in
             // accessing RoomMember's properties is very slow. We need to do it in a background thread.
             var invitedMembers: [RoomMemberListScreenEntry] = .init()
             var joinedMembers: [RoomMemberListScreenEntry] = .init()
@@ -117,19 +135,18 @@ class RoomMembersListScreenViewModel: RoomMembersListScreenViewModelType, RoomMe
             
             for member in members {
                 var verificationState: UserIdentityVerificationState = .notVerified
-                if roomProxy.infoPublisher.value.isEncrypted, // We don't care about identity statuses on non-encrypted rooms
-                   case let .success(userIdentity) = await userSession.clientProxy.userIdentity(for: member.userID),
-                   let userIdentity {
-                    verificationState = userIdentity.verificationState
+                if isEncrypted, let fetchedState = await self?.userIdentityVerificationState(for: member.userID) {
+                    verificationState = fetchedState
                 }
+                let isActiveRoomCallParticipant = activeRoomCallParticipants.contains(member.userID)
                 
                 switch member.membership {
                 case .invite:
-                    invitedMembers.append(.init(member: .init(withProxy: member), verificationState: verificationState))
+                    invitedMembers.append(.init(member: .init(withProxy: member), verificationState: verificationState, isActiveRoomCallParticipant: isActiveRoomCallParticipant))
                 case .join:
-                    joinedMembers.append(.init(member: .init(withProxy: member), verificationState: verificationState))
+                    joinedMembers.append(.init(member: .init(withProxy: member), verificationState: verificationState, isActiveRoomCallParticipant: isActiveRoomCallParticipant))
                 case .ban:
-                    bannedMembers.append(.init(member: .init(withProxy: member), verificationState: verificationState))
+                    bannedMembers.append(.init(member: .init(withProxy: member), verificationState: verificationState, isActiveRoomCallParticipant: isActiveRoomCallParticipant))
                 default:
                     continue
                 }
@@ -140,6 +157,15 @@ class RoomMembersListScreenViewModel: RoomMembersListScreenViewModelType, RoomMe
                          bannedMembers: bannedMembers.sorted { $0.member.id.localizedStandardCompare($1.member.id) == .orderedAscending }) // Re-sort ignoring display name.
         }
         .value
+    }
+    
+    /// The client proxy isn't Sendable, fetch identities through this helper so
+    /// that it never leaves the main actor.
+    private func userIdentityVerificationState(for userID: String) async -> UserIdentityVerificationState? {
+        guard case let .success(userIdentity) = await userSession.clientProxy.userIdentity(for: userID, fallBackToServer: false) else {
+            return nil
+        }
+        return userIdentity?.verificationState
     }
     
     private func selectMember(_ member: RoomMemberDetails) {
@@ -178,21 +204,6 @@ class RoomMembersListScreenViewModel: RoomMembersListScreenViewModelType, RoomMe
         actionsSubject.send(.selectMember(member))
     }
     
-    // MARK: - Member Management
-    
-    private func unbanMember(_ member: RoomMemberDetails) async {
-        let indicatorTitle = L10n.screenRoomMemberListUnbanningUser(member.name ?? member.id.guaDisplayHandle)
-        showManageMemberIndicator(title: indicatorTitle)
-        
-        switch await roomProxy.unbanUser(member.id) {
-        case .success:
-            hideManageMemberIndicator(title: indicatorTitle)
-            analytics.trackRoomModeration(action: .UnbanMember, role: nil)
-        case .failure:
-            showManageMemberFailure(title: indicatorTitle)
-        }
-    }
-    
     // MARK: - Indicators
     
     private static let setupMembersLoadingIndicatorIdentifier = "\(RoomMembersListScreenViewModel.self)-SetupMembers"
@@ -209,25 +220,9 @@ class RoomMembersListScreenViewModel: RoomMembersListScreenViewModelType, RoomMe
     private func hideLoadingIndicator(_ identifier: String) {
         userIndicatorController.retractIndicatorWithId(identifier)
     }
-    
-    private func showManageMemberIndicator(title: String) {
-        userIndicatorController.submitIndicator(UserIndicator(id: title,
-                                                              type: .toast(progress: .indeterminate),
-                                                              title: title,
-                                                              persistent: true))
-    }
-    
-    private func hideManageMemberIndicator(title: String) {
-        userIndicatorController.retractIndicatorWithId(title)
-    }
-    
-    private func showManageMemberFailure(title: String) {
-        userIndicatorController.retractIndicatorWithId(title)
-        userIndicatorController.submitIndicator(UserIndicator(title: L10n.commonFailed, iconName: "xmark"))
-    }
 }
 
-private struct RoomMembersDetails {
+private nonisolated struct RoomMembersDetails {
     var invitedMembers: [RoomMemberListScreenEntry]
     var joinedMembers: [RoomMemberListScreenEntry]
     var bannedMembers: [RoomMemberListScreenEntry]

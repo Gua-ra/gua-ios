@@ -6,12 +6,61 @@
 // Please see LICENSE files in the repository root for full details.
 //
 
+import Compound
 import SwiftUI
 
 extension View {
+    // MARK: iOS 26
+    
+    @ViewBuilder func backportTabBarMinimizeBehaviorOnScrollDown() -> some View {
+        if #available(iOS 26.0, *) {
+            tabBarMinimizeBehavior(.onScrollDown)
+        } else {
+            self
+        }
+    }
+    
+    /// iOS 27 only detaches the search tab and docks its field at the bottom when selecting the tab activates search.
+    @ViewBuilder func backportTabViewSearchActivationOnSearchTabSelection() -> some View {
+        if #available(iOS 27.0, *) {
+            tabViewSearchActivation(.searchTabSelection)
+        } else {
+            self
+        }
+    }
+    
+    @ViewBuilder
+    func backportSafeAreaBar(edge: VerticalEdge,
+                             alignment: HorizontalAlignment = .center,
+                             spacing: CGFloat? = nil,
+                             content: () -> some View) -> some View {
+        if #available(iOS 26.0, *) {
+            safeAreaBar(edge: edge, alignment: alignment, spacing: spacing, content: content)
+        } else {
+            safeAreaInset(edge: edge, alignment: alignment, spacing: spacing) { content().background(Color.compound.bgCanvasDefault.ignoresSafeArea()) }
+        }
+    }
+    
+    @ViewBuilder func backportScrollEdgeEffectHidden() -> some View {
+        if #available(iOS 26, *) {
+            scrollEdgeEffectHidden()
+        } else {
+            self
+        }
+    }
+    
+    @ViewBuilder func backportButtonStyleGlass() -> some View {
+        if #available(iOS 26, *) {
+            buttonStyle(.glass)
+        } else {
+            self
+        }
+    }
+    
     @ViewBuilder func backportButtonStyleGlassProminent() -> some View {
         if #available(iOS 26, *) {
-            // `.glassProminent` breaks snapshot tests: https://github.com/pointfreeco/swift-snapshot-testing/issues/1029
+            // `.glassProminent` breaks our preview tests so we need to disable it when running tests.
+            // https://github.com/pointfreeco/swift-snapshot-testing/issues/1029#issuecomment-3366942138
             if ProcessInfo.isRunningUnitTests {
                 self
             } else {
@@ -19,6 +68,16 @@ extension View {
             }
         } else {
             buttonStyle(.borderedProminent)
+        }
+    }
+}
+
+extension ToolbarContent {
+    @ToolbarContentBuilder func backportSharedBackgroundVisibility(_ visibility: Visibility) -> some ToolbarContent {
+        if #available(iOS 26.0, *) {
+            sharedBackgroundVisibility(visibility)
+        } else {
+            self
         }
     }
 }

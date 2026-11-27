@@ -1,11 +1,22 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import SwiftUI
+
+public enum ListRowColor {
+    public static var separatorTint: Color {
+        if #available(iOS 26, *) {
+            .compound.bgSubtleSecondary
+        } else {
+            .compound._borderInteractiveSecondaryAlpha
+        }
+    }
+}
 
 public enum ListRowPadding {
     public static let horizontal: CGFloat = 16
@@ -19,18 +30,8 @@ public enum ListRowPadding {
                                                    leading: horizontal,
                                                    bottom: 11,
                                                    trailing: horizontal)
-
+    
     public static let labelIconSpacing: CGFloat = Compound.supportsGlass ? 12 : 16
-}
-
-public enum ListRowColor {
-    public static var separatorTint: Color {
-        if #available(iOS 26, *) {
-            .compound.bgSubtleSecondary
-        } else {
-            .compound._borderInteractiveSecondaryAlpha
-        }
-    }
 }
 
 public struct ListRow<Icon: View, DetailsIcon: View, CustomContent: View, SelectionValue: Hashable>: View {
@@ -39,19 +40,19 @@ public struct ListRow<Icon: View, DetailsIcon: View, CustomContent: View, Select
     let label: ListRowLabel<Icon>
     let details: ListRowDetails<DetailsIcon>?
     
-    public enum Kind<CustomContent: View, SelectionValue: Hashable> {
+    public enum Kind<CustomView: View, Selection: Hashable> {
         case label
         case button(action: () -> Void)
         case navigationLink(action: () -> Void)
-        case picker(selection: Binding<SelectionValue>, items: [(title: String, tag: SelectionValue)])
+        case picker(selection: Binding<Selection>, items: [(title: String, tag: Selection)])
         case toggle(Binding<Bool>)
-        case inlinePicker(selection: Binding<SelectionValue>, items: [(title: String, tag: SelectionValue)])
+        case inlinePicker(selection: Binding<Selection>, items: [(title: String, tag: Selection)])
         case selection(isSelected: Bool, action: () -> Void)
         case multiSelection(isSelected: Bool, action: () -> Void)
         case textField(text: Binding<String>, axis: Axis?)
         case secureField(text: Binding<String>)
         
-        case custom(() -> CustomContent)
+        case custom(@MainActor () -> CustomView)
         
         public static func textField(text: Binding<String>) -> Self {
             .textField(text: text, axis: nil)
@@ -124,12 +125,12 @@ public struct ListRow<Icon: View, DetailsIcon: View, CustomContent: View, Select
             Button(action: action) {
                 RowContent(details: details, accessory: .selection(isSelected)) { label }
             }
-            .isToggle()
+            .accessibilityAddTraits(.isToggle)
         case .multiSelection(let isSelected, let action):
             Button(action: action) {
                 RowContent(details: details, accessory: .multiSelection(isSelected)) { label }
             }
-            .isToggle()
+            .accessibilityAddTraits(.isToggle)
         case .textField(let text, let axis):
             TextField(text: text, axis: axis) {
                 Text(label.title ?? "")
@@ -138,6 +139,8 @@ public struct ListRow<Icon: View, DetailsIcon: View, CustomContent: View, Select
             .tint(.compound.iconAccentTertiary)
             .foregroundStyle(isEnabled ? .compound.textPrimary : .compound.textDisabled)
             .listRowInsets(ListRowPadding.textFieldInsets)
+            // The title is used as the placeholder, which VoiceOver only reads while empty.
+            .accessibilityLabel(label.title ?? "")
         case .secureField(let text):
             SecureField(text: text) {
                 Text(label.title ?? "")
@@ -146,7 +149,8 @@ public struct ListRow<Icon: View, DetailsIcon: View, CustomContent: View, Select
             .tint(.compound.iconAccentTertiary)
             .foregroundStyle(isEnabled ? .compound.textPrimary : .compound.textDisabled)
             .listRowInsets(ListRowPadding.textFieldInsets)
-        
+            .accessibilityLabel(label.title ?? "")
+            
         case .custom(let content):
             content()
         }
@@ -219,12 +223,24 @@ private struct RowContent<Label: View, DetailsIcon: View>: View {
     let label: () -> Label
     
     var body: some View {
-        HStack(spacing: ListRowTrailingSectionSpacing.horizontal) {
-            label()
-                .frame(maxWidth: .infinity)
+        // If not custom, the label() content usually includes a leading `ListRowPadding.horizontal`
+        // that's why the external `HStack` has 0 spacing.
+        HStack(spacing: 0) {
+            // We should always have multi selection shown on the leading side
+            if let accessory, accessory.kind.isMultiSelection {
+                accessory
+                    .padding(.leading, ListRowPadding.horizontal)
+            }
             
-            if details != nil || accessory != nil {
-                ListRowTrailingSection(details, accessory: accessory)
+            HStack(spacing: ListRowTrailingSectionSpacing.horizontal) {
+                label()
+                    .frame(maxWidth: .infinity)
+                
+                if details != nil || accessory != nil {
+                    ListRowTrailingSection(details,
+                                           // Prevent multi selection to appear on the trailing side
+                                           accessory: accessory?.kind.isMultiSelection == true ? nil : accessory)
+                }
             }
         }
         .frame(maxHeight: .infinity)
@@ -244,17 +260,6 @@ private extension TextField {
             self.init(text: text, axis: axis, label: label)
         } else {
             self.init(text: text, label: label)
-        }
-    }
-}
-
-private extension Button {
-    /// Adds the `isToggle` accessibility trait on iOS 17+
-    @ViewBuilder func isToggle() -> some View {
-        if #available(iOS 17.0, *) {
-            accessibilityAddTraits(.isToggle)
-        } else {
-            self
         }
     }
 }
@@ -281,7 +286,7 @@ public struct ListRow_Previews: PreviewProvider, TestablePreview {
             othersSection
         }
         .compoundList()
-        .frame(idealHeight: 2100) // Snapshot height
+        .frame(idealHeight: 2275) // Snapshot height
         .previewLayout(.sizeThatFits)
     }
     

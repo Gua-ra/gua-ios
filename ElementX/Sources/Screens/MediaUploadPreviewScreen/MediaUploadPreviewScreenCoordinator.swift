@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -10,9 +11,11 @@ import SwiftUI
 
 struct MediaUploadPreviewScreenCoordinatorParameters {
     let mediaURLs: [URL]
+    let caption: NSAttributedString?
     let title: String?
-    let isRoomEncrypted: Bool
     let shouldShowCaptionWarning: Bool
+    /// When `false`, multiple attachments are sent as individual messages.
+    let galleryEnabled: Bool
     let mediaUploadingPreprocessor: MediaUploadingPreprocessor
     let timelineController: TimelineControllerProtocol
     let clientProxy: ClientProxyProtocol
@@ -34,9 +37,10 @@ final class MediaUploadPreviewScreenCoordinator: CoordinatorProtocol {
     
     init(parameters: MediaUploadPreviewScreenCoordinatorParameters) {
         viewModel = MediaUploadPreviewScreenViewModel(mediaURLs: parameters.mediaURLs,
+                                                      caption: parameters.caption,
                                                       title: parameters.title,
-                                                      isRoomEncrypted: parameters.isRoomEncrypted,
                                                       shouldShowCaptionWarning: parameters.shouldShowCaptionWarning,
+                                                      galleryEnabled: parameters.galleryEnabled,
                                                       mediaUploadingPreprocessor: parameters.mediaUploadingPreprocessor,
                                                       timelineController: parameters.timelineController,
                                                       clientProxy: parameters.clientProxy,

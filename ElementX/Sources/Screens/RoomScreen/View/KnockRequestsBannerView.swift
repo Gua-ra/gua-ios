@@ -1,5 +1,6 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
@@ -18,17 +19,15 @@ struct KnockRequestInfo: Equatable {
 
 struct KnockRequestsBannerView: View {
     let requests: [KnockRequestInfo]
-    let onDismiss: () -> Void
-    let onAccept: ((String) -> Void)?
-    let onViewAll: () -> Void
+    let onDismiss: @MainActor () -> Void
+    let onAccept: (@MainActor (String) -> Void)?
+    let onViewAll: @MainActor () -> Void
     var mediaProvider: MediaProviderProtocol?
     
     var body: some View {
         mainContent
             .padding(16)
             .background(.compound.bgCanvasDefaultLevel1, in: RoundedRectangle(cornerRadius: 12))
-            .compositingGroup()
-            .shadow(color: Color(red: 0.11, green: 0.11, blue: 0.13).opacity(0.1), radius: 12, x: 0, y: 4)
             .padding(.horizontal, 16)
     }
     
@@ -51,9 +50,9 @@ struct KnockRequestsBannerView: View {
 
 private struct SingleKnockRequestBannerContent: View {
     let request: KnockRequestInfo
-    let onDismiss: () -> Void
-    let onAccept: ((String) -> Void)?
-    let onViewAll: () -> Void
+    let onDismiss: @MainActor () -> Void
+    let onAccept: (@MainActor (String) -> Void)?
+    let onViewAll: @MainActor () -> Void
     var mediaProvider: MediaProviderProtocol?
     
     var body: some View {
@@ -119,8 +118,8 @@ private struct SingleKnockRequestBannerContent: View {
 
 private struct MultipleKnockRequestsBannerContent: View {
     let requests: [KnockRequestInfo]
-    let onDismiss: () -> Void
-    let onViewAll: () -> Void
+    let onDismiss: @MainActor () -> Void
+    let onViewAll: @MainActor () -> Void
     var mediaProvider: MediaProviderProtocol?
     
     private var avatars: [StackedAvatarInfo] {
@@ -163,7 +162,7 @@ private struct MultipleKnockRequestsBannerContent: View {
 }
 
 private struct KnockRequestsBannerDismissButton: View {
-    let onDismiss: () -> Void
+    let onDismiss: @MainActor () -> Void
     
     var body: some View {
         Button {
@@ -198,6 +197,14 @@ struct KnockRequestsBannerView_Previews: PreviewProvider, TestablePreview {
     ]
     
     static var previews: some View {
+        allPreviews
+            .padding()
+            .background(.gray)
+            .previewLayout(.sizeThatFits)
+    }
+    
+    @ViewBuilder
+    static var allPreviews: some View {
         KnockRequestsBannerView(requests: singleRequest) { } onAccept: { _ in } onViewAll: { }
             .previewDisplayName("Single Request")
         // swiftlint:disable:next trailing_closure

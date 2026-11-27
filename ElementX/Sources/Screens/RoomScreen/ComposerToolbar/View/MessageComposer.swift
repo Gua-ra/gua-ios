@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -32,7 +33,6 @@ struct MessageComposer: View {
     let onAppearAction: () -> Void
     
     @State private var composerTranslation: CGFloat = 0
-    private let composerShape = RoundedRectangle(cornerRadius: 21, style: .circular)
     
     var body: some View {
         VStack(spacing: 0) {
@@ -77,7 +77,7 @@ struct MessageComposer: View {
                                      pasteHandler: pasteAction)
         }
     }
-
+    
     private var composerHeight: CGFloat {
         let baseHeight = isExpanded ? ComposerConstant.maxHeight : ComposerConstant.minHeight
         return (baseHeight - composerTranslation).clamped(to: ComposerConstant.allowedHeightRange)
@@ -94,7 +94,7 @@ struct MessageComposer: View {
             EmptyView()
         }
     }
-
+    
     private var resizeGrabber: some View {
         Capsule()
             .foregroundStyle(.tertiary)
@@ -102,7 +102,7 @@ struct MessageComposer: View {
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity)
     }
-
+    
     private var dragGesture: some Gesture {
         DragGesture()
             .onChanged { value in
@@ -139,11 +139,7 @@ private struct MessageComposerReplyHeader: View {
     let action: () -> Void
     
     var body: some View {
-        TimelineReplyView(placement: .composer, timelineItemReplyDetails: replyDetails)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .fixedSize(horizontal: false, vertical: true)
-            .padding(4.0)
-            .background(.compound.bgCanvasDefault, in: RoundedRectangle(cornerRadius: 13, style: .circular))
+        TimelineReplyView(placement: .composer, timelineItemReplyDetails: replyDetails, maxWidth: .infinity)
             .overlay(alignment: .topTrailing) {
                 Button(action: action) {
                     CompoundIcon(\.close, size: .small, relativeTo: .compound.bodySMSemibold)
@@ -205,28 +201,46 @@ extension View {
 }
 
 private struct MessageComposerStyleModifier<Header: View>: ViewModifier {
-    private let composerShape = RoundedRectangle(cornerRadius: 21, style: .circular)
+    @Environment(\.isEnabled) private var isEnabled
     
     let header: Header
     
+    private let composerShape = RoundedRectangle(cornerRadius: 21, style: .circular)
+    
     func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            if isEnabled {
+                mainContent(content: content)
+                    .snapshotableGlassEffect(.regular.interactive(), // Doesn't need to be interactive but Apple does it 🤷‍♂️
+                                             snapshotBackground: .compound.bgSubtleSecondary,
+                                             in: composerShape)
+            } else {
+                mainContent(content: content)
+                    .background(.compound.bgSubtlePrimary, in: composerShape)
+            }
+        } else {
+            mainContent(content: content)
+                .background {
+                    ZStack {
+                        composerShape
+                            .fill(Color.compound.bgSubtleSecondary)
+                        composerShape
+                            .stroke(Color.compound.borderInteractiveSecondary, lineWidth: 0.5)
+                    }
+                }
+        }
+    }
+    
+    func mainContent(content: Content) -> some View {
         VStack(alignment: .leading, spacing: -6) {
             header
             
             content
                 .tint(.compound.iconAccentTertiary)
-                .padding(.vertical, 10)
+                .padding(.vertical, Compound.supportsGlass ? 11 : 10)
         }
-        .padding(.horizontal, 12.0)
+        .padding(.horizontal, Compound.supportsGlass ? 16 : 12)
         .clipShape(composerShape)
-        .background {
-            ZStack {
-                composerShape
-                    .fill(Color.compound.bgSubtleSecondary)
-                composerShape
-                    .stroke(Color.compound.borderInteractiveSecondary, lineWidth: 0.5)
-            }
-        }
     }
 }
 

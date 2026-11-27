@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -43,15 +44,15 @@ struct ReadReceiptsSummaryView_Previews: PreviewProvider, TestablePreview {
             .mockDan
         ]
         let roomProxyMock = JoinedRoomProxyMock(.init(name: "Room", members: members))
+        
         return TimelineViewModel(roomProxy: roomProxyMock,
-                                 timelineController: MockTimelineController(),
+                                 timelineController: TimelineControllerMock(.init()),
                                  userSession: UserSessionMock(.init()),
                                  mediaPlayerProvider: MediaPlayerProviderMock(),
                                  userIndicatorController: UserIndicatorControllerMock(),
-                                 appMediator: AppMediatorMock.default,
-                                 appSettings: ServiceLocator.shared.settings,
-                                 analyticsService: ServiceLocator.shared.analytics,
-                                 emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
+                                 appMediator: AppMediatorMock(.init()),
+                                 analyticsService: AnalyticsServiceMock(.init()),
+                                 emojiProvider: EmojiProvider(userSettings: .mock()),
                                  linkMetadataProvider: LinkMetadataProvider(),
                                  timelineControllerFactory: TimelineControllerFactoryMock(.init()))
     }()

@@ -1,60 +1,64 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
+import Compound
 import SwiftUI
 
 struct InviteUsersScreenSelectedItem: View {
-    let user: UserProfileProxy
+    let user: UserProfile
     let mediaProvider: MediaProviderProtocol?
+    var isLocked = false
     let dismissAction: () -> Void
     
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 10) {
             avatar
                 .accessibilityHidden(true)
             
-            Text(user.displayName ?? user.userID.guaDisplayHandle)
-                .font(.compound.bodyMD)
-                .foregroundColor(.compound.textPrimary)
+            Text(user.displayName ?? user.id.guaDisplayHandle)
+                .font(.compound.bodySM)
+                .foregroundColor(.compound.textSecondary)
                 .lineLimit(1)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityAction(named: L10n.actionRemove, dismissAction)
+        .accessibilityActions {
+            if !isLocked {
+                Button(L10n.actionRemove, action: dismissAction)
+            }
+        }
     }
     
     // MARK: - Private
     
+    @ViewBuilder
     var avatar: some View {
-        LoadableAvatarImage(url: user.avatarURL,
-                            name: user.displayName,
-                            contentID: user.userID,
-                            avatarSize: .user(on: .inviteUsers),
-                            mediaProvider: mediaProvider)
-            .overlay(alignment: .topTrailing) {
-                Button(action: dismissAction) {
-                    Image(systemName: "xmark.circle.fill")
-                        .resizable()
-                        .scaledFrame(size: 20)
-                        .symbolRenderingMode(.palette)
-                        .foregroundStyle(Color.compound.iconOnSolidPrimary, Color.compound.iconPrimary)
-                }
-            }
+        let avatarImage = LoadableAvatarImage(url: user.avatarURL,
+                                              name: user.displayName,
+                                              contentID: user.id,
+                                              avatarSize: .user(on: .inviteUsers),
+                                              mediaProvider: mediaProvider)
+        if isLocked {
+            avatarImage
+        } else {
+            avatarImage.overlayRemoveItemButton(action: dismissAction)
+        }
     }
 }
 
 struct InviteUsersScreenSelectedItem_Previews: PreviewProvider, TestablePreview {
-    static let people: [UserProfileProxy] = [.mockAlice, .mockVerbose]
+    static let people: [UserProfile] = [.mockAlice, .mockVerbose]
     
     static var previews: some View {
         ScrollView(.horizontal) {
-            HStack(spacing: 28) {
-                ForEach(people, id: \.userID) { user in
-                    InviteUsersScreenSelectedItem(user: user, mediaProvider: MediaProviderMock(configuration: .init())) { }
-                        .frame(width: 72)
+            HStack(spacing: 8) {
+                ForEach(people, id: \.id) { user in
+                    InviteUsersScreenSelectedItem(user: user, mediaProvider: MediaProviderMock(.init())) { }
+                        .frame(width: 80)
                 }
             }
         }

@@ -1,6 +1,12 @@
 
 "gua_signout_last_device_title" = "Odhlásenie odstráni vaše správy z tohto zariadenia";
 "gua_signout_last_device_message" = "Toto je vaše jediné zariadenie. Správy uložené iba tu nebudú po opätovnom prihlásení dostupné.";
+"gua_settings_sign_out" = "Odhlásiť sa";
+"gua_signout_confirmation_message" = "Ste si istí, že sa chcete odhlásiť?";
+"gua_signout_key_backup_ongoing_subtitle" = "Pred odhlásením počkajte, kým sa to dokončí.";
+"gua_signout_key_backup_offline_subtitle" = "Keď ste sa odpojili od internetu, vaše kľúče sa ešte stále zálohovali. Pripojte sa znova k internetu, aby sa vaše kľúče mohli zálohovať pred odhlásením.";
+"gua_app_lock_signout_alert_title" = "Prebieha odhlasovanie";
+"gua_signing_out" = "Odhlasovanie";
 "gua_encryption_reset_required_title" = "Niektoré predchádzajúce správy sa nedajú obnoviť";
 "gua_encryption_reset_required_message" = "Ak chcete dokončiť nastavenie šifrovaných konverzácií v tomto zariadení, vaša šifrovaná záloha sa musí resetovať. Správy uložené iba v tejto zálohe budú stratené. Správy, ktoré už máte vo svojich zariadeniach, zostanú nedotknuté.";
 "gua_encryption_reset_required_action" = "Resetovať a dokončiť";

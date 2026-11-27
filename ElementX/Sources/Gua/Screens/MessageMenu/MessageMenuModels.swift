@@ -12,21 +12,21 @@ enum TimelineItemMenuPresentation: Equatable {
     case sheet
     case reactions(MessageMenuAnchor)
     case reactionsAndActions(MessageMenuAnchor)
-
+    
     var anchor: MessageMenuAnchor? {
         switch self {
         case .sheet: nil
         case .reactions(let anchor), .reactionsAndActions(let anchor): anchor
         }
     }
-
+    
     var showsActions: Bool {
         switch self {
         case .sheet, .reactionsAndActions: true
         case .reactions: false
         }
     }
-
+    
     @MainActor
     static func floating(showsActions: Bool, over reader: WindowFrameReader) -> Self {
         guard let frame = reader.frame else { return .sheet }
@@ -40,21 +40,21 @@ enum TimelineItemMenuPresentation: Equatable {
 final class MessageMenuAnchor: Equatable {
     private let initialFrame: CGRect
     private weak var reader: WindowFrameReader?
-
+    
     init(frame: CGRect, reader: WindowFrameReader? = nil) {
         initialFrame = frame
         self.reader = reader
     }
-
+    
     var frame: CGRect {
         reader?.frame ?? initialFrame
     }
-
+    
     var isBubbleLifted: Bool {
         get { reader?.isLifted ?? false }
         set { reader?.isLifted = newValue }
     }
-
+    
     nonisolated static func == (lhs: MessageMenuAnchor, rhs: MessageMenuAnchor) -> Bool {
         lhs === rhs
     }
@@ -68,7 +68,6 @@ extension TimelineViewState {
                                        canCurrentUserRedactOthers: canCurrentUserRedactOthers,
                                        canCurrentUserPin: canCurrentUserPin,
                                        pinnedEventIDs: pinnedEventIDs,
-                                       isDM: isDirectOneToOneRoom,
                                        isViewSourceEnabled: isViewSourceEnabled,
                                        areThreadsEnabled: areThreadsEnabled,
                                        timelineKind: timelineKind,
@@ -91,7 +90,7 @@ enum MessageQuickReactions {
         .init(key: "‼️", symbol: .exclamationmark2),
         .init(key: "❓\u{FE0F}", symbol: .questionmark)
     ]
-
+    
     static let maximumCount = 10
 }
 
@@ -124,10 +123,10 @@ extension TimelineItemMenuAction {
         case .reply: (.primary, 1)
         case .copy, .copyCaption: (.primary, 2)
         case .select: (.primary, 3)
-        case .edit, .editCaption, .addCaption, .editPoll: (.primary, 4)
-        case .forward: (.primary, 5)
-        case .share: (.primary, 6)
-        case .save: (.primary, 7)
+        case .translate: (.primary, 4)
+        case .edit, .editCaption, .addCaption, .editPoll: (.primary, 5)
+        case .forward: (.primary, 6)
+        case .downloadMedia: (.primary, 7)
         case .replyInThread: (.more, 0)
         case .pin, .unpin: (.more, 1)
         case .copyPermalink: (.more, 2)
@@ -145,11 +144,11 @@ struct MessageMenuLayout: Equatable {
     let bubbleFrame: CGRect
     let reactionBarFrame: CGRect?
     let detailsFrame: CGRect?
-
+    
     static let spacing: CGFloat = 8
     static let margin: CGFloat = 12
     static let minimumBubbleHeight: CGFloat = 44
-
+    
     /// All frames use the container's coordinate space, measured from its left edge.
     init(sourceFrame: CGRect,
          alignsRight: Bool,

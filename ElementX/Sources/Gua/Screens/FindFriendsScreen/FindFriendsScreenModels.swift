@@ -31,7 +31,7 @@ struct FindFriendsScreenViewState: BindableState {
     var contacts: [DiscoveredContact] = []
     var errorMessage: String?
     var bindings = FindFriendsScreenViewStateBindings()
-
+    
     /// User id of the contact whose chat is currently being opened (drives a per-row spinner).
     var startingChatUserID: String?
 }

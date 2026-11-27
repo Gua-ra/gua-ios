@@ -1,7 +1,8 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -11,8 +12,6 @@ import MatrixRustSDK
 
 final class RoomDirectorySearchProxy: RoomDirectorySearchProxyProtocol {
     private let roomDirectorySearch: RoomDirectorySearchProtocol
-    private let appSettings: AppSettings
-    private let serialDispatchQueue = DispatchQueue(label: "io.element.elementx.room_directory_search_proxy", qos: .default)
     
     private let resultsSubject = CurrentValueSubject<[RoomDirectorySearchResult], Never>([])
     
@@ -25,24 +24,33 @@ final class RoomDirectorySearchProxy: RoomDirectorySearchProxyProtocol {
         set { resultsSubject.send(newValue) }
     }
     
-    private let diffsPublisher = PassthroughSubject<[RoomDirectorySearchEntryUpdate], Never>()
+    /// Bridge from the SDK's synchronous callback into Swift Concurrency. Yielding is safe from any
+    /// thread; a single long-lived `for await` consumer (set up in `init`) applies the updates on the
+    /// main actor in FIFO order, guaranteeing one in-flight update at a time.
+    private let updatesContinuation: AsyncStream<[RoomDirectorySearchEntryUpdate]>.Continuation
     
+    // periphery:ignore - required for instance retention in the rust codebase
     private var searchEntriesSubscription: TaskHandle?
     
-    private var cancellables = Set<AnyCancellable>()
+    deinit {
+        updatesContinuation.finish()
+    }
     
-    init(roomDirectorySearch: RoomDirectorySearchProtocol,
-         appSettings: AppSettings) {
+    init(roomDirectorySearch: RoomDirectorySearchProtocol) {
         self.roomDirectorySearch = roomDirectorySearch
-        self.appSettings = appSettings
-        diffsPublisher
-            .receive(on: serialDispatchQueue)
-            .sink { [weak self] in self?.updateResultsWithDiffs($0) }
-            .store(in: &cancellables)
+        
+        let (updatesStream, updatesContinuation) = AsyncStream<[RoomDirectorySearchEntryUpdate]>.makeStream()
+        self.updatesContinuation = updatesContinuation
+        
+        Task { [weak self] in
+            for await updates in updatesStream {
+                await self?.updateResultsWithDiffs(updates)
+            }
+        }
         
         Task {
-            searchEntriesSubscription = await roomDirectorySearch.results(listener: SDKListener { [weak self] updates in
-                self?.diffsPublisher.send(updates)
+            searchEntriesSubscription = await roomDirectorySearch.results(listener: SDKListener { updates in
+                updatesContinuation.yield(updates)
             })
         }
     }
@@ -65,60 +73,65 @@ final class RoomDirectorySearchProxy: RoomDirectorySearchProxyProtocol {
         }
     }
     
-    private func updateResultsWithDiffs(_ updates: [RoomDirectorySearchEntryUpdate]) {
-        results = updates.reduce(results) { currentItems, diff in
+    private func updateResultsWithDiffs(_ updates: [RoomDirectorySearchEntryUpdate]) async {
+        // Building the results and applying the CollectionDifference can be expensive for large
+        // search batches, so compute off the main actor and only hop back to publish.
+        results = await Self.updatedResults(from: updates, on: results)
+    }
+    
+    @concurrent
+    private static func updatedResults(from updates: [RoomDirectorySearchEntryUpdate],
+                                       on currentResults: [RoomDirectorySearchResult]) async -> [RoomDirectorySearchResult] {
+        updates.reduce(currentResults) { currentItems, diff in
             processDiff(diff, on: currentItems)
         }
     }
     
-    private func processDiff(_ diff: RoomDirectorySearchEntryUpdate, on currentItems: [RoomDirectorySearchResult]) -> [RoomDirectorySearchResult] {
-        guard let collectionDiff = buildDiff(from: diff, on: currentItems) else {
-            return currentItems
-        }
-        
-        guard let updatedItems = currentItems.applying(collectionDiff) else {
+    private nonisolated static func processDiff(_ diff: RoomDirectorySearchEntryUpdate, on currentItems: [RoomDirectorySearchResult]) -> [RoomDirectorySearchResult] {
+        guard let collectionDiff = buildDiff(from: diff, on: currentItems),
+              let updatedItems = currentItems.applying(collectionDiff) else {
             return currentItems
         }
         
         return updatedItems
     }
     
-    private func buildDiff(from diff: RoomDirectorySearchEntryUpdate, on currentItems: [RoomDirectorySearchResult]) -> CollectionDifference<RoomDirectorySearchResult>? {
+    private nonisolated static func buildDiff(from diff: RoomDirectorySearchEntryUpdate, on currentItems: [RoomDirectorySearchResult]) -> CollectionDifference<RoomDirectorySearchResult>? {
         var changes = [CollectionDifference<RoomDirectorySearchResult>.Change]()
         
         switch diff {
         case .append(let values):
             for (index, value) in values.enumerated() {
                 let result = buildResultForRoomDescription(value)
-                changes.append(.insert(offset: results.count + index, element: result, associatedWith: nil))
+                changes.append(.insert(offset: currentItems.count + index, element: result, associatedWith: nil))
             }
         case .clear:
-            for (index, value) in results.enumerated() {
+            for (index, value) in currentItems.enumerated() {
                 changes.append(.remove(offset: index, element: value, associatedWith: nil))
             }
         case .insert(let index, let value):
             let result = buildResultForRoomDescription(value)
             changes.append(.insert(offset: Int(index), element: result, associatedWith: nil))
         case .popBack:
-            guard let value = results.last else {
+            guard let value = currentItems.last else {
                 fatalError()
             }
             
-            changes.append(.remove(offset: results.count - 1, element: value, associatedWith: nil))
+            changes.append(.remove(offset: currentItems.count - 1, element: value, associatedWith: nil))
         case .popFront:
-            let result = results[0]
+            let result = currentItems[0]
             changes.append(.remove(offset: 0, element: result, associatedWith: nil))
         case .pushBack(let value):
             let result = buildResultForRoomDescription(value)
-            changes.append(.insert(offset: results.count, element: result, associatedWith: nil))
+            changes.append(.insert(offset: currentItems.count, element: result, associatedWith: nil))
         case .pushFront(let value):
             let result = buildResultForRoomDescription(value)
             changes.append(.insert(offset: 0, element: result, associatedWith: nil))
         case .remove(let index):
-            let result = results[Int(index)]
+            let result = currentItems[Int(index)]
             changes.append(.remove(offset: Int(index), element: result, associatedWith: nil))
         case .reset(let values):
-            for (index, result) in results.enumerated() {
+            for (index, result) in currentItems.enumerated() {
                 changes.append(.remove(offset: index, element: result, associatedWith: nil))
             }
             
@@ -130,7 +143,7 @@ final class RoomDirectorySearchProxy: RoomDirectorySearchProxyProtocol {
             changes.append(.remove(offset: Int(index), element: result, associatedWith: nil))
             changes.append(.insert(offset: Int(index), element: result, associatedWith: nil))
         case .truncate(let length):
-            for (index, value) in results.enumerated() {
+            for (index, value) in currentItems.enumerated() {
                 if index < length {
                     continue
                 }
@@ -142,12 +155,12 @@ final class RoomDirectorySearchProxy: RoomDirectorySearchProxyProtocol {
         return CollectionDifference(changes)
     }
     
-    private func buildResultForRoomDescription(_ value: RoomDescription) -> RoomDirectorySearchResult {
+    private nonisolated static func buildResultForRoomDescription(_ value: RoomDescription) -> RoomDirectorySearchResult {
         RoomDirectorySearchResult(id: value.roomId,
                                   alias: value.alias,
                                   name: value.name,
                                   topic: value.topic,
                                   avatar: .room(id: value.roomId, name: value.name, avatarURL: value.avatarUrl.flatMap(URL.init(string:))),
-                                  canBeJoined: value.joinRule == .public || (appSettings.knockingEnabled && value.joinRule == .knock))
+                                  canBeJoined: value.joinRule == .public || value.joinRule == .knock)
     }
 }

@@ -1,17 +1,15 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Foundation
 import MatrixRustSDK
 
-enum Tracing {
-    /// The base filename used for log files. This may be suffixed by the target
-    /// name and other log management metadata during rotation.
-    static let filePrefix = "console"
+nonisolated enum Tracing {
     /// The directory that stores all of the log files.
     static var logsDirectory: URL {
         if ProcessInfo.isRunningIntegrationTests {
@@ -24,42 +22,37 @@ enum Tracing {
     /// Set this to temporarily override the directory from which logs will be collected.
     /// This basically only affects ``logFiles``, and doesn't inform the SDK to write
     /// the logs to a different directory, which should be done before setting this.
-    static var logsDirectoryOverride: URL?
+    nonisolated(unsafe) static var logsDirectoryOverride: URL?
     static var legacyLogsDirectory: URL {
         .appGroupContainerDirectory
     }
     
-    static let fileExtension = "log"
+    static let fileExtension = ".log"
     
-    static func buildConfiguration(logLevel: LogLevel, traceLogPacks: Set<TraceLogPack>,
+    static func buildConfiguration(logLevel: LogLevel,
+                                   traceLogPacks: Set<TraceLogPack>,
                                    currentTarget: String,
-                                   filePrefix: String?,
+                                   filePrefix: String,
                                    sentryURL: URL?) -> TracingConfiguration {
-        let fileName = if let filePrefix {
-            "\(Tracing.filePrefix)-\(filePrefix)"
-        } else {
-            Tracing.filePrefix
-        }
-
         // Log everything on integration tests to check whether
         // the logs contain any sensitive data. See `integration-tests.yml`
         let level: LogLevel = ProcessInfo.isRunningIntegrationTests ? .trace : logLevel
-
         let sentryConfig = sentryURL.map { url in
             SentryConfig(dsn: url.absoluteString,
                          appVersion: InfoPlistReader.app.bundleShortVersionString,
                          appPlatform: ProcessInfo.processInfo.platform)
         }
-
+        
         return .init(logLevel: level.rustLogLevel,
                      traceLogPacks: traceLogPacks.map(\.rustLogPack),
                      extraTargets: [currentTarget],
                      writeToStdoutOrSystem: true,
                      writeToFiles: .init(path: logsDirectory.path(percentEncoded: false),
-                                         filePrefix: fileName,
+                                         filePrefix: filePrefix,
                                          fileSuffix: fileExtension,
-                                         maxTotalSizeBytes: 100 * 1024 * 1024,
-                                         maxAgeSeconds: 7 * 24 * 60 * 60),
+                                         // Total compressed size needs to be under CloudFlare's max request size of 50Mb
+                                         maxTotalSizeBytes: 100 * 1024 * 1024, // 100Mb
+                                         maxAgeSeconds: 7 * 24 * 60 * 60), // One week
                      sentryConfig: sentryConfig)
     }
     
@@ -83,7 +76,7 @@ enum Tracing {
                   let modificationDate = resourceValues.contentModificationDate
             else { continue }
             
-            if logURL.lastPathComponent.hasPrefix(filePrefix) {
+            if logURL.lastPathComponent.hasSuffix(fileExtension) {
                 logFiles.append((logURL, modificationDate))
             }
         }

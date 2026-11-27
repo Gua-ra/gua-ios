@@ -1,19 +1,24 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 @testable import ElementX
-import XCTest
+import Testing
 
 @MainActor
-class UserDiscoveryServiceTest: XCTestCase {
-    var service: UserDiscoveryService!
-    var clientProxy: ClientProxyMock!
+struct UserDiscoveryServiceTest {
+    private var service: UserDiscoveryService
+    private var clientProxy: ClientProxyMock
     
-    override func setUpWithError() throws {
+    private var searchResults: [UserProfile] {
+        [.mockAlice, .mockBob, .mockCharlie]
+    }
+    
+    init() {
         clientProxy = .init(.init(userID: "@foo:matrix.org"))
         // A bare handle now always resolves against the searcher's own server, so the default
         // has to be "no such user" or every search in this file would invent one. Tests that
@@ -22,144 +27,158 @@ class UserDiscoveryServiceTest: XCTestCase {
         service = UserDiscoveryService(clientProxy: clientProxy, federationRosterProvider: nil)
     }
     
-    func testQueryShowingResults() async {
-        clientProxy.searchUsersSearchTermLimitReturnValue = .success(.init(results: [UserProfileProxy.mockAlice], limited: true))
+    @Test
+    func queryShowingResults() async {
+        clientProxy.searchUsersSearchTermLimitReturnValue = .success(.init(results: [UserProfile.mockAlice], limited: true))
         
         let results = await (try? search(query: "AAA").get()) ?? []
         assertSearchResults(results, toBe: 1)
     }
     
-    func testOwnerIsFiltered() async {
-        clientProxy.searchUsersSearchTermLimitReturnValue = .success(.init(results: [UserProfileProxy(userID: "@foo:matrix.org")], limited: true))
+    @Test
+    func ownerIsFiltered() async {
+        clientProxy.searchUsersSearchTermLimitReturnValue = .success(.init(results: [UserProfile(userID: "@foo:matrix.org")], limited: true))
         
         let results = await (try? search(query: "AAA").get()) ?? []
         assertSearchResults(results, toBe: 0)
     }
     
-    func testGetProfileIsNotCalledForATooShortQuery() async {
+    @Test
+    func getProfileIsNotCalledForATooShortQuery() async {
         clientProxy.searchUsersSearchTermLimitReturnValue = .success(.init(results: searchResults, limited: true))
         clientProxy.profileForReturnValue = .success(.init(userID: "@alice:matrix.org"))
         
         // Below the three-character floor, so this is not a handle and must not fan out.
         let results = await (try? search(query: "AA").get()) ?? []
         assertSearchResults(results, toBe: 3)
-        XCTAssertFalse(clientProxy.profileForCalled)
+        #expect(!clientProxy.profileForCalled)
     }
-
-    func testGetProfileIsNotCalledForAccountOwnerID() async {
+    
+    @Test
+    func getProfileIsNotCalledForAccountOwnerID() async {
         clientProxy.searchUsersSearchTermLimitReturnValue = .success(.init(results: searchResults, limited: true))
         clientProxy.profileForReturnValue = .success(.init(userID: "@alice:matrix.org"))
         
         let results = await (try? search(query: "foo:matrix.org").get()) ?? []
         assertSearchResults(results, toBe: 3)
-        XCTAssertFalse(clientProxy.profileForCalled)
+        #expect(!clientProxy.profileForCalled)
     }
     
-    func testLocalResultShows() async {
+    @Test
+    func localResultShows() async {
         clientProxy.searchUsersSearchTermLimitReturnValue = .success(.init(results: searchResults, limited: true))
         clientProxy.profileForReturnValue = .success(.init(userID: "@some:matrix.org"))
         
         let results = await (try? search(query: "@a:b.com").get()) ?? []
         
         assertSearchResults(results, toBe: 4)
-        XCTAssertTrue(clientProxy.profileForCalled)
+        #expect(clientProxy.profileForCalled)
     }
     
-    func testLocalResultShowsOnSearchError() async {
+    @Test
+    func localResultShowsOnSearchError() async {
         clientProxy.searchUsersSearchTermLimitReturnValue = .failure(.sdkError(ClientProxyMockError.generic))
         clientProxy.profileForReturnValue = .success(.init(userID: "@some:matrix.org"))
         
         let results = await (try? search(query: "@a:b.com").get()) ?? []
         
         assertSearchResults(results, toBe: 1)
-        XCTAssertTrue(clientProxy.profileForCalled)
+        #expect(clientProxy.profileForCalled)
     }
     
-    func testSearchErrorTriggers() async {
+    @Test
+    func searchErrorTriggers() async {
         clientProxy.searchUsersSearchTermLimitReturnValue = .failure(.sdkError(ClientProxyMockError.generic))
         clientProxy.profileForReturnValue = .success(.init(userID: "@some:matrix.org"))
         
         switch await search(query: "some query") {
         case .success:
-            XCTFail("Search users must fail")
+            Issue.record("Search users must fail")
         case .failure(let error):
-            XCTAssertEqual(error, UserDiscoveryErrorType.failedSearchingUsers)
+            #expect(error == UserDiscoveryErrorType.failedSearchingUsers)
         }
         
-        XCTAssertFalse(clientProxy.profileForCalled)
+        #expect(!clientProxy.profileForCalled)
     }
     
-    func testLocalResultWithDuplicates() async {
+    @Test
+    func localResultWithDuplicates() async {
         clientProxy.searchUsersSearchTermLimitReturnValue = .success(.init(results: searchResults, limited: true))
         clientProxy.profileForReturnValue = .success(.init(userID: "@bob:matrix.org"))
         
         let results = await (try? search(query: "@a:b.com").get()) ?? []
         
         assertSearchResults(results, toBe: 3)
-        let firstUserID = results.first?.userID
-        XCTAssertEqual(firstUserID, "@bob:matrix.org")
-        XCTAssertTrue(clientProxy.profileForCalled)
+        let firstUserID = results.first?.id
+        #expect(firstUserID == "@bob:matrix.org")
+        #expect(clientProxy.profileForCalled)
     }
     
-    func testSearchResultsShowWhenGetProfileFails() async {
+    @Test
+    func searchResultsShowWhenGetProfileFails() async {
         clientProxy.searchUsersSearchTermLimitReturnValue = .success(.init(results: searchResults, limited: true))
         clientProxy.profileForReturnValue = .failure(.sdkError(ClientProxyMockError.generic))
         
         let results = await (try? search(query: "@a:b.com").get()) ?? []
         
-        let firstUserID = results.first?.userID
-        XCTAssertEqual(firstUserID, "@a:b.com")
-        XCTAssertTrue(clientProxy.profileForCalled)
+        let firstUserID = results.first?.id
+        #expect(firstUserID == "@a:b.com")
+        #expect(clientProxy.profileForCalled)
     }
     
     // MARK: - Gua federated bare-handle search
-
-    func testBareHandleFansOutAcrossFederationIncludingOwnServer() async {
+    
+    @Test
+    mutating func bareHandleFansOutAcrossFederationIncludingOwnServer() async {
         makeFederatedService(entries: [("matrix.org", "ACTIVE"), ("ca.gua.example", "ACTIVE"), ("br.gua.example", "ACTIVE")])
         clientProxy.searchUsersSearchTermLimitReturnValue = .success(.init(results: [.mockAlice], limited: false))
         clientProxy.profileForClosure = { userID in .success(.init(userID: userID)) }
-
+        
         let results = await (try? search(query: "ana-souza").get()) ?? []
-
-        XCTAssertEqual(results.map(\.userID), ["@alice:matrix.org",
-                                               "@ana-souza:matrix.org",
-                                               "@ana-souza:ca.gua.example",
-                                               "@ana-souza:br.gua.example"])
+        
+        #expect(results.map(\.id) == ["@alice:matrix.org",
+                                      "@ana-souza:matrix.org",
+                                      "@ana-souza:ca.gua.example",
+                                      "@ana-souza:br.gua.example"])
     }
-
-    func testFederatedLookupFailuresAreDropped() async {
+    
+    @Test
+    mutating func federatedLookupFailuresAreDropped() async {
         makeFederatedService(entries: [("matrix.org", "ACTIVE"), ("ca.gua.example", "ACTIVE"), ("br.gua.example", "ACTIVE")])
         clientProxy.searchUsersSearchTermLimitReturnValue = .success(.init(results: [.mockAlice], limited: false))
         clientProxy.profileForClosure = { userID in
             userID == "@ana-souza:br.gua.example" ? .success(.init(userID: userID, displayName: "Ana")) : .failure(.sdkError(ClientProxyMockError.generic))
         }
-
+        
         let results = await (try? search(query: "ana-souza").get()) ?? []
-
-        XCTAssertEqual(results.map(\.userID), ["@alice:matrix.org", "@ana-souza:br.gua.example"])
+        
+        #expect(results.map(\.id) == ["@alice:matrix.org", "@ana-souza:br.gua.example"])
     }
-
-    func testFederatedMatchesAreDeduplicatedAgainstLocalResults() async {
+    
+    @Test
+    mutating func federatedMatchesAreDeduplicatedAgainstLocalResults() async {
         makeFederatedService(entries: [("matrix.org", "ACTIVE"), ("ca.gua.example", "ACTIVE")])
         clientProxy.searchUsersSearchTermLimitReturnValue = .success(.init(results: [.init(userID: "@ana-souza:ca.gua.example")], limited: false))
         clientProxy.profileForClosure = { userID in .success(.init(userID: userID)) }
-
+        
         let results = await (try? search(query: "ana-souza").get()) ?? []
-
-        XCTAssertEqual(results.map(\.userID), ["@ana-souza:ca.gua.example", "@ana-souza:matrix.org"])
+        
+        #expect(results.map(\.id) == ["@ana-souza:ca.gua.example", "@ana-souza:matrix.org"])
     }
-
-    func testFederatedMatchesShowWhenLocalSearchFails() async {
+    
+    @Test
+    mutating func federatedMatchesShowWhenLocalSearchFails() async {
         makeFederatedService(entries: [("matrix.org", "ACTIVE"), ("ca.gua.example", "ACTIVE")])
         clientProxy.searchUsersSearchTermLimitReturnValue = .failure(.sdkError(ClientProxyMockError.generic))
         clientProxy.profileForClosure = { userID in .success(.init(userID: userID)) }
-
+        
         let results = await (try? search(query: "ana-souza").get()) ?? []
-
-        XCTAssertEqual(results.map(\.userID), ["@ana-souza:matrix.org", "@ana-souza:ca.gua.example"])
+        
+        #expect(results.map(\.id) == ["@ana-souza:matrix.org", "@ana-souza:ca.gua.example"])
     }
-
-    func testSlowFederatedLookupIsDroppedAfterTimeout() async {
+    
+    @Test
+    mutating func slowFederatedLookupIsDroppedAfterTimeout() async {
         makeFederatedService(entries: [("matrix.org", "ACTIVE"), ("ca.gua.example", "ACTIVE"), ("br.gua.example", "ACTIVE")],
                              lookupTimeout: .milliseconds(50))
         clientProxy.searchUsersSearchTermLimitReturnValue = .success(.init(results: [.mockAlice], limited: false))
@@ -169,49 +188,52 @@ class UserDiscoveryServiceTest: XCTestCase {
             }
             return .success(.init(userID: userID))
         }
-
+        
         let results = await (try? search(query: "ana-souza").get()) ?? []
-
-        XCTAssertEqual(results.map(\.userID), ["@alice:matrix.org",
-                                               "@ana-souza:matrix.org",
-                                               "@ana-souza:br.gua.example"])
+        
+        #expect(results.map(\.id) == ["@alice:matrix.org",
+                                      "@ana-souza:matrix.org",
+                                      "@ana-souza:br.gua.example"])
     }
-
+    
     /// Regression: an unconfigured or unreachable resolver must not remove the ability to find
     /// someone on your own server. That is the common case and the whole point of the fix.
-    func testOwnServerIsStillSearchedWithoutARoster() async {
+    @Test
+    mutating func ownServerIsStillSearchedWithoutARoster() async {
         service = UserDiscoveryService(clientProxy: clientProxy, federationRosterProvider: nil)
         clientProxy.searchUsersSearchTermLimitReturnValue = .success(.init(results: [], limited: false))
         clientProxy.profileForClosure = { userID in .success(.init(userID: userID)) }
-
+        
         let results = await (try? search(query: "ana-souza").get()) ?? []
-
-        XCTAssertEqual(results.map(\.userID), ["@ana-souza:matrix.org"])
+        
+        #expect(results.map(\.id) == ["@ana-souza:matrix.org"])
     }
-
-    func testOwnServerIsStillSearchedWhenTheRosterIsEmpty() async {
+    
+    @Test
+    mutating func ownServerIsStillSearchedWhenTheRosterIsEmpty() async {
         makeFederatedService(entries: [])
         clientProxy.searchUsersSearchTermLimitReturnValue = .success(.init(results: [], limited: false))
         clientProxy.profileForClosure = { userID in .success(.init(userID: userID)) }
-
+        
         let results = await (try? search(query: "ana-souza").get()) ?? []
-
-        XCTAssertEqual(results.map(\.userID), ["@ana-souza:matrix.org"])
+        
+        #expect(results.map(\.id) == ["@ana-souza:matrix.org"])
     }
-
-    func testNonHandleQueryDoesNotFanOut() async {
+    
+    @Test
+    mutating func nonHandleQueryDoesNotFanOut() async {
         makeFederatedService(entries: [("matrix.org", "ACTIVE"), ("ca.gua.example", "ACTIVE")])
         clientProxy.searchUsersSearchTermLimitReturnValue = .success(.init(results: [.mockAlice], limited: false))
-
+        
         let results = await (try? search(query: "ana souza").get()) ?? []
-
+        
         assertSearchResults(results, toBe: 1)
-        XCTAssertFalse(clientProxy.profileForCalled)
+        #expect(!clientProxy.profileForCalled)
     }
-
+    
     // MARK: - Private
-
-    private func makeFederatedService(entries: [(serverName: String, status: String)], lookupTimeout: Duration = .seconds(3)) {
+    
+    private mutating func makeFederatedService(entries: [(serverName: String, status: String)], lookupTimeout: Duration = .seconds(3)) {
         let roster = FederationRoster(entries: entries.map { entry in
             FederationRosterEntry(homeserver: .init(serverName: entry.serverName, searchVisibility: nil, searchGroups: nil),
                                   status: entry.status)
@@ -220,29 +242,21 @@ class UserDiscoveryServiceTest: XCTestCase {
                                        federationRosterProvider: StaticRosterProvider(roster: roster),
                                        federatedLookupTimeout: lookupTimeout)
     }
-
-    private func assertSearchResults(_ results: [UserProfileProxy], toBe count: Int) {
-        XCTAssertTrue(count >= 0)
-        XCTAssertEqual(results.count, count)
-        XCTAssertEqual(results.isEmpty, count == 0)
+    
+    private func assertSearchResults(_ results: [UserProfile], toBe count: Int) {
+        #expect(count >= 0)
+        #expect(results.count == count)
+        #expect(results.isEmpty == (count == 0))
     }
     
-    private func search(query: String) async -> Result<[UserProfileProxy], UserDiscoveryErrorType> {
+    private func search(query: String) async -> Result<[UserProfile], UserDiscoveryErrorType> {
         await service.searchProfiles(with: query)
-    }
-    
-    private var searchResults: [UserProfileProxy] {
-        [
-            .mockAlice,
-            .mockBob,
-            .mockCharlie
-        ]
     }
 }
 
 private struct StaticRosterProvider: FederationRosterProviding {
     let roster: FederationRoster?
-
+    
     func currentRoster() async -> FederationRoster? {
         roster
     }

@@ -10,6 +10,12 @@
 "gua_encryption_reset_required_action" = "Restablecer y finalizar";
 "gua_signout_last_device_title" = "Cerrar sesión eliminará tus mensajes de este dispositivo";
 "gua_signout_last_device_message" = "Los mensajes guardados solo aquí no estarán disponibles cuando vuelvas a iniciar sesión.";
+"gua_settings_sign_out" = "Cerrar sesión";
+"gua_signout_confirmation_message" = "¿Estás seguro de que quieres cerrar sesión?";
+"gua_signout_key_backup_ongoing_subtitle" = "Espera a que se complete antes de cerrar sesión.";
+"gua_signout_key_backup_offline_subtitle" = "Se estaba haciendo una copia de seguridad de tus claves cuando te desconectaste. Vuelve a conectarte para que se haga una copia de seguridad de tus claves antes de cerrar sesión.";
+"gua_app_lock_signout_alert_title" = "Se está cerrando tu sesión";
+"gua_signing_out" = "Cerrando sesión";
 "gua_encryption_reset_finishing" = "Finalizando la configuración…";
 "gua_encryption_reset_failed" = "No se pudo finalizar la configuración. Inténtalo de nuevo.";
 "gua_encryption_recover_from_other_device_title" = "Recupera tus mensajes anteriores";
@@ -73,12 +79,15 @@
 
 "gua_action_select" = "Seleccionar";
 "gua_action_more" = "Más";
+"gua_action_open_in_new_window" = "Abrir en una ventana nueva";
+"gua_common_global_search" = "Búsqueda global";
 "gua_message_text_selection_title" = "Seleccionar texto";
 
 "common_account_settings" = "Ajustes de la cuenta";
 "common_app_settings" = "Ajustes de la app";
 "action_manage_account_and_devices" = "Gestionar cuenta y dispositivos";
 "action_delete_account" = "Eliminar cuenta";
+"gua_action_delete" = "Eliminar";
 "common_media_upload_quality" = "Calidad de subida de multimedia";
 
 "common_moderation_and_safety" = "Moderación y seguridad";
@@ -89,3 +98,6 @@
 "gua_join_space_turns_on_spaces" = "Este es un espacio. Al unirte, se activan los Espacios para que veas sus chats.";
 
 "gua_settings_spaces_description" = "Organiza chats y comunidades relacionados en un solo lugar";
+
+"gua_notification_sound_default" = "Predeterminado de Gua";
+"gua_notification_sound_fade" = "Desvanecimiento de Gua";

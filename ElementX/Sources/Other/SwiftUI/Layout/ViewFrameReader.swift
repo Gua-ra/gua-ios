@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -12,10 +13,9 @@ extension View {
     /// Reads the frame of the view and stores it in the `frame` binding.
     /// - Parameters:
     ///   - frame: a `CGRect` binding
-    ///   - coordinateSpace: the coordinate space of the frame.
-    func readFrame(_ frame: Binding<CGRect>, in coordinateSpace: CoordinateSpace = .local) -> some View {
+    func readFrame(_ frame: Binding<CGRect>) -> some View {
         onGeometryChange(for: CGRect.self) { geometry in
-            geometry.frame(in: coordinateSpace)
+            geometry.frame(in: .local)
         } action: { newValue in
             frame.wrappedValue = newValue
         }

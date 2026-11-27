@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -31,6 +32,9 @@ class AppLockSetupUITests: XCTestCase {
     }
     
     func testCreateFlow() async throws {
+        // There's an issue with the number pad keyboard style on iPad.
+        guard UIDevice.current.userInterfaceIdiom == .phone else { return }
+        
         app = Application.launch(.appLockSetupFlow)
         
         // Wait for the keyboard to push the sheet up before snapshotting
@@ -70,7 +74,7 @@ class AppLockSetupUITests: XCTestCase {
         try await app.assertScreenshot(step: Step.settings)
         
         app.buttons[A11yIdentifiers.appLockSetupSettingsScreen.removePIN].tap()
-        app.alerts.element.buttons[A11yIdentifiers.alertInfo.primaryButton].tap()
+        app.alerts.element.buttons[A11yIdentifiers.alertInfo.primaryButton].firstMatch.tap()
         
         // Pop the stack returning to whatever was last presented.
         try await app.assertScreenshot(step: Step.clearedStack)
@@ -101,6 +105,9 @@ class AppLockSetupUITests: XCTestCase {
     }
     
     func testUnlockFlow() async throws {
+        // There's an issue with the number pad keyboard style on iPad.
+        guard UIDevice.current.userInterfaceIdiom == .phone else { return }
+        
         app = Application.launch(.appLockSetupFlowUnlock)
         
         // Create PIN screen.
@@ -112,13 +119,16 @@ class AppLockSetupUITests: XCTestCase {
         try await app.assertScreenshot(step: Step.settings)
         
         app.buttons[A11yIdentifiers.appLockSetupSettingsScreen.removePIN].tap()
-        app.alerts.element.buttons[A11yIdentifiers.alertInfo.primaryButton].tap()
+        app.alerts.element.buttons[A11yIdentifiers.alertInfo.primaryButton].firstMatch.tap()
         
         // Pop the stack returning to whatever was last presented.
         try await app.assertScreenshot(step: Step.clearedStack)
     }
     
     func testCancel() async throws {
+        // There's an issue with the number pad keyboard style on iPad.
+        guard UIDevice.current.userInterfaceIdiom == .phone else { return }
+        
         app = Application.launch(.appLockSetupFlowUnlock)
         
         app.showKeyboardIfNeeded() // The secure text field is focussed automatically
@@ -138,13 +148,13 @@ class AppLockSetupUITests: XCTestCase {
         let textField = app.secureTextFields[A11yIdentifiers.appLockSetupPINScreen.textField]
         XCTAssert(textField.waitForExistence(timeout: 10))
         
-        textField.clearAndTypeText("2023", app: app)
+        textField.clearAndTypeText("2023", app: app, verifyingValue: false)
     }
     
     private func enterDifferentPIN() {
         let textField = app.secureTextFields[A11yIdentifiers.appLockSetupPINScreen.textField]
         XCTAssert(textField.waitForExistence(timeout: 10))
         
-        textField.clearAndTypeText("2233", app: app)
+        textField.clearAndTypeText("2233", app: app, verifyingValue: false)
     }
 }

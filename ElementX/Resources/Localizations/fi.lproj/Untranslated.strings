@@ -10,6 +10,12 @@
 "gua_encryption_reset_required_action" = "Nollaa ja viimeistele";
 "gua_signout_last_device_title" = "Uloskirjautuminen poistaa viestisi tältä laitteelta";
 "gua_signout_last_device_message" = "Tämä on ainoa laitteesi. Vain täällä olevat viestit eivät ole käytettävissä, kun kirjaudut takaisin sisään.";
+"gua_settings_sign_out" = "Kirjaudu ulos";
+"gua_signout_confirmation_message" = "Haluatko varmasti kirjautua ulos?";
+"gua_signout_key_backup_ongoing_subtitle" = "Odota, että tämä on valmis ennen uloskirjautumista.";
+"gua_signout_key_backup_offline_subtitle" = "Avaimiasi varmuuskopioitiin vielä, kun menit offline-tilaan. Muodosta yhteys uudelleen, jotta avaimesi voidaan varmuuskopioida ennen uloskirjautumista.";
+"gua_app_lock_signout_alert_title" = "Sinut kirjataan ulos";
+"gua_signing_out" = "Kirjaudutaan ulos";
 "gua_encryption_reset_finishing" = "Viimeistellään määritystä…";
 "gua_encryption_reset_failed" = "Määrityksen viimeistely ei onnistunut. Napauta ”Nollaa ja viimeistele” yrittääksesi uudelleen.";
 "gua_encryption_recover_from_other_device_title" = "Palauta aiemmat viestisi";

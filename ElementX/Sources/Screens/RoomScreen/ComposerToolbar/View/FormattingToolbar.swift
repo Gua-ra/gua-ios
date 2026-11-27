@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -13,10 +14,10 @@ struct FormattingToolbar: View {
     var formatItems: [FormatItem]
     /// The action when an item is selected
     var formatAction: (FormatType) -> Void
-
+    
     var body: some View {
         ScrollView(.horizontal) {
-            HStack(spacing: 4) {
+            HStack(spacing: 5) {
                 ForEach(formatItems) { item in
                     Button {
                         formatAction(item.type)
@@ -26,11 +27,12 @@ struct FormattingToolbar: View {
                             .padding(8)
                             .background(item.backgroundColor)
                             .cornerRadius(8)
-                            .padding(4)
+                            .padding(.vertical, Compound.supportsGlass ? 10 : 3)
                     }
                     .disabled(item.state == .disabled)
                     .accessibilityIdentifier(item.accessibilityIdentifier)
                     .accessibilityLabel(item.accessibilityLabel)
+                    .accessibilityAddTraits(item.state == .reversed ? [.isToggle, .isSelected] : .isToggle)
                 }
             }
         }
@@ -48,7 +50,7 @@ private extension FormatItem {
             return .compound.iconDisabled
         }
     }
-
+    
     var backgroundColor: Color {
         switch state {
         case .reversed:
@@ -61,11 +63,13 @@ private extension FormatItem {
 
 struct FormattingToolbar_Previews: PreviewProvider, TestablePreview {
     static let items = FormatType.allCases.map { FormatItem(type: $0, state: .enabled) }
+    static let reversedItems = FormatType.allCases.map { FormatItem(type: $0, state: .reversed) }
     static let disabledItems = FormatType.allCases.map { FormatItem(type: $0, state: .disabled) }
     
     static var previews: some View {
         VStack(spacing: 16.0) {
             FormattingToolbar(formatItems: items) { _ in }
+            FormattingToolbar(formatItems: reversedItems) { _ in }
             FormattingToolbar(formatItems: disabledItems) { _ in }
         }
     }

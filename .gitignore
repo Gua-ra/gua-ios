@@ -11,30 +11,16 @@ xcuserdata/
 *.xcarchive
 
 ## SwiftPM
-/.build
-/BuildTools/.build
+.build
 /Packages
 xcuserdata/
 DerivedData/
 .swiftpm
 .netrc
 
-# fastlane
-#
-# It is recommended to not store the screenshots in the git repo.
-# Instead, use fastlane to re-generate the screenshots whenever they are needed.
-# For more information about the recommended setup visit:
-# https://docs.fastlane.tools/best-practices/source-control/#source-control
-
-fastlane/report.xml
-fastlane/Preview.html
-fastlane/screenshots/**/*.png
-fastlane/test_output
-towncrier.toml.tmp
-version_changes.md
-
 build
 /vendor/
+*/xcshareddata/xcodecloud
 
 ## macOS Files
 .DS_Store
@@ -42,7 +28,14 @@ build
 
 ## Editors
 .nova
+.vscode
+
+## Project specific
+test_output
 
 # Only commit Pkl packages (there may be other caches in here).
-Secrets/vendor/*
-!Secrets/vendor/package-2
+Components/Secrets/vendor/*
+!Components/Secrets/vendor/package-2
+
+# Local SDK development override
+matrix-rust-components-swift

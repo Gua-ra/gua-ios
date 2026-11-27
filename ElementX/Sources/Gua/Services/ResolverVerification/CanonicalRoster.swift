@@ -7,23 +7,27 @@
 
 import Foundation
 
-enum RosterForm: String {
+nonisolated enum RosterForm: String {
     case v1
     /// Older resolvers sign the bytes without the search fields.
     case legacy
 }
 
 /// Byte-for-byte port of the resolver's `CanonicalRoster`. Null and empty collapse; do not reuse for new signed objects.
-enum CanonicalRoster {
+nonisolated enum CanonicalRoster {
     private static let separator = "\u{1F}"
-
+    
     static func form(of roster: SignedRosterDocument) -> RosterForm? {
         let withSearchFields = roster.entries.filter(\.homeserver.hasSearchVisibilityField).count
-        if withSearchFields == 0 { return .legacy }
-        if withSearchFields == roster.entries.count { return .v1 }
+        if withSearchFields == 0 {
+            return .legacy
+        }
+        if withSearchFields == roster.entries.count {
+            return .v1
+        }
         return nil
     }
-
+    
     static func bytes(of roster: SignedRosterDocument, form: RosterForm) -> [UInt8]? {
         guard let issuedAt = ResolverInstant(iso: roster.issuedAt) else { return nil }
         var text = "gua-roster.v1\n"
@@ -37,7 +41,7 @@ enum CanonicalRoster {
         }
         return Array(text.utf8)
     }
-
+    
     private static func entryLine(_ entry: SignedRosterEntry, searchFields: Bool) -> String? {
         let homeserver = entry.homeserver
         var admittedAt = ""
@@ -63,20 +67,28 @@ enum CanonicalRoster {
         fields.append(claims(entry.claims))
         return fields.joined(separator: separator)
     }
-
+    
     private static func claims(_ claims: [RosterClaimPredicate]) -> String {
-        if claims.isEmpty { return "[]" }
+        if claims.isEmpty {
+            return "[]"
+        }
         let sorted = claims.sorted { lhs, rhs in
-            if lhs.priority != rhs.priority { return lhs.priority < rhs.priority }
+            if lhs.priority != rhs.priority {
+                return lhs.priority < rhs.priority
+            }
             let byCountry = JavaStringOrder.compare(lhs.country ?? "", rhs.country ?? "")
-            if byCountry != 0 { return byCountry < 0 }
+            if byCountry != 0 {
+                return byCountry < 0
+            }
             let byMccmnc = JavaStringOrder.compare(lhs.mccmnc ?? "", rhs.mccmnc ?? "")
-            if byMccmnc != 0 { return byMccmnc < 0 }
+            if byMccmnc != 0 {
+                return byMccmnc < 0
+            }
             return JavaStringOrder.compare(lhs.affiliation ?? "", rhs.affiliation ?? "") < 0
         }
         return sorted.map(claim).joined(separator: ";")
     }
-
+    
     private static func claim(_ claim: RosterClaimPredicate) -> String {
         let prefixes = claim.phonePrefixes.map { JavaStringOrder.sorted($0).joined(separator: "|") } ?? ""
         return ["country=" + (claim.country ?? ""),
@@ -88,7 +100,7 @@ enum CanonicalRoster {
                 "remote=" + (claim.remoteClaimUrl ?? ""),
                 "priority=" + String(claim.priority)].joined(separator: ",")
     }
-
+    
     private static func attributes(_ attributes: [String: String]?) -> String {
         guard let attributes else { return "" }
         return attributes.sorted { JavaStringOrder.precedes($0.key, $1.key) }.map { "\($0.key)=\($0.value)" }.joined(separator: "|")

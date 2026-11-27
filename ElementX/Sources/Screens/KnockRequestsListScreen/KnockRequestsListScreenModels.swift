@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -27,7 +28,7 @@ struct KnockRequestsListScreenViewState: BindableState {
             false
         }
     }
-
+    
     // If you are in this view one of these must have been true so by default we assume all of them to be true
     var canAccept = true
     var canDecline = true

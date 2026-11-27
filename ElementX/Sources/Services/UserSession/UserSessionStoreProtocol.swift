@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -9,7 +10,7 @@ import Foundation
 import MatrixRustSDK
 
 enum UserSessionStoreError: Error {
-    case missingCredentials
+    case unknownAccount
     case failedRestoringLogin
     case failedSettingUpSession
     case failedSettingUpClientProxy(Error)
@@ -29,11 +30,11 @@ protocol UserSessionStoreProtocol {
     /// Returns the delegate that should handle any changes to a `Client`'s `Session`.
     var clientSessionDelegate: ClientSessionDelegate { get }
     
-    /// Restores an existing user session.
-    func restoreUserSession() async -> Result<UserSessionProtocol, UserSessionStoreError>
+    /// Restores the session of the given account. If this fails, the account's credentials and data are deleted.
+    func restoreUserSession(userID: String) async -> Result<UserSessionProtocol, UserSessionStoreError>
     
     /// Creates a user session for a new client from the SDK along with the passphrase used for the data stores.
-    func userSession(for client: ClientProtocol, sessionDirectories: SessionDirectories, passphrase: String) async -> Result<UserSessionProtocol, UserSessionStoreError>
+    func userSession(for client: ClientProtocol, sessionDirectories: SessionDirectories, passphrase: Data) async -> Result<UserSessionProtocol, UserSessionStoreError>
     
     /// Logs out of the specified session.
     func logout(userSession: UserSessionProtocol)

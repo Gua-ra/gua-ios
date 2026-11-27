@@ -1,14 +1,16 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -27,9 +29,9 @@ struct KnockRequestCellInfo: Equatable {
 struct KnockRequestCell: View {
     let cellInfo: KnockRequestCellInfo
     var mediaProvider: MediaProviderProtocol?
-    let onAccept: ((String) -> Void)?
-    let onDecline: ((String) -> Void)?
-    let onDeclineAndBan: ((String) -> Void)?
+    let onAccept: (@MainActor (String) -> Void)?
+    let onDecline: (@MainActor (String) -> Void)?
+    let onDeclineAndBan: (@MainActor (String) -> Void)?
     
     var body: some View {
         HStack(alignment: .top, spacing: 16) {

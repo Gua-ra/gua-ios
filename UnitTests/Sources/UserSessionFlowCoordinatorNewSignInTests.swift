@@ -7,14 +7,16 @@
 
 import Combine
 @testable import ElementX
-import XCTest
+import Foundation
+import Testing
+import UIKit
 
 @MainActor
-final class UserSessionFlowCoordinatorNewSignInTests: XCTestCase {
+final class UserSessionFlowCoordinatorNewSignInTests {
     private let userID = "@alice:gua.test"
     private let phoneID = "PHONE"
     private let start = Date(timeIntervalSince1970: 1_800_000_000)
-
+    
     private var rootCoordinator: NavigationRootCoordinator!
     private var flowCoordinator: UserSessionFlowCoordinator!
     private var clientProxy: ClientProxyMock!
@@ -26,38 +28,30 @@ final class UserSessionFlowCoordinatorNewSignInTests: XCTestCase {
     private var appSettings: AppSettings!
     private var scheduler: ManualNewSignInNudgeScheduler!
     private var clock: NewSignInNudgeTestClock!
-    private var savedOnboardingSettings: (notifications: Bool, analytics: AnalyticsConsentState)?
-
+    
     private var tabCoordinator: NavigationTabCoordinator<UserSessionFlowCoordinator.HomeTab>? {
         rootCoordinator.rootCoordinator as? NavigationTabCoordinator
     }
-
+    
     private var chatsSplitCoordinator: NavigationSplitCoordinator? {
         tabCoordinator?.tabCoordinators.first as? NavigationSplitCoordinator
     }
-
+    
     private var spacesSplitCoordinator: NavigationSplitCoordinator? {
-        tabCoordinator?.tabCoordinators.last as? NavigationSplitCoordinator
+        tabCoordinator?.tabCoordinators.compactMap { $0 as? NavigationSplitCoordinator }.last
     }
-
+    
     private var presentedVerificationScreen: SessionVerificationScreenCoordinator? {
         (tabCoordinator?.sheetCoordinator as? NavigationStackCoordinator)?.rootCoordinator as? SessionVerificationScreenCoordinator
     }
-
-    override func setUp() async throws {
+    
+    init() async throws {
         OwnDevicesHTTPStub.reset()
-        AppSettings.resetSessionSpecificSettings()
         IdentityResetPendingStore.clear(for: userID)
-
+        
         let testClock = NewSignInNudgeTestClock(now: start)
         clock = testClock
         scheduler = ManualNewSignInNudgeScheduler()
-        appSettings = ServiceLocator.shared.settings
-        // Onboarding would otherwise cover the tab bar for the whole test.
-        savedOnboardingSettings = (appSettings.hasRunNotificationPermissionsOnboarding, appSettings.analyticsConsentState)
-        appSettings.hasRunNotificationPermissionsOnboarding = true
-        appSettings.analyticsConsentState = .optedOut
-
         clientProxy = ClientProxyMock(.init(homeserver: "https://matrix.gua.test", userID: userID, deviceID: phoneID,
                                             roomSummaryProvider: RoomSummaryProviderMock(.init(state: .loaded(.mockRooms)))))
         clientProxy.accessToken = "token-1"
@@ -66,40 +60,46 @@ final class UserSessionFlowCoordinatorNewSignInTests: XCTestCase {
         secureBackupController.settledRecoveryStateTimeoutReturnValue = .enabled
         secureBackupController.sdkRecoveryStateReturnValue = .enabled
         clientProxy.secureBackupController = secureBackupController
-
+        
         verificationController = SessionVerificationControllerProxyMock.configureMock(requestDelay: .milliseconds(10))
-        verificationController.acceptVerificationRequestReturnValue = .success(())
+        let verificationActions = verificationController.actions
+        verificationController.acceptVerificationRequestClosure = {
+            verificationActions.send(.acceptedVerificationRequest)
+            return .success(())
+        }
         clientProxy.sessionVerificationController = verificationController
-
-        let userSession = UserSessionMock(.init(clientProxy: clientProxy))
+        
+        let userSession = UserSessionMock(.init(clientProxy: clientProxy, userSettings: .mock(userID: userID)))
+        appSettings = userSession.userSettings.app
+        // Onboarding would otherwise cover the tab bar for the whole test.
+        appSettings.hasRunNotificationPermissionsOnboarding = true
+        appSettings.analyticsConsentState = .optedOut
         securityState = .init(.init(verificationState: .verified, recoveryState: .enabled))
         userSession.sessionSecurityStatePublisher = securityState.asCurrentValuePublisher()
-
+        
         userIndicatorController = UserIndicatorControllerMock()
         rootCoordinator = NavigationRootCoordinator()
-
+        
         ongoingCallRoomID = .init(nil)
         let elementCallService = ElementCallServiceMock(.init())
         elementCallService.underlyingOngoingCallRoomIDPublisher = ongoingCallRoomID.asCurrentValuePublisher()
         windowManager = WindowManagerMock()
-        let appMediator = AppMediatorMock.default
+        let appMediator = AppMediatorMock(.init())
         appMediator.underlyingWindowManager = windowManager
-
+        
         let flowParameters = CommonFlowParameters(userSession: userSession,
+                                                  availableSessionsPublisher: .init([.init(userSession: userSession)]),
                                                   bugReportService: BugReportServiceMock(.init()),
                                                   elementCallService: elementCallService,
                                                   timelineControllerFactory: TimelineControllerFactoryMock(.init()),
-                                                  emojiProvider: EmojiProvider(appSettings: appSettings),
+                                                  emojiProvider: EmojiProvider(userSettings: userSession.userSettings),
                                                   linkMetadataProvider: LinkMetadataProvider(),
                                                   appMediator: appMediator,
-                                                  appSettings: appSettings,
-                                                  appHooks: AppHooks(),
-                                                  analytics: ServiceLocator.shared.analytics,
+                                                  analytics: AnalyticsServiceMock(.init()),
                                                   userIndicatorController: userIndicatorController,
-                                                  notificationManager: NotificationManagerMock(),
                                                   stateMachineFactory: PublishedStateMachineFactory(),
                                                   spacesSetting: SpacesSetting(clientProxy: clientProxy, appSettings: appSettings))
-
+        
         flowCoordinator = UserSessionFlowCoordinator(isNewLogin: false,
                                                      navigationRootCoordinator: rootCoordinator,
                                                      appLockService: AppLockServiceMock(),
@@ -110,236 +110,248 @@ final class UserSessionFlowCoordinatorNewSignInTests: XCTestCase {
                                                                                       now: { [unowned self] in clock.now },
                                                                                       history: NewSignInNudgeHistory()))
         flowCoordinator.start()
-
+        
         // The web device stays recently seen however far a test moves the clock.
-        let fixture = { [userID, phoneID, testClock] in
+        let fixture: @Sendable () -> OwnDevicesFixture = { [userID, phoneID, testClock] in
             OwnDevicesFixture(userID: userID, devices: [
                 .init(id: phoneID, lastSeen: testClock.now, signedBySelfSigningKey: true),
                 .init(id: "WEB", lastSeen: testClock.now.addingTimeInterval(-30))
             ])
         }
         OwnDevicesHTTPStub.serve(devices: { fixture().devicesJSON }, keys: { fixture().keysJSON })
-
+        
         await settle()
     }
-
-    override func tearDown() async throws {
+    
+    isolated deinit {
         flowCoordinator?.stop()
-        if let savedOnboardingSettings {
-            appSettings.hasRunNotificationPermissionsOnboarding = savedOnboardingSettings.notifications
-            appSettings.analyticsConsentState = savedOnboardingSettings.analytics
-        }
-        AppSettings.resetSessionSpecificSettings()
         OwnDevicesHTTPStub.reset()
     }
-
-    func testSubscribesToVerificationRequestsOncePerSession() async throws {
+    
+    @Test
+    func subscribesToVerificationRequestsOncePerSession() async throws {
         for recoveryState in [SecureBackupRecoveryState.incomplete, .settingUp, .enabled, .incomplete, .enabled] {
             securityState.send(.init(verificationState: .verified, recoveryState: recoveryState))
         }
         await settle()
-
+        
         verificationController.actions.send(.receivedVerificationRequest(details: requestDetails(from: userID, deviceID: "WEB")))
         try await waitUntil { self.verificationController.acknowledgeVerificationRequestDetailsCallsCount > 0 }
         try await Task.sleep(for: .milliseconds(100))
-
-        XCTAssertEqual(verificationController.acknowledgeVerificationRequestDetailsCallsCount, 1)
+        
+        #expect(verificationController.acknowledgeVerificationRequestDetailsCallsCount == 1)
         guard case .deviceResponder(let details) = presentedVerificationScreen?.viewModel.context.viewState.flow else {
-            return XCTFail("The request from our own device should be presented to the responder.")
+            Issue.record("The request from our own device should be presented to the responder.")
+            return
         }
-        XCTAssertEqual(details.deviceID, "WEB")
+        #expect(details.deviceID == "WEB")
     }
-
-    func testIgnoringARequestFromOwnDeviceDismissesThatDevice() async throws {
+    
+    @Test
+    func ignoringARequestFromOwnDeviceDismissesThatDevice() async throws {
         verificationController.actions.send(.receivedVerificationRequest(details: requestDetails(from: userID, deviceID: "WEB")))
         let screen = try await presentedScreen()
-
+        
         screen.viewModel.context.send(viewAction: .ignoreVerificationRequest)
-
-        XCTAssertNil(tabCoordinator?.sheetCoordinator)
-        XCTAssertEqual(appSettings.dismissedSignInDeviceIDs(forUserID: userID), ["WEB"])
-
+        
+        #expect(tabCoordinator?.sheetCoordinator == nil)
+        #expect(appSettings.dismissedSignInDeviceIDs(forUserID: userID) == ["WEB"])
+        
         clock.now = start.addingTimeInterval(600)
         await runRound()
-        XCTAssertEqual(OwnDevicesHTTPStub.requests.map(\.method), ["GET", "POST"], "A dismissed device is never nudged.")
+        #expect(OwnDevicesHTTPStub.requests.map(\.method) == ["GET", "POST"], "A dismissed device is never nudged.")
     }
-
-    func testIgnoringARequestFromAnotherUserDismissesNothing() async throws {
+    
+    @Test
+    func ignoringARequestFromAnotherUserDismissesNothing() async throws {
         verificationController.actions.send(.receivedVerificationRequest(details: requestDetails(from: "@bob:gua.test", deviceID: "BOBPHONE")))
         let screen = try await presentedScreen()
-
+        
         screen.viewModel.context.send(viewAction: .ignoreVerificationRequest)
-
-        XCTAssertNil(tabCoordinator?.sheetCoordinator)
-        XCTAssertEqual(appSettings.dismissedSignInDeviceIDs(forUserID: userID), [])
+        
+        #expect(tabCoordinator?.sheetCoordinator == nil)
+        #expect(appSettings.dismissedSignInDeviceIDs(forUserID: userID) == [])
     }
-
-    func testOwnDeviceConfirmationStaysOnScreenUntilDone() async throws {
+    
+    @Test
+    func ownDeviceConfirmationStaysOnScreenUntilDone() async throws {
         verificationController.actions.send(.receivedVerificationRequest(details: requestDetails(from: userID, deviceID: "WEB")))
         let context = try await presentedScreen().viewModel.context
-
+        
         context.send(viewAction: .acceptVerificationRequest)
         try await waitUntil { context.viewState.verificationState == .showingChallenge(emojis: SessionVerificationControllerProxyMock.emojis) }
         context.send(viewAction: .accept)
         try await waitUntil { context.viewState.verificationState == .verified }
         try await Task.sleep(for: .milliseconds(100))
-
-        XCTAssertNotNil(presentedVerificationScreen, "The confirmation stays on screen until the user taps Done.")
-
+        
+        #expect(presentedVerificationScreen != nil, "The confirmation stays on screen until the user taps Done.")
+        
         context.send(viewAction: .done)
-        XCTAssertNil(tabCoordinator?.sheetCoordinator)
+        #expect(tabCoordinator?.sheetCoordinator == nil)
     }
-
-    func testARequestFromADeviceHoldsBackItsNudge() async throws {
+    
+    @Test
+    func aRequestFromADeviceHoldsBackItsNudge() async throws {
         verificationController.actions.send(.receivedVerificationRequest(details: requestDetails(from: userID, deviceID: "WEB")))
         _ = try await presentedScreen()
-
+        
         verificationController.actions.send(.cancelled)
         try await waitUntil { self.tabCoordinator?.sheetCoordinator == nil }
-
+        
         await runRound()
-        XCTAssertTrue(OwnDevicesHTTPStub.nudges.isEmpty)
-
+        #expect(OwnDevicesHTTPStub.nudges.isEmpty)
+        
         clock.now = start.addingTimeInterval(600)
         await runRound()
-        XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 1)
+        #expect(OwnDevicesHTTPStub.nudges.count == 1)
     }
-
-    func testNudgesWhenNothingIsPresented() async {
-        XCTAssertNil(tabCoordinator?.fullScreenCoverCoordinator)
+    
+    @Test
+    func nudgesWhenNothingIsPresented() async {
+        #expect(tabCoordinator?.fullScreenCoverCoordinator == nil)
         await runRound()
-
-        XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 1)
+        
+        #expect(OwnDevicesHTTPStub.nudges.count == 1)
     }
-
-    func testDoesNotNudgeWhileTheSettingsSheetIsPresented() async {
+    
+    @Test
+    func doesNotNudgeWhileTheSettingsSheetIsPresented() async {
         flowCoordinator.handleAppRoute(.settings, animated: false)
         await runRound()
-        XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
-
+        #expect(OwnDevicesHTTPStub.requests.isEmpty)
+        
         tabCoordinator?.setSheetCoordinator(nil)
         await runRound()
-        XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 1)
+        #expect(OwnDevicesHTTPStub.nudges.count == 1)
     }
-
-    func testDoesNotNudgeWhileAVerificationIsPresented() async throws {
+    
+    @Test
+    func doesNotNudgeWhileAVerificationIsPresented() async throws {
         verificationController.actions.send(.receivedVerificationRequest(details: requestDetails(from: "@bob:gua.test", deviceID: "BOBPHONE")))
         _ = try await presentedScreen()
-
+        
         await runRound()
-        XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
+        #expect(OwnDevicesHTTPStub.requests.isEmpty)
     }
-
-    func testDoesNotNudgeWhileASheetIsPresentedInTheChatsTab() async throws {
-        let split = try XCTUnwrap(chatsSplitCoordinator)
-        split.setSheetCoordinator(PlaceholderScreenCoordinator(), animated: false)
+    
+    @Test
+    func doesNotNudgeWhileASheetIsPresentedInTheChatsTab() async throws {
+        let split = try #require(chatsSplitCoordinator)
+        split.setSheetCoordinator(PlaceholderScreenCoordinator(hideBrandChrome: false), animated: false)
         await runRound()
-        XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
-
+        #expect(OwnDevicesHTTPStub.requests.isEmpty)
+        
         split.setSheetCoordinator(nil)
-        split.setFullScreenCoverCoordinator(PlaceholderScreenCoordinator(), animated: false)
+        split.setFullScreenCoverCoordinator(PlaceholderScreenCoordinator(hideBrandChrome: false), animated: false)
         await runRound()
-        XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
+        #expect(OwnDevicesHTTPStub.requests.isEmpty)
     }
-
-    func testDoesNotNudgeWhileASheetIsPresentedInTheSpacesTab() async throws {
-        let split = try XCTUnwrap(spacesSplitCoordinator)
-        XCTAssertNotIdentical(split, chatsSplitCoordinator)
-        split.setSheetCoordinator(PlaceholderScreenCoordinator(), animated: false)
+    
+    @Test
+    func doesNotNudgeWhileASheetIsPresentedInTheSpacesTab() async throws {
+        let split = try #require(spacesSplitCoordinator)
+        #expect(split !== chatsSplitCoordinator)
+        split.setSheetCoordinator(PlaceholderScreenCoordinator(hideBrandChrome: false), animated: false)
         await runRound()
-        XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
-
+        #expect(OwnDevicesHTTPStub.requests.isEmpty)
+        
         split.setSheetCoordinator(nil)
-        split.setFullScreenCoverCoordinator(PlaceholderScreenCoordinator(), animated: false)
+        split.setFullScreenCoverCoordinator(PlaceholderScreenCoordinator(hideBrandChrome: false), animated: false)
         await runRound()
-        XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
-
+        #expect(OwnDevicesHTTPStub.requests.isEmpty)
+        
         split.setFullScreenCoverCoordinator(nil)
         await runRound()
-        XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 1)
+        #expect(OwnDevicesHTTPStub.nudges.count == 1)
     }
-
-    func testDoesNotNudgeDuringACall() async {
+    
+    @Test
+    func doesNotNudgeDuringACall() async {
         ongoingCallRoomID.send("!call:gua.test")
         await runRound()
-        XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
-
+        #expect(OwnDevicesHTTPStub.requests.isEmpty)
+        
         ongoingCallRoomID.send(nil)
         await runRound()
-        XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 1)
+        #expect(OwnDevicesHTTPStub.nudges.count == 1)
     }
-
-    func testDoesNotNudgeWhileTheAppLockScreenIsShown() async {
+    
+    @Test
+    func doesNotNudgeWhileTheAppLockScreenIsShown() async {
         let appLockWindow = UIWindow()
         appLockWindow.isHidden = false
         windowManager.alternateWindow = appLockWindow
         await runRound()
-        XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
-
+        #expect(OwnDevicesHTTPStub.requests.isEmpty)
+        
         appLockWindow.isHidden = true
         await runRound()
-        XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 1)
+        #expect(OwnDevicesHTTPStub.nudges.count == 1)
     }
-
-    func testDoesNotNudgeWhileAFullScreenCoverOrOverlayIsPresented() async throws {
-        let tab = try XCTUnwrap(tabCoordinator)
-        tab.setFullScreenCoverCoordinator(PlaceholderScreenCoordinator(), animated: false)
+    
+    @Test
+    func doesNotNudgeWhileAFullScreenCoverOrOverlayIsPresented() async throws {
+        let tab = try #require(tabCoordinator)
+        tab.setFullScreenCoverCoordinator(PlaceholderScreenCoordinator(hideBrandChrome: false), animated: false)
         await runRound()
-        XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
-
+        #expect(OwnDevicesHTTPStub.requests.isEmpty)
+        
         tab.setFullScreenCoverCoordinator(nil)
-        tab.setOverlayCoordinator(PlaceholderScreenCoordinator(), animated: false)
+        tab.setOverlayCoordinator(PlaceholderScreenCoordinator(hideBrandChrome: false), animated: false)
         await runRound()
-        XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
+        #expect(OwnDevicesHTTPStub.requests.isEmpty)
     }
-
-    func testDoesNotNudgeWhileAnAlertIsShown() async {
-        userIndicatorController.alertInfo = .init(id: .init(), title: "Alert")
+    
+    @Test
+    func doesNotNudgeWhileAnAlertIsShown() async {
+        rootCoordinator.alertInfo = .init(id: .init(), title: "Alert")
         await runRound()
-        XCTAssertTrue(OwnDevicesHTTPStub.requests.isEmpty)
-
-        userIndicatorController.alertInfo = nil
+        #expect(OwnDevicesHTTPStub.requests.isEmpty)
+        
+        rootCoordinator.alertInfo = nil
         await runRound()
-        XCTAssertEqual(OwnDevicesHTTPStub.nudges.count, 1)
+        #expect(OwnDevicesHTTPStub.nudges.count == 1)
     }
-
-    func testStoppingTheFlowStopsTheMonitor() {
-        XCTAssertFalse(scheduler.liveEntries.isEmpty)
-
+    
+    @Test
+    func stoppingTheFlowStopsTheMonitor() {
+        #expect(!scheduler.liveEntries.isEmpty)
+        
         flowCoordinator.stop()
-
-        XCTAssertTrue(scheduler.liveEntries.isEmpty)
+        
+        #expect(scheduler.liveEntries.isEmpty)
     }
-
+    
     private func requestDetails(from senderID: String, deviceID: String) -> SessionVerificationRequestDetails {
-        SessionVerificationRequestDetails(senderProfile: UserProfileProxy(userID: senderID),
+        SessionVerificationRequestDetails(senderProfile: UserProfile(userID: senderID),
                                           flowID: "flow-\(deviceID)",
                                           deviceID: deviceID,
                                           deviceDisplayName: "Gua Web",
                                           firstSeenDate: start)
     }
-
+    
     private func presentedScreen() async throws -> SessionVerificationScreenCoordinator {
         try await waitUntil { self.presentedVerificationScreen != nil }
-        return try XCTUnwrap(presentedVerificationScreen)
+        return try #require(presentedVerificationScreen)
     }
-
+    
     private func runRound() async {
         scheduler.fire(.seconds(60))
         await flowCoordinator.newSignInNudgeMonitor?.currentRound?.value
     }
-
+    
     private func settle() async {
         for _ in 0..<5 {
             await Task.yield()
         }
     }
-
+    
     private func waitUntil(timeout: Duration = .seconds(5), _ condition: @escaping () -> Bool) async throws {
         let deadline = ContinuousClock.now + timeout
         while !condition() {
             guard ContinuousClock.now < deadline else {
-                return XCTFail("Timed out waiting for the condition.")
+                Issue.record("Timed out waiting for the condition.")
+                return
             }
             try await Task.sleep(for: .milliseconds(10))
         }

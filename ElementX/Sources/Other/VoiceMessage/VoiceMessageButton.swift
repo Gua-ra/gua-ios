@@ -1,66 +1,73 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
+import Compound
 import SwiftUI
 
 struct VoiceMessageButton: View {
     @ScaledMetric private var buttonSize: CGFloat
-
+    
     enum State {
         case loading
         case playing
         case paused
     }
-
+    
     enum Size {
         case small
         case medium
     }
-
+    
     let state: State
     let action: () -> Void
-
+    
+    let iconSize: CompoundIcon.Size
+    let iconColor: Color
+    
     init(state: State, size: Size, action: @escaping () -> Void) {
         switch size {
         case .small:
             _buttonSize = .init(wrappedValue: 30)
+            iconSize = .small
+            iconColor = .compound.iconPrimary
         case .medium:
             _buttonSize = .init(wrappedValue: 36)
+            iconSize = .medium
+            iconColor = .compound.iconSecondary
         }
         
         self.state = state
         self.action = action
     }
-
+    
     var body: some View {
         Button(action: action) {
             buttonLabel
                 .frame(width: buttonSize, height: buttonSize)
+                .overlay {
+                    Circle().stroke(.compound.borderInteractiveSecondary)
+                }
         }
         .animation(nil, value: state)
-        .buttonStyle(VoiceMessageButtonStyle())
+        .buttonStyle(VoiceMessageButtonStyle(color: iconColor))
         .disabled(state == .loading)
         .accessibilityLabel(accessibilityLabel)
     }
-
+    
     @ViewBuilder
     private var buttonLabel: some View {
         switch state {
         case .loading:
             ProgressView()
         case .playing, .paused:
-            let imageAsset = state == .playing ? Asset.Images.mediaPause : Asset.Images.mediaPlay
-            let offset: CGFloat = state == .playing ? 0 : 2
-
-            Image(asset: imageAsset)
-                .resizable()
-                .scaledToFit()
-                .scaledFrame(width: 12, height: 14)
-                .offset(x: offset)
+            CompoundIcon(state == .playing ? \.pauseSolid : \.playSolid,
+                         size: iconSize,
+                         relativeTo: .compound.headingLG)
         }
     }
     
@@ -78,10 +85,12 @@ struct VoiceMessageButton: View {
 
 private struct VoiceMessageButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) var isEnabled: Bool
-
+    
+    let color: Color
+    
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .foregroundColor(isEnabled ? .compound.textSecondary.opacity(configuration.isPressed ? 0.6 : 1) : .compound.iconDisabled)
+            .foregroundColor(isEnabled ? color.opacity(configuration.isPressed ? 0.6 : 1) : .compound.iconDisabled)
             .background(Circle()
                 .foregroundColor(configuration.isPressed ? .compound.bgSubtlePrimary : .compound.bgCanvasDefault))
     }
@@ -113,6 +122,6 @@ struct VoiceMessageButton_Previews: PreviewProvider, TestablePreview {
             }
         }
         .padding()
-        .background(Color.gray)
+        .background(.compound.bgSubtleSecondary)
     }
 }

@@ -1,5 +1,6 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
@@ -25,7 +26,7 @@ enum Application {
 extension XCUIApplication {
     var homeserver: String? {
         guard let homeserver = ProcessInfo.processInfo.environment["INTEGRATION_TESTS_HOST"],
-              homeserver.count > 0 else {
+              !homeserver.isEmpty else {
             return nil
         }
         
@@ -34,7 +35,7 @@ extension XCUIApplication {
     
     var username: String {
         guard let username = ProcessInfo.processInfo.environment["INTEGRATION_TESTS_USERNAME"],
-              username.count > 0 else {
+              !username.isEmpty else {
             return "default"
         }
         
@@ -43,7 +44,7 @@ extension XCUIApplication {
     
     var password: String {
         guard let password = ProcessInfo.processInfo.environment["INTEGRATION_TESTS_PASSWORD"],
-              password.count > 0 else {
+              !password.isEmpty else {
             return "default"
         }
         

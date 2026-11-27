@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -20,30 +21,48 @@ struct ThreadTimelineScreen: View {
         self.timelineContext = timelineContext
         self.composerToolbar = composerToolbar
     }
-        
+    
     var body: some View {
         TimelineView(timelineContext: timelineContext)
+            .background(.compound.bgCanvasDefault)
+            .toolbarRole(RoomHeaderView.toolbarRole)
             .navigationTitle(L10n.commonThread)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarRole(RoomHeaderView.toolbarRole) // Leading aligns the header on iOS 26.
             .toolbar { toolbar }
-            .background(.compound.bgCanvasDefault)
             .toolbarBackground(.visible, for: .navigationBar) // Fix the toolbar's background.
+            .navigationBarBackButtonHidden(isMessageSelectionActive)
             .timelineMediaPreview(viewModel: $context.mediaPreviewViewModel)
+            .overlay(alignment: .top) {
+                FloatingDateBadge(dateText: timelineContext.floatingDate?.formattedDateSeparator()) {
+                    timelineContext.send(viewAction: .scrollToFirstItemForCurrentDate)
+                }
+                .padding(.top, 13)
+            }
             .overlay(alignment: .bottomTrailing) {
-                TimelineScrollToBottomButton(isVisible: isAtBottomAndLive) {
+                TimelineScrollButton(isHidden: !timelineContext.viewState.shouldShowScrollToBottomButton) {
                     timelineContext.send(viewAction: .scrollToBottom)
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                composer
-                    .padding(.top, 8)
-                    .background(Color.compound.bgCanvasDefault.ignoresSafeArea())
-                    .environmentObject(timelineContext)
-                    .environment(\.timelineContext, timelineContext)
-                    // Make sure the reply header honours the hideTimelineMedia setting too.
-                    .environment(\.shouldAutomaticallyLoadImages, !timelineContext.viewState.hideTimelineMedia)
+                VStack(spacing: 0) {
+                    composer
+                        .padding(.top, 8)
+                        .background(Color.compound.bgCanvasDefault.ignoresSafeArea())
+                        .environmentObject(timelineContext)
+                        .environment(\.timelineContext, timelineContext)
+                        // Make sure the reply header honours the hideTimelineMedia setting too.
+                        .environment(\.shouldAutomaticallyLoadImages, !timelineContext.viewState.hideTimelineMedia)
+                        .collapsedInPlace(isMessageSelectionActive)
+                    
+                    if isMessageSelectionActive {
+                        TimelineMessageSelectionActionBar(context: timelineContext)
+                    }
+                }
             }
+    }
+    
+    private var isMessageSelectionActive: Bool {
+        timelineContext.viewState.messageSelection.isActive
     }
     
     @ViewBuilder
@@ -63,14 +82,17 @@ struct ThreadTimelineScreen: View {
             RoomHeaderView(roomName: L10n.commonThread,
                            roomSubtitle: context.viewState.roomTitle,
                            roomAvatar: context.viewState.roomAvatar,
-                           dmRecipientVerificationState: context.viewState.dmRecipientVerificationState,
-                           mediaProvider: context.mediaProvider)
-                // Using a button stops it from getting truncated in the navigation bar
-                .contentShape(.rect)
+                           dmRecipientDetails: context.viewState.dmRecipientDetails,
+                           roomHistorySharingState: context.viewState.roomHistorySharingState,
+                           mediaProvider: context.mediaProvider) {
+                // There is no action but the iOS 26 designs have it looking like a button.
+            }
         }
-    }
-    
-    private var isAtBottomAndLive: Bool {
-        timelineContext.isScrolledToBottom && timelineContext.viewState.timelineState.isLive
+        
+        if isMessageSelectionActive {
+            TimelineMessageSelectionToolbar {
+                timelineContext.send(viewAction: .clearMessageSelection)
+            }
+        }
     }
 }

@@ -9,15 +9,15 @@ import Combine
 import SwiftUI
 
 struct MediaUploadQualitySettingsScreenCoordinatorParameters {
-    let appSettings: AppSettings
-    let analytics: AnalyticsService
+    let userSettings: UserSettings
+    let analytics: AnalyticsServiceProtocol
 }
 
 final class MediaUploadQualitySettingsScreenCoordinator: CoordinatorProtocol {
     private var viewModel: MediaUploadQualitySettingsScreenViewModelProtocol
     
     init(parameters: MediaUploadQualitySettingsScreenCoordinatorParameters) {
-        viewModel = MediaUploadQualitySettingsScreenViewModel(appSettings: parameters.appSettings, analytics: parameters.analytics)
+        viewModel = MediaUploadQualitySettingsScreenViewModel(userSettings: parameters.userSettings, analytics: parameters.analytics)
     }
     
     func toPresentable() -> AnyView {

@@ -1,84 +1,80 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Combine
 @testable import ElementX
-import XCTest
+import Testing
 
 @MainActor
-class SpaceListScreenViewModelTests: XCTestCase {
-    var joinedSpacesSubject: CurrentValueSubject<[SpaceRoomProxyProtocol], Never>!
-    var spaceServiceProxy: SpaceServiceProxyMock!
+final class SpacesScreenViewModelTests {
+    var topLevelSpacesSubject: CurrentValueSubject<[SpaceServiceRoom], Never>
+    var spaceServiceProxy: SpaceServiceProxyMock
     
-    var viewModel: SpaceListScreenViewModelProtocol!
+    var viewModel: SpacesScreenViewModelProtocol
     
-    var context: SpaceListScreenViewModelType.Context {
+    var context: SpacesScreenViewModelType.Context {
         viewModel.context
     }
-
-    func testInitialState() {
-        setupViewModel()
-        XCTAssertEqual(context.viewState.joinedSpaces.count, 3)
-        XCTAssertEqual(context.viewState.joinedRoomsCount, 0)
+    
+    init() {
+        let clientProxy = ClientProxyMock(.init())
+        let userSession = UserSessionMock(.init(clientProxy: clientProxy))
+        
+        topLevelSpacesSubject = .init([
+            SpaceServiceRoom.mock(id: "space1", isSpace: true),
+            SpaceServiceRoom.mock(id: "space2", isSpace: true),
+            SpaceServiceRoom.mock(id: "space3", isSpace: true)
+        ])
+        spaceServiceProxy = SpaceServiceProxyMock(.init())
+        spaceServiceProxy.topLevelSpacesPublisher = topLevelSpacesSubject.asCurrentValuePublisher()
+        spaceServiceProxy.spaceRoomListSpaceIDClosure = { [topLevelSpacesSubject] spaceID in
+            guard let spaceServiceRoom = topLevelSpacesSubject.value.first(where: { $0.id == spaceID }) else { return .failure(.missingSpace) }
+            return .success(SpaceRoomListProxyMock(.init(spaceServiceRoom: spaceServiceRoom)))
+        }
+        clientProxy.spaceService = spaceServiceProxy
+        
+        viewModel = SpacesScreenViewModel(userSession: userSession,
+                                          selectedSpacePublisher: .init(nil),
+                                          userIndicatorController: UserIndicatorControllerMock())
     }
     
-    func testJoinedSpacesSubscription() async throws {
-        setupViewModel()
-        
-        var deferred = deferFulfillment(context.observe(\.viewState.joinedSpaces)) { $0.count == 0 }
-        joinedSpacesSubject.send([])
+    @Test
+    func initialState() {
+        #expect(context.viewState.topLevelSpaces.count == 3)
+    }
+    
+    @Test
+    func topLevelSpacesSubscription() async throws {
+        var deferred = deferFulfillment(context.observe(\.viewState.topLevelSpaces)) { $0.isEmpty }
+        topLevelSpacesSubject.send([])
         try await deferred.fulfill()
-        XCTAssertEqual(context.viewState.joinedSpaces.count, 0)
+        #expect(context.viewState.topLevelSpaces.isEmpty)
         
-        deferred = deferFulfillment(context.observe(\.viewState.joinedSpaces)) { $0.count == 1 }
-        joinedSpacesSubject.send([
-            SpaceRoomProxyMock(.init(isSpace: true))
+        deferred = deferFulfillment(context.observe(\.viewState.topLevelSpaces)) { $0.count == 1 }
+        topLevelSpacesSubject.send([
+            SpaceServiceRoom.mock(isSpace: true)
         ])
         try await deferred.fulfill()
-        XCTAssertEqual(context.viewState.joinedSpaces.count, 1)
+        #expect(context.viewState.topLevelSpaces.count == 1)
     }
     
-    func testSelectingSpace() async throws {
-        setupViewModel()
-        
-        let selectedSpace = joinedSpacesSubject.value[0]
+    @Test
+    func selectingSpace() async throws {
+        let selectedSpace = topLevelSpacesSubject.value[0]
         let deferred = deferFulfillment(viewModel.actionsPublisher) { _ in true }
         viewModel.context.send(viewAction: .spaceAction(.select(selectedSpace)))
         let action = try await deferred.fulfill()
         
         switch action {
-        case .selectSpace(let spaceRoomListProxy) where spaceRoomListProxy.spaceRoomProxy.id == selectedSpace.id:
+        case .selectSpace(let spaceRoomListProxy) where spaceRoomListProxy.id == selectedSpace.id:
             break
         default:
-            XCTFail("The action should select the space.")
+            Issue.record("The action should select the space.")
         }
-    }
-    
-    // MARK: - Helpers
-    
-    private func setupViewModel() {
-        let clientProxy = ClientProxyMock(.init())
-        let userSession = UserSessionMock(.init(clientProxy: clientProxy))
-        
-        joinedSpacesSubject = .init([
-            SpaceRoomProxyMock(.init(id: "space1", isSpace: true)),
-            SpaceRoomProxyMock(.init(id: "space2", isSpace: true)),
-            SpaceRoomProxyMock(.init(id: "space3", isSpace: true))
-        ])
-        spaceServiceProxy = SpaceServiceProxyMock(.init())
-        spaceServiceProxy.joinedSpacesPublisher = joinedSpacesSubject.asCurrentValuePublisher()
-        spaceServiceProxy.spaceRoomListSpaceIDClosure = { [joinedSpacesSubject] spaceID in
-            guard let spaceRoomProxy = joinedSpacesSubject?.value.first(where: { $0.id == spaceID }) else { return .failure(.missingSpace) }
-            return .success(SpaceRoomListProxyMock(.init(spaceRoomProxy: spaceRoomProxy)))
-        }
-        clientProxy.spaceService = spaceServiceProxy
-        
-        viewModel = SpaceListScreenViewModel(userSession: userSession,
-                                             selectedSpacePublisher: .init(nil),
-                                             userIndicatorController: UserIndicatorControllerMock())
     }
 }

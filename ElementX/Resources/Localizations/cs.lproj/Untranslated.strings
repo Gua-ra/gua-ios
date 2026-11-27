@@ -10,6 +10,12 @@
 "gua_encryption_reset_required_action" = "Resetovat a dokončit";
 "gua_signout_last_device_title" = "Odhlášení odstraní vaše zprávy z tohoto zařízení";
 "gua_signout_last_device_message" = "Toto je vaše jediné zařízení. Zprávy uložené pouze zde nebudou po opětovném přihlášení dostupné.";
+"gua_settings_sign_out" = "Odhlásit se";
+"gua_signout_confirmation_message" = "Opravdu se chcete odhlásit?";
+"gua_signout_key_backup_ongoing_subtitle" = "Před odhlášením prosím počkejte na dokončení.";
+"gua_signout_key_backup_offline_subtitle" = "Když jste přešli do režimu offline, vaše klíče se ještě stále zálohovaly. Znovu se připojte, aby bylo možné před odhlášením zálohovat vaše klíče.";
+"gua_app_lock_signout_alert_title" = "Jste odhlášeni";
+"gua_signing_out" = "Odhlašování";
 "gua_encryption_reset_finishing" = "Dokončování nastavení…";
 "gua_encryption_reset_failed" = "Nastavení se nepodařilo dokončit. Zkuste to znovu klepnutím na „Resetovat a dokončit“.";
 "gua_encryption_recover_from_other_device_title" = "Obnovte své předchozí zprávy";

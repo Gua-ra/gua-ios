@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -23,7 +24,7 @@ struct DeactivateAccountScreen: View {
         }
         .compoundList()
         .safeAreaInset(edge: .bottom) {
-            Button(L10n.actionDeactivateAccount, role: .destructive) {
+            Button(UntranslatedL10n.actionDeleteAccount, role: .destructive) {
                 context.send(viewAction: .deactivate)
             }
             .buttonStyle(.compound(.primary))
@@ -31,14 +32,16 @@ struct DeactivateAccountScreen: View {
             .padding(16)
             .background(Color.compound.bgSubtleSecondaryLevel0.ignoresSafeArea())
         }
-        .navigationTitle(L10n.screenDeactivateAccountTitle)
+        .navigationTitle(UntranslatedL10n.actionDeleteAccount)
         .navigationBarTitleDisplayMode(.inline)
         .alert(item: $context.alertInfo)
     }
     
     private var canSubmit: Bool {
         if context.viewState.identityServiceAvailable {
-            if case .verified = context.viewState.reauthPhase { return true }
+            if case .verified = context.viewState.reauthPhase {
+                return true
+            }
             return false
         }
         return !context.password.isEmpty
@@ -142,7 +145,7 @@ struct DeactivateAccountScreen: View {
                 .compoundListSectionFooter()
         }
     }
-
+    
     private var canSendReauthCode: Bool {
         !context.phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
@@ -171,7 +174,7 @@ struct DeactivateAccountScreen_Previews: PreviewProvider, TestablePreview {
     static let viewModel = DeactivateAccountScreenViewModel(clientProxy: ClientProxyMock(.init()),
                                                             userIndicatorController: UserIndicatorControllerMock())
     static var previews: some View {
-        NavigationStack {
+        ElementNavigationStack {
             DeactivateAccountScreen(context: viewModel.context)
         }
     }

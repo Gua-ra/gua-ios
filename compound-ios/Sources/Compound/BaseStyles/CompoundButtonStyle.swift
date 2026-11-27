@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -68,7 +69,7 @@ public struct CompoundButtonStyle: ButtonStyle {
         case .toolbarIcon: 3
         }
     }
-
+    
     private var verticalPadding: CGFloat {
         if kind == .textLink {
             return 0
@@ -102,7 +103,7 @@ public struct CompoundButtonStyle: ButtonStyle {
     private var isUnderlined: Bool {
         kind == .textLink && accessibilityShowButtonShapes
     }
-
+    
     public func makeBody(configuration: Self.Configuration) -> some View {
         configuration.label
             .font(font)
@@ -146,7 +147,7 @@ public struct CompoundButtonStyle: ButtonStyle {
             EmptyView()
         }
     }
-
+    
     private var contentShape: AnyShape {
         switch kind {
         case .super, .primary, .secondary, .tertiary:
@@ -155,7 +156,7 @@ public struct CompoundButtonStyle: ButtonStyle {
             return AnyShape(Rectangle())
         }
     }
-
+    
     private func fillColor(configuration: Self.Configuration) -> Color {
         guard isEnabled else { return .compound.bgActionPrimaryDisabled }
         if configuration.role == .destructive {
@@ -235,7 +236,7 @@ public struct CompoundButtonStyle_Previews: PreviewProvider, TestablePreview {
     }
     
     public static func buttons(_ size: CompoundButtonStyle.Size) -> some View {
-        VStack {
+        VStack(spacing: 8) {
             Button("Super") { }
                 .buttonStyle(.compound(.super, size: size))
             

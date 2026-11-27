@@ -1,7 +1,8 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -20,7 +21,8 @@ protocol PhotoLibraryManagerProtocol {
 struct PhotoLibraryManager: PhotoLibraryManagerProtocol {
     func addResource(_ type: PHAssetResourceType, at url: URL) async -> Result<Void, PhotoLibraryManagerError> {
         do {
-            try await PHPhotoLibrary.shared().performChanges {
+            // @Sendable as PhotoKit runs the block on its own queue, so it must not inherit MainActor isolation.
+            try await PHPhotoLibrary.shared().performChanges { @Sendable in
                 let request = PHAssetCreationRequest.forAsset()
                 let options = PHAssetResourceCreationOptions()
                 request.addResource(with: type, fileURL: url, options: options)

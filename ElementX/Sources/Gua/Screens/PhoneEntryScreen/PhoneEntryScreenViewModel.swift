@@ -16,7 +16,7 @@ class PhoneEntryScreenViewModel: PhoneEntryScreenViewModelType, PhoneEntryScreen
     var actionsPublisher: AnyPublisher<PhoneEntryScreenViewModelAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
-
+    
     init(isLegacyAuthEnabled: Bool, initialPhoneNumber: String = "") {
         let (country, localDigits) = Self.parse(initialPhoneNumber: initialPhoneNumber)
         let formatted = country.formatNational(digits: localDigits)
@@ -24,19 +24,21 @@ class PhoneEntryScreenViewModel: PhoneEntryScreenViewModelType, PhoneEntryScreen
                                                                selectedCountry: country,
                                                                bindings: .init(localPhoneNumber: formatted)))
     }
-
+    
     // MARK: - Public
-
+    
     func setSubmitting(_ isSubmitting: Bool) {
         state.isSubmitting = isSubmitting
-        if isSubmitting { state.errorMessage = nil }
+        if isSubmitting {
+            state.errorMessage = nil
+        }
     }
-
+    
     func displayError(_ message: String) {
         state.isSubmitting = false
         state.errorMessage = message
     }
-
+    
     override func process(viewAction: PhoneEntryScreenViewAction) {
         switch viewAction {
         case .continueTapped:
@@ -60,7 +62,7 @@ class PhoneEntryScreenViewModel: PhoneEntryScreenViewModelType, PhoneEntryScreen
             reformatNumber()
         }
     }
-
+    
     /// Detects a country code that the user pasted/autofilled into the *local* field — either
     /// an explicit international "+…" number or a redundant leading dial code — switching the
     /// country and stripping the code so only the clean local number remains.
@@ -80,7 +82,7 @@ class PhoneEntryScreenViewModel: PhoneEntryScreenViewModelType, PhoneEntryScreen
             state.bindings.localPhoneNumber = localDigits
         }
     }
-
+    
     /// Rewrites `bindings.localPhoneNumber` with the country-specific live-formatted version
     /// (e.g. `"51985550619"` → `"(51) 98555-0619"`). The text field's cursor jumps to the
     /// end on each reformat — acceptable trade-off for phone entry.
@@ -91,7 +93,7 @@ class PhoneEntryScreenViewModel: PhoneEntryScreenViewModelType, PhoneEntryScreen
             state.bindings.localPhoneNumber = formatted
         }
     }
-
+    
     /// Recomputes `selectedCountry` from the digits the user has typed, mirroring
     /// WhatsApp's behaviour: typing a Canadian area code (e.g. 343) flips the flag
     /// from US to CA; typing a Bahamian local number on US flips to BS; etc.
@@ -101,15 +103,15 @@ class PhoneEntryScreenViewModel: PhoneEntryScreenViewModelType, PhoneEntryScreen
             state.selectedCountry = detected
         }
     }
-
+    
     // MARK: - Private
-
+    
     /// Splits an optional pre-populated E.164 number into (country, localDigits).
     /// Falls back to the device's locale when the input is empty or unparseable.
     private static func parse(initialPhoneNumber: String) -> (Country, String) {
         let trimmed = initialPhoneNumber.trimmingCharacters(in: .whitespaces)
         guard trimmed.hasPrefix("+") else { return (Country.deviceDefault, "") }
-
+        
         let digits = String(trimmed.dropFirst()).filter(\.isNumber)
         // Try longest-prefix match (some dial codes are 4 digits, e.g. +1876 for Jamaica).
         for length in stride(from: min(4, digits.count), through: 1, by: -1) {

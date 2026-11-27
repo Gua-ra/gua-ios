@@ -1,13 +1,16 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import SwiftUI
 
 struct HomeScreenRoomList: View {
+    @Environment(\.supportsMultipleWindows) private var supportsMultipleWindows
+    
     @ObservedObject var context: HomeScreenViewModel.Context
     
     var body: some View {
@@ -32,7 +35,13 @@ struct HomeScreenRoomList: View {
             case .room:
                 let isSelected = context.viewState.selectedRoomID == room.id
                 
-                HomeScreenRoomCell(room: room, isSelected: isSelected, mediaProvider: context.mediaProvider, action: context.send)
+                HomeScreenRoomCell(room: room,
+                                   isSelected: isSelected,
+                                   mediaProvider: context.mediaProvider,
+                                   action: context.send)
+                    .simultaneousGesture(TapGesture(count: 2).onEnded {
+                        context.send(viewAction: .detachRoom(roomIdentifier: room.id))
+                    })
                     .contextMenu {
                         if room.badges.isDotShown {
                             Button {
@@ -45,6 +54,14 @@ struct HomeScreenRoomList: View {
                                 context.send(viewAction: .markRoomAsUnread(roomIdentifier: room.id))
                             } label: {
                                 Label(L10n.screenRoomlistMarkAsUnread, icon: \.markAsUnread)
+                            }
+                        }
+                        
+                        if supportsMultipleWindows {
+                            Button {
+                                context.send(viewAction: .detachRoom(roomIdentifier: room.id))
+                            } label: {
+                                Label(UntranslatedL10n.guaActionOpenInNewWindow, icon: \.spotlight)
                             }
                         }
                         

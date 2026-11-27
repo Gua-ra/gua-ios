@@ -1,0 +1,128 @@
+//
+// Copyright 2025 Element Creations Ltd.
+//
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
+// Please see LICENSE files in the repository root for full details.
+//
+
+import Combine
+import Foundation
+
+enum LinkNewDeviceFlowCoordinatorAction {
+    case requestOAuthAuthorisation(URL, OAuthAccountSettingsPresenter.Continuation)
+    /// The user failed to remember their App Lock PIN.
+    case forceLogout
+    case dismiss
+}
+
+class LinkNewDeviceFlowCoordinator: FlowCoordinatorProtocol {
+    private let navigationStackCoordinator: NavigationStackCoordinator
+    private let appLockService: AppLockServiceProtocol
+    private let flowParameters: CommonFlowParameters
+    
+    private var cancellables = Set<AnyCancellable>()
+    
+    private let actionsSubject: PassthroughSubject<LinkNewDeviceFlowCoordinatorAction, Never> = .init()
+    var actionsPublisher: AnyPublisher<LinkNewDeviceFlowCoordinatorAction, Never> {
+        actionsSubject.eraseToAnyPublisher()
+    }
+    
+    init(navigationStackCoordinator: NavigationStackCoordinator,
+         appLockService: AppLockServiceProtocol,
+         flowParameters: CommonFlowParameters) {
+        self.navigationStackCoordinator = navigationStackCoordinator
+        self.appLockService = appLockService
+        self.flowParameters = flowParameters
+    }
+    
+    func start(animated: Bool) {
+        presentLinkNewDeviceScreen()
+    }
+    
+    func handleAppRoute(_ appRoute: AppRoute, animated: Bool) {
+        fatalError()
+    }
+    
+    func clearRoute(animated: Bool) {
+        fatalError()
+    }
+    
+    private func presentLinkNewDeviceScreen() {
+        let coordinator = LinkNewDeviceScreenCoordinator(parameters: .init(clientProxy: flowParameters.userSession.clientProxy,
+                                                                           appLockService: appLockService,
+                                                                           orientationManager: flowParameters.appMediator.windowManager))
+        coordinator.actionsPublisher
+            .sink { [weak self] action in
+                guard let self else { return }
+                
+                switch action {
+                case .linkMobileDevice(let operation):
+                    presentQRCodeScreen(mode: .linkMobile(operation))
+                case .linkDesktopComputer:
+                    presentQRCodeScreen(mode: .linkDesktop(flowParameters.userSession.clientProxy.linkNewDeviceService()))
+                case .verifyWithAppLockPIN(let continuation):
+                    presentAppLockScreen(continuation: continuation)
+                case .dismiss:
+                    actionsSubject.send(.dismiss)
+                }
+            }
+            .store(in: &cancellables)
+        
+        navigationStackCoordinator.setRootCoordinator(coordinator)
+    }
+    
+    private func presentAppLockScreen(continuation: CheckedContinuation<Bool, Never>) {
+        // We can use the AppLockScreen as a fallback here. It might seem weird but in the end it only calls
+        // AppLockService.unlock which is a no-op when the app is already unlocked.
+        let stackCoordinator = NavigationStackCoordinator()
+        let coordinator = AppLockScreenCoordinator(parameters: .init(appLockService: appLockService, mode: .verifyDeviceOwner))
+        
+        coordinator.actions
+            .sink { [weak self] action in
+                guard let self else { return }
+                
+                switch action {
+                case .appUnlocked:
+                    continuation.resume(returning: true)
+                    navigationStackCoordinator.setFullScreenCoverCoordinator(nil)
+                case .cancelVerifyDeviceOwner:
+                    continuation.resume(returning: false)
+                    navigationStackCoordinator.setFullScreenCoverCoordinator(nil)
+                case .forceLogout:
+                    continuation.resume(returning: false)
+                    actionsSubject.send(.forceLogout)
+                }
+            }
+            .store(in: &cancellables)
+        
+        stackCoordinator.setRootCoordinator(coordinator)
+        navigationStackCoordinator.setFullScreenCoverCoordinator(stackCoordinator)
+    }
+    
+    private func presentQRCodeScreen(mode: QRCodeLoginScreenMode) {
+        let coordinator = QRCodeLoginScreenCoordinator(parameters: .init(mode: mode,
+                                                                         canSignInManually: false, // No need to worry about this when linking a device.
+                                                                         orientationManager: flowParameters.appMediator.windowManager,
+                                                                         appMediator: flowParameters.appMediator))
+        coordinator.actionsPublisher
+            .sink { [weak self] action in
+                guard let self else { return }
+                
+                switch action {
+                case .signInManually, .signedIn:
+                    fatalError("QR linking shouldn't send sign-in actions.")
+                case .startOver:
+                    navigationStackCoordinator.pop() // Pops back to the LinkNewDeviceScreen.
+                case .requestOAuthAuthorisation(let url, let continuation):
+                    actionsSubject.send(.requestOAuthAuthorisation(url, continuation))
+                case .linkedDevice:
+                    actionsSubject.send(.dismiss)
+                case .cancel:
+                    actionsSubject.send(.dismiss)
+                }
+            }
+            .store(in: &cancellables)
+        
+        navigationStackCoordinator.push(coordinator)
+    }
+}

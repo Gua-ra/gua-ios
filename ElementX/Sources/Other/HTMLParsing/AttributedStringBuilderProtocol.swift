@@ -1,19 +1,28 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Foundation
 
-struct AttributedStringBuilderComponent: Hashable, Identifiable {
+nonisolated struct AttributedStringBuilderComponent: Hashable, Identifiable {
+    enum ComponentType: Hashable {
+        case plainText
+        case blockquote
+        case codeBlock
+        case details(summary: String)
+    }
+    
+    /// Identifier for the `Identifiable` conformance, allows edits to the `FormattedBodyText` to animate seamlessly
     let id: String
     let attributedString: AttributedString
-    let isBlockquote: Bool
+    let type: ComponentType
 }
 
-protocol AttributedStringBuilderProtocol {
+nonisolated protocol AttributedStringBuilderProtocol: Sendable {
     func fromPlain(_ string: String?) -> AttributedString?
     
     func fromHTML(_ htmlString: String?) -> AttributedString?

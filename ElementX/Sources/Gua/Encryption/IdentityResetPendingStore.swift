@@ -21,15 +21,15 @@ enum IdentityResetPendingStore {
     private static func key(for userID: String) -> String {
         "gua.identityResetPending.\(userID)"
     }
-
+    
     static func isPending(for userID: String) -> Bool {
         UserDefaults.standard.bool(forKey: key(for: userID))
     }
-
+    
     static func markPending(for userID: String) {
         UserDefaults.standard.set(true, forKey: key(for: userID))
     }
-
+    
     static func clear(for userID: String) {
         UserDefaults.standard.removeObject(forKey: key(for: userID))
     }

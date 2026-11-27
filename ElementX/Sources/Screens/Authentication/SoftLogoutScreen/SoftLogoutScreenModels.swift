@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -21,8 +22,8 @@ enum SoftLogoutScreenViewModelAction: CustomStringConvertible {
     case forgotPassword
     /// Clear all user data
     case clearAllData
-    /// Continue using OIDC.
-    case continueWithOIDC
+    /// Continue using OAuth.
+    case continueWithOAuth
     
     /// A string representation of the result, ignoring any associated values that could leak PII.
     var description: String {
@@ -33,8 +34,8 @@ enum SoftLogoutScreenViewModelAction: CustomStringConvertible {
             return "forgotPassword"
         case .clearAllData:
             return "clearAllData"
-        case .continueWithOIDC:
-            return "continueWithOIDC"
+        case .continueWithOAuth:
+            return "continueWithOAuth"
         }
     }
 }
@@ -42,29 +43,29 @@ enum SoftLogoutScreenViewModelAction: CustomStringConvertible {
 struct SoftLogoutScreenViewState: BindableState {
     /// Soft logout credentials
     var credentials: SoftLogoutScreenCredentials
-
+    
     /// Data about the selected homeserver.
     var homeserver: LoginHomeserver
-
+    
     /// Flag indicating soft logged out user needs backup for some keys
     var keyBackupNeeded: Bool
-
+    
     /// View state that can be bound to from SwiftUI.
     var bindings: SoftLogoutScreenBindings
-
+    
     /// The types of login supported by the homeserver.
     var loginMode: LoginMode {
         homeserver.loginMode
     }
     
-    /// The presentation anchor used for OIDC authentication.
+    /// The presentation anchor used for OAuth authentication.
     var window: UIWindow?
-
+    
     /// Whether to show recover encryption keys message
     var showRecoverEncryptionKeysMessage: Bool {
         keyBackupNeeded
     }
-
+    
     /// `true` when valid credentials have been entered and a homeserver has been loaded.
     var canSubmit: Bool {
         !bindings.password.isEmpty
@@ -79,7 +80,7 @@ struct SoftLogoutScreenBindings {
 }
 
 enum SoftLogoutScreenViewAction {
-    /// Updates the window used as the OIDC presentation anchor.
+    /// Updates the window used as the OAuth presentation anchor.
     case updateWindow(UIWindow?)
     /// Login.
     case login
@@ -87,8 +88,8 @@ enum SoftLogoutScreenViewAction {
     case forgotPassword
     /// Clear all user data.
     case clearAllData
-    /// Continue using OIDC.
-    case continueWithOIDC
+    /// Continue using OAuth.
+    case continueWithOAuth
 }
 
 enum SoftLogoutScreenErrorType: Hashable {

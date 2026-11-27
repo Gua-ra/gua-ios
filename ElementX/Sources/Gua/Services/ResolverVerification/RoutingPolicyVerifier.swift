@@ -8,13 +8,13 @@
 import CryptoKit
 import Foundation
 
-enum RoutingPolicyVerifier {
+nonisolated enum RoutingPolicyVerifier {
     static func validSignatureCount(of bundle: RoutingPolicyBundle, canonical: [UInt8],
                                     keys: [String: Curve25519.Signing.PublicKey]) -> ResolverSignatureCounter.Count {
         ResolverSignatureCounter.count(signatures: bundle.signatures.map { ($0.authorityKeyId, $0.signatureB64) },
                                        over: canonical, keys: keys)
     }
-
+    
     /// Call only after the bundle's authority signatures verify; they are the only trust in each `delegatePublicKey`.
     static func delegateVerifiedZones(of bundle: RoutingPolicyBundle) -> Set<String> {
         var verified = Set<String>()

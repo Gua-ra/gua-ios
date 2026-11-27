@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -56,7 +57,7 @@ struct AppLockScreen: View {
                     .buttonStyle(.compound(.secondary))
                     .accessibilityIdentifier(A11yIdentifiers.appLockScreen.unlockWithBiometrics)
                 }
-
+                
                 Button(L10n.screenAppLockForgotPin) {
                     context.send(viewAction: .forgotPIN)
                 }
@@ -71,6 +72,19 @@ struct AppLockScreen: View {
                 .animation(.elementDefault, value: context.viewState.forcedLogoutIndicator)
         }
         .alert(item: $context.alertInfo)
+        .toolbar { toolbar }
+    }
+    
+    @ToolbarContentBuilder
+    var toolbar: some ToolbarContent {
+        if context.viewState.mode == .verifyDeviceOwner {
+            ToolbarItem(placement: .cancellationAction) {
+                ToolbarButton(role: .cancel) {
+                    context.send(viewAction: .cancelVerifyDeviceOwner)
+                }
+                .accessibilityIdentifier(A11yIdentifiers.appLockScreen.cancel)
+            }
+        }
     }
     
     var header: some View {
@@ -131,14 +145,21 @@ struct AppLockScreen: View {
 
 struct AppLockScreen_Previews: PreviewProvider, TestablePreview {
     static let viewModel = AppLockScreenViewModel(appLockService: AppLockServiceMock.mock())
+    static let verifyViewModel = AppLockScreenViewModel(appLockService: AppLockServiceMock.mock(), mode: .verifyDeviceOwner)
     static let pinOnlyViewModel = AppLockScreenViewModel(appLockService: AppLockServiceMock.mock(biometryType: .none))
-
+    
     static var previews: some View {
-        NavigationStack {
+        ElementNavigationStack {
             AppLockScreen(context: viewModel.context)
         }
-
-        NavigationStack {
+        .previewDisplayName("Unlock")
+        
+        ElementNavigationStack {
+            AppLockScreen(context: verifyViewModel.context)
+        }
+        .previewDisplayName("Verify")
+        
+        ElementNavigationStack {
             AppLockScreen(context: pinOnlyViewModel.context)
         }
         .previewDisplayName("PIN only")

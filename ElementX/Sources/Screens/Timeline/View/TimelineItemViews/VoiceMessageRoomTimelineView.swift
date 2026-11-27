@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -29,15 +30,33 @@ struct VoiceMessageRoomTimelineContent: View {
     let playerState: AudioPlayerState
     
     var body: some View {
-        VoiceMessageRoomPlaybackView(playerState: playerState,
-                                     onPlayPause: onPlaybackPlayPause,
-                                     onSeek: { onPlaybackSeek($0) },
-                                     onScrubbing: { onPlaybackScrubbing($0) })
-            .fixedSize(horizontal: false, vertical: true)
+        ContentScanningView(contentScannerService: context?.contentScannerService,
+                            mediaSource: timelineItem.content.source) {
+            VoiceMessageRoomPlaybackView(playerState: playerState,
+                                         onPlayPause: onPlaybackPlayPause,
+                                         onSeek: { onPlaybackSeek($0) },
+                                         onScrubbing: { onPlaybackScrubbing($0) },
+                                         onPlaybackSpeedChange: onPlaybackSpeedChange)
+                .fixedSize(horizontal: false, vertical: true)
+        } scanningContent: {
+            VoiceMessageRoomPlaybackView(playerState: playerState,
+                                         isScanning: true,
+                                         onPlayPause: { },
+                                         onSeek: { _ in },
+                                         onScrubbing: { _ in },
+                                         onPlaybackSpeedChange: { })
+                .fixedSize(horizontal: false, vertical: true)
+        } unsafeContent: { failure in
+            ContentScanningFailureView(failure: failure)
+        }
     }
     
     private func onPlaybackPlayPause() {
         context?.send(viewAction: .handleAudioPlayerAction(.playPause(itemID: timelineItem.id)))
+    }
+    
+    private func onPlaybackSpeedChange() {
+        context?.send(viewAction: .handleAudioPlayerAction(.changePlaybackSpeed(itemID: timelineItem.id)))
     }
     
     private func onPlaybackSeek(_ progress: Double) {
@@ -61,6 +80,8 @@ struct VoiceMessageRoomTimelineContent: View {
 
 struct VoiceMessageRoomTimelineView_Previews: PreviewProvider, TestablePreview {
     static let viewModel = TimelineViewModel.mock
+    static let scanningViewModel = TimelineViewModel.mock(contentScannerService: ContentScannerServiceMock(.init(scanResult: nil)))
+    static let unsafeViewModel = TimelineViewModel.mock(contentScannerService: ContentScannerServiceMock(.init(scanResult: false)))
     static let timelineItemIdentifier = TimelineItemIdentifier.randomEvent
     static let voiceRoomTimelineItem = VoiceMessageRoomTimelineItem(id: timelineItemIdentifier,
                                                                     timestamp: .mock,
@@ -71,7 +92,7 @@ struct VoiceMessageRoomTimelineView_Previews: PreviewProvider, TestablePreview {
                                                                     content: .init(filename: "audio.ogg",
                                                                                    duration: 300,
                                                                                    waveform: EstimatedWaveform.mockWaveform,
-                                                                                   source: nil,
+                                                                                   source: try? MediaSourceProxy(url: .mockMXCAudio, mimeType: nil),
                                                                                    fileSize: nil,
                                                                                    contentType: nil))
     
@@ -83,6 +104,19 @@ struct VoiceMessageRoomTimelineView_Previews: PreviewProvider, TestablePreview {
     
     static var previews: some View {
         body.environmentObject(viewModel.context)
+        
+        VStack(spacing: 20) {
+            VoiceMessageRoomTimelineView(timelineItem: voiceRoomTimelineItem, playerState: playerState)
+                .environmentObject(scanningViewModel.context)
+                .environment(\.timelineContext, scanningViewModel.context)
+            
+            VoiceMessageRoomTimelineView(timelineItem: voiceRoomTimelineItem, playerState: playerState)
+                .environmentObject(unsafeViewModel.context)
+                .environment(\.timelineContext, unsafeViewModel.context)
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .environmentObject(viewModel.context)
+        .previewDisplayName("Content Scanner")
     }
     
     static var body: some View {

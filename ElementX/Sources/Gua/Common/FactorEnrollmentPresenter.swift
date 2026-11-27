@@ -10,7 +10,7 @@ import AuthenticationServices
 struct FactorEnrollmentRefusal: LocalizedError {
     let code: String
     let serverDescription: String?
-
+    
     var errorDescription: String? {
         L10n.errorUnknown
     }
@@ -25,22 +25,22 @@ struct FactorEnrollmentRefusal: LocalizedError {
 /// A web authentication session is used (rather than `SFSafariViewController`) so
 /// that the existing login session is available and the user doesn't have to sign
 /// in again. The session finishes when the page redirects to the app's OIDC
-/// redirect URL. Mirrors ``OIDCAccountSettingsPresenter``.
+/// redirect URL. Mirrors ``OAuthAccountSettingsPresenter``.
 @MainActor
 class FactorEnrollmentPresenter: NSObject {
     private let enrollURL: URL
     private let presentationAnchor: UIWindow
-    private let oidcRedirectURL: URL
+    private let oAuthRedirectURL: URL
     /// Retained for the lifetime of the presentation so the session isn't cancelled early.
     private var session: ASWebAuthenticationSession?
-
+    
     init(enrollURL: URL, presentationAnchor: UIWindow, appSettings: AppSettings) {
         self.enrollURL = enrollURL
         self.presentationAnchor = presentationAnchor
-        oidcRedirectURL = appSettings.oidcRedirectURL
+        oAuthRedirectURL = appSettings.oAuthRedirectURL
         super.init()
     }
-
+    
     /// Presents the web authentication session and returns once it is dismissed —
     /// either because the page redirected to the callback URL or because the user
     /// closed the sheet.
@@ -55,7 +55,7 @@ class FactorEnrollmentPresenter: NSObject {
             urlToOpen = components.url ?? enrollURL
         }
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            let session = ASWebAuthenticationSession(url: urlToOpen, callback: .oidcRedirectURL(oidcRedirectURL)) { callbackURL, error in
+            let session = ASWebAuthenticationSession(url: urlToOpen, callback: .oAuthRedirectURL(oAuthRedirectURL)) { callbackURL, error in
                 if let error {
                     // Treat user-initiated cancellation as a normal dismissal (no error to surface).
                     if (error as? ASWebAuthenticationSessionError)?.code == .canceledLogin {

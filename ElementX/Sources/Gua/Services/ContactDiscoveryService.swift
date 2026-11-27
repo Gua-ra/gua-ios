@@ -14,15 +14,17 @@ struct DiscoveredContact: Identifiable, Equatable {
     let phoneNumber: String
     let userId: String
     let username: String?
-
+    
     var id: String {
         userId
     }
-
+    
     /// What to show as the handle line, preferring the global username and never
     /// surfacing the homeserver.
     var handle: String {
-        if let username, !username.isEmpty { return "@\(username)" }
+        if let username, !username.isEmpty {
+            return "@\(username)"
+        }
         return userId.guaDisplayHandle
     }
 }
@@ -31,7 +33,7 @@ enum ContactDiscoveryError: Error, LocalizedError {
     case accessDenied
     case noContactsWithNumbers
     case lookupFailed(Error)
-
+    
     var errorDescription: String? {
         switch self {
         case .accessDenied:
@@ -56,47 +58,49 @@ protocol ContactDiscoveryServiceProtocol {
 final class ContactDiscoveryService: ContactDiscoveryServiceProtocol {
     private let identityServiceClient: IdentityServiceClientProtocol
     private let store = CNContactStore()
-
+    
     /// The signed-in user's own ID, so we never surface them as a "friend" to chat with.
     private let currentUserID: String
-
+    
     /// Identity-service caps the batch; stay under it.
     private let maxNumbersPerRequest: Int
-
+    
     init(identityServiceClient: IdentityServiceClientProtocol, currentUserID: String, maxNumbersPerRequest: Int = 1000) {
         self.identityServiceClient = identityServiceClient
         self.currentUserID = currentUserID
         self.maxNumbersPerRequest = max(1, maxNumbersPerRequest)
     }
-
+    
     var authorizationStatus: CNAuthorizationStatus {
         CNContactStore.authorizationStatus(for: .contacts)
     }
-
+    
     func requestAccess() async -> Bool {
-        if authorizationStatus == .authorized { return true }
+        if authorizationStatus == .authorized {
+            return true
+        }
         return await withCheckedContinuation { continuation in
             store.requestAccess(for: .contacts) { granted, _ in
                 continuation.resume(returning: granted)
             }
         }
     }
-
+    
     func discover(accessToken: String) async throws -> [DiscoveredContact] {
         guard await requestAccess() else { throw ContactDiscoveryError.accessDenied }
-
+        
         // Map every normalized E.164 number to the best local name so matches can be
         // labelled with how the user actually knows the person.
         let nameByNumber = readAddressBook()
         guard !nameByNumber.isEmpty else { throw ContactDiscoveryError.noContactsWithNumbers }
-
+        
         let matches: [ContactMatch]
         do {
             matches = try await lookupContactMatches(accessToken: accessToken, phones: nameByNumber.keys.sorted())
         } catch {
             throw ContactDiscoveryError.lookupFailed(error)
         }
-
+        
         return matches
             .map { match in
                 DiscoveredContact(localName: nameByNumber[match.phoneNumber] ?? match.displayName ?? match.username ?? match.userId,
@@ -108,7 +112,7 @@ final class ContactDiscoveryService: ContactDiscoveryServiceProtocol {
             .filter { $0.userId.localizedCaseInsensitiveCompare(currentUserID) != .orderedSame }
             .sorted { $0.localName.localizedCaseInsensitiveCompare($1.localName) == .orderedAscending }
     }
-
+    
     func lookupContactMatches(accessToken: String, phones: [String]) async throws -> [ContactMatch] {
         var matches: [ContactMatch] = []
         for startIndex in stride(from: phones.startIndex, to: phones.endIndex, by: maxNumbersPerRequest) {
@@ -119,9 +123,9 @@ final class ContactDiscoveryService: ContactDiscoveryServiceProtocol {
         }
         return matches
     }
-
+    
     // MARK: - Address book
-
+    
     private func readAddressBook() -> [String: String] {
         // Use the formatter's own descriptor so every key it reads (given/middle/family,
         // prefix/suffix, …) is fetched — otherwise CNContactFormatter throws when it touches
@@ -132,7 +136,7 @@ final class ContactDiscoveryService: ContactDiscoveryServiceProtocol {
         ]
         let request = CNContactFetchRequest(keysToFetch: keys)
         let defaultDialCode = Country.deviceDefault.dialCode
-
+        
         var nameByNumber: [String: String] = [:]
         do {
             try store.enumerateContacts(with: request) { contact, _ in
@@ -150,7 +154,7 @@ final class ContactDiscoveryService: ContactDiscoveryServiceProtocol {
         }
         return nameByNumber
     }
-
+    
     /// Best-effort E.164 normalization for an address-book number. International numbers
     /// (with `+`, `00`, or the device region's dial code already included) are used as-is;
     /// national numbers get the device region's dial code with a single trunk `0` dropped.
@@ -161,7 +165,7 @@ final class ContactDiscoveryService: ContactDiscoveryServiceProtocol {
         let digits = trimmed.filter(\.isNumber)
         let defaultDialCodeDigits = defaultDialCode.filter(\.isNumber)
         guard !digits.isEmpty, !defaultDialCodeDigits.isEmpty else { return nil }
-
+        
         let cleaned: String
         if trimmed.hasPrefix("+") {
             cleaned = "+\(digits)"
@@ -171,13 +175,15 @@ final class ContactDiscoveryService: ContactDiscoveryServiceProtocol {
             cleaned = "+\(digits)"
         } else {
             var national = digits
-            if national.hasPrefix("0") { national = String(national.dropFirst()) }
+            if national.hasPrefix("0") {
+                national = String(national.dropFirst())
+            }
             cleaned = "+\(defaultDialCodeDigits)\(national)"
         }
-
+        
         return isE164(cleaned) ? cleaned : nil
     }
-
+    
     private static func hasExistingDefaultDialCodePrefix(_ digits: String, defaultDialCode: String) -> Bool {
         guard digits.hasPrefix(defaultDialCode), digits.count > defaultDialCode.count else { return false }
         if defaultDialCode == "1" {
@@ -185,7 +191,7 @@ final class ContactDiscoveryService: ContactDiscoveryServiceProtocol {
         }
         return isE164("+\(digits)")
     }
-
+    
     private static func isE164(_ number: String) -> Bool {
         number.range(of: "^\\+[1-9]\\d{6,14}$", options: .regularExpression) != nil
     }

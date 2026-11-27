@@ -10,28 +10,28 @@ import Foundation
 // `member` decodes strictly because its signature must cover every field read. Enum fields stay raw strings so an
 // unknown value reaches the signature check instead of failing decoding.
 
-struct SignedRosterDocument: Decodable {
+nonisolated struct SignedRosterDocument: Decodable {
     let version: Int64
     let issuedAt: String
     let entries: [SignedRosterEntry]
     let logCheckpoint: RosterLogCheckpoint
     let authoritySignatures: [RosterAuthoritySignature]
-
+    
     var activeEntries: [SignedRosterEntry] {
         entries.filter(\.isActive)
     }
 }
 
-struct RosterLogCheckpoint: Codable, Equatable {
+nonisolated struct RosterLogCheckpoint: Codable, Equatable {
     let merkleRoot: String
     let size: Int
-
+    
     private enum CodingKeys: String, CodingKey {
         case merkleRoot, size
     }
 }
 
-extension RosterLogCheckpoint {
+nonisolated extension RosterLogCheckpoint {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         merkleRoot = try container.decode(String.self, forKey: .merkleRoot)
@@ -39,23 +39,23 @@ extension RosterLogCheckpoint {
     }
 }
 
-struct RosterAuthoritySignature: Decodable {
+nonisolated struct RosterAuthoritySignature: Decodable {
     let authorityKeyId: String?
     let signatureB64: String?
 }
 
-struct SignedRosterEntry: Decodable {
+nonisolated struct SignedRosterEntry: Decodable {
     let homeserver: RosterHomeserver
     let claims: [RosterClaimPredicate]
     let admittedAt: String?
     let status: String
     let member: RosterMemberAttestation?
     let memberIsMalformed: Bool
-
+    
     private enum CodingKeys: String, CodingKey {
         case homeserver, claims, admittedAt, status, member
     }
-
+    
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         homeserver = try container.decode(RosterHomeserver.self, forKey: .homeserver)
@@ -71,13 +71,13 @@ struct SignedRosterEntry: Decodable {
             memberIsMalformed = false
         }
     }
-
+    
     var isActive: Bool {
         status == "ACTIVE"
     }
 }
 
-struct RosterHomeserver: Decodable {
+nonisolated struct RosterHomeserver: Decodable {
     let id: String?
     let serverName: String?
     let baseUrl: String?
@@ -89,11 +89,11 @@ struct RosterHomeserver: Decodable {
     let hasSearchVisibilityField: Bool
     let searchVisibility: String
     let searchGroups: [String]
-
+    
     private enum CodingKeys: String, CodingKey {
         case id, serverName, baseUrl, masIssuer, region, weight, acceptsNew, signingKey, searchVisibility, searchGroups
     }
-
+    
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decodeIfPresent(String.self, forKey: .id)
@@ -108,13 +108,13 @@ struct RosterHomeserver: Decodable {
         searchVisibility = try container.decodeIfPresent(String.self, forKey: .searchVisibility) ?? "GLOBAL"
         searchGroups = try container.decodeIfPresent([String].self, forKey: .searchGroups) ?? []
     }
-
+    
     func hasEndpoint(of answer: ResolvedHomeserver) -> Bool {
         serverName == answer.serverName && baseUrl == answer.baseURL && masIssuer == answer.masIssuer
     }
 }
 
-struct RosterClaimPredicate: Decodable {
+nonisolated struct RosterClaimPredicate: Decodable {
     let country: String?
     let mccmnc: String?
     let carrier: String?
@@ -123,11 +123,11 @@ struct RosterClaimPredicate: Decodable {
     let attributeMatch: [String: String]?
     let remoteClaimUrl: String?
     let priority: Int32
-
+    
     private enum CodingKeys: String, CodingKey {
         case country, mccmnc, carrier, phonePrefixes, affiliation, attributeMatch, remoteClaimUrl, priority
     }
-
+    
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         country = try container.decodeIfPresent(String.self, forKey: .country)
@@ -139,14 +139,14 @@ struct RosterClaimPredicate: Decodable {
         remoteClaimUrl = try container.decodeIfPresent(String.self, forKey: .remoteClaimUrl)
         priority = try container.decodeIfPresent(Int32.self, forKey: .priority) ?? 0
     }
-
+    
     var isRemote: Bool {
         guard let remoteClaimUrl else { return false }
         return !remoteClaimUrl.isBlank
     }
 }
 
-struct RosterMemberAttestation: Decodable {
+nonisolated struct RosterMemberAttestation: Decodable {
     let schema: String?
     let alg: String?
     let keyId: String?
@@ -154,11 +154,11 @@ struct RosterMemberAttestation: Decodable {
     let notBefore: String?
     let notAfter: String?
     let signatures: [RosterMemberSignature]
-
+    
     private enum CodingKeys: String, CodingKey, CaseIterable {
         case schema, alg, keyId, sequence, notBefore, notAfter, signatures
     }
-
+    
     init(from decoder: Decoder) throws {
         try StrictKeys.check(decoder, allowed: CodingKeys.self)
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -172,14 +172,14 @@ struct RosterMemberAttestation: Decodable {
     }
 }
 
-struct RosterMemberSignature: Decodable {
+nonisolated struct RosterMemberSignature: Decodable {
     let keyId: String?
     let signatureB64: String?
-
+    
     private enum CodingKeys: String, CodingKey, CaseIterable {
         case keyId, signatureB64
     }
-
+    
     init(from decoder: Decoder) throws {
         try StrictKeys.check(decoder, allowed: CodingKeys.self)
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -188,22 +188,22 @@ struct RosterMemberSignature: Decodable {
     }
 }
 
-private enum StrictKeys {
+private nonisolated enum StrictKeys {
     private struct AnyKey: CodingKey {
         let stringValue: String
         var intValue: Int? {
             nil
         }
-
+        
         init?(stringValue: String) {
             self.stringValue = stringValue
         }
-
+        
         init?(intValue: Int) {
             nil
         }
     }
-
+    
     static func check<Allowed: CodingKey & CaseIterable>(_ decoder: Decoder, allowed: Allowed.Type) throws {
         let present = try decoder.container(keyedBy: AnyKey.self).allKeys.map(\.stringValue)
         let known = Set(Allowed.allCases.map(\.stringValue))
@@ -213,12 +213,12 @@ private enum StrictKeys {
     }
 }
 
-private extension KeyedDecodingContainer {
+private nonisolated extension KeyedDecodingContainer {
     /// Refuses a present null.
     func decodeStrictly<Value: Decodable>(_ type: Value.Type, forKey key: Key) throws -> Value? {
         try contains(key) ? decode(type, forKey: key) : nil
     }
-
+    
     func decodeSizeOrIndex(forKey key: Key) throws -> Int {
         let value = try decode(Int32.self, forKey: key)
         guard value >= 0 else { throw DecodingError.dataCorruptedError(forKey: key, in: self, debugDescription: "does not fit in 31 bits") }
@@ -226,27 +226,31 @@ private extension KeyedDecodingContainer {
     }
 }
 
-protocol ResolverValidityWindow {
+nonisolated protocol ResolverValidityWindow {
     var notBefore: String? { get }
     var expiresAt: String? { get }
 }
 
-extension ResolverValidityWindow {
+nonisolated extension ResolverValidityWindow {
     func isInEffect(atEpochMilliseconds now: Int64) -> Bool {
         // The signed bytes write a missing bound and one at the epoch alike, as 0, so both leave that side open.
         if let notBefore {
             guard let start = ResolverInstant(iso: notBefore)?.epochMilliseconds else { return false }
-            if start != 0, now < start { return false }
+            if start != 0, now < start {
+                return false
+            }
         }
         if let expiresAt {
             guard let end = ResolverInstant(iso: expiresAt)?.epochMilliseconds else { return false }
-            if end != 0, now >= end { return false }
+            if end != 0, now >= end {
+                return false
+            }
         }
         return true
     }
 }
 
-struct RoutingPolicyBundle: Decodable, ResolverValidityWindow {
+nonisolated struct RoutingPolicyBundle: Decodable, ResolverValidityWindow {
     let schemaVersion: String?
     let policyId: String?
     let version: Int64
@@ -258,37 +262,37 @@ struct RoutingPolicyBundle: Decodable, ResolverValidityWindow {
     let fallback: FallbackStrategy?
     let signatures: [PolicySignature]
     let delegateSignatures: [DelegateSignature]
-
+    
     struct FallbackStrategy: Decodable {
         let type: String?
         let enabled: Bool
-
+        
         private enum CodingKeys: String, CodingKey {
             case type, enabled
         }
-
+        
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             type = try container.decodeIfPresent(String.self, forKey: .type)
             enabled = try container.decodeIfPresent(Bool.self, forKey: .enabled) ?? false
         }
     }
-
+    
     struct PolicySignature: Decodable {
         let authorityKeyId: String?
         let signatureB64: String?
     }
-
+    
     struct DelegateSignature: Decodable {
         let zoneId: String?
         let delegateKeyId: String?
         let signatureB64: String?
     }
-
+    
     private enum CodingKeys: String, CodingKey {
         case schemaVersion, policyId, version, issuedAt, notBefore, expiresAt, delegationZones, rules, fallback, signatures, delegateSignatures
     }
-
+    
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         schemaVersion = try container.decodeIfPresent(String.self, forKey: .schemaVersion)
@@ -305,7 +309,7 @@ struct RoutingPolicyBundle: Decodable, ResolverValidityWindow {
     }
 }
 
-struct DelegationZone: Decodable, ResolverValidityWindow {
+nonisolated struct DelegationZone: Decodable, ResolverValidityWindow {
     let id: String?
     let scopeType: String?
     let scopeValue: String?
@@ -317,7 +321,7 @@ struct DelegationZone: Decodable, ResolverValidityWindow {
     let expiresAt: String?
 }
 
-struct RoutingPolicyRule: Decodable {
+nonisolated struct RoutingPolicyRule: Decodable {
     let id: String?
     let priority: Int32
     let matchType: String?
@@ -329,11 +333,11 @@ struct RoutingPolicyRule: Decodable {
     let reason: String?
     let assignmentPolicy: String?
     let enabled: Bool?
-
+    
     private enum CodingKeys: String, CodingKey {
         case id, priority, matchType, matchValue, oidcIssuer, oidcClaim, targetHomeserverId, delegatedZoneId, reason, assignmentPolicy, enabled
     }
-
+    
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decodeIfPresent(String.self, forKey: .id)
@@ -348,40 +352,40 @@ struct RoutingPolicyRule: Decodable {
         assignmentPolicy = try container.decodeIfPresent(String.self, forKey: .assignmentPolicy)
         enabled = try container.decodeIfPresent(Bool.self, forKey: .enabled)
     }
-
+    
     var isEnabled: Bool {
         enabled ?? true
     }
-
+    
     var effectiveAssignmentPolicy: String {
         assignmentPolicy ?? "PORTABLE"
     }
 }
 
-struct TransparencyLogDocument: Decodable {
+nonisolated struct TransparencyLogDocument: Decodable {
     let events: [TransparencyLogEvent]
 }
 
-struct TransparencyLogEvent: Decodable {
+nonisolated struct TransparencyLogEvent: Decodable {
     let index: Int
     let type: String
     let homeserverId: String?
     let payloadHash: String
     let recordedAt: ResolverInstant
-
+    
     private enum CodingKeys: String, CodingKey {
         case index, type, homeserverId, payloadHash, recordedAt
     }
-
+    
     var isPolicyPublication: Bool {
         type == "POLICY_PUBLISH"
     }
-
+    
     var leafHash: String {
         MerkleTree.leafHash(Array(MerkleTree.leafData(index: index, type: type, homeserverId: homeserverId, payloadHash: payloadHash,
                                                       recordedAtEpochMilliseconds: recordedAt.epochMilliseconds).utf8))
     }
-
+    
     /// A publication carries its subject, `<policyId>:v<version>`, in `homeserverId`.
     func publishesLaterVersion(of served: ServedPolicy) -> Bool {
         guard isPolicyPublication, let subject = homeserverId, let separator = subject.range(of: ":v", options: .backwards),
@@ -392,7 +396,7 @@ struct TransparencyLogEvent: Decodable {
     }
 }
 
-extension TransparencyLogEvent {
+nonisolated extension TransparencyLogEvent {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         index = try container.decodeSizeOrIndex(forKey: .index)
@@ -407,20 +411,20 @@ extension TransparencyLogEvent {
     }
 }
 
-struct ServedPolicy {
+nonisolated struct ServedPolicy {
     let policyId: String?
     let version: Int64
     /// SHA-256 of the bundle's canonical bytes, the leaf's payload hash.
     let contentHash: String
 }
 
-struct ConsistencyProofDocument: Decodable {
+nonisolated struct ConsistencyProofDocument: Decodable {
     let proof: [String]
-
+    
     private enum CodingKeys: String, CodingKey {
         case proof
     }
-
+    
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         proof = try container.decode([String].self, forKey: .proof)
@@ -428,7 +432,7 @@ struct ConsistencyProofDocument: Decodable {
             throw DecodingError.dataCorruptedError(forKey: .proof, in: container, debugDescription: "a proof hash is not 64 lowercase hex characters")
         }
     }
-
+    
     private static func isHash(_ text: String) -> Bool {
         text.utf8.count == 64 && text.utf8.allSatisfy { (UInt8(ascii: "0")...UInt8(ascii: "9")).contains($0) || (UInt8(ascii: "a")...UInt8(ascii: "f")).contains($0) }
     }

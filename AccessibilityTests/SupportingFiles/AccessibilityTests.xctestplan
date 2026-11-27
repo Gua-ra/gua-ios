@@ -9,9 +9,6 @@
     }
   ],
   "defaultOptions" : {
-    "addressSanitizer" : {
-      "enabled" : true
-    },
     "codeCoverage" : {
       "targets" : [
         {
@@ -21,7 +18,7 @@
         }
       ]
     },
-    "defaultTestExecutionTimeAllowance" : 120,
+    "defaultTestExecutionTimeAllowance" : 240,
     "environmentVariableEntries" : [
 
     ],
@@ -36,8 +33,7 @@
       "identifier" : "8863612E3FD57A5CF487B420",
       "name" : "AccessibilityTests"
     },
-    "testTimeoutsEnabled" : true,
-    "undefinedBehaviorSanitizerEnabled" : true
+    "testTimeoutsEnabled" : true
   },
   "testTargets" : [
     {

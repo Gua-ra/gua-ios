@@ -1,7 +1,8 @@
 //
-// Copyright 2021-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2021-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -63,7 +64,7 @@ struct AnalyticsPromptScreen: View {
         .frame(maxWidth: .infinity)
         .environment(\.backgroundStyle, AnyShapeStyle(.compound.bgSubtleSecondary))
     }
-
+    
     private func checkMarkItem(title: String, position: ListPosition) -> some View {
         VisualListItem(title: title, position: position) {
             CompoundIcon(\.checkCircle, size: .small, relativeTo: .body)
@@ -79,7 +80,7 @@ struct AnalyticsPromptScreen: View {
             Button(L10n.actionOk) { context.send(viewAction: .enable) }
                 .buttonStyle(.compound(.primary))
                 .accessibilityIdentifier(A11yIdentifiers.analyticsPromptScreen.enable)
-
+            
             Button(L10n.actionNotNow) { context.send(viewAction: .disable) }
                 .buttonStyle(.compound(.primary))
                 .accessibilityIdentifier(A11yIdentifiers.analyticsPromptScreen.notNow)
@@ -101,6 +102,6 @@ struct AnalyticsPromptScreen_Previews: PreviewProvider, TestablePreview {
     }
     
     static func makeViewModel(showTerms: Bool = true) -> AnalyticsPromptScreenViewModel {
-        AnalyticsPromptScreenViewModel(termsURL: showTerms ? ServiceLocator.shared.settings.analyticsTermsURL : nil)
+        AnalyticsPromptScreenViewModel(termsURL: showTerms ? AppSettings.volatile().analyticsTermsURL : nil)
     }
 }

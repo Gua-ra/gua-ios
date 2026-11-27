@@ -39,12 +39,12 @@ final class PasskeyStepUpPresenter: NSObject, PasskeyStepUpPresenting {
     /// Retained for the lifetime of the ceremony so the sheet is not torn down early.
     private var controller: ASAuthorizationController?
     private var continuation: CheckedContinuation<PasskeyAssertion, Error>?
-
+    
     init(presentationAnchor: ASPresentationAnchor) {
         self.presentationAnchor = presentationAnchor
         super.init()
     }
-
+    
     func assertion(for options: PasskeyStepUpOptions) async throws -> PasskeyAssertion {
         guard !options.relyingPartyID.isEmpty, !options.challenge.isEmpty else {
             throw PasskeyStepUpError.unavailable
@@ -53,7 +53,7 @@ final class PasskeyStepUpPresenter: NSObject, PasskeyStepUpPresenting {
         // presentation, accepted or refused, so a second concurrent attempt could only spend a
         // challenge that is already gone.
         guard continuation == nil else { throw PasskeyStepUpError.unavailable }
-
+        
         let provider = ASAuthorizationPlatformPublicKeyCredentialProvider(relyingPartyIdentifier: options.relyingPartyID)
         let request = provider.createCredentialAssertionRequest(challenge: options.challenge)
         request.allowedCredentials = options.allowedCredentialIDs.map {
@@ -64,7 +64,7 @@ final class PasskeyStepUpPresenter: NSObject, PasskeyStepUpPresenting {
         // authenticator data it is handed and refuses the assertion if it did not happen, so this
         // is the prompt, not the enforcement.
         request.userVerificationPreference = .required
-
+        
         return try await withCheckedThrowingContinuation { continuation in
             self.continuation = continuation
             let controller = ASAuthorizationController(authorizationRequests: [request])
@@ -74,7 +74,7 @@ final class PasskeyStepUpPresenter: NSObject, PasskeyStepUpPresenting {
             controller.performRequests()
         }
     }
-
+    
     private func finish(with result: Result<PasskeyAssertion, Error>) {
         controller = nil
         guard let continuation else { return }
@@ -101,7 +101,7 @@ extension PasskeyStepUpPresenter: ASAuthorizationControllerDelegate {
                                                                    userHandle: assertion.userID.map(encode)))))
         }
     }
-
+    
     nonisolated func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
         MainActor.assumeIsolated {
             let code = (error as? ASAuthorizationError)?.code

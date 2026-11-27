@@ -1,15 +1,22 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2026 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
-import Combine
-import Mapbox
+import Compound
+import CoreLocation
+import MapLibreInterface
 import SwiftUI
 
-struct MapLibreMapView: UIViewRepresentable {
+/// The interactive map, rendered by the `MapLibreShim` framework which is loaded on first use.
+///
+/// The app deliberately doesn't link MapLibre: dyld would otherwise load it, run its static
+/// initialisers and register its classes on every single launch, for a map that is only shown
+/// on the location screens.
+struct MapLibreMapView: View {
     struct Options {
         /// the final zoom level used when the first user location emit
         let zoomLevel: Double
@@ -21,7 +28,7 @@ struct MapLibreMapView: UIViewRepresentable {
         
         /// Map annotations
         let annotations: [LocationAnnotation]
-
+        
         init(zoomLevel: Double, initialZoomLevel: Double, mapCenter: CLLocationCoordinate2D, annotations: [LocationAnnotation] = []) {
             self.zoomLevel = zoomLevel
             self.initialZoomLevel = initialZoomLevel
@@ -30,13 +37,11 @@ struct MapLibreMapView: UIViewRepresentable {
         }
     }
     
-    // MARK: - Properties
-    
-    @Environment(\.colorScheme) private var colorScheme
-    
     let mapURLBuilder: MapTilerURLBuilderProtocol
-
+    
     let options: Options
+    
+    let mediaProvider: MediaProviderProtocol?
     
     /// Behavior mode of the current user's location, can be hidden, only shown and shown following the user
     @Binding var showsUserLocationMode: ShowUserLocationMode
@@ -44,6 +49,7 @@ struct MapLibreMapView: UIViewRepresentable {
     @Binding var error: MapLibreError?
     /// Coordinate of the center of the map
     @Binding var mapCenterCoordinate: CLLocationCoordinate2D?
+    @Binding var hasLoadedUserLocation: Bool
     @Binding var isLocationAuthorized: Bool?
     /// The radius of uncertainty for the location, measured in meters.
     @Binding var geolocationUncertainty: CLLocationAccuracy?
@@ -51,185 +57,77 @@ struct MapLibreMapView: UIViewRepresentable {
     /// Called when the user pan on the map
     var userDidPan: (() -> Void)?
     
-    // MARK: - UIViewRepresentable
-    
-    func makeUIView(context: Context) -> MGLMapView {
-        let mapView = makeMapView()
-        mapView.delegate = context.coordinator
-        setupMap(mapView: mapView, with: options)
-        return mapView
+    var body: some View {
+        if let shim = MapLibreLoader.shim {
+            shim.makeMapView(configuration: configuration)
+        } else {
+            // The shim failed to load, surface it the same way as a map loading failure.
+            Color.clear
+                .onAppear { error = .failedLoadingMap }
+        }
     }
     
-    func updateUIView(_ mapView: MGLMapView, context: Context) {
-        // Don't set the same value twice. Otherwise, if there is an error loading the map, a loop
-        // is caused as the `error` binding being set, which triggers this update, which sets a
-        // new URL, which causes another error, and so it goes on round and round in a circle.
-        let dynamicMapURL = mapURLBuilder.dynamicMapURL(for: .init(colorScheme))
-        if mapView.styleURL != dynamicMapURL {
-            mapView.styleURL = dynamicMapURL
-        }
+    /// The configuration for the shim, with the app-only pieces (marker views, tint, styles)
+    /// resolved into the shared types it understands.
+    private var configuration: MapViewConfiguration {
+        let annotations = options.annotations
+        let mapURLBuilder = mapURLBuilder
+        let mediaProvider = mediaProvider
         
-        showUserLocation(in: mapView)
-    }
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-    
-    // MARK: - Private
-
-    private func setupMap(mapView: MGLMapView, with options: Options) {
-        mapView.addAnnotations(options.annotations)
-        mapView.zoomLevel = options.annotations.isEmpty ? options.initialZoomLevel : options.zoomLevel
-        mapView.centerCoordinate = options.mapCenter
-    }
-    
-    private func makeMapView() -> MGLMapView {
-        let mapView = MGLMapView(frame: .zero, styleURL: mapURLBuilder.dynamicMapURL(for: colorScheme == .dark ? .dark : .light))
-        mapView.logoViewPosition = .topLeft
-        mapView.attributionButtonPosition = .topLeft
-        mapView.attributionButtonMargins = .init(x: mapView.logoView.frame.maxX + 8, y: mapView.logoView.center.y / 2)
-        mapView.tintColor = .black
-        mapView.allowsRotating = false
-        mapView.allowsTilting = false
-        return mapView
-    }
-    
-    private func showUserLocation(in mapView: MGLMapView) {
-        switch (showsUserLocationMode, options.annotations) {
-        case (.showAndFollow, _):
-            mapView.userTrackingMode = .follow
-        case (.show, let annotations) where !annotations.isEmpty:
-            // In the show mode, if there are annotations, we check the authorizationStatus,
-            // if it's not determined, we wont prompt the user with a request for permissions,
-            // because they should be able to see the annotations without sharing their location information.
-            guard mapView.locationManager.authorizationStatus != .notDetermined else { return }
-            fallthrough
-        case (.show, _):
-            mapView.showsUserLocation = true
-            mapView.setUserTrackingMode(.none, animated: false, completionHandler: nil)
-        case (.hide, _):
-            mapView.showsUserLocation = false
-            mapView.setUserTrackingMode(.none, animated: false, completionHandler: nil)
-        }
+        return .init(zoomLevel: options.zoomLevel,
+                     initialZoomLevel: options.initialZoomLevel,
+                     mapCenter: options.mapCenter,
+                     annotations: annotations.map { .init(id: $0.id, coordinate: $0.coordinate) },
+                     styleURL: { mapURLBuilder.interactiveMapURL(for: $0 ? .dark : .light) },
+                     tintColor: .compound.iconAccentPrimary,
+                     markerView: { annotationID in
+                         guard let kind = annotations.first(where: { $0.id == annotationID })?.kind else { return nil }
+                         return AnyView(LocationMarkerView(kind: kind, mediaProvider: mediaProvider))
+                     },
+                     showsUserLocationMode: $showsUserLocationMode,
+                     error: $error,
+                     mapCenterCoordinate: $mapCenterCoordinate,
+                     hasLoadedUserLocation: $hasLoadedUserLocation,
+                     isLocationAuthorized: $isLocationAuthorized,
+                     geolocationUncertainty: $geolocationUncertainty,
+                     userDidPan: userDidPan)
     }
 }
 
-// MARK: - Coordinator
-
-extension MapLibreMapView {
-    class Coordinator: NSObject, MGLMapViewDelegate {
-        // MARK: - Properties
-
-        var mapLibreView: MapLibreMapView
-        
-        private var previousUserLocation: MGLUserLocation?
-
-        // MARK: - Setup
-
-        init(_ mapLibreView: MapLibreMapView) {
-            self.mapLibreView = mapLibreView
+/// Loads the `MapLibreShim` framework on first use.
+enum MapLibreLoader {
+    static let shim: MapLibreShimProtocol? = {
+        guard let frameworksPath = Bundle.main.privateFrameworksPath else {
+            MXLog.error("Missing frameworks path.")
+            return nil
         }
         
-        // MARK: - MGLMapViewDelegate
-        
-        func mapView(_ mapView: MGLMapView, viewFor annotation: MGLAnnotation) -> MGLAnnotationView? {
-            guard let annotation = annotation as? LocationAnnotation else {
-                return nil
-            }
-            return LocationAnnotationView(annotation: annotation)
+        guard dlopen("\(frameworksPath)/MapLibreShim.framework/MapLibreShim", RTLD_NOW) != nil else {
+            MXLog.error("Failed loading MapLibreShim: \(dlerror().map { String(cString: $0) } ?? "unknown error")")
+            return nil
         }
         
-        func mapViewDidFailLoadingMap(_ mapView: MGLMapView, withError error: Error) {
-            if mapLibreView.error != .failedLoadingMap {
-                mapLibreView.error = .failedLoadingMap
-            }
+        guard let shimClass = NSClassFromString("MapLibreShim") as? NSObject.Type,
+              let shim = shimClass.init() as? MapLibreShimProtocol else {
+            MXLog.error("Failed resolving MapLibreShim.")
+            return nil
         }
         
-        func mapView(_ mapView: MGLMapView, didUpdate userLocation: MGLUserLocation?) {
-            guard let userLocation else { return }
-
-            if previousUserLocation == nil, mapLibreView.options.annotations.isEmpty {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                    mapView.setCenter(userLocation.coordinate, zoomLevel: self.mapLibreView.options.zoomLevel, animated: true)
-                }
-            }
-
-            previousUserLocation = userLocation
-            updateGeolocationUncertainty(location: userLocation)
-        }
-        
-        func mapView(_ mapView: MGLMapView, didChangeLocationManagerAuthorization manager: MGLLocationManager) {
-            switch manager.authorizationStatus {
-            case .denied, .restricted:
-                mapLibreView.isLocationAuthorized = false
-            case .authorizedAlways, .authorizedWhenInUse:
-                mapLibreView.isLocationAuthorized = true
-            case .notDetermined:
-                mapLibreView.isLocationAuthorized = nil
-            @unknown default:
-                break
+        shim.configureLogging { severity, message in
+            switch severity {
+            case .error:
+                MXLog.error(message)
+            case .warning:
+                MXLog.warning(message)
+            case .info:
+                MXLog.info(message)
+            case .debug:
+                MXLog.debug(message)
+            case .verbose:
+                MXLog.verbose(message)
             }
         }
         
-        func mapView(_ mapView: MGLMapView, regionDidChangeAnimated animated: Bool) {
-            // Avoid `Publishing changes from within view update` warnings
-            DispatchQueue.main.async { [mapLibreView] in
-                mapLibreView.mapCenterCoordinate = mapView.centerCoordinate
-            }
-        }
-
-        func mapView(_ mapView: MGLMapView, shouldChangeFrom oldCamera: MGLMapCamera, to newCamera: MGLMapCamera, reason: MGLCameraChangeReason) -> Bool {
-            // we send the userDidPan event only for the reasons that actually will change the map center, and not zoom only / rotations only events.
-            switch reason {
-            case .gesturePan,
-                 .gesturePinch,
-                 .gestureRotate:
-                mapLibreView.userDidPan?()
-            case .gestureOneFingerZoom,
-                 .gestureTilt,
-                 .gestureZoomIn,
-                 .gestureZoomOut,
-                 .programmatic,
-                 .resetNorth,
-                 .transitionCancelled:
-                break
-            default:
-                break
-            }
-            return true
-        }
-
-        // MARK: Callout
-
-        func mapView(_ mapView: MGLMapView, annotationCanShowCallout annotation: MGLAnnotation) -> Bool {
-            false
-        }
-
-        // MARK: Private
-
-        private func updateGeolocationUncertainty(location: MGLUserLocation) {
-            guard let clLocation = location.location, clLocation.horizontalAccuracy >= 0 else {
-                mapLibreView.geolocationUncertainty = nil
-                return
-            }
-
-            mapLibreView.geolocationUncertainty = clLocation.horizontalAccuracy
-        }
-    }
-}
-
-// MARK: - MGLMapView convenient methods
-
-private extension MapTilerStyle {
-    init(_ colorScheme: ColorScheme) {
-        switch colorScheme {
-        case .light:
-            self = .light
-        case .dark:
-            self = .dark
-        @unknown default:
-            fatalError()
-        }
-    }
+        return shim
+    }()
 }

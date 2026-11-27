@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -229,17 +230,26 @@ private struct LoadableImageContent<TransformerView: View, PlaceholderView: View
     
     // MARK: - ImageDataProvider
     
-    var cacheKey: String {
+    nonisolated var cacheKey: String {
         mediaSource.url.absoluteString
     }
     
-    func data(handler: @escaping (Result<Data, Error>) -> Void) {
-        guard case let .gifData(data) = contentLoader.content else {
-            fatalError("Shouldn't reach this point without any gif data")
+    nonisolated func data(handler: @escaping @Sendable (Result<Data, Error>) -> Void) {
+        // Kingfisher isn't annotated and doesn't guarantee the provider is invoked on the main
+        // thread so hop onto the main actor.
+        Task { @MainActor in
+            guard case let .gifData(data) = contentLoader.content else {
+                handler(.failure(LoadableImageError.missingGIFData))
+                return
+            }
+            
+            handler(.success(data))
         }
-        
-        handler(.success(data))
     }
+}
+
+private enum LoadableImageError: Error {
+    case missingGIFData
 }
 
 private class ContentLoader: ObservableObject {
@@ -278,7 +288,6 @@ private class ContentLoader: ObservableObject {
         self.mediaProvider = mediaProvider
     }
     
-    @MainActor
     func load() async {
         if isGIF {
             if case let .success(data) = await mediaProvider?.loadImageDataFromSource(mediaSource) {
@@ -357,7 +366,7 @@ struct LoadableImage_Previews: PreviewProvider, TestablePreview {
                           mediaProvider: loadingMediaProvider,
                           placeholder: placeholder)
                 .layout(title: "Loading (avatar)")
-
+            
             LoadableImage(url: "mxc://wherever/345",
                           mediaType: .timelineItem(uniqueID: .init("id")),
                           blurhash: "KbLM^j]q$jT|EfR-3rtjXk",
@@ -387,7 +396,7 @@ struct LoadableImage_Previews: PreviewProvider, TestablePreview {
     static func placeholder() -> some View {
         Color.compound._bgBubbleIncoming
     }
-
+    
     static func transformer(_ view: AnyView) -> some View {
         view.overlay {
             Image(systemSymbol: .playCircleFill)
@@ -397,13 +406,12 @@ struct LoadableImage_Previews: PreviewProvider, TestablePreview {
     }
     
     static func makeMediaProvider(isLoading: Bool = false) -> MediaProviderProtocol {
-        let mediaProvider = MediaProviderMock(configuration: .init())
+        let mediaProvider = MediaProviderMock(.init())
         
         if isLoading {
             mediaProvider.imageFromSourceSizeClosure = { _, _ in nil }
             mediaProvider.loadFileFromSourceFilenameClosure = { _, _ in .failure(.failedRetrievingFile) }
             mediaProvider.loadImageDataFromSourceClosure = { _ in .failure(.failedRetrievingImage) }
-            mediaProvider.loadImageFromSourceSizeClosure = { _, _ in .failure(.failedRetrievingImage) }
             mediaProvider.loadThumbnailForSourceSourceSizeClosure = { _, _ in .failure(.failedRetrievingThumbnail) }
             mediaProvider.loadImageRetryingOnReconnectionSizeClosure = { _, _ in
                 Task { throw MediaProviderError.failedRetrievingImage }
@@ -415,7 +423,7 @@ struct LoadableImage_Previews: PreviewProvider, TestablePreview {
 
 private extension View {
     func layout(title: String, hideTimelineMedia: Bool = false) -> some View {
-        aspectRatio(contentMode: .fit)
+        scaledToFit()
             .clipShape(RoundedRectangle(cornerRadius: 20))
             .overlay(alignment: .bottom) {
                 Text(title)

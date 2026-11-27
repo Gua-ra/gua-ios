@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -14,9 +15,11 @@ struct EmoteRoomTimelineView: View, TextBasedRoomTimelineViewProtocol {
     var body: some View {
         TimelineStyler(timelineItem: timelineItem) {
             if let attributedString = timelineItem.content.formattedBody {
-                FormattedBodyText(attributedString: attributedString, additionalWhitespacesCount: timelineItem.additionalWhitespaces())
+                FormattedBodyText(attributedString: attributedString,
+                                  trailingReservedSize: timelineItem.trailingReservedSize)
             } else {
-                FormattedBodyText(text: timelineItem.content.body, additionalWhitespacesCount: timelineItem.additionalWhitespaces())
+                FormattedBodyText(text: timelineItem.content.body,
+                                  trailingReservedSize: timelineItem.trailingReservedSize)
             }
         }
     }

@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -12,44 +13,49 @@ import SwiftUI
 struct AuthenticationStartScreen: View {
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     
-    let context: AuthenticationStartScreenViewModel.Context
+    @Bindable var context: AuthenticationStartScreenViewModel.Context
     
     var body: some View {
-        GeometryReader { geometry in
-            VStack(alignment: .leading, spacing: 0) {
-                Spacer()
-                    .frame(height: UIConstants.spacerHeight(in: geometry))
-                
-                content
-                    .frame(width: geometry.size.width)
-                    .accessibilityIdentifier(A11yIdentifiers.authenticationStartScreen.hidden)
-                
-                buttons
-                    .frame(width: geometry.size.width)
-                    .padding(.bottom, UIConstants.actionButtonBottomPadding)
-                    .padding(.bottom, geometry.safeAreaInsets.bottom > 0 ? 0 : 16)
-                    .padding(.top, 8)
-                
-                Spacer()
-                    .frame(height: UIConstants.spacerHeight(in: geometry))
-            }
-            .frame(maxHeight: .infinity)
-            .safeAreaInset(edge: .bottom) {
-                versionText
-                    .font(.compound.bodySM)
-                    .foregroundColor(.compound.textSecondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.bottom)
-                    .onTapGesture(count: 7) {
-                        context.send(viewAction: .reportProblem)
-                    }
-                    .accessibilityIdentifier(A11yIdentifiers.authenticationStartScreen.appVersion)
-            }
+        if case let .welcomeBack(classicAppAccount) = context.viewState.classicAppMode,
+           classicAppAccount.state.isServerSupported != false {
+            AuthenticationClassicAppAccountView(context: context, classicAppAccount: classicAppAccount)
+        } else {
+            standardContent
         }
-        .navigationBarHidden(true)
+    }
+    
+    var standardContent: some View {
+        // This view uses a GeometryReader instead of FullscreenDialog so its content takes the full
+        // height available (after taking the buttons out of the equation) in order for the logo
+        // and title to appear vertically centred and equally spaced within this content area.
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    Spacer()
+                        .frame(height: UIConstants.spacerHeight(in: geometry))
+                    
+                    content
+                        .frame(width: geometry.size.width)
+                        .accessibilityIdentifier(A11yIdentifiers.authenticationStartScreen.hidden)
+                    
+                    buttons
+                        .frame(width: geometry.size.width)
+                        .padding(.bottom, geometry.safeAreaInsets.bottom > 0 ? 0 : 16)
+                        .padding(.top, 8)
+                    
+                    Spacer()
+                        .frame(height: UIConstants.spacerHeight(in: geometry))
+                }
+                .frame(minHeight: geometry.size.height)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+        }
         .background {
             AuthenticationStartScreenBackgroundImage()
         }
+        .navigationBarHidden(context.viewState.classicAppMode == nil)
+        .toolbar { toolbar }
+        .alert(item: $context.alertInfo)
         .introspect(.window, on: .supportedVersions) { window in
             context.send(viewAction: .updateWindow(window))
         }
@@ -62,7 +68,8 @@ struct AuthenticationStartScreen: View {
             if verticalSizeClass == .regular {
                 Spacer()
                 
-                AuthenticationStartLogo(isOnGradient: !context.viewState.hideBrandChrome)
+                AuthenticationStartLogo(hideBrandChrome: context.viewState.hideBrandChrome,
+                                        isOnGradient: !context.viewState.hideBrandChrome)
             }
             
             Spacer()
@@ -74,6 +81,7 @@ struct AuthenticationStartScreen: View {
                             .font(.compound.headingLGBold)
                             .foregroundColor(.compound.textPrimary)
                             .multilineTextAlignment(.center)
+                            .accessibilityAddTraits(.isHeader)
                     }
                     trustPills
                 }
@@ -87,14 +95,14 @@ struct AuthenticationStartScreen: View {
         .padding(.horizontal, 16)
         .readableFrame()
     }
-
+    
     /// On-brand trust signals shown under the welcome message.
     private var trustPills: some View {
         VStack(spacing: 8) {
             TrustPill(systemImage: "lock.fill", title: L10n.screenOnboardingTrustEncrypted)
         }
     }
-
+    
     /// The main action buttons.
     var buttons: some View {
         VStack(spacing: 16) {
@@ -118,6 +126,19 @@ struct AuthenticationStartScreen: View {
                 }
                 .buttonStyle(.compound(.tertiary))
             }
+            
+            versionText
+                .font(.compound.bodySM)
+                .foregroundColor(.compound.textSecondary)
+                .onTapGesture(count: 7) {
+                    context.send(viewAction: .reportProblem)
+                }
+                .accessibilityIdentifier(A11yIdentifiers.authenticationStartScreen.appVersion)
+                .overlay(alignment: .trailing) {
+                    developerOptionsButton
+                        .scaledOffset(x: 32, y: -0.5, relativeTo: .compound.bodySM)
+                }
+                .padding(.top, 16)
         }
         .padding(.horizontal, verticalSizeClass == .compact ? 128 : 24)
         .readableFrame()
@@ -128,13 +149,35 @@ struct AuthenticationStartScreen: View {
         let shortVersionString = ProcessInfo.isRunningTests ? "0.0.0" : InfoPlistReader.main.bundleShortVersionString
         return Text(L10n.screenOnboardingAppVersion(shortVersionString))
     }
+    
+    @ViewBuilder
+    var developerOptionsButton: some View {
+        if AppSettings.appBuildType != .release, !ProcessInfo.isRunningTests {
+            Button { context.send(viewAction: .developerOptions) } label: {
+                CompoundIcon(\.code)
+                    .foregroundStyle(.compound.iconSecondary)
+            }
+            .accessibilityLabel(L10n.commonDeveloperOptions)
+        }
+    }
+    
+    @ToolbarContentBuilder
+    var toolbar: some ToolbarContent {
+        ToolbarItem(placement: .primaryAction) {
+            if case let .otherOptions(classicAppAccount) = context.viewState.classicAppMode {
+                ToolbarButton(role: .close) {
+                    context.send(viewAction: .closeOtherOptions(classicAppAccount))
+                }
+            }
+        }
+    }
 }
 
 /// A single capsule "trust" chip — icon + short claim, frosted so it reads on the launch gradient.
 private struct TrustPill: View {
     let systemImage: String
     let title: String
-
+    
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: systemImage)
@@ -156,19 +199,32 @@ private struct TrustPill: View {
 struct AuthenticationStartScreen_Previews: PreviewProvider, TestablePreview {
     static let viewModel = makeViewModel()
     static let provisionedViewModel = makeViewModel(provisionedServerName: "example.com")
+    static let classicAppViewModel = makeViewModel(hasClassicAppAccount: true)
     
     static var previews: some View {
         AuthenticationStartScreen(context: viewModel.context)
             .previewDisplayName("Default")
         AuthenticationStartScreen(context: provisionedViewModel.context)
             .previewDisplayName("Provisioned")
+        
+        ElementNavigationStack {
+            AuthenticationStartScreen(context: classicAppViewModel.context)
+        }
+        .previewDisplayName("Classic App")
     }
     
-    static func makeViewModel(provisionedServerName: String? = nil) -> AuthenticationStartScreenViewModel {
-        AuthenticationStartScreenViewModel(authenticationService: AuthenticationService.mock,
-                                           provisioningParameters: provisionedServerName.map { .init(accountProvider: $0, loginHint: nil) },
-                                           isBugReportServiceEnabled: true,
-                                           appSettings: ServiceLocator.shared.settings,
-                                           userIndicatorController: UserIndicatorControllerMock())
+    static func makeViewModel(provisionedServerName: String? = nil, hasClassicAppAccount: Bool = false) -> AuthenticationStartScreenViewModel {
+        let classicAppAccount = ClassicAppAccount.mockDan
+        classicAppAccount.state.isServerSupported = true
+        classicAppAccount.state.availableSecrets = .complete
+        let classicAppManager: ClassicAppManagerMock? = hasClassicAppAccount ? .init(.init(accounts: [classicAppAccount])) : nil
+        
+        return AuthenticationStartScreenViewModel(authenticationService: AuthenticationService.mock(classicAppManager: classicAppManager),
+                                                  provisioningParameters: provisionedServerName.map { .init(accountProvider: $0, loginHint: nil) },
+                                                  isBugReportServiceEnabled: true,
+                                                  appMediator: AppMediatorMock(),
+                                                  appSettings: .volatile(),
+                                                  mediaProvider: MediaProviderMock(.init()),
+                                                  userIndicatorController: UserIndicatorControllerMock())
     }
 }

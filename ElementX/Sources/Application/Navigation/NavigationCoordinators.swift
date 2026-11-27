@@ -1,18 +1,20 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Combine
+import Compound
 import SwiftUI
 
 /// Class responsible for displaying 2 coordinators side by side and collapsing them
 /// into a single navigation stack on compact layouts
 @Observable class NavigationSplitCoordinator: CoordinatorProtocol, CustomStringConvertible {
     fileprivate let placeholderModule: NavigationModule
-
+    
     fileprivate var sidebarModule: NavigationModule? {
         didSet {
             if let oldValue {
@@ -84,7 +86,6 @@ import SwiftUI
         }
     }
     
-    // periphery:ignore - might be useful to have
     /// The currently displayed fullscreen cover coordinator
     var fullScreenCoverCoordinator: (any CoordinatorProtocol)? {
         fullScreenCoverModule?.coordinator
@@ -104,7 +105,7 @@ import SwiftUI
     var compactLayoutRootCoordinator: (any CoordinatorProtocol)? {
         compactLayoutRootModule?.coordinator
     }
-
+    
     var compactLayoutStackModules: [NavigationModule] {
         get {
             getCompactStackModules()
@@ -113,7 +114,7 @@ import SwiftUI
             setCompactStackModules(newValue)
         }
     }
-
+    
     private func getCompactStackModules() -> [NavigationModule] {
         // Start building the new compact layout navigation stack
         var stackModules: [NavigationModule] = []
@@ -122,23 +123,23 @@ import SwiftUI
         if let sidebarNavigationStackCoordinator = sidebarModule?.coordinator as? NavigationStackCoordinator {
             stackModules.append(contentsOf: sidebarNavigationStackCoordinator.stackModules)
         }
-
+        
         // If the detail is a stackCoordinator then push its root and children to the compact layout stack
         if let detailNavigationStackCoordinator = detailModule?.coordinator as? NavigationStackCoordinator {
             if let detailRootCoordinator = detailNavigationStackCoordinator.rootModule {
                 stackModules.append(detailRootCoordinator)
             }
-
+            
             stackModules.append(contentsOf: detailNavigationStackCoordinator.stackModules)
         } else if let detailModule { // Otherwise just push it entirely
             stackModules.append(detailModule)
         }
         return stackModules
     }
-
+    
     private func setCompactStackModules(_ modules: [NavigationModule]) {
         guard compactLayoutStackModules != modules else { return }
-
+        
         let diffs = modules.difference(from: compactLayoutStackModules)
         diffs.forEach { change in
             switch change {
@@ -149,10 +150,13 @@ import SwiftUI
             }
         }
     }
-
+    
     var compactLayoutStackCoordinators: [any CoordinatorProtocol] {
         compactLayoutStackModules.compactMap(\.coordinator)
     }
+    
+    /// Tracks the current column visibility of the split view. Only meaningful in regular (non-compact) layouts.
+    var columnVisibility = NavigationSplitViewVisibility.all
     
     /// Default NavigationSplitCoordinator initialiser
     /// - Parameter placeholderCoordinator: coordinator to use if no siderbar or detail is set
@@ -174,10 +178,10 @@ import SwiftUI
         if sidebarModule?.coordinator === coordinator {
             fatalError("Cannot use the same coordinator more than once")
         }
-
+        
         var transaction = Transaction()
         transaction.disablesAnimations = !animated
-
+        
         withTransaction(transaction) {
             sidebarModule = NavigationModule(coordinator, dismissalCallback: dismissalCallback)
         }
@@ -197,10 +201,10 @@ import SwiftUI
         if detailModule?.coordinator === coordinator {
             fatalError("Cannot use the same coordinator more than once")
         }
-
+        
         var transaction = Transaction()
         transaction.disablesAnimations = !animated
-
+        
         withTransaction(transaction) {
             detailModule = NavigationModule(coordinator, dismissalCallback: dismissalCallback)
         }
@@ -220,10 +224,10 @@ import SwiftUI
         if sheetModule?.coordinator === coordinator {
             fatalError("Cannot use the same coordinator more than once")
         }
-
+        
         var transaction = Transaction()
         transaction.disablesAnimations = !animated
-
+        
         withTransaction(transaction) {
             sheetModule = NavigationModule(coordinator, dismissalCallback: dismissalCallback)
         }
@@ -243,15 +247,15 @@ import SwiftUI
         if fullScreenCoverModule?.coordinator === coordinator {
             fatalError("Cannot use the same coordinator more than once")
         }
-
+        
         var transaction = Transaction()
         transaction.disablesAnimations = !animated
-
+        
         withTransaction(transaction) {
             fullScreenCoverModule = NavigationModule(coordinator, dismissalCallback: dismissalCallback)
         }
     }
-        
+    
     // MARK: - CoordinatorProtocol
     
     func toPresentable() -> AnyView {
@@ -263,7 +267,7 @@ import SwiftUI
     }
     
     // MARK: - CustomStringConvertible
-
+    
     var description: String {
         switch (sidebarModule?.coordinator, detailModule?.coordinator) {
         case (.some(let sidebarCoordinator), .some(let detailCoordinator)):
@@ -305,10 +309,9 @@ import SwiftUI
     /// Manually process changes to the compact layout navigation stack and update embedded components
     /// We need to either: pop from the detail, nil the detail or pop from the sidebar
     private func processCompactLayoutStackModuleRemoval(_ module: NavigationModule) {
-        if let sidebarNavigationStackCoordinator = sidebarModule?.coordinator as? NavigationStackCoordinator {
-            if sidebarNavigationStackCoordinator.stackModules.contains(module) {
-                sidebarNavigationStackCoordinator.stackModules.removeAll { $0 == module }
-            }
+        if let sidebarNavigationStackCoordinator = sidebarModule?.coordinator as? NavigationStackCoordinator,
+           sidebarNavigationStackCoordinator.stackModules.contains(module) {
+            sidebarNavigationStackCoordinator.stackModules.removeAll { $0 == module }
         }
         
         if module == detailModule {
@@ -325,10 +328,14 @@ import SwiftUI
     }
 }
 
+extension EnvironmentValues {
+    /// Whether or not the current view is part of the sidebar module of a `NavigationSplitCoordinator`.
+    @Entry var isInSidebar = false
+}
+
 private struct NavigationSplitCoordinatorView: View {
-    @State private var columnVisibility = NavigationSplitViewVisibility.all
-    
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.tabViewHorizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.scenePhase) private var scenePhase
     
     @Bindable var navigationSplitCoordinator: NavigationSplitCoordinator
     
@@ -352,11 +359,18 @@ private struct NavigationSplitCoordinatorView: View {
             module.coordinator?.toPresentable()
                 .id(module.id)
         }
-        .ignoresSafeArea() // Necessary when embedded in a TabView on iPadOS otherwise there's a gap at the top (as of 18.5).
+        .onChange(of: navigationSplitCoordinator.columnVisibility) { oldValue, _ in
+            // Preserve the current column visibility when backgrounding the app
+            if scenePhase == .background {
+                navigationSplitCoordinator.columnVisibility = oldValue
+            }
+        }
+        .ignoresSafeArea(edges: Compound.supportsGlass ? [] : .all) // When embedded in a TabView on iPadOS 18 there's a gap at the top.
     }
     
     /// The NavigationStack that will be used in compact layouts
     var navigationStack: some View {
+        // swiftlint:disable:next prefer_element_navigation_stack
         NavigationStack(path: $navigationSplitCoordinator.compactLayoutStackModules) {
             navigationSplitCoordinator.compactLayoutRootModule?.coordinator?.toPresentable()
                 .id(navigationSplitCoordinator.compactLayoutRootModule?.id) // Is a nil ID ok?
@@ -369,14 +383,20 @@ private struct NavigationSplitCoordinatorView: View {
     
     /// The NavigationSplitView that will be used in non-compact layouts
     var navigationSplitView: some View {
-        NavigationSplitView(columnVisibility: $columnVisibility) {
-            if let sidebarModule = navigationSplitCoordinator.sidebarModule {
-                sidebarModule.coordinator?.toPresentable()
-                    .id(sidebarModule.id)
-            } else {
-                navigationSplitCoordinator.placeholderModule.coordinator?.toPresentable()
-                    .id(navigationSplitCoordinator.placeholderModule.id)
+        NavigationSplitView(columnVisibility: $navigationSplitCoordinator.columnVisibility) {
+            Group {
+                if let sidebarModule = navigationSplitCoordinator.sidebarModule {
+                    sidebarModule.coordinator?.toPresentable()
+                        .id(sidebarModule.id)
+                } else {
+                    navigationSplitCoordinator.placeholderModule.coordinator?.toPresentable()
+                        .id(navigationSplitCoordinator.placeholderModule.id)
+                }
             }
+            .environment(\.isInSidebar, true)
+            // The tab rail's background tracks the detail module, so exclude the sidebar's background value.
+            .transformPreference(CompoundBackgroundPreferenceKey.self) { $0 = nil }
+            .overlay(alignment: .trailing) { NavigationSidebarDivider() }
         } detail: {
             if let detailModule = navigationSplitCoordinator.detailModule {
                 detailModule.coordinator?.toPresentable()
@@ -392,7 +412,19 @@ private struct NavigationSplitCoordinatorView: View {
                 .id(module.id)
         }
         .animation(.elementDefault, value: navigationSplitCoordinator.sidebarModule)
-        .animation(.elementDefault, value: navigationSplitCoordinator.detailModule)
+        .animation(.noAnimation, value: navigationSplitCoordinator.detailModule) // Don't crossfade the detail transition on iPad.
+    }
+}
+
+/// The vertical divider that separates the sidebar from its neighbours on iOS 27, where the sidebar is no longer inset.
+struct NavigationSidebarDivider: View {
+    var body: some View {
+        if #available(iOS 27, *) {
+            HStack(spacing: 0) { // The stack is necessary for the divider's orientation.
+                Divider()
+            }
+            .ignoresSafeArea()
+        }
     }
 }
 
@@ -517,10 +549,10 @@ private struct NavigationSplitCoordinatorView: View {
         }
         
         popToRoot(animated: false)
-
+        
         var transaction = Transaction()
         transaction.disablesAnimations = !animated
-
+        
         withTransaction(transaction) {
             rootModule = NavigationModule(coordinator, dismissalCallback: dismissalCallback)
         }
@@ -534,7 +566,7 @@ private struct NavigationSplitCoordinatorView: View {
     func push(_ coordinator: any CoordinatorProtocol, animated: Bool = true, dismissalCallback: (() -> Void)? = nil) {
         var transaction = Transaction()
         transaction.disablesAnimations = !animated
-
+        
         withTransaction(transaction) {
             stackModules.append(NavigationModule(coordinator, dismissalCallback: dismissalCallback))
         }
@@ -546,10 +578,10 @@ private struct NavigationSplitCoordinatorView: View {
         guard !stackModules.isEmpty else {
             return
         }
-
+        
         var transaction = Transaction()
         transaction.disablesAnimations = !animated
-
+        
         withTransaction(transaction) {
             stackModules.removeAll()
         }
@@ -560,18 +592,32 @@ private struct NavigationSplitCoordinatorView: View {
     func pop(animated: Bool = true) {
         var transaction = Transaction()
         transaction.disablesAnimations = !animated
-
+        
         withTransaction(transaction) {
             _ = stackModules.popLast()
         }
     }
     
-    // Present a sheet on top of the stack. If this NavigationStackCoordinator is embedded within a NavigationSplitCoordinator
-    // then the presentation will be proxied to the split
-    // - Parameters:
-    //   - coordinator: the coordinator to display
-    //   - animated: whether to animate the transition or not. Default is true
-
+    func pop(to coordinator: CoordinatorProtocol, animated: Bool = true) {
+        if rootCoordinator === coordinator {
+            popToRoot(animated: animated)
+        } else if stackCoordinators.contains(where: { $0 === coordinator }) {
+            var transaction = Transaction()
+            transaction.disablesAnimations = !animated
+            
+            withTransaction(transaction) {
+                while stackCoordinators.last !== coordinator, !stackCoordinators.isEmpty {
+                    _ = stackModules.popLast()
+                }
+            }
+        }
+    }
+    
+    /// Present a sheet on top of the stack. If this NavigationStackCoordinator is embedded within a NavigationSplitCoordinator
+    /// then the presentation will be proxied to the split
+    /// - Parameters:
+    ///   - coordinator: the coordinator to display
+    ///   - animated: whether to animate the transition or not. Default is true
     ///   - dismissalCallback: called when the sheet has been dismissed, programatically or otherwise
     func setSheetCoordinator(_ coordinator: (any CoordinatorProtocol)?, animated: Bool = true, dismissalCallback: (() -> Void)? = nil) {
         if let navigationSplitCoordinator {
@@ -587,16 +633,15 @@ private struct NavigationSplitCoordinatorView: View {
         if sheetModule?.coordinator === coordinator {
             fatalError("Cannot use the same coordinator more than once")
         }
-
+        
         var transaction = Transaction()
         transaction.disablesAnimations = !animated
-
+        
         withTransaction(transaction) {
             sheetModule = NavigationModule(coordinator, dismissalCallback: dismissalCallback)
         }
     }
-
-    // periphery:ignore - might be useful to have
+    
     /// Present a fullscreen cover on top of the stack. If this NavigationStackCoordinator is embedded within a NavigationSplitCoordinator
     /// then the presentation will be proxied to the split
     /// - Parameters:
@@ -617,10 +662,10 @@ private struct NavigationSplitCoordinatorView: View {
         if fullScreenCoverModule?.coordinator === coordinator {
             fatalError("Cannot use the same coordinator more than once")
         }
-
+        
         var transaction = Transaction()
         transaction.disablesAnimations = !animated
-
+        
         withTransaction(transaction) {
             fullScreenCoverModule = NavigationModule(coordinator, dismissalCallback: dismissalCallback)
         }
@@ -669,6 +714,7 @@ private struct NavigationStackCoordinatorView: View {
     @Bindable var navigationStackCoordinator: NavigationStackCoordinator
     
     var body: some View {
+        // swiftlint:disable:next prefer_element_navigation_stack
         NavigationStack(path: $navigationStackCoordinator.stackModules) {
             navigationStackCoordinator.rootModule?.coordinator?.toPresentable()
                 .id(navigationStackCoordinator.rootModule?.id) // Is a nil ID ok?

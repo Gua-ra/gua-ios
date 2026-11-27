@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -25,6 +26,8 @@ final class CompletionSuggestionService: CompletionSuggestionServiceProtocol {
     private let suggestionTriggerSubject = CurrentValueSubject<SuggestionTrigger?, Never>(nil)
     
     private var cancellables = Set<AnyCancellable>()
+    
+    private var updateMembersTask: Task<Void, Never>?
     
     init(roomProxy: JoinedRoomProxyProtocol,
          roomListPublisher: AnyPublisher<[RoomSummary], Never>) {
@@ -65,13 +68,23 @@ final class CompletionSuggestionService: CompletionSuggestionServiceProtocol {
     }
     
     func setSuggestionTrigger(_ suggestionTrigger: SuggestionTrigger?) {
+        let isNewUserMention = suggestionTrigger?.type == .user && suggestionTriggerSubject.value?.type != .user
+        
         suggestionTriggerSubject.value = suggestionTrigger
+        
+        // Refresh the members each time a new user suggestion is triggered to pull in the latest profiles.
+        guard isNewUserMention, updateMembersTask == nil else { return }
+        
+        updateMembersTask = Task { [weak self, roomProxy] in
+            await roomProxy.updateMembers()
+            self?.updateMembersTask = nil
+        }
     }
     
     // MARK: - Private
     
     private func updateRoomInfo(_ roomInfo: RoomInfoProxyProtocol) {
-        if let powerLevels = roomProxy.infoPublisher.value.powerLevels {
+        if let powerLevels = roomInfo.powerLevels {
             canMentionAllUsers = powerLevels.canOwnUserTriggerRoomNotification()
         }
     }
@@ -86,11 +99,12 @@ final class CompletionSuggestionService: CompletionSuggestionServiceProtocol {
                       Self.shouldIncludeMember(userID: member.userID, displayName: member.displayName, searchText: suggestionTrigger.text) else {
                     return nil
                 }
-                return .init(suggestionType: .user(.init(id: member.userID, displayName: member.displayName, avatarURL: member.avatarURL)), range: suggestionTrigger.range, rawSuggestionText: suggestionTrigger.text)
+                return .init(suggestionType: .user(.init(id: member.userID, displayName: member.displayName, avatarURL: member.avatarURL, status: member.status)),
+                             range: suggestionTrigger.range, rawSuggestionText: suggestionTrigger.text)
             }
         
         if canMentionAllUsers,
-           !roomProxy.isDirectOneToOneRoom,
+           !roomProxy.infoPublisher.value.isDM,
            Self.shouldIncludeMember(userID: PillUtilities.atRoom, displayName: PillUtilities.everyone, searchText: suggestionTrigger.text) {
             membersSuggestion
                 .insert(SuggestionItem(suggestionType: .allUsers(roomProxy.details.avatar), range: suggestionTrigger.range, rawSuggestionText: suggestionTrigger.text), at: 0)
@@ -125,11 +139,11 @@ final class CompletionSuggestionService: CompletionSuggestionServiceProtocol {
                 && selectedRange.location <= upperBound
                 && selectedRange.length <= upperBound - lowerBound
         }
-
+        
         guard let match else {
             return nil
         }
-
+        
         var suggestionText = String(text[match.range])
         let firstChar = suggestionText.removeFirst()
         

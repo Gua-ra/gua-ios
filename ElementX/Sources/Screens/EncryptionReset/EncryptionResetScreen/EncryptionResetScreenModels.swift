@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -10,11 +11,11 @@ import Foundation
 
 enum EncryptionResetScreenViewModelAction {
     case requestPassword(passwordPublisher: PassthroughSubject<String, Never>)
-    /// `completionPublisher` fires when the OIDC approval web sheet is dismissed,
+    /// `completionPublisher` fires when the OAuth approval web sheet is dismissed,
     /// signalling that the reset may now be performed.
-    case requestOIDCAuthorisation(url: URL, completionPublisher: PassthroughSubject<OIDCAccountSettingsPresenter.Outcome, Never>)
+    case requestOAuthAuthorisation(url: URL, completionPublisher: PassthroughSubject<OAuthAccountSettingsPresenter.Outcome, Never>)
     /// GUA FORK: the approval landed, so close the web sheet rather than leaving the user to.
-    case dismissOIDCPresentation
+    case dismissOAuthPresentation
     case resetFinished
     /// GUA FORK: the user chose to get the keys from another device of theirs instead of resetting.
     case recoverFromOtherDevice
@@ -29,26 +30,6 @@ struct EncryptionResetScreenViewState: BindableState {
     /// resetIdentity() deletes the key backup before it even returns the MAS approval URL, so a
     /// second press must never reach it.
     var isResetting = false
-
-    private let listItem3AttributedText = {
-        let boldPlaceholder = "{bold}"
-        var finalString = AttributedString(L10n.screenCreateNewRecoveryKeyListItem3(boldPlaceholder))
-        var boldString = AttributedString(L10n.screenCreateNewRecoveryKeyListItem3ResetAll)
-        boldString.bold()
-        finalString.replace(boldPlaceholder, with: boldString)
-        return finalString
-    }()
-    
-    var listItems: [AttributedString] {
-        [
-            AttributedString(L10n.screenCreateNewRecoveryKeyListItem1(InfoPlistReader.main.productionAppName)),
-            AttributedString(L10n.screenCreateNewRecoveryKeyListItem2),
-            listItem3AttributedText,
-            AttributedString(L10n.screenCreateNewRecoveryKeyListItem4),
-            AttributedString(L10n.screenCreateNewRecoveryKeyListItem5)
-        ]
-    }
-
     var bindings: EncryptionResetScreenViewStateBindings
 }
 

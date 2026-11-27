@@ -1,144 +1,201 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 @testable import ElementX
-import XCTest
+import Foundation
+import MatrixRustSDK
+import MatrixRustSDKMocks
+import Testing
 
-class AuthenticationServiceTests: XCTestCase {
+@MainActor
+struct AuthenticationServiceTests {
     var client: ClientSDKMock!
-    var userSessionStore: UserSessionStoreMock!
+    var encryption: EncryptionSDKMock!
+    var userSessionManager: UserSessionManagerMock!
     var encryptionKeyProvider: MockEncryptionKeyProvider!
-    
     var service: AuthenticationService!
     
-    func testPasswordLogin() async {
-        setupMocks(serverAddress: "example.com")
+    @Test
+    mutating func passwordLogin() async throws {
+        try await setup(serverNameOrBaseURL: "example.com")
         
         switch await service.configure(for: "example.com", flow: .login) {
         case .success:
             break
         case .failure(let error):
-            XCTFail("Unexpected failure: \(error)")
+            Issue.record("Unexpected failure: \(error)")
         }
         
-        XCTAssertEqual(service.flow, .login)
-        XCTAssertEqual(service.homeserver.value, .mockBasicServer)
+        #expect(service.flow == .login)
+        #expect(service.homeserver.value == .mockBasicServer)
         
         switch await service.login(username: "alice", password: "12345678", initialDeviceName: nil, deviceID: nil) {
         case .success:
-            XCTAssertEqual(client.loginUsernamePasswordInitialDeviceNameDeviceIdCallsCount, 1)
-            XCTAssertEqual(userSessionStore.userSessionForSessionDirectoriesPassphraseCallsCount, 1)
-            XCTAssertEqual(userSessionStore.userSessionForSessionDirectoriesPassphraseReceivedArguments?.passphrase,
-                           encryptionKeyProvider.generateKey().base64EncodedString())
+            #expect(client.loginUsernamePasswordInitialDeviceNameDeviceIdCallsCount == 1)
+            #expect(userSessionManager.userSessionForSessionDirectoriesPassphraseCallsCount == 1)
+            #expect(userSessionManager.userSessionForSessionDirectoriesPassphraseReceivedArguments?.passphrase == encryptionKeyProvider.generateKey())
         case .failure(let error):
-            XCTFail("Unexpected failure: \(error)")
+            Issue.record("Unexpected failure: \(error)")
         }
     }
     
-    func testConfigureLoginWithOIDC() async {
-        setupMocks()
+    @Test
+    mutating func configureLoginWithOAuth() async throws {
+        try await setup()
         
-        switch await service.configure(for: "matrix.org", flow: .login) {
-        case .success:
-            break
-        case .failure(let error):
-            XCTFail("Unexpected failure: \(error)")
-        }
+        try await service.configure(for: "matrix.org", flow: .login).get()
         
-        XCTAssertEqual(service.flow, .login)
-        XCTAssertEqual(service.homeserver.value, .mockMatrixDotOrg)
+        #expect(service.flow == .login)
+        #expect(service.homeserver.value == .mockMatrixDotOrg)
     }
     
-    func testConfigureRegisterWithOIDC() async {
-        setupMocks()
+    @Test
+    mutating func configureRegisterWithOAuth() async throws {
+        try await setup()
         
-        switch await service.configure(for: "matrix.org", flow: .register) {
-        case .success:
-            break
-        case .failure(let error):
-            XCTFail("Unexpected failure: \(error)")
-        }
+        try await service.configure(for: "matrix.org", flow: .register).get()
         
-        XCTAssertEqual(service.flow, .register)
-        XCTAssertEqual(service.homeserver.value, .mockMatrixDotOrg)
+        #expect(service.flow == .register)
+        #expect(service.homeserver.value == .mockMatrixDotOrg)
     }
     
-    func testOIDCLoginPassesLoginHint() async {
-        setupMocks()
+    @Test
+    mutating func configureRegisterNoSupport() async throws {
+        let serverNameOrBaseURL = "example.com"
+        try await setup(serverNameOrBaseURL: serverNameOrBaseURL)
+        
+        try await #require(throws: AuthenticationServiceError.registrationNotSupported) {
+            try await service.configure(for: serverNameOrBaseURL, flow: .register).get()
+        }
+        
+        #expect(service.flow == .login)
+        #expect(service.homeserver.value == .init(accountProvider: .managed(serverName: "matrix.org", baseURL: "https://matrix-client.matrix.org"),
+                                                  loginMode: .unknown))
+    }
+    
+    @Test(arguments: [("matrix.org", AuthenticationFlow.login, OAuthPrompt.login),
+                      ("matrix.org", .register, .login),
+                      ("company.com", .register, .login)])
+    mutating func oAuthPrompt(serverName: String, flow: AuthenticationFlow, expectedPrompt: OAuthPrompt) async throws {
+        try await setup(serverNameOrBaseURL: serverName)
+        try await service.configure(for: serverName, flow: flow).get()
+        
+        _ = try await service.urlForOAuthLogin(loginHint: nil).get()
+        
+        #expect(client.urlForOauthOauthConfigurationPromptLoginHintDeviceIdAdditionalScopesReceivedArguments?.prompt == expectedPrompt)
+    }
+    
+    @Test
+    mutating func oAuthLoginPassesLoginHint() async throws {
+        try await setup()
         let loginHint = "+15551234567"
+        try await service.configure(for: "matrix.org", flow: .login).get()
         
-        switch await service.configure(for: "matrix.org", flow: .login) {
-        case .success:
-            break
-        case .failure(let error):
-            XCTFail("Unexpected failure: \(error)")
-        }
+        _ = try await service.urlForOAuthLogin(loginHint: loginHint).get()
         
-        switch await service.urlForOIDCLogin(loginHint: loginHint) {
-        case .success:
-            XCTAssertEqual(client.urlForOauthOauthConfigurationPromptLoginHintDeviceIdAdditionalScopesCallsCount, 1)
-            XCTAssertEqual(client.urlForOauthOauthConfigurationPromptLoginHintDeviceIdAdditionalScopesReceivedArguments?.loginHint, loginHint)
-        case .failure(let error):
-            XCTFail("Unexpected failure: \(error)")
-        }
+        #expect(client.urlForOauthOauthConfigurationPromptLoginHintDeviceIdAdditionalScopesCallsCount == 1)
+        #expect(client.urlForOauthOauthConfigurationPromptLoginHintDeviceIdAdditionalScopesReceivedArguments?.loginHint == loginHint)
     }
     
-    func testOIDCLoginPassesPasskeyLoginHint() async {
-        setupMocks()
+    @Test
+    mutating func oAuthLoginPassesPasskeyLoginHint() async throws {
+        try await setup()
+        try await service.configure(for: "matrix.org", flow: .login).get()
         
-        switch await service.configure(for: "matrix.org", flow: .login) {
-        case .success:
-            break
-        case .failure(let error):
-            XCTFail("Unexpected failure: \(error)")
-        }
+        _ = try await service.urlForOAuthLogin(loginHint: AuthenticationService.passkeyLoginHint).get()
         
-        switch await service.urlForOIDCLogin(loginHint: AuthenticationService.passkeyLoginHint) {
-        case .success:
-            let arguments = client.urlForOauthOauthConfigurationPromptLoginHintDeviceIdAdditionalScopesReceivedArguments
-            XCTAssertEqual(client.urlForOauthOauthConfigurationPromptLoginHintDeviceIdAdditionalScopesCallsCount, 1)
-            // The literal is the wire contract with identity-service and the sign-in page.
-            XCTAssertEqual(arguments?.loginHint, "passkey")
-            XCTAssertEqual(arguments?.prompt, .login)
-        case .failure(let error):
-            XCTFail("Unexpected failure: \(error)")
-        }
+        let arguments = client.urlForOauthOauthConfigurationPromptLoginHintDeviceIdAdditionalScopesReceivedArguments
+        #expect(client.urlForOauthOauthConfigurationPromptLoginHintDeviceIdAdditionalScopesCallsCount == 1)
+        // The literal is the wire contract with identity-service and the sign-in page.
+        #expect(arguments?.loginHint == "passkey")
+        #expect(arguments?.prompt == .login)
     }
     
-    func testConfigureRegisterNoSupport() async {
-        let homeserverAddress = "example.com"
-        setupMocks(serverAddress: homeserverAddress)
+    @Test
+    mutating func classicAppAccountSecretsBundleIsUsed() async throws {
+        // Given an authentication service with an Element Classic account for Alice.
+        try await setup(classicAppAccounts: [.mockAlice])
+        try await service.configure(for: "matrix.org", flow: .login).get()
+        #expect(service.flow == .login)
+        #expect(service.classicAppAccount?.state.availableSecrets == .complete)
         
-        switch await service.configure(for: homeserverAddress, flow: .register) {
-        case .success:
-            XCTFail("Configuration should have failed")
-        case .failure(let error):
-            XCTAssertEqual(error, .registrationNotSupported)
-        }
+        // When logging in as Alice.
+        _ = try await service.login(username: "alice", password: "12345678", initialDeviceName: nil, deviceID: nil).get()
+        #expect(client.loginUsernamePasswordInitialDeviceNameDeviceIdCallsCount == 1)
         
-        XCTAssertEqual(service.flow, .login)
-        XCTAssertEqual(service.homeserver.value, .init(address: "matrix.org", loginMode: .unknown))
+        // Then Alice's secrets from Element Classic should be imported.
+        #expect(encryption.importSecretsBundleSecretsBundleCalled)
+    }
+    
+    @Test
+    mutating func classicAppAccountSecretsBundleIsIgnoredWhenUnavailable() async throws {
+        // Given an authentication service with an Element Classic account for Alice
+        // which isn't configured with any available secrets.
+        try await setup(classicAppAccounts: [.mockAlice], availableSecrets: .unavailable)
+        try await service.configure(for: "matrix.org", flow: .login).get()
+        #expect(service.flow == .login)
+        #expect(service.classicAppAccount?.state.availableSecrets == .unavailable)
+        
+        // When logging in as Alice.
+        _ = try await service.login(username: "alice", password: "12345678", initialDeviceName: nil, deviceID: nil).get()
+        #expect(client.loginUsernamePasswordInitialDeviceNameDeviceIdCallsCount == 1)
+        
+        // Then an attempt to import Alice's secrets from Element Classic must not be made.
+        #expect(!encryption.importSecretsBundleSecretsBundleCalled)
+    }
+    
+    @Test
+    mutating func classicAppAccountSecretsBundleIsIgnoredForDifferentUser() async throws {
+        // Given an authentication service with an Element Classic account for Dan.
+        try await setup(classicAppAccounts: [.mockDan])
+        try await service.configure(for: "matrix.org", flow: .login).get()
+        #expect(service.flow == .login)
+        #expect(service.classicAppAccount?.state.availableSecrets == .complete)
+        
+        // When logging in as Alice
+        _ = try await service.login(username: "alice", password: "12345678", initialDeviceName: nil, deviceID: nil).get()
+        #expect(client.loginUsernamePasswordInitialDeviceNameDeviceIdCallsCount == 1)
+        
+        // Then Dan's secrets from Element Calssic should not be imported into Alice's client.
+        #expect(!encryption.importSecretsBundleSecretsBundleCalled)
     }
     
     // MARK: - Helpers
     
-    private func setupMocks(serverAddress: String = "matrix.org") {
-        let configuration: AuthenticationClientFactoryMock.Configuration = .init()
-        let clientFactory = AuthenticationClientFactoryMock(configuration: configuration)
+    private mutating func setup(serverNameOrBaseURL: String = "matrix.org",
+                                classicAppAccounts: [ClassicAppAccount] = [],
+                                availableSecrets: ClassicAppAccount.AvailableSecrets = .complete) async throws {
+        let configuration: ClientFactoryMock.Configuration = .init()
+        let clientFactory = ClientFactoryMock(configuration)
         
-        client = configuration.homeserverClients[serverAddress]
-        userSessionStore = UserSessionStoreMock(configuration: .init())
+        client = configuration.homeserverClients[serverNameOrBaseURL]
+        encryption = EncryptionSDKMock()
+        client.encryptionReturnValue = encryption
+        
+        userSessionManager = UserSessionManagerMock(.init())
         encryptionKeyProvider = MockEncryptionKeyProvider()
         
-        service = AuthenticationService(userSessionStore: userSessionStore,
+        let classicAppManager = ClassicAppManagerMock(.init(accounts: classicAppAccounts,
+                                                            availableSecrets: availableSecrets,
+                                                            secretsBundle: SecretsBundleWithUserIdSDKMock()))
+        
+        service = AuthenticationService(userSessionManager: userSessionManager,
                                         encryptionKeyProvider: encryptionKeyProvider,
+                                        classicAppManager: classicAppManager,
                                         clientFactory: clientFactory,
-                                        appSettings: ServiceLocator.shared.settings,
+                                        appSettings: .volatile(),
                                         appHooks: AppHooks())
+        
+        if let classicAppAccount = service.classicAppAccount {
+            await service.setupClassicAppAccountState()
+            try #require(classicAppAccount.state.isServerSupported == true)
+            try #require(classicAppAccount.state.availableSecrets == availableSecrets)
+        }
     }
 }
 

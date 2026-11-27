@@ -1,14 +1,15 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Foundation
 
 /// https://spec.matrix.org/latest/appendices/#identifier-grammar
-enum MatrixEntityRegex: String {
+nonisolated enum MatrixEntityRegex: String {
     case homeserver
     case userID
     case roomAlias
@@ -92,7 +93,7 @@ enum MatrixEntityRegex: String {
     }
 }
 
-extension String {
+nonisolated extension String {
     /// A user ID without its server part, for display only (`@alice:example.org` becomes `@alice`).
     /// Kept in this file because every target that compiles `PillUtilities.swift` also compiles this one.
     var guaDisplayHandle: String {

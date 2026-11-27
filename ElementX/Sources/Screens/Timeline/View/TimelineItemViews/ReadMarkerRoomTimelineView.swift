@@ -1,25 +1,25 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
-import Foundation
+import Compound
 import SwiftUI
 
 struct ReadMarkerRoomTimelineView: View {
-    let timelineItem: ReadMarkerRoomTimelineItem
-    
     var body: some View {
         VStack(alignment: .trailing, spacing: 2) {
             Text(L10n.screenRoomTimelineReadMarkerTitle)
                 .textCase(.uppercase)
                 .font(.compound.bodyXSSemibold)
-                .foregroundColor(.compound.textSecondary)
+                .foregroundColor(.compound.textActionAccent)
+            
             Rectangle()
                 .frame(height: 0.5)
-                .foregroundColor(.compound.borderInteractivePrimary)
+                .foregroundColor(.compound.borderAccentPrimary)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
@@ -28,9 +28,7 @@ struct ReadMarkerRoomTimelineView: View {
 
 struct ReadMarkerRoomTimelineView_Previews: PreviewProvider, TestablePreview {
     static let viewModel = TimelineViewModel.mock
-
-    static let item = ReadMarkerRoomTimelineItem(id: .randomVirtual)
-
+    
     static var previews: some View {
         VStack(alignment: .leading, spacing: 0) {
             RoomTimelineItemView(viewState: .init(type: .separator(.init(id: .virtual(uniqueID: .init("Separator")), timestamp: .mock)), groupStyle: .single))
@@ -41,9 +39,9 @@ struct ReadMarkerRoomTimelineView_Previews: PreviewProvider, TestablePreview {
                                                                     canBeRepliedTo: true,
                                                                     sender: .init(id: "1", displayName: "Bob"),
                                                                     content: .init(body: "This is another message"))), groupStyle: .single))
-
-            ReadMarkerRoomTimelineView(timelineItem: item)
-
+            
+            ReadMarkerRoomTimelineView()
+            
             RoomTimelineItemView(viewState: .init(type: .separator(.init(id: .virtual(uniqueID: .init("Separator")), timestamp: .mock)), groupStyle: .single))
             RoomTimelineItemView(viewState: .init(type: .text(.init(id: .randomEvent,
                                                                     timestamp: .mock,

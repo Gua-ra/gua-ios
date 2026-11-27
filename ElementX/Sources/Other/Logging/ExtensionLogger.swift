@@ -1,14 +1,15 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Foundation
 import MatrixRustSDK
 
-enum ExtensionLogger {
+nonisolated enum ExtensionLogger {
     /// Memory formatter, uses exact 2 fraction digits and no grouping
     private static var numberFormatter: NumberFormatter {
         let formatter = NumberFormatter()
@@ -19,7 +20,7 @@ enum ExtensionLogger {
         formatter.minimumFractionDigits = 2
         return formatter
     }
-
+    
     private static var formattedMemoryAvailable: String {
         let freeBytes = os_proc_available_memory()
         let freeMB = Double(freeBytes) / 1024 / 1024
@@ -28,7 +29,7 @@ enum ExtensionLogger {
         }
         return "\(formattedStr) MB"
     }
-
+    
     /// Details: https://developer.apple.com/forums/thread/105088
     /// - Returns: Current memory footprint
     private static var memoryFootprint: Float? {
@@ -49,10 +50,10 @@ enum ExtensionLogger {
         guard kr == KERN_SUCCESS, count >= TASK_VM_INFO_REV1_COUNT else {
             return nil
         }
-
+        
         return Float(info.phys_footprint)
     }
-
+    
     /// Formatted memory footprint for debugging purposes
     /// - Returns: Memory footprint in MBs as a readable string
     static var formattedMemoryFootprint: String {
@@ -63,7 +64,7 @@ enum ExtensionLogger {
         }
         return "\(formattedStr) MB"
     }
-
+    
     static func logMemory(with tag: String) {
         MXLog.info("\(tag) Memory: footprint: \(formattedMemoryFootprint) - available: \(formattedMemoryAvailable)")
     }

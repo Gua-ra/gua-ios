@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "1430"
+   LastUpgradeVersion = "1620"
    version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -77,6 +77,11 @@
       <EnvironmentVariables>
          <EnvironmentVariable
             key = "HTTPS_PROXY"
+            value = "localhost:9090"
+            isEnabled = "NO">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "HTTP_PROXY"
             value = "localhost:9090"
             isEnabled = "NO">
          </EnvironmentVariable>

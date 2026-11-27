@@ -6,21 +6,22 @@
 //
 
 import Foundation
+import UIKit
 
 struct MediaUploadQualitySettingsScreenViewState: BindableState {
     var bindings: MediaUploadQualitySettingsScreenViewStateBindings
 }
 
 struct MediaUploadQualitySettingsScreenViewStateBindings {
-    private let appSettings: AppSettings
+    private let userSettings: UserSettings
     
-    init(appSettings: AppSettings) {
-        self.appSettings = appSettings
+    init(userSettings: UserSettings) {
+        self.userSettings = userSettings
     }
     
     var optimizeMediaUploads: Bool {
-        get { appSettings.optimizeMediaUploads }
-        set { appSettings.optimizeMediaUploads = newValue }
+        get { userSettings.app.optimizeMediaUploads }
+        set { userSettings.app.optimizeMediaUploads = newValue }
     }
 }
 

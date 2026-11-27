@@ -1,6 +1,7 @@
 "NSCameraUsageDescription" = "To take photos or videos and send them as messages, Gua needs access to the camera.";
 "NSContactsUsageDescription" = "Gua checks your contacts privately to find which of them are already here. Your contacts are never stored.";
 "NSFaceIDUsageDescription" = "Gua uses Face ID to unlock the app, so you don’t have to type your passcode every time.";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "To share your location live in chats, location access is needed when the app is in the background.";
 "NSLocationWhenInUseUsageDescription" = "Allow location access so that Gua can share your location.";
 "NSMicrophoneUsageDescription" = "To record and send messages with audio, Gua needs access to the microphone.";
 "NSPhotoLibraryAddUsageDescription" = "This lets you save images and videos to your photo library.";

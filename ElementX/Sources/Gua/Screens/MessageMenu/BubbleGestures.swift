@@ -15,12 +15,12 @@ final class WindowFrameReader {
     /// Accessibility clients make SwiftUI build copies of the bubble outside any window, so only a view in a window counts.
     private let views = NSHashTable<UIView>.weakObjects()
     var isLifted = false
-
+    
     var frame: CGRect? {
         guard let view = views.allObjects.first(where: { $0.window != nil }) else { return nil }
         return view.convert(view.bounds, to: nil)
     }
-
+    
     func track(_ view: UIView) {
         views.add(view)
     }
@@ -34,7 +34,7 @@ extension View {
     func readsWindowFrame(_ reader: WindowFrameReader) -> some View {
         background(WindowFrameReaderView(reader: reader))
     }
-
+    
     /// A double tap that leaves the view's single taps (links, media) undelayed.
     func onDoubleTap(isEnabled: Bool = true, perform action: @escaping () -> Void) -> some View {
         modifier(DoubleTapModifier(isEnabled: isEnabled, action: action))
@@ -43,14 +43,14 @@ extension View {
 
 private struct WindowFrameReaderView: UIViewRepresentable {
     let reader: WindowFrameReader
-
+    
     func makeUIView(context: Context) -> UIView {
         let view = UIView()
         view.isUserInteractionEnabled = false
         reader.track(view)
         return view
     }
-
+    
     func updateUIView(_ uiView: UIView, context: Context) {
         reader.track(uiView)
     }
@@ -59,7 +59,7 @@ private struct WindowFrameReaderView: UIViewRepresentable {
 private struct DoubleTapModifier: ViewModifier {
     let isEnabled: Bool
     let action: () -> Void
-
+    
     func body(content: Content) -> some View {
         if #available(iOS 18, *) {
             content
@@ -79,11 +79,11 @@ private struct DoubleTapModifier: ViewModifier {
 private struct DoubleTapGestureRepresentable: UIGestureRecognizerRepresentable {
     let isEnabled: Bool
     let action: () -> Void
-
+    
     func makeCoordinator(converter: CoordinateSpaceConverter) -> Coordinator {
         .init()
     }
-
+    
     func makeUIGestureRecognizer(context: Context) -> UITapGestureRecognizer {
         let gesture = UITapGestureRecognizer()
         gesture.numberOfTapsRequired = 2
@@ -91,17 +91,17 @@ private struct DoubleTapGestureRepresentable: UIGestureRecognizerRepresentable {
         gesture.isEnabled = isEnabled
         return gesture
     }
-
+    
     func updateUIGestureRecognizer(_ recognizer: UITapGestureRecognizer, context: Context) {
         recognizer.isEnabled = isEnabled
     }
-
+    
     func handleUIGestureRecognizerAction(_ recognizer: UITapGestureRecognizer, context: Context) {
         if recognizer.state == .ended {
             action()
         }
     }
-
+    
     class Coordinator: NSObject, UIGestureRecognizerDelegate {
         func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
                                shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {

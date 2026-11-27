@@ -1,17 +1,19 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Combine
+import Compound
 import SwiftUI
 
 struct UserIndicatorModalView: View {
     let indicator: UserIndicator
     @State private var progressFraction = 0.0
-
+    
     var body: some View {
         ZStack {
             VStack(spacing: 12.0) {
@@ -20,11 +22,10 @@ struct UserIndicatorModalView: View {
                 } else if case .published = indicator.progress {
                     ProgressView(value: progressFraction)
                 }
-
+                
                 HStack(spacing: 8) {
-                    if let iconName = indicator.iconName {
-                        Image(systemName: iconName)
-                            .font(titleFont)
+                    if let icon = indicator.icon {
+                        CompoundIcon(icon, size: iconSize, relativeTo: titleFont)
                             .foregroundColor(.compound.iconPrimary)
                     }
                     
@@ -68,6 +69,14 @@ struct UserIndicatorModalView: View {
             .compound.bodyLG
         }
     }
+    
+    private var iconSize: CompoundIcon.Size {
+        if indicator.message != nil {
+            .custom(32)
+        } else {
+            .medium
+        }
+    }
 }
 
 struct UserIndicatorModalView_Previews: PreviewProvider, TestablePreview {
@@ -75,24 +84,24 @@ struct UserIndicatorModalView_Previews: PreviewProvider, TestablePreview {
         VStack(spacing: 0) {
             UserIndicatorModalView(indicator: UserIndicator(type: .modal,
                                                             title: "Successfully logged in",
-                                                            iconName: "checkmark"))
+                                                            icon: \.check))
             
             UserIndicatorModalView(indicator: UserIndicator(type: .modal(progress: .published(CurrentValueSubject<Double, Never>(0.5).asCurrentValuePublisher()),
                                                                          interactiveDismissDisabled: false,
                                                                          allowsInteraction: false),
                                                             title: "Successfully logged in",
-                                                            iconName: "checkmark"))
+                                                            icon: \.check))
             
             UserIndicatorModalView(indicator: UserIndicator(type: .modal(progress: .none,
                                                                          interactiveDismissDisabled: false,
                                                                          allowsInteraction: false),
                                                             title: "Successfully logged in",
-                                                            iconName: "checkmark"))
+                                                            icon: \.check))
             
             UserIndicatorModalView(indicator: UserIndicator(type: .modal,
                                                             title: "Successfully logged in",
                                                             message: "You can now be happy.",
-                                                            iconName: "checkmark"))
+                                                            icon: \.check))
         }
     }
 }

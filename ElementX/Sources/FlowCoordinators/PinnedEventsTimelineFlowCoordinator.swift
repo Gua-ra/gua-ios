@@ -1,7 +1,8 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -11,8 +12,8 @@ import Foundation
 enum PinnedEventsTimelineFlowCoordinatorAction {
     case finished
     case displayUser(userID: String)
-    case forwardedMessageToRoom(roomID: String)
-    case displayRoomScreenWithFocussedPin(eventID: String)
+    case forwardedMessageToRooms(roomIDs: [String])
+    case displayRoomScreenWithFocussedPin(eventID: String, threadRootEventID: String?)
 }
 
 class PinnedEventsTimelineFlowCoordinator: FlowCoordinatorProtocol {
@@ -39,7 +40,7 @@ class PinnedEventsTimelineFlowCoordinator: FlowCoordinatorProtocol {
         self.flowParameters = flowParameters
     }
     
-    func start() {
+    func start(animated: Bool) {
         Task { await presentPinnedEventsTimeline() }
     }
     
@@ -68,7 +69,6 @@ class PinnedEventsTimelineFlowCoordinator: FlowCoordinatorProtocol {
                                                                                   userSession: userSession,
                                                                                   mediaPlayerProvider: MediaPlayerProvider(),
                                                                                   appMediator: flowParameters.appMediator,
-                                                                                  appSettings: flowParameters.appSettings,
                                                                                   analytics: flowParameters.analytics,
                                                                                   emojiProvider: flowParameters.emojiProvider,
                                                                                   linkMetadataProvider: flowParameters.linkMetadataProvider,
@@ -84,12 +84,16 @@ class PinnedEventsTimelineFlowCoordinator: FlowCoordinatorProtocol {
                     actionsSubject.send(.finished)
                 case .displayUser(let userID):
                     actionsSubject.send(.displayUser(userID: userID))
-                case .presentLocationViewer(let geoURI, let description):
-                    presentMapNavigator(geoURI: geoURI, description: description, timelineController: timelineController)
-                case .displayMessageForwarding(let forwardingItem):
-                    presentMessageForwarding(with: forwardingItem)
-                case .displayRoomScreenWithFocussedPin(let eventID):
-                    actionsSubject.send(.displayRoomScreenWithFocussedPin(eventID: eventID))
+                case .presentLocationViewer(let location):
+                    presentMapNavigator(interactionMode: .viewStatic(location),
+                                        timelineController: timelineController)
+                case .presentLiveLocationViewer(let sender, let initialLiveLocationShare):
+                    presentMapNavigator(interactionMode: .viewLive(sender: sender, initialLiveLocationShare: initialLiveLocationShare),
+                                        timelineController: timelineController)
+                case .displayMessageForwarding(let forwardingPayload):
+                    presentMessageForwarding(with: forwardingPayload)
+                case .displayRoomScreenWithFocussedPin(let eventID, let threadRootEventID):
+                    actionsSubject.send(.displayRoomScreenWithFocussedPin(eventID: eventID, threadRootEventID: threadRootEventID))
                 }
             }
             .store(in: &cancellables)
@@ -97,16 +101,19 @@ class PinnedEventsTimelineFlowCoordinator: FlowCoordinatorProtocol {
         navigationStackCoordinator.setRootCoordinator(coordinator)
     }
     
-    private func presentMapNavigator(geoURI: GeoURI, description: String?, timelineController: TimelineControllerProtocol) {
+    private func presentMapNavigator(interactionMode: LocationSharingInteractionMode,
+                                     timelineController: TimelineControllerProtocol) {
         let stackCoordinator = NavigationStackCoordinator()
         
-        let params = StaticLocationScreenCoordinatorParameters(interactionMode: .viewOnly(geoURI: geoURI, description: description),
-                                                               mapURLBuilder: flowParameters.appSettings.mapTilerConfiguration,
-                                                               timelineController: timelineController,
-                                                               appMediator: flowParameters.appMediator,
-                                                               analytics: flowParameters.analytics,
-                                                               userIndicatorController: flowParameters.userIndicatorController)
-        let coordinator = StaticLocationScreenCoordinator(parameters: params)
+        let params = LocationSharingScreenCoordinatorParameters(interactionMode: interactionMode,
+                                                                mapURLBuilder: userSession.userSettings.app.mapTilerConfiguration.publisher.value,
+                                                                roomProxy: roomProxy,
+                                                                timelineController: timelineController,
+                                                                userSession: userSession,
+                                                                appMediator: flowParameters.appMediator,
+                                                                analytics: flowParameters.analytics,
+                                                                userIndicatorController: flowParameters.userIndicatorController)
+        let coordinator = LocationSharingScreenCoordinator(parameters: params)
         
         coordinator.actions.sink { [weak self] action in
             guard let self else { return }
@@ -122,12 +129,12 @@ class PinnedEventsTimelineFlowCoordinator: FlowCoordinatorProtocol {
         navigationStackCoordinator.setSheetCoordinator(stackCoordinator)
     }
     
-    private func presentMessageForwarding(with forwardingItem: MessageForwardingItem) {
+    private func presentMessageForwarding(with forwardingPayload: MessageForwardingPayload) {
         let roomSummaryProvider = userSession.clientProxy.alternateRoomSummaryProvider
         
         let stackCoordinator = NavigationStackCoordinator()
         
-        let parameters = MessageForwardingScreenCoordinatorParameters(forwardingItem: forwardingItem,
+        let parameters = MessageForwardingScreenCoordinatorParameters(forwardingPayload: forwardingPayload,
                                                                       userSession: userSession,
                                                                       roomSummaryProvider: roomSummaryProvider,
                                                                       userIndicatorController: flowParameters.userIndicatorController)
@@ -139,15 +146,15 @@ class PinnedEventsTimelineFlowCoordinator: FlowCoordinatorProtocol {
             switch action {
             case .dismiss:
                 navigationStackCoordinator.setSheetCoordinator(nil)
-            case .sent(let roomID):
+            case .sent(let roomIDs):
                 navigationStackCoordinator.setSheetCoordinator(nil)
-                actionsSubject.send(.forwardedMessageToRoom(roomID: roomID))
+                actionsSubject.send(.forwardedMessageToRooms(roomIDs: roomIDs))
             }
         }
         .store(in: &cancellables)
         
         stackCoordinator.setRootCoordinator(coordinator)
-
+        
         navigationStackCoordinator.setSheetCoordinator(stackCoordinator)
     }
 }

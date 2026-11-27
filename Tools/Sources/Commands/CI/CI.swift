@@ -1,0 +1,182 @@
+import ArgumentParser
+import Foundation
+import Subprocess
+import XcresultparserLib
+import Yams
+
+struct CI: ParsableCommand {
+    static let configuration = CommandConfiguration(abstract: "CI workflow commands that can be run both locally and in CI environments.",
+                                                    subcommands: [
+                                                        PreviewTests.self,
+                                                        AccessibilityTests.self,
+                                                        UnitTests.self,
+                                                        UITests.self,
+                                                        IntegrationTests.self,
+                                                        RunTests.self,
+                                                        ConfigureNightly.self,
+                                                        ConfigureProduction.self,
+                                                        TagNightly.self,
+                                                        UploadDSYMs.self,
+                                                        ReleaseToGitHub.self
+                                                    ])
+    
+    static let defaultOSVersion = "27.0"
+    static let testOutputDirectory = "test_output"
+    
+    /// Reads the `MARKETING_VERSION` from `project.yml`.
+    static func readMarketingVersion() throws -> String {
+        let projectURL = URL.projectDirectory.appending(component: "project.yml")
+        let projectString = try String(contentsOf: projectURL, encoding: .utf8)
+        
+        guard let projectConfig = try Yams.compose(yaml: projectString),
+              let version = projectConfig["settings"]?["MARKETING_VERSION"]?.string else {
+            throw ValidationError("Could not find MARKETING_VERSION in project.yml.")
+        }
+        
+        return version
+    }
+    
+    // MARK: - Linting
+    
+    /// Runs SwiftFormat in lint mode against the current directory.
+    static func lint() async throws {
+        logger.info("\n🔍 Running SwiftFormat lint…\n")
+        
+        do {
+            try await run(.name("swiftformat"), ["--lint", "."])
+        } catch {
+            logger.error("\n❌ SwiftFormat failed.\n")
+            annotateError(title: "SwiftFormat lint failed", "Run `swiftformat .` from the project root and commit the changes.")
+            throw error
+        }
+        logger.info("\n✅ SwiftFormat passed.\n")
+    }
+    
+    // MARK: - GitHub Actions
+    
+    /// Logs an error annotation, surfacing the failure on the workflow run's summary page.
+    ///
+    /// This is printed directly as the workflow command must be at the very start of the line.
+    static func annotateError(title: String, _ message: String) {
+        print("::error title=\(title)::\(message)")
+    }
+    
+    // MARK: - Test Results
+    
+    /// Collects coverage from an xcresult bundle using xcresultparser (cobertura format).
+    /// Failures are non-fatal — the output file simply won't be created.
+    static func collectCoverage(resultBundle: String, target: String = "Gua.app", outputName: String) async {
+        let projectPath = URL.projectDirectory.path
+        let resultBundlePath = "\(testOutputDirectory)/\(resultBundle)"
+        let outputPath = "\(testOutputDirectory)/\(outputName)"
+        
+        guard FileManager.default.fileExists(atPath: resultBundlePath) else {
+            logger.error("\n❌ Result bundle not found at \(resultBundlePath), skipping coverage collection.\n")
+            return
+        }
+        
+        do {
+            let converter = try CoberturaCoverageConverter(with: URL(filePath: resultBundlePath),
+                                                           projectRoot: projectPath,
+                                                           coverageTargets: [target],
+                                                           strictPathnames: false)
+            try converter.xmlString(quiet: true).write(toFile: outputPath, atomically: true, encoding: .utf8)
+            logger.info("\n📊 Coverage report: \(outputPath)\n")
+        } catch {
+            logger.error("\n❌ Failed to collect coverage for \(resultBundle): \(error.localizedDescription)\n")
+        }
+    }
+    
+    /// Collects test results from an xcresult bundle using xcresultparser (junit format).
+    /// Failures are non-fatal — the output file simply won't be created.
+    static func collectTestResults(resultBundle: String, outputName: String) async {
+        let projectPath = URL.projectDirectory.path
+        let resultBundlePath = "\(testOutputDirectory)/\(resultBundle)"
+        let outputPath = "\(testOutputDirectory)/\(outputName)"
+        
+        guard FileManager.default.fileExists(atPath: resultBundlePath) else {
+            logger.info(" Result bundle not found at \(resultBundlePath), skipping test result collection.")
+            return
+        }
+        
+        do {
+            let junitXML = try JunitXML(with: URL(filePath: resultBundlePath), projectRoot: projectPath)
+            try junitXML.xmlString.write(toFile: outputPath, atomically: true, encoding: .utf8)
+            logger.info("📋 Test results: \(outputPath)")
+        } catch {
+            logger.error("\n❌ Failed to collect test results for \(resultBundle): \(error.localizedDescription)\n")
+        }
+    }
+    
+    /// Zips xcresult bundles in the test output directory for faster artifact uploads.
+    static func zipResults(bundles: [String], outputName: String) async {
+        let bundleArgs = bundles.joined(separator: " ")
+        do {
+            logger.info("\n📦 Zipping test results…")
+            try await run(.path("/bin/zsh"), ["-cu", "cd \(testOutputDirectory) && zip -rq \(outputName) \(bundleArgs)"])
+            logger.info("📦 Zipped: \(testOutputDirectory)/\(outputName)\n")
+        } catch {
+            logger.error("\n❌ Failed to zip results: \(error.localizedDescription)\n")
+        }
+    }
+    
+    // MARK: - Shell Interaction
+    
+    @discardableResult
+    static func run<Output: OutputProtocol, Error: ErrorOutputProtocol>(_ executable: Executable,
+                                                                        _ arguments: Arguments = [],
+                                                                        environment: Environment = .inherit,
+                                                                        output: Output = .standardOutput,
+                                                                        error: Error = .standardError) async throws -> CollectedResult<Output, Error> {
+        logger.info("Running \(executable), with arguments: \(arguments)")
+        
+        let result = try await Subprocess.run(executable,
+                                              arguments: arguments,
+                                              environment: environment,
+                                              output: output,
+                                              error: error)
+        
+        if case let .exited(code) = result.terminationStatus, code != 0 {
+            throw ExitCode.failure
+        }
+        
+        return result
+    }
+    
+    // MARK: - Git
+    
+    static func gitConfigureGlobals() async throws {
+        try await CI.run(.name("git"), ["config", "--global", "user.name", "Element CI"])
+        try await CI.run(.name("git"), ["config", "--global", "user.email", "ci@element.io"])
+    }
+    
+    static func gitRepositoryURL() async throws -> String {
+        guard let rawURL = try await CI.run(.name("git"), ["ls-remote", "--get-url", "origin"],
+                                            output: .string(limit: 4096)).standardOutput else {
+            throw ValidationError("Could not determine the git remote URL.")
+        }
+        
+        return rawURL
+            .replacingOccurrences(of: "http://", with: "")
+            .replacingOccurrences(of: "https://", with: "")
+            .replacingOccurrences(of: "git@", with: "")
+            .replacingOccurrences(of: ".git", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
+    static func gitPush(tagName: String? = nil) async throws {
+        guard let apiToken = ProcessInfo.processInfo.environment["GITHUB_TOKEN"], !apiToken.isEmpty
+        else {
+            throw ValidationError("GITHUB_TOKEN environment variable is not set.")
+        }
+        
+        let repoURL = try await CI.gitRepositoryURL()
+        
+        if let tagName {
+            try await CI.run(.name("git"), ["tag", tagName])
+            try await CI.run(.name("git"), ["push", "https://\(apiToken)@\(repoURL)", tagName])
+        } else {
+            try await CI.run(.name("git"), ["push", "https://\(apiToken)@\(repoURL)"])
+        }
+    }
+}

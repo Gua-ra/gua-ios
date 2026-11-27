@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -12,12 +13,19 @@ struct VoiceMessageMediaEventsTimelineView: View {
     let timelineItem: VoiceMessageRoomTimelineItem
     let playerState: AudioPlayerState
     
+    /// Whether the item's media failed content scanning, in which case the bubble adopts
+    /// the critical styling. Reported by the `ContentScanningView` through the preference key.
+    @State private var contentScanningFailure: ContentScanningFailure?
+    
     var body: some View {
         VoiceMessageRoomTimelineContent(timelineItem: timelineItem,
                                         playerState: playerState)
             .accessibilityLabel(L10n.commonVoiceMessage)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .bubbleBackground(isOutgoing: timelineItem.isOutgoing)
+            .bubbleBackground(isOutgoing: timelineItem.isOutgoing,
+                              color: contentScanningFailure == nil ? .compound.bgSubtleSecondary : .compound.bgCriticalSubtle,
+                              borderColor: contentScanningFailure == nil ? nil : .compound.borderCriticalSubtle)
+            .onPreferenceChange(ContentScanningFailurePreferenceKey.self) { contentScanningFailure = $0 }
     }
 }
 

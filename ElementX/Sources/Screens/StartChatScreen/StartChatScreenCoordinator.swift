@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -9,50 +10,34 @@ import Combine
 import SwiftUI
 
 struct StartChatScreenCoordinatorParameters {
-    let orientationManager: OrientationManagerProtocol
     let userSession: UserSessionProtocol
-    let userIndicatorController: UserIndicatorControllerProtocol
-    weak var navigationStackCoordinator: NavigationStackCoordinator?
     let userDiscoveryService: UserDiscoveryServiceProtocol
-    let mediaUploadingPreprocessor: MediaUploadingPreprocessor
-    let appSettings: AppSettings
-    let analytics: AnalyticsService
+    let userIndicatorController: UserIndicatorControllerProtocol
+    let analytics: AnalyticsServiceProtocol
 }
 
 enum StartChatScreenCoordinatorAction {
     case close
-    case openRoom(withIdentifier: String)
+    case createRoom
+    case openRoom(roomID: String)
     case openRoomDirectorySearch
+    case findFriends
 }
 
 final class StartChatScreenCoordinator: CoordinatorProtocol {
-    private let parameters: StartChatScreenCoordinatorParameters
     private var viewModel: StartChatScreenViewModelProtocol
-    private let actionsSubject: PassthroughSubject<StartChatScreenCoordinatorAction, Never> = .init()
     private var cancellables = Set<AnyCancellable>()
     
-    private var createRoomParameters = CurrentValueSubject<CreateRoomFlowParameters, Never>(.init())
-    private var createRoomParametersPublisher: CurrentValuePublisher<CreateRoomFlowParameters, Never> {
-        createRoomParameters.asCurrentValuePublisher()
-    }
-    
-    private let selectedUsers = CurrentValueSubject<[UserProfileProxy], Never>([])
-    private var selectedUsersPublisher: CurrentValuePublisher<[UserProfileProxy], Never> {
-        selectedUsers.asCurrentValuePublisher()
-    }
-        
+    private let actionsSubject: PassthroughSubject<StartChatScreenCoordinatorAction, Never> = .init()
     var actions: AnyPublisher<StartChatScreenCoordinatorAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
     
     init(parameters: StartChatScreenCoordinatorParameters) {
-        self.parameters = parameters
-        
         viewModel = StartChatScreenViewModel(userSession: parameters.userSession,
                                              analytics: parameters.analytics,
                                              userIndicatorController: parameters.userIndicatorController,
-                                             userDiscoveryService: parameters.userDiscoveryService,
-                                             appSettings: parameters.appSettings)
+                                             userDiscoveryService: parameters.userDiscoveryService)
     }
     
     func start() {
@@ -62,210 +47,21 @@ final class StartChatScreenCoordinator: CoordinatorProtocol {
             case .close:
                 actionsSubject.send(.close)
             case .createRoom:
-                // before creating a room we select the users we would like to invite in that room
-                presentInviteUsersScreen()
-            case .showRoom(let identifier):
-                actionsSubject.send(.openRoom(withIdentifier: identifier))
+                actionsSubject.send(.createRoom)
+            case .showRoom(let roomID):
+                actionsSubject.send(.openRoom(roomID: roomID))
             case .openRoomDirectorySearch:
                 actionsSubject.send(.openRoomDirectorySearch)
             case .findFriends:
-                presentFindFriends()
+                actionsSubject.send(.findFriends)
             }
         }
         .store(in: &cancellables)
     }
-        
+    
     // MARK: - Public
     
     func toPresentable() -> AnyView {
         AnyView(StartChatScreen(context: viewModel.context))
-    }
-    
-    // MARK: - Private
-    
-    private func presentFindFriends() {
-        guard let identityServiceClient = IdentityServiceClient() else {
-            MXLog.warning("Identity service is not configured; cannot show Find Friends.")
-            return
-        }
-        guard let accessToken = parameters.userSession.clientProxy.accessToken else {
-            MXLog.warning("No access token available; cannot run contact discovery.")
-            return
-        }
-
-        let contactDiscoveryService = ContactDiscoveryService(identityServiceClient: identityServiceClient,
-                                                              currentUserID: parameters.userSession.clientProxy.userID)
-        let coordinatorParameters = FindFriendsScreenCoordinatorParameters(contactDiscoveryService: contactDiscoveryService,
-                                                                           clientProxy: parameters.userSession.clientProxy,
-                                                                           accessToken: accessToken)
-        let coordinator = FindFriendsScreenCoordinator(parameters: coordinatorParameters)
-        coordinator.actionsPublisher.sink { [weak self] action in
-            guard let self else { return }
-            switch action {
-            case .startedChat(let roomID):
-                actionsSubject.send(.openRoom(withIdentifier: roomID))
-            case .showProfile(let userID):
-                presentUserProfile(userID: userID)
-            case .close:
-                parameters.navigationStackCoordinator?.pop()
-            }
-        }
-        .store(in: &cancellables)
-
-        parameters.navigationStackCoordinator?.push(coordinator)
-    }
-
-    private func presentUserProfile(userID: String) {
-        let coordinatorParameters = UserProfileScreenCoordinatorParameters(userID: userID,
-                                                                           isPresentedModally: false,
-                                                                           userSession: parameters.userSession,
-                                                                           userIndicatorController: parameters.userIndicatorController,
-                                                                           analytics: parameters.analytics)
-        let coordinator = UserProfileScreenCoordinator(parameters: coordinatorParameters)
-        coordinator.actionsPublisher.sink { [weak self] action in
-            guard let self else { return }
-            switch action {
-            case .openDirectChat(let roomID):
-                actionsSubject.send(.openRoom(withIdentifier: roomID))
-            case .startCall, .dismiss:
-                parameters.navigationStackCoordinator?.pop()
-            }
-        }
-        .store(in: &cancellables)
-
-        parameters.navigationStackCoordinator?.push(coordinator)
-    }
-
-    private func presentInviteUsersScreen() {
-        let inviteParameters = InviteUsersScreenCoordinatorParameters(userSession: parameters.userSession,
-                                                                      selectedUsers: selectedUsersPublisher,
-                                                                      roomType: .draft,
-                                                                      userDiscoveryService: parameters.userDiscoveryService,
-                                                                      userIndicatorController: parameters.userIndicatorController)
-        let coordinator = InviteUsersScreenCoordinator(parameters: inviteParameters)
-        coordinator.actions.sink { [weak self] action in
-            guard let self else { return }
-            
-            switch action {
-            case .cancel:
-                break // Not shown in this flow.
-            case .proceed:
-                openCreateRoomScreen()
-            case .invite:
-                break
-            case .toggleUser(let user):
-                toggleUser(user)
-            }
-        }
-        .store(in: &cancellables)
-        
-        parameters.navigationStackCoordinator?.push(coordinator) { [weak self] in
-            self?.createRoomParameters.send(.init())
-            self?.selectedUsers.send([])
-        }
-    }
-    
-    private func openCreateRoomScreen() {
-        let createParameters = CreateRoomCoordinatorParameters(userSession: parameters.userSession,
-                                                               userIndicatorController: parameters.userIndicatorController,
-                                                               createRoomParameters: createRoomParametersPublisher,
-                                                               selectedUsers: selectedUsersPublisher,
-                                                               appSettings: parameters.appSettings,
-                                                               analytics: parameters.analytics)
-        let coordinator = CreateRoomCoordinator(parameters: createParameters)
-        coordinator.actions.sink { [weak self] action in
-            guard let self else { return }
-            switch action {
-            case .deselectUser(let user):
-                self.toggleUser(user)
-            case .updateDetails(let details):
-                self.createRoomParameters.send(details)
-            case .openRoom(let identifier):
-                self.actionsSubject.send(.openRoom(withIdentifier: identifier))
-            case .displayMediaPickerWithMode(let mode):
-                self.displayMediaPickerWithMode(mode)
-            case .removeImage:
-                var parameters = self.createRoomParameters.value
-                parameters.avatarImageMedia = nil
-                self.createRoomParameters.send(parameters)
-            }
-        }
-        .store(in: &cancellables)
-        
-        parameters.navigationStackCoordinator?.push(coordinator)
-    }
-    
-    // MARK: - Private
-    
-    private func displayMediaPickerWithMode(_ mode: MediaPickerScreenMode) {
-        let stackCoordinator = NavigationStackCoordinator()
-        
-        let mediaPickerCoordinator = MediaPickerScreenCoordinator(mode: mode,
-                                                                  userIndicatorController: parameters.userIndicatorController,
-                                                                  orientationManager: parameters.orientationManager) { [weak self] action in
-            guard let self else { return }
-            switch action {
-            case .cancel:
-                parameters.navigationStackCoordinator?.setSheetCoordinator(nil)
-            case .selectedMediaAtURLs(let urls):
-                guard urls.count == 1,
-                      let url = urls.first else {
-                    fatalError("Received an invalid number of URLs")
-                }
-                
-                processAvatar(from: url)
-            }
-        }
-        
-        stackCoordinator.setRootCoordinator(mediaPickerCoordinator)
-        
-        parameters.navigationStackCoordinator?.setSheetCoordinator(stackCoordinator)
-    }
-    
-    private func processAvatar(from url: URL) {
-        parameters.navigationStackCoordinator?.setSheetCoordinator(nil)
-        showLoadingIndicator()
-        Task { [weak self] in
-            guard let self else { return }
-            do {
-                guard case let .success(maxUploadSize) = await parameters.userSession.clientProxy.maxMediaUploadSize else {
-                    MXLog.error("Failed to get max upload size")
-                    parameters.userIndicatorController.alertInfo = AlertInfo(id: .init())
-                    return
-                }
-                let media = try await parameters.mediaUploadingPreprocessor.processMedia(at: url, maxUploadSize: maxUploadSize).get()
-                var parameters = createRoomParameters.value
-                parameters.avatarImageMedia = media
-                createRoomParameters.send(parameters)
-            } catch {
-                parameters.userIndicatorController.alertInfo = AlertInfo(id: .init())
-            }
-            hideLoadingIndicator()
-        }
-    }
-    
-    private func toggleUser(_ user: UserProfileProxy) {
-        var selectedUsers = selectedUsers.value
-        if let index = selectedUsers.firstIndex(where: { $0.userID == user.userID }) {
-            selectedUsers.remove(at: index)
-        } else {
-            selectedUsers.append(user)
-        }
-        self.selectedUsers.send(selectedUsers)
-    }
-    
-    // MARK: Loading indicator
-    
-    private static let loadingIndicatorIdentifier = "\(StartChatScreenCoordinator.self)-Loading"
-    
-    private func showLoadingIndicator() {
-        parameters.userIndicatorController.submitIndicator(UserIndicator(id: Self.loadingIndicatorIdentifier,
-                                                                         type: .modal,
-                                                                         title: L10n.commonLoading,
-                                                                         persistent: true))
-    }
-    
-    private func hideLoadingIndicator() {
-        parameters.userIndicatorController.retractIndicatorWithId(Self.loadingIndicatorIdentifier)
     }
 }

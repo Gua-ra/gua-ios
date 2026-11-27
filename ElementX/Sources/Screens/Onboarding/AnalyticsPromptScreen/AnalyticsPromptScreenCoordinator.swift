@@ -1,7 +1,8 @@
 //
-// Copyright 2021-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2021-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -13,7 +14,7 @@ enum AnalyticsPromptScreenCoordinatorAction {
 }
 
 final class AnalyticsPromptScreenCoordinator: CoordinatorProtocol {
-    private let analytics: AnalyticsService
+    private let analytics: AnalyticsServiceProtocol
     private var viewModel: AnalyticsPromptScreenViewModelProtocol
     private let actionsSubject: PassthroughSubject<AnalyticsPromptScreenCoordinatorAction, Never> = .init()
     private var cancellables = Set<AnyCancellable>()
@@ -22,7 +23,7 @@ final class AnalyticsPromptScreenCoordinator: CoordinatorProtocol {
         actionsSubject.eraseToAnyPublisher()
     }
     
-    init(analytics: AnalyticsService, termsURL: URL?) {
+    init(analytics: AnalyticsServiceProtocol, termsURL: URL?) {
         self.analytics = analytics
         viewModel = AnalyticsPromptScreenViewModel(termsURL: termsURL)
     }

@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -9,16 +10,14 @@ import Foundation
 import UIKit
 
 // sourcery: AutoMockable
-@MainActor
 protocol AppMediatorProtocol {
     var windowManager: WindowManagerProtocol { get }
     var networkMonitor: NetworkMonitorProtocol { get }
     
     var appState: UIApplication.State { get }
     
-    func beginBackgroundTask(expirationHandler handler: (() -> Void)?) -> UIBackgroundTaskIdentifier
-
-    func endBackgroundTask(_ identifier: UIBackgroundTaskIdentifier)
+    /// Changes at runtime (e.g. while the camera is in use), so check it before each use.
+    var isCameraAvailable: Bool { get }
     
     func open(_ url: URL)
     

@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -9,13 +10,12 @@ import Foundation
 
 enum StartChatScreenErrorType: Error {
     case failedCreatingRoom
-    case unknown
 }
 
 enum StartChatScreenViewModelAction: Equatable {
     case close
     case createRoom
-    case showRoom(withIdentifier: String)
+    case showRoom(roomID: String)
     case openRoomDirectorySearch
     case findFriends
 }
@@ -24,8 +24,7 @@ struct StartChatScreenViewState: BindableState {
     let userID: String
     var bindings = StartChatScreenViewStateBindings()
     var usersSection: UserDiscoverySection = .init(type: .suggestions, users: [])
-    var isRoomDirectoryEnabled = false
-
+    
     var isSearching: Bool {
         !bindings.searchQuery.isEmpty
     }
@@ -44,15 +43,15 @@ struct StartChatScreenViewStateBindings {
     /// Information describing the currently displayed alert.
     var alertInfo: AlertInfo<StartChatScreenErrorType>?
     
-    var selectedUserToInvite: UserProfileProxy?
+    var selectedUserToInvite: UserToInvite?
     var isJoinRoomByAddressSheetPresented = false
 }
 
 enum StartChatScreenViewAction {
     case close
     case createRoom
-    case createDM(user: UserProfileProxy)
-    case selectUser(UserProfileProxy)
+    case createDM(user: UserProfile)
+    case selectUser(UserProfile)
     case joinRoomByAddress
     case openRoomDirectorySearch
     case findFriends

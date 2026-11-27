@@ -31,8 +31,12 @@ targets:
 
     dependencies:
     - target: ElementX
+    - target: MapLibreInterface
     - package: MatrixRustSDK
     - package: AsyncAlgorithms
+    - package: Dynamic
+    - package: BuildExtensions
+      product: Macros
 
     info:
       path: ../SupportingFiles/Info.plist
@@ -43,6 +47,11 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: ${BASE_BUNDLE_IDENTIFIER}.unit.tests
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/$(APP_NAME).app/$(APP_NAME)"
         BUNDLE_LOADER: "$(TEST_HOST)"
+        # Requires iOS 26 so tests exercise the Observations-based observe(_:) overload.
+        IPHONEOS_DEPLOYMENT_TARGET: '26.0'
+        SWIFT_VERSION: 6
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
       debug:
       release:
 
@@ -50,9 +59,10 @@ targets:
     - path: ../Sources
     - path: ../Resources
     - path: ../SupportingFiles
-    - path: ../../DevelopmentAssets
+    - path: ../../Components/DevelopmentAssets/Media
+    - path: ../../Components/DevelopmentAssets/ClassicAppFixtures
+      buildPhase: resources # Necessary to add binary files to the target.
     - path: ../../ElementX/Sources/Other/Extensions/Publisher.swift
-    - path: ../../ElementX/Sources/Other/Extensions/XCTestCase.swift
     - path: ../../ElementX/Sources/Other/InfoPlistReader.swift
     - path: ../../Tools/Scripts/Templates/SimpleScreenExample/Tests/Unit
     

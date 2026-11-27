@@ -8,21 +8,23 @@
 import Foundation
 
 /// RFC 6962 hashing; the 0x00 and 0x01 prefixes keep a leaf and an interior node from being confused.
-enum MerkleTree {
+nonisolated enum MerkleTree {
     static func leafData(index: Int, type: String, homeserverId: String?, payloadHash: String, recordedAtEpochMilliseconds: Int64) -> String {
         "\(index)|\(type)|\(homeserverId ?? "")|\(payloadHash)|\(recordedAtEpochMilliseconds)"
     }
-
+    
     static func leafHash(_ data: [UInt8]) -> String {
         ResolverVerificationCrypto.sha256Hex([0x00] + data)
     }
-
+    
     private static func nodeHash(_ left: [UInt8], _ right: [UInt8]) -> [UInt8] {
         ResolverVerificationCrypto.sha256([0x01] + left + right)
     }
-
+    
     static func root(leafHashes: [String]) -> String? {
-        if leafHashes.isEmpty { return ResolverVerificationCrypto.sha256Hex([]) }
+        if leafHashes.isEmpty {
+            return ResolverVerificationCrypto.sha256Hex([])
+        }
         var nodes = [[UInt8]]()
         for hash in leafHashes {
             guard let bytes = ResolverVerificationHex.bytes(hash) else { return nil }
@@ -30,14 +32,16 @@ enum MerkleTree {
         }
         return ResolverVerificationHex.string(mth(nodes[...]))
     }
-
+    
     private static func mth(_ nodes: ArraySlice<[UInt8]>) -> [UInt8] {
-        if nodes.count == 1 { return nodes[nodes.startIndex] }
+        if nodes.count == 1 {
+            return nodes[nodes.startIndex]
+        }
         let k = largestPowerOfTwo(lessThan: nodes.count)
         let split = nodes.startIndex + k
         return nodeHash(mth(nodes[nodes.startIndex..<split]), mth(nodes[split...]))
     }
-
+    
     private static func largestPowerOfTwo(lessThan n: Int) -> Int {
         var k = 1
         while k << 1 < n {
@@ -45,16 +49,22 @@ enum MerkleTree {
         }
         return k
     }
-
+    
     /// RFC 9162 section 2.1.4.2, with `first` and `second` the leaf counts of `oldRoot` and `newRoot`.
     static func verifyConsistency(first: Int, second: Int, oldRoot: String, newRoot: String, proof: [String]) -> Bool {
-        if first == 0 { return second >= 0 }
-        if first == second { return proof.isEmpty && oldRoot == newRoot }
+        if first == 0 {
+            return second >= 0
+        }
+        if first == second {
+            return proof.isEmpty && oldRoot == newRoot
+        }
         var path = proof.compactMap(ResolverVerificationHex.bytes)
         guard first < second, !path.isEmpty, path.count == proof.count, let oldRootBytes = ResolverVerificationHex.bytes(oldRoot) else {
             return false
         }
-        if first & (first - 1) == 0 { path.insert(oldRootBytes, at: 0) }
+        if first & (first - 1) == 0 {
+            path.insert(oldRootBytes, at: 0)
+        }
         var fn = first - 1
         var sn = second - 1
         while fn & 1 == 1 {

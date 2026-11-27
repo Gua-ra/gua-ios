@@ -1,5 +1,6 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
@@ -9,12 +10,24 @@ import Combine
 import SwiftUI
 
 struct JoinRoomScreenCoordinatorParameters {
-    let roomID: String
-    let via: [String]
+    let source: JoinRoomScreenSource
     let userSession: UserSessionProtocol
     let userIndicatorController: UserIndicatorControllerProtocol
-    let appSettings: AppSettings
     let spacesSetting: SpacesSetting
+}
+
+enum JoinRoomScreenSource {
+    case generic(roomID: String, via: [String])
+    case space(SpaceServiceRoom)
+    
+    func roomIDAndVia() -> (roomID: String, via: [String]) {
+        switch self {
+        case let .generic(roomID: roomID, via: via):
+            return (roomID: roomID, via: via)
+        case let .space(spaceServiceRoom):
+            return (roomID: spaceServiceRoom.id, via: spaceServiceRoom.via)
+        }
+    }
 }
 
 enum JoinRoomScreenJoinDetails {
@@ -32,16 +45,14 @@ final class JoinRoomScreenCoordinator: CoordinatorProtocol {
     private let viewModel: JoinRoomScreenViewModelProtocol
     
     private var cancellables = Set<AnyCancellable>()
- 
+    
     private let actionsSubject: PassthroughSubject<JoinRoomScreenCoordinatorAction, Never> = .init()
     var actionsPublisher: AnyPublisher<JoinRoomScreenCoordinatorAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
     
     init(parameters: JoinRoomScreenCoordinatorParameters) {
-        viewModel = JoinRoomScreenViewModel(roomID: parameters.roomID,
-                                            via: parameters.via,
-                                            appSettings: parameters.appSettings,
+        viewModel = JoinRoomScreenViewModel(source: parameters.source,
                                             spacesSetting: parameters.spacesSetting,
                                             userSession: parameters.userSession,
                                             userIndicatorController: parameters.userIndicatorController)
@@ -67,7 +78,7 @@ final class JoinRoomScreenCoordinator: CoordinatorProtocol {
     func stop() {
         viewModel.stop()
     }
-        
+    
     func toPresentable() -> AnyView {
         AnyView(JoinRoomScreen(context: viewModel.context))
     }

@@ -1,17 +1,19 @@
 --swiftversion 5.6
 
---exclude **/Sources/**/Generated,vendor,**/Package.swift,Secrets/**
+--exclude **/Sources/**/Generated,vendor,**/Package.swift,Components/Secrets/**
 
 --disable wrapMultiLineStatementBraces
 --disable hoistPatternLet
 --disable preferForLoop
 --disable consistentSwitchCaseSpacing
-# Keep `// sourcery: AutoMockable` empty extensions — emptyExtensions strips them,
-# which silently drops the generated mocks and breaks the build (regression from #21).
+--disable docCommentsBeforeModifiers # throwing false positives in AuthenticationServiceProtocol on v0.58.0
+--disable docComments # converts regular comments into doc comments even when they're implementation notes
 --disable emptyExtensions
 
 --commas inline
 --ifdef no-indent
+--indent 4
+--indent-blank-lines enabled
 --nospaceoperators ...,..<
 --stripunusedargs closure-only
 --trimwhitespace nonblank-lines

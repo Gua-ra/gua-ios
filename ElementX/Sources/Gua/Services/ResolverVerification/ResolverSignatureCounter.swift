@@ -8,20 +8,22 @@
 import CryptoKit
 import Foundation
 
-enum ResolverSignatureCounter {
+nonisolated enum ResolverSignatureCounter {
     struct Count: Equatable {
         /// Distinct trusted key ids whose signature verified.
         let valid: Int
         /// Signatures whose key id names a trusted key, whether or not they verified.
         let known: Int
-
+        
         func failureReason(threshold: Int) -> ResolverVerificationReason? {
             guard valid < threshold else { return nil }
-            if known == 0 { return .unknownKeyId }
+            if known == 0 {
+                return .unknownKeyId
+            }
             return valid == 0 ? .badSignature : .thresholdNotMet
         }
     }
-
+    
     static func count(signatures: [(keyId: String?, signatureB64: String?)], over canonical: [UInt8],
                       keys: [String: Curve25519.Signing.PublicKey]) -> Count {
         var counted = Set<String>()
@@ -37,7 +39,7 @@ enum ResolverSignatureCounter {
         }
         return Count(valid: counted.count, known: known)
     }
-
+    
     static func keys(_ trusted: [ResolverTrustedKey]) -> [String: Curve25519.Signing.PublicKey] {
         var keys = [String: Curve25519.Signing.PublicKey]()
         for trustedKey in trusted {

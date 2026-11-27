@@ -1,17 +1,18 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Combine
 @testable import ElementX
 import Foundation
-import XCTest
+import Testing
 
 @MainActor
-class AudioPlayerStateTests: XCTestCase {
+struct AudioPlayerStateTests {
     static let audioDuration = 10.0
     private var audioPlayerState: AudioPlayerState!
     private var audioPlayerMock: AudioPlayerMock!
@@ -25,7 +26,7 @@ class AudioPlayerStateTests: XCTestCase {
     
     private func buildAudioPlayerMock() -> AudioPlayerMock {
         let audioPlayerMock = AudioPlayerMock()
-        audioPlayerMock.underlyingActions = audioPlayerActions
+        audioPlayerMock.actions = audioPlayerActions
         audioPlayerMock.state = .stopped
         audioPlayerMock.currentTime = 0.0
         audioPlayerMock.duration = 0.0
@@ -35,39 +36,42 @@ class AudioPlayerStateTests: XCTestCase {
         return audioPlayerMock
     }
     
-    override func setUp() async throws {
+    init() async {
         audioPlayerActionsSubject = .init()
         audioPlayerSeekCallsSubject = .init()
         audioPlayerState = AudioPlayerState(id: .timelineItemIdentifier(.randomEvent), title: "", duration: Self.audioDuration)
         audioPlayerMock = buildAudioPlayerMock()
-        audioPlayerMock.seekToClosure = { [weak self] progress in
-            self?.audioPlayerMock.currentTime = Self.audioDuration * progress
+        audioPlayerMock.seekToClosure = { [audioPlayerMock] progress in
+            audioPlayerMock?.currentTime = Self.audioDuration * progress
         }
     }
     
-    func testAttach() {
+    @Test
+    func attach() {
         audioPlayerState.attachAudioPlayer(audioPlayerMock)
         
-        XCTAssert(audioPlayerState.isAttached)
-        XCTAssertEqual(audioPlayerState.playbackState, .loading)
+        #expect(audioPlayerState.isAttached)
+        #expect(audioPlayerState.playbackState == .loading)
     }
     
-    func testDetach() {
+    @Test
+    mutating func detach() {
         audioPlayerState.attachAudioPlayer(audioPlayerMock)
         
         audioPlayerState.detachAudioPlayer()
-        XCTAssert(audioPlayerMock.stopCalled)
-        XCTAssertFalse(audioPlayerState.isAttached)
-        XCTAssertEqual(audioPlayerState.playbackState, .stopped)
-        XCTAssertFalse(audioPlayerState.showProgressIndicator)
+        #expect(audioPlayerMock.stopCalled)
+        #expect(!audioPlayerState.isAttached)
+        #expect(audioPlayerState.playbackState == .stopped)
+        #expect(!audioPlayerState.showProgressIndicator)
     }
     
-    func testDelayedState() async throws {
+    @Test
+    func delayedState() async throws {
         audioPlayerState.attachAudioPlayer(audioPlayerMock)
         
-        XCTAssert(audioPlayerState.isAttached)
-        XCTAssertEqual(audioPlayerState.playbackState, .loading)
-        XCTAssertEqual(audioPlayerState.playerButtonPlaybackState, .stopped)
+        #expect(audioPlayerState.isAttached)
+        #expect(audioPlayerState.playbackState == .loading)
+        #expect(audioPlayerState.playerButtonPlaybackState == .stopped)
         
         let deferred = deferFulfillment(audioPlayerState.$playerButtonPlaybackState) { output in
             switch output {
@@ -79,13 +83,14 @@ class AudioPlayerStateTests: XCTestCase {
         }
         try await deferred.fulfill()
         
-        XCTAssertEqual(audioPlayerState.playerButtonPlaybackState, .loading)
+        #expect(audioPlayerState.playerButtonPlaybackState == .loading)
     }
     
-    func testOtherActionsAreNotDelayed() async throws {
+    @Test
+    func otherActionsAreNotDelayed() async throws {
         audioPlayerState.attachAudioPlayer(audioPlayerMock)
-        XCTAssertEqual(audioPlayerState.playbackState, .loading)
-        XCTAssertEqual(audioPlayerState.playerButtonPlaybackState, .stopped)
+        #expect(audioPlayerState.playbackState == .loading)
+        #expect(audioPlayerState.playerButtonPlaybackState == .stopped)
         
         let deferred = deferFulfillment(audioPlayerState.$playerButtonPlaybackState) { output in
             switch output {
@@ -98,53 +103,48 @@ class AudioPlayerStateTests: XCTestCase {
         
         audioPlayerActionsSubject.send(.didStartPlaying)
         try await deferred.fulfill()
-        XCTAssertEqual(audioPlayerState.playbackState, .playing)
-        XCTAssertEqual(audioPlayerState.playerButtonPlaybackState, .playing)
+        #expect(audioPlayerState.playbackState == .playing)
+        #expect(audioPlayerState.playerButtonPlaybackState == .playing)
     }
     
-    func testReportError() {
-        XCTAssertEqual(audioPlayerState.playbackState, .stopped)
+    @Test
+    mutating func reportError() {
+        #expect(audioPlayerState.playbackState == .stopped)
         audioPlayerState.reportError()
-        XCTAssertEqual(audioPlayerState.playbackState, .error)
+        #expect(audioPlayerState.playbackState == .error)
     }
     
-    func testUpdateProgress() async {
+    @Test
+    mutating func updateProgress() async {
         audioPlayerState.attachAudioPlayer(audioPlayerMock)
-
-        // If we try to set a negative progress, the new progress must be 0.0
-        do {
-            await audioPlayerState.updateState(progress: -5.0)
-            XCTAssertEqual(audioPlayerState.progress, 0.0)
-            XCTAssertEqual(audioPlayerMock.seekToReceivedProgress, 0.0)
-        }
-
-        // If we try to set a progress > 1.0, the new progress must be 1.0
-        do {
-            await audioPlayerState.updateState(progress: 1.5)
-            XCTAssertEqual(audioPlayerState.progress, 1.0)
-            XCTAssertEqual(audioPlayerMock.seekToReceivedProgress, 1.0)
-        }
         
-        do {
-            audioPlayerMock.state = .stopped
-            await audioPlayerState.updateState(progress: 0.4)
-            XCTAssertEqual(audioPlayerState.progress, 0.4)
-            XCTAssertEqual(audioPlayerMock.seekToReceivedProgress, 0.4)
-            XCTAssertFalse(audioPlayerState.isPublishingProgress)
-        }
-
-        do {
-            audioPlayerMock.state = .playing
-            await audioPlayerState.updateState(progress: 0.4)
-            XCTAssertEqual(audioPlayerState.progress, 0.4)
-            XCTAssertEqual(audioPlayerMock.seekToReceivedProgress, 0.4)
-            XCTAssert(audioPlayerState.isPublishingProgress)
-        }
+        // If we try to set a negative progress, the new progress must be 0.0
+        await audioPlayerState.updateState(progress: -5.0)
+        #expect(audioPlayerState.progress == 0.0)
+        #expect(audioPlayerMock.seekToReceivedProgress == 0.0)
+        
+        // If we try to set a progress > 1.0, the new progress must be 1.0
+        await audioPlayerState.updateState(progress: 1.5)
+        #expect(audioPlayerState.progress == 1.0)
+        #expect(audioPlayerMock.seekToReceivedProgress == 1.0)
+        
+        audioPlayerMock.state = .stopped
+        await audioPlayerState.updateState(progress: 0.4)
+        #expect(audioPlayerState.progress == 0.4)
+        #expect(audioPlayerMock.seekToReceivedProgress == 0.4)
+        #expect(!audioPlayerState.isPublishingProgress)
+        
+        audioPlayerMock.state = .playing
+        await audioPlayerState.updateState(progress: 0.4)
+        #expect(audioPlayerState.progress == 0.4)
+        #expect(audioPlayerMock.seekToReceivedProgress == 0.4)
+        #expect(audioPlayerState.isPublishingProgress)
     }
-
-    func testHandlingAudioPlayerActionDidStartLoading() async throws {
+    
+    @Test
+    func handlingAudioPlayerActionDidStartLoading() async throws {
         audioPlayerState.attachAudioPlayer(audioPlayerMock)
-
+        
         let deferred = deferFulfillment(audioPlayerState.$playbackState) { action in
             switch action {
             case .loading:
@@ -156,15 +156,16 @@ class AudioPlayerStateTests: XCTestCase {
         
         audioPlayerActionsSubject.send(.didStartLoading)
         try await deferred.fulfill()
-        XCTAssertEqual(audioPlayerState.playbackState, .loading)
+        #expect(audioPlayerState.playbackState == .loading)
     }
-
-    func testHandlingAudioPlayerActionDidFinishLoading() async throws {
+    
+    @Test
+    mutating func handlingAudioPlayerActionDidFinishLoading() async throws {
         audioPlayerMock.duration = 10.0
         
         audioPlayerState = AudioPlayerState(id: .timelineItemIdentifier(.randomEvent), title: "", duration: 0)
         audioPlayerState.attachAudioPlayer(audioPlayerMock)
-
+        
         let deferred = deferFulfillment(audioPlayerState.$playbackState) { action in
             switch action {
             case .readyToPlay:
@@ -178,15 +179,16 @@ class AudioPlayerStateTests: XCTestCase {
         try await deferred.fulfill()
         
         // The state is expected to be .readyToPlay
-        XCTAssertEqual(audioPlayerState.playbackState, .readyToPlay)
+        #expect(audioPlayerState.playbackState == .readyToPlay)
         // The duration should have been updated with the player's duration
-        XCTAssertEqual(audioPlayerState.duration, audioPlayerMock.duration)
+        #expect(audioPlayerState.duration == audioPlayerMock.duration)
     }
     
-    func testHandlingAudioPlayerActionDidStartPlaying() async throws {
+    @Test
+    mutating func handlingAudioPlayerActionDidStartPlaying() async throws {
         await audioPlayerState.updateState(progress: 0.4)
         audioPlayerState.attachAudioPlayer(audioPlayerMock)
-
+        
         let deferred = deferFulfillment(audioPlayerState.$playbackState) { action in
             switch action {
             case .playing:
@@ -198,16 +200,17 @@ class AudioPlayerStateTests: XCTestCase {
         
         audioPlayerActionsSubject.send(.didStartPlaying)
         try await deferred.fulfill()
-        XCTAssertEqual(audioPlayerMock.seekToReceivedProgress, 0.4)
-        XCTAssertEqual(audioPlayerState.playbackState, .playing)
-        XCTAssert(audioPlayerState.isPublishingProgress)
-        XCTAssert(audioPlayerState.showProgressIndicator)
+        #expect(audioPlayerMock.seekToReceivedProgress == 0.4)
+        #expect(audioPlayerState.playbackState == .playing)
+        #expect(audioPlayerState.isPublishingProgress)
+        #expect(audioPlayerState.showProgressIndicator)
     }
     
-    func testHandlingAudioPlayerActionDidPausePlaying() async throws {
+    @Test
+    mutating func handlingAudioPlayerActionDidPausePlaying() async throws {
         await audioPlayerState.updateState(progress: 0.4)
         audioPlayerState.attachAudioPlayer(audioPlayerMock)
-
+        
         let deferred = deferFulfillment(audioPlayerState.$playbackState) { action in
             switch action {
             case .stopped:
@@ -219,16 +222,17 @@ class AudioPlayerStateTests: XCTestCase {
         
         audioPlayerActionsSubject.send(.didPausePlaying)
         try await deferred.fulfill()
-        XCTAssertEqual(audioPlayerState.playbackState, .stopped)
-        XCTAssertEqual(audioPlayerState.progress, 0.4)
-        XCTAssertFalse(audioPlayerState.isPublishingProgress)
-        XCTAssert(audioPlayerState.showProgressIndicator)
+        #expect(audioPlayerState.playbackState == .stopped)
+        #expect(audioPlayerState.progress == 0.4)
+        #expect(!audioPlayerState.isPublishingProgress)
+        #expect(audioPlayerState.showProgressIndicator)
     }
     
-    func testHandlingAudioPlayerActionsidStopPlaying() async throws {
+    @Test
+    mutating func handlingAudioPlayerActionsidStopPlaying() async throws {
         await audioPlayerState.updateState(progress: 0.4)
         audioPlayerState.attachAudioPlayer(audioPlayerMock)
-
+        
         let deferred = deferFulfillment(audioPlayerState.$playbackState) { action in
             switch action {
             case .stopped:
@@ -240,16 +244,17 @@ class AudioPlayerStateTests: XCTestCase {
         
         audioPlayerActionsSubject.send(.didStopPlaying)
         try await deferred.fulfill()
-        XCTAssertEqual(audioPlayerState.playbackState, .stopped)
-        XCTAssertEqual(audioPlayerState.progress, 0.4)
-        XCTAssertFalse(audioPlayerState.isPublishingProgress)
-        XCTAssert(audioPlayerState.showProgressIndicator)
+        #expect(audioPlayerState.playbackState == .stopped)
+        #expect(audioPlayerState.progress == 0.4)
+        #expect(!audioPlayerState.isPublishingProgress)
+        #expect(audioPlayerState.showProgressIndicator)
     }
     
-    func testAudioPlayerActionsDidFinishPlaying() async throws {
+    @Test
+    mutating func audioPlayerActionsDidFinishPlaying() async throws {
         await audioPlayerState.updateState(progress: 0.4)
         audioPlayerState.attachAudioPlayer(audioPlayerMock)
-
+        
         let deferred = deferFulfillment(audioPlayerState.$playbackState) { action in
             switch action {
             case .stopped:
@@ -261,16 +266,53 @@ class AudioPlayerStateTests: XCTestCase {
         
         audioPlayerActionsSubject.send(.didFinishPlaying)
         try await deferred.fulfill()
-        XCTAssertEqual(audioPlayerState.playbackState, .stopped)
+        #expect(audioPlayerState.playbackState == .stopped)
         // Progress should be reset to 0
-        XCTAssertEqual(audioPlayerState.progress, 0.0)
-        XCTAssertFalse(audioPlayerState.isPublishingProgress)
-        XCTAssertFalse(audioPlayerState.showProgressIndicator)
+        #expect(audioPlayerState.progress == 0.0)
+        #expect(!audioPlayerState.isPublishingProgress)
+        #expect(!audioPlayerState.showProgressIndicator)
     }
     
-    func testAudioPlayerActionsDidFailed() async throws {
+    @Test
+    mutating func audioPlayerActionsDidFinishPlayingWhenDetachedStraightAway() async throws {
+        await audioPlayerState.updateState(progress: 0.4)
         audioPlayerState.attachAudioPlayer(audioPlayerMock)
-
+        
+        let deferred = deferFulfillment(audioPlayerState.$progress) { $0 == 0.0 }
+        
+        // Detaching before the action has been handled is what happens when the following
+        // voice message takes the player over as soon as this one reaches its end.
+        audioPlayerActionsSubject.send(.didFinishPlaying)
+        audioPlayerState.detachAudioPlayer()
+        
+        try await deferred.fulfill()
+        #expect(audioPlayerState.progress == 0.0)
+        #expect(!audioPlayerState.showProgressIndicator)
+    }
+    
+    @Test
+    func setPlaybackSpeed() {
+        audioPlayerState.attachAudioPlayer(audioPlayerMock)
+        
+        #expect(audioPlayerState.playbackSpeed == .default)
+        
+        audioPlayerState.setPlaybackSpeed(.fast)
+        #expect(audioPlayerState.playbackSpeed == .fast)
+        #expect(audioPlayerMock.setPlaybackSpeedReceivedSpeed == 1.5)
+        
+        audioPlayerState.setPlaybackSpeed(.fastest)
+        #expect(audioPlayerState.playbackSpeed == .fastest)
+        #expect(audioPlayerMock.setPlaybackSpeedReceivedSpeed == 2.0)
+        
+        audioPlayerState.setPlaybackSpeed(.slow)
+        #expect(audioPlayerState.playbackSpeed == .slow)
+        #expect(audioPlayerMock.setPlaybackSpeedReceivedSpeed == 0.5)
+    }
+    
+    @Test
+    func audioPlayerActionsDidFailed() async throws {
+        audioPlayerState.attachAudioPlayer(audioPlayerMock)
+        
         let deferredPlayingState = deferFulfillment(audioPlayerState.$playbackState) { action in
             switch action {
             case .playing:
@@ -281,8 +323,8 @@ class AudioPlayerStateTests: XCTestCase {
         }
         audioPlayerActionsSubject.send(.didStartPlaying)
         try await deferredPlayingState.fulfill()
-        XCTAssertFalse(audioPlayerState.showProgressIndicator)
-
+        #expect(!audioPlayerState.showProgressIndicator)
+        
         let deferred = deferFulfillment(audioPlayerState.$playbackState) { action in
             switch action {
             case .error:
@@ -294,8 +336,8 @@ class AudioPlayerStateTests: XCTestCase {
         
         audioPlayerActionsSubject.send(.didFailWithError(error: AudioPlayerError.genericError))
         try await deferred.fulfill()
-        XCTAssertEqual(audioPlayerState.playbackState, .error)
-        XCTAssertFalse(audioPlayerState.isPublishingProgress)
-        XCTAssertFalse(audioPlayerState.showProgressIndicator)
+        #expect(audioPlayerState.playbackState == .error)
+        #expect(!audioPlayerState.isPublishingProgress)
+        #expect(!audioPlayerState.showProgressIndicator)
     }
 }

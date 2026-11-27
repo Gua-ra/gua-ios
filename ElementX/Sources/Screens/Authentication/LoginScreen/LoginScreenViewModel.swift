@@ -1,11 +1,13 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Combine
+import MatrixRustSDK
 import SwiftUI
 
 typealias LoginScreenViewModelType = StateStoreViewModelV2<LoginScreenViewState, LoginScreenViewAction>
@@ -14,22 +16,19 @@ class LoginScreenViewModel: LoginScreenViewModelType, LoginScreenViewModelProtoc
     private let authenticationService: AuthenticationServiceProtocol
     private let userIndicatorController: UserIndicatorControllerProtocol
     private let appSettings: AppSettings
-    private let analytics: AnalyticsService
     
     private var actionsSubject: PassthroughSubject<LoginScreenViewModelAction, Never> = .init()
     var actions: AnyPublisher<LoginScreenViewModelAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
-
+    
     init(authenticationService: AuthenticationServiceProtocol,
          loginHint: String?,
          userIndicatorController: UserIndicatorControllerProtocol,
-         appSettings: AppSettings,
-         analytics: AnalyticsService) {
+         appSettings: AppSettings) {
         self.authenticationService = authenticationService
         self.userIndicatorController = userIndicatorController
         self.appSettings = appSettings
-        self.analytics = analytics
         
         let username = switch loginHint {
         case .some(let hint) where hint.hasPrefix("mxid:"): String(hint.dropFirst(5)) // MSC4198
@@ -47,7 +46,7 @@ class LoginScreenViewModel: LoginScreenViewModelType, LoginScreenViewModelProtoc
             .weakAssign(to: \.state.homeserver, on: self)
             .store(in: &cancellables)
     }
-
+    
     override func process(viewAction: LoginScreenViewAction) {
         switch viewAction {
         case .parseUsername:
@@ -68,17 +67,15 @@ class LoginScreenViewModel: LoginScreenViewModelType, LoginScreenViewModelProtoc
     private func parseUsername() {
         let username = state.bindings.username
         
-        guard MatrixEntityRegex.isMatrixUserIdentifier(username) else { return }
-        
-        let homeserverDomain = String(username.split(separator: ":")[1])
+        guard let homeserverDomain = try? serverNameFromUserId(userId: username) else { return }
         
         startLoading(isInteractionBlocking: false)
         
         Task {
             switch await authenticationService.configure(for: homeserverDomain, flow: .login) {
             case .success:
-                if authenticationService.homeserver.value.loginMode.supportsOIDCFlow {
-                    actionsSubject.send(.configuredForOIDC)
+                if authenticationService.homeserver.value.loginMode.supportsOAuthFlow {
+                    actionsSubject.send(.configuredForOAuth)
                 }
                 stopLoading()
             case .failure(let error):
@@ -94,18 +91,15 @@ class LoginScreenViewModel: LoginScreenViewModelType, LoginScreenViewModelProtoc
         startLoading(isInteractionBlocking: true)
         
         Task {
-            analytics.signpost.beginLogin()
             switch await authenticationService.login(username: state.bindings.username,
                                                      password: state.bindings.password,
                                                      initialDeviceName: UIDevice.current.initialDeviceName,
                                                      deviceID: nil) {
             case .success(let userSession):
                 actionsSubject.send(.signedIn(userSession))
-                analytics.signpost.endLogin()
                 stopLoading()
             case .failure(let error):
                 stopLoading()
-                analytics.signpost.endLogin()
                 handleError(error)
             }
         }

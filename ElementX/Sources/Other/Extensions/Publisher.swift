@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -45,8 +46,8 @@ extension Published.Publisher {
             var iterator = values.makeAsyncIterator()
             
             // skips the publisher's current value
-            _ = await iterator.next()
-            return await iterator.next()
+            _ = await iterator.next(isolation: #isolation)
+            return await iterator.next(isolation: #isolation)
         }
     }
 }

@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -14,6 +15,7 @@ class RoomDetailsEditScreenViewModel: RoomDetailsEditScreenViewModelType, RoomDe
     private let actionsSubject: PassthroughSubject<RoomDetailsEditScreenViewModelAction, Never> = .init()
     private let roomProxy: JoinedRoomProxyProtocol
     private let clientProxy: ClientProxyProtocol
+    private let appMediator: AppMediatorProtocol
     private let userIndicatorController: UserIndicatorControllerProtocol
     private let mediaUploadingPreprocessor: MediaUploadingPreprocessor
     
@@ -24,17 +26,21 @@ class RoomDetailsEditScreenViewModel: RoomDetailsEditScreenViewModelType, RoomDe
     init(roomProxy: JoinedRoomProxyProtocol,
          userSession: UserSessionProtocol,
          mediaUploadingPreprocessor: MediaUploadingPreprocessor,
+         appMediator: AppMediatorProtocol,
          userIndicatorController: UserIndicatorControllerProtocol) {
         self.roomProxy = roomProxy
         clientProxy = userSession.clientProxy
         self.mediaUploadingPreprocessor = mediaUploadingPreprocessor
         self.userIndicatorController = userIndicatorController
+        self.appMediator = appMediator
         
         let roomAvatar = roomProxy.infoPublisher.value.avatarURL
         let roomName = roomProxy.infoPublisher.value.displayName
         let roomTopic = roomProxy.infoPublisher.value.topic
+        let isSpace = roomProxy.infoPublisher.value.isSpace
         
         super.init(initialViewState: RoomDetailsEditScreenViewState(roomID: roomProxy.id,
+                                                                    isSpace: isSpace,
                                                                     initialAvatarURL: roomAvatar,
                                                                     initialName: roomName ?? "",
                                                                     initialTopic: roomTopic ?? "",
@@ -57,15 +63,22 @@ class RoomDetailsEditScreenViewModel: RoomDetailsEditScreenViewModelType, RoomDe
     override func process(viewAction: RoomDetailsEditScreenViewAction) {
         switch viewAction {
         case .cancel:
-            actionsSubject.send(.cancel)
+            cancel()
         case .save:
-            saveRoomDetails()
+            Task { await saveRoomDetails() }
         case .presentMediaSource:
             state.bindings.showMediaSheet = true
         case .displayCameraPicker:
+            guard appMediator.isCameraAvailable else {
+                MXLog.info("Camera unavailable, not presenting the picker.")
+                userIndicatorController.submitIndicator(UserIndicator(title: L10n.errorCameraUnavailable))
+                return
+            }
             actionsSubject.send(.displayCameraPicker)
         case .displayMediaPicker:
             actionsSubject.send(.displayMediaPicker)
+        case .displayFilePicker:
+            actionsSubject.send(.displayFilePicker)
         case .removeImage:
             state.avatarURL = nil
             state.localMedia = nil
@@ -83,7 +96,7 @@ class RoomDetailsEditScreenViewModel: RoomDetailsEditScreenViewModelType, RoomDe
             
             guard case let .success(maxUploadSize) = await clientProxy.maxMediaUploadSize else {
                 MXLog.error("Failed to get max upload size")
-                userIndicatorController.alertInfo = .init(id: .init())
+                state.bindings.alertInfo = .init(id: .unknown)
                 return
             }
             let mediaResult = await mediaUploadingPreprocessor.processMedia(at: url, maxUploadSize: maxUploadSize)
@@ -92,7 +105,7 @@ class RoomDetailsEditScreenViewModel: RoomDetailsEditScreenViewModelType, RoomDe
             case .success(.image):
                 state.localMedia = try? mediaResult.get()
             case .failure, .success:
-                userIndicatorController.alertInfo = .init(id: .init())
+                state.bindings.alertInfo = .init(id: .failedProcessingMedia)
             }
         }
     }
@@ -107,50 +120,72 @@ class RoomDetailsEditScreenViewModel: RoomDetailsEditScreenViewModelType, RoomDe
         }
     }
     
-    private func saveRoomDetails() {
-        Task {
-            let userIndicatorID = UUID().uuidString
-            defer {
-                userIndicatorController.retractIndicatorWithId(userIndicatorID)
-            }
-            userIndicatorController.submitIndicator(UserIndicator(id: userIndicatorID,
-                                                                  type: .modal(progress: .indeterminate, interactiveDismissDisabled: true, allowsInteraction: false),
-                                                                  title: L10n.screenRoomDetailsUpdatingRoom,
-                                                                  persistent: true))
-            
-            do {
-                try await withThrowingTaskGroup(of: Void.self) { group in
-                    if state.avatarDidChange {
-                        group.addTask {
-                            if let localMedia = await self.state.localMedia {
-                                try await self.roomProxy.uploadAvatar(media: localMedia).get()
-                            } else if await self.state.avatarURL == nil {
-                                try await self.roomProxy.removeAvatar().get()
-                            }
-                        }
+    private func cancel() {
+        if state.canSave {
+            state.bindings.alertInfo = .init(id: .unsavedChanges,
+                                             title: L10n.dialogUnsavedChangesTitle,
+                                             message: L10n.dialogUnsavedChangesDescription,
+                                             primaryButton: .init(title: L10n.actionSave) { Task { await self.saveRoomDetails() } },
+                                             secondaryButton: .init(title: L10n.actionDiscard, role: .cancel) { self.actionsSubject.send(.cancel) })
+        } else {
+            actionsSubject.send(.cancel)
+        }
+    }
+    
+    private func saveRoomDetails() async {
+        let userIndicatorID = UUID().uuidString
+        defer {
+            userIndicatorController.retractIndicatorWithId(userIndicatorID)
+        }
+        userIndicatorController.submitIndicator(UserIndicator(id: userIndicatorID,
+                                                              type: .modal(progress: .indeterminate, interactiveDismissDisabled: true, allowsInteraction: false),
+                                                              title: L10n.screenRoomDetailsUpdatingRoom,
+                                                              persistent: true))
+        
+        do {
+            try await withThrowingTaskGroup(of: Void.self) { group in
+                if state.avatarDidChange {
+                    group.addTask {
+                        try await self.saveAvatar()
                     }
-                    
-                    if state.nameDidChange {
-                        group.addTask {
-                            try await self.roomProxy.setName(self.state.bindings.name).get()
-                        }
-                    }
-                    
-                    if state.topicDidChange {
-                        group.addTask {
-                            try await self.roomProxy.setTopic(self.state.bindings.topic).get()
-                        }
-                    }
-                    
-                    try await group.waitForAll()
                 }
                 
-                actionsSubject.send(.saveFinished)
-            } catch {
-                userIndicatorController.alertInfo = .init(id: .init(),
-                                                          title: L10n.screenRoomDetailsEditionErrorTitle,
-                                                          message: L10n.screenRoomDetailsEditionError)
+                if state.nameDidChange {
+                    group.addTask {
+                        try await self.saveName()
+                    }
+                }
+                
+                if state.topicDidChange {
+                    group.addTask {
+                        try await self.saveTopic()
+                    }
+                }
+                
+                try await group.waitForAll()
             }
+            
+            actionsSubject.send(.saveFinished)
+        } catch {
+            state.bindings.alertInfo = .init(id: .saveError,
+                                             title: L10n.screenRoomDetailsEditionErrorTitle,
+                                             message: L10n.screenRoomDetailsEditionError)
         }
+    }
+    
+    private func saveAvatar() async throws {
+        if let localMedia = state.localMedia {
+            try await roomProxy.uploadAvatar(media: localMedia).get()
+        } else if state.avatarURL == nil {
+            try await roomProxy.removeAvatar().get()
+        }
+    }
+    
+    private func saveName() async throws {
+        try await roomProxy.setName(state.bindings.name).get()
+    }
+    
+    private func saveTopic() async throws {
+        try await roomProxy.setTopic(state.bindings.topic).get()
     }
 }

@@ -1,7 +1,8 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -22,6 +23,7 @@ enum AppLockFlowCoordinatorAction: Equatable {
 class AppLockFlowCoordinator: CoordinatorProtocol {
     let appLockService: AppLockServiceProtocol
     let navigationCoordinator: NavigationRootCoordinator
+    let appSettings: AppSettings
     
     /// States the flow can find itself in
     enum State: StateType {
@@ -47,7 +49,7 @@ class AppLockFlowCoordinator: CoordinatorProtocol {
         /// The user failed to unlock the app (or forgot their PIN) and is being logged out.
         case loggingOut
     }
-
+    
     /// Events that can be triggered on the flow state machine
     enum Event: EventType {
         /// Starts the flow while the app is launching in the background.
@@ -89,9 +91,11 @@ class AppLockFlowCoordinator: CoordinatorProtocol {
     init(initialState: State = .initial,
          appLockService: AppLockServiceProtocol,
          navigationCoordinator: NavigationRootCoordinator,
-         notificationCenter: NotificationCenter = .default) {
+         notificationCenter: NotificationCenter = .default,
+         appSettings: AppSettings) {
         self.appLockService = appLockService
         self.navigationCoordinator = navigationCoordinator
+        self.appSettings = appSettings
         
         // Set the initial state and start with the placeholder screen as the root view.
         stateMachine = .init(state: initialState)
@@ -141,7 +145,7 @@ class AppLockFlowCoordinator: CoordinatorProtocol {
             switch (fromState, event) {
             case (.initial, .start):
                 return .backgrounded
-            
+                
             case (.unlocked, .willResignActive):
                 return .appObscured
             case (.appObscured, .didBecomeActive):
@@ -165,14 +169,14 @@ class AppLockFlowCoordinator: CoordinatorProtocol {
                 return .unlocked
             case (.attemptingPINUnlock, .forceLogout):
                 return .loggingOut
-            
+                
             // Transition to a valid state when enabling the service for the first time.
             case (.initial, .serviceEnabled):
                 return .unlocked
             // Transition to a valid state once the service is disabled following a forced logout.
             case (.loggingOut, .serviceDisabled):
                 return .unlocked
-            
+                
             default:
                 return fromState
             }
@@ -218,7 +222,7 @@ class AppLockFlowCoordinator: CoordinatorProtocol {
     
     /// Displays the unlock flow with the app's placeholder view to hide obscure the view hierarchy in the app switcher.
     private func showPlaceholder() {
-        navigationCoordinator.setRootCoordinator(PlaceholderScreenCoordinator(hideBrandChrome: false), animated: false)
+        navigationCoordinator.setRootCoordinator(PlaceholderScreenCoordinator(hideBrandChrome: appSettings.hideBrandChrome, hideGradientBackground: false), animated: false)
         actionsSubject.send(.lockApp)
     }
     
@@ -238,6 +242,8 @@ class AppLockFlowCoordinator: CoordinatorProtocol {
                 stateMachine.tryEvent(.didUnlockWithPIN)
             case .forceLogout:
                 stateMachine.tryEvent(.forceLogout)
+            case .cancelVerifyDeviceOwner:
+                fatalError("Cancelling is not allowed when unlocking the app.")
             }
         }
         .store(in: &cancellables)

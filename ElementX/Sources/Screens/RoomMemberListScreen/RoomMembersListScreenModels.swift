@@ -1,5 +1,6 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
@@ -29,9 +30,11 @@ enum RoomMembersListScreenMode {
     case banned
 }
 
-struct RoomMemberListScreenEntry: Equatable {
+nonisolated struct RoomMemberListScreenEntry: Equatable {
     let member: RoomMemberDetails
     let verificationState: UserIdentityVerificationState
+    /// Whether the member is currently joined to the room's active MatrixRTC call (e.g. Element Call).
+    var isActiveRoomCallParticipant = false
 }
 
 struct RoomMembersListScreenViewState: BindableState {
@@ -76,6 +79,15 @@ struct RoomMembersListScreenViewState: BindableState {
         bannedMembers
             .filter { $0.member.matches(searchQuery: bindings.searchQuery) }
     }
+    
+    var shouldShowEmptyState: Bool {
+        switch bindings.mode {
+        case .banned:
+            visibleBannedMembers.isEmpty
+        case .members:
+            visibleInvitedMembers.count + visibleJoinedMembers.count == 0
+        }
+    }
 }
 
 struct RoomMembersListScreenViewStateBindings {
@@ -84,7 +96,7 @@ struct RoomMembersListScreenViewStateBindings {
     var mode: RoomMembersListScreenMode = .members
     /// A sheet model for the selected member to kick, ban, promote etc.
     var manageMemeberViewModel: ManageRoomMemberSheetViewModel?
-
+    
     /// Information describing the currently displayed alert.
     var alertInfo: AlertInfo<RoomMembersListScreenAlertType>?
 }
@@ -94,8 +106,4 @@ enum RoomMembersListScreenViewAction {
     case invite
 }
 
-enum RoomMembersListScreenAlertType: Hashable {
-    case unbanConfirmation(RoomMemberDetails)
-    case kickConfirmation
-    case banConfirmation
-}
+enum RoomMembersListScreenAlertType: Hashable { }

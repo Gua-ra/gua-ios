@@ -1,7 +1,8 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -19,19 +20,16 @@ enum EncryptionResetPasswordScreenCoordinatorAction {
 }
 
 final class EncryptionResetPasswordScreenCoordinator: CoordinatorProtocol {
-    private let parameters: EncryptionResetPasswordScreenCoordinatorParameters
     private let viewModel: EncryptionResetPasswordScreenViewModelProtocol
     
     private var cancellables = Set<AnyCancellable>()
- 
+    
     private let actionsSubject: PassthroughSubject<EncryptionResetPasswordScreenCoordinatorAction, Never> = .init()
     var actionsPublisher: AnyPublisher<EncryptionResetPasswordScreenCoordinatorAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
     
     init(parameters: EncryptionResetPasswordScreenCoordinatorParameters) {
-        self.parameters = parameters
-        
         viewModel = EncryptionResetPasswordScreenViewModel(passwordPublisher: parameters.passwordPublisher,
                                                            clientProxy: parameters.clientProxy,
                                                            identityServiceClient: parameters.identityServiceClient)
@@ -49,7 +47,7 @@ final class EncryptionResetPasswordScreenCoordinator: CoordinatorProtocol {
         }
         .store(in: &cancellables)
     }
-        
+    
     func toPresentable() -> AnyView {
         AnyView(EncryptionResetPasswordScreen(context: viewModel.context))
     }

@@ -1,7 +1,8 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
@@ -12,9 +13,13 @@ extension View {
     /// Adds the send info (timestamp along indicators for edits and delivery/encryption issues) for the given timeline item to this view.
     func timelineItemSendInfo(timelineItem: EventBasedTimelineItemProtocol,
                               adjustedDeliveryStatus: TimelineItemDeliveryStatus?,
+                              hasContentScanningFailure: Bool = false,
                               context: TimelineViewModel.Context) -> some View {
         modifier(TimelineItemSendInfoModifier(sendInfo: .init(timelineItem: timelineItem,
-                                                              adjustedDeliveryStatus: adjustedDeliveryStatus),
+                                                              adjustedDeliveryStatus: adjustedDeliveryStatus,
+                                                              hasContentScanningFailure: hasContentScanningFailure),
+                                              // A gallery announces this when entering it instead.
+                                              isAccessibilityHidden: timelineItem is GalleryRoomTimelineItem,
                                               context: context))
     }
 }
@@ -22,6 +27,7 @@ extension View {
 /// Adds the send info to a view with the correct layout.
 private struct TimelineItemSendInfoModifier: ViewModifier {
     let sendInfo: TimelineItemSendInfo
+    let isAccessibilityHidden: Bool
     let context: TimelineViewModel.Context
     
     var layout: AnyLayout {
@@ -30,7 +36,7 @@ private struct TimelineItemSendInfoModifier: ViewModifier {
             AnyLayout(HStackLayout(alignment: .bottom, spacing: spacing))
         case .vertical(let spacing):
             AnyLayout(GridLayout(alignment: .leading, verticalSpacing: spacing))
-        case .overlay:
+        case .overlay, .hidden:
             AnyLayout(ZStackLayout(alignment: .bottomTrailing))
         }
     }
@@ -40,7 +46,10 @@ private struct TimelineItemSendInfoModifier: ViewModifier {
             content
             
             TimelineItemSendInfoLabel(sendInfo: sendInfo)
+                .accessibilityHidden(isAccessibilityHidden)
                 .contentShape(.rect)
+                // Only tappable labels get the identifier, plain timestamps would be ambiguous matches.
+                .accessibilityIdentifier(sendInfo.status != nil ? A11yIdentifiers.roomScreen.sendInfo : "")
                 // Tap gesture to avoid the message being detected as a button by VoiceOver
                 // (and the action shows a description that is already read to the user).
                 .onTapGesture {
@@ -59,6 +68,7 @@ private struct TimelineItemSendInfoLabel: View {
         switch sendInfo.status {
         case .sendingFailed: \.errorSolid
         case .encryptionAuthenticity(let authenticity): authenticity.icon
+        case .encryptionForwarder: \.info
         case .none: nil
         }
     }
@@ -67,6 +77,7 @@ private struct TimelineItemSendInfoLabel: View {
         switch sendInfo.status {
         case .sendingFailed: L10n.commonSendingFailed
         case .encryptionAuthenticity(let authenticity): authenticity.message
+        case .encryptionForwarder(let forwarder): forwarder.message
         case .none: nil
         }
     }
@@ -89,6 +100,8 @@ private struct TimelineItemSendInfoLabel: View {
                 content
                     .gridColumnAlignment(.trailing)
             }
+        case .hidden:
+            EmptyView()
         }
     }
     
@@ -109,13 +122,18 @@ private struct TimelineItemSendInfoLabel: View {
 
 /// All the data needed to render a timeline item's send info label.
 private struct TimelineItemSendInfo {
-    enum Status { case sendingFailed, encryptionAuthenticity(EncryptionAuthenticity) }
+    enum Status {
+        case sendingFailed
+        case encryptionAuthenticity(EncryptionAuthenticity)
+        case encryptionForwarder(TimelineItemKeyForwarder)
+    }
     
     /// Describes how the content and the send info should be arranged inside a bubble
     enum LayoutType {
         case horizontal(spacing: CGFloat = 4)
         case vertical(spacing: CGFloat = 4)
         case overlay(capsuleStyle: Bool)
+        case hidden
     }
     
     let itemID: TimelineItemIdentifier
@@ -129,6 +147,8 @@ private struct TimelineItemSendInfo {
             .compound.textCriticalPrimary
         case .encryptionAuthenticity(let authenticity):
             authenticity.foregroundStyle
+        case .encryptionForwarder:
+            .compound.textSecondary
         case .none:
             .compound.textSecondary
         }
@@ -136,7 +156,9 @@ private struct TimelineItemSendInfo {
 }
 
 private extension TimelineItemSendInfo {
-    init(timelineItem: EventBasedTimelineItemProtocol, adjustedDeliveryStatus: TimelineItemDeliveryStatus?) {
+    init(timelineItem: EventBasedTimelineItemProtocol,
+         adjustedDeliveryStatus: TimelineItemDeliveryStatus?,
+         hasContentScanningFailure: Bool = false) {
         itemID = timelineItem.id
         localizedString = timelineItem.localizedSendInfo
         
@@ -147,31 +169,55 @@ private extension TimelineItemSendInfo {
             // message. It is not a risk you can act on, it is not something you did wrong, and
             // sitting in the delivery-status slot it reads as "this failed to send".
             timelineItem.isOutgoing && authenticity.describesOwnSetup ? nil : .encryptionAuthenticity(authenticity)
+        } else if let forwarder = timelineItem.properties.encryptionForwarder {
+            .encryptionForwarder(forwarder)
         } else {
             nil
         }
         
-        layoutType = switch timelineItem {
-        case is TextBasedRoomTimelineItem:
-            .overlay(capsuleStyle: false)
-        case let message as EventBasedMessageTimelineItemProtocol:
-            switch message {
-            case is ImageRoomTimelineItem, is VideoRoomTimelineItem:
-                .overlay(capsuleStyle: !message.hasMediaCaption)
-            case is AudioRoomTimelineItem, is FileRoomTimelineItem:
-                // swiftlint:disable:next void_function_in_ternary
-                message.hasMediaCaption ? .overlay(capsuleStyle: false) : .horizontal(spacing: 0) // No spacing as the content already contains it.
-            case let locationTimelineItem as LocationRoomTimelineItem:
-                .overlay(capsuleStyle: locationTimelineItem.content.geoURI != nil)
+        layoutType = if hasContentScanningFailure {
+            // The content scanner failure placeholder replaces the media,
+            // so the send info is laid out like it is for a text message.
+            timelineItem.hasMediaCaption ? .overlay(capsuleStyle: false) : .horizontal()
+        } else {
+            switch timelineItem {
+            case is TextBasedRoomTimelineItem:
+                .overlay(capsuleStyle: false)
+            case let liveLocationTimelineItem as LiveLocationRoomTimelineItem:
+                liveLocationTimelineItem.layout
+            case let message as EventBasedMessageTimelineItemProtocol:
+                switch message {
+                case is ImageRoomTimelineItem, is VideoRoomTimelineItem:
+                    .overlay(capsuleStyle: !message.hasMediaCaption)
+                case is GalleryRoomTimelineItem:
+                    // Without a caption, append the send info below the grid rather than overlaying
+                    // a capsule on top of the media.
+                    message.hasMediaCaption ? .overlay(capsuleStyle: false) : .vertical()
+                case is AudioRoomTimelineItem, is FileRoomTimelineItem:
+                    // swiftlint:disable:next void_function_in_ternary
+                    message.hasMediaCaption ? .overlay(capsuleStyle: false) : .horizontal(spacing: 0) // No spacing as the content already contains it.
+                case let locationTimelineItem as LocationRoomTimelineItem:
+                    .overlay(capsuleStyle: locationTimelineItem.content.geoURI != nil)
+                default:
+                    .horizontal()
+                }
+            case is StickerRoomTimelineItem:
+                .overlay(capsuleStyle: true)
+            case is PollRoomTimelineItem:
+                .vertical(spacing: 16)
             default:
                 .horizontal()
             }
-        case is StickerRoomTimelineItem:
+        }
+    }
+}
+
+private extension LiveLocationRoomTimelineItem {
+    var layout: TimelineItemSendInfo.LayoutType {
+        if content.isLive, isOutgoing {
+            .hidden
+        } else {
             .overlay(capsuleStyle: true)
-        case is PollRoomTimelineItem:
-            .vertical(spacing: 16)
-        default:
-            .horizontal()
         }
     }
 }
@@ -182,11 +228,17 @@ private extension EncryptionAuthenticity {
         // "failed to send". Only the states that genuinely mean "this may not be who you think"
         // are allowed to borrow the critical colour.
         guard isAlarming else { return .compound.textSecondary }
-
+        
         return switch color {
         case .red: .compound.textCriticalPrimary
         case .gray: .compound.textSecondary
         }
+    }
+}
+
+private extension TimelineItemKeyForwarder {
+    static var test: TimelineItemKeyForwarder {
+        TimelineItemKeyForwarder(id: "@alice:matrix.org", displayName: "alice")
     }
 }
 
@@ -213,6 +265,10 @@ struct TimelineItemSendInfoLabel_Previews: PreviewProvider, TestablePreview {
             TimelineItemSendInfoLabel(sendInfo: .init(itemID: .randomEvent,
                                                       localizedString: "09:47 AM",
                                                       status: .encryptionAuthenticity(.sentInClear(color: .red)),
+                                                      layoutType: .horizontal()))
+            TimelineItemSendInfoLabel(sendInfo: .init(itemID: .randomEvent,
+                                                      localizedString: "09:47 AM",
+                                                      status: .encryptionForwarder(.test),
                                                       layoutType: .horizontal()))
         }
     }

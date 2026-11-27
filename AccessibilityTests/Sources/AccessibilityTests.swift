@@ -1,4 +1,5 @@
 //
+// Copyright 2025 Element Creations Ltd.
 // Copyright 2025 New Vector Ltd.
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
@@ -52,6 +53,10 @@ final class AccessibilityTests: XCTestCase {
     private func performAccessibilityAuditForPreview(named name: String) {
         // Alows us to log the name of the preview that is being tested
         XCTContext.runActivity(named: name) { _ in
+            // Previews that focus a text field bring up the system keyboard, which we can't fix.
+            // Snapshot the keyboard in one query so one that's dismissing can't fail the test between checking and reading it.
+            let keyboardFrame = (try? app.keyboards.firstMatch.snapshot().frame) ?? .null
+            
             do {
                 // We have removed `textClipped` and `contrast` for now
                 try app.performAccessibilityAudit(for: [.dynamicType, .elementDetection, .hitRegion, .sufficientElementDescription, .trait]) { issue in
@@ -62,6 +67,11 @@ final class AccessibilityTests: XCTestCase {
                     
                     // Remove false positives for null elements
                     guard let element = issue.element else {
+                        return true
+                    }
+                    
+                    // The system keyboard's own elements aren't ours to fix
+                    if keyboardFrame.contains(element.frame) {
                         return true
                     }
                     
@@ -80,6 +90,9 @@ final class AccessibilityTests: XCTestCase {
                         return true
                     }
                     
+                    // swiftlint:disable:next print_deprecation
+                    print("🔍 A11Y ISSUE [\(name)] type=\(issue.auditType) desc=\(issue.compactDescription) element=\(issue.element?.debugDescription ?? "nil")")
+                    
                     return false
                 }
             } catch {
@@ -94,7 +107,6 @@ final class AccessibilityTests: XCTestCase {
     
     private static let partiallyUnsupportedDynamicTypeMessage = "Dynamic Type font sizes are partially unsupported"
     private static let notHumanReadableMessage = "Label not human-readable"
-    private static let elementHasNoDescription = "Element has no description"
     
     /// Use this array to filter add specific filters to ignore specific issues for certain elements
     private static let ignoredA11yIdentifiers: [String: [FilterType]] = [
@@ -115,6 +127,7 @@ private enum FilterType {
     case auditType(XCUIAccessibilityAuditType)
 }
 
+@MainActor
 private extension Array where Element == FilterType {
     func isAccessibilityIssueFiltered(_ issue: XCUIAccessibilityAuditIssue) -> Bool {
         for filter in self {

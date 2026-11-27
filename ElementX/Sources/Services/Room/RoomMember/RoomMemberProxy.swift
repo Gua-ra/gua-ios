@@ -1,14 +1,15 @@
 //
-// Copyright 2023, 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2023-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Foundation
 import MatrixRustSDK
 
-final class RoomMemberProxy: RoomMemberProxyProtocol {
+final nonisolated class RoomMemberProxy: RoomMemberProxyProtocol {
     private let member: RoomMember
     
     init(member: RoomMember) {
@@ -35,6 +36,10 @@ final class RoomMemberProxy: RoomMemberProxyProtocol {
         member.avatarUrl.flatMap(URL.init(string:))
     }
     
+    var status: UserStatus {
+        UserStatus(rustStatus: member.status, rustCall: member.call)
+    }
+    
     var membership: MembershipState {
         member.membership
     }
@@ -49,5 +54,10 @@ final class RoomMemberProxy: RoomMemberProxyProtocol {
     
     var powerLevel: RoomPowerLevel {
         .init(rustPowerLevel: member.powerLevel)
+    }
+    
+    // periphery:ignore - might be useful to have
+    var isServiceMember: Bool {
+        member.isServiceMember
     }
 }

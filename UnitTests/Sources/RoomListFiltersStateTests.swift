@@ -1,127 +1,159 @@
 //
-// Copyright 2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2024-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 @testable import ElementX
-import XCTest
+import Testing
 
-final class RoomListFiltersStateTests: XCTestCase {
-    var appSettings: AppSettings!
+@MainActor
+final class RoomListFiltersStateTests {
+    var userSettings: UserSettings
+    var state: RoomListFiltersState
+    /// The filters that aren't hidden behind a feature flag.
+    let defaultFilters = RoomListFilter.allCases.filter { $0 != .mentions && $0 != .lowPriority }
     
-    var state: RoomListFiltersState!
-    var allCasesWithoutLowPriority = RoomListFilter.allCases.filter { $0 != .lowPriority }
-    
-    override func setUp() {
-        AppSettings.resetAllSettings()
-        appSettings = AppSettings()
-        state = RoomListFiltersState(appSettings: appSettings)
+    init() {
+        userSettings = UserSettings.mock()
+        state = RoomListFiltersState(userSettings: userSettings)
     }
     
-    override func tearDown() {
-        AppSettings.resetAllSettings()
+    @Test
+    func initialState() {
+        #expect(!state.isFiltering)
+        #expect(state.activeFilters == [])
+        #expect(state.availableFilters == defaultFilters)
     }
     
-    func testInitialState() {
-        XCTAssertFalse(state.isFiltering)
-        XCTAssertEqual(state.activeFilters, [])
-        XCTAssertEqual(state.availableFilters, allCasesWithoutLowPriority)
-    }
-    
-    func testSetAndUnsetFilters() {
+    @Test
+    func setAndUnsetFilters() {
         state.activateFilter(.unreads)
-        XCTAssertTrue(state.isFiltering)
-        XCTAssertEqual(state.activeFilters, [.unreads])
-        XCTAssertEqual(state.availableFilters, [.people, .rooms, .favourites])
+        #expect(state.isFiltering)
+        #expect(state.activeFilters == [.unreads])
+        #expect(state.availableFilters == [.favourites, .people, .rooms])
         state.deactivateFilter(.unreads)
-        XCTAssertFalse(state.isFiltering)
-        XCTAssertEqual(state.activeFilters, [])
-        XCTAssertEqual(state.availableFilters, allCasesWithoutLowPriority)
+        #expect(!state.isFiltering)
+        #expect(state.activeFilters == [])
+        #expect(state.availableFilters == defaultFilters)
     }
     
-    func testMutuallyExclusiveFilters() {
+    @Test
+    func mutuallyExclusiveFilters() {
         state.activateFilter(.people)
-        XCTAssertTrue(state.isFiltering)
-        XCTAssertEqual(state.activeFilters, [.people])
-        XCTAssertEqual(state.availableFilters, [.unreads, .favourites])
+        #expect(state.isFiltering)
+        #expect(state.activeFilters == [.people])
+        #expect(state.availableFilters == [.unreads, .favourites])
         
         state.deactivateFilter(.people)
-        XCTAssertFalse(state.isFiltering)
-        XCTAssertEqual(state.activeFilters, [])
-        XCTAssertEqual(state.availableFilters, allCasesWithoutLowPriority)
+        #expect(!state.isFiltering)
+        #expect(state.activeFilters == [])
+        #expect(state.availableFilters == defaultFilters)
         
         state.activateFilter(.rooms)
-        XCTAssertTrue(state.isFiltering)
-        XCTAssertEqual(state.activeFilters, [.rooms])
-        XCTAssertEqual(state.availableFilters, [.unreads, .favourites])
+        #expect(state.isFiltering)
+        #expect(state.activeFilters == [.rooms])
+        #expect(state.availableFilters == [.unreads, .favourites])
         
         state.activateFilter(.unreads)
-        XCTAssertTrue(state.isFiltering)
-        XCTAssertEqual(state.activeFilters, [.rooms, .unreads])
-        XCTAssertEqual(state.availableFilters, [.favourites])
+        #expect(state.isFiltering)
+        #expect(state.activeFilters == [.rooms, .unreads])
+        #expect(state.availableFilters == [.favourites])
     }
     
-    func testClearFilters() {
+    @Test
+    func ignoresIncompatibleFilter() {
         state.activateFilter(.people)
-        XCTAssertEqual(state.activeFilters, [.people])
-        XCTAssertEqual(state.availableFilters, [.unreads, .favourites])
-
+        state.activateFilter(.invites)
+        
+        #expect(state.activeFilters == [.people])
+    }
+    
+    @Test
+    func clearFilters() {
+        state.activateFilter(.people)
+        #expect(state.activeFilters == [.people])
+        #expect(state.availableFilters == [.unreads, .favourites])
+        
         state.activateFilter(.unreads)
-        XCTAssertEqual(state.activeFilters, [.people, .unreads])
-        XCTAssertEqual(state.availableFilters, [.favourites])
-
+        #expect(state.activeFilters == [.people, .unreads])
+        #expect(state.availableFilters == [.favourites])
+        
         state.activateFilter(.favourites)
-        XCTAssertEqual(state.activeFilters, [.people, .unreads, .favourites])
-        XCTAssertEqual(state.availableFilters, [])
+        #expect(state.activeFilters == [.people, .unreads, .favourites])
+        #expect(state.availableFilters == [])
         
         state.clearFilters()
-        XCTAssertFalse(state.isFiltering)
-        XCTAssertEqual(state.activeFilters, [])
-        XCTAssertEqual(state.availableFilters, allCasesWithoutLowPriority)
+        #expect(!state.isFiltering)
+        #expect(state.activeFilters == [])
+        #expect(state.availableFilters == defaultFilters)
     }
     
-    func testOrder() {
+    @Test
+    func order() {
         state.activateFilter(.favourites)
-        XCTAssertEqual(state.activeFilters, [.favourites])
-        XCTAssertEqual(state.availableFilters, [.unreads, .people, .rooms])
-
+        #expect(state.activeFilters == [.favourites])
+        #expect(state.availableFilters == [.unreads, .people, .rooms])
+        
         state.deactivateFilter(.favourites)
-        XCTAssertEqual(state.activeFilters, [])
-        XCTAssertEqual(state.availableFilters, allCasesWithoutLowPriority)
+        #expect(state.activeFilters == [])
+        #expect(state.availableFilters == defaultFilters)
         
         state.activateFilter(.rooms)
-        XCTAssertEqual(state.activeFilters, [.rooms])
-        XCTAssertEqual(state.availableFilters, [.unreads, .favourites])
-
+        #expect(state.activeFilters == [.rooms])
+        #expect(state.availableFilters == [.unreads, .favourites])
+        
         state.activateFilter(.unreads)
-        XCTAssertEqual(state.activeFilters, [.rooms, .unreads])
-        XCTAssertEqual(state.availableFilters, [.favourites])
+        #expect(state.activeFilters == [.rooms, .unreads])
+        #expect(state.availableFilters == [.favourites])
         
         state.deactivateFilter(.unreads)
-        XCTAssertEqual(state.activeFilters, [.rooms])
-        XCTAssertEqual(state.availableFilters, [.unreads, .favourites])
+        #expect(state.activeFilters == [.rooms])
+        #expect(state.availableFilters == [.unreads, .favourites])
     }
     
     // MARK: Low Priority feature flag
     
     /// Don't forget to add .lowPriority into the mix above when enabling the feature.
-    func testWithLowPriorityFeature() {
+    @Test
+    func withLowPriorityFeature() {
         enableLowPriorityFeature()
-        XCTAssertFalse(state.isFiltering)
-        XCTAssertEqual(state.activeFilters, [])
-        XCTAssertEqual(state.availableFilters, RoomListFilter.allCases)
+        #expect(!state.isFiltering)
+        #expect(state.activeFilters == [])
+        #expect(state.availableFilters == defaultFilters + [.lowPriority])
         
         state.activateFilter(.lowPriority)
-        XCTAssertEqual(state.activeFilters, [.lowPriority])
-        XCTAssertEqual(state.availableFilters, [.unreads, .people, .rooms])
+        #expect(state.activeFilters == [.lowPriority])
+        #expect(state.availableFilters == [.unreads, .people, .rooms])
+    }
+    
+    // MARK: Mentions feature flag
+    
+    /// Don't forget to add .mentions into the mix above when enabling the feature.
+    @Test
+    func withMentionsFeature() {
+        enableMentionsFeature()
+        #expect(!state.isFiltering)
+        #expect(state.activeFilters == [])
+        #expect(state.availableFilters == [.unreads, .mentions, .favourites, .people, .rooms, .invites])
+        
+        state.activateFilter(.mentions)
+        #expect(state.isFiltering)
+        #expect(state.activeFilters == [.mentions])
+        #expect(state.availableFilters == [.unreads, .favourites, .people, .rooms])
     }
     
     // MARK: - Helpers
     
     private func enableLowPriorityFeature() {
-        appSettings.lowPriorityFilterEnabled = true
-        state = RoomListFiltersState(appSettings: appSettings)
+        userSettings.app.lowPriorityFilterEnabled = true
+        state = RoomListFiltersState(userSettings: userSettings)
+    }
+    
+    private func enableMentionsFeature() {
+        userSettings.app.mentionsFilterEnabled = true
+        state = RoomListFiltersState(userSettings: userSettings)
     }
 }

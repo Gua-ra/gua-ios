@@ -8,9 +8,9 @@
 import Foundation
 
 /// Omits the resolver's key-continuity check: the app keeps no earlier entry.
-enum MemberEntryVerifier {
+nonisolated enum MemberEntryVerifier {
     static let maxLifetimeMilliseconds: Int64 = 400 * 86_400_000
-
+    
     static func verify(homeserver: RosterHomeserver, member: RosterMemberAttestation?,
                        atEpochMilliseconds now: Int64) -> ResolverVerificationReport.MemberEntry {
         guard let member else { return .unattested }
@@ -21,7 +21,7 @@ enum MemberEntryVerifier {
             return .invalid(error)
         }
     }
-
+    
     private static func check(_ member: RosterMemberAttestation, of homeserver: RosterHomeserver,
                               at now: Int64) throws(ResolverVerificationReason) {
         guard member.schema == CanonicalMemberEntry.schema else { throw .unsupportedSchema }
@@ -41,7 +41,7 @@ enum MemberEntryVerifier {
         guard let own = member.signatures.first(where: { $0.keyId == keyId })?.signatureB64 else { throw .missingSignature }
         guard ResolverVerificationCrypto.verify(signatureBase64: own, over: canonical, key: key) else { throw .badSignature }
     }
-
+    
     private static func validityWindow(of member: RosterMemberAttestation) throws(ResolverVerificationReason) -> ClosedRange<Int64> {
         guard let notBefore = member.notBefore, let notAfter = member.notAfter else { throw .badWindow }
         guard let start = ResolverInstant(iso: notBefore), let end = ResolverInstant(iso: notAfter) else { throw .parseError }
@@ -51,7 +51,7 @@ enum MemberEntryVerifier {
         }
         return start.epochMilliseconds...end.epochMilliseconds
     }
-
+    
     private static func checkSignatureShape(_ signatures: [RosterMemberSignature]) throws(ResolverVerificationReason) {
         var keyIds = Set<String>()
         for signature in signatures {

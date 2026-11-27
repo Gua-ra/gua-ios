@@ -1,5 +1,6 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
@@ -29,7 +30,7 @@ class RoomPollsHistoryScreenViewModel: RoomPollsHistoryScreenViewModelType, Room
     var actions: AnyPublisher<RoomPollsHistoryScreenViewModelAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
-
+    
     init(pollInteractionHandler: PollInteractionHandlerProtocol,
          timelineController: TimelineControllerProtocol,
          userIndicatorController: UserIndicatorControllerProtocol) {
@@ -57,8 +58,8 @@ class RoomPollsHistoryScreenViewModel: RoomPollsHistoryScreenViewModelType, Room
             updatePollsList(filter: filter)
         case .loadMore:
             paginateBackwards()
-        case .sendPollResponse(let pollStartID, let optionID):
-            sendPollResponse(pollStartID: pollStartID, optionID: optionID)
+        case .sendPollResponse(let pollStartID, let answerIDs):
+            sendPollResponse(pollStartID: pollStartID, answerIDs: answerIDs)
         }
     }
     
@@ -74,11 +75,11 @@ class RoomPollsHistoryScreenViewModel: RoomPollsHistoryScreenViewModelType, Room
                 case .updatedTimelineItems:
                     self.updatePollsList(filter: state.bindings.filter)
                 case .paginationState(let paginationState):
-                    let canBackPaginate = paginationState.backward != .timelineEndReached
+                    let canBackPaginate = paginationState.backward != .endReached
                     if self.state.canBackPaginate != canBackPaginate {
                         self.state.canBackPaginate = canBackPaginate
                     }
-                case .isLive:
+                case .isLive, .messageSentOrEdited:
                     break
                 }
             }
@@ -102,7 +103,7 @@ class RoomPollsHistoryScreenViewModel: RoomPollsHistoryScreenViewModelType, Room
     private func displayError(message: String) {
         state.bindings.alertInfo = .init(id: .alert, title: message)
     }
-
+    
     // MARK: - Poll Interaction Handler
     
     private func endPoll(pollStartID: String) {
@@ -116,10 +117,10 @@ class RoomPollsHistoryScreenViewModel: RoomPollsHistoryScreenViewModelType, Room
         }
     }
     
-    private func sendPollResponse(pollStartID: String, optionID: String) {
+    private func sendPollResponse(pollStartID: String, answerIDs: [String]) {
         Task {
             do {
-                try await pollInteractionHandler.sendPollResponse(pollStartID: pollStartID, optionID: optionID).get()
+                try await pollInteractionHandler.sendPollResponse(pollStartID: pollStartID, answerIDs: answerIDs).get()
             } catch {
                 MXLog.error("Failed to send poll response. \(error)")
                 displayError(message: L10n.errorUnknown)
@@ -161,7 +162,7 @@ class RoomPollsHistoryScreenViewModel: RoomPollsHistoryScreenViewModelType, Room
         guard paginateBackwardsTask == nil else {
             return
         }
-
+        
         paginateBackwardsTask = Task { [weak self] in
             guard let self else {
                 return

@@ -1,26 +1,28 @@
 //
-// Copyright 2022-2024 New Vector Ltd.
+// Copyright 2025 Element Creations Ltd.
+// Copyright 2022-2025 New Vector Ltd.
 //
-// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 // Please see LICENSE files in the repository root for full details.
 //
 
 import Foundation
 
-enum NotificationConstants {
+nonisolated enum NotificationConstants {
     enum UserInfoKey {
         static let roomIdentifier = "room_id"
         static let eventIdentifier = "event_id"
-        static let unreadCount = "unread_count"
+        static let eventDate = "event_date"
+        static let threadRootEventIdentifier = "thread_root_event_id"
         static let pusherNotificationClientIdentifier = "pusher_notification_client_identifier"
         static let receiverIdentifier = "receiver_id"
     }
-
+    
     enum Category {
         static let message = "message"
         static let invite = "invite"
     }
-
+    
     enum Action {
         static let inlineReply = "inline-reply"
     }

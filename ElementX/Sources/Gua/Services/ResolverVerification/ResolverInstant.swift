@@ -8,12 +8,14 @@
 import Foundation
 
 /// Truncates the fraction to milliseconds, as the resolver does.
-struct ResolverInstant: Equatable {
+nonisolated struct ResolverInstant: Equatable {
     let epochMilliseconds: Int64
     let hasSubMillisecondDigits: Bool
-
-    private static let pattern = try? Regex(#"^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\.([0-9]{1,9}))?Z$"#)
-
+    
+    private static var pattern: Regex<AnyRegexOutput>? {
+        try? Regex(#"^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\.([0-9]{1,9}))?Z$"#)
+    }
+    
     init?(iso: String) {
         guard let pattern = Self.pattern, let match = iso.wholeMatch(of: pattern) else { return nil }
         func number(_ index: Int) -> Int64? {
@@ -31,7 +33,7 @@ struct ResolverInstant: Equatable {
         epochMilliseconds = seconds * 1000 + milliseconds
         hasSubMillisecondDigits = fraction.count > 3 && fraction.dropFirst(3).contains { $0 != "0" }
     }
-
+    
     /// Days since 1970-01-01 in the proleptic Gregorian calendar (Howard Hinnant's algorithm).
     private static func daysFromCivil(year: Int64, month: Int64, day: Int64) -> Int64 {
         let y = month <= 2 ? year - 1 : year
@@ -42,7 +44,7 @@ struct ResolverInstant: Equatable {
         let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy
         return era * 146_097 + doe - 719_468
     }
-
+    
     private static func daysIn(month: Int64, year: Int64) -> Int64 {
         switch month {
         case 2: (year % 4 == 0 && year % 100 != 0) || year % 400 == 0 ? 29 : 28
